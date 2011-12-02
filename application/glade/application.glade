@@ -125,6 +125,7 @@
         <property name="short_label" translatable="yes">Import specimens</property>
         <property name="tooltip" translatable="yes">Import multiple specimens using multiple experimental data files</property>
         <property name="stock_id">gtk-add</property>
+        <signal name="activate" handler="on_add_multiple_specimens" swapped="no"/>
       </object>
     </child>
   </object>
@@ -350,6 +351,15 @@
                       </object>
                     </child>
                     <child>
+                      <object class="GtkImageMenuItem" id="main_menu_item_import_specimens">
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="related_action">import_specimens_action</property>
+                        <property name="use_underline">True</property>
+                        <property name="use_stock">True</property>
+                      </object>
+                    </child>
+                    <child>
                       <object class="GtkSeparatorMenuItem" id="separator3">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
@@ -436,6 +446,32 @@
             </child>
             <child>
               <object class="GtkSeparatorToolItem" id="toolbutton2">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="use_action_appearance">False</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="homogeneous">True</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkToolButton" id="Print">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="related_action">save_graph</property>
+                <property name="use_action_appearance">False</property>
+                <property name="label" translatable="yes">Save Graph</property>
+                <property name="use_underline">True</property>
+                <property name="stock_id">gtk-floppy</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="homogeneous">True</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSeparatorToolItem" id="toolbutton1">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="use_action_appearance">False</property>
@@ -797,8 +833,8 @@
         <property name="can_focus">False</property>
         <property name="tooltip_text" translatable="yes">Add multiple specimen using experimental data files</property>
         <property name="related_action">import_specimens_action</property>
+        <property name="use_underline">True</property>
         <property name="use_stock">True</property>
-        <signal name="activate" handler="on_add_multiple_specimens" swapped="no"/>
       </object>
     </child>
     <child>

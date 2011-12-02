@@ -27,8 +27,8 @@ from atoms.controllers import AtomTypesController
 
 class AppController (BaseController, DialogMixin):
 
-    file_filters = [("All Files", "*.*"),
-                    ("PyXRD Project files", "*.pyxrd")]
+    file_filters = [("PyXRD Project files", "*.pyxrd"),
+                    ("All Files", "*.*")]
 
     def __init__(self, model, view, spurious=False, auto_adapt=False, parent=None):
         BaseController.__init__(self, model, view, spurious=spurious, auto_adapt=auto_adapt, parent=parent)

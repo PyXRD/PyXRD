@@ -626,10 +626,10 @@ class Marker(ChildModel, Observable, Storable):
         if self.data_position != 0:
             return self.parent.parent.data_goniometer.data_lambda / (2.0*sin(radians(self.data_position/2.0)))
         else:
-            return 0
+            return 0.0
         
     def set_nm_position(self, position):
-        t = 0
+        t = 0.0
         if position != 0: 
             t = degrees(asin(max(-1.0, min(1.0, self.parent.parent.data_goniometer.data_lambda/(2.0*position)))))*2.0
         self.data_position = t

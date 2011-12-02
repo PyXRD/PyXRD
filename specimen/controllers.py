@@ -22,9 +22,10 @@ from specimen.views import EditMarkerView, DetectPeaksView
 
 class SpecimenController(DialogController, DialogMixin):
 
-    file_filters = [("All Files", "*.*"),
+    file_filters = [("Data Files", ("*.DAT", "*.RD")),    
                     ("ASCII Data", "*.DAT"),
-                    ("Phillips Binary Data", "*.RD")]
+                    ("Phillips Binary Data", "*.RD"),
+                    ("All Files", "*.*")]
 
     xydataobserver = None
     class XYDataObserver (Observer):
@@ -242,7 +243,6 @@ class EditMarkerController(ChildController):
                     FloatEntryValidator(self.view["marker_%s" % name])
                     self.adapt(name)
                 else:
-                    print name
                     self.adapt(name)
             FloatEntryValidator(self.view["entry_nanometer"])
             return
@@ -284,11 +284,8 @@ class EditMarkerController(ChildController):
             self.model.data_style = val
             
     def on_nanometer_changed(self, widget):
-        #try:
         position = float(widget.get_text())
         self.model.set_nm_position(position)
-        #except:
-        #    pass
         
     def on_sample_clicked(self, widget):
         # http://faq.pygtk.org/index.py?req=show&file=faq05.006.htp changing cursor?

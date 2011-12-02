@@ -41,7 +41,11 @@ class DialogMixin():
         for name, re in self.file_filters:
             ffilter = gtk.FileFilter()
             ffilter.set_name(name)
-            ffilter.add_pattern(re)
+            if isinstance(re, (str, unicode)):
+                ffilter.add_pattern(re)
+            else:
+                for expr in re:
+                    ffilter.add_pattern(expr)
             yield ffilter
 
     def _run_dialog(self, dialog, on_accept_callback, on_reject_callback=None):

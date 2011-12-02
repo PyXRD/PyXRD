@@ -19,12 +19,11 @@ from generic.validators import FloatEntryValidator
 from generic.controllers import DialogController, HasObjectTreeview, DialogMixin, get_color_val
 from project.models import Project
 from specimen.models import Specimen
+from specimen.controllers import SpecimenController
 
 class ProjectController (DialogController, HasObjectTreeview, DialogMixin):
 
-    file_filters = [("All Files", "*.*"),
-                    ("ASCII Data", "*.DAT"),
-                    ("Phillips Binary Data", "*.RD")]
+    file_filters = SpecimenController.file_filters
 
     def register_view(self, view):
         print "ProjectController.register_view()"

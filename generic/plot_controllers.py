@@ -234,7 +234,7 @@ class DraggableVLine():
         DraggableVLine.lock = self
 
     def on_motion(self, event):
-        'on motion we will move the rect if the mouse is over us'
+        'on motion we will move the line if the mouse is over us'
         if self.window != None and event.inaxes == self.line.axes:
             if DraggableVLine.lock is not self:
                 change_cursor, attrd = self.line.contains(event)
@@ -251,8 +251,8 @@ class DraggableVLine():
             return
         if event.inaxes != self.line.axes: return
         x0, xpress = self.press
-        dx = event.xdata - xpress
-        self.line.set_xdata((x0+dx,x0+dx))
+        x = max(x0 + (event.xdata - xpress), 0)
+        self.line.set_xdata((x,x))
         
         self.line.figure.canvas.draw()
 

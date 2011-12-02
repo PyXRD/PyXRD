@@ -60,7 +60,6 @@ class Specimen(ChildModel, Observable, Storable):
         return self._data_sample_length
     @Model.setter("data_sample_length")
     def set_data_sample_length(self, prop_name, value):
-        print "SAMPLE LENGTH SET!!"
         self._data_sample_length = value    
     #data_sample_length = 0
     
@@ -268,7 +267,6 @@ class Specimen(ChildModel, Observable, Storable):
         return specimen
         
     def on_update_plot(self, figure, axes, pctrl):       
-        print "SPECIMEN PLOT"
         if self.display_experimental:
             self.data_experimental_pattern.on_update_plot(figure, axes, pctrl)
         if self.display_calculated:
@@ -335,7 +333,6 @@ class Specimen(ChildModel, Observable, Storable):
             if return_all:
                 return (theta_range, lpf_range, iff_range, stf_range, intensity_range)
             else:
-                print zip(theta_range, lpf_range, iff_range, stf_range)
                 return (theta_range, intensity_range)
         
     def auto_add_peaks(self, threshold):

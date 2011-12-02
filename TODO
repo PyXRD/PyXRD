@@ -1,0 +1,8 @@
+- provide general plotting settings:
+    - 
+- MLM support
+- statistics
+- change goniometer into a ObjectListStore so we can create a list of predefined 'machines' and add or delete custom ones
+- implement auto-update graph:
+    - add chained "is_dirty" signal to specimens, phases and atom types
+    - add callback that checks state of auto-update and acts accordingly

@@ -13,7 +13,7 @@ import gtk
 from gtkmvc import Controller, Observer
 from gtkmvc.adapters import Adapter
 
-from generic.plot_controllers import DraggableVLine
+from generic.plot_controllers import DraggableVLine, EyedropperCursorPlot
 from generic.controllers import DialogController, DialogMixin, ChildController, ObjectListStoreController, get_color_val, delayed, ctrl_setup_combo_with_list
 from generic.validators import FloatEntryValidator
 
@@ -288,31 +288,35 @@ class EditMarkerController(ChildController):
         self.model.set_nm_position(position)
         
     def on_sample_clicked(self, widget):
-        # http://faq.pygtk.org/index.py?req=show&file=faq05.006.htp changing cursor?
-        x_pos = -1
-        cid = -1
-        fig = self.cparent.plot_controller.figure
-        ret = self.view.get_toplevel()
+        self.cid = -1
+        self.fig = self.cparent.plot_controller.figure
+        self.ret = self.view.get_toplevel()
+        
+        self.edc = EyedropperCursorPlot(self.cparent.plot_controller.canvas, self.cparent.plot_controller.canvas.get_window(), True, True)
+        
         def onclick(event):
+            x_pos = -1
             if event.inaxes:
                 x_pos = event.xdata
-            if cid != -1:
-                fig.canvas.mpl_disconnect(cid)
-            ret.present()
+            if self.cid != -1:
+                self.fig.canvas.mpl_disconnect(self.cid)
+            if self.edc != None:
+                self.edc.enabled = False
+                self.edc.disconnect()
+            self.ret.present()
             if x_pos != -1:
                 self.model.data_position = x_pos
-        cid = fig.canvas.mpl_connect('button_press_event', onclick)
+                
+        self.cid = self.fig.canvas.mpl_connect('button_press_event', onclick)
         self.cparent.view.get_toplevel().present()
         
-        
-        
-    
 class MarkersController(ObjectListStoreController):
 
     file_filters = ("Marker file", "*.mrk"),
     model_property_name = "data_markers"
     columns = [ ("Marker label", 0) ]
     delete_msg = "Deleting a marker is irreverisble!\nAre You sure you want to continue?"
+    title="Edit Markers"
 
     def get_new_edit_view(self, obj):
         if isinstance(obj, Marker):

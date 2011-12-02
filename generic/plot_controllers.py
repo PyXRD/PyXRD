@@ -203,6 +203,29 @@ class MainPlotController (PlotController):
 class SmallPlotController (PlotController):
     pass
     
+class EyedropperCursorPlot():
+    def __init__(self, canvas, window, connect = False, enabled = False):
+        self.canvas = canvas
+        self.window = window
+        self.enabled = enabled
+        if connect: self.connect()
+
+    def connect(self):
+        self.cidmotion = self.canvas.mpl_connect(
+            'motion_notify_event', self.on_motion)
+
+    def on_motion(self, event):
+        if self.window != None:           
+            if not self.enabled:
+                self.window.set_cursor(None)
+            else:
+                self.window.set_cursor(gtk.gdk.Cursor(gtk.gdk.CROSSHAIR))
+
+    def disconnect(self):
+        if self.window != None:           
+            self.window.set_cursor(None)
+        self.canvas.mpl_disconnect(self.cidmotion)
+    
 class DraggableVLine():
     lock = None  # only one can be animated at a time
     def __init__(self, line, connect = False, callback = None, window = None):

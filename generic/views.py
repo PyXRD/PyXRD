@@ -49,7 +49,7 @@ class TitleView():
 
     def set_title(self, title):
         self.title = title
-        self.get_top_widget().set_title(title)
+        self.get_toplevel().set_title(title)
 
 """
     Mixin that provides a function to add childviews to containers

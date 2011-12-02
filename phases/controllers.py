@@ -286,6 +286,7 @@ class PhasesController(ObjectListStoreController):
     model_property_name = "data_phases"
     columns = [ ("Phase name", 0) ]
     delete_msg = "Deleting a phase is irreverisble!\nAre You sure you want to continue?"
+    title="Edit Phases"
 
     def get_new_edit_view(self, obj):
         if isinstance(obj, Phase):

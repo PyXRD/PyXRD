@@ -68,11 +68,11 @@ class EditAtomTypeController(ChildController):
 
 
 class AtomTypesController(ObjectListStoreController):
-
     file_filters = ("Single atom type file", "*.sat"), ("Atom types list file", "*.atl")
     model_property_name = "data_atom_types"
     columns = [ ("Atom type name", 0) ]
     delete_msg = "Deleting an atom type is irreverisble!\nAre You sure you want to continue?"
+    title="Edit Atom Types"
 
     def get_new_edit_view(self, obj):
         if isinstance(obj, AtomType):

@@ -188,9 +188,12 @@ class AppController (BaseController, DialogMixin):
         def on_accept(dialog):
             self.model.current_project = Project()
             self.update_title()
-            self.view.project.present()    
-        self.run_confirmation_dialog("Creating a new project will erase all data in the current project!\nAre You sure you want to continue?",
-                                     on_accept, parent=self.view.get_top_widget())
+            self.view.project.present()
+        if self.model.current_project != None:
+            self.run_confirmation_dialog("Creating a new project will erase all data in the current project!\nAre You sure you want to continue?",
+                                         on_accept, parent=self.view.get_top_widget())
+        else:
+            on_accept(None)
 
     def on_edit_project_activate(self, widget, data=None):
         #self.push_status_msg("Editing project...", 'edit_project')

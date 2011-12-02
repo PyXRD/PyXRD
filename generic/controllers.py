@@ -198,14 +198,17 @@ class ObjectListStoreController(DialogController, HasObjectTreeview):
     edit_view = None
     columns = [ ("Object name", 0) ]
     delete_msg = "Deleting objects is irreverisble!\nAre You sure you want to continue?"
+    title="Edit Dialog"
 
     def __init__(self, model, view,
                  spurious=False, auto_adapt=False, parent=None,
-                 model_property_name="", columns=[], delete_msg=""):
+                 model_property_name="", columns=[], delete_msg="", title=""):
         BaseController.__init__(self, model, view, spurious=spurious, auto_adapt=auto_adapt, parent=parent)
         self.model_property_name = model_property_name or self.model_property_name
         self.columns = columns or self.columns
         self.delete_msg = delete_msg or self.delete_msg
+        self.title = title or self.title
+        view.set_title(self.title)
 
     @property
     def liststore(self):

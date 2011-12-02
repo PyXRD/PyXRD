@@ -21,8 +21,6 @@ class EditAtomTypeView(BaseView):
     def __init__(self, *args, **kwargs):
         BaseView.__init__(self, *args, **kwargs)
         
-        self.parent.set_title("Edit Atom Types")
-        
         self.graph_parent = self["view_graph"]
         self.setup_matplotlib_widget()
         

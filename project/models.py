@@ -161,10 +161,10 @@ class Project(Model, Observable, Storable):
                 signal.emit(item)
     
     def __init__(self, 
-                 name = "Name of the model",
+                 name = "Project name",
                  date = time.strftime("%d/%m/%Y"),
-                 description = "Description of the model",
-                 author = "Author of this model",
+                 description = "Project description",
+                 author = "Project author",
                  goniometer = None,
                  atom_types = None, data_phases = None, data_specimens = None,
                  display_marker_angle=None, display_calc_color=None, display_exp_color=None,

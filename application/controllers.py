@@ -245,6 +245,10 @@ class AppController (BaseController, DialogMixin):
         self.project.import_multiple_specimen()        
         return True
 
+    def on_edit_specimen_activate(self, event):
+        self.edit_specimen(self.project.get_selected_object())
+        return True
+
     def on_del_specimen_activate(self, event):
         #self.push_status_msg("Deleting specimen...", 'del_specimen')
         tv = self.view["specimens_treeview"]
@@ -284,7 +288,6 @@ class AppController (BaseController, DialogMixin):
 
     def on_refresh_graph(self, event):
         self.update_plot()
-        #self.specimen.model.calculate_pattern()
 
     def on_save_graph(self, event):
         self.plot_controller.save()

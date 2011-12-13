@@ -169,6 +169,14 @@
         <property name="always_show_image">True</property>
       </object>
     </child>
+    <child>
+      <object class="GtkAction" id="edit_specimen">
+        <property name="label" translatable="yes">Edit specimen</property>
+        <property name="short_label" translatable="yes">Edit specimen</property>
+        <property name="stock_id">gtk-edit</property>
+        <signal name="activate" handler="on_edit_specimen_activate" swapped="no"/>
+      </object>
+    </child>
   </object>
   <object class="GtkActionGroup" id="specimens_actions">
     <property name="sensitive">False</property>
@@ -839,6 +847,21 @@
     </child>
     <child>
       <object class="GtkSeparatorMenuItem" id="menuitem2">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="use_action_appearance">False</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkImageMenuItem" id="popup_menu_item_edit_specimens">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="related_action">edit_specimen</property>
+        <property name="use_stock">True</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkSeparatorMenuItem" id="menuitem3">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="use_action_appearance">False</property>

@@ -24,7 +24,7 @@ from atoms.models import Atom
 class Phase(ChildModel, Storable):
 
     __inheritables__ = ("data_mean_CSDS", "data_min_CSDS", "data_max_CSDS", "data_sigma_star", "data_d001", 
-                        "data_proportion", "data_layer_atoms", "data_interlayer_atoms")
+                        "data_layer_atoms", "data_interlayer_atoms")
     __columns__ = [
         ('data_name', str),
         ('data_based_on', object),
@@ -39,7 +39,6 @@ class Phase(ChildModel, Storable):
         ('inherit_d001', bool),
         ('data_d001', float),
         ('inherit_proportion', bool),
-        ('data_proportion', float),
         ('inherit_layer_atoms', bool),
         ('data_layer_atoms', None),
         ('inherit_interlayer_atoms', bool),
@@ -113,7 +112,6 @@ class Phase(ChildModel, Storable):
     _data_max_CSDS = 50.0
     _data_sigma_star = 3.0
     _data_d001 = 1.0
-    _data_proportion = 1.0
     _data_layer_atoms = None
     _data_interlayer_atoms = None
     @Model.getter(*__inheritables__)
@@ -142,7 +140,7 @@ class Phase(ChildModel, Storable):
         self._data_max_CSDS = data_max_CSDS or self.data_max_CSDS
         self._data_sigma_star = data_sigma_star or self.data_sigma_star 
         self._data_d001 = data_d001 or self.data_d001
-        self._data_proportion = data_proportion or self.data_proportion
+        #self._data_proportion = data_proportion or self.data_proportion
         
         self._data_layer_atoms = data_layer_atoms or ObjectListStore(Atom)
         self._data_interlayer_atoms = data_interlayer_atoms or ObjectListStore(Atom)
@@ -174,7 +172,6 @@ class Phase(ChildModel, Storable):
     
     @staticmethod          
     def from_json(**kwargs):
-        print "FROM JSON CALLED WITH kwargs['parent'] = %s" % kwargs['parent']
         kwargs['data_layer_atoms'] = ObjectListStore.from_json(parent=kwargs['parent'], **kwargs['data_layer_atoms']['properties'])
         kwargs['data_interlayer_atoms'] = ObjectListStore.from_json(parent=kwargs['parent'], **kwargs['data_interlayer_atoms']['properties'])
         return Phase(**kwargs)
@@ -274,7 +271,6 @@ class Phase(ChildModel, Storable):
         return lpf, iff, stf, absint * self.get_absolute_scale()
 
     def get_absolute_scale(self):
-        scale = self.data_proportion
     
         mean_d001 = self.data_d001
         mean_density = self.get_density()
@@ -282,7 +278,7 @@ class Phase(ChildModel, Storable):
     
         distr, real_mean = self._get_interference_distributions()
         
-        return scale * mean_d001 / (real_mean *  mean_volume**2 * mean_density);
+        return mean_d001 / (real_mean *  mean_volume**2 * mean_density);
 
     def get_cell_a(self):
         return self.get_cell_b() / sqrt(3.0)
@@ -305,7 +301,22 @@ class Phase(ChildModel, Storable):
     def get_density(self):
         return self.get_weight() / self.get_volume()
         
+    
 
+    """ILLITE LAYER /*     */   protected double getBCellParam()
+    /*     */   {
+    /* 151 */     return 9.0D + 0.042D * ((DoubleValue)this._aAtoms[6][2]).getValue();
+    /*     */   }"""
+
+    """KAOLINITE /*     */   protected double getBCellParam()
+    /*     */   {
+    /* 110 */     return 8.94D;
+    /*     */   }"""
+    
+    """SERPENTINE/*     */   protected double getBCellParam()
+    /*     */   {
+    /* 116 */     return 9.220000000000001D + 0.017D * ((DoubleValue)this._aAtoms[1][2]).getValue();
+    /*     */   }"""
 
     def __str__(self):
         return "<PHASE %s(%s) %s>" % (self.data_name, repr(self), self.data_based_on)

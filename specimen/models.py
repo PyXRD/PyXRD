@@ -29,39 +29,6 @@ from generic.models import XYData, ChildModel
 from generic.treemodels import ObjectListStore, XYListStore, Point
 from generic.peak_detection import multi_peakdetect, peakdetect, smooth
 
-class PhaseQuantity(ChildModel, Observable, Storable):
-    
-    data_quantity = 0.0
-    data_phase = None
-    
-    __columns__ = [
-        ('data_phase', object),
-        ('data_quantity', float),
-        ('data_name', str),
-    ]
-    __observables__ = [ key for key, val in __columns__ if key is not 'data_name']
-    __storables__ = [ val for val in __observables__ if val is not 'data_phase']
-    
-    @property
-    def data_name(self):
-        return self.data_phase.data_name if self.data_phase != None else ""
-        
-    def __init__(self, data_quantity=0.0, phase_index=None, parent=None):
-        ChildModel.__init__(self, parent=parent)
-        Observable.__init__(self)
-        Storable.__init__(self)
-        
-        self.data_quantity = data_quantity or self.data_quantity
-        
-        #Resolve JSON index:
-        if phase_index is not None and self.parent is not None:
-            self.data_phase = self.parent.parent.data_phases.get_user_data_from_index(phase_index)
-        
-    def json_properties(self):
-        retval = Storable.json_properties(self)
-        retval["phase_index"] = self.parent.parent.data_phases.index(self.data_phase)
-        return retval
-
 class Specimen(ChildModel, Observable, Storable):
 
     __columns__ = [
@@ -170,12 +137,11 @@ class Specimen(ChildModel, Observable, Storable):
             #model         = child model that we're observing
             #self.specimen = specimen that is observing the model
             if isinstance(model, Marker):
-                self.specimen._del_child_model(model, '_data_markers', 'data_marker_removed', remove='remove_item')
-                #self.specimen.del_marker(model)
+                self.specimen.del_marker(model)
             if isinstance(model, Phase):
                 self.specimen.del_phase(model)
     
-    _data_phases = []
+    _data_phases = None
     @Model.getter("data_phases")
     def get_data_phases(self, prop_name):
         return self._data_phases
@@ -184,41 +150,47 @@ class Specimen(ChildModel, Observable, Storable):
     @Model.getter("data_markers")
     def get_data_markers(self, prop_name):
         return self._data_markers
-        
-    def _add_child_model(self, model, prop_name, signal_name):
-        if not model in getattr(self, prop_name):
+               
+    data_phase_added = Signal()
+    def add_phase(self, phase, quantity=0.0):
+        if not phase in self._data_phases:
             if self.child_observer == None:
                 self.child_observer = Specimen.ChildObserver(self)
-            self.child_observer.observe_model(model)
-            getattr(self, prop_name).append(model)
-            getattr(self, signal_name).emit(model)
-            
-    def _del_child_model(self, model, prop_name, signal_name, remove="remove"):
-        if model in getattr(self, prop_name):
-            if self.child_observer != None:
-                self.child_observer.relieve_model(model)
-            else:
-                self.child_observer = Specimen.ChildObserver(self)
-            getattr(getattr(self, prop_name), remove)(model)
-            getattr(self, signal_name).emit(model)
-        
-    data_phase_added = Signal()
-    def add_phase(self, phase):
-        self._add_child_model(phase, '_data_phases', 'data_phase_added')
+            self.child_observer.observe_model(phase)
+            self._data_phases.update({phase: quantity})
+            self.data_phase_added.emit(phase)
     
     data_phase_removed = Signal()
     def del_phase(self, phase):
-        self._del_child_model(phase, '_data_phases', 'data_phase_removed')
+        if phase in self._data_phases:
+            if self.child_observer != None:
+                self.child_observer.relieve_model(phase)
+            else:
+                self.child_observer = Specimen.ChildObserver(self)
+            del self.data_phases[phase]
+            self.data_phase_removed.emit(phase)
         
     data_marker_added = Signal()
     def add_marker(self, marker):
         marker.parent = self
-        self._add_child_model(marker, '_data_markers', 'data_marker_added')
+        if not marker in self._data_markers:
+            if self.child_observer == None:
+                self.child_observer = Specimen.ChildObserver(self)
+            self.child_observer.observe_model(marker)
+            self._data_markers.append(marker)
+            self.data_marker_added.emit(marker)            
         if self.__pctrl__:
             self.__pctrl__.register(marker, "on_update_plot", last=True)
     
     data_marker_removed = Signal()
     def del_marker(self, marker):
+        if marker in self._data_markers:
+            if self.child_observer != None:
+                self.child_observer.relieve_model(marker)
+            else:
+                self.child_observer = Specimen.ChildObserver(self)
+            self.specimen._data_markers.remove_item(marker)
+            self.data_marker_removed.emit(marker)
         marker.parent = None
     
     def __init__(self, data_name="", data_sample="", data_sample_length=3.0,
@@ -249,15 +221,21 @@ class Specimen(ChildModel, Observable, Storable):
         self.display_phases = display_phases
         
         #Resolve JSON indeces:
+        self._data_phases = dict()
         if phase_indeces is not None and self.parent is not None:
-            self._data_phases = [self.parent.data_phases.get_user_data_from_index(index) for index in phase_indeces]
+            if hasattr(phase_indeces, "iteritems"):
+                for index, quantity in phase_indeces.iteritems():
+                    self.add_phase(self.parent.data_phases.get_user_data_from_index(int(index)), float(quantity))
+            else:
+                for index in phase_indeces:
+                    self.add_phase(self.parent.data_phases.get_user_data_from_index(int(index)), 0.0)
     
     def __str__(self):
         return "<Specimen %s(%s)>" % (self.data_name, repr(self))
     
     def json_properties(self):
         retval = Storable.json_properties(self)
-        retval["phase_indeces"] = [self.parent.data_phases.index(phase) for phase in self.data_phases]
+        retval["phase_indeces"] = { self.parent.data_phases.index(phase): quantity for phase, quantity in self.data_phases.iteritems()}
         retval["calc_color"] = self._calc_color
         retval["exp_color"] = self._exp_color
         return retval
@@ -337,9 +315,9 @@ class Specimen(ChildModel, Observable, Storable):
             Imin = 0
             for theta, stl in tstl_range:
                 lpf, iff, stf, I = 0, 0, 0, 0
-                for phase in self._data_phases:
+                for phase, quantity in self._data_phases.iteritems():
                     _lpf, _iff, _stf, _I = phase.get_relative_diffracted_intensity(theta, stl, S, S1S2)
-                    I += _I
+                    I += _I * quantity
                     lpf += _lpf
                     iff += _iff
                     stf += _stf
@@ -367,9 +345,7 @@ class Specimen(ChildModel, Observable, Storable):
             else:
                 return (theta_range, intensity_range)
         
-    def auto_add_peaks(self, threshold):
-        print "AUTO ADD PEAKS"
-        
+    def auto_add_peaks(self, threshold):       
         xy = self.data_experimental_pattern.xy_data              
         maxtab, mintab = peakdetect(xy._model_data_y, xy._model_data_x, 5, threshold)
         

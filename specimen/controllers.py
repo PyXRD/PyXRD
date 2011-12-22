@@ -100,16 +100,37 @@ class SpecimenController(DialogController, DialogMixin):
                         phase = model.get_user_data(itr)
                         cell.set_property('active', phase in self.model.data_phases)
                         return
-                    def setup_check_column(name, col):
-                        rend = gtk.CellRendererToggle()
-                        rend.connect('toggled', self.phase_tv_toggled, tv_model) #self.parent.project.model.data_phases)
-                        col = gtk.TreeViewColumn(name, rend, active=col)
-                        col.set_cell_data_func(rend, check_in_use_renderer)
-                        col.activatable = True
-                        col.set_resizable(False)
-                        col.set_expand(False)
-                        tv.append_column(col)
-                    setup_check_column('Used', 1)
+                    rend = gtk.CellRendererToggle()
+                    rend.connect('toggled', self.phase_tv_toggled, tv_model) #self.parent.project.model.data_phases)
+                    col = gtk.TreeViewColumn('Used', rend, active=1)
+                    col.set_cell_data_func(rend, check_in_use_renderer)
+                    col.activatable = True
+                    col.set_resizable(False)
+                    col.set_expand(False)
+                    tv.append_column(col)
+                    
+                    def quantity_renderer(column, cell, model, itr, data=None):
+                        phase = model.get_user_data(itr)
+                        try:
+                            quantity = self.model.data_phases[phase]
+                            cell.set_property('text', quantity)
+                            column.activatable = True
+                        except KeyError:
+                            cell.set_property('text', "NA")
+                            column.activatable = False
+
+                        return
+                    rend = gtk.CellRendererText()
+                    rend.set_property("editable", True)
+                    rend.connect('edited', self.phase_quantity_edited, tv_model)
+                    #FIXME edit signal rend.connect('toggled', self.phase_tv_toggled, tv_model) #self.parent.project.model.data_phases)
+                    col = gtk.TreeViewColumn('Quantity', rend) #, text=2)
+                    col.set_cell_data_func(rend, quantity_renderer)
+                    col.activatable = False
+                    col.set_resizable(False)
+                    col.set_expand(False)
+                    tv.append_column(col)
+                    
                 elif name in ["calc_color", "exp_color"]:
                     ad = Adapter(self.model, name)
                     ad.connect_widget(self.view["specimen_%s" % name], getter=get_color_val)
@@ -170,6 +191,14 @@ class SpecimenController(DialogController, DialogMixin):
                 self.model.del_phase(phase)
         return True
 
+    def phase_quantity_edited(self, cell, path, new_text, tv_model):
+        try:
+            phase = tv_model.get_user_data_from_path((int(path),))
+            self.model.data_phases[phase] = float(new_text) 
+        except:    
+            pass
+        return True
+
     def on_btn_ok_clicked(self, event):
         self.parent.pop_status_msg('edit_specimen')
         return DialogController.on_btn_ok_clicked(self, event)
@@ -208,7 +237,6 @@ class SpecimenController(DialogController, DialogMixin):
                     self.model.data_experimental_pattern.load_data(data, format="DAT")
                 if filename[-2:].lower() == "rd":
                     print "Opening file %s for import using BINARY RD format" % filename
-                    #TODO ask if specimen name should be imported as well
                     self.model.data_experimental_pattern.load_data(filename, format="BIN")
             
             self.run_load_dialog(title="Open XRD file for import",

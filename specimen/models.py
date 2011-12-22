@@ -29,6 +29,38 @@ from generic.models import XYData, ChildModel
 from generic.treemodels import ObjectListStore, XYListStore, Point
 from generic.peak_detection import multi_peakdetect, peakdetect, smooth
 
+class PhaseQuantity(ChildModel, Observable, Storable):
+    
+    data_quantity = 0.0
+    data_phase = None
+    
+    __columns__ = [
+        ('data_phase', object),
+        ('data_quantity', float),
+        ('data_name', str),
+    ]
+    __observables__ = [ key for key, val in __columns__ if key is not 'data_name']
+    __storables__ = [ val for val in __observables__ if val is not 'data_phase']
+    
+    @property
+    def data_name(self):
+        return self.data_phase.data_name if self.data_phase != None else ""
+        
+    def __init__(self, data_quantity=0.0, phase_index=None, parent=None):
+        ChildModel.__init__(self, parent=parent)
+        Observable.__init__(self)
+        Storable.__init__(self)
+        
+        self.data_quantity = data_quantity or self.data_quantity
+        
+        #Resolve JSON index:
+        if phase_index is not None and self.parent is not None:
+            self.data_phase = self.parent.parent.data_phases.get_user_data_from_index(phase_index)
+        
+    def json_properties(self):
+        retval = Storable.json_properties(self)
+        retval["phase_index"] = self.parent.parent.data_phases.index(self.data_phase)
+        return retval
 
 class Specimen(ChildModel, Observable, Storable):
 
@@ -274,7 +306,7 @@ class Specimen(ChildModel, Observable, Storable):
             self.data_calculated_pattern.on_update_plot(figure, axes, pctrl)        
         pctrl.update_lim()
         
-    def calculate_pattern(self,steps=200, use_exp=False, silent=False, return_all=False):
+    def calculate_pattern(self,steps=1000, use_exp=False, silent=False, return_all=False):
         #TODO TEST THIS:
         
         if len(self._data_phases) == 0:
@@ -289,7 +321,7 @@ class Specimen(ChildModel, Observable, Storable):
             max_theta = radians(self.parent.data_goniometer.data_max_2theta*0.5)
             delta_theta = float(max_theta - min_theta) / float(steps-1)
             
-            if not use_exp:
+            if len(self.data_experimental_pattern.xy_data._model_data_x) <= 1:  #not use_exp or self.data_experimental:
                 theta_range = [ (min_theta + delta_theta * float(step)) for step in range(0,steps-1) ]
             else:
                 theta_range = [ radians(twotheta*0.5) for twotheta in self.data_experimental_pattern.xy_data._model_data_x]

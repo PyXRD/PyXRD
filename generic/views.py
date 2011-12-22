@@ -60,7 +60,10 @@ class HasChildView():
         if child is not None:
             container.remove(child)
             #child.destroy()
-        container.add(view.get_top_widget())
+        if isinstance(container, gtk.ScrolledWindow) and not (type(view.get_top_widget()) in (gtk.TextView, gtk.TreeView, gtk.IconView, gtk.Viewport)):
+            container.add_with_viewport(view.get_top_widget())
+        else:
+            container.add(view.get_top_widget())
         view.show_all()
         return view
 

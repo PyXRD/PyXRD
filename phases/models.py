@@ -17,18 +17,23 @@ from generic.io import Storable
 from generic.models import ChildModel
 from generic.treemodels import ObjectListStore
 from atoms.models import Atom
+
 """
     Phases are to be replaced by SingleLayerMinerals
 """
 class Phase(ChildModel, Storable):
 
-    __inheritables__ = ("data_mean_CSDS", "data_sigma_star", "data_d001", 
+    __inheritables__ = ("data_mean_CSDS", "data_min_CSDS", "data_max_CSDS", "data_sigma_star", "data_d001", 
                         "data_proportion", "data_layer_atoms", "data_interlayer_atoms")
     __columns__ = [
         ('data_name', str),
         ('data_based_on', object),
         ('inherit_mean_CSDS', bool),
         ('data_mean_CSDS', float),
+        ('inherit_min_CSDS', bool),
+        ('data_min_CSDS', float),
+        ('inherit_max_CSDS', bool),
+        ('data_max_CSDS', float),
         ('inherit_sigma_star', bool),
         ('data_sigma_star', float),
         ('inherit_d001', bool),
@@ -58,6 +63,8 @@ class Phase(ChildModel, Storable):
     data_name = "Name of this phase"
     
     inherit_mean_CSDS = False
+    inherit_min_CSDS = False
+    inherit_max_CSDS = False
     inherit_sigma_star = False
     inherit_d001 = False
     inherit_proportion = False
@@ -102,6 +109,8 @@ class Phase(ChildModel, Storable):
     
     #INHERTIABLE PROPERTIES:
     _data_mean_CSDS = 10.0
+    _data_min_CSDS = 1.0
+    _data_max_CSDS = 50.0
     _data_sigma_star = 3.0
     _data_d001 = 1.0
     _data_proportion = 1.0
@@ -119,8 +128,9 @@ class Phase(ChildModel, Storable):
         setattr(self, "_%s" % prop_name, value)
     
     
-    def __init__(self, data_name=None, data_mean_CSDS=None, data_sigma_star=None, data_d001=None, data_proportion=None,
-                 inherit_mean_CSDS=False, inherit_sigma_star=False, inherit_d001=False, inherit_proportion=False, inherit_layer_atoms=False, inherit_interlayer_atoms=False,
+    def __init__(self, data_name=None, data_mean_CSDS=None, data_max_CSDS=None, data_min_CSDS=None, data_sigma_star=None, data_d001=None, data_proportion=None,
+                 inherit_mean_CSDS=False, inherit_min_CSDS=False, inherit_max_CSDS=False, inherit_sigma_star=False, inherit_d001=False, inherit_proportion=False, 
+                 inherit_layer_atoms=False, inherit_interlayer_atoms=False,
                  based_on_index = None, data_layer_atoms=None, data_interlayer_atoms=None, parent=None):
         ChildModel.__init__(self, parent=parent)
         Storable.__init__(self)
@@ -128,6 +138,8 @@ class Phase(ChildModel, Storable):
         self.data_name = data_name or self.data_name
     
         self._data_mean_CSDS = data_mean_CSDS or self.data_mean_CSDS
+        self._data_min_CSDS = data_min_CSDS or self.data_min_CSDS
+        self._data_max_CSDS = data_max_CSDS or self.data_max_CSDS
         self._data_sigma_star = data_sigma_star or self.data_sigma_star 
         self._data_d001 = data_d001 or self.data_d001
         self._data_proportion = data_proportion or self.data_proportion
@@ -136,6 +148,8 @@ class Phase(ChildModel, Storable):
         self._data_interlayer_atoms = data_interlayer_atoms or ObjectListStore(Atom)
         
         self.inherit_mean_CSDS = inherit_mean_CSDS
+        self.inherit_min_CSDS = inherit_min_CSDS
+        self.inherit_max_CSDS = inherit_max_CSDS
         self.inherit_sigma_star = inherit_sigma_star
         self.inherit_d001 = inherit_d001
         self.inherit_proportion = inherit_proportion
@@ -171,8 +185,8 @@ class Phase(ChildModel, Storable):
         sfa_tot, sfb_tot = 0, 0
         for atom in (self.data_layer_atoms._model_data + self.data_interlayer_atoms._model_data):
             sfa, sfb = atom.get_structure_factors(stl)
-            sfa_tot += sfa
-            sfb_tot += sfb
+            sfa_tot += sfa*2
+            sfb_tot += sfb*2
         return sfa_tot, sfb_tot
     
     def get_lorentz_polarisation_factor(self, theta, S, S1S2):
@@ -193,9 +207,9 @@ class Phase(ChildModel, Storable):
         a = 0.9485 * log(Tmean) - 0.017
         b = sqrt(0.103*log(Tmean) + 0.034)
         
-        Tmax = Tmean * a 
-        Tmin = 0
-        steps = int(Tmax - Tmin)+1
+        Tmax = self.data_max_CSDS
+        Tmin = self.data_min_CSDS
+        steps = int(Tmax - Tmin)
         
         smq = 0
         q_log_distr = []
@@ -207,28 +221,45 @@ class Phase(ChildModel, Storable):
             smq += q
             
             Qdistr.append(q)
-            Tdistr.append(T)
+            Tdistr.append(int(T))
             
+        Rmean = 0
         for i in range(steps):
             Qdistr[i] = Qdistr[i] / smq
+            Rmean += Tdistr[i]*Qdistr[i]
             
         self.__last_Tmean = Tmean
+        self.__last_Rmean = Rmean
         self.__last_Tdistr = Tdistr
         self.__last_Qdistr = Qdistr
         
-        return zip(Tdistr, Qdistr)
+        return zip(Tdistr, Qdistr), Rmean
     
     #TODO make this a range function:
     def get_interference(self, stl):
-        f = 2*pi*self.data_d001*stl
+        
         #get the distribution functions for CSDS:
-        distr = self._get_interference_distributions()
+        distr, real_mean = self._get_interference_distributions()
+        ddict = dict(distr)
             
-        #calculate the summation:
-        ifs = 0
-        for T, q in distr:
-            ifs += (q*(sin(f*T)**2) / (sin(f)**2))
-    
+        if False:
+            #calculate the summation:
+            ifs = 0
+            Tmax = distr[-1][0]
+            f = 4*pi*self.data_d001*stl
+            for T, q in distr:
+                fact = 0
+                for t in range(int(T+1), Tmax):
+                    fact += (t-T)*ddict[t]
+                ifs += fact*cos(f*T)
+                real_mean += T*q
+            ifs = ifs*2 + real_mean
+        else:        
+            ifs = 0
+            f = 2*pi*self.data_d001*stl
+            for T, q in distr:
+                ifs += (q*(sin(f*T)**2) / (sin(f)**2))
+        
         return ifs
             
     def get_absolute_diffracted_intensity (self, theta, stl, S, S1S2):
@@ -240,7 +271,41 @@ class Phase(ChildModel, Storable):
     
     def get_relative_diffracted_intensity (self, theta, stl, S, S1S2):
         lpf, iff, stf, absint = self.get_absolute_diffracted_intensity(theta, stl, S, S1S2)
-        return lpf, iff, stf, absint * self.data_proportion
+        return lpf, iff, stf, absint * self.get_absolute_scale()
+
+    def get_absolute_scale(self):
+        scale = self.data_proportion
+    
+        mean_d001 = self.data_d001
+        mean_density = self.get_density()
+        mean_volume = self.get_volume()
+    
+        distr, real_mean = self._get_interference_distributions()
+        
+        return scale * mean_d001 / (real_mean *  mean_volume**2 * mean_density);
+
+    def get_cell_a(self):
+        return self.get_cell_b() / sqrt(3.0)
+        
+    def get_cell_b(self):
+        return 9.22; #just for now
+        
+    def get_cell_c(self):
+        return self.data_d001
+
+    def get_volume(self):
+        return self.get_cell_a() * self.get_cell_b() * self.get_cell_c()
+
+    def get_weight(self):
+        weight = 0
+        for atom in (self.data_layer_atoms._model_data + self.data_interlayer_atoms._model_data):
+            weight += atom.data_pn * atom.data_atom_type.data_weight
+        return weight
+
+    def get_density(self):
+        return self.get_weight() / self.get_volume()
+        
+
 
     def __str__(self):
         return "<PHASE %s(%s) %s>" % (self.data_name, repr(self), self.data_based_on)

@@ -29,6 +29,7 @@ class AtomType(ChildModel, Storable):
         ('data_name', str),
         ('data_par_c', float),
         ('data_atom_nr', int),
+        ('data_weight', float),
     ]
     __columns__ += [ ('data_par_a%d' % i, float) for i in [1,2,3,4,5] ]
     __columns__ += [ ('data_par_b%d' % i, float) for i in [1,2,3,4,5] ]
@@ -39,6 +40,7 @@ class AtomType(ChildModel, Storable):
     
     data_name = ""    
     data_atom_nr = None
+    data_weight = None
     
     parameters_changed = Signal()
     
@@ -91,12 +93,13 @@ class AtomType(ChildModel, Storable):
         #    self.cache[stl] = f
         return f
 
-    def __init__(self, data_name, parent=None, data_atom_nr=0, data_par_c=0, data_par_a1=0, data_par_a2=0, data_par_a3=0, data_par_a4=0, data_par_a5=0, data_par_b1=0, data_par_b2=0, data_par_b3=0, data_par_b4=0, data_par_b5=0):
+    def __init__(self, data_name, parent=None, data_weight=0, data_atom_nr=0, data_par_c=0, data_par_a1=0, data_par_a2=0, data_par_a3=0, data_par_a4=0, data_par_a5=0, data_par_b1=0, data_par_b2=0, data_par_b3=0, data_par_b4=0, data_par_b5=0):
         ChildModel.__init__(self, parent=parent)
         Storable.__init__(self)
         
         self.data_name = data_name or self.data_name
         self.data_atom_nr = data_atom_nr or self.data_atom_nr
+        self.data_weight = data_weight or self.data_weight
         
         self._data_c = float(data_par_c)
         self._data_a = [data_par_a1, data_par_a2, data_par_a3, data_par_a4, data_par_a5]
@@ -119,13 +122,14 @@ class AtomType(ChildModel, Storable):
             if not header and len(row) > 6:
                 atom_nr = int(row[0])
                 name = row[1]
-                par_c = float(row[2])
+                weight = float(row[2])
+                par_c = float(row[3])
                 #pad zero's and truncate to length 5
-                row = row[3:]
+                row = row[4:]
                 num = len(row)/2
                 par = map(float, (row[:num]+[0,0])[:5] + (row[num:]+[0,0])[:5])
                 
-                new_atom_type = AtomType(name, parent, atom_nr, par_c, *par)
+                new_atom_type = AtomType(name, parent, weight, atom_nr, par_c, *par)
                 atom_types.append(new_atom_type)
                 if callback is not None and callable(callback):
                     callback(new_atom_type)
@@ -137,9 +141,9 @@ class AtomType(ChildModel, Storable):
     def save_as_csv(filename, atom_types):
         import csv
         atl_writer = csv.writer(open(filename, 'wb'), delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-        atl_writer.writerow(["Atom#", "Descr","c", "a1","a2","a3","a4","b1","b2","b3","b4"])
+        atl_writer.writerow(["Atom#", "Descr", "Weight", "c", "a1", "a2", "a3", "a4", "b1", "b2", "b3", "b4"])
         for item in atom_types:
-            atl_writer.writerow([item.data_atom_nr, item.data_name, item.data_par_c] + item._data_a + item._data_b)
+            atl_writer.writerow([item.data_atom_nr, item.data_name, item.data_weight, item.data_par_c] + item._data_a + item._data_b)
 
 """
     Atoms have an atom type plus structural parameters (position and proportion)

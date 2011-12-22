@@ -13,6 +13,10 @@ sqrtpi = sqrt(pi)
 sqrt2pi = sqrt(2*pi)
 sqrt8 = sqrt(8)
 
+def get_case_insensitive_glob(*strings):
+    '''Ex: '*.ora' => '*.[oO][rR][aA]' '''
+    return ['*.%s' % ''.join(["[%s%s]" % (c.lower(), c.upper()) for c in string.split('.')[1]]) for string in strings]
+
 def find_ge(a, x):
     'Find leftmost item greater than or equal to x'
     i = bisect_left(a, x)

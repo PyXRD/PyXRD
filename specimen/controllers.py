@@ -16,15 +16,16 @@ from gtkmvc.adapters import Adapter
 from generic.plot_controllers import DraggableVLine, EyedropperCursorPlot
 from generic.controllers import DialogController, DialogMixin, ChildController, ObjectListStoreController, get_color_val, delayed, ctrl_setup_combo_with_list
 from generic.validators import FloatEntryValidator
+from generic.utils import get_case_insensitive_glob
 
 from specimen.models import Specimen, Marker, ThresholdSelector
 from specimen.views import EditMarkerView, DetectPeaksView
 
 class SpecimenController(DialogController, DialogMixin):
 
-    file_filters = [("Data Files", ("*.DAT", "*.RD")),    
-                    ("ASCII Data", "*.DAT"),
-                    ("Phillips Binary Data", "*.RD"),
+    file_filters = [("Data Files", get_case_insensitive_glob("*.DAT", "*.RD")),    
+                    ("ASCII Data", get_case_insensitive_glob("*.DAT")),
+                    ("Phillips Binary Data", get_case_insensitive_glob("*.RD")),
                     ("All Files", "*.*")]
 
     xydataobserver = None

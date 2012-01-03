@@ -8,10 +8,20 @@
 
 from math import exp, sqrt, log, pi
 import inspect
+import time
 
 sqrtpi = sqrt(pi)
 sqrt2pi = sqrt(2*pi)
 sqrt8 = sqrt(8)
+
+def print_timing(func):
+    def wrapper(*args, **kwargs):
+        t1 = time.time()
+        res = func(*args, **kwargs)
+        t2 = time.time()
+        print '%s took %0.3f ms' % (func.func_name, (t2-t1)*1000.0)
+        return res
+    return wrapper
 
 def get_case_insensitive_glob(*strings):
     '''Ex: '*.ora' => '*.[oO][rR][aA]' '''
@@ -39,7 +49,7 @@ def interpolate(data, x):
             x2, y2 = (tx,ty)
     return y1 + (x-x1) * (y2 - y1) / (x2 - x1)
    
-def erf(x):
+"""def erf(x):
     # constants
     a1 =  0.254829592
     a2 = -0.284496736
@@ -58,7 +68,7 @@ def erf(x):
     t = 1.0/(1.0 + p*x)
     y = 1.0 - (((((a5*t + a4)*t) + a3)*t + a2)*t + a1)*t*exp(-x*x)
     
-    return sign*y
+    return sign*y"""
     
 #def erf(x, steps=1000):
 #    result = 0.0

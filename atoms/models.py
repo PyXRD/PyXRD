@@ -10,6 +10,8 @@ import gtk
 
 from gtkmvc.model import Model
 
+import numpy as np
+
 import time
 from math import sin, cos, pi, sqrt, exp
 
@@ -76,19 +78,19 @@ class AtomType(ChildModel, Storable):
             self._data_c = value
             self.parameters_changed.emit()            
             
-    def get_atomic_scattering_factor(self, stl): 
-        f = 0
+    def get_atomic_scattering_factors(self, stl_range): 
+        f = np.zeros(stl_range.shape)
         #if self.cache and self.cache.has_key(stl): #TODO
         #    return self.cache[stl]
         for i in range(0,5):
-             f += self._data_a[i] * exp(-self._data_b[i]*stl**2)
+             f += self._data_a[i] * np.exp(-self._data_b[i]*stl_range**2)
         f += self._data_c
         b = 0.0
         if "-" in self.data_name:
             b = 2.0
         elif "+" in self.data_name:
             b = 1.5
-        f = f * exp(-b * stl**2)
+        f = f * np.exp(-b * stl_range**2)
         #if self.cache:
         #    self.cache[stl] = f
         return f
@@ -232,8 +234,6 @@ class Atom(ChildModel, Storable):
         self._atom_type_index = atom_type_index if atom_type_index > -1 else None
         
         self._memoize = dict()
-        
-        print "ATOM CREATED WITH PARENT == %s" % self.parent
          
     def __str__(self):
         return "<Atom %s(%s)>" % (self.data_name, repr(self))
@@ -245,7 +245,6 @@ class Atom(ChildModel, Storable):
     def resolve_json_references(self):
         if self._atom_type_index is not None:
             self.data_atom_type = self.parent.data_atom_types.get_user_data_from_index(self._atom_type_index)
-            print "resolved atom type to be %s" % self.data_atom_type
 
     def json_properties(self):
         retval = Storable.json_properties(self)
@@ -258,8 +257,6 @@ class Atom(ChildModel, Storable):
         atl_reader = csv.reader(open(filename, 'rb'), delimiter=',', quotechar='"') #TODO create csv dialect!
         header = True
         atoms = []
-        
-        print "GET FROM CSV CALLED WITH PARENT = %s" % parent
         
         types = dict()
         if parent != None:
@@ -291,14 +288,8 @@ class Atom(ChildModel, Storable):
             atl_writer.writerow([item.data_name, item.data_z, item.data_pn, item.data_atom_type.data_name])
     
        
-    def get_structure_factors(self, stl):
-        #if self._dirty_cache: #clear cache if dirty
-        #    self._memoize = dict()
-        #    self.self._dirty_cache = False
-        #if not (stl in self._memoize): #cache value
-        #    self._memoize[stl] = self.data_atom_type.get_atomic_scattering_factor(stl) * self.data_pn/100 * cos (4 * pi * self.data_z/d001 * stl)
-        #return self._memoize[stl]
-        asf = self.data_atom_type.get_atomic_scattering_factor(stl)
-        fac = 4 * pi * self.data_z * stl
-        return (asf * self.data_pn * cos (fac), asf * self.data_pn * sin (fac))
+    def get_structure_factors(self, stl_range):
+        asf = self.data_atom_type.get_atomic_scattering_factors(stl_range)
+        fac = 4 * pi * self.data_z * stl_range
+        return (asf * self.data_pn * np.cos (fac), asf * self.data_pn * np.sin (fac))
         

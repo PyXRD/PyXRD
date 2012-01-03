@@ -8,6 +8,7 @@
 
 import os
 
+
 import gtk
 import gobject
 
@@ -18,16 +19,20 @@ import matplotlib
 import matplotlib.transforms as transforms
 from matplotlib.text import Text
 
+import time
+
 import numpy as np
 from scipy import stats
 
 from math import tan, asin, sin, cos, pi, sqrt, radians, degrees, exp
 
-from generic.utils import interpolate, erf
+from generic.utils import interpolate, print_timing
 from generic.io import Storable, PyXRDDecoder
 from generic.models import XYData, ChildModel
 from generic.treemodels import ObjectListStore, XYListStore, Point
 from generic.peak_detection import multi_peakdetect, peakdetect, smooth
+
+
 
 class Specimen(ChildModel, Observable, Storable):
 
@@ -280,12 +285,20 @@ class Specimen(ChildModel, Observable, Storable):
         if self.display_experimental:
             self.data_experimental_pattern.on_update_plot(figure, axes, pctrl)
         if self.display_calculated:
-            self.calculate_pattern(silent=True)
+            self.calculate_pattern()
             self.data_calculated_pattern.on_update_plot(figure, axes, pctrl)        
         pctrl.update_lim()
         
-    def calculate_pattern(self,steps=1000, use_exp=False, silent=False, return_all=False):
+        
+
+
+    # declare the @ decorator just before the function, invokes print_timing()
+    #@print_timing
+    def calculate_pattern(self, steps=2500):
         #TODO TEST THIS:
+     
+        t1 = time.time()
+     
         
         if len(self._data_phases) == 0:
             self.data_calculated_pattern.xy_data.clear()
@@ -299,51 +312,35 @@ class Specimen(ChildModel, Observable, Storable):
             max_theta = radians(self.parent.data_goniometer.data_max_2theta*0.5)
             delta_theta = float(max_theta - min_theta) / float(steps-1)
             
-            if len(self.data_experimental_pattern.xy_data._model_data_x) <= 1:  #not use_exp or self.data_experimental:
-                theta_range = [ (min_theta + delta_theta * float(step)) for step in range(0,steps-1) ]
+            
+            
+            theta_range = None
+            torad = pi / 180
+            if len(self.data_experimental_pattern.xy_data._model_data_x) <= 1:
+                theta_range = min_theta + delta_theta * np.array(range(0,steps-1), dtype=float)
             else:
-                theta_range = [ radians(twotheta*0.5) for twotheta in self.data_experimental_pattern.xy_data._model_data_x]
-            stl_range = [ sin(theta)/l for theta in theta_range]
-            tstl_range = zip(theta_range, stl_range)
+                theta_range =  np.array(self.data_experimental_pattern.xy_data._model_data_x) * torad / 2
+            stl_range = np.sin(theta_range) / l
             
-            intensity_range = []
-            lpf_range = []
-            iff_range = []
-            stf_range = []            
+            #sample length correction array:
+            correction_range =  np.minimum(np.sin(theta_range) * L_Rta, 1)
             
-            Imax = 0
-            Imin = 0
-            for theta, stl in tstl_range:
-                lpf, iff, stf, I = 0, 0, 0, 0
-                for phase, quantity in self._data_phases.iteritems():
-                    _lpf, _iff, _stf, _I = phase.get_relative_diffracted_intensity(theta, stl, S, S1S2)
-                    I += _I * quantity
-                    lpf += _lpf
-                    iff += _iff
-                    stf += _stf
-                
-                #correction for sample length:
-                I = I * min(sin(theta) * L_Rta,1)
-                    
-                Imax = max(I, Imax)
-                Imin = min(I, Imin)
-                intensity_range.append(I)
-                lpf_range.append(lpf)
-                iff_range.append(iff)
-                stf_range.append(stf)
+
+            
+            intensity_range = np.zeros(len(theta_range))
+            for phase, quantity in self._data_phases.iteritems():
+                intensity_range += phase.get_diffracted_intensity(theta_range, stl_range, S, S1S2, quantity, correction_range)
+            
+            Imax = max(intensity_range)
+            intensity_range /= Imax
             
             self.data_calculated_pattern.clear(update=False)
             
-            for I, t in zip(intensity_range, theta_range):
-                if (Imax - Imin) != 0:
-                    I = I / Imax #NORMALISATION 
-                self.data_calculated_pattern.xy_data.append(degrees(t)*2, I)
+            theta_range = theta_range * 2 / torad
+            self.data_calculated_pattern.xy_data.set_from_lists(list(theta_range), list(intensity_range))
             self.data_calculated_pattern.update_data()
-            
-            if return_all:
-                return (theta_range, lpf_range, iff_range, stf_range, intensity_range)
-            else:
-                return (theta_range, intensity_range)
+
+        return (theta_range, intensity_range)
         
     def auto_add_peaks(self, threshold):       
         xy = self.data_experimental_pattern.xy_data              

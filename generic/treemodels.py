@@ -400,3 +400,8 @@ class XYListStore(_BaseObjectListStore, Storable):
         del self._model_data_x[:]
         del self._model_data_y[:]
         self.invalidate_iters()
+        
+    def set_from_lists(self, x_list, y_list):
+        self._model_data_x = x_list
+        self._model_data_y = y_list
+        self.invalidate_iters()

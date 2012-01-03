@@ -14,7 +14,7 @@ import json
 import time
 from math import sin, cos, pi, sqrt
 
-from generic.utils import interpolate, erf
+from generic.utils import interpolate
 from generic.treemodels import ObjectListStore, IndexListStore
 from generic.io import Storable
 

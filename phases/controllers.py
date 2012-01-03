@@ -221,12 +221,10 @@ class EditPhaseController(ChildController):
 
     def update_sensitivities(self):
         can_inherit = (self.model.data_based_on != None)
-        for name in ("d001",
-                     "min_CSDS",
-                     "max_CSDS",
-                     "mean_CSDS",
-                     "sigma_star",
-                     "proportion"):
+        
+        for name in ("d001", "cell_a", "cell_b",
+                     "min_CSDS", "max_CSDS", "mean_CSDS",
+                     "sigma_star"):
             widget_name = "phase_data_%s" % name
             self.view[widget_name].set_sensitive(not (can_inherit and getattr(self.model, "inherit_%s" % name)))
             self.view["phase_inherit_%s" % name].set_sensitive(can_inherit)
@@ -242,9 +240,12 @@ class EditPhaseController(ChildController):
     @Controller.observe("inherit_layer_atoms", assign=True)
     @Controller.observe("inherit_interlayer_atoms", assign=True)
     @Controller.observe("inherit_sigma_star", assign=True)
+    @Controller.observe("inherit_min_CSDS", assign=True)    
+    @Controller.observe("inherit_max_CSDS", assign=True)    
     @Controller.observe("inherit_mean_CSDS", assign=True)
+    @Controller.observe("inherit_cell_a", assign=True)
+    @Controller.observe("inherit_cell_b", assign=True)
     @Controller.observe("inherit_d001", assign=True)
-    @Controller.observe("inherit_proportion", assign=True)
     def notif_change_data_inherit(self, model, prop_name, info):
         can_inherit = (self.model.data_based_on != None)
         if not (prop_name in ("inherit_layer_atoms", "inherit_interlayer_atoms")):

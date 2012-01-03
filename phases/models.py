@@ -8,10 +8,14 @@
 
 from gtkmvc.model import Model, Observer
 
+import numpy as np
+
 from math import sin, cos, pi, sqrt, exp, radians, log
 from operator import mul
 
-from generic.utils import erf, lognormal, sqrt2pi, sqrt8
+from scipy.special import erf
+
+from generic.utils import lognormal, sqrt2pi, sqrt8
 
 from generic.io import Storable
 from generic.models import ChildModel
@@ -23,7 +27,8 @@ from atoms.models import Atom
 """
 class Phase(ChildModel, Storable):
 
-    __inheritables__ = ("data_mean_CSDS", "data_min_CSDS", "data_max_CSDS", "data_sigma_star", "data_d001", 
+    __inheritables__ = ("data_mean_CSDS", "data_min_CSDS", "data_max_CSDS", "data_sigma_star", 
+                        "data_d001", "data_cell_a", "data_cell_b",
                         "data_layer_atoms", "data_interlayer_atoms")
     __columns__ = [
         ('data_name', str),
@@ -37,8 +42,11 @@ class Phase(ChildModel, Storable):
         ('inherit_sigma_star', bool),
         ('data_sigma_star', float),
         ('inherit_d001', bool),
+        ('data_cell_a', float),
+        ('inherit_cell_a', bool),
+        ('data_cell_b', float),
+        ('inherit_cell_b', bool),
         ('data_d001', float),
-        ('inherit_proportion', bool),
         ('inherit_layer_atoms', bool),
         ('data_layer_atoms', None),
         ('inherit_interlayer_atoms', bool),
@@ -66,6 +74,8 @@ class Phase(ChildModel, Storable):
     inherit_max_CSDS = False
     inherit_sigma_star = False
     inherit_d001 = False
+    inherit_cell_a = False
+    inherit_cell_b = False
     inherit_proportion = False
     inherit_layer_atoms = False
     inherit_interlayer_atoms = False
@@ -111,6 +121,8 @@ class Phase(ChildModel, Storable):
     _data_min_CSDS = 1.0
     _data_max_CSDS = 50.0
     _data_sigma_star = 3.0
+    _data_cell_a = 1.0
+    _data_cell_b = 1.0
     _data_d001 = 1.0
     _data_layer_atoms = None
     _data_interlayer_atoms = None
@@ -126,8 +138,8 @@ class Phase(ChildModel, Storable):
         setattr(self, "_%s" % prop_name, value)
     
     
-    def __init__(self, data_name=None, data_mean_CSDS=None, data_max_CSDS=None, data_min_CSDS=None, data_sigma_star=None, data_d001=None, data_proportion=None,
-                 inherit_mean_CSDS=False, inherit_min_CSDS=False, inherit_max_CSDS=False, inherit_sigma_star=False, inherit_d001=False, inherit_proportion=False, 
+    def __init__(self, data_name=None, data_mean_CSDS=None, data_max_CSDS=None, data_min_CSDS=None, data_sigma_star=None, data_cell_a=1.0, data_cell_b=1.0, data_d001=None, data_proportion=None,
+                 inherit_mean_CSDS=False, inherit_min_CSDS=False, inherit_max_CSDS=False, inherit_sigma_star=False, inherit_cell_a=False, inherit_cell_b=False, inherit_d001=False, inherit_proportion=False, 
                  inherit_layer_atoms=False, inherit_interlayer_atoms=False,
                  based_on_index = None, data_layer_atoms=None, data_interlayer_atoms=None, parent=None):
         ChildModel.__init__(self, parent=parent)
@@ -140,6 +152,8 @@ class Phase(ChildModel, Storable):
         self._data_max_CSDS = data_max_CSDS or self.data_max_CSDS
         self._data_sigma_star = data_sigma_star or self.data_sigma_star 
         self._data_d001 = data_d001 or self.data_d001
+        self._data_cell_a = data_cell_a or self.data_cell_a
+        self._data_cell_b = data_cell_b or self.data_cell_b
         #self._data_proportion = data_proportion or self.data_proportion
         
         self._data_layer_atoms = data_layer_atoms or ObjectListStore(Atom)
@@ -150,7 +164,9 @@ class Phase(ChildModel, Storable):
         self.inherit_max_CSDS = inherit_max_CSDS
         self.inherit_sigma_star = inherit_sigma_star
         self.inherit_d001 = inherit_d001
-        self.inherit_proportion = inherit_proportion
+        self.inherit_cell_a = inherit_cell_a
+        self.inherit_cell_b = inherit_cell_b        
+        #self.inherit_proportion = inherit_proportion
         self.inherit_layer_atoms = inherit_layer_atoms          
         self.inherit_interlayer_atoms = inherit_interlayer_atoms
 
@@ -176,115 +192,121 @@ class Phase(ChildModel, Storable):
         kwargs['data_interlayer_atoms'] = ObjectListStore.from_json(parent=kwargs['parent'], **kwargs['data_interlayer_atoms']['properties'])
         return Phase(**kwargs)
 
-    #CALCULATIONS:   
-    def get_structure_factors(self, stl):
-        sfa, sfb = 0, 0
-        sfa_tot, sfb_tot = 0, 0
-        for atom in (self.data_layer_atoms._model_data + self.data_interlayer_atoms._model_data):
-            sfa, sfb = atom.get_structure_factors(stl)
+    #CALCULATIONS:
+    def get_structure_factors(self, range_stl):
+        sfa_range, sfb_range = np.zeros(range_stl.shape), np.zeros(range_stl.shape)
+        atoms = (self.data_layer_atoms._model_data + self.data_interlayer_atoms._model_data)
+        sfa_tot, sfb_tot = np.zeros(range_stl.shape), np.zeros(range_stl.shape)
+        for atom in atoms:
+            sfa, sfb = atom.get_structure_factors(range_stl)
             sfa_tot += sfa*2
             sfb_tot += sfb*2
         return sfa_tot, sfb_tot
     
-    def get_lorentz_polarisation_factor(self, theta, S, S1S2):
+    def get_lorentz_polarisation_factor(self, range_theta, S, S1S2):
+        lpf_range = list()
         ss = max(self.data_sigma_star, 0.0000000000001)
-        Q = S / (sqrt8 * sin(theta) * ss)
-        T = erf(Q) * sqrt2pi / (2*ss * S) - 2*sin(theta) * (1 - exp(-(Q**2))) / (S**2)
-        return (1 + cos(2*theta)**2) * T / sin(theta)
+        Q = S / (sqrt8 * np.sin(range_theta) * ss)
+        T = erf(Q) * sqrt2pi / (2*ss * S) - 2*np.sin(range_theta) * (1 - np.exp(-(Q**2))) / (S**2)
+        return (1 + np.cos(2*range_theta)**2) * T / np.sin(range_theta)
     
     __last_Tmean = None
+    __last_Tmax = None
+    __last_Tmin = None
     __last_Tdistr = None
     __last_Qdistr = None
-    def _get_interference_distributions(self):
+    def _update_interference_distributions(self):
         Tmean = self.data_mean_CSDS
-        #if self.__last_Tmean != None and self.__last_Tmean == Tmean:
-        #    return zip(self.__last_Tdistr, self.__last_Qdistr)
-        #else:
-            #lognormal distribution according to Drits et al 1997:
-        a = 0.9485 * log(Tmean) - 0.017
-        b = sqrt(0.103*log(Tmean) + 0.034)
-        
         Tmax = self.data_max_CSDS
         Tmin = self.data_min_CSDS
-        steps = int(Tmax - Tmin)
-        
-        smq = 0
-        q_log_distr = []
-        Qdistr = []
-        Tdistr = []
-        for i in range(steps):
-            T = max(Tmin + i, 1e-50)
-            q = lognormal(T, a, b)
-            smq += q
+
+        if self.__last_Tmean != Tmean and self.__last_Tmax != Tmax and self.__last_Tmin != Tmin:
+            a = 0.9485 * log(Tmean) - 0.017
+            b = sqrt(0.103*log(Tmean) + 0.034)
             
-            Qdistr.append(q)
-            Tdistr.append(int(T))
+            steps = int(Tmax - Tmin)
             
-        Rmean = 0
-        for i in range(steps):
-            Qdistr[i] = Qdistr[i] / smq
-            Rmean += Tdistr[i]*Qdistr[i]
+            smq = 0
+            q_log_distr = []
+            TQDistr = dict()
+            for i in range(steps):
+                T = max(Tmin + i, 1e-50)
+                q = lognormal(T, a, b)
+                smq += q
+                
+                TQDistr[int(T)] = q
+                
+            Rmean = 0
+            for T,q in TQDistr.iteritems():
+                TQDistr[T] = q / smq
+                Rmean += T*q
+                
+            self.__last_Tmean = Tmean
+            self.__last_Tmax = Tmax
+            self.__last_Tmin = Tmin
+            self.__last_Trest = (TQDistr.items(), TQDistr, Rmean)
             
-        self.__last_Tmean = Tmean
-        self.__last_Rmean = Rmean
-        self.__last_Tdistr = Tdistr
-        self.__last_Qdistr = Qdistr
-        
-        return zip(Tdistr, Qdistr), Rmean
+        return self.__last_Trest
     
-    #TODO make this a range function:
-    def get_interference(self, stl):
+    def get_interference(self, range_stl):
         
-        #get the distribution functions for CSDS:
-        distr, real_mean = self._get_interference_distributions()
-        ddict = dict(distr)
+        Tmean = self.data_mean_CSDS
+        d001 = self.data_d001
+        
+        distr, ddict, real_mean = self._update_interference_distributions()
+        
+        """ifs_range = list()
+        for stl in range_stl: 
+            ifs = 0
+            if False:
+                #calculate the summation:
+                Tmax = distr[-1][0]
+                f = 4*pi*d001*stl
+                for T, q in distr:
+                    fact = 0
+                    for t in range(int(T+1), Tmax):
+                        fact += (t-T)*ddict[t]
+                    ifs += fact*cos(f*T)
+                    real_mean += T*q
+                ifs = ifs*2 + real_mean
+            else:        
+                f = 2*pi*d001*stl
+                for T, q in distr:
+                    ifs += (q*(sin(f*T)**2) / (sin(f)**2))
             
-        if False:
-            #calculate the summation:
-            ifs = 0
-            Tmax = distr[-1][0]
-            f = 4*pi*self.data_d001*stl
-            for T, q in distr:
-                fact = 0
-                for t in range(int(T+1), Tmax):
-                    fact += (t-T)*ddict[t]
-                ifs += fact*cos(f*T)
-                real_mean += T*q
-            ifs = ifs*2 + real_mean
-        else:        
-            ifs = 0
-            f = 2*pi*self.data_d001*stl
-            for T, q in distr:
-                ifs += (q*(sin(f*T)**2) / (sin(f)**2))
+            ifs_range += ifs,"""
         
+        phase_range = (2*pi*d001*range_stl)    
+        ifs = np.zeros(phase_range.shape)
+        for T, q in distr:
+            ifs += q * np.sin(phase_range*T)**2 / (np.sin(phase_range)**2)
+            
         return ifs
             
-    def get_absolute_diffracted_intensity (self, theta, stl, S, S1S2):
-        lpf = self.get_lorentz_polarisation_factor(theta, S, S1S2)
-        iff = self.get_interference(stl)
-        stfa, stfb = self.get_structure_factors(stl)
-        stf2 = stfa**2 + stfb**2
-        return lpf, iff, stf2, (lpf * iff * stf2)
-    
-    def get_relative_diffracted_intensity (self, theta, stl, S, S1S2):
-        lpf, iff, stf, absint = self.get_absolute_diffracted_intensity(theta, stl, S, S1S2)
-        return lpf, iff, stf, absint * self.get_absolute_scale()
+    def get_diffracted_intensity (self, range_theta, range_stl, S, S1S2, quantity, correction_range):
+        scale = self.get_absolute_scale() * quantity
+        lpf = self.get_lorentz_polarisation_factor(range_theta, S, S1S2)
+        iff = self.get_interference(range_stl)
+        stfa, stfb = self.get_structure_factors(range_stl)
+        return (stfa**2 + stfb**2) * lpf * iff * correction_range * scale
 
     def get_absolute_scale(self):
-    
         mean_d001 = self.data_d001
-        mean_density = self.get_density()
         mean_volume = self.get_volume()
+        mean_density =  self.get_weight() / mean_volume
     
-        distr, real_mean = self._get_interference_distributions()
+        if self.__last_Tmean == None or self.__last_Tmean != self.data_mean_CSDS:
+            distr, ddict, real_mean = self._update_interference_distributions()
+        else:
+            distr, ddict, real_mean = self.__last_Trest
         
         return mean_d001 / (real_mean *  mean_volume**2 * mean_density);
 
     def get_cell_a(self):
-        return self.get_cell_b() / sqrt(3.0)
+        return self.data_cell_a
         
     def get_cell_b(self):
-        return 9.22; #just for now
+        return self.data_cell_b
         
     def get_cell_c(self):
         return self.data_d001
@@ -297,26 +319,6 @@ class Phase(ChildModel, Storable):
         for atom in (self.data_layer_atoms._model_data + self.data_interlayer_atoms._model_data):
             weight += atom.data_pn * atom.data_atom_type.data_weight
         return weight
-
-    def get_density(self):
-        return self.get_weight() / self.get_volume()
-        
-    
-
-    """ILLITE LAYER /*     */   protected double getBCellParam()
-    /*     */   {
-    /* 151 */     return 9.0D + 0.042D * ((DoubleValue)this._aAtoms[6][2]).getValue();
-    /*     */   }"""
-
-    """KAOLINITE /*     */   protected double getBCellParam()
-    /*     */   {
-    /* 110 */     return 8.94D;
-    /*     */   }"""
-    
-    """SERPENTINE/*     */   protected double getBCellParam()
-    /*     */   {
-    /* 116 */     return 9.220000000000001D + 0.017D * ((DoubleValue)this._aAtoms[1][2]).getValue();
-    /*     */   }"""
 
     def __str__(self):
         return "<PHASE %s(%s) %s>" % (self.data_name, repr(self), self.data_based_on)

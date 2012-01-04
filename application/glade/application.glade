@@ -142,12 +142,13 @@
       </object>
     </child>
     <child>
-      <object class="GtkAction" id="select_point">
-        <property name="label" translatable="yes">Select Point</property>
-        <property name="short_label" translatable="yes">Select Point</property>
-        <property name="tooltip" translatable="yes">Select Point</property>
+      <object class="GtkAction" id="sample_point">
+        <property name="label" translatable="yes">Sample Point</property>
+        <property name="short_label" translatable="yes">Sample Point</property>
+        <property name="tooltip" translatable="yes">Sample Point</property>
         <property name="stock_id">gtk-color-picker</property>
         <property name="always_show_image">True</property>
+        <signal name="activate" handler="on_sample_point" swapped="no"/>
       </object>
     </child>
     <child>
@@ -697,11 +698,11 @@
                               </packing>
                             </child>
                             <child>
-                              <object class="GtkToolButton" id="btn_identify">
+                              <object class="GtkToolButton" id="btn_sample">
                                 <property name="visible">True</property>
                                 <property name="can_focus">False</property>
                                 <property name="tooltip_text" translatable="yes">Identify Points</property>
-                                <property name="related_action">select_point</property>
+                                <property name="related_action">sample_point</property>
                                 <property name="label" translatable="yes">Select Point</property>
                                 <property name="use_underline">True</property>
                               </object>
@@ -857,6 +858,7 @@
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="related_action">edit_specimen</property>
+        <property name="use_underline">True</property>
         <property name="use_stock">True</property>
       </object>
     </child>

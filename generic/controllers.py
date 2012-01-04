@@ -48,9 +48,9 @@ class DialogMixin():
                     ffilter.add_pattern(expr)
             yield ffilter
 
-    def _run_dialog(self, dialog, on_accept_callback, on_reject_callback=None):
+    def _run_dialog(self, dialog, on_accept_callback=None, on_reject_callback=None):
         response = dialog.run()
-        if response in (gtk.RESPONSE_ACCEPT, gtk.RESPONSE_YES, gtk.RESPONSE_APPLY, gtk.RESPONSE_OK):
+        if response in (gtk.RESPONSE_ACCEPT, gtk.RESPONSE_YES, gtk.RESPONSE_APPLY, gtk.RESPONSE_OK) and on_accept_callback is not None:
             on_accept_callback(dialog)
         elif on_reject_callback is not None:
             on_reject_callback(dialog)
@@ -84,9 +84,18 @@ class DialogMixin():
                         parent=parent,
                         flags=gtk.DIALOG_DESTROY_WITH_PARENT,
                         type=gtk.MESSAGE_WARNING,
-                        buttons=gtk.BUTTONS_YES_NO, #(gtk.STOCK_NO, gtk.RESPONSE_REJECT, gtk.STOCK_YES, gtk.RESPONSE_ACCEPT),
+                        buttons=gtk.BUTTONS_YES_NO,
                         message_format=message)
             self._run_dialog(dialog, on_accept_callback, on_reject_callback)
+            
+    def run_information_dialog(self, message, on_accept_callback=None, parent=None):
+            dialog = gtk.MessageDialog(
+                        parent=parent,
+                        flags=gtk.DIALOG_DESTROY_WITH_PARENT,
+                        type=gtk.MESSAGE_INFO,
+                        buttons=gtk.BUTTONS_OK,
+                        message_format=message)
+            self._run_dialog(dialog, None, None)
 
 class _Delayed():
     def __init__(self, f):

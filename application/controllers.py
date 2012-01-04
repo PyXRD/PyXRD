@@ -14,7 +14,7 @@ from gtkmvc import Controller
 from gtkmvc.adapters import Adapter
 
 from generic.controllers import BaseController, DialogMixin, delayed
-from generic.plot_controllers import MainPlotController
+from generic.plot_controllers import MainPlotController, EyedropperCursorPlot
 
 from project.controllers import ProjectController
 from project.models import Project
@@ -292,5 +292,30 @@ class AppController (BaseController, DialogMixin):
     def on_save_graph(self, event):
         self.plot_controller.save()
          
+    def on_sample_point(self, event):
+        self.cid = -1
+        self.fig = self.plot_controller.figure
+        self.ret = self.view.get_toplevel()
+        
+        self.edc = EyedropperCursorPlot(self.plot_controller.canvas, self.plot_controller.canvas.get_window(), True, True)
+        
+        x_pos = -1
+        def onclick(event):
+            if event.inaxes:
+                x_pos = event.xdata
+            if self.cid != -1:
+                self.fig.canvas.mpl_disconnect(self.cid)
+            if self.edc != None:
+                self.edc.enabled = False
+                self.edc.disconnect()
+                
+            exp_xy = self.model.current_specimen.data_experimental_pattern.xy_data.interpolate(x_pos)[0]
+            calc_xy = self.model.current_specimen.data_calculated_pattern.xy_data.interpolate(x_pos)[0]
+            
+            self.run_information_dialog("Sampled point:\n\tExperimental data:\t( %.4f , %.4f )\n\tCalculated data:\t\t( %.4f , %.4f )" % (exp_xy + calc_xy), parent=self.view.get_toplevel())
+                
+            self.ret.present()
+        self.cid = self.fig.canvas.mpl_connect('button_press_event', onclick)
+
 
     pass # end of class

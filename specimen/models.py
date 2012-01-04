@@ -433,7 +433,7 @@ class ThresholdSelector(ChildModel, Observable):
         if self.parent != None:
             xy = self._get_xy()
             
-            length = len(xy._model_data_x)
+            length = xy._model_data_x.size
             resolution = length / (xy._model_data_x[-1] - xy._model_data_x[0])
             delta_angle = 0.05
             window = int(delta_angle * resolution)

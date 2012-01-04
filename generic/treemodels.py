@@ -10,6 +10,7 @@ from collections import namedtuple
 from generic.utils import whoami, smart_repos
 
 import numpy as np
+from scipy.interpolate import interp1d
 
 from generic.io import Storable, PyXRDDecoder, get_json_type, json_type
 
@@ -435,4 +436,7 @@ class XYListStore(_BaseObjectListStore, Storable):
     def get_raw_model_data(self):
         return self._model_data_x, self._model_data_y
         
-    pass #end of class        
+    def interpolate(self, *x_vals):
+        f = interp1d(self._model_data_x, self._model_data_y)
+        return zip(x_vals, f(x_vals))
+    pass #end of class

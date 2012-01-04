@@ -18,7 +18,7 @@ from generic.plot_controllers import MainPlotController, EyedropperCursorPlot
 
 from project.controllers import ProjectController
 from project.models import Project
-from specimen.controllers import SpecimenController, MarkersController
+from specimen.controllers import SpecimenController, MarkersController, StatisticsController
 from specimen.models import Specimen
 
 from goniometer.controllers import GoniometerController
@@ -61,6 +61,7 @@ class AppController (BaseController, DialogMixin):
     def reset_specimen_controller(self):
         self.specimen = SpecimenController(self.model.current_specimen, self.view.reset_specimen_view(), parent=self)
         self.markers = MarkersController(self.model.current_specimen, self.view.reset_markers_view(), parent=self)
+        self.statistics = StatisticsController(self.model.current_specimen.statistics, self.view.reset_statistics_view(), parent=self)
     
     def edit_specimen(self, specimen, title="Edit Specimen"):
         #self.push_status_msg("Editing specimen...", 'edit_specimen')

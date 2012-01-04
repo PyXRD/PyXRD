@@ -82,15 +82,18 @@ class XYData(Model, Storable, Observable):
             self._display_offset = value
             self.update_data()
     
-    plot_update = Signal()
+    plot_update = None
+    data_update = None
     
-    __observables__ = ["data_name", "data_label", "xy_data", "plot_update", "display_offset"]
-    __storables__ = [val for val in __observables__ if not val in ("plot_update", "display_offset") ] + ["color",]
+    __observables__ = ["data_name", "data_label", "xy_data", "plot_update", "data_update", "display_offset"]
+    __storables__ = [val for val in __observables__ if not val in ("plot_update", "data_update", "display_offset") ] + ["color",]
        
     def __init__(self, data_name=None, data_label=None, xy_data=None, color="#0000FF", **kwargs):
         Model.__init__(self)
         Storable.__init__(self)
         Observable.__init__(self)
+        self.plot_update = Signal()
+        self.data_update = Signal()
         self._data_name = data_name or self._data_name
         self._data_label = data_label or self._data_label
         self.line = matplotlib.lines.Line2D(*self.xy_empty_data, label=self.data_label, color=color, aa=True)
@@ -123,6 +126,7 @@ class XYData(Model, Storable, Observable):
         else:
             self.line.set_data(self.xy_empty_data)
             self.line.set_visible(False)
+        self.data_update.emit()
     
     def on_update_plot(self, figure, axes, pctrl):
         self.update_data()

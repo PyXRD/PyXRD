@@ -13,7 +13,7 @@ from generic.views import ObjectListStoreView, BaseView, DialogView
 
 from project.views import ProjectView
 from goniometer.views import GoniometerView
-from specimen.views import SpecimenView, EditMarkersView
+from specimen.views import SpecimenView, EditMarkersView, StatisticsView
 
 class AppView(BaseView):
     builder = "application/glade/application.glade"
@@ -25,12 +25,14 @@ class AppView(BaseView):
     goniometer = None
     phases = None
     atom_types = None
+    statistics = None
     
     def __init__(self, *args, **kwargs):
         BaseView.__init__(self, *args, **kwargs)
 
         self.reset_project_view()
         self.reset_specimen_view()
+        self.reset_statistics_view()
         self.reset_markers_view()
         self.reset_goniometer_view()
         self.reset_phases_view()
@@ -45,7 +47,7 @@ class AppView(BaseView):
         self.plot_controller = plot_controller
         self["matplotlib_box"].add(self.plot_controller.canvas)
         self["matplotlib_box"].show_all()
-
+        
     def _reset_child_view(self, view_name, class_type):
         if getattr(self, view_name) != None:
             getattr(self, view_name).hide()
@@ -61,6 +63,15 @@ class AppView(BaseView):
 
     def reset_specimen_view(self):
         return self._reset_child_view("specimen", SpecimenView)
+        
+    def reset_statistics_view(self):
+        view = self._reset_child_view("statistics", StatisticsView)
+        child = self["statistics_box"].get_child()
+        if child is not None:
+            self["statistics_box"].remove(child)
+        self["statistics_box"].add(view[view.top])
+        self["statistics_box"].show_all()
+        return view
         
     def reset_markers_view(self):
         return self._reset_child_view("markers", EditMarkersView)

@@ -61,3 +61,10 @@ class DetectPeaksView(DialogView):
     
         self.graph_parent.add(self.matlib_canvas)
         self.graph_parent.show_all()
+        
+class StatisticsView(BaseView):
+    builder = "specimen/glade/statistics.glade"
+    top = "statistics_box"
+    
+    def __init__(self, *args, **kwargs):
+        BaseView.__init__(self, *args, **kwargs)       

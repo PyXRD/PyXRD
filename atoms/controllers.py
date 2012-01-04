@@ -10,6 +10,8 @@ import locale
 
 import gtk
 
+import numpy as np
+
 from gtkmvc import Controller
 from gtkmvc.adapters import Adapter
 
@@ -42,8 +44,8 @@ class EditAtomTypeController(ChildController):
     def update_plot(self):
         self.view.plot.cla()
         if self.model is not None:
-            x = [ float(x)/100.0 for x in range(0, 100)]
-            y = [self.model.get_atomic_scattering_factor(stl) for stl in x]
+            x = np.array([ float(x)/100.0 for x in range(0, 100)])
+            y = self.model.get_atomic_scattering_factors(x)
             self.view.plot.plot(x, y, 'k-', aa=True)
         #self.view.plot.set_ylabel('Scattering factor', labelpad=1)
         #self.view.plot.set_xlabel('sin(θ)/λ', labelpad=1)

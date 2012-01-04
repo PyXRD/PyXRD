@@ -51,9 +51,10 @@ class Specimen(ChildModel, Observable, Storable):
         ('calc_color', str),
         ('inherit_exp_color', bool),
         ('exp_color', str),
+        ('statistics', object),
     ]
     __observables__ = [ key for key, val in __columns__]
-    __storables__ = [ val for val in __observables__ if val is not 'data_phases']
+    __storables__ = [ val for val in __observables__ if not val in ('data_phases', 'statistics') ]
 
     data_name = ""
     data_sample = ""  ##TODO self.parent.data_specimens.on_item_changed(self)
@@ -73,6 +74,8 @@ class Specimen(ChildModel, Observable, Storable):
     
     data_calculated_pattern = None
     data_experimental_pattern = None
+    
+    statistics = None
     
     __pctrl__ = None
     
@@ -224,6 +227,8 @@ class Specimen(ChildModel, Observable, Storable):
         self.display_calculated = display_calculated
         self.display_experimental = display_experimental
         self.display_phases = display_phases
+        
+        self.statistics = Statistics(data_specimen=self)
         
         #Resolve JSON indeces:
         self._data_phases = dict()
@@ -643,3 +648,96 @@ class Marker(ChildModel, Observable, Storable):
     @staticmethod          
     def from_json(**kwargs):
         return Marker(**kwargs)
+        
+class Statistics(Model, Observable):
+    __observables__ = [ "data_specimen", "data_points", "data_residual_pattern", "data_chi2", "data_Rp", "data_R2" ]
+    
+    #TODO:
+    # must listen for changes to:
+    #  - experimental data
+    #  - calculated data
+    
+    _data_specimen = None
+    @Model.getter("data_specimen")
+    def get_data_specimen(self, prop_name):
+        return self._data_specimen
+    @Model.setter("data_specimen")
+    def set_data_specimen(self, prop_name, value):
+        if value != self._data_specimen:
+            if self.data_observer == None:
+                self.data_observer = Statistics.DataObserver(self)
+            if self._data_specimen != None:
+                self.data_observer.relieve(self._data_specimen.data_experimental_pattern)
+                self.data_observer.relieve(self._data_specimen.data_calculated_pattern)
+            self._data_specimen = value
+            if self._data_specimen != None:
+                self.data_observer.observe_model(self._data_specimen.data_experimental_pattern)
+                self.data_observer.observe_model(self._data_specimen.data_calculated_pattern)
+            self.update_statistics()
+       
+    def _get_experimental(self):
+        if self._data_specimen != None:
+            return self._data_specimen.data_experimental_pattern.xy_data.get_raw_model_data()
+        else:
+            return None, None
+    def _get_calculated(self):
+        if self._data_specimen != None:
+            return self._data_specimen.data_calculated_pattern.xy_data.get_raw_model_data()
+        else:
+            return None, None      
+                
+    @Model.getter("data_points")
+    def get_data_points(self, prop_name):
+        return min(self._get_experimental()[0].size, self._get_calculated()[0].size) or 0
+    
+    data_chi2 = None      
+    data_R2 = None
+    data_Rp = None
+    data_residual_pattern = None
+  
+    data_observer = None   
+    class DataObserver(Observer):
+        statistics = None
+        def __init__(self, statistics, *args, **kwargs):
+            self.statistics = statistics
+            Observer.__init__(self, *args, **kwargs)
+        @Observer.observe("data_update", signal=True)
+        def notification(self, model, prop_name, info):
+            #model         = child model that we're observing
+            #self.statistics = statistics that is observing the model
+            self.statistics.update_statistics()
+  
+    def __init__(self, data_specimen=None):
+        Model.__init__(self)
+        Observable.__init__(self)
+        
+        self.data_specimen = data_specimen or self.data_specimen        
+        self.update_statistics()
+        
+    def on_data_update(self, model, name, info):
+        self.update_statistics()
+        
+    def update_statistics(self):
+        self.data_chi2 = 0        
+        self.data_Rp = 0
+        self.data_R2 = 0
+        self.data_residual_pattern = XYData(data_name="Residual Data", color="#000")
+        
+        exp_x, exp_y = self._get_experimental()
+        cal_x, cal_y = self._get_calculated()
+
+        if cal_y != None and exp_y != None and cal_y.size > 0 and exp_y.size > 0:
+            residual_pattern = XYListStore()
+            residual_pattern.set_from_data(exp_x, exp_y - cal_y)
+            self.data_residual_pattern.xy_data = residual_pattern
+            self.data_residual_pattern.update_data()
+
+            self.data_chi2 = stats.chisquare(exp_y, cal_y)[0]
+            self.data_Rp, self.data_R2 = self._calc_RpR2(exp_y, cal_y)
+           
+    def _calc_RpR2(self, o, e): 
+        avg = sum(o)/o.size
+        sserr = np.sum((o - e)**2)
+        sstot = np.sum((o - avg)**2)
+        Rp = np.sum(np.abs(o - e)) / np.sum(np.abs(o)) * 100
+        return Rp, 1 - (sserr / sstot)

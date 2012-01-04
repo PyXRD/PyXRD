@@ -63,7 +63,7 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
                     ad.connect_widget(self.view["specimen_data_name"])
                     self.adapt(ad)
                 elif name in ["data_phase_removed", "data_phase_added", "del_phase", "add_phase",
-                              "data_markers", "data_marker_removed", "data_marker_added", "del_marker", "add_marker" ] :
+                              "data_markers", "data_marker_removed", "data_marker_added", "del_marker", "add_marker", "statistics" ] :
                     pass
                 elif name in ["data_calculated_pattern", "data_experimental_pattern"]:
                     self.xydataobserver.observe_model(getattr(self.model, name))
@@ -255,7 +255,21 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
 
     pass # end of class
     
+class StatisticsController(ChildController):
 
+    def register_adapters(self):
+        print "StatisticsController.register_adapters()"
+        if self.model is not None:
+            for name in self.model.get_properties():
+                if name == "data_specimen":
+                    pass
+                elif name == "data_residual_pattern":
+                    pass #TODO link with main plot controller (as a sub plot)!
+                else:
+                    self.adapt(name)
+            return
+            
+            
 class EditMarkerController(ChildController):
 
     def register_adapters(self):
@@ -344,7 +358,7 @@ class EditMarkerController(ChildController):
                 
         self.cid = self.fig.canvas.mpl_connect('button_press_event', onclick)
         self.cparent.view.get_toplevel().present()
-        
+
 class MarkersController(ObjectListStoreController):
 
     file_filters = ("Marker file", "*.mrk"),

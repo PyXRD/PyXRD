@@ -145,12 +145,13 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
                 else:
                     print name
                     self.adapt(name)
+            self.update_sensitivities()
             return
 
     def set_exp_data_sensitivites(self, val):
         self.view["btn_del_experimental_data"].set_sensitive(val)
 
-    def update_sensitivies(self):
+    def update_sensitivities(self):
         self.view["specimen_exp_color"].set_sensitive(not self.model.inherit_exp_color)
         if not self.model.inherit_exp_color:
             self.view["specimen_exp_color"].set_color(gtk.gdk.color_parse(self.model.exp_color))
@@ -182,7 +183,7 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
     @Controller.observe("inherit_exp_color", assign=True)
     @Controller.observe("inherit_calc_color", assign=True)
     def notif_color_toggled(self, model, prop_name, info):
-        self.update_sensitivies()
+        self.update_sensitivities()
 
     # ------------------------------------------------------------
     #      GTK Signal handlers
@@ -281,7 +282,7 @@ class EditMarkerController(ChildController):
             FloatEntryValidator(self.view["entry_nanometer"])
             return
             
-    def update_sensitivies(self):
+    def update_sensitivities(self):
         self.view["marker_data_angle"].set_sensitive(not self.model.inherit_angle)
         
     
@@ -305,7 +306,7 @@ class EditMarkerController(ChildController):
 
     @Controller.observe("inherit_angle", assign=True)
     def notif_angle_toggled(self, model, prop_name, info):
-        self.update_sensitivies()
+        self.update_sensitivities()
 
     # ------------------------------------------------------------
     #      GTK Signal handlers

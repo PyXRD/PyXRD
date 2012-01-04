@@ -274,7 +274,7 @@ class Specimen(ChildModel, Observable, Storable):
             
             f = open(data, 'rb')
             f.seek(146)
-            specimen.data_sample = str(f.read(16))
+            specimen.data_sample = str(f.read(16)).replace("\0", "")
             specimen.data_name = os.path.basename(data)
             specimen.data_experimental_pattern.load_data(data=f, format=format)
             f.close()
@@ -302,6 +302,7 @@ class Specimen(ChildModel, Observable, Storable):
         
         if len(self._data_phases) == 0:
             self.data_calculated_pattern.xy_data.clear()
+            return None
         else:
             #todo part of these things should be calculated in the Goniometer and only changed when needed (e.g. the normal range)
             S = self.parent.data_goniometer.get_S()
@@ -340,7 +341,7 @@ class Specimen(ChildModel, Observable, Storable):
             self.data_calculated_pattern.xy_data.set_from_lists(list(theta_range), list(intensity_range))
             self.data_calculated_pattern.update_data()
 
-        return (theta_range, intensity_range)
+            return (theta_range, intensity_range)
         
     def auto_add_peaks(self, threshold):       
         xy = self.data_experimental_pattern.xy_data              

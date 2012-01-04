@@ -139,6 +139,7 @@ class SpecimenController(DialogController, DialogMixin):
                     FloatEntryValidator(self.view["specimen_%s" % name])
                     self.adapt(name)
                 else:
+                    print name
                     self.adapt(name)
             return
 

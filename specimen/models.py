@@ -317,10 +317,10 @@ class Specimen(ChildModel, Observable, Storable):
             
             theta_range = None
             torad = pi / 180
-            if len(self.data_experimental_pattern.xy_data._model_data_x) <= 1:
+            if self.data_experimental_pattern.xy_data._model_data_x.size <= 1:
                 theta_range = min_theta + delta_theta * np.array(range(0,steps-1), dtype=float)
             else:
-                theta_range =  np.array(self.data_experimental_pattern.xy_data._model_data_x) * torad / 2
+                theta_range =  self.data_experimental_pattern.xy_data._model_data_x * torad / 2
             stl_range = np.sin(theta_range) / l
             
             #sample length correction array:
@@ -338,7 +338,7 @@ class Specimen(ChildModel, Observable, Storable):
             self.data_calculated_pattern.clear(update=False)
             
             theta_range = theta_range * 2 / torad
-            self.data_calculated_pattern.xy_data.set_from_lists(list(theta_range), list(intensity_range))
+            self.data_calculated_pattern.xy_data.set_from_data(theta_range, intensity_range)
             self.data_calculated_pattern.update_data()
 
             return (theta_range, intensity_range)

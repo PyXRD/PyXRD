@@ -187,8 +187,21 @@ class HasObjectTreeview():
             return map(model.get_user_data_from_path, paths)
         return None
         
+    def get_selected_paths(self, tv):
+        selection = tv.get_selection()
+        if selection.count_selected_rows() >= 1:      
+            model, paths = selection.get_selected_rows()
+            return paths
+        return None
+        
     def get_all_objects(self, tv):
-        return tv.get_model()._model_data
+        return tv.get_model().get_raw_model_data()
+        
+    def set_selected_paths(self, tv, paths):
+        selection = tv.get_selection()
+        selection.unselect_all()
+        for path in paths:
+            selection.select_path(path)
 
         
 class ObjectListStoreController(DialogController, HasObjectTreeview):
@@ -241,7 +254,6 @@ class ObjectListStoreController(DialogController, HasObjectTreeview):
             tv.set_model(self.liststore)
             #tv.connect('button-press-event', self.phases_tv_button_press)
 
-            #tv.connect('cursor-changed', self.objects_tv_cursor_changed) #FIXME
             sel = tv.get_selection()
             sel.set_mode(gtk.SELECTION_MULTIPLE)
             sel.connect('changed', self.objects_tv_selection_changed)

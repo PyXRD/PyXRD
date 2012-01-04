@@ -14,14 +14,14 @@ from gtkmvc import Controller, Observer
 from gtkmvc.adapters import Adapter
 
 from generic.plot_controllers import DraggableVLine, EyedropperCursorPlot
-from generic.controllers import DialogController, DialogMixin, ChildController, ObjectListStoreController, get_color_val, delayed, ctrl_setup_combo_with_list
+from generic.controllers import DialogController, DialogMixin, ChildController, ObjectListStoreController, HasObjectTreeview, get_color_val, delayed, ctrl_setup_combo_with_list
 from generic.validators import FloatEntryValidator
 from generic.utils import get_case_insensitive_glob
 
 from specimen.models import Specimen, Marker, ThresholdSelector
 from specimen.views import EditMarkerView, DetectPeaksView
 
-class SpecimenController(DialogController, DialogMixin):
+class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
 
     file_filters = [("Data Files", get_case_insensitive_glob("*.DAT", "*.RD")),    
                     ("ASCII Data", get_case_insensitive_glob("*.DAT")),
@@ -73,6 +73,10 @@ class SpecimenController(DialogController, DialogMixin):
                         tv.set_model(model)
                         tv.connect('cursor_changed', self.on_exp_data_tv_cursor_changed)
 
+                        #allow multiple selection:
+                        sel = tv.get_selection()
+                        sel.set_mode(gtk.SELECTION_MULTIPLE)
+
                         def add_column(title, colnr):
                             rend = gtk.CellRendererText()
                             rend.set_property("editable", True)
@@ -87,8 +91,8 @@ class SpecimenController(DialogController, DialogMixin):
                     # connects the treeview to the liststore
                     tv = self.view['display_phases_treeview']
                     tv_model = self.model.parent.data_phases
-                    tv.set_model(tv_model) #self.parent.project.model.data_phases
-
+                    tv.set_model(tv_model)
+                    
                     # creates the columns of the treeview
                     rend = gtk.CellRendererText()
                     col = gtk.TreeViewColumn('Phase name', rend, text=tv_model.c_data_name) #self.parent.project.model.data_phases.c_data_name)
@@ -211,15 +215,15 @@ class SpecimenController(DialogController, DialogMixin):
 
     def on_add_experimental_data_clicked(self, widget):
         model = self.model.data_experimental_pattern.xy_data
-        model.append(0,0)
+        path = model.append(0,0)
+        self.set_selected_paths(self.view["experimental_data_tv"], (path,))
         return True
 
     def on_del_experimental_data_clicked(self, widget):
-        tv = self.view["experimental_data_tv"]
-        model = self.model.data_experimental_pattern.xy_data
-        path, col = tv.get_cursor()
-        if path != None:
-            model.remove_from_path(path)
+        paths = self.get_selected_paths(self.view["experimental_data_tv"])
+        if paths != None:
+            model = self.model.data_experimental_pattern.xy_data
+            model.remove_from_path(*paths)
         return True
 
     def on_exp_data_cell_edited(self, cell, path, new_text, user_data):

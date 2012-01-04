@@ -9,6 +9,8 @@
 from collections import namedtuple
 from generic.utils import whoami, smart_repos
 
+import numpy as np
+
 from generic.io import Storable, PyXRDDecoder, get_json_type, json_type
 
 from gtkmvc import Model, Observer
@@ -53,6 +55,9 @@ class _BaseObjectListStore(gtk.GenericTreeModel):
         
     def convert(self, col, new_val):
         return self._columns[col][1](new_val)
+        
+    def get_raw_model_data(self):
+        raise NotImplementedError
 
 class ObjectListStore(_BaseObjectListStore, Storable):
     _model_data = None #list of objects of class_type
@@ -199,6 +204,12 @@ class ObjectListStore(_BaseObjectListStore, Storable):
             new_pos = old_pos - 1            
             if new_pos >= 0:
                 self.reposition_item(item, new_pos) 
+                
+    def get_raw_model_data(self):
+        return self._model_data
+
+    pass #end of class
+
 class IndexListStore(ObjectListStore):
     
     _index_column_name = None
@@ -257,7 +268,7 @@ class IndexListStore(ObjectListStore):
     def remove_item(self, item):
         assert self.item_in_model(item)
         self._item_observer.relieve_model(item)
-        self._index[getattr(item, self._index_column_name)]
+        del self._index[getattr(item, self._index_column_name)]
         ObjectListStore.remove_item(self, item)
 
     def clear(self):
@@ -277,12 +288,19 @@ class IndexListStore(ObjectListStore):
             return self._index[index]
         else:
             return None
+            
+    def get_raw_model_data(self):
+        return self._index
+
+    pass #end of class
 
 Point = namedtuple('Point', ['x', 'y'], verbose=False)
 Point.__columns__ = [
     ('x', float),
     ('y', float)
 ]
+
+#TODO: make use of numpy array for XYListStore
 
 class XYListStore(_BaseObjectListStore, Storable):
     _model_data_x = None
@@ -292,8 +310,8 @@ class XYListStore(_BaseObjectListStore, Storable):
         _BaseObjectListStore.__init__(self, Point)
         Storable.__init__(self)
         self.set_property("leak-references", True)
-        self._model_data_x = []
-        self._model_data_y = []
+        self._model_data_x = np.array([], dtype=float)
+        self._model_data_y = np.array([], dtype=float)
         
     def json_properties(self):
         return {
@@ -305,16 +323,14 @@ class XYListStore(_BaseObjectListStore, Storable):
         xy = XYListStore()
         data = zip(*json.JSONDecoder().decode(data))
         if data != []:
-            data_x, data_y = data
-            xy._model_data_x = list(data_x)
-            xy._model_data_y = list(data_y)
-            xy.invalidate_iters()
+            xy.set_from_data(*data)
         return xy
 
     def on_get_iter(self, path): #returns a rowref
         try:
-            if path[0] < len(self._model_data_x):
-                return (path[0], self._model_data_x[path[0]], self._model_data_y[path[0]])
+            path = path[0]
+            if path < self._model_data_x.size:
+                return (path, self._model_data_x[path], self._model_data_y[path])
             else:
                 return None
         except IndexError, msg:
@@ -325,12 +341,17 @@ class XYListStore(_BaseObjectListStore, Storable):
 
     def set_value(self, itr, column, value):
         i = self.get_user_data(itr)[0]
-        if column == self.c_x:
-            self._model_data_x[i] = value
-        elif column == self.c_y:
-            self._model_data_y[i] = value
+        if i < self._model_data_x.size:
+            #self._model_data_x = np.resize(self._model_data_x, i+1)
+            #self._model_data_y = np.resize(self._model_data_y, i+1)
+            if column == self.c_x:
+                self._model_data_x[i] = value
+            elif column == self.c_y:
+                self._model_data_y[i] = value
+            else:
+                raise AttributeError
         else:
-            raise AttributeError
+            raise IndexError
         self.row_changed((i,), itr)
 
     def on_get_value(self, rowref, column):
@@ -349,26 +370,26 @@ class XYListStore(_BaseObjectListStore, Storable):
     def on_iter_children(self, rowref):
         if rowref is not None:
             return None
-        elif self._model_data_x and self._model_data_y and len(self._model_data_x) > 0:
+        elif self._model_data_x and self._model_data_y and self._model_data_x.size > 0:
             return 0
         return None
 
     def on_iter_has_child(self, rowref):
         if rowref is not None:
             return False
-        elif len(self._model_data_x) > 0:
+        elif self._model_data_x and self._model_data_y and self._model_data_x.size > 0:
             return True
         return False
 
     def on_iter_n_children(self, rowref):
         if rowref:
             return 0
-        return len(self._model_data_x)
+        return self._model_data_x.size
 
     def on_iter_nth_child(self, parent, n):
         if parent:
             return None
-        if n < 0 or n >= len(self._model_data_x):
+        if n < 0 or n >= self._model_data_x.size:
             return None
         return self.on_get_iter((n,))
 
@@ -376,38 +397,42 @@ class XYListStore(_BaseObjectListStore, Storable):
         return None
         
     def append(self, x, y, silent=False):
-        self._model_data_x.append(x)
-        self._model_data_y.append(y)
-        self._emit_added((len(self._model_data_x)-1,))
-        return (len(self._model_data_x)-1,)
-            
+        self._model_data_x = np.append(self._model_data_x, x)
+        self._model_data_y = np.append(self._model_data_y, y)
+        path = (self._model_data_x.size-1,)
+        self._emit_added(path)
+        return path
+    
     def insert(self, pos, x, y):
-        if not isinstance(item, self._class_type):
-            raise ValueError, 'Invalid type'
-        else:
-            self._model_data_x.insert(pos, x)
-            self._model_data_y.insert(pos, y)
-            self._emit_added((pos,))
+        self._model_data_x = np.insert(self._model_data_x, pos, x)
+        self._model_data_y = np.insert(self._model_data_y, pos, y)
+        self._emit_added((pos,))
       
     def _emit_added(self, path):
         itr = self.get_iter(path)
         self.row_inserted(path, itr)
 
-    def remove_from_path(self, path):
-        del self._model_data_x[path[0]]
-        del self._model_data_y[path[0]]
-        self.row_deleted(path)
+    def remove_from_path(self, *paths):
+        self._model_data_x = np.delete(self._model_data_x, paths)
+        self._model_data_y = np.delete(self._model_data_y, paths)       
+        for path in paths:
+            self.row_deleted(path)
 
     def remove(self, itr):
         path = self.get_path(itr)
         self.remove_from_path(path)
 
     def clear(self):
-        del self._model_data_x[:]
-        del self._model_data_y[:]
+        self._model_data_x = np.array([])
+        self._model_data_y = np.array([])
         self.invalidate_iters()
         
-    def set_from_lists(self, x_list, y_list):
-        self._model_data_x = x_list
-        self._model_data_y = y_list
+    def set_from_data(self, data_x, data_y):
+        self._model_data_x = np.array(data_x)
+        self._model_data_y = np.array(data_y)
         self.invalidate_iters()
+        
+    def get_raw_model_data(self):
+        return self._model_data_x, self._model_data_y
+        
+    pass #end of class        

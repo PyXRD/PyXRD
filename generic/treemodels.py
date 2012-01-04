@@ -271,6 +271,12 @@ class IndexListStore(ObjectListStore):
 
     def index_in_model(self, index):
         return (index in self._index)
+        
+    def get_item_by_index(self, index):
+        if self.index_in_model(index):
+            return self._index[index]
+        else:
+            return None
 
 Point = namedtuple('Point', ['x', 'y'], verbose=False)
 Point.__columns__ = [

@@ -162,6 +162,12 @@ class EditLayerController(ChildController, HasObjectTreeview):
 
     def on_atom_type_edited(self, combo, path, new_text, atom_model):
         atom = atom_model.get_user_data_from_path((int(path),))
+        if self.new_atom_type == None and not new_text in (None, "" ):
+            try:
+                self.new_atom_type = self.cparent.cparent.model.current_project.data_atom_types.get_item_by_index(new_text)
+            except:
+                pass
+        
         if atom is not None:
             atom.data_atom_type = self.new_atom_type
             self.new_atom_type = None

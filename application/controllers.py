@@ -46,6 +46,9 @@ class AppController (BaseController, DialogMixin):
         self.push_status_msg("Done.")
         return
 
+    def register_view(self, view):
+        self.view['statistics_expander'].connect("notify::expanded", self.on_statistics_expand)
+
     def set_model(self, model):
         BaseController.set_model(self, model)
         self.reset_project_controller()
@@ -55,13 +58,16 @@ class AppController (BaseController, DialogMixin):
         self.project = ProjectController(self.model.current_project, self.view.project, parent=self)
         self.phases = PhasesController(self.model.current_project, self.view.phases, parent=self)
         self.atom_types = AtomTypesController(self.model.current_project, self.view.atom_types, parent=self)
-        
-        #self.goniometer = GoniometerController(self.model.current_project.data_goniometer, self.view.goniometer, parent=self)
+        #self.goniometer = GoniometerController(self.model.current_project.data_goniometer, self.view.goniometer, parent=self) FIXME?
         
     def reset_specimen_controller(self):
         self.specimen = SpecimenController(self.model.current_specimen, self.view.reset_specimen_view(), parent=self)
-        self.markers = MarkersController(self.model.current_specimen, self.view.reset_markers_view(), parent=self)
-        self.statistics = StatisticsController(self.model.current_specimen.statistics, self.view.reset_statistics_view(), parent=self)
+        if self.model.current_specimen != None:
+            self.markers = MarkersController(self.model.current_specimen, self.view.reset_markers_view(), parent=self)    
+            self.statistics = StatisticsController(self.model.current_specimen.statistics, self.view.reset_statistics_view(), parent=self)
+        else:
+            self.markers = None
+            self.statistics = None
     
     def edit_specimen(self, specimen, title="Edit Specimen"):
         #self.push_status_msg("Editing specimen...", 'edit_specimen')
@@ -95,12 +101,7 @@ class AppController (BaseController, DialogMixin):
     def redraw_plot(self, complete=True):
         self.push_status_msg("Updating display...")       
         
-        single = bool(self.model.current_specimen is not None or self.model.current_specimens == [])    
-        
-        print single
-        print self.model.current_specimen
-        print self.model.current_specimens
-           
+        single = bool(self.model.current_specimen is not None or self.model.current_specimens == [])              
         labels = []
         
         if complete: self.plot_controller.unregister_all()
@@ -120,12 +121,17 @@ class AppController (BaseController, DialogMixin):
                     labels.append((specimen.data_name, 0.35 + offset))
                 offset += offset_increment
                 i += 1
-                      
+    
+        stats = (False, None)
+        if single and self.model.statistics_visible:
+            stats = (True, self.model.current_specimen.statistics.data_residual_pattern.line)
+  
         self.plot_controller.update(
             new_title=self.get_plot_title() or "",
             clear=True,
             single=single,
-            labels=labels)
+            labels=labels,
+            stats=stats)
         
         self.pop_status_msg()
                 
@@ -150,6 +156,8 @@ class AppController (BaseController, DialogMixin):
     def update_specimen_sensitivities(self):
         sensitive = (self.model.current_specimen != None)
         self.view["specimen_actions"].set_sensitive(sensitive)
+        self.view["statistics_expander"].set_sensitive(sensitive)
+        self.view['statistics_expander'].set_expanded(self.model.statistics_visible)
         sensitive = sensitive or (self.model.current_specimens is not None and len(self.model.current_specimens) >= 1)
         self.view["specimens_actions"].set_sensitive(sensitive)
         
@@ -177,10 +185,18 @@ class AppController (BaseController, DialogMixin):
         self.update_specimen_sensitivities()
         self.redraw_plot()
         return
-
+    
+    @Controller.observe("statistics_visible", assign=True, after=True)
+    def notif_statistics_toggle(self, model, prop_name, info):
+        self.redraw_plot()
+        return
     # ------------------------------------------------------------
     #      GTK Signal handlers
     # ------------------------------------------------------------
+    def on_statistics_expand(self, widget, param_spec, data=None):
+        self.model.statistics_visible = widget.get_expanded()
+        self.view['statistics_expander'].set_expanded(self.model.statistics_visible)
+    
     def on_main_window_delete_event(self, widget, event):
         gtk.main_quit()
         return False

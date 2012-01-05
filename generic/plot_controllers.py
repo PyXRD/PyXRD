@@ -43,7 +43,7 @@ class PlotController (DialogMixin):
     def setup_figure(self):
         style = gtk.Style()
         self.figure = Figure(dpi=72, edgecolor=str(style.bg[2]), facecolor=str(style.bg[2]))
-        self.figure.subplots_adjust(hspace=0.5)        
+        self.figure.subplots_adjust(hspace=0.0, wspace=0.0)
 
     def setup_canvas(self):
         self._canvas = FigureCanvasGTK(self.figure)
@@ -111,28 +111,42 @@ class MainPlotController (PlotController):
         self.app_controller = app_controller
         PlotController.__init__(self, *args, **kwargs)
         
-
     def setup_content(self):
+        gtkcol = gtk.Style().bg[2]
+        bg_color = (gtkcol.red_float, gtkcol.green_float, gtkcol.blue_float)
+    
         self.title = self.figure.text(s="", va='bottom', ha='left', x=0.1, y=0.1, weight="bold")
-        self.plot = self.figure.add_subplot(111)
+        self.plot = self.figure.add_subplot(211, axisbg=bg_color)
         self.plot.set_frame_on(False)
         self.plot.get_xaxis().tick_bottom()
         self.plot.get_yaxis().tick_left()
-        make_axes_area_auto_adjustable(self.plot, adjust_dirs=["left", "top"])
+        make_axes_area_auto_adjustable(self.plot, adjust_dirs=["left"], pad=0)
+        
         xmin, xmax = self.plot.get_xaxis().get_view_interval()
         ymin, ymax = self.plot.get_yaxis().get_view_interval()
         self.xaxis_line = matplotlib.lines.Line2D((xmin, xmax), (ymin, ymin), color='black', linewidth=2)
         self.yaxis_line = matplotlib.lines.Line2D((xmin, xmin), (ymin, ymax), color='black', linewidth=2)
+        
+        
+        self.stats_plot = self.figure.add_subplot(212, sharex=self.plot, axisbg=bg_color)
+        self.stats_plot.get_xaxis().tick_bottom()
+        yaxis = self.stats_plot.get_yaxis()
+        yaxis.tick_left()
+        #yaxis.get_major_locator().set_params(symmetric=True, nbins=2)
+        self.figure.delaxes(self.stats_plot) #remove for now until we need it
+        #self.stats_plot.autoscale(axis='y')
+        make_axes_area_auto_adjustable(self.stats_plot, adjust_dirs=["left"], pad=0.0, use_axes=self.plot)
+
         self.update()
         
     ###
     ### UPDATE SUBROUTINES
     ###
-    def update(self, new_title="", clear=False, single=True, labels=None):
+    def update(self, new_title="", clear=False, single=True, labels=None, stats=(False,None)):
         if clear: self.plot.cla()
         
         self.update_proxies(draw=False)
-        self.update_axes(draw=False, single=single, labels=labels)
+        self.update_axes(draw=False, single=single, labels=labels, stats=stats)
         self.update_title(draw=False, title=new_title)
         
         self.draw()
@@ -147,21 +161,28 @@ class MainPlotController (PlotController):
         self.plot.autoscale_view()
         self.plot.set_ylim(bottom=0, auto=True)
 
-    def update_axes(self, draw=True, single=True, labels=None):
+    def update_axes(self, draw=True, single=True, labels=None, stats=(False,None)):
         self.update_lim()
+        
+        stats, res_pattern = stats
         
         xmin, xmax = self.plot.get_xaxis().get_view_interval()
         ymin, ymax = self.plot.get_yaxis().get_view_interval()
         xaxis = self.plot.get_xaxis()
         yaxis = self.plot.get_yaxis()
         box = self.plot.get_position()
+        
+        stats_offset = 0.15 if stats else 0.0
+        
         if single:
-            self.plot.set_position([0.10, 0.25, 0.80, 0.55]) #l, b, w, h
-            self.plot.legend(loc="lower right", bbox_to_anchor=(1.0, -0.4), borderaxespad=0.0, fancybox=False )
+            self.plot.set_position([0.10, 0.25+stats_offset, 0.80, 0.55-stats_offset]) #l, b, w, h
+            self.plot.legend(loc="lower right", bbox_to_anchor=(0.02, 0.02, 0.94, 0.94), bbox_transform=self.figure.transFigure, borderaxespad=0.0, fancybox=False ) #-0.4-stats_offset*2
             self.plot.set_ylabel('Intensity')
             self.yaxis_line.set_data((xmin, xmin), (ymin, ymax))
             self.plot.add_artist(self.yaxis_line)
             yaxis.set_ticks_position('left')
+            matplotlib.artist.setp(self.plot.get_yticklabels(), visible=False)
+
         else:
             self.plot.set_position([0.10, 0.10, 0.80, 0.70]) #l, b, w, h
             if labels != None and labels != []:
@@ -169,11 +190,37 @@ class MainPlotController (PlotController):
                 yaxis.set_ticks(ticks)
                 yaxis.set_ticklabels(labels)
                 yaxis.set_ticks_position('none')
+            self.xaxis_line.set_data((xmin, xmax), (ymin, ymin))
+            
+        if single and stats:          
+            self.figure.add_axes(self.stats_plot)
+            self.stats_plot.cla()
+            self.stats_plot.add_line(res_pattern)
+            self.stats_plot.set_ylim(auto=True)
+            self.stats_plot.relim()
+            self.stats_plot.get_yaxis().get_major_locator().set_params(symmetric=True, nbins=2, integer=False)            
+            self.stats_plot.axhline(ls=":", c="k")
+            
+            self.stats_plot.autoscale_view()
+            self.stats_plot.set_position([0.10, 0.22, 0.80, stats_offset]) #l, b, w, h                
+            self.stats_plot.set_ylabel('Residual')
+        
+            matplotlib.artist.setp(self.plot.get_xticklabels(), visible=False)
+            matplotlib.artist.setp(self.plot.get_xlabel(), visible=False)
+            
+            self.stats_plot.set_xlabel('2θ')            
+        else:
+            if self.stats_plot in self.figure.axes:
+                self.figure.delaxes(self.stats_plot)
+        
+            matplotlib.artist.setp(self.plot.get_xticklabels(), visible=True)
+            matplotlib.artist.setp(self.plot.get_xlabel(), visible=True)
+            xaxis.tick_bottom()            
+            self.plot.set_xlabel('2θ')            
 
-        self.plot.set_xlabel('2θ')
         self.xaxis_line.set_data((xmin, xmax), (ymin, ymin))
         self.plot.add_artist(self.xaxis_line)
-
+            
         if draw: self.draw()
 
     def update_title(self, title="", draw=True):

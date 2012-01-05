@@ -143,7 +143,6 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
                     FloatEntryValidator(self.view["specimen_%s" % name])
                     self.adapt(name)
                 else:
-                    print name
                     self.adapt(name)
             self.update_sensitivities()
             return
@@ -268,7 +267,8 @@ class StatisticsController(ChildController):
                 else:
                     self.adapt(name)
             return
-            
+        
+    pass #end of class    
             
 class EditMarkerController(ChildController):
 

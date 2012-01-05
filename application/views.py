@@ -66,11 +66,11 @@ class AppView(BaseView):
         
     def reset_statistics_view(self):
         view = self._reset_child_view("statistics", StatisticsView)
-        child = self["statistics_box"].get_child()
+        child = self["statistics_expander"].get_child()
         if child is not None:
-            self["statistics_box"].remove(child)
-        self["statistics_box"].add(view[view.top])
-        self["statistics_box"].show_all()
+            self["statistics_expander"].remove(child)
+        self["statistics_expander"].add(view[view.top])
+        self["statistics_expander"].show_all()
         return view
         
     def reset_markers_view(self):

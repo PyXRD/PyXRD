@@ -765,8 +765,9 @@
                         <property name="xscale">0</property>
                         <property name="bottom_padding">20</property>
                         <child>
-                          <object class="GtkExpander" id="statistics_box">
+                          <object class="GtkExpander" id="statistics_expander">
                             <property name="visible">True</property>
+                            <property name="sensitive">False</property>
                             <property name="can_focus">True</property>
                             <child>
                               <placeholder/>

@@ -718,10 +718,14 @@ class Statistics(Model, Observable):
         self.update_statistics()
         
     def update_statistics(self):
+        print "UPDATE STATISTICS!"
         self.data_chi2 = 0        
         self.data_Rp = 0
         self.data_R2 = 0
-        self.data_residual_pattern = XYData(data_name="Residual Data", color="#000")
+        if self.data_residual_pattern == None:
+            self.data_residual_pattern = XYData(data_name="Residual Data", color="#000000")
+        
+        self.data_residual_pattern.clear()
         
         exp_x, exp_y = self._get_experimental()
         cal_x, cal_y = self._get_calculated()

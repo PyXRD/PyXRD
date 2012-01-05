@@ -12,6 +12,15 @@ class AppModel(Model):
     current_project = None
     current_filename = None
     
+    _statistics_visible = None
+    @Model.getter("statistics_visible")
+    def get_statistics_visible(self, prop_name):
+        return self._statistics_visible and (self._current_specimen != None)
+    @Model.setter("statistics_visible")
+    def set_statistics_visible(self, prop_name, value):
+        if self._current_specimen != None:
+            self._statistics_visible = value
+    
     _current_specimen = None
     @Model.getter("current_specimen")
     def get_current_specimen(self, prop_name):
@@ -34,8 +43,9 @@ class AppModel(Model):
         else:
             self._current_specimen = None
     
-    __observables__ = ( "current_project", "current_specimen", "current_specimens" )
+    __observables__ = ( "current_project", "current_specimen", "current_specimens", "statistics_visible" )
     
     def __init__(self, project = None):
         Model.__init__(self)
         self.current_project = project
+        self._statistics_visible = False

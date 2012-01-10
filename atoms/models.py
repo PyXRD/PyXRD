@@ -18,26 +18,27 @@ from math import sin, cos, pi, sqrt, exp
 from gtkmvc.model import Signal, Observer
 
 from generic.io import Storable, PyXRDDecoder
-from generic.models import XYData, ChildModel
+from generic.models import XYData, ChildModel, CSVMixin
 from generic.treemodels import XYListStore
 
 #TODO:
 #  - cache calculated values
 
-class AtomType(ChildModel, Storable):
+class AtomType(ChildModel, Storable, CSVMixin):
     __index_column__ = 'data_name'
 
     __columns__ = [
-        ('data_name', str),
-        ('data_par_c', float),
         ('data_atom_nr', int),
+        ('data_name', str),
         ('data_weight', float),
+        ('data_par_c', float),
     ]
     __columns__ += [ ('data_par_a%d' % i, float) for i in [1,2,3,4,5] ]
     __columns__ += [ ('data_par_b%d' % i, float) for i in [1,2,3,4,5] ]
 
     __storables__ = [ key for key, val in __columns__]
-       
+    __csv_storables__ = zip(__storables__, __storables__)
+    
     __observables__ = ["parameters_changed"] + __storables__
     
     data_name = ""    
@@ -113,40 +114,7 @@ class AtomType(ChildModel, Storable):
     @staticmethod
     def from_json(**kwargs):
         return AtomType(**kwargs)
-
-    @staticmethod
-    def get_from_csv(filename, callback = None, parent=None):
-        import csv
-        atl_reader = csv.reader(open(filename, 'rb'), delimiter=',', quotechar='"')
-        header = True
-        atom_types = []
-        for row in atl_reader:
-            if not header and len(row) > 6:
-                atom_nr = int(row[0])
-                name = row[1]
-                weight = float(row[2])
-                par_c = float(row[3])
-                #pad zero's and truncate to length 5
-                row = row[4:]
-                num = len(row)/2
-                par = map(float, (row[:num]+[0,0])[:5] + (row[num:]+[0,0])[:5])
-                
-                new_atom_type = AtomType(name, parent, weight, atom_nr, par_c, *par)
-                atom_types.append(new_atom_type)
-                if callback is not None and callable(callback):
-                    callback(new_atom_type)
-                del new_atom_type
-            header = False
-        return atom_types
         
-    @staticmethod
-    def save_as_csv(filename, atom_types):
-        import csv
-        atl_writer = csv.writer(open(filename, 'wb'), delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-        atl_writer.writerow(["Atom#", "Descr", "Weight", "c", "a1", "a2", "a3", "a4", "b1", "b2", "b3", "b4"])
-        for item in atom_types:
-            atl_writer.writerow([item.data_atom_nr, item.data_name, item.data_weight, item.data_par_c] + item._data_a + item._data_b)
-
 """
     Atoms have an atom type plus structural parameters (position and proportion)
 """

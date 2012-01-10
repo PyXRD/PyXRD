@@ -13,6 +13,7 @@ import gtk
 from gtkmvc import Controller
 from gtkmvc.adapters import Adapter
 
+from generic.utils import get_case_insensitive_glob
 from generic.controllers import BaseController, DialogMixin, delayed
 from generic.plot_controllers import MainPlotController, EyedropperCursorPlot
 
@@ -27,7 +28,7 @@ from atoms.controllers import AtomTypesController
 
 class AppController (BaseController, DialogMixin):
 
-    file_filters = [("PyXRD Project files", "*.pyxrd"),
+    file_filters = [("PyXRD Project files", get_case_insensitive_glob("*.pyxrd")),
                     ("All Files", "*.*")]
 
     def __init__(self, model, view, spurious=False, auto_adapt=False, parent=None):
@@ -227,9 +228,7 @@ class AppController (BaseController, DialogMixin):
     def on_save_project_as_activate(self, widget, data=None, title="Save project as"):
         def on_accept(dialog):
             print "Saving project..."
-            filename = dialog.get_filename()
-            if filename[len(filename)-6:] != ".pyxrd":
-                filename = "%s.pyxrd" % filename
+            filename = self.extract_filename(dialog)
             self.save_project(filename=filename)
         self.run_save_dialog(title=title,
                              on_accept_callback=on_accept,

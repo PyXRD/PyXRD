@@ -26,6 +26,10 @@ def print_timing(func):
 def get_case_insensitive_glob(*strings):
     '''Ex: '*.ora' => '*.[oO][rR][aA]' '''
     return ['*.%s' % ''.join(["[%s%s]" % (c.lower(), c.upper()) for c in string.split('.')[1]]) for string in strings]
+    
+def retreive_lowercase_extension(glob):
+    '''Ex: '*.[oO][rR][aA]' => '*.ora' '''
+    return ''.join([ c.replace("[", "").replace("]", "")[:-1] for c in glob.split('][')])
 
 def find_ge(a, x):
     'Find leftmost item greater than or equal to x'

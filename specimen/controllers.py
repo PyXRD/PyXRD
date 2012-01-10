@@ -39,21 +39,6 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
             Observer.__init__(self, *args, **kwargs)
             self.callback = callback
 
-    def unregister_data_treeview(self):
-        if self.view is not None and self.model is not None:
-            tv = self.view['experimental_data_tv']
-            tv.set_model(None)
-    def register_data_treeview(self):
-        if self.view is not None and self.model is not None:
-            tv = self.view['experimental_data_tv']
-            tv.set_model(self.model.data_experimental_pattern.xy_data)
-
-    def register_view(self, view):
-        self.register_data_treeview()
-        if self.view is not None and self.model is not None:
-            tv = self.view['display_phases_treeview']
-            tv.set_model(self.model.parent.data_phases) #self.parent.project.model.data_phases
-
     def register_adapters(self):
         self.xydataobserver = self.XYDataObserver(self.parent.update_plot)
         if self.model is not None:
@@ -127,7 +112,6 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
                     rend = gtk.CellRendererText()
                     rend.set_property("editable", True)
                     rend.connect('edited', self.phase_quantity_edited, tv_model)
-                    #FIXME edit signal rend.connect('toggled', self.phase_tv_toggled, tv_model) #self.parent.project.model.data_phases)
                     col = gtk.TreeViewColumn('Quantity', rend) #, text=2)
                     col.set_cell_data_func(rend, quantity_renderer)
                     col.activatable = False
@@ -166,8 +150,6 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
     @Controller.observe("display_phases", assign=True)
     def notif_display_toggled(self, model, prop_name, info):
         self.parent.update_plot()
-        
-        #TODO this should be place inside the model!!
         self.model.parent.data_specimens.on_item_changed(self.model)
         return
         
@@ -260,10 +242,8 @@ class StatisticsController(ChildController):
         print "StatisticsController.register_adapters()"
         if self.model is not None:
             for name in self.model.get_properties():
-                if name == "data_specimen":
+                if name in ("data_specimen", "data_residual_pattern"):
                     pass
-                elif name == "data_residual_pattern":
-                    pass #TODO link with main plot controller (as a sub plot)!
                 else:
                     self.adapt(name)
             return
@@ -361,7 +341,7 @@ class EditMarkerController(ChildController):
 
 class MarkersController(ObjectListStoreController):
 
-    file_filters = ("Marker file", "*.mrk"),
+    file_filters = ("Marker file", get_case_insensitive_glob("*.MRK")),
     model_property_name = "data_markers"
     columns = [ ("Marker label", 0) ]
     delete_msg = "Deleting a marker is irreverisble!\nAre You sure you want to continue?"
@@ -396,23 +376,11 @@ class MarkersController(ObjectListStoreController):
 
 
     def on_save_object_clicked(self, event):
-        pass
-        #TODO
-        #def on_accept(save_dialog):
-        #    print "Exporting atom types..."
-        #    fltr = save_dialog.get_filter()
-        #    filename = save_dialog.get_filename()
-        #    if fltr.get_name() == self.file_filters[0][0]:
-        #        if filename[len(filename)-4:] != self.file_filters[0][1][1:]:
-        #            filename = "%s%s" % (filename, self.file_filters[0][1][1:])
-        #        atom_type = self.get_selected_object()
-        #        if atom_type is not None:
-        #            atom_type.save_object(filename=filename)
-        #    elif fltr.get_name() == self.file_filters[1][0]:
-        #        if filename[len(filename)-4:] != self.file_filters[1][1][1:]:
-        #            filename = "%s%s" % (filename, self.file_filters[1][1][1:])
-        #        AtomType.save_as_csv(filename, self.get_selected_objects())
-        #self.run_save_dialog("Export atom types", on_accept, parent=self.view.get_top_widget())
+        def on_accept(dialog):
+            print "Exporting markers..."
+            filename = self.extract_filename(dialog)
+            Marker.save_as_csv(filename, self.get_selected_objects())
+        self.run_save_dialog("Export markers", on_accept, parent=self.view.get_top_widget())
         
     def on_del_object_clicked(self, event):
         ObjectListStoreController.on_del_object_clicked(self, event)

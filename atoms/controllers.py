@@ -72,7 +72,7 @@ class EditAtomTypeController(ChildController):
 class AtomTypesController(ObjectListStoreController):
     file_filters = ("Single atom type file", "*.sat"), ("Atom types list file", "*.atl")
     model_property_name = "data_atom_types"
-    columns = [ ("Atom type name", 0) ]
+    columns = [ ("Atom type name", 1) ]
     delete_msg = "Deleting an atom type is irreverisble!\nAre You sure you want to continue?"
     title="Edit Atom Types"
 
@@ -101,7 +101,7 @@ class AtomTypesController(ObjectListStoreController):
             if fltr.get_name() == self.file_filters[0][0]:
                 self.open_atom_type(open_dialog.get_filename())
             elif fltr.get_name() == self.file_filters[1][0]:
-                AtomType.get_from_csv(open_dialog.get_filename(), self.model.add_atom_type, self.model)        
+                AtomType.get_from_csv(open_dialog.get_filename(), self.model.add_atom_type)        
         self.run_load_dialog("Import atom types", on_accept, parent=self.view.get_top_widget())
 
 

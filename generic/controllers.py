@@ -11,6 +11,8 @@ import gobject
  
 from gtkmvc import Controller
 
+from generic.utils import retreive_lowercase_extension
+
 def ctrl_setup_combo_with_list(ctrl, combo, prop_name, list_prop_name):
     store = gtk.ListStore(str, str)   
     list_data = getattr(ctrl.model, list_prop_name)             
@@ -37,6 +39,21 @@ def ctrl_setup_combo_with_list(ctrl, combo, prop_name, list_prop_name):
 
 
 class DialogMixin():
+    def extract_filename(self, dialog):
+        return self._adjust_filename(dialog.get_filename(), self.get_selected_glob(dialog.get_filter()))
+
+    def _adjust_filename(self, filename, glob):
+        extension = glob[1:]
+        if filename[len(filename)-len(extension):] != extension:
+            filename = "%s%s" % (filename, glob[1:])
+        return filename
+
+    def get_selected_glob(self, filter, file_filters=None):
+        selected_name = filter.get_name()
+        for name, globs in (file_filters or self.file_filters):
+            if selected_name==name:
+                return retreive_lowercase_extension(globs[0])
+
     def _get_object_file_filters(self):
         for name, re in self.file_filters:
             ffilter = gtk.FileFilter()

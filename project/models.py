@@ -128,6 +128,7 @@ class Project(Model, Observable, Storable):
 
     data_atom_type_added = Signal()
     def add_atom_type(self, atom_type, silent=False):
+        atom_type.parent = self
         return self._add_item_to_store(self._data_atom_types, atom_type, 
                                        signal=self.data_atom_type_added,
                                        silent=silent)
@@ -198,7 +199,7 @@ class Project(Model, Observable, Storable):
         
     def load_default_data(self):
         import os
-        AtomType.get_from_csv(os.path.abspath(os.path.join(os.path.dirname(__file__), '../data/attomic scattering factors.atl')), self.add_atom_type, self)
+        AtomType.get_from_csv(os.path.abspath(os.path.join(os.path.dirname(__file__), '../data/atomic scattering factors.atl')), self.add_atom_type)
              
     @staticmethod          
     def from_json(data_name=None, data_date=None, data_description=None, data_author=None, 

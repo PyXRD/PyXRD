@@ -28,7 +28,7 @@ from math import tan, asin, sin, cos, pi, sqrt, radians, degrees, exp
 
 from generic.utils import interpolate, print_timing
 from generic.io import Storable, PyXRDDecoder
-from generic.models import XYData, ChildModel
+from generic.models import XYData, ChildModel, CSVMixin
 from generic.treemodels import ObjectListStore, XYListStore, Point
 from generic.peak_detection import multi_peakdetect, peakdetect, smooth
 
@@ -57,7 +57,7 @@ class Specimen(ChildModel, Observable, Storable):
     __storables__ = [ val for val in __observables__ if not val in ('data_phases', 'statistics') ]
 
     data_name = ""
-    data_sample = ""  ##TODO self.parent.data_specimens.on_item_changed(self)
+    data_sample = ""
     
     _data_sample_length = 3.0
     @Model.getter("data_sample_length")
@@ -300,8 +300,6 @@ class Specimen(ChildModel, Observable, Storable):
     # declare the @ decorator just before the function, invokes print_timing()
     #@print_timing
     def calculate_pattern(self, steps=2500):
-        #TODO TEST THIS:
-     
         t1 = time.time()
      
         
@@ -474,7 +472,7 @@ class ThresholdSelector(ChildModel, Observable):
 
             self.sel_threshold = peak_x
             
-class Marker(ChildModel, Observable, Storable):
+class Marker(ChildModel, Observable, Storable, CSVMixin):
     
     __columns__ = [
         ('data_label', str),
@@ -488,6 +486,7 @@ class Marker(ChildModel, Observable, Storable):
     ]
     __observables__ = [ key for key, val in __columns__]
     __storables__ = __observables__
+    __csv_storables__ = zip(__storables__, __storables__)
 
     data_label = ""
     data_visible = True
@@ -558,7 +557,7 @@ class Marker(ChildModel, Observable, Storable):
         self.data_base = data_base
         self.inherit_angle = inherit_angle
         self.data_angle = data_angle
-        self.data_style = data_style
+        self.data_style = data_style   
         
     def get_ymin(self):
         return min(self.get_y(self.parent.data_experimental_pattern.line), 
@@ -591,9 +590,7 @@ class Marker(ChildModel, Observable, Storable):
             for key in kws:
                 getattr(self._text, "set_%s"%key)(kws[key])
         if not self._text in axes.get_children():
-            axes.add_artist(self._text)
-                
-                
+            axes.add_artist(self._text)     
     
     def update_vline(self, figure, axes):
         y = 0
@@ -651,11 +648,6 @@ class Marker(ChildModel, Observable, Storable):
         
 class Statistics(Model, Observable):
     __observables__ = [ "data_specimen", "data_points", "data_residual_pattern", "data_chi2", "data_Rp", "data_R2" ]
-    
-    #TODO:
-    # must listen for changes to:
-    #  - experimental data
-    #  - calculated data
     
     _data_specimen = None
     @Model.getter("data_specimen")
@@ -718,7 +710,6 @@ class Statistics(Model, Observable):
         self.update_statistics()
         
     def update_statistics(self):
-        print "UPDATE STATISTICS!"
         self.data_chi2 = 0        
         self.data_Rp = 0
         self.data_R2 = 0

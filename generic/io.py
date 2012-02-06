@@ -80,6 +80,6 @@ class Storable():
             "properties": self.json_properties()
         }
     
-    @staticmethod
-    def from_json(**kwargs):
-        raise NotImplementedError
+    @classmethod
+    def from_json(type, **kwargs):
+        return type(**kwargs)

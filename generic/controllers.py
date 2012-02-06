@@ -229,25 +229,18 @@ class HasObjectTreeview():
         for path in paths:
             selection.select_path(path)
 
-        
-class ObjectListStoreController(DialogController, HasObjectTreeview):
-  
+class ObjectListStoreMixin(HasObjectTreeview):
+
     model_property_name = ""
     edit_controller = None
     edit_view = None
     columns = [ ("Object name", 0) ]
     delete_msg = "Deleting objects is irreverisble!\nAre You sure you want to continue?"
-    title="Edit Dialog"
 
-    def __init__(self, model, view,
-                 spurious=False, auto_adapt=False, parent=None,
-                 model_property_name="", columns=[], delete_msg="", title=""):
-        BaseController.__init__(self, model, view, spurious=spurious, auto_adapt=auto_adapt, parent=parent)
+    def __init__(self, model_property_name="", columns=[], delete_msg=""):
         self.model_property_name = model_property_name or self.model_property_name
         self.columns = columns or self.columns
         self.delete_msg = delete_msg or self.delete_msg
-        self.title = title or self.title
-        view.set_title(self.title)
 
     @property
     def liststore(self):
@@ -291,8 +284,8 @@ class ObjectListStoreController(DialogController, HasObjectTreeview):
             for name, col in self.columns:
                 rend = gtk.CellRendererText()
                 col = gtk.TreeViewColumn(name, rend, text=col)
-                col.set_resizable(True)
-                col.set_expand(True)
+                col.set_resizable(False)
+                col.set_expand(False)
                 tv.append_column(col)
             
             self.set_object_sensitivities(False) #FIXME
@@ -351,7 +344,32 @@ class ObjectListStoreController(DialogController, HasObjectTreeview):
                 self.set_object_sensitivities(False)
                 self.edit_object(None)
             self.run_confirmation_dialog(message=self.delete_msg, on_accept_callback=delete_objects, parent=self.view.get_top_widget())
+
+        
+class ObjectListStoreController(DialogController, ObjectListStoreMixin):
+    title="Edit Dialog"
+  
+    def __init__(self, model, view,
+                 spurious=False, auto_adapt=False, parent=None,
+                 model_property_name="", columns=[], delete_msg="", title=""):
+        DialogController.__init__(self, model, view, spurious=spurious, auto_adapt=auto_adapt, parent=parent)
+        ObjectListStoreMixin.__init__(self, model_property_name=model_property_name, columns=columns, delete_msg=delete_msg)        
+        self.title = title or self.title
+        view.set_title(self.title)
+        
+    def register_adapters(self):
+        ObjectListStoreMixin.register_adapters(self)
             
+class ChildObjectListStoreController(ChildController, ObjectListStoreMixin):
+  
+    def __init__(self, model, view,
+                 spurious=False, auto_adapt=False, parent=None,
+                 model_property_name="", columns=[], delete_msg=""):
+        ChildController.__init__(self, model, view, spurious=spurious, auto_adapt=auto_adapt, parent=parent)
+        ObjectListStoreMixin.__init__(self, model_property_name=model_property_name, columns=columns, delete_msg=delete_msg)
+        
+    def register_adapters(self):
+        ObjectListStoreMixin.register_adapters(self)
 
 def get_color_val(widget):
     c = widget.get_color()

@@ -54,6 +54,8 @@ class CSVMixin():
 
 class ChildModel(Model):
 
+    __observables__ = ["parent",]
+
     #SIGNALS:
     removed = Signal()
     added = Signal()
@@ -61,10 +63,10 @@ class ChildModel(Model):
     #PROPERTIES:
     _parent = None
     @Model.getter("parent")
-    def get_parent(self):
+    def get_parent(self, prop_name):
         return self._parent
     @Model.setter("parent")
-    def set_parent(self, value):
+    def set_parent(self, prop_name, value):
         self._unattach_parent()
         self._parent = value
         self._attach_parent()

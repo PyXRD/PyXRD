@@ -71,10 +71,6 @@ class Goniometer(Model, Observable, Storable):
         self.data_min_2theta = data_min_2theta or self.data_min_2theta
         self.data_max_2theta = data_max_2theta or self.data_max_2theta
         self.data_lambda = data_lambda or self.data_lambda
-       
-    @staticmethod
-    def from_json(**kwargs):
-        return Goniometer(**kwargs)
         
     
     def get_S(self):

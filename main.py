@@ -10,7 +10,6 @@
 
 import gtk
 import matplotlib
-#matplotlib.use('GTKCairo')
 
 from application.models import AppModel
 from application.views import AppView

@@ -48,7 +48,7 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
                     ad.connect_widget(self.view["specimen_data_name"])
                     self.adapt(ad)
                 elif name in ["data_phase_removed", "data_phase_added", "del_phase", "add_phase",
-                              "data_markers", "data_marker_removed", "data_marker_added", "del_marker", "add_marker", "statistics" ] :
+                              "data_markers", "data_marker_removed", "data_marker_added", "del_marker", "add_marker", "statistics", "parent" ] :
                     pass
                 elif name in ["data_calculated_pattern", "data_experimental_pattern"]:
                     self.xydataobserver.observe_model(getattr(self.model, name))

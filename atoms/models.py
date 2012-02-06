@@ -100,20 +100,16 @@ class AtomType(ChildModel, Storable, CSVMixin):
         ChildModel.__init__(self, parent=parent)
         Storable.__init__(self)
         
-        self.data_name = data_name or self.data_name
-        self.data_atom_nr = data_atom_nr or self.data_atom_nr
-        self.data_weight = data_weight or self.data_weight
+        self.data_name = str(data_name) or self.data_name
+        self.data_atom_nr = int(data_atom_nr) or self.data_atom_nr
+        self.data_weight = float(data_weight) or self.data_weight
         
         self._data_c = float(data_par_c)
-        self._data_a = [data_par_a1, data_par_a2, data_par_a3, data_par_a4, data_par_a5]
-        self._data_b = [data_par_b1, data_par_b2, data_par_b3, data_par_b4, data_par_b5]
+        self._data_a = map(float, [data_par_a1, data_par_a2, data_par_a3, data_par_a4, data_par_a5])
+        self._data_b = map(float, [data_par_b1, data_par_b2, data_par_b3, data_par_b4, data_par_b5])
         
     def __str__(self):
         return "<AtomType %s(%s)>" % (self.data_name, repr(self))
-            
-    @staticmethod
-    def from_json(**kwargs):
-        return AtomType(**kwargs)
         
 """
     Atoms have an atom type plus structural parameters (position and proportion)
@@ -259,5 +255,5 @@ class Atom(ChildModel, Storable):
     def get_structure_factors(self, stl_range):
         asf = self.data_atom_type.get_atomic_scattering_factors(stl_range)
         fac = 4 * pi * self.data_z * stl_range
-        return (asf * self.data_pn * np.cos (fac), asf * self.data_pn * np.sin (fac))
+        return asf * self.data_pn * np.exp(fac*1j)                      #(2*asf * self.data_pn * np.cos (fac), 2*asf * self.data_pn * np.sin (fac)) #TODO do we need to multiply with 2?
         

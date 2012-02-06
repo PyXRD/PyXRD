@@ -55,22 +55,21 @@ class TitleView():
     Mixin that provides a function to add childviews to containers
 """
 class HasChildView():
-    def _add_child_view(self, view, container):
+    def _add_child_view(self, new_child, container):
         child = container.get_child()
         if child is not None:
             container.remove(child)
-            #child.destroy()
-        if isinstance(container, gtk.ScrolledWindow) and not (type(view.get_top_widget()) in (gtk.TextView, gtk.TreeView, gtk.IconView, gtk.Viewport)):
-            container.add_with_viewport(view.get_top_widget())
+        if isinstance(container, gtk.ScrolledWindow) and not (type(new_child) in (gtk.TextView, gtk.TreeView, gtk.IconView, gtk.Viewport)):
+            container.add_with_viewport(new_child)
         else:
-            container.add(view.get_top_widget())
-        view.show_all()
-        return view
+            container.add(new_child)
+        new_child.show_all()
+        return new_child
 
 """
     Generalised view for editing stuff with an OK button
 """
-class DialogView(BaseView, TitleView):
+class DialogView(BaseView, TitleView, HasChildView):
     builder = "generic/glade/edit_dialog.glade"
     top = "window_edit_dialog"
     container_widget = "edit_child_box"
@@ -87,22 +86,12 @@ class DialogView(BaseView, TitleView):
         self.subview_toplevel = subview_toplevel or self.subview_toplevel
         self.setup_subview()
         return
-
+    
     def setup_subview(self):
         self._builder.add_from_file(self.subview_builder)
-        child = self[self.container_widget].get_child()
-        if child is not None:
-            self[self.container_widget].remove(child)
-        child = self[self.subview_toplevel]
-        self[self.container_widget].add(child)
+        self._add_child_view(self[self.subview_toplevel], self[self.container_widget])
         
-"""
-    Generalised view for editing objects inside an ObjectListStore (using a customisable child view)
-"""
-class ObjectListStoreView(DialogView, TitleView, HasChildView):
-    subview_builder = "generic/glade/object_store.glade"
-    subview_toplevel = "edit_object_store"
-    
+class ObjectListStoreViewMixin(HasChildView):   
     edit_view = None
     edit_view_container = "vwp_edit_object"
     
@@ -136,29 +125,62 @@ class ObjectListStoreView(DialogView, TitleView, HasChildView):
             self.extra_widget_box.remove(child)
         if widget != None:
             self["extra_box"].add(widget)
-    
+       
     _none_view = None
     @property
     def none_view(self):
         if self._none_view == None:
              self._none_view = NoneView()
         return self._none_view
-    
-    def __init__(self, edit_view_container=None, load_label=None, save_label=None, **kwargs):
-        DialogView.__init__(self, **kwargs)
-        TitleView.__init__(self)
+        
+    def __init__(self, edit_view_container=None, display_buttons=True, load_label=None, save_label=None, **kwargs):
         self.edit_view_container = edit_view_container or self.edit_view_container
         self.load_label = load_label or self.load_label
         self.save_label = save_label or self.save_label
+        
+        if not display_buttons:
+            self["vbox_objects"].remove(self["table_data"])
+        
         self.extra_widget_box = self["extra_box"]
         if self.extra_widget_builder != None:
             self._builder.add_from_file(self.extra_widget_builder)
             self.extra_widget = self._builder.get_object(self.extra_widget_toplevel)
         return
-
+        
     def set_edit_view(self, view):
         self.edit_view = view
-        return self._add_child_view(view, self[self.edit_view_container])
+        self._add_child_view(view.get_top_widget(), self[self.edit_view_container])
+        if isinstance(self[self.edit_view_container], gtk.ScrolledWindow):
+            self[self.edit_view_container].set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
+        return self.edit_view
+        
+"""
+    Generalised view for editing objects inside an ObjectListStore (using a customisable child view)
+     - Standalone version (inside a DialogView)
+"""
+class ObjectListStoreView(DialogView, ObjectListStoreViewMixin):
+    subview_builder = "generic/glade/object_store.glade"
+    subview_toplevel = "edit_object_store"
+
+    def __init__(self, edit_view_container=None, display_buttons=True, load_label=None, save_label=None, **kwargs):
+        DialogView.__init__(self, **kwargs)
+        ObjectListStoreViewMixin.__init__(self, edit_view_container=edit_view_container, display_buttons=display_buttons, load_label=load_label, save_label=save_label, **kwargs)
+        
+"""
+    Generalised view for editing objects inside an ObjectListStore (using a customisable child view)
+     - Child version (to be embedded by a controller)
+"""
+class ChildObjectListStoreView(BaseView, ObjectListStoreViewMixin):
+    edit_view_container = "frame_object_param"
+    
+    builder = "generic/glade/object_store.glade"
+    top = "edit_object_store"
+
+    def __init__(self, edit_view_container=None, display_buttons=True, load_label=None, save_label=None, **kwargs):
+        BaseView.__init__(self, **kwargs)
+        ObjectListStoreViewMixin.__init__(self, edit_view_container=edit_view_container, display_buttons=display_buttons, load_label=load_label, save_label=save_label, **kwargs)
+        
+        self["frm_objects_tv"].set_size_request(150, 150)
         
 class NoneView(BaseView):
     builder = "generic/glade/none.glade"

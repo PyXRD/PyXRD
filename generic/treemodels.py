@@ -73,10 +73,10 @@ class ObjectListStore(_BaseObjectListStore, Storable):
         return { 'class_type': json_type(self._class_type),
                  'model_data': self._model_data }
         
-    @staticmethod
-    def from_json(parent=None, class_type=None, model_data=None, **kwargs):
+    @classmethod
+    def from_json(type, parent=None, class_type=None, model_data=None, **kwargs):
         class_type = get_json_type(class_type)
-        store = ObjectListStore(class_type)
+        store = type(class_type)
         for obj in model_data:
             item = PyXRDDecoder.__pyxrd_decode__(obj, parent=parent)
             store._model_data.append(item)

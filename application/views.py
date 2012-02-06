@@ -39,6 +39,7 @@ class AppView(BaseView):
         self.reset_atom_types_view()
         
         self.get_top_widget().set_icon(gtk.gdk.pixbuf_new_from_file(os.path.join(__file__[:__file__.rfind(os.sep)], "icon.png")))
+        #self.get_top_widget().maximize()
         self.get_top_widget().show_all()
 
         return
@@ -83,7 +84,6 @@ class AppView(BaseView):
         return self._reset_child_view("phases", ObjectListStoreView)
 
     def show(self, *args, **kwargs):
-        #self.get_top_widget().maximize()
         BaseView.show(self, *args, **kwargs)
         
     def get_toplevel(self):

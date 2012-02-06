@@ -10,15 +10,21 @@ import locale
 
 import gtk
 
-from gtkmvc import Controller
+from gtkmvc import Model, Controller
 from gtkmvc.adapters import Adapter
 
 from generic.validators import FloatEntryValidator 
-from generic.controllers import ChildController, ObjectListStoreController, HasObjectTreeview
+from generic.views import ChildObjectListStoreView
+from generic.controllers import DialogController, ChildController, ObjectListStoreController, ChildObjectListStoreController, HasObjectTreeview
 
-from phases.views import EditPhaseView, EditLayerView
-from phases.models import Phase
 from atoms.models import Atom
+
+from probabilities.controllers import EditProbabilitiesController
+from probabilities.views import EditProbabilitiesView
+
+from phases.views import EditPhaseView, EditLayerView, EditComponentView, AddPhaseView
+from phases.models import Phase, Component
+
 
 class EditLayerController(ChildController, HasObjectTreeview):
     file_filters = ("Layer file", "*.lyr"),
@@ -51,7 +57,7 @@ class EditLayerController(ChildController, HasObjectTreeview):
             rend.set_property("editable", True)
             rend.connect('edited', self.on_atom_cell_edited, (model, colnr))
             col = gtk.TreeViewColumn(title, rend, text=colnr)
-            col.set_resizable(True)
+            col.set_resizable(False)
             col.set_expand(True)
             if renderer is not None:
                 col.set_cell_data_func(rend, renderer, colnr)
@@ -68,8 +74,9 @@ class EditLayerController(ChildController, HasObjectTreeview):
             cell.set_property('text', name)
             return
         rend = gtk.CellRendererCombo()
-        rend.set_property("model", self.cparent.cparent.model.current_project.data_atom_types)
-        rend.set_property("text_column", 0)
+        atom_type_model = self.model.parent.parent.data_atom_types
+        rend.set_property("model", atom_type_model)
+        rend.set_property("text_column", atom_type_model.c_data_name)
         rend.set_property("editable", True)
         rend.set_property("has-entry", True)
         
@@ -87,11 +94,12 @@ class EditLayerController(ChildController, HasObjectTreeview):
 
     def __init__(self, model_property_name, *args, **kwargs):
         ChildController.__init__(self, *args, **kwargs)
+        self.new_atom_type = None
         self.model_property_name = model_property_name
 
     def register_adapters(self):
         if self.liststore is not None:
-            self.treeview = self.view['tvw_phase_atoms']
+            self.treeview = self.view['tvw_atoms']
             self._setup_atom_treeview(self.treeview, self.liststore)
         self.update_sensitivities()
         return
@@ -118,7 +126,7 @@ class EditLayerController(ChildController, HasObjectTreeview):
         self.update_sensitivities()
 
     def on_add_atom(self, widget, user_data=None):
-        self.liststore.append(Atom("New Atom", parent = self.model.parent))
+        self.liststore.append(Atom("New Atom", parent = self.model.parent.parent))
         self.update_sensitivities()
 
     def on_del_atom(self, widget, user_data=None):
@@ -146,7 +154,7 @@ class EditLayerController(ChildController, HasObjectTreeview):
                 fltr = open_dialog.get_filter()
                 if fltr.get_name() == self.file_filters[0][0]:
                     self.liststore.clear()
-                    Atom.get_from_csv(open_dialog.get_filename(), self.liststore.append, self.cparent.cparent.model.current_project)        
+                    Atom.get_from_csv(open_dialog.get_filename(), self.liststore.append, self.model.parent.parent)
             self.run_load_dialog("Import atoms", on_accept, parent=self.view.get_toplevel())            
         self.run_confirmation_dialog(message="Are you sure?\nImporting a layer file will clear the current list of atoms!", on_accept_callback=import_layer, parent=self.view.get_toplevel())
         
@@ -157,14 +165,14 @@ class EditLayerController(ChildController, HasObjectTreeview):
         pass
 
     def on_atom_type_changed(self, combo, path, new_iter, user_data=None):
-        self.new_atom_type = self.cparent.cparent.model.current_project.data_atom_types.get_user_data(new_iter)
+        self.new_atom_type = self.model.parent.parent.data_atom_types.get_user_data(new_iter)
         return True
 
     def on_atom_type_edited(self, combo, path, new_text, atom_model):
         atom = atom_model.get_user_data_from_path((int(path),))
         if self.new_atom_type == None and not new_text in (None, "" ):
             try:
-                self.new_atom_type = self.cparent.cparent.model.current_project.data_atom_types.get_item_by_index(new_text)
+                self.new_atom_type = self.model.parent.parent.data_atom_types.get_item_by_index(new_text)
             except:
                 pass
         
@@ -174,8 +182,8 @@ class EditLayerController(ChildController, HasObjectTreeview):
             return True
         return False
 
-class EditPhaseController(ChildController):
-    
+class EditComponentController(ChildController, HasObjectTreeview):
+
     layer_view = None
     layer_controller = None
     
@@ -184,18 +192,145 @@ class EditPhaseController(ChildController):
 
     def __init__(self, *args, **kwargs):
         ChildController.__init__(self, *args, **kwargs)
-        self.new_atom_type = None
         
         self.layer_view = EditLayerView(parent=self.view)
-        self.layer_controller = EditLayerController("data_layer_atoms", self.model, self.layer_view, parent=self)
-
+        self.layer_controller = EditLayerController("data_layer_atoms", model=self.model, view=self.layer_view, parent=self)
+        
         self.interlayer_view = EditLayerView(parent=self.view)
-        self.interlayer_controller = EditLayerController("data_interlayer_atoms",self.model, self.interlayer_view, parent=self)
+        self.interlayer_controller = EditLayerController("data_interlayer_atoms", model=self.model, view=self.interlayer_view, parent=self)
 
+    def reset_combo_box(self):
+        if self.model is not None and self.model.parent is not None:
+            combo = self.view["component_data_linked_with"]
+            combo.clear()                
+            if self.model.parent.data_based_on is not None:
+                tv_model = self.model.parent.data_based_on.data_components
+                combo.set_model(tv_model)
+                cell = gtk.CellRendererText()
+                combo.pack_start(cell, True)
+                combo.add_attribute(cell, 'text', tv_model.c_data_name)
+                for row in tv_model:
+                    if tv_model.get_user_data(row.iter) == self.model.data_linked_with:
+                        combo.set_active_iter (row.iter)
+                        break
+            else:
+                combo.set_model(None)
+                
     def register_adapters(self):
         if self.model is not None:
             for name in self.model.get_properties():
                 if name == "data_all_atoms":
+                    pass
+                elif name == "data_name":
+                    self.adapt(name, "component_data_name")
+                elif name == "data_linked_with":
+                    self.reset_combo_box()
+                elif name.find("inherit") is not -1:
+                    self.adapt(name)
+                elif name in ("data_layer_atoms", "data_interlayer_atoms"):
+                    self.view.set_layer_view(self.layer_view.get_top_widget())
+                    self.view.set_interlayer_view(self.interlayer_view.get_top_widget())
+                    pass
+                else:
+                    #print name
+                    FloatEntryValidator(self.view["component_%s" % name])
+                    self.adapt(name)
+            self.update_sensitivities()
+            return
+
+    def update_sensitivities(self):
+        can_inherit = (self.model.data_linked_with != None)
+        
+        for name in ("d001", "cell_a", "cell_b"):
+            widget_name = "component_data_%s" % name
+            self.view[widget_name].set_sensitive(not (can_inherit and getattr(self.model, "inherit_%s" % name)))
+            self.view["component_inherit_%s" % name].set_sensitive(can_inherit)
+        for name in ("interlayer_atoms",
+                     "layer_atoms"):
+            widget_name = "%s_container" % name
+            #self.view[widget_name].set_sensitive(not (can_inherit and getattr(self.model, "inherit_%s" % name)))
+            #self.view["phase_inherit_%s" % name].set_sensitive(can_inherit)
+
+    # ------------------------------------------------------------
+    #      Notifications of observable properties
+    # ------------------------------------------------------------
+    @Controller.observe("inherit_layer_atoms", assign=True)
+    @Controller.observe("inherit_interlayer_atoms", assign=True)
+    @Controller.observe("inherit_cell_a", assign=True)
+    @Controller.observe("inherit_cell_b", assign=True)
+    @Controller.observe("inherit_d001", assign=True)
+    def notif_change_data_inherit(self, model, prop_name, info):
+        can_inherit = (self.model.data_based_on != None)
+        if not (prop_name in ("inherit_layer_atoms", "inherit_interlayer_atoms")):
+            widget_name = prop_name.replace("inherit_", "component_data_")
+        else:
+            widget_name = "%s_container" % prop_name.replace("inherit_", "")
+        self.view[widget_name].set_sensitive(can_inherit and not info.new)
+        return
+    
+    @Controller.observe("data_name", assign=True)
+    def notif_name_changed(self, model, prop_name, info):
+        self.model.parent.data_components.on_item_changed(self.model)
+        return
+
+    @Controller.observe("data_linked_with", assign=True)
+    def notif_linked_with_changed(self, model, prop_name, info):
+        self.reset_combo_box()
+        return
+
+
+    # ------------------------------------------------------------
+    #      GTK Signal handlers
+    # ------------------------------------------------------------
+    def on_linked_with_changed(self, combo, user_data=None):
+        itr = combo.get_active_iter()
+        if itr != None:
+            val = combo.get_model().get_user_data(itr)
+            self.model.data_linked_with = val
+            self.update_sensitivities()
+            return
+        combo.set_active(-1)
+        self.update_sensitivities()
+        self.model.data_based_on = None
+
+class ComponentsController(ChildObjectListStoreController): #limit # of components!
+
+    model_property_name = "data_components"
+    columns = [ ("Component name", 0) ]
+    delete_msg = "Deleting a component is irreverisble!\nAre You sure you want to continue?"
+
+    def get_new_edit_view(self, obj):
+        if isinstance(obj, Component):
+            return EditComponentView(parent=self.view)
+        else:
+            return ChildObjectListStoreController.get_new_edit_view(self, obj)
+        
+    def get_new_edit_controller(self, obj, view, parent=None):
+        if isinstance(obj, Component):
+            return EditComponentController(model=obj, view=view, parent=parent)
+        else:
+            return ChildObjectListStoreController.get_new_edit_controller(self, obj, view, parent=parent)
+
+class EditPhaseController(ChildController):
+       
+    probabilities_controller = None
+    
+    components_view = None
+    components_controller = None
+
+    def __init__(self, *args, **kwargs):
+        ChildController.__init__(self, *args, **kwargs)
+
+        self.probabilities_view = EditProbabilitiesView(parent=self.view)
+        self.probabilities_controller = EditProbabilitiesController(model=self.model, view=self.probabilities_view, parent=self)
+        
+        self.components_view = ChildObjectListStoreView(display_buttons=False, parent=self.view)
+        self.components_controller = ComponentsController(model=self.model, view=self.components_view, parent=self)
+
+    def register_adapters(self):
+        if self.model is not None:
+            for name in self.model.get_properties():
+                if name in ["data_all_atoms", "parent"]:
                     pass
                 elif name == "data_name":
                     self.adapt(name, "phase_data_name")
@@ -203,6 +338,7 @@ class EditPhaseController(ChildController):
                     combo = self.view["phase_data_based_on"]
 
                     tv_model = self.cparent.model.current_project.data_phases
+                    
                     combo.set_model(tv_model)
                     combo.connect('changed', self.on_based_on_changed)
 
@@ -214,12 +350,13 @@ class EditPhaseController(ChildController):
                         if tv_model.get_user_data(row.iter) == self.model.data_based_on:
                             combo.set_active_iter (row.iter)
                             break
-                elif name in ("data_layer_atoms", "data_interlayer_atoms"):
-                    self.view.set_layer_view(self.layer_view)
-                    self.view.set_interlayer_view(self.interlayer_view)
-                elif name.find("inherit") is not -1:
+                elif name in ("data_probabilities", "data_components"):
+                    #self.view.set_probabilities_view(self.probabilities_view)
+                    self.view.set_components_view(self.components_view)
+                elif name.find("inherit") is not -1 or name == "data_numcomp":
                     self.adapt(name)
                 else:
+                    print name
                     FloatEntryValidator(self.view["phase_%s" % name])
                     self.adapt(name)
             self.update_sensitivities()
@@ -228,36 +365,34 @@ class EditPhaseController(ChildController):
     def update_sensitivities(self):
         can_inherit = (self.model.data_based_on != None)
         
-        for name in ("d001", "cell_a", "cell_b",
-                     "min_CSDS", "max_CSDS", "mean_CSDS",
-                     "sigma_star"):
+        for name in ("min_CSDS", "max_CSDS", "mean_CSDS", "sigma_star"): #"d001", "cell_a", "cell_b",
             widget_name = "phase_data_%s" % name
             self.view[widget_name].set_sensitive(not (can_inherit and getattr(self.model, "inherit_%s" % name)))
             self.view["phase_inherit_%s" % name].set_sensitive(can_inherit)
-        for name in ("interlayer_atoms",
-                     "layer_atoms"):
-            widget_name = "%s_container" % name
-            self.view[widget_name].set_sensitive(not (can_inherit and getattr(self.model, "inherit_%s" % name)))
-            self.view["phase_inherit_%s" % name].set_sensitive(can_inherit)
+        #for name in ("interlayer_atoms",
+        #             "layer_atoms"):
+        #    widget_name = "%s_container" % name
+        #    self.view[widget_name].set_sensitive(not (can_inherit and getattr(self.model, "inherit_%s" % name)))
+        #    self.view["phase_inherit_%s" % name].set_sensitive(can_inherit)
 
     # ------------------------------------------------------------
     #      Notifications of observable properties
     # ------------------------------------------------------------
-    @Controller.observe("inherit_layer_atoms", assign=True)
-    @Controller.observe("inherit_interlayer_atoms", assign=True)
+    #@Controller.observe("inherit_layer_atoms", assign=True)
+    #@Controller.observe("inherit_interlayer_atoms", assign=True)
     @Controller.observe("inherit_sigma_star", assign=True)
     @Controller.observe("inherit_min_CSDS", assign=True)    
     @Controller.observe("inherit_max_CSDS", assign=True)    
     @Controller.observe("inherit_mean_CSDS", assign=True)
-    @Controller.observe("inherit_cell_a", assign=True)
-    @Controller.observe("inherit_cell_b", assign=True)
-    @Controller.observe("inherit_d001", assign=True)
+    #@Controller.observe("inherit_cell_a", assign=True)
+    #@Controller.observe("inherit_cell_b", assign=True)
+    #@Controller.observe("inherit_d001", assign=True)
     def notif_change_data_inherit(self, model, prop_name, info):
         can_inherit = (self.model.data_based_on != None)
-        if not (prop_name in ("inherit_layer_atoms", "inherit_interlayer_atoms")):
-            widget_name = prop_name.replace("inherit_", "phase_data_")
-        else:
-            widget_name = "%s_container" % prop_name.replace("inherit_", "")
+        #if not (prop_name in ("inherit_layer_atoms", "inherit_interlayer_atoms")):
+        widget_name = prop_name.replace("inherit_", "phase_data_")
+        #else:
+        #   widget_name = "%s_container" % prop_name.replace("inherit_", "")
         self.view[widget_name].set_sensitive(can_inherit and not info.new)
         return
     
@@ -273,7 +408,9 @@ class EditPhaseController(ChildController):
         itr = combo.get_active_iter()
         if itr != None:
             val = combo.get_model().get_user_data(itr)
-            if val.get_based_on_root() != self.model: #cannot be based on itself == not based on anything
+            #cannot be based on itself == not based on anything
+            #cannot be based on a model with a different # of components
+            if val != self.model and val.get_based_on_root() != self.model and val.data_numcomp == self.model.data_numcomp: 
                 self.model.data_based_on = val
                 self.update_sensitivities()
                 return
@@ -313,7 +450,40 @@ class PhasesController(ObjectListStoreController):
     #      GTK Signal handlers
     # ------------------------------------------------------------
     def on_add_object_clicked(self, event):
-        new_phase = Phase("New Phase", parent=self.model)
-        self.model.add_phase(new_phase)
-        self.select_object(new_phase)
+        def on_accept(G, R):
+            G = int(G)
+            R = int(R)
+            if G != None and G > 0 and R != None and R >= 0 and R <= 4:
+                new_phase = Phase("New Phase",  data_G=G, data_R=R, parent=self.model)
+                self.model.add_phase(new_phase)
+                self.select_object(new_phase)
+                
+        add_model = Model()
+        add_view = AddPhaseView(parent=self.view)
+        add_ctrl = AddPhaseController(add_model, add_view, parent=self.parent, callback=on_accept)
+        
+        add_view.present()
+
         return True
+        
+class AddPhaseController(DialogController):
+    
+    def __init__(self, model, view, spurious=False, auto_adapt=False, parent=None, callback=None):
+        DialogController.__init__(self, model, view, spurious=spurious, auto_adapt=auto_adapt)    
+        self.callback = callback
+    
+    def on_btn_ok_clicked(self, event):
+        self.view.hide()
+        self.callback(self.view.get_G(), self.view.get_R())
+        return True
+        
+    def on_keypress(self, widget, event) :
+		if event.keyval == gtk.keysyms.Escape :
+			self.view.hide()
+			self.callback(None)
+			return True
+        
+    def on_window_edit_dialog_delete_event(self, event, args=None):
+        self.view.hide()
+		self.callback(None)
+        return True #do not propagate

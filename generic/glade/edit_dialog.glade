@@ -8,6 +8,7 @@
     <property name="modal">True</property>
     <property name="window_position">center-on-parent</property>
     <property name="destroy_with_parent">True</property>
+    <property name="type_hint">dialog</property>
     <property name="deletable">False</property>
     <signal name="key-press-event" handler="on_keypress" swapped="no"/>
     <signal name="delete-event" handler="on_window_edit_dialog_delete_event" swapped="no"/>

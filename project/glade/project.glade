@@ -12,6 +12,7 @@
         <property name="height_request">280</property>
         <property name="visible">True</property>
         <property name="can_focus">False</property>
+        <property name="border_width">10</property>
         <property name="n_rows">4</property>
         <property name="n_columns">2</property>
         <property name="column_spacing">10</property>
@@ -176,8 +177,10 @@
       <object class="GtkTable" id="edit_display">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
+        <property name="border_width">10</property>        
         <property name="n_rows">3</property>
         <property name="n_columns">2</property>
+        <property name="row_spacing">5</property>
         <property name="column_spacing">10</property>
         <property name="homogeneous">True</property>
         <child>

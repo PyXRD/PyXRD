@@ -33,8 +33,8 @@ def ctrl_setup_combo_with_list(ctrl, combo, prop_name, list_prop_name):
     combo.connect('changed', on_changed)
 
     for row in store:
-        if store.get_value(row.iter, 0) == getattr(ctrl.model, prop_name):
-            combo.set_active_iter (row.iter)
+        if store.get_value(row.iter, 0) == str(getattr(ctrl.model, prop_name)):
+            combo.set_active_iter(row.iter)
             break
 
 
@@ -321,7 +321,7 @@ class ObjectListStoreMixin(HasObjectTreeview):
     def objects_tv_selection_changed(self, selection):        
         obj = self.get_selected_object()
         objs = self.get_selected_objects()
-        self.set_object_sensitivities((obj!=None))
+        self.set_object_sensitivities((obj!=None or objs!=None))
         if self.edit_controller==None or obj!=self.edit_controller.model:
             self.edit_object(obj)
 
@@ -334,13 +334,14 @@ class ObjectListStoreMixin(HasObjectTreeview):
     def on_add_object_clicked(self, event):
         raise NotImplementedError
 
-    def on_del_object_clicked(self, event):
+    def on_del_object_clicked(self, event, callback=None):
         tv = self.view['edit_objects_treeview']
         selection = tv.get_selection()
         if selection.count_selected_rows() >= 1:
             def delete_objects(dialog):
                 for obj in self.get_selected_objects():
                     self.liststore.remove_item(obj)
+                    if callable(callback): callback(obj)
                 self.set_object_sensitivities(False)
                 self.edit_object(None)
             self.run_confirmation_dialog(message=self.delete_msg, on_accept_callback=delete_objects, parent=self.view.get_top_widget())

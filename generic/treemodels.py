@@ -90,7 +90,10 @@ class ObjectListStore(_BaseObjectListStore, Storable):
             return None
 
     def on_get_path(self, rowref):
-        return (self._model_data.index(rowref),)
+        try:
+            return (self._model_data.index(rowref),)
+        except ValueError:
+            return None
 
     def set_value(self, itr, column, value):
         user_data = self.get_user_data(itr)
@@ -168,9 +171,13 @@ class ObjectListStore(_BaseObjectListStore, Storable):
             self.remove_item(item)
 
     def on_item_changed(self, item):
-        itr = self.create_tree_iter(item)
-        path = self.get_path(itr)
-        self.row_changed(path, itr)
+        try:
+            itr = self.create_tree_iter(item)
+            path = self.get_path(itr)
+            self.row_changed(path, itr)
+        except:
+            pass
+        
 
     def item_in_model(self, item):
         return item in self._model_data

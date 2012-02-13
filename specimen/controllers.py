@@ -383,7 +383,9 @@ class MarkersController(ObjectListStoreController):
         self.run_save_dialog("Export markers", on_accept, parent=self.view.get_top_widget())
         
     def on_del_object_clicked(self, event):
-        ObjectListStoreController.on_del_object_clicked(self, event)
+        def on_delete(marker):
+            marker.parent = None
+        ObjectListStoreController.on_del_object_clicked(self, event, on_delete)
         self.parent.update_plot()
         
     def on_add_object_clicked(self, event):

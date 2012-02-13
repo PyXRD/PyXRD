@@ -119,7 +119,7 @@ class AppController (BaseController, DialogMixin):
                     for marker in specimen.data_markers._model_data:
                         self.plot_controller.register(marker, "on_update_plot", last=True)
                 if not single:
-                    labels.append((specimen.data_name, 0.35 + offset))
+                    labels.append((specimen.data_sample, 0.35 + offset))
                 offset += offset_increment
                 i += 1
     

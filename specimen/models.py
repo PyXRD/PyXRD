@@ -17,6 +17,7 @@ from gtkmvc.model import ListStoreModel, Model, Signal, Observer
 
 import matplotlib
 import matplotlib.transforms as transforms
+from matplotlib.transforms import offset_copy
 from matplotlib.text import Text
 
 import time
@@ -56,8 +57,22 @@ class Specimen(ChildModel, Observable, Storable):
     __observables__ = [ key for key, val in __columns__]
     __storables__ = [ val for val in __observables__ if not val in ('data_phases', 'statistics') ]
 
-    data_name = ""
-    data_sample = ""
+    _data_sample = ""
+    _data_name = ""
+    _display_calculated = True
+    _display_experimental = True
+    _display_phases = False
+    
+    @Model.getter("data_sample", "data_name", "display_calculated", "display_experimental", "display_phases")
+    def get_data_name(self, prop_name):
+        return getattr(self, "_%s" % prop_name)
+    @Model.setter("data_sample", "data_name", "display_calculated", "display_experimental", "display_phases")
+    def set_data_name(self, prop_name, value):
+        setattr(self, "_%s" % prop_name, value)
+        self.parent.data_specimens.on_item_changed(self)
+ 
+    data_calculated_pattern = None
+    data_experimental_pattern = None
     
     _data_sample_length = 3.0
     @Model.getter("data_sample_length")
@@ -66,15 +81,7 @@ class Specimen(ChildModel, Observable, Storable):
     @Model.setter("data_sample_length")
     def set_data_sample_length(self, prop_name, value):
         self._data_sample_length = value    
-    #data_sample_length = 0
-    
-    display_calculated = True
-    display_experimental = True
-    display_phases = False
-    
-    data_calculated_pattern = None
-    data_experimental_pattern = None
-    
+       
     statistics = None
     
     __pctrl__ = None
@@ -357,7 +364,10 @@ class Specimen(ChildModel, Observable, Storable):
         i = 1
         for x, y in maxtab:
             if not x in mpositions:
-                new_marker = Marker("Peak %d - %.2f" % (i, x), parent=self, data_position=x, data_style="dotted" ,data_base=1)
+                nm = 0
+                if x != 0:
+                    nm = self.parent.data_goniometer.data_lambda / (2.0*sin(radians(x/2.0)))
+                new_marker = Marker("%.2f" % nm, parent=self, data_position=x)
                 self.add_marker(new_marker)
             i += 1
     pass #end of class
@@ -518,7 +528,7 @@ class Marker(ChildModel, Observable, Storable, CSVMixin):
             if self._text!=None:
                 self._text.set_rotation(90-self.data_angle)
     
-    _data_base = 0
+    _data_base = 1
     _data_bases = { 0: "X-axis", 1: "Experimental profile", 2: "Calculated profile", 3: "Lowest of both", 4: "Highest of both" }
     @Model.getter("data_base")
     def get_data_base(self, prop_name):
@@ -532,8 +542,8 @@ class Marker(ChildModel, Observable, Storable, CSVMixin):
             raise ValueError, "'%s' is not a valid value for a marker base!" % value
     
     
-    _data_style = "solid"
-    _data_styles = { "solid": "Solid", "dashed": "Dash", "dotted": "Dotted", "dashdot": "Dash-Dotted" }
+    _data_style = "none"
+    _data_styles = { "none": "Display at base", "solid": "Solid", "dashed": "Dash", "dotted": "Dotted", "dashdot": "Dash-Dotted" }
     @Model.getter("data_style")
     def get_data_style(self, prop_name):
         return self._data_style
@@ -544,8 +554,8 @@ class Marker(ChildModel, Observable, Storable, CSVMixin):
         else:
             raise ValueError, "'%s' is not a valid value for a marker style!" % value
     
-    def __init__(self, data_label="", data_visible=True, data_position=0.0, data_color="#000000", data_base=0,
-                 data_angle=0.0, inherit_angle=True, data_style="solid", parent=None):
+    def __init__(self, data_label="", data_visible=True, data_position=0.0, data_color="#000000", data_base=1,
+                 data_angle=0.0, inherit_angle=True, data_style="none", parent=None):
         ChildModel.__init__(self, parent=parent)
         Observable.__init__(self)
         Storable.__init__(self)
@@ -582,7 +592,28 @@ class Marker(ChildModel, Observable, Storable, CSVMixin):
                    transform=transforms.blended_transform_factory(axes.transData, figure.transFigure),
                    horizontalalignment="left", verticalalignment="center",
                    rotation=(90-self.data_angle), rotation_mode="anchor",
-                   color=self.data_color)
+                   color=self.data_color,
+                   weight="heavy")
+       
+        if self.data_style == "none":
+            y = 0
+            if int(self.data_base) == 1:
+                y = self.get_y(self.parent.data_experimental_pattern.line)
+            elif self.data_base == 2:
+                y = self.get_y(self.parent.data_calculated_pattern.line)
+            elif self.data_base == 3:   
+                y = self.get_ymin()
+            elif self.data_base == 4:
+                y = self.get_ymax()
+                
+            ymin, ymax = axes.get_ybound()
+            trans = transforms.blended_transform_factory(axes.transData, axes.transAxes)
+            y = ((y+0.05) - ymin) / (ymax - ymin)
+        
+            kws.update(dict(
+                y=y,
+                transform=trans,
+            ))
         
         if self._text == None:
             self._text = Text(**kws)
@@ -626,9 +657,10 @@ class Marker(ChildModel, Observable, Storable, CSVMixin):
             axes.add_line(self._vline)
             axes.autoscale_view(scalex=scalex, scaley=False)
     
-    def on_update_plot(self, figure, axes, pctrl):
-        self.update_vline(figure, axes)
-        self.update_text(figure, axes)
+    def on_update_plot(self, figure, axes, pctrl):    
+        if self.parent!=None:
+            self.update_vline(figure, axes)
+            self.update_text(figure, axes)
                
     def get_nm_position(self):
         if self.data_position != 0:

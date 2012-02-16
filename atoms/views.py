@@ -29,18 +29,20 @@ class EditAtomTypeView(BaseView):
         self.figure = Figure(dpi=72, edgecolor=str(style.bg[2]), facecolor=str(style.bg[2]))
            
         self.plot = self.figure.add_subplot(111)       
-        self.figure.subplots_adjust(left=0.15, right=0.875, top=0.875, bottom=0.15)
+        self.figure.subplots_adjust(bottom=0.20)
         
         self.matlib_canvas = FigureCanvasGTK(self.figure)
     
-        self.plot.set_ylabel('Scattering factor', labelpad=1)
-        self.plot.set_xlabel('sin(θ)/λ', labelpad=1)
         self.plot.autoscale_view()
     
         self.graph_parent.add(self.matlib_canvas)
         self.graph_parent.show_all()
         
-    def update_figure(self):
-        figure = self.line.get_figure() 
-        if self.figure != None:
-            self.figure.canvas.draw()
+    def update_figure(self, x, y):
+        self.plot.cla()
+        self.plot.plot(x, y, 'k-', aa=True)
+        self.plot.set_ylabel('Scattering factor', size=14, weight="heavy")
+        self.plot.set_xlabel('sin(θ)/λ', size=14, weight="heavy")
+        self.plot.autoscale_view()
+        if self.matlib_canvas != None:
+            self.matlib_canvas.draw()

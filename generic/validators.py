@@ -42,8 +42,6 @@ class FloatEntryValidator:
     def entry_insert_text(self, entry, new_text, new_text_length, position):
         self.entry.stop_emission('insert-text')
         self.entry.handler_block(self.insert_handlerid)
-        while gtk.events_pending():
-            gtk.main_iteration(False)
         pos = self.entry.get_position()
         
         text = self.entry.get_chars(0, -1)
@@ -56,6 +54,8 @@ class FloatEntryValidator:
             new_text = text
             self.entry.set_text(new_text)
             gtk.idle_add(lambda: self.entry.set_position(pos + (len(new_text) - len(old_text))))
+        #while gtk.events_pending():
+        #    gtk.main_iteration(False)
         self.entry.handler_unblock(self.insert_handlerid)        
         
     def entry_delete_text(self, entry, start, end):

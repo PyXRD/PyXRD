@@ -47,9 +47,6 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
                     ad = Adapter(self.model, "data_name")
                     ad.connect_widget(self.view["specimen_data_name"])
                     self.adapt(ad)
-                elif name in ["data_phase_removed", "data_phase_added", "del_phase", "add_phase",
-                              "data_markers", "data_marker_removed", "data_marker_added", "del_marker", "add_marker", "statistics", "parent" ] :
-                    pass
                 elif name in ["data_calculated_pattern", "data_experimental_pattern"]:
                     self.xydataobserver.observe_model(getattr(self.model, name))
                     if name == "data_experimental_pattern":
@@ -126,7 +123,9 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
                 elif name == "data_sample_length":
                     FloatEntryValidator(self.view["specimen_%s" % name])
                     self.adapt(name)
-                else:
+                elif not name in ("statistics", "parent",
+                    "data_phase_removed", "data_phase_added", "del_phase", "add_phase",
+                    "data_markers", "data_marker_removed", "data_marker_added", "del_marker", "add_marker"):
                     self.adapt(name)
             self.update_sensitivities()
             return
@@ -150,7 +149,6 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
     @Controller.observe("display_phases", assign=True)
     def notif_display_toggled(self, model, prop_name, info):
         self.parent.update_plot()
-        self.model.parent.data_specimens.on_item_changed(self.model)
         return
         
     @Controller.observe("data_name", assign=True)
@@ -224,13 +222,13 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
                     self.model.data_experimental_pattern.load_data(data, format="DAT")
                 if filename[-2:].lower() == "rd":
                     print "Opening file %s for import using BINARY RD format" % filename
+                    #f = open(data, 'rb')
                     self.model.data_experimental_pattern.load_data(filename, format="BIN")
-            
+                    #f.close()
             self.run_load_dialog(title="Open XRD file for import",
                                  on_accept_callback=on_accept, 
                                  parent=self.view.get_top_widget())
-        self.run_confirmation_dialog(self,
-                                     "Importing a new experimental file will erase all current data.\nAre you sure you want to continue?",
+        self.run_confirmation_dialog("Importing a new experimental file will erase all current data.\nAre you sure you want to continue?",
                                      on_confirm, parent=self.view.get_top_widget())
         return True
 
@@ -242,7 +240,7 @@ class StatisticsController(ChildController):
         print "StatisticsController.register_adapters()"
         if self.model is not None:
             for name in self.model.get_properties():
-                if name in ("data_specimen", "data_residual_pattern"):
+                if name in ("data_specimen", "data_residual_pattern", "parent"):
                     pass
                 else:
                     self.adapt(name)
@@ -268,12 +266,13 @@ class EditMarkerController(ChildController):
                     ctrl_setup_combo_with_list(self,
                         self.view["marker_data_base"],
                         "data_base", "_data_bases")
-                elif name in ("data_position", "data_angle"):
+                elif name in ("data_position", "data_angle", "data_x_offset", "data_y_offset"):
                     FloatEntryValidator(self.view["marker_%s" % name])
                     self.adapt(name)
-                else:
+                elif not name in ("parent"):
                     self.adapt(name)
-            FloatEntryValidator(self.view["entry_nanometer"])
+                self.view["entry_nanometer"].set_text("%f" % self.model.get_nm_position())
+                FloatEntryValidator(self.view["entry_nanometer"])
             return
             
     def update_sensitivities(self):
@@ -283,12 +282,10 @@ class EditMarkerController(ChildController):
     # ------------------------------------------------------------
     #      Notifications of observable properties
     # ------------------------------------------------------------   
-    @Controller.observe("data_label", assign=True)
-    def notif_name_changed(self, model, prop_name, info):
-        self.model.parent.data_markers.on_item_changed(self.model)
-
     @Controller.observe("data_label", assign=True, after=True)
     @Controller.observe("data_position", assign=True, after=True)
+    @Controller.observe("data_x_offset", assign=True, after=True)
+    @Controller.observe("data_y_offset", assign=True, after=True)    
     @Controller.observe("data_color", assign=True, after=True)
     @Controller.observe("data_base", assign=True, after=True)
     @Controller.observe("data_angle", assign=True, after=True)
@@ -313,8 +310,11 @@ class EditMarkerController(ChildController):
             self.model.data_style = val
             
     def on_nanometer_changed(self, widget):
-        position = float(widget.get_text())
-        self.model.set_nm_position(position)
+        try:
+            position = float(widget.get_text())
+            self.model.set_nm_position(position)
+        except:
+            pass
         
     def on_sample_clicked(self, widget):
         self.cid = -1
@@ -337,6 +337,7 @@ class EditMarkerController(ChildController):
                 self.model.data_position = x_pos
                 
         self.cid = self.fig.canvas.mpl_connect('button_press_event', onclick)
+        self.view.get_toplevel().hide()
         self.cparent.view.get_toplevel().present()
 
 class MarkersController(ObjectListStoreController):
@@ -461,7 +462,7 @@ class ThresholdController(DialogController):
                 elif name in ("sel_threshold", "max_threshold"):
                     FloatEntryValidator(self.view[name])
                     self.adapt(name)
-                elif not name in ("threshold_plot_data",):
+                elif not name in ("threshold_plot_data", "parent"):
                     self.adapt(name)
             return
         

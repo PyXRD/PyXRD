@@ -22,6 +22,7 @@ from application.controllers import AppController
 #logging.getLogger("gtkmvc").setLevel(logging.DEBUG)
 
 if __name__ == "__main__":
+
     m = AppModel()
     v = AppView()
     c = AppController(m, v)

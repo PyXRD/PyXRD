@@ -9,6 +9,8 @@
 import os
 import gtk
 
+import settings
+
 from generic.views import ObjectListStoreView, BaseView, DialogView
 
 from project.views import ProjectView
@@ -27,6 +29,19 @@ class AppView(BaseView):
     atom_types = None
     statistics = None
     
+    __widgets_to_hide__ = (
+        "statistics_container",
+        "tbtn_edit_phases",
+        "tbtn_edit_atom_types",
+        "tbtn_separator1",
+        "btn_sample",
+        "btn_view_statistics",
+        "seperator2",
+        "separator3",
+        "separator4",
+        "main_menu_item_edit_phases",
+        "main_menu_item_edit_atom_types")
+    
     def __init__(self, *args, **kwargs):
         BaseView.__init__(self, *args, **kwargs)
 
@@ -39,7 +54,9 @@ class AppView(BaseView):
         self.reset_atom_types_view()
         
         self.get_top_widget().set_icon(gtk.gdk.pixbuf_new_from_file(os.path.join(__file__[:__file__.rfind(os.sep)], "icon.png")))
-        #self.get_top_widget().maximize()
+        if not settings.DEBUG:
+            self.get_top_widget().maximize()
+
         self.get_top_widget().show_all()
 
         return
@@ -71,7 +88,10 @@ class AppView(BaseView):
         if child is not None:
             self["statistics_expander"].remove(child)
         self["statistics_expander"].add(view[view.top])
-        self["statistics_expander"].show_all()
+        if not settings.VIEW_MODE:
+            self["statistics_expander"].show_all()
+        else:
+            self["statistics_expander"].set_visible(False)
         return view
         
     def reset_markers_view(self):

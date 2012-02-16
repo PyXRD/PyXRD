@@ -13,6 +13,7 @@ import numpy as np
 
 from gtkmvc import Observable
 from gtkmvc.model import Model, Signal, ListStoreModel
+from gtkmvc.support.metaclasses import ObservablePropertyMeta
 
 from generic.treemodels import XYListStore
 from generic.io import Storable, PyXRDDecoder
@@ -52,9 +53,17 @@ class CSVMixin():
             header = False
         return items
 
+class ObjectListStoreChildMixin():
+    
+    __list_store__ = None
+        
+    def liststore_item_changed(self):
+        if self.__list_store__ != None:
+            self.__list_store__.on_item_changed(self)
+
 class ChildModel(Model):
 
-    __observables__ = ["parent",]
+
 
     #SIGNALS:
     removed = Signal()
@@ -70,6 +79,8 @@ class ChildModel(Model):
         self._unattach_parent()
         self._parent = value
         self._attach_parent()
+
+    __observables__ = ["parent",]
 
     #CONSTRUCTOR
     def __init__(self, parent=None):
@@ -196,7 +207,7 @@ class XYData(Model, Storable, Observable):
             close = False
             if type(data) is file:
                 f = data
-            elif data is str:
+            elif type(data) is str:
                 f = open(data, 'rb')
                 close = True
             else:

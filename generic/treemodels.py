@@ -153,6 +153,8 @@ class ObjectListStore(_BaseObjectListStore, Storable):
             self._model_data.insert(pos, item)
             return self._emit_added(item)
     def _emit_added(self, item):
+        if hasattr(item, "__list_store__"):
+            item.__list_store__ = self
         itr = self.create_tree_iter(item)
         path = self.get_path(itr)
         self.row_inserted(path, itr)
@@ -163,6 +165,8 @@ class ObjectListStore(_BaseObjectListStore, Storable):
     def remove_item(self, item):
         path = (self._model_data.index(item),)
         self._model_data.remove(item)
+        if hasattr(item, "__list_store__"):
+            item.__list_store__ = None
         self.row_deleted(path)
 
     def clear(self):
@@ -171,13 +175,9 @@ class ObjectListStore(_BaseObjectListStore, Storable):
             self.remove_item(item)
 
     def on_item_changed(self, item):
-        try:
-            itr = self.create_tree_iter(item)
-            path = self.get_path(itr)
-            self.row_changed(path, itr)
-        except:
-            pass
-        
+        itr = self.create_tree_iter(item)
+        path = self.get_path(itr)
+        self.row_changed(path, itr)
 
     def item_in_model(self, item):
         return item in self._model_data

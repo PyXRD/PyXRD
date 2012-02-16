@@ -14,6 +14,8 @@ import json
 import time
 from math import sin, cos, pi, sqrt
 
+import settings
+
 from generic.utils import interpolate
 from generic.treemodels import ObjectListStore, IndexListStore
 from generic.io import Storable
@@ -142,10 +144,10 @@ class Project(Model, Observable, Storable):
     def _add_item_to_store(self, store, item, signal=None, callback=None, silent=False):
         if not store.item_in_model(item):
             path = store.append(item)
-            if item.parent != self:
-                item.parent = self
             if callback != None and callable(callback):
                 callback(store, item, silent)
+            if item.parent != self:
+                item.parent = self
             if signal != None and not silent:
                 signal.emit(item)
             return path
@@ -154,10 +156,10 @@ class Project(Model, Observable, Storable):
     def _del_item_from_store(self, store, item, signal=None, callback=None, silent=False):
         if store.item_in_model(item):
             store.remove_item(item)
-            if item.parent != None:
-                item.parent = None
             if callback != None and callable(callback):
                 callback(store, item, silent)
+            if item.parent != None:
+                item.parent = None
             if signal != None and not silent:
                 signal.emit(item)
     
@@ -192,7 +194,7 @@ class Project(Model, Observable, Storable):
         self.display_calc_color = display_calc_color or self.display_calc_color
         self.display_exp_color = display_exp_color or self.display_exp_color
 
-        if load_default_data: self.load_default_data()        
+        if load_default_data and not settings.VIEW_MODE: self.load_default_data()        
         
         #self.default_atom_type = AtomType("Oxygen", None)
         #FIXME self.data_atom_types.append(self.default_atom_type)
@@ -237,15 +239,4 @@ class Project(Model, Observable, Storable):
     
     
     
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
+

@@ -27,38 +27,28 @@ class EditAtomTypeController(ChildController):
         print "EditAtomTypeController.register_adapters()"
         if self.model is not None:
             for name in self.model.get_properties():
-                if name in ("parameters_changed", "data_atom_nr"):
-                    pass
-                elif name == "data_name":
+                if name == "data_name":
                     ad = Adapter(self.model, "data_name")
                     ad.connect_widget(self.view["data_atom_type_name"])
                     self.adapt(ad)
                 elif name in ("data_weight" "data_par_a1", "data_par_a2", "data_par_a3", "data_par_a4", "data_par_a5", "data_par_b1", "data_par_b2", "data_par_b3", "data_par_b4", "data_par_b5", "data_par_c"):
                     FloatEntryValidator(self.view["atom_%s" % name])
                     self.adapt(name)                
-                else:
+                elif not name in ("parameters_changed", "data_atom_nr", "parent"):
                     self.adapt(name)
             self.update_plot()
             return
 
     def update_plot(self):
-        self.view.plot.cla()
+        x, y = (),()
         if self.model is not None:
             x = np.array([ float(x)/100.0 for x in range(0, 100)])
             y = self.model.get_atomic_scattering_factors(x)
-            self.view.plot.plot(x, y, 'k-', aa=True)
-        #self.view.plot.set_ylabel('Scattering factor', labelpad=1)
-        #self.view.plot.set_xlabel('sin(θ)/λ', labelpad=1)
-        self.view.plot.autoscale_view()
-        self.view.matlib_canvas.draw()
+        self.view.update_figure(x, y)
 
     # ------------------------------------------------------------
     #      Notifications of observable properties
-    # ------------------------------------------------------------   
-    @Controller.observe("data_name", assign=True)
-    def notif_name_changed(self, model, prop_name, info):
-        self.cparent.model.current_project.data_atom_types.on_item_changed(self.model)
-
+    # ------------------------------------------------------------
     @Controller.observe("parameters_changed", signal=True)
     def notif_parameter_changed(self, model, prop_name, info):
         self.update_plot()

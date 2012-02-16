@@ -17,12 +17,12 @@ from scipy.special import erf
 from generic.utils import lognormal, sqrt2pi, sqrt8
 
 from generic.io import Storable
-from generic.models import ChildModel
+from generic.models import ChildModel, ObjectListStoreChildMixin
 from generic.treemodels import ObjectListStore
 from atoms.models import Atom
 from probabilities.models import get_correct_probability_model
 
-class Component(ChildModel, Storable):
+class Component(ChildModel, ObjectListStoreChildMixin, Storable):
     __inheritables__ = ("data_name", "data_based_on",
                         "data_d001", "data_cell_a", "data_cell_b",
                         "data_layer_atoms", "data_interlayer_atoms")
@@ -156,7 +156,7 @@ class Component(ChildModel, Storable):
         return weight
 
 
-class Phase(ChildModel, Storable):
+class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
     __inheritables__ = ("data_mean_CSDS", "data_min_CSDS", "data_max_CSDS", "data_sigma_star", "data_probabilities")
     
     __columns__ = [

@@ -18,6 +18,8 @@ from matplotlib.ticker import FuncFormatter, IndexLocator
 
 from mpl_toolkits.axes_grid1.axes_divider import make_axes_area_auto_adjustable
 
+import settings
+
 from generic.controllers import DialogMixin
 
 class PlotController (DialogMixin):
@@ -175,8 +177,8 @@ class MainPlotController (PlotController):
         
         if single:
             self.plot.set_position([0.10, 0.25+stats_offset, 0.80, 0.55-stats_offset]) #l, b, w, h
-            self.plot.legend(loc="lower right", bbox_to_anchor=(0.02, 0.02, 0.94, 0.94), bbox_transform=self.figure.transFigure, borderaxespad=0.0, fancybox=False ) #-0.4-stats_offset*2
-            #self.plot.set_ylabel('Intensity')
+            if not settings.VIEW_MODE:
+                self.plot.legend(loc="lower right", bbox_to_anchor=(0.02, 0.02, 0.94, 0.94), bbox_transform=self.figure.transFigure, borderaxespad=0.0, fancybox=False )
             yaxis.set_ticks_position('none')
             yaxis.set_ticklabels([])
             matplotlib.artist.setp(self.plot.get_yticklabels(), visible=False)

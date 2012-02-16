@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
   <requires lib="gtk+" version="2.24"/>
-  <!-- interface-naming-policy project-wide -->
   <object class="GtkTable" id="edit_marker">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="border_width">5</property>
-    <property name="n_rows">8</property>
+    <property name="n_rows">11</property>
     <property name="n_columns">6</property>
     <property name="column_spacing">5</property>
     <property name="row_spacing">5</property>
@@ -32,8 +31,8 @@
         <property name="label" translatable="yes">Colour</property>
       </object>
       <packing>
-        <property name="top_attach">6</property>
-        <property name="bottom_attach">7</property>
+        <property name="top_attach">7</property>
+        <property name="bottom_attach">8</property>
         <property name="x_options">GTK_FILL</property>
         <property name="y_options"></property>
       </packing>
@@ -47,8 +46,8 @@
         <property name="justify">right</property>
       </object>
       <packing>
-        <property name="top_attach">7</property>
-        <property name="bottom_attach">8</property>
+        <property name="top_attach">6</property>
+        <property name="bottom_attach">7</property>
         <property name="x_options">GTK_FILL</property>
         <property name="y_options"></property>
       </packing>
@@ -99,22 +98,19 @@
     </child>
     <child>
       <object class="GtkEntry" id="marker_data_position">
-        <property name="width_request">100</property>
         <property name="visible">True</property>
         <property name="can_focus">True</property>
         <property name="invisible_char">•</property>
         <property name="invisible_char_set">True</property>
         <property name="primary_icon_activatable">False</property>
         <property name="secondary_icon_activatable">False</property>
-        <property name="primary_icon_sensitive">True</property>
-        <property name="secondary_icon_sensitive">True</property>
       </object>
       <packing>
         <property name="left_attach">1</property>
         <property name="right_attach">2</property>
         <property name="top_attach">2</property>
         <property name="bottom_attach">3</property>
-        <property name="x_options"></property>
+        <property name="x_options">GTK_FILL</property>
         <property name="y_options"></property>
       </packing>
     </child>
@@ -124,7 +120,7 @@
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">0</property>
-        <property name="label" translatable="yes">°  ⇐</property>
+        <property name="label" translatable="yes">°2θ ⇐</property>
       </object>
       <packing>
         <property name="left_attach">2</property>
@@ -137,15 +133,12 @@
     </child>
     <child>
       <object class="GtkEntry" id="entry_nanometer">
-        <property name="width_request">100</property>
         <property name="visible">True</property>
         <property name="can_focus">True</property>
         <property name="invisible_char">•</property>
         <property name="invisible_char_set">True</property>
         <property name="primary_icon_activatable">False</property>
         <property name="secondary_icon_activatable">False</property>
-        <property name="primary_icon_sensitive">True</property>
-        <property name="secondary_icon_sensitive">True</property>
         <signal name="changed" handler="on_nanometer_changed" swapped="no"/>
       </object>
       <packing>
@@ -208,11 +201,12 @@
         <property name="can_focus">True</property>
         <property name="receives_default">False</property>
         <property name="use_action_appearance">False</property>
+        <property name="xalign">0</property>
         <property name="active">True</property>
         <property name="draw_indicator">True</property>
       </object>
       <packing>
-        <property name="left_attach">4</property>
+        <property name="left_attach">3</property>
         <property name="right_attach">6</property>
         <property name="top_attach">4</property>
         <property name="bottom_attach">5</property>
@@ -253,8 +247,8 @@
       <packing>
         <property name="left_attach">1</property>
         <property name="right_attach">6</property>
-        <property name="top_attach">6</property>
-        <property name="bottom_attach">7</property>
+        <property name="top_attach">7</property>
+        <property name="bottom_attach">8</property>
         <property name="y_options"></property>
       </packing>
     </child>
@@ -272,7 +266,8 @@
             <property name="can_focus">True</property>
             <property name="receives_default">True</property>
             <property name="use_action_appearance">False</property>
-            <property name="image">img_sample_graph4</property>
+            <property name="image">img_sample_graph</property>
+            <property name="image_position">right</property>
             <signal name="clicked" handler="on_sample_clicked" swapped="no"/>
           </object>
         </child>
@@ -282,6 +277,7 @@
         <property name="right_attach">6</property>
         <property name="top_attach">2</property>
         <property name="bottom_attach">3</property>
+        <property name="x_options"></property>
         <property name="y_options"></property>
       </packing>
     </child>
@@ -300,8 +296,6 @@
             <property name="invisible_char_set">True</property>
             <property name="primary_icon_activatable">False</property>
             <property name="secondary_icon_activatable">False</property>
-            <property name="primary_icon_sensitive">True</property>
-            <property name="secondary_icon_sensitive">True</property>
           </object>
         </child>
       </object>
@@ -330,14 +324,12 @@
             <property name="invisible_char_set">True</property>
             <property name="primary_icon_activatable">False</property>
             <property name="secondary_icon_activatable">False</property>
-            <property name="primary_icon_sensitive">True</property>
-            <property name="secondary_icon_sensitive">True</property>
           </object>
         </child>
       </object>
       <packing>
         <property name="left_attach">1</property>
-        <property name="right_attach">4</property>
+        <property name="right_attach">3</property>
         <property name="top_attach">4</property>
         <property name="bottom_attach">5</property>
         <property name="x_options">GTK_FILL</property>
@@ -361,8 +353,8 @@
       <packing>
         <property name="left_attach">1</property>
         <property name="right_attach">6</property>
-        <property name="top_attach">7</property>
-        <property name="bottom_attach">8</property>
+        <property name="top_attach">6</property>
+        <property name="bottom_attach">7</property>
         <property name="x_options">GTK_FILL</property>
         <property name="y_options"></property>
       </packing>
@@ -389,28 +381,122 @@
         <property name="y_options"></property>
       </packing>
     </child>
+    <child>
+      <object class="GtkHSeparator" id="hseparator2">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+      </object>
+      <packing>
+        <property name="right_attach">6</property>
+        <property name="top_attach">8</property>
+        <property name="bottom_attach">9</property>
+        <property name="x_options">GTK_FILL</property>
+        <property name="y_options"></property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkLabel" id="lbl_offset_x">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="xalign">1</property>
+        <property name="label" translatable="yes">X Offset</property>
+        <property name="use_markup">True</property>
+      </object>
+      <packing>
+        <property name="top_attach">9</property>
+        <property name="bottom_attach">10</property>
+        <property name="x_options">GTK_FILL</property>
+        <property name="y_options"></property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkLabel" id="lbl_offset_y">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="xalign">1</property>
+        <property name="label" translatable="yes">Y Offset</property>
+        <property name="use_markup">True</property>
+      </object>
+      <packing>
+        <property name="top_attach">10</property>
+        <property name="bottom_attach">11</property>
+        <property name="x_options">GTK_FILL</property>
+        <property name="y_options"></property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkEntry" id="marker_data_x_offset">
+        <property name="width_request">235</property>
+        <property name="visible">True</property>
+        <property name="can_focus">True</property>
+        <property name="invisible_char">•</property>
+        <property name="invisible_char_set">True</property>
+        <property name="primary_icon_activatable">False</property>
+        <property name="secondary_icon_activatable">False</property>
+      </object>
+      <packing>
+        <property name="left_attach">1</property>
+        <property name="right_attach">2</property>
+        <property name="top_attach">9</property>
+        <property name="bottom_attach">10</property>
+        <property name="x_options"></property>
+        <property name="y_options"></property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkEntry" id="marker_data_y_offset">
+        <property name="width_request">235</property>
+        <property name="visible">True</property>
+        <property name="can_focus">True</property>
+        <property name="invisible_char">•</property>
+        <property name="invisible_char_set">True</property>
+        <property name="primary_icon_activatable">False</property>
+        <property name="secondary_icon_activatable">False</property>
+      </object>
+      <packing>
+        <property name="left_attach">1</property>
+        <property name="right_attach">2</property>
+        <property name="top_attach">10</property>
+        <property name="bottom_attach">11</property>
+        <property name="x_options"></property>
+        <property name="y_options"></property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkLabel" id="lbl_degrees1">
+        <property name="width_request">25</property>
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="xalign">0</property>
+        <property name="label" translatable="yes">°2θ</property>
+      </object>
+      <packing>
+        <property name="left_attach">2</property>
+        <property name="right_attach">6</property>
+        <property name="top_attach">9</property>
+        <property name="bottom_attach">10</property>
+        <property name="x_options">GTK_FILL</property>
+        <property name="y_options"></property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkLabel" id="lbl_degrees2">
+        <property name="width_request">25</property>
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="xalign">0</property>
+      </object>
+      <packing>
+        <property name="left_attach">2</property>
+        <property name="right_attach">6</property>
+        <property name="top_attach">10</property>
+        <property name="bottom_attach">11</property>
+        <property name="x_options">GTK_FILL</property>
+        <property name="y_options"></property>
+      </packing>
+    </child>
   </object>
   <object class="GtkImage" id="img_sample_graph">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="stock">gtk-color-picker</property>
-  </object>
-  <object class="GtkImage" id="img_sample_graph1">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="stock">gtk-color-picker</property>
-  </object>
-  <object class="GtkImage" id="img_sample_graph2">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="stock">gtk-color-picker</property>
-  </object>
-  <object class="GtkImage" id="img_sample_graph3">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="stock">gtk-color-picker</property>
-  </object>
-  <object class="GtkImage" id="img_sample_graph4">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="stock">gtk-color-picker</property>

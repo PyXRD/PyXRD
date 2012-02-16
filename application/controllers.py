@@ -6,6 +6,7 @@
 # To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/3.0/ or send
 # a letter to Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
 
+import os
 import locale
 
 import gtk
@@ -102,7 +103,7 @@ class AppController (BaseController, DialogMixin):
     def redraw_plot(self, complete=True):
         self.push_status_msg("Updating display...")       
         
-        single = bool(self.model.current_specimen is not None or self.model.current_specimens == [])              
+        single = self.model.single_specimen_selected
         labels = []
         
         if complete: self.plot_controller.unregister_all()
@@ -306,7 +307,12 @@ class AppController (BaseController, DialogMixin):
         self.update_plot()
 
     def on_save_graph(self, event):
-        self.plot_controller.save()
+        filename = None
+        if self.model.single_specimen_selected:
+            filename = os.path.splitext(self.model.current_specimen.data_name)[0]
+        else:
+            filename = self.model.current_project.data_name
+        self.plot_controller.save(parent=self.view.get_toplevel(), suggest_name=filename)
          
     def on_sample_point(self, event):
         self.cid = -1

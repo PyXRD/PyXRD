@@ -9,11 +9,15 @@
 import gtk
 from gtkmvc.view import View
 
+import settings
+
 """
     Basic view providing some common code
 """
 class BaseView(View):
     builder = ""
+    
+    __widgets_to_hide__ = ()
     
     def __init__(self, *args, **kwargs):
         #strip parent from args:
@@ -21,6 +25,18 @@ class BaseView(View):
             self.parent = kwargs["parent"]
             if not hasattr(self, "set_transient_for"): del kwargs["parent"]
         View.__init__(self, *args, **kwargs)
+        self._hide_widgets()
+        
+    
+    def _hide_widgets(self):
+        self._before_hide_widgets()
+        if settings.VIEW_MODE:
+            for widget in self.__widgets_to_hide__:
+                self[widget].set_visible(False)
+                self[widget].set_no_show_all(True)
+         
+    def _before_hide_widgets(self):
+        pass #can be overriden by subclasses
          
     """def show(self, *args, **kwargs): 
         if title != None: self.set_title(title)
@@ -79,15 +95,17 @@ class DialogView(BaseView, TitleView, HasChildView):
     subview_toplevel = None
         
     def __init__(self, container_widget=None, subview_builder=None, subview_toplevel=None, **kwargs):
-        BaseView.__init__(self, **kwargs)
-        TitleView.__init__(self)
         self.container_widget = container_widget or self.container_widget
         self.subview_builder = subview_builder or self.subview_builder
         self.subview_toplevel = subview_toplevel or self.subview_toplevel
-        self.setup_subview()
+        BaseView.__init__(self, **kwargs)
+        TitleView.__init__(self)
         return
     
     def setup_subview(self):
+        pass
+        
+    def _before_hide_widgets(self):
         self._builder.add_from_file(self.subview_builder)
         self._add_child_view(self[self.subview_toplevel], self[self.container_widget])
         
@@ -187,10 +205,10 @@ class NoneView(BaseView):
     top = "lbl_caption"
     caption_widget = "lbl_caption"
 
-    def __init__(self, label="Nothing selected.", **kwargs):
+    def __init__(self, label=None, **kwargs):
         BaseView.__init__(self, **kwargs)
         self._label = self[self.caption_widget]
-        #self.label = label
+        if label != None: self.label = label
         
     _label = None
     @property

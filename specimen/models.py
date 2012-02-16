@@ -27,15 +27,17 @@ from scipy import stats
 
 from math import tan, asin, sin, cos, pi, sqrt, radians, degrees, exp
 
+import settings
+
 from generic.utils import interpolate, print_timing
 from generic.io import Storable, PyXRDDecoder
-from generic.models import XYData, ChildModel, CSVMixin
+from generic.models import XYData, ChildModel, CSVMixin, ObjectListStoreChildMixin
 from generic.treemodels import ObjectListStore, XYListStore, Point
 from generic.peak_detection import multi_peakdetect, peakdetect, smooth
 
 
 
-class Specimen(ChildModel, Observable, Storable):
+class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
 
     __columns__ = [
         ('data_name', str),
@@ -55,7 +57,7 @@ class Specimen(ChildModel, Observable, Storable):
         ('statistics', object),
     ]
     __observables__ = [ key for key, val in __columns__]
-    __storables__ = [ val for val in __observables__ if not val in ('data_phases', 'statistics') ]
+    __storables__ = [ val for val in __observables__ if not val in ('parent', 'data_phases', 'statistics') ]
 
     _data_sample = ""
     _data_name = ""
@@ -69,7 +71,7 @@ class Specimen(ChildModel, Observable, Storable):
     @Model.setter("data_sample", "data_name", "display_calculated", "display_experimental", "display_phases")
     def set_data_name(self, prop_name, value):
         setattr(self, "_%s" % prop_name, value)
-        self.parent.data_specimens.on_item_changed(self)
+        self.liststore_item_changed()
  
     data_calculated_pattern = None
     data_experimental_pattern = None
@@ -269,8 +271,8 @@ class Specimen(ChildModel, Observable, Storable):
         for marker in specimen.data_markers._model_data:
             marker.parent = specimen
         return specimen
-        
-    @staticmethod  
+              
+    @staticmethod
     def from_experimental_data(parent, data, format="DAT", filename=""):
         specimen = Specimen(parent=parent)
         
@@ -482,12 +484,14 @@ class ThresholdSelector(ChildModel, Observable):
 
             self.sel_threshold = peak_x
             
-class Marker(ChildModel, Observable, Storable, CSVMixin):
+class Marker(ChildModel, Observable, Storable, ObjectListStoreChildMixin, CSVMixin):
     
     __columns__ = [
         ('data_label', str),
         ('data_visible', bool),
         ('data_position', float),
+        ('data_x_offset', float),
+        ('data_y_offset', float),
         ('data_color', str),
         ('data_base', bool),
         ('data_angle', float),
@@ -498,9 +502,19 @@ class Marker(ChildModel, Observable, Storable, CSVMixin):
     __storables__ = __observables__
     __csv_storables__ = zip(__storables__, __storables__)
 
-    data_label = ""
+    _data_label = ""
+    @Model.getter("data_label")
+    def get_data_name(self, prop_name):
+        return getattr(self, "_%s" % prop_name)
+    @Model.setter("data_label")
+    def set_data_name(self, prop_name, value):
+        setattr(self, "_%s" % prop_name, value)
+        self.liststore_item_changed()
+    
     data_visible = True
     data_position = 0.0
+    data_x_offset = 0.0
+    data_y_offset = 0.05
     data_color = "#000000"
 
     _inherit_angle = True
@@ -527,9 +541,11 @@ class Marker(ChildModel, Observable, Storable, CSVMixin):
             self._data_angle = value
             if self._text!=None:
                 self._text.set_rotation(90-self.data_angle)
-    
+        
     _data_base = 1
-    _data_bases = { 0: "X-axis", 1: "Experimental profile", 2: "Calculated profile", 3: "Lowest of both", 4: "Highest of both" }
+    _data_bases = { 0: "X-axis", 1: "Experimental profile" }
+    if not settings.VIEW_MODE:
+        _data_bases.update({ 2: "Calculated profile", 3: "Lowest of both", 4: "Highest of both" })
     @Model.getter("data_base")
     def get_data_base(self, prop_name):
         return self._data_base
@@ -554,8 +570,8 @@ class Marker(ChildModel, Observable, Storable, CSVMixin):
         else:
             raise ValueError, "'%s' is not a valid value for a marker style!" % value
     
-    def __init__(self, data_label="", data_visible=True, data_position=0.0, data_color="#000000", data_base=1,
-                 data_angle=0.0, inherit_angle=True, data_style="none", parent=None):
+    def __init__(self, data_label="", data_visible=True, data_position=0.0, data_x_offset=0.0, data_y_offset=0.05, 
+                 data_color="#000000", data_base=1, data_angle=0.0, inherit_angle=True, data_style="none", parent=None):
         ChildModel.__init__(self, parent=parent)
         Observable.__init__(self)
         Storable.__init__(self)
@@ -563,6 +579,8 @@ class Marker(ChildModel, Observable, Storable, CSVMixin):
         self.data_label = data_label
         self.data_visible = data_visible
         self.data_position = data_position
+        self.data_x_offset = data_x_offset
+        self.data_y_offset = data_y_offset
         self.data_color = data_color
         self.data_base = data_base
         self.inherit_angle = inherit_angle
@@ -587,7 +605,7 @@ class Marker(ChildModel, Observable, Storable, CSVMixin):
     
     def update_text(self, figure, axes):
         kws = dict(text=self.data_label,
-                   x=self.data_position, y=0.8,
+                   x=self.data_position+self.data_x_offset, y=0.8,
                    clip_on=False,
                    transform=transforms.blended_transform_factory(axes.transData, figure.transFigure),
                    horizontalalignment="left", verticalalignment="center",
@@ -608,7 +626,7 @@ class Marker(ChildModel, Observable, Storable, CSVMixin):
                 
             ymin, ymax = axes.get_ybound()
             trans = transforms.blended_transform_factory(axes.transData, axes.transAxes)
-            y = ((y+0.05) - ymin) / (ymax - ymin)
+            y = ((y+self.data_y_offset) - ymin) / (ymax - ymin)
         
             kws.update(dict(
                 y=y,

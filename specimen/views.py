@@ -13,11 +13,24 @@ from matplotlib.backends.backend_gtkcairo import FigureCanvasGTKCairo as FigureC
 
 from generic.views import ObjectListStoreView, DialogView, BaseView
 
+#TODO add widgets to hide when in VIEW MODE!!
+
 class SpecimenView(DialogView):
     title = "Edit Specimen"
     subview_builder = "specimen/glade/specimen.glade"
     subview_toplevel = "edit_specimen"
     
+    __widgets_to_hide__ = (
+        "entry_align_sample_length",
+        "lbl_spec_length",
+        "specimen_display_calculated",
+        "specimen_inherit_calc_color",
+        "specimen_calc_color",
+        "specimen_display_phases",
+        "specimen_display_auto_update",
+        "scw_display_phases_tv",
+        "lbl_specimen_phases")
+
 class EditMarkerView(BaseView):
     builder = "specimen/glade/edit_marker.glade"
     top = "edit_marker"
@@ -40,6 +53,11 @@ class DetectPeaksView(DialogView):
     title = "Auto detect peaks"
     subview_builder = "specimen/glade/find_peaks_dialog.glade"
     subview_toplevel = "tbl_find_peaks"
+    
+    __widgets_to_hide__ = (
+        "pattern",
+        "lbl_pattern",
+        "hseparator1")
     
     def __init__(self, *args, **kwargs):
         DialogView.__init__(self, *args, **kwargs)

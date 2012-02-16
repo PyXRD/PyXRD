@@ -6,6 +6,7 @@
 # To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/3.0/ or send
 # a letter to Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
 
+import settings
 from gtkmvc.model import Model
     
 class AppModel(Model):
@@ -15,7 +16,7 @@ class AppModel(Model):
     _statistics_visible = None
     @Model.getter("statistics_visible")
     def get_statistics_visible(self, prop_name):
-        return self._statistics_visible and (self._current_specimen != None)
+        return self._statistics_visible and (self._current_specimen != None) and (not settings.VIEW_MODE)
     @Model.setter("statistics_visible")
     def set_statistics_visible(self, prop_name, value):
         if self._current_specimen != None:
@@ -42,6 +43,10 @@ class AppModel(Model):
             self._current_specimen = self._current_specimens[0]
         else:
             self._current_specimen = None
+    
+    @property
+    def single_specimen_selected(self):
+        return bool(self.current_specimen is not None or self.current_specimens == [])
     
     __observables__ = ( "current_project", "current_specimen", "current_specimens", "statistics_visible" )
     

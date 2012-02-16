@@ -15,6 +15,8 @@ import gio
 from gtkmvc import Controller
 from gtkmvc.adapters import Adapter
 
+import settings
+
 from generic.validators import FloatEntryValidator 
 from generic.controllers import DialogController, HasObjectTreeview, DialogMixin, get_color_val
 from project.models import Project
@@ -39,9 +41,7 @@ class ProjectController (DialogController, HasObjectTreeview, DialogMixin):
         print "ProjectController.register_adapters()"
         if self.model is not None and self.parent is not None:
             for name in self.model.get_properties():
-                if name in ("data_phases", "data_atom_types", "data_goniometer"):
-                    pass
-                elif name == "data_name":
+                if name == "data_name":
                     ad = Adapter(self.model, "data_name")
                     ad.connect_widget(self.view["project_data_name"])
                     self.adapt(ad)
@@ -101,14 +101,14 @@ class ProjectController (DialogController, HasObjectTreeview, DialogMixin):
                         tv.append_column(col)
                         
                     setup_check_column('Exp', "display_experimental", self.model.data_specimens.c_display_experimental)
-                    setup_check_column('Cal', "display_calculated", self.model.data_specimens.c_display_calculated)
-                    setup_check_column('Sep', "display_phases", self.model.data_specimens.c_display_phases)
+                    if not settings.VIEW_MODE:
+                        setup_check_column('Cal', "display_calculated", self.model.data_specimens.c_display_calculated)
+                        setup_check_column('Sep', "display_phases", self.model.data_specimens.c_display_phases)
 
                     setup_image_button("UP", None, gtk.STOCK_GO_UP)
                     setup_image_button("DOWN", None, gtk.STOCK_GO_DOWN)
 
-
-                else:
+                elif not name in ("data_phases", "data_atom_types", "data_goniometer"):
                     self.adapt(name)
             return
 

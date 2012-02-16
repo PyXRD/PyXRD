@@ -2,7 +2,6 @@
 <interface>
   <requires lib="gtk+" version="2.20"/>
   <object class="GtkNotebook" id="edit_specimen">
-    <property name="width_request">480</property>
     <property name="visible">True</property>
     <property name="can_focus">True</property>
     <child>

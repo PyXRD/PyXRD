@@ -18,13 +18,13 @@ from math import sin, cos, pi, sqrt, exp
 from gtkmvc.model import Signal, Observer
 
 from generic.io import Storable, PyXRDDecoder
-from generic.models import XYData, ChildModel, CSVMixin
+from generic.models import XYData, ChildModel, CSVMixin, ObjectListStoreChildMixin
 from generic.treemodels import XYListStore
 
 #TODO:
 #  - cache calculated values
 
-class AtomType(ChildModel, Storable, CSVMixin):
+class AtomType(ChildModel, ObjectListStoreChildMixin, Storable, CSVMixin):
     __index_column__ = 'data_name'
 
     __columns__ = [
@@ -41,7 +41,15 @@ class AtomType(ChildModel, Storable, CSVMixin):
     
     __observables__ = ["parameters_changed"] + __storables__
     
-    data_name = ""    
+    _data_name = ""
+    @Model.getter("data_name")
+    def get_data_name(self, prop_name):
+        return getattr(self, "_%s" % prop_name)
+    @Model.setter("data_name")
+    def set_data_name(self, prop_name, value):
+        setattr(self, "_%s" % prop_name, value)
+        self.liststore_item_changed()
+     
     data_atom_nr = None
     data_weight = None
     
@@ -114,7 +122,7 @@ class AtomType(ChildModel, Storable, CSVMixin):
 """
     Atoms have an atom type plus structural parameters (position and proportion)
 """
-class Atom(ChildModel, Storable):
+class Atom(ChildModel, ObjectListStoreChildMixin, Storable):
     __observables__ = ( "data_*", )
     __columns__ = [
         ('data_name', str),

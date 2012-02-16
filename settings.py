@@ -1,0 +1,4 @@
+VERSION = 0.3
+
+DEBUG = False
+VIEW_MODE = False

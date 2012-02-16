@@ -30,10 +30,10 @@
         <property name="xscale">0</property>
         <child>
           <object class="GtkEntry" id="data_atom_type_name">
-            <property name="width_request">200</property>
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="invisible_char">•</property>
+            <property name="width_chars">25</property>
             <property name="invisible_char_set">True</property>
             <property name="primary_icon_activatable">False</property>
             <property name="secondary_icon_activatable">False</property>
@@ -144,7 +144,7 @@
                 <property name="right_attach">3</property>
                 <property name="top_attach">1</property>
                 <property name="bottom_attach">2</property>
-                <property name="x_options">GTK_FILL</property>
+                <property name="x_options"></property>
                 <property name="y_options"></property>
               </packing>
             </child>
@@ -160,7 +160,7 @@
                 <property name="right_attach">3</property>
                 <property name="top_attach">2</property>
                 <property name="bottom_attach">3</property>
-                <property name="x_options">GTK_FILL</property>
+                <property name="x_options"></property>
                 <property name="y_options"></property>
               </packing>
             </child>
@@ -176,7 +176,7 @@
                 <property name="right_attach">3</property>
                 <property name="top_attach">3</property>
                 <property name="bottom_attach">4</property>
-                <property name="x_options">GTK_FILL</property>
+                <property name="x_options"></property>
                 <property name="y_options"></property>
               </packing>
             </child>
@@ -192,7 +192,7 @@
                 <property name="right_attach">3</property>
                 <property name="top_attach">4</property>
                 <property name="bottom_attach">5</property>
-                <property name="x_options">GTK_FILL</property>
+                <property name="x_options"></property>
                 <property name="y_options"></property>
               </packing>
             </child>
@@ -208,7 +208,7 @@
                 <property name="right_attach">3</property>
                 <property name="top_attach">5</property>
                 <property name="bottom_attach">6</property>
-                <property name="x_options">GTK_FILL</property>
+                <property name="x_options"></property>
                 <property name="y_options"></property>
               </packing>
             </child>
@@ -225,23 +225,11 @@
               </packing>
             </child>
             <child>
-              <object class="GtkEntry" id="atom_data_par_c">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="invisible_char">•</property>
-                <property name="primary_icon_activatable">False</property>
-                <property name="secondary_icon_activatable">False</property>
-              </object>
-              <packing>
-                <property name="left_attach">1</property>
-                <property name="right_attach">2</property>
-              </packing>
-            </child>
-            <child>
               <object class="GtkEntry" id="atom_data_par_b5">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="invisible_char">•</property>
+                <property name="width_chars">25</property>
                 <property name="primary_icon_activatable">False</property>
                 <property name="secondary_icon_activatable">False</property>
               </object>
@@ -250,6 +238,7 @@
                 <property name="right_attach">4</property>
                 <property name="top_attach">5</property>
                 <property name="bottom_attach">6</property>
+                <property name="x_options"></property>
               </packing>
             </child>
             <child>
@@ -257,6 +246,7 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="invisible_char">•</property>
+                <property name="width_chars">25</property>
                 <property name="primary_icon_activatable">False</property>
                 <property name="secondary_icon_activatable">False</property>
               </object>
@@ -265,6 +255,7 @@
                 <property name="right_attach">4</property>
                 <property name="top_attach">4</property>
                 <property name="bottom_attach">5</property>
+                <property name="x_options"></property>
               </packing>
             </child>
             <child>
@@ -272,6 +263,7 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="invisible_char">•</property>
+                <property name="width_chars">25</property>
                 <property name="primary_icon_activatable">False</property>
                 <property name="secondary_icon_activatable">False</property>
               </object>
@@ -280,6 +272,7 @@
                 <property name="right_attach">4</property>
                 <property name="top_attach">3</property>
                 <property name="bottom_attach">4</property>
+                <property name="x_options"></property>
               </packing>
             </child>
             <child>
@@ -287,6 +280,7 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="invisible_char">•</property>
+                <property name="width_chars">25</property>
                 <property name="primary_icon_activatable">False</property>
                 <property name="secondary_icon_activatable">False</property>
               </object>
@@ -295,6 +289,7 @@
                 <property name="right_attach">4</property>
                 <property name="top_attach">2</property>
                 <property name="bottom_attach">3</property>
+                <property name="x_options"></property>
               </packing>
             </child>
             <child>
@@ -302,6 +297,7 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="invisible_char">•</property>
+                <property name="width_chars">25</property>
                 <property name="primary_icon_activatable">False</property>
                 <property name="secondary_icon_activatable">False</property>
               </object>
@@ -310,6 +306,7 @@
                 <property name="right_attach">4</property>
                 <property name="top_attach">1</property>
                 <property name="bottom_attach">2</property>
+                <property name="x_options"></property>
               </packing>
             </child>
             <child>
@@ -317,6 +314,7 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="invisible_char">•</property>
+                <property name="width_chars">25</property>
                 <property name="primary_icon_activatable">False</property>
                 <property name="secondary_icon_activatable">False</property>
               </object>
@@ -325,6 +323,7 @@
                 <property name="right_attach">2</property>
                 <property name="top_attach">5</property>
                 <property name="bottom_attach">6</property>
+                <property name="x_options"></property>
               </packing>
             </child>
             <child>
@@ -332,6 +331,7 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="invisible_char">•</property>
+                <property name="width_chars">25</property>
                 <property name="primary_icon_activatable">False</property>
                 <property name="secondary_icon_activatable">False</property>
               </object>
@@ -340,6 +340,7 @@
                 <property name="right_attach">2</property>
                 <property name="top_attach">4</property>
                 <property name="bottom_attach">5</property>
+                <property name="x_options"></property>
               </packing>
             </child>
             <child>
@@ -347,6 +348,7 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="invisible_char">•</property>
+                <property name="width_chars">25</property>
                 <property name="primary_icon_activatable">False</property>
                 <property name="secondary_icon_activatable">False</property>
               </object>
@@ -355,6 +357,7 @@
                 <property name="right_attach">2</property>
                 <property name="top_attach">3</property>
                 <property name="bottom_attach">4</property>
+                <property name="x_options"></property>
               </packing>
             </child>
             <child>
@@ -362,6 +365,7 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="invisible_char">•</property>
+                <property name="width_chars">25</property>
                 <property name="primary_icon_activatable">False</property>
                 <property name="secondary_icon_activatable">False</property>
               </object>
@@ -370,6 +374,7 @@
                 <property name="right_attach">2</property>
                 <property name="top_attach">2</property>
                 <property name="bottom_attach">3</property>
+                <property name="x_options"></property>
               </packing>
             </child>
             <child>
@@ -377,6 +382,7 @@
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="invisible_char">•</property>
+                <property name="width_chars">25</property>
                 <property name="primary_icon_activatable">False</property>
                 <property name="secondary_icon_activatable">False</property>
               </object>
@@ -385,13 +391,31 @@
                 <property name="right_attach">2</property>
                 <property name="top_attach">1</property>
                 <property name="bottom_attach">2</property>
+                <property name="x_options"></property>
               </packing>
             </child>
             <child>
-              <placeholder/>
-            </child>
-            <child>
-              <placeholder/>
+              <object class="GtkAlignment" id="alignment1">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="xalign">0</property>
+                <property name="xscale">0</property>
+                <child>
+                  <object class="GtkEntry" id="atom_data_par_c">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="invisible_char">•</property>
+                    <property name="width_chars">25</property>
+                    <property name="primary_icon_activatable">False</property>
+                    <property name="secondary_icon_activatable">False</property>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="right_attach">4</property>
+                <property name="x_options">GTK_FILL</property>
+              </packing>
             </child>
           </object>
         </child>
@@ -456,10 +480,10 @@
         <property name="xscale">0</property>
         <child>
           <object class="GtkEntry" id="atom_data_weight">
-            <property name="width_request">200</property>
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="invisible_char">•</property>
+            <property name="width_chars">25</property>
             <property name="invisible_char_set">True</property>
             <property name="primary_icon_activatable">False</property>
             <property name="secondary_icon_activatable">False</property>

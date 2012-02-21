@@ -219,12 +219,11 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
                 if filename[-3:].lower() == "dat":
                     print "Opening file %s for import using ASCII DAT format" % filename
                     data, size, entity = dialog.get_file().load_contents()
-                    self.model.data_experimental_pattern.load_data(data, format="DAT")
+                    self.model.data_experimental_pattern.load_data(data, format="DAT", silent=True)
                 if filename[-2:].lower() == "rd":
                     print "Opening file %s for import using BINARY RD format" % filename
-                    #f = open(data, 'rb')
-                    self.model.data_experimental_pattern.load_data(filename, format="BIN")
-                    #f.close()
+                    self.model.data_experimental_pattern.load_data(filename, format="BIN", silent=True)
+                self.model.calculate_pattern()
             self.run_load_dialog(title="Open XRD file for import",
                                  on_accept_callback=on_accept, 
                                  parent=self.view.get_top_widget())

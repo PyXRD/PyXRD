@@ -31,7 +31,7 @@ class EditAtomTypeController(ChildController):
                     ad = Adapter(self.model, "data_name")
                     ad.connect_widget(self.view["data_atom_type_name"])
                     self.adapt(ad)
-                elif name in ("data_weight" "data_par_a1", "data_par_a2", "data_par_a3", "data_par_a4", "data_par_a5", "data_par_b1", "data_par_b2", "data_par_b3", "data_par_b4", "data_par_b5", "data_par_c"):
+                elif name in ("data_atom_nr", "data_debye", "data_weight" "data_par_a1", "data_par_a2", "data_par_a3", "data_par_a4", "data_par_a5", "data_par_b1", "data_par_b2", "data_par_b3", "data_par_b4", "data_par_b5", "data_par_c"):
                     FloatEntryValidator(self.view["atom_%s" % name])
                     self.adapt(name)                
                 elif not name in ("parameters_changed", "data_atom_nr", "parent"):

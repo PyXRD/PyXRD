@@ -31,6 +31,7 @@ class AtomType(ChildModel, ObjectListStoreChildMixin, Storable, CSVMixin):
         ('data_atom_nr', int),
         ('data_name', str),
         ('data_weight', float),
+        ('data_debye', float),
         ('data_par_c', float),
     ]
     __columns__ += [ ('data_par_a%d' % i, float) for i in [1,2,3,4,5] ]
@@ -50,14 +51,15 @@ class AtomType(ChildModel, ObjectListStoreChildMixin, Storable, CSVMixin):
         setattr(self, "_%s" % prop_name, value)
         self.liststore_item_changed()
      
-    data_atom_nr = None
-    data_weight = None
+    data_atom_nr = 0
+    data_weight = 0
+    data_debye = 0
     
     parameters_changed = Signal()
     
     _data_a = None
     _data_b = None
-    _data_c = None
+    _data_c = 0
     
     @Model.getter("data_par_a*", "data_par_b*", "data_par_c")
     def get_data_atom_type(self, prop_name):
@@ -91,26 +93,28 @@ class AtomType(ChildModel, ObjectListStoreChildMixin, Storable, CSVMixin):
         f = np.zeros(stl_range.shape)
         #if self.cache and self.cache.has_key(stl): #TODO
         #    return self.cache[stl]
+        angstrom_range = stl_range*0.05
         for i in range(0,5):
-             f += self._data_a[i] * np.exp(-self._data_b[i]*stl_range**2)
+             f += self._data_a[i] * np.exp(-self._data_b[i]*(angstrom_range)**2)
         f += self._data_c
-        b = 0.0
-        if "-" in self.data_name:
-            b = 2.0
-        elif "+" in self.data_name:
-            b = 1.5
-        f = f * np.exp(-b * stl_range**2)
+        b = self.data_debye
+        #if "-" in self.data_name:
+        #    b = 2.0
+        #elif "+" in self.data_name:
+        #    b = 1.5
+        f = f * np.exp(-float(b) * (angstrom_range)**2)
         #if self.cache:
         #    self.cache[stl] = f
         return f
 
-    def __init__(self, data_name, parent=None, data_weight=0, data_atom_nr=0, data_par_c=0, data_par_a1=0, data_par_a2=0, data_par_a3=0, data_par_a4=0, data_par_a5=0, data_par_b1=0, data_par_b2=0, data_par_b3=0, data_par_b4=0, data_par_b5=0):
+    def __init__(self, data_name, parent=None, data_debye=0, data_weight=0, data_atom_nr=0, data_par_c=0, data_par_a1=0, data_par_a2=0, data_par_a3=0, data_par_a4=0, data_par_a5=0, data_par_b1=0, data_par_b2=0, data_par_b3=0, data_par_b4=0, data_par_b5=0):
         ChildModel.__init__(self, parent=parent)
         Storable.__init__(self)
         
         self.data_name = str(data_name) or self.data_name
         self.data_atom_nr = int(data_atom_nr) or self.data_atom_nr
         self.data_weight = float(data_weight) or self.data_weight
+        self.data_debye = float(data_debye) or self.data_debye
         
         self._data_c = float(data_par_c)
         self._data_a = map(float, [data_par_a1, data_par_a2, data_par_a3, data_par_a4, data_par_a5])
@@ -262,6 +266,5 @@ class Atom(ChildModel, ObjectListStoreChildMixin, Storable):
        
     def get_structure_factors(self, stl_range):
         asf = self.data_atom_type.get_atomic_scattering_factors(stl_range)
-        fac = 4 * pi * self.data_z * stl_range
-        return asf * self.data_pn * np.exp(fac*1j)                      #(2*asf * self.data_pn * np.cos (fac), 2*asf * self.data_pn * np.sin (fac)) #TODO do we need to multiply with 2?
+        return asf * self.data_pn * np.exp(2 * pi * self.data_z * stl_range * 1j)                      #(2*asf * self.data_pn * np.cos (fac), 2*asf * self.data_pn * np.sin (fac)) #TODO do we need to multiply with 2?
         

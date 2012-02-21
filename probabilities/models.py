@@ -47,15 +47,17 @@ def get_correct_probability_model(phase):
                 raise ValueError, "Cannot (yet) handle Reichweite's other then 0, 1, 2 or 3"
 
 
-class _AbstractProbability(ChildModel):
+class _AbstractProbability(ChildModel, Storable):
+
+    __storables__ = []
 
     _R = -1
     @property
-    def R(self, prop_name):
+    def R(self):
         return self._R
 
     @property
-    def N(self):
+    def G(self):
         if self.parent!=None:
             return self.parent.data_G
         else:
@@ -67,12 +69,12 @@ class _AbstractProbability(ChildModel):
     def parameters(self):
         return self._parameters
     
-    def __init__(self, parent):
+    def __init__(self, parent=None, **kwargs):
         ChildModel.__init__(self, parent=parent)
-        self.setup()
+        self.setup(**kwargs)
         self.update()
     
-    def setup(self):
+    def setup(self, **kwargs):
         self._R = -1
         self._W = None
         self._P = None
@@ -86,15 +88,29 @@ class _AbstractProbability(ChildModel):
     def get_distribution_matrix(self):
         raise NotImplementedError
         
+    def get_independent_label_map(self):
+        raise NotImplementedError
+        
         
 class _AbstractR0R1Model(_AbstractProbability):
+
+    __independent_label_map__ = []
+    __observables__ = [ prop for prop, lbl in  __independent_label_map__ ]
+
     def get_probability_matrix(self):
         self.update()
-        return np.matrix(self._P)
+        return np.array(np.matrix(self._P))
         
     def get_distribution_matrix(self):
         self.update()
-        return np.matrix(np.diag(self._W))
+        return np.array(np.matrix(np.diag(self._W)))
+        
+    def get_distribution_array(self):
+        self.update()
+        return self._W
+        
+    def get_independent_label_map(self):
+        return self.__independent_label_map__
         
 class R0Model(_AbstractR0R1Model):
 
@@ -107,30 +123,41 @@ class R0Model(_AbstractR0R1Model):
 	
 	indexes are not zero-based in external property names!
 	"""
-
-    __observables__ = [ "W[1-4]" ]
+    __independent_label_map__ = [
+        ("W1", "W1"),
+        ("W2", "W2"),
+        ("W3", "W3"),
+        ("W4", "W4"),
+    ]
+    __observables__ = [ prop for prop, lbl in  __independent_label_map__ ]
+    __storables__ = [ val for val in __observables__ if not val in ('parent')]
 
     @Model.getter("W[1-4]")
     def get_W(self, prop_name):
         index = int(prop_name[1:])-1
-        return self._W[index]
+        return self._W[index] if index < self.G else None
     @Model.setter("W[1-4]")
     def set_W(self, prop_name, value):
         index = int(prop_name[1:])-1
-        self._W[index] = min(max(value, 0), 1)
+        self._W[index] = min(max(float(value), 0.0), 1.0)
         self.update()
 
-    def setup(self):
+    def setup(self, W1=None, W2=None, W3=None, W4=None, **kwargs):
         self._R = 0
-        self._W = np.zeros(shape=(self.N), dtype=float)
-        
+        self._W = np.zeros(shape=(self.G), dtype=float)
+        loc = locals()
+        for i in range(self.G):
+            self._W[i] = loc["W%d"%(i+1)]
 
-    def update(self):        
-        partial_sum = np.sum(self._W[:-1])
-        self._W[-1] = min(1.0 - partial_sum, 0)
-        if partial_sum > 1.0:
-            self._W *= 1.0 / partial_sum
-        self._P = np.matrix(np.repeat(self._W[np.newaxis,:], self.N, 0))
+    def update(self):
+        if self.G == 1:
+            self._W[0] = 1.0
+        elif self.G > 1:
+            partial_sum = np.sum(self._W[:-1])
+            self._W[-1] = max(1.0 - partial_sum, 0)
+            if partial_sum > 1.0:
+                self._W *= 1.0 / partial_sum
+        self._P = np.repeat(self._W[np.newaxis,:], self.G, 0)
         pass
     
 class R1G2Model(_AbstractR0R1Model):
@@ -148,6 +175,11 @@ class R1G2Model(_AbstractR0R1Model):
 	
 	indexes are not zero-based in external property names!
 	"""
+
+    __independent_label_map__ = [
+        ("W1", "W1"),
+        ("P11_or_P22", "P11 or P22"),
+    ]
 
     @Model.getter("W1")
     def get_W(self, prop_name):
@@ -232,7 +264,14 @@ class R1G3Model(_AbstractR0R1Model):
 	indexes are not zero-based in external property names!
 	"""
 
-
+    __independent_label_map__ = [
+        ("W1", "W1"),
+        ("P11_or_P22", "P11 or P22"),
+        ("G1", "W1 / (W2 + W1)"),
+        ("G2", "(W11 + W12) / (W11 + W12 + W21 + W22)"),
+        ("G3", "W11 / (W11 + W12)"),
+        ("G4", "W21 / (W21 + W22)"),
+    ]
 
     @Model.getter("W1")
     def get_W(self, prop_name):

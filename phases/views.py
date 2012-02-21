@@ -21,12 +21,14 @@ class EditPhaseView(BaseView, HasChildView):
     
     def set_components_view(self, view):
         self.components_view = view
-        self._add_child_view(view.get_top_widget(), self[self.components_view_container])
+        if view != None:
+            self._add_child_view(view.get_top_widget(), self[self.components_view_container])
         return view
         
     def set_probabilities_view(self, view):
         self.probabilities_view = view
-        self._add_child_view(view.get_top_widget(), self[self.probabilities_view_container])
+        if view != None:
+            self._add_child_view(view.get_top_widget(), self[self.probabilities_view_container])
         return view
 
 class EditLayerView(BaseView):

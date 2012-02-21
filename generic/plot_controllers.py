@@ -15,6 +15,7 @@ import matplotlib
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_gtkcairo import FigureCanvasGTKCairo as FigureCanvasGTK
 from matplotlib.ticker import FuncFormatter, IndexLocator
+from matplotlib.font_manager import FontProperties
 
 from mpl_toolkits.axes_grid1.axes_divider import make_axes_area_auto_adjustable
 
@@ -178,7 +179,7 @@ class MainPlotController (PlotController):
         if single:
             self.plot.set_position([0.05, 0.20+stats_offset, 0.90, 0.65-stats_offset]) #l, b, w, h
             if not settings.VIEW_MODE:
-                self.plot.legend(loc="lower right", bbox_to_anchor=(0.02, 0.02, 0.94, 0.94), bbox_transform=self.figure.transFigure, borderaxespad=0.0, fancybox=False )
+                self.plot.legend(loc="lower right", bbox_to_anchor=(0.02, 0.02, 0.94, 0.94), bbox_transform=self.figure.transFigure, borderaxespad=0.0, fancybox=False, prop=FontProperties(size=16))
             yaxis.set_ticks_position('none')
             yaxis.set_ticklabels([])
             matplotlib.artist.setp(self.plot.get_yticklabels(), visible=False)
@@ -202,7 +203,7 @@ class MainPlotController (PlotController):
             self.stats_plot.axhline(ls=":", c="k")
             
             self.stats_plot.autoscale_view()
-            self.stats_plot.set_position([0.10, 0.22, 0.80, stats_offset]) #l, b, w, h                
+            self.stats_plot.set_position([0.05, 0.17, 0.90, stats_offset]) #l, b, w, h                
             self.stats_plot.set_ylabel('Residual',  weight="heavy", size=16)
         
             matplotlib.artist.setp(self.plot.get_xticklabels(), visible=False)

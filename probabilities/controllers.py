@@ -20,21 +20,21 @@ from generic.controllers import ChildController
 from probabilities.views import EditProbabilitiesView, get_correct_probability_views
 
 
-def get_correct_probability_controllers(phase, parent_controller, independents_view, dependents_view):
-    if phase!=None:
-        G = phase.data_G
-        R = phase.data_R
+def get_correct_probability_controllers(probability, parent_controller, independents_view, dependents_view):
+    if probability!=None:
+        G = probability.G
+        R = probability.R
         if R == 0 or G == 1:
-            return R0IndependentsController(N=G, model=phase.probabibilites, parent=parent_controller, view=independents_view), \
-                   R0R1MatrixController(N=G, model=phase.probabibilites, parent=parent_controller, view=dependents_view)
+            return R0IndependentsController(model=probability, parent=parent_controller, view=independents_view), \
+                   R0R1MatrixController(N=G, model=probability, parent=parent_controller, view=dependents_view)
         elif G > 1:
             if R == 1: #------------------------- R1:
                 if G == 2:
-                    return R1G2IndependentsController(model=phase.probabibilites, parent=parent_controller, view=independents_view), \
-                           R0R1MatrixController(N=G, model=phase.probabibilites, parent=parent_controller, view=dependents_view)
+                    return R1G2IndependentsController(model=probability, parent=parent_controller, view=independents_view), \
+                           R0R1MatrixController(N=G, model=probability, parent=parent_controller, view=dependents_view)
                 elif G == 3:
-                    return R1G3IndependentsController(model=phase.probabibilites, parent=parent_controller, view=independents_view), \
-                           R0R1MatrixController(N=G, model=phase.probabibilites, parent=parent_controller, view=dependents_view)
+                    return R1G3IndependentsController(model=probability, parent=parent_controller, view=independents_view), \
+                           R0R1MatrixController(N=G, model=probability, parent=parent_controller, view=dependents_view)
                 elif G == 4:
                     raise ValueError, "Cannot yet handle R1 g=4" # ,R0R1MatrixView(N=G, parent=parent_view)
             elif R == 2: #----------------------- R2:
@@ -61,26 +61,36 @@ class EditProbabilitiesController(ChildController):
 
     def __init__(self, *args, **kwargs):
         ChildController.__init__(self, *args, **kwargs)
-               
-        self._init_views()
+        self._init_views(kwargs["view"])
         self.update_views()
         
-    def _init_views(self):
-        self.independents_view, self.dependents_view = get_correct_probability_views(self.model, self.view)
+    def _init_views(self, view):
+        self.independents_view, self.dependents_view = get_correct_probability_views(self.model, view)
         self.independents_controller, self.dependents_controller = get_correct_probability_controllers(self.model, self, self.independents_view, self.dependents_view)
-        self.view.set_independents_view(self.independents_view)
-        self.view.set_dependents_view(self.dependents_view)
+        view.set_views(self.independents_view, self.dependents_view)
 
     def update_views(self): #needs to be called whenever an independent value changes
         #self.independents_view.update()
-        self.matrix_view.update_matrices(self.model.get_distribution_matrix(), self.model.get_probability_matrix())
+        self.independents_view.update_matrices(self.model.get_distribution_matrix(), self.model.get_probability_matrix())
 
     pass
     
 class R0IndependentsController(ChildController):
 
-    def __init__(self, N=1, **kwargs):
-        ChildController.__init__(self, **kwargs)
+    def register_adapters(self):
+        if self.model is not None:
+            for name in self.model.get_properties():
+                if name in ["parent"]:
+                    pass
+                elif name in ["W1", "W2", "W3", "W4"]:
+                    if int(name[1]) <= self.model.G:
+                        FloatEntryValidator(self.view["prob_%s" % name])
+                        self.adapt(name)
+                else:
+                    print name
+                    FloatEntryValidator(self.view["prob_%s" % name])
+                    self.adapt(name)
+            return
 
     pass #TODO
     

@@ -219,9 +219,7 @@ class EditComponentController(ChildController, HasObjectTreeview):
     def register_adapters(self):
         if self.model is not None:
             for name in self.model.get_properties():
-                if name == "data_all_atoms":
-                    pass
-                elif name == "data_name":
+                if name == "data_name":
                     self.adapt(name, "component_data_name")
                 elif name == "data_linked_with":
                     self.reset_combo_box()
@@ -231,8 +229,8 @@ class EditComponentController(ChildController, HasObjectTreeview):
                     self.view.set_layer_view(self.layer_view.get_top_widget())
                     self.view.set_interlayer_view(self.interlayer_view.get_top_widget())
                     pass
-                else:
-                    #print name
+                elif not name in ("data_all_atoms", "parent"):
+                    print name
                     FloatEntryValidator(self.view["component_%s" % name])
                     self.adapt(name)
             self.update_sensitivities()
@@ -260,7 +258,7 @@ class EditComponentController(ChildController, HasObjectTreeview):
     @Controller.observe("inherit_cell_b", assign=True)
     @Controller.observe("inherit_d001", assign=True)
     def notif_change_data_inherit(self, model, prop_name, info):
-        can_inherit = (self.model.data_based_on != None)
+        can_inherit = (self.model.data_linked_with != None)
         if not (prop_name in ("inherit_layer_atoms", "inherit_interlayer_atoms")):
             widget_name = prop_name.replace("inherit_", "component_data_")
         else:
@@ -291,7 +289,7 @@ class EditComponentController(ChildController, HasObjectTreeview):
             return
         combo.set_active(-1)
         self.update_sensitivities()
-        self.model.data_based_on = None
+        self.model.data_linked_with = None
 
 class ComponentsController(ChildObjectListStoreController): #limit # of components!
 
@@ -322,7 +320,7 @@ class EditPhaseController(ChildController):
         ChildController.__init__(self, *args, **kwargs)
 
         self.probabilities_view = EditProbabilitiesView(parent=self.view)
-        self.probabilities_controller = EditProbabilitiesController(model=self.model, view=self.probabilities_view, parent=self)
+        self.probabilities_controller = EditProbabilitiesController(model=self.model.data_probabilities, view=self.probabilities_view, parent=self)
         
         self.components_view = ChildObjectListStoreView(display_buttons=False, parent=self.view)
         self.components_controller = ComponentsController(model=self.model, view=self.components_view, parent=self)
@@ -351,7 +349,7 @@ class EditPhaseController(ChildController):
                             combo.set_active_iter (row.iter)
                             break
                 elif name in ("data_probabilities", "data_components"):
-                    #self.view.set_probabilities_view(self.probabilities_view)
+                    self.view.set_probabilities_view(self.probabilities_view)
                     self.view.set_components_view(self.components_view)
                 elif name.find("inherit") is not -1 or name == "data_numcomp":
                     self.adapt(name)
@@ -410,7 +408,7 @@ class EditPhaseController(ChildController):
             val = combo.get_model().get_user_data(itr)
             #cannot be based on itself == not based on anything
             #cannot be based on a model with a different # of components
-            if val != self.model and val.get_based_on_root() != self.model and val.data_numcomp == self.model.data_numcomp: 
+            if val != self.model and val.get_based_on_root() != self.model and val.data_G == self.model.data_G: 
                 self.model.data_based_on = val
                 self.update_sensitivities()
                 return

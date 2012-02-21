@@ -9,14 +9,15 @@
 from gtkmvc.model import Model, Observer
 
 import numpy as np
+import time
 
 from math import sin, cos, pi, sqrt, exp, radians, log
 
 from scipy.special import erf
 
-from generic.utils import lognormal, sqrt2pi, sqrt8
+from generic.utils import lognormal, sqrt2pi, sqrt8, print_timing
 
-from generic.io import Storable
+from generic.io import Storable, PyXRDDecoder
 from generic.models import ChildModel, ObjectListStoreChildMixin
 from generic.treemodels import ObjectListStore
 from atoms.models import Atom
@@ -135,7 +136,7 @@ class Component(ChildModel, ObjectListStoreChildMixin, Storable):
         return sf_tot
 
     def get_phase_factors(self, range_stl):
-        return np.exp(4*pi*self.data_d001*range_stl*1j)
+        return np.exp(2*pi*self.data_d001*range_stl*1j)
 
     def get_cell_a(self):
         return self.data_cell_a
@@ -317,8 +318,12 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
         # strip components, setup phase and generate components
         data_components = kwargs['data_components']['properties']
         del kwargs['data_components']
+        data_probabilities = kwargs['data_probabilities']
+        del kwargs['data_probabilities']
+        
         phase = type(**kwargs)
         phase.data_components = ObjectListStore.from_json(parent=phase, **data_components)
+        phase.data_probabilities = PyXRDDecoder.__pyxrd_decode__(data_probabilities, parent=phase)
         return phase
 
     #CALCULATIONS:
@@ -326,8 +331,9 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
         lpf_range = list()
         ss = max(self.data_sigma_star, 0.0000000000001)
         Q = S / (sqrt8 * np.sin(range_theta) * ss)
-        T = erf(Q) * sqrt2pi / (2*ss * S) - 2*np.sin(range_theta) * (1 - np.exp(-(Q**2))) / (S**2)
-        return (1 + np.cos(2*range_theta)**2) * T / np.sin(range_theta)
+        T = erf(Q) * sqrt2pi / (2.0*ss * S) - 2.0*np.sin(range_theta) * (1.0- np.exp(-(Q**2.0))) / (S**2.0)
+        cosrt = np.cos(2.0*range_theta)
+        return (1.0 + cosrt) * cosrt * T / np.sin(range_theta)    
     
     __last_Tmean = None
     __last_Tmax = None
@@ -339,42 +345,42 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
         Tmax = self.data_max_CSDS
         Tmin = self.data_min_CSDS
 
-        if self.__last_Tmean != Tmean and self.__last_Tmax != Tmax and self.__last_Tmin != Tmin:
-            a = 0.9485 * log(Tmean) - 0.017
-            b = sqrt(0.103*log(Tmean) + 0.034)
+        #if self.__last_Tmean != Tmean and self.__last_Tmax != Tmax and self.__last_Tmin != Tmin:
+        a = 0.9485 * log(Tmean) - 0.017
+        b = sqrt(0.1032*log(Tmean) + 0.034)
+        
+        steps = int(Tmax - Tmin) + 1
+        
+        smq = 0
+        q_log_distr = []
+        TQDistr = dict()
+        for i in range(steps):
+            T = max(Tmin + i, 1e-50)
+            q = lognormal(T, a, b)
+            smq += q
             
-            steps = int(Tmax - Tmin)
+            TQDistr[int(T)] = q
             
-            smq = 0
-            q_log_distr = []
-            TQDistr = dict()
-            for i in range(steps):
-                T = max(Tmin + i, 1e-50)
-                q = lognormal(T, a, b)
-                smq += q
-                
-                TQDistr[int(T)] = q
-                
-            Rmean = 0
-            for T,q in TQDistr.iteritems():
-                TQDistr[T] = q / smq
-                Rmean += T*q
-                
-            self.__last_Tmean = Tmean
-            self.__last_Tmax = Tmax
-            self.__last_Tmin = Tmin
-            self.__last_Trest = (TQDistr.items(), TQDistr, Rmean)
+        Rmean = 0
+        for T,q in TQDistr.iteritems():
+            TQDistr[T] = q / smq
+            Rmean += T*q / smq
+            
+        self.__last_Tmean = Tmean
+        self.__last_Tmax = Tmax
+        self.__last_Tmin = Tmin
+        self.__last_Trest = (TQDistr.items(), TQDistr, Rmean)
             
         return self.__last_Trest
     
-    def get_interference(self, range_stl): #FIXME
+    """def get_interference(self, range_stl): #FIXME
         
         Tmean = self.data_mean_CSDS
         d001 = self.data_d001
         
         distr, ddict, real_mean = self._update_interference_distributions()
         
-        """ifs_range = list()
+        ""ifs_range = list()
         for stl in range_stl: 
             ifs = 0
             if False:
@@ -393,33 +399,48 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
                 for T, q in distr:
                     ifs += (q*(sin(f*T)**2) / (sin(f)**2))
             
-            ifs_range += ifs,"""
+            ifs_range += ifs,""
         
         phase_range = (2*pi*d001*range_stl)    
         ifs = np.zeros(phase_range.shape)
         for T, q in distr:
             ifs += q * np.sin(phase_range*T)**2 / (np.sin(phase_range)**2)
             
-        return ifs
+        return ifs"""
+    
+    @print_timing            
+    def get_diffracted_intensity (self, range_theta, range_stl, S, S1S2, quantity, correction_range):      
+        
+        from numpy.core.umath_tests import matrix_multiply as mmultr
+        def mmult(A, B):
+            return np.sum(np.transpose(A,(0,2,1))[:,:,:,np.newaxis]*B[:,:,np.newaxis,:],-3)
+        def mdot(A,B):
+            C = np.zeros(shape=A.shape, dtype=np.complex)
+            for i in range(A.shape[0]):
+                C[i] = np.dot(A[i], B[i])
+            return C
+        def mtim(A,B):
+            C = np.zeros(shape=A.shape, dtype=np.complex)
+            for i in range(A.shape[0]):
+                C[i] = np.multiply(A[i], B[i])
+            return C
+                
             
-    def get_diffracted_intensity (self, range_theta, range_stl, S, S1S2, quantity, correction_range):
-        
-        """scale = self.get_absolute_scale() * quantity
-        lpf = self.get_lorentz_polarisation_factor(range_theta, S, S1S2)
-        iff = self.get_interference(range_stl)
-        stfa, stfb = self.get_structure_factors(range_stl)
-        return (stfa**2 + stfb**2) * lpf * iff * correction_range * scale"""
-        
-        #TODO: get & read book from Drits & Tchoubar
-        # things to remember:
-        #  - if I want readable matrix multiplications with numpy, I need to work on per-angle basis and not use arrays/lists inside matrixes/arrays, rather lists of matrixes!
-        #  - main performance hit will still be the structure factors so get these once for each component (as it is down here)
-        
+        def solve_division(A,B):
+            bt = np.transpose(B, axes=(0,2,1))
+            at = np.transpose(A, axes=(0,2,1))
+            return np.array([np.transpose(np.linalg.lstsq(bt[i], at[i])[0]) for i in range(bt.shape[0])])
+
+        stl_dim = range_stl.shape[0]
+        def repeat_to_stl(arr):
+            return np.repeat(arr[np.newaxis,...], stl_dim, axis=0)
+       
+        #Get interference (log-normal) distribution:
         distr, ddict, real_mean = self._update_interference_distributions()
         
-        W = np.matrix(np.diag(self.data_wtfractions))
-        P = np.array(self.data_probabilities)
-        
+        #Get junction probabilities & weight fractions
+        W = repeat_to_stl(self.data_probabilities.get_distribution_matrix()).astype(np.complex_)
+        P = repeat_to_stl(self.data_probabilities.get_probability_matrix()).astype(np.complex_)
         G = self.data_G
         
         #get structure factors and phase factors for individual components:
@@ -435,41 +456,74 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
             SF[:,i] = component.get_structure_factors(range_stl)
             PF[:,i] = component.get_phase_factors(range_stl)
         
-        F, Q = ([None]*range_stl.size,)*2 #list of matrices containing structure factor matrix and Q matrices
         intensity = np.zeros(range_stl.size, dtype=np.complex_)
-        for stl in range(range_stl.size):
-            #create F matrix using kronecker product:
-            F = np.matrix(numpy.kron(np.matrix(SF[stl]), np.matrix(np.conjugate(SF[stl])).transpose()))
-        
-            #create probability * phase matrices:
-            # - multiply with P (element-wise) with a 2D array composed out of columns containing the phase factor (PFa & PFb) for each component
-            Q = np.matrix(P * np.repeat(PF[stl,:,np.newaxis,], G, 1), dtype=np.complex_)
-        
-            #create empty CSDS probability * phase matrix:
-            Qn = [None]*self.data_max_CSDS
-            Qn[1] = Q
-        
-            SubTotal = np.matrix(np.zeros(Qnre[1].shape))
-            CSDS_ident = np.matrix(np.identity(Qnre[1].shape[0]) * real_mean)
-            for n in range(1, self.data_max_CSDS+1):
-                if n > 1:
-                    Qn[n] = Qn[n-1] * Q
-                factor = 0
-                for m in range(n, self.data_max_CSDS+1): #TODO calculate this only once!
-                    factor += (m-n)*distr[m]
-                SubTotal += (factor*Qn[n])              
-            intensity[stl] = np.spur(np.real(F * W * (CSDS_ident + 2*SubTotal)))
-            
+        first = True
 
+        rank = P.shape[1] #TODO: repeat elements when needed!! assumes P is in the correct format (expanded with zero's (=TODO) and repeated to fit the range_stl shape)
+        reps = rank
+                
+        #Create Phi matrices:        
+        SFa = np.repeat(SF[...,np.newaxis,:], SF.shape[1], axis=1)
+        SFb = np.transpose(np.conjugate(SFa), axes=(0,2,1)) #np.conjugate(np.repeat(SF[...,np.newaxis], SF.shape[1], axis=2)) 
+               
+        freps = rank / G
+        F = np.repeat(np.repeat(np.multiply(SFb, SFa), freps, axis=2), freps, axis=1)
+
+        #Create Q matrices:
+        Q = np.multiply(np.repeat(PF[...,np.newaxis,:], rank, axis=1), P)
+        Qn = np.copy(Q)
+               
+        #Calculate the intensity:
+        method = 0
+            
+        if method == 0:
+            ################### FIRST WAY ###################                 
+            
+            Qn = np.empty((self.data_max_CSDS+1,), dtype=object)
+            Qn[1] = np.copy(Q)
+            for n in range(2, int(self.data_max_CSDS+1)):
+                Qn[n] = mmult(Qn[n-1], Q)
+                  
+            SubTotal = np.zeros(Q.shape, dtype=np.complex_)
+            CSDS_I = repeat_to_stl(np.identity(rank) * real_mean)
+            for n in range(1, int(self.data_max_CSDS)+1):
+                factor = 0
+                for m in range(n, int(self.data_max_CSDS+1)):
+                    factor += (m-n) * ddict[m]
+                SubTotal += 2 * factor * Qn[n]
+            SubTotal = (CSDS_I + SubTotal)
+            SubTotal = mmult(F, mmult(W, SubTotal))
+            intensity = np.real(np.trace(SubTotal,  axis1=2, axis2=1))
+        elif method == 1:
+            ################### SCND WAY ###################
+            SubTotal = np.zeros(Q.shape, dtype=np.complex_)
+            I = repeat_to_stl(np.identity(rank))
+            CSDS_I = repeat_to_stl(np.identity(rank) * real_mean)
+                  
+            Qn = np.empty((self.data_max_CSDS+1,), dtype=object)
+            Qn[1] = np.copy(Q)
+            for n in range(2, int(self.data_max_CSDS+1)):
+                Qn[n] = mmult(Qn[n-1], Q)
+                  
+            IQ = (I-Q)
+            IIQ = solve_division(I, IQ)
+            IIQ2 = solve_division(I, mmult(IQ,IQ))
+            R = np.zeros(Q.shape, dtype=np.complex_)
+            for n in range(1, int(self.data_max_CSDS)):
+                R += (I + 2*Q*IIQ + (2 / n) * (Qn[n+1]-Q) * IIQ2) * ddict[n]
+            intensity = np.real(np.trace(mmult(mmult(F, W), R), axis1=2, axis2=1))
+            
+        lpf = self.get_lorentz_polarisation_factor(range_theta, S, S1S2)
         scale = self.get_absolute_scale() * quantity
-        return intensity*scale
+        return intensity * lpf * correction_range * scale
 
     def get_absolute_scale(self):
         mean_d001 = 0
         mean_volume = 0
         mean_weight =  0
         mean_density = 0
-        for wtfraction, component in zip(self.data_wtfractions, self.data_components._model_data):
+        W = self.data_probabilities.get_distribution_array()
+        for wtfraction, component in zip(W, self.data_components._model_data):
             mean_d001 += (component.data_d001 * wtfraction)
             mean_volume += (component.get_volume() * wtfraction)
             mean_weight +=  (component.get_weight() * wtfraction)

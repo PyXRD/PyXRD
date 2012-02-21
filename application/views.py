@@ -8,6 +8,7 @@
 
 import os
 import gtk
+from matplotlib.backends.backend_gtkagg import NavigationToolbar2GTKAgg as NavigationToolbar
 
 import settings
 
@@ -65,6 +66,10 @@ class AppView(BaseView):
         self.plot_controller = plot_controller
         self["matplotlib_box"].add(self.plot_controller.canvas)
         self["matplotlib_box"].show_all()
+        
+        if not settings.VIEW_MODE:
+            self.nav_toolbar = NavigationToolbar(self.plot_controller.canvas, self.get_top_widget())
+            self["navtoolbar_box"].add(self.nav_toolbar)
         
     def _reset_child_view(self, view_name, class_type):
         if getattr(self, view_name) != None:

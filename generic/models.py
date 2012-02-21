@@ -163,7 +163,7 @@ class XYData(Model, Storable, Observable):
         xy_data = PyXRDDecoder.__pyxrd_decode__(xy_data)
         return XYData(data_name=data_name, data_label=data_label, xy_data=xy_data, color=color)
             
-    def update_data(self):
+    def update_data(self, silent=False):
         if len(self.xy_data._model_data_x) > 1:
             data = np.array(zip(self.xy_data._model_data_x, self.xy_data._model_data_y))
             if self._display_offset != 0:
@@ -174,7 +174,7 @@ class XYData(Model, Storable, Observable):
         else:
             self.line.set_data(self.xy_empty_data)
             self.line.set_visible(False)
-        self.data_update.emit()
+        if not silent: self.data_update.emit()
     
     def on_update_plot(self, figure, axes, pctrl):
         self.update_data()
@@ -234,5 +234,5 @@ class XYData(Model, Storable, Observable):
             for x, y in xydata:
                 self.xy_data.append(x, y / max_y )
             
-        self.update_data()
+        self.update_data(silent=silent)
 

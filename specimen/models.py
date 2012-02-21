@@ -333,7 +333,7 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
                 theta_range = min_theta + delta_theta * np.array(range(0,steps-1), dtype=float)
             else:
                 theta_range =  self.data_experimental_pattern.xy_data._model_data_x * torad / 2
-            stl_range = np.sin(theta_range) / l
+            stl_range = 2 * np.sin(theta_range) / l
             
             #sample length correction array:
             correction_range =  np.minimum(np.sin(theta_range) * L_Rta, 1)
@@ -766,6 +766,9 @@ class Statistics(Model, Observable):
         
         exp_x, exp_y = self._get_experimental()
         cal_x, cal_y = self._get_calculated()
+
+        #if exp_x.shape != cal_x.shape:
+        #    return
 
         if cal_y != None and exp_y != None and cal_y.size > 0 and exp_y.size > 0:
             residual_pattern = XYListStore()

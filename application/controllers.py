@@ -110,7 +110,7 @@ class AppController (BaseController, DialogMixin):
         
         if self.model.current_specimens is not None:
             num_species = len(self.model.current_specimens)
-            offset_increment = 0.75
+            offset_increment = self.model.current_project.display_plot_offset
             offset = 0
             i = 0
             for specimen in self.model.current_specimens[::-1]:

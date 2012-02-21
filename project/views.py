@@ -12,3 +12,7 @@ class ProjectView(DialogView):
     title = "Edit Project"
     subview_builder = "project/glade/project.glade"
     subview_toplevel = "nbk_edit_project"
+    
+    __widgets_to_hide__ = (
+        "project_display_calc_color",
+        "lbl_calccolor")

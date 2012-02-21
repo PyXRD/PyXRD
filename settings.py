@@ -1,4 +1,4 @@
-VERSION = 0.3
+VERSION = "0.3.1"
 
 DEBUG = False
-VIEW_MODE = False
+VIEW_MODE = True

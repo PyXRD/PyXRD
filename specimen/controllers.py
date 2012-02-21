@@ -237,7 +237,6 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
 class StatisticsController(ChildController):
 
     def register_adapters(self):
-        print "StatisticsController.register_adapters()"
         if self.model is not None:
             for name in self.model.get_properties():
                 if name in ("data_specimen", "data_residual_pattern", "parent"):
@@ -251,7 +250,6 @@ class StatisticsController(ChildController):
 class EditMarkerController(ChildController):
 
     def register_adapters(self):
-        print "EditMarkerController.register_adapters()"
         if self.model is not None:
             for name in self.model.get_properties():
                 if name == "data_color":
@@ -364,16 +362,10 @@ class MarkersController(ObjectListStoreController):
     #      GTK Signal handlers
     # ------------------------------------------------------------
     def on_load_object_clicked(self, event):
-        pass
-        #TODO
-        #def on_accept(open_dialog):
-        #    print "Importing atom types..."
-        #    fltr = open_dialog.get_filter()
-        #    if fltr.get_name() == self.file_filters[0][0]:
-        #        self.open_atom_type(open_dialog.get_filename())
-        #    elif fltr.get_name() == self.file_filters[1][0]:
-        #        AtomType.get_from_csv(open_dialog.get_filename(), self.model.add_atom_type, self.model)        
-        #self.run_load_dialog("Import atom types", on_accept, parent=self.view.get_top_widget())
+        def on_accept(dialog):
+            print "Importing markers..."
+            Marker.get_from_csv(dialog.get_filename(), self.model.add_marker)        
+        self.run_load_dialog("Import markers", on_accept, parent=self.view.get_top_widget())
 
 
     def on_save_object_clicked(self, event):
@@ -395,9 +387,7 @@ class MarkersController(ObjectListStoreController):
         self.select_object(new_marker)
         self.parent.update_plot()
     
-    def on_find_peaks_clicked(self, widget):
-        print "ON FIND PEAKS CLICKED FOR MODEL %s!!" % self.model
-        
+    def on_find_peaks_clicked(self, widget):        
         def after_cb(threshold):
             if len(self.model.data_markers._model_data) > 0:            
                 def on_accept(dialog):
@@ -446,7 +436,6 @@ class ThresholdController(DialogController):
         self.view.matlib_canvas.draw()
     
     def register_view(self, view):
-        print "ThresholdController.register_adapters()"
         if view is not None:
             top = view.get_toplevel()
             top.set_transient_for(self.parent.view.get_toplevel())
@@ -454,7 +443,6 @@ class ThresholdController(DialogController):
             self.update_plot()
     
     def register_adapters(self):
-        print "ThresholdController.register_adapters()"
         if self.model is not None:
             for name in self.model.get_properties():
                 if name == "pattern":

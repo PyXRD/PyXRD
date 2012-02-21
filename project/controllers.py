@@ -51,7 +51,7 @@ class ProjectController (DialogController, HasObjectTreeview, DialogMixin):
                     ad = Adapter(self.model, name)
                     ad.connect_widget(self.view["project_%s" % name], getter=get_color_val)
                     self.adapt(ad)
-                elif name == "display_marker_angle":
+                elif name == ("display_marker_angle", "display_plot_offset"):
                     FloatEntryValidator(self.view["project_%s" % name])
                     self.adapt(name)
                 elif name == "data_specimens":
@@ -150,6 +150,7 @@ class ProjectController (DialogController, HasObjectTreeview, DialogMixin):
     @Controller.observe("display_exp_color", assign=True)
     @Controller.observe("display_calc_color", assign=True)
     @Controller.observe("display_marker_angle", assign=True)
+    @Controller.observe("display_plot_offset", assign=True)
     def notif_display_props(self, model, prop_name, info):
         self.parent.update_plot()
 

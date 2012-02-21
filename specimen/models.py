@@ -25,7 +25,7 @@ import time
 import numpy as np
 from scipy import stats
 
-from math import tan, asin, sin, cos, pi, sqrt, radians, degrees, exp
+from math import tan, asin, sin, cos, pi, sqrt, radians, degrees, exp, log
 
 import settings
 
@@ -369,7 +369,7 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
                 nm = 0
                 if x != 0:
                     nm = self.parent.data_goniometer.data_lambda / (2.0*sin(radians(x/2.0)))
-                new_marker = Marker("%.2f" % nm, parent=self, data_position=x)
+                new_marker = Marker("%%.%df" % (3 + min(int(log(nm, 10)), 0)) % nm, parent=self, data_position=x)
                 self.add_marker(new_marker)
             i += 1
     pass #end of class
@@ -578,13 +578,13 @@ class Marker(ChildModel, Observable, Storable, ObjectListStoreChildMixin, CSVMix
         
         self.data_label = data_label
         self.data_visible = data_visible
-        self.data_position = data_position
-        self.data_x_offset = data_x_offset
-        self.data_y_offset = data_y_offset
+        self.data_position = float(data_position)
+        self.data_x_offset = float(data_x_offset)
+        self.data_y_offset = float(data_y_offset)
         self.data_color = data_color
-        self.data_base = data_base
+        self.data_base = int(data_base)
         self.inherit_angle = inherit_angle
-        self.data_angle = data_angle
+        self.data_angle = float(data_angle)
         self.data_style = data_style   
         
     def get_ymin(self):
@@ -691,10 +691,6 @@ class Marker(ChildModel, Observable, Storable, ObjectListStoreChildMixin, CSVMix
         if position != 0: 
             t = degrees(asin(max(-1.0, min(1.0, self.parent.parent.data_goniometer.data_lambda/(2.0*position)))))*2.0
         self.data_position = t
-
-    @staticmethod          
-    def from_json(**kwargs):
-        return Marker(**kwargs)
         
 class Statistics(Model, Observable):
     __observables__ = [ "data_specimen", "data_points", "data_residual_pattern", "data_chi2", "data_Rp", "data_R2" ]

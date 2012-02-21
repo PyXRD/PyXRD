@@ -33,7 +33,8 @@ class Project(Model, Observable, Storable):
                         "data_atom_types",
                         "display_marker_angle",
                         "display_calc_color",
-                        "display_exp_color" )
+                        "display_exp_color",
+                        "display_plot_offset" )
     __storables__ = __observables__
 
     data_name = ""
@@ -42,6 +43,7 @@ class Project(Model, Observable, Storable):
     data_author = ""
     
     display_marker_angle = 0.0
+    display_plot_offset = 0.75
     
     _display_calc_color = "#666666"
     @Model.getter("display_calc_color")
@@ -170,7 +172,7 @@ class Project(Model, Observable, Storable):
                  author = "Project author",
                  goniometer = None,
                  atom_types = None, data_phases = None, data_specimens = None,
-                 display_marker_angle=None, display_calc_color=None, display_exp_color=None,
+                 display_marker_angle=None, display_calc_color=None, display_exp_color=None, display_plot_offset=None,
                  load_default_data=True):
         Model.__init__(self)
         Observable.__init__(self)
@@ -193,11 +195,10 @@ class Project(Model, Observable, Storable):
         self.display_marker_angle = display_marker_angle or self.display_marker_angle
         self.display_calc_color = display_calc_color or self.display_calc_color
         self.display_exp_color = display_exp_color or self.display_exp_color
+        print "LOADING PROJECT %s " % display_plot_offset
+        self.display_plot_offset = display_plot_offset or self.display_plot_offset
 
-        if load_default_data and not settings.VIEW_MODE: self.load_default_data()        
-        
-        #self.default_atom_type = AtomType("Oxygen", None)
-        #FIXME self.data_atom_types.append(self.default_atom_type)
+        if load_default_data and not settings.VIEW_MODE: self.load_default_data()
         
     def load_default_data(self):
         import os
@@ -206,7 +207,7 @@ class Project(Model, Observable, Storable):
     @staticmethod          
     def from_json(data_name=None, data_date=None, data_description=None, data_author=None, 
                  data_goniometer=None, data_phases=None, data_specimens=None, data_atom_types=None,
-                 display_marker_angle=None, display_calc_color=None, display_exp_color=None, **kwargs):
+                 display_marker_angle=None, display_calc_color=None, display_exp_color=None, display_plot_offset=None, **kwargs): #TODO wraps this in kwargs!!
              
         data_goniometer = Goniometer.from_json(**data_goniometer['properties'])
               
@@ -214,7 +215,7 @@ class Project(Model, Observable, Storable):
         project = Project(name=data_name, date=data_date, description=data_description, author=data_author,
                           goniometer=data_goniometer, 
                           display_marker_angle=display_marker_angle, display_calc_color=display_calc_color, display_exp_color=display_exp_color,
-                          load_default_data=False)
+                          display_plot_offset=display_plot_offset, load_default_data=False)
         
         #Create temporary ObjectListStore to transfer atom types to project
         atom_types = ObjectListStore.from_json(parent=project, **data_atom_types['properties'])

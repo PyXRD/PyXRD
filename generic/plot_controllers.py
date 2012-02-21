@@ -75,18 +75,17 @@ class PlotController (DialogMixin):
     def draw(self):
         self.figure.canvas.draw()
         
-    def save(self, parent=None, suggest_name="graph", dpi=175, size="2000x1400"):
-        dpi = dpi or self.figure.get_dpi()
+    def save(self, parent=None, suggest_name="graph", size="1800x1200", dpi=150):
         width, height = map(float, size.split("x"))
         builder = gtk.Builder()
         builder.add_from_file("specimen/glade/save_graph_size.glade")    
         size_expander = builder.get_object("size_expander")
         entry_w = builder.get_object("entry_width")
         entry_h = builder.get_object("entry_height")
-        entry_d = builder.get_object("entry_dpi")
+        entry_dpi = builder.get_object("entry_dpi")
         entry_w.set_text(str(width))
         entry_h.set_text(str(height))
-        entry_d.set_text(str(dpi))
+        entry_dpi.set_text(str(dpi))
         
         def on_accept(dialog):
             cur_fltr = dialog.get_filter()
@@ -98,12 +97,13 @@ class PlotController (DialogMixin):
                     break
             width = float(entry_w.get_text())
             height = float(entry_h.get_text())
-            dpi = float(entry_d.get_text())
+            dpi = float(entry_dpi.get_text())
+            original_width, original_height = self.figure.get_size_inches()      
+            original_dpi = self.figure.get_dpi()
             i_width, i_height = width / dpi, height / dpi
-            original_size = self.figure.get_size_inches()      
             self.figure.set_size_inches((i_width, i_height))
             self.figure.savefig(filename, dpi=dpi)
-            self.figure.set_size_inches(original_size)
+            self.figure.set_size_inches((original_width, original_height))
         
         self.run_save_dialog("Save Graph", on_accept, None, parent=parent, suggest_name=suggest_name, extra_widget=size_expander)
         
@@ -176,7 +176,7 @@ class MainPlotController (PlotController):
         stats_offset = 0.15 if stats else 0.0
         
         if single:
-            self.plot.set_position([0.10, 0.25+stats_offset, 0.80, 0.55-stats_offset]) #l, b, w, h
+            self.plot.set_position([0.05, 0.20+stats_offset, 0.90, 0.65-stats_offset]) #l, b, w, h
             if not settings.VIEW_MODE:
                 self.plot.legend(loc="lower right", bbox_to_anchor=(0.02, 0.02, 0.94, 0.94), bbox_transform=self.figure.transFigure, borderaxespad=0.0, fancybox=False )
             yaxis.set_ticks_position('none')
@@ -184,7 +184,7 @@ class MainPlotController (PlotController):
             matplotlib.artist.setp(self.plot.get_yticklabels(), visible=False)
 
         else:
-            self.plot.set_position([0.10, 0.10, 0.80, 0.70]) #l, b, w, h
+            self.plot.set_position([0.05, 0.05, 0.90, 0.80]) #l, b, w, h
             if labels != None and labels != []:
                 labels, ticks = zip(*labels)
                 yaxis.set_ticks(ticks)
@@ -203,12 +203,12 @@ class MainPlotController (PlotController):
             
             self.stats_plot.autoscale_view()
             self.stats_plot.set_position([0.10, 0.22, 0.80, stats_offset]) #l, b, w, h                
-            self.stats_plot.set_ylabel('Residual',  weight="heavy", size=14)
+            self.stats_plot.set_ylabel('Residual',  weight="heavy", size=16)
         
             matplotlib.artist.setp(self.plot.get_xticklabels(), visible=False)
             matplotlib.artist.setp(self.plot.get_xlabel(), visible=False)
             
-            self.stats_plot.set_xlabel('Angle (°2θ)', weight="heavy", size=14)
+            self.stats_plot.set_xlabel('Angle (°2θ)', weight="heavy", size=16)
         else:
             if self.stats_plot in self.figure.axes:
                 self.figure.delaxes(self.stats_plot)
@@ -216,7 +216,7 @@ class MainPlotController (PlotController):
             matplotlib.artist.setp(self.plot.get_xticklabels(), visible=True)
             matplotlib.artist.setp(self.plot.get_xlabel(), visible=True)
             xaxis.tick_bottom()            
-            self.plot.set_xlabel('Angle (°2θ)', weight="heavy", size=14)
+            self.plot.set_xlabel('Angle (°2θ)', weight="heavy", size=16)
 
         self.xaxis_line.set_data((xmin, xmax), (ymin, ymin))
         self.plot.add_artist(self.xaxis_line)

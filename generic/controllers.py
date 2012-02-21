@@ -40,7 +40,9 @@ def ctrl_setup_combo_with_list(ctrl, combo, prop_name, list_prop_name):
 
 class DialogMixin():
     def extract_filename(self, dialog):
-        return self._adjust_filename(dialog.get_filename(), self.get_selected_glob(dialog.get_filter()))
+        filename = self._adjust_filename(dialog.get_filename(), self.get_selected_glob(dialog.get_filter()))
+        dialog.set_filename(filename)
+        return filename
 
     def _adjust_filename(self, filename, glob):
         extension = glob[1:]

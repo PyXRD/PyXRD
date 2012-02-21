@@ -11,7 +11,7 @@
 import gtk
 import matplotlib
 
-font = {'weight' : 'heavy'}
+font = {'weight' : 'heavy', 'size': 14}
 matplotlib.rc('font', **font)
 
 from application.models import AppModel

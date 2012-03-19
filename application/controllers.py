@@ -165,11 +165,19 @@ class AppController (BaseController, DialogMixin):
         
     def save_project(self, filename=None):
         self.model.current_filename = filename or self.model.current_filename
-        self.model.current_project.save_object(self.model.current_filename)
+        try:
+            self.model.current_project.save_object(self.model.current_filename)
+        except:
+            self.run_information_dialog("An error has occured.\n Your project was not saved!", parent=self.view.get_top_widget())
+            raise
         
     def open_project(self, filename):
-        self.model.current_project = Project.load_object(filename)
-        self.model.current_filename = filename
+        try:
+            self.model.current_project = Project.load_object(filename)
+            self.model.current_filename = filename
+        except:
+            self.run_information_dialog("An error has occured.\n Your project was not loaded!", parent=self.view.get_top_widget())
+            raise
         
     # ------------------------------------------------------------
     #      Notifications of observable properties

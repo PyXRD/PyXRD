@@ -605,7 +605,7 @@ class Marker(ChildModel, Observable, Storable, ObjectListStoreChildMixin, CSVMix
     
     def update_text(self, figure, axes):
         kws = dict(text=self.data_label,
-                   x=self.data_position+self.data_x_offset, y=0.8,
+                   x=self.data_position+self.data_x_offset, y=settings.PLOT_TOP,
                    clip_on=False,
                    transform=transforms.blended_transform_factory(axes.transData, figure.transFigure),
                    horizontalalignment="left", verticalalignment="center",

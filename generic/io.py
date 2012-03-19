@@ -7,6 +7,7 @@
 # a letter to Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
 
 import json
+import settings
 
 from gtk import TextBuffer
        
@@ -30,7 +31,6 @@ class PyXRDEncoder(json.JSONEncoder):
             
 class PyXRDDecoder(json.JSONDecoder):
     def decode(self, obj):
-        #print obj
         obj = json.JSONDecoder.decode(self, obj)
         return PyXRDDecoder.__pyxrd_decode__(obj) or obj
     
@@ -39,7 +39,6 @@ class PyXRDDecoder(json.JSONDecoder):
         if "type" in obj:
             objtype = get_json_type(obj["type"])
             if "properties" in obj and hasattr(objtype, "from_json"):
-                #print "!!!! LOADING TYPE %s" % objtype
                 return objtype.from_json(**dict(obj["properties"], **kwargs))
         raise Warning, "__pyxrd_decode__ will return None for %s!" % obj
         return None

@@ -177,7 +177,10 @@ class MainPlotController (PlotController):
         stats_offset = 0.15 if stats else 0.0
         
         if single:
-            self.plot.set_position([0.05, 0.20+stats_offset, 0.90, 0.65-stats_offset]) #l, b, w, h
+            if stats:
+                self.plot.set_position(settings.PLOT_SINGLE_STATS_POSITION)
+            else:
+                self.plot.set_position(settings.PLOT_SINGLE_BASE_POSITION)
             if not settings.VIEW_MODE:
                 self.plot.legend(loc="lower right", bbox_to_anchor=(0.02, 0.02, 0.94, 0.94), bbox_transform=self.figure.transFigure, borderaxespad=0.0, fancybox=False, prop=FontProperties(size=16))
             yaxis.set_ticks_position('none')
@@ -185,7 +188,7 @@ class MainPlotController (PlotController):
             matplotlib.artist.setp(self.plot.get_yticklabels(), visible=False)
 
         else:
-            self.plot.set_position([0.05, 0.05, 0.90, 0.80]) #l, b, w, h
+            self.plot.set_position(settings.PLOT_MULTI_POSITION) #l, b, w, h
             if labels != None and labels != []:
                 labels, ticks = zip(*labels)
                 yaxis.set_ticks(ticks)
@@ -203,7 +206,7 @@ class MainPlotController (PlotController):
             self.stats_plot.axhline(ls=":", c="k")
             
             self.stats_plot.autoscale_view()
-            self.stats_plot.set_position([0.05, 0.17, 0.90, stats_offset]) #l, b, w, h                
+            self.stats_plot.set_position(settings.PLOT_STATS_POSITION)
             self.stats_plot.set_ylabel('Residual',  weight="heavy", size=16)
         
             matplotlib.artist.setp(self.plot.get_xticklabels(), visible=False)

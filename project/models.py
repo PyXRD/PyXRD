@@ -195,7 +195,6 @@ class Project(Model, Observable, Storable):
         self.display_marker_angle = display_marker_angle or self.display_marker_angle
         self.display_calc_color = display_calc_color or self.display_calc_color
         self.display_exp_color = display_exp_color or self.display_exp_color
-        print "LOADING PROJECT %s " % display_plot_offset
         self.display_plot_offset = display_plot_offset or self.display_plot_offset
 
         if load_default_data and not settings.VIEW_MODE: self.load_default_data()

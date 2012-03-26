@@ -39,6 +39,11 @@ class EditMarkerView(BaseView):
         BaseView.__init__(self, *args, **kwargs)
         
         self.parent.set_title("Edit Markers")
+       
+class BackgroundView(DialogView):
+    title = "Remove Background"
+    subview_builder = "specimen/glade/background.glade"
+    subview_toplevel = "edit_background"
         
 class EditMarkersView(ObjectListStoreView):
     extra_widget_builder = "specimen/glade/find_peaks.glade"

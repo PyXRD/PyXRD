@@ -111,7 +111,7 @@ class XYData(Model, Storable, Observable):
         self._data_name = value
         self.line.set_label(self.data_label)
 
-    _data_label = "%(name)s"    
+    _data_label = "%(name)s"
     @Model.getter("data_label")
     def get_data_label(self, prop_name):
         return self._data_label % { 'name': self._data_name }
@@ -130,11 +130,47 @@ class XYData(Model, Storable, Observable):
             self._display_offset = value
             self.update_data()
     
+    
+    _bg_position = 0
+    bg_line = None
+    @Model.getter("bg_position")
+    def get_bg_position(self, prop_name):
+        return self._bg_position
+    @Model.setter("bg_position")
+    def set_bg_position(self, prop_name, value):
+        value = float(value)
+        if value != self._bg_position:
+            self._bg_position = value
+            self.plot_update.emit()
+
+    _bg_type = 0
+    _bg_types = { 0: "Linear" } #TODO add more types
+    @Model.getter("bg_type")
+    def get_bg_type(self, prop_name):
+        return self._bg_type
+    @Model.setter("bg_type")
+    def set_bg_type(self, prop_name, value):
+        value = int(value)
+        if value in self._bg_types: 
+            self._bg_type = value      
+        else:
+            raise ValueError, "'%s' is not a valid value for a background type!" % value
+    
     plot_update = None
     data_update = None
     
-    __observables__ = ["data_name", "data_label", "xy_data", "plot_update", "data_update", "display_offset"]
-    __storables__ = [val for val in __observables__ if not val in ("plot_update", "data_update", "display_offset") ] + ["color",]
+    __observables__ = ["data_name", "data_label", "xy_data", "plot_update", "data_update", "display_offset", "bg_position", "bg_type"]
+    __storables__ = [val for val in __observables__ if not val in ("plot_update", "data_update", "display_offset", "bg_position", "bg_type") ] + ["color",]
+       
+    @property
+    def color(self):
+        return self.line.get_color()
+    @color.setter
+    def color(self, color):
+        if self.color != color:
+            self.line.set_color(color)
+            if self.line.get_visible() and self.line.get_axes() != None:
+                self.plot_update.emit()
        
     def __init__(self, data_name=None, data_label=None, xy_data=None, color="#0000FF", **kwargs):
         Model.__init__(self)
@@ -147,16 +183,6 @@ class XYData(Model, Storable, Observable):
         self.line = matplotlib.lines.Line2D(*self.xy_empty_data, label=self.data_label, color=color, aa=True)
         self.xy_data = xy_data or XYListStore()
         self.update_data()
-        
-    @property
-    def color(self):
-        return self.line.get_color()
-    @color.setter
-    def color(self, color):
-        if self.color != color:
-            self.line.set_color(color)
-            if self.line.get_visible() and self.line.get_axes() != None:
-                self.plot_update.emit()
     
     @staticmethod
     def from_json(data_name=None, data_label=None, xy_data=None, color=None, **kwargs):
@@ -176,14 +202,41 @@ class XYData(Model, Storable, Observable):
             self.line.set_visible(False)
         if not silent: self.data_update.emit()
     
-    def on_update_plot(self, figure, axes, pctrl):
-        self.update_data()
-        if not self.line in axes.get_lines():
-            axes.add_line(self.line)
-     
     def clear(self, update=True):
         self.xy_data.clear()
         if update: self.update_data()
+    
+    def on_update_plot(self, figure, axes, pctrl):
+        self.update_data()
+        
+        #Add pattern
+        lines = axes.get_lines()
+        if not self.line in lines:
+            axes.add_line(self.line)
+            
+        #Add bg line (if present)
+        try:
+            self.bg_line.remove()
+        except:
+            pass
+        if self._bg_position != 0.0:
+            self.bg_line = axes.axhline(y=self.bg_position, c="#660099")
+        else:
+            self.bg_line = None
+    
+    def remove_background(self):
+        y_data = self.xy_data._model_data_y
+        print y_data
+        if self.bg_type == 0:
+            y_data = np.maximum((y_data - self.bg_position) / (1.0 - self.bg_position), 0.0)
+        print y_data
+        self.xy_data._model_data_y = y_data
+        self.bg_position = 0
+        self.update_data()
+        
+    def find_bg(self):
+        y_min = np.min(self.xy_data._model_data_y)
+        self.bg_position = y_min
             
     def load_data(self, data, format="DAT", has_header=True, clear=True, silent=False):
         xydata = []

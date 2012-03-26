@@ -119,8 +119,7 @@ class AppController (BaseController, DialogMixin):
                     self.plot_controller.register(specimen, "on_update_plot", last=False)
                     for marker in specimen.data_markers._model_data:
                         self.plot_controller.register(marker, "on_update_plot", last=True)
-                if not single:
-                    labels.append((specimen.data_sample, 0.35 + offset))
+                labels.append((specimen.data_sample, 0.35 + offset))
                 offset += offset_increment
                 i += 1
     
@@ -129,19 +128,12 @@ class AppController (BaseController, DialogMixin):
             stats = (True, self.model.current_specimen.statistics.data_residual_pattern.line)
   
         self.plot_controller.update(
-            new_title=self.get_plot_title() or "",
             clear=True,
             single=single,
             labels=labels,
             stats=stats)
         
         self.pop_status_msg()
-                
-    def get_plot_title(self):
-        if self.model.current_specimen is not None:
-            return "%s - %s" % (self.model.current_specimen.data_sample, self.model.current_specimen.data_name)
-        else:
-            return ""
         
     def update_title(self):
          self.view.get_top_widget().set_title("PyXRD - %s" % self.model.current_project.data_name)        
@@ -289,6 +281,11 @@ class AppController (BaseController, DialogMixin):
             msg.destroy()
             self.model.current_project.del_specimen(obj)
         self.pop_status_msg('del_specimen')
+        return True
+
+    def on_remove_background(self, event):
+        if self.model.current_specimen != None:
+            self.specimen.remove_background()
         return True
 
     def on_edit_phases_activate(self, event):

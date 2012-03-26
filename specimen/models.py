@@ -559,7 +559,7 @@ class Marker(ChildModel, Observable, Storable, ObjectListStoreChildMixin, CSVMix
     
     
     _data_style = "none"
-    _data_styles = { "none": "Display at base", "solid": "Solid", "dashed": "Dash", "dotted": "Dotted", "dashdot": "Dash-Dotted" }
+    _data_styles = { "none": "Display at base", "solid": "Solid", "dashed": "Dash", "dotted": "Dotted", "dashdot": "Dash-Dotted", "offset": "Display at Y-offset" }
     @Model.getter("data_style")
     def get_data_style(self, prop_name):
         return self._data_style
@@ -604,42 +604,43 @@ class Marker(ChildModel, Observable, Storable, ObjectListStoreChildMixin, CSVMix
     _text = None
     
     def update_text(self, figure, axes):
-        kws = dict(text=self.data_label,
-                   x=self.data_position+self.data_x_offset, y=settings.PLOT_TOP,
-                   clip_on=False,
-                   transform=transforms.blended_transform_factory(axes.transData, figure.transFigure),
-                   horizontalalignment="left", verticalalignment="center",
-                   rotation=(90-self.data_angle), rotation_mode="anchor",
-                   color=self.data_color,
-                   weight="heavy")
-       
-        if self.data_style == "none":
-            y = 0
-            if int(self.data_base) == 1:
-                y = self.get_y(self.parent.data_experimental_pattern.line)
-            elif self.data_base == 2:
-                y = self.get_y(self.parent.data_calculated_pattern.line)
-            elif self.data_base == 3:   
-                y = self.get_ymin()
-            elif self.data_base == 4:
-                y = self.get_ymax()
-                
-            ymin, ymax = axes.get_ybound()
-            trans = transforms.blended_transform_factory(axes.transData, axes.transAxes)
-            y = ((y+self.data_y_offset) - ymin) / (ymax - ymin)
-        
-            kws.update(dict(
-                y=y,
-                transform=trans,
-            ))
-        
-        if self._text == None:
-            self._text = Text(**kws)
-        else:
-            for key in kws:
-                getattr(self._text, "set_%s"%key)(kws[key])
-        if not self._text in axes.get_children():
-            axes.add_artist(self._text)     
+        if self.data_style != "offset":
+            kws = dict(text=self.data_label,
+                       x=self.data_position+self.data_x_offset, y=settings.PLOT_TOP,
+                       clip_on=False,
+                       transform=transforms.blended_transform_factory(axes.transData, figure.transFigure),
+                       horizontalalignment="left", verticalalignment="center",
+                       rotation=(90-self.data_angle), rotation_mode="anchor",
+                       color=self.data_color,
+                       weight="heavy")
+           
+            if self.data_style == "none":
+                y = 0
+                if int(self.data_base) == 1:
+                    y = self.get_y(self.parent.data_experimental_pattern.line)
+                elif self.data_base == 2:
+                    y = self.get_y(self.parent.data_calculated_pattern.line)
+                elif self.data_base == 3:
+                    y = self.get_ymin()
+                elif self.data_base == 4:
+                    y = self.get_ymax()
+                    
+                ymin, ymax = axes.get_ybound()
+                trans = transforms.blended_transform_factory(axes.transData, axes.transAxes)
+                y = ((y+self.data_y_offset) - ymin) / (ymax - ymin)
+            
+                kws.update(dict(
+                    y=y,
+                    transform=trans,
+                ))
+            
+            if self._text == None:
+                self._text = Text(**kws)
+            else:
+                for key in kws:
+                    getattr(self._text, "set_%s"%key)(kws[key])
+            if not self._text in axes.get_children():
+                axes.add_artist(self._text)     
     
     def update_vline(self, figure, axes):
         y = 0
@@ -657,23 +658,32 @@ class Marker(ChildModel, Observable, Storable, ObjectListStoreChildMixin, CSVMix
 
         # We need to strip away the units for comparison with
         # non-unitized bounds
-        scalex = (self.data_position<xmin) or (self.data_position>xmax)
+        #scalex = (self.data_position<xmin) or (self.data_position>xmax)
         trans = transforms.blended_transform_factory(axes.transData, axes.transAxes)
         y = (y - ymin) / (ymax - ymin)
             
+        data_style = self.data_style
+        data = [y,1]
+        if data_style == "offset":
+            data_style = "solid"
+            y = (y + self.parent.data_experimental_pattern.display_offset - ymin) / (ymax - ymin)
+            offset = (self.data_y_offset + self.parent.data_experimental_pattern.display_offset - ymin) / (ymax - ymin)
+            
+            data = [y,offset]
+            
         if self._vline == None:
-            self._vline = matplotlib.lines.Line2D([self.data_position,self.data_position], [y,1] , transform=trans, color=self.data_color, ls=self.data_style)
+            self._vline = matplotlib.lines.Line2D([self.data_position,self.data_position], data , transform=trans, color=self.data_color, ls=data_style)
             self._vline.y_isdata = False
         else:
             self._vline.set_xdata(np.array([self.data_position,self.data_position]))
-            self._vline.set_ydata(np.array([y,1]))
+            self._vline.set_ydata(np.array(data))
             self._vline.set_transform(trans)
             self._vline.set_color(self.data_color)
-            self._vline.set_linestyle(self.data_style)
+            self._vline.set_linestyle(data_style)
             
         if not self._vline in axes.get_lines():
             axes.add_line(self._vline)
-            axes.autoscale_view(scalex=scalex, scaley=False)
+            #axes.autoscale_view(scalex=scalex, scaley=False)
     
     def on_update_plot(self, figure, axes, pctrl):    
         if self.parent!=None:
@@ -681,7 +691,7 @@ class Marker(ChildModel, Observable, Storable, ObjectListStoreChildMixin, CSVMix
             self.update_text(figure, axes)
                
     def get_nm_position(self):
-        if self.data_position != 0:
+        if self.data_position != 0 and self.parent != None:
             return self.parent.parent.data_goniometer.data_lambda / (2.0*sin(radians(self.data_position/2.0)))
         else:
             return 0.0

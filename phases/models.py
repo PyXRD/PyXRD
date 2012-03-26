@@ -364,8 +364,8 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
         Rmean = 0
         for T,q in TQDistr.iteritems():
             TQDistr[T] = q / smq
-            Rmean += T*q / smq
-            
+            Rmean += T*q
+        Rmean /= smq
         self.__last_Tmean = Tmean
         self.__last_Tmax = Tmax
         self.__last_Tmin = Tmin
@@ -439,7 +439,9 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
         distr, ddict, real_mean = self._update_interference_distributions()
         
         #Get junction probabilities & weight fractions
-        W = repeat_to_stl(self.data_probabilities.get_distribution_matrix()).astype(np.complex_)
+        W = self.data_probabilities.get_distribution_matrix()
+        
+        W = repeat_to_stl(W).astype(np.complex_)
         P = repeat_to_stl(self.data_probabilities.get_probability_matrix()).astype(np.complex_)
         G = self.data_G
         
@@ -471,7 +473,16 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
 
         #Create Q matrices:
         Q = np.multiply(np.repeat(PF[...,np.newaxis,:], rank, axis=1), P)
-        Qn = np.copy(Q)
+        
+        
+        #for i in range(shape[0]):
+        #    for r in range(rank):
+        #        for c in range(rank):
+        #            Q[i,r,c] = P[i,r,c] * PF[i,r]
+        #Qn = np.copy(Q)
+            
+        print W
+        print P
                
         #Calculate the intensity:
         method = 0
@@ -484,15 +495,15 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
             for n in range(2, int(self.data_max_CSDS+1)):
                 Qn[n] = mmult(Qn[n-1], Q)
                   
-            SubTotal = np.zeros(Q.shape, dtype=np.complex_)
-            CSDS_I = repeat_to_stl(np.identity(rank) * real_mean)
+            SubTotal = np.zeros(Q.shape, dtype=np.complex)
+            CSDS_I = repeat_to_stl(np.identity(rank, dtype=np.complex) * real_mean)
             for n in range(1, int(self.data_max_CSDS)+1):
                 factor = 0
-                for m in range(n, int(self.data_max_CSDS+1)):
+                for m in range(n, int(self.data_max_CSDS)+1):
                     factor += (m-n) * ddict[m]
                 SubTotal += 2 * factor * Qn[n]
             SubTotal = (CSDS_I + SubTotal)
-            SubTotal = mmult(F, mmult(W, SubTotal))
+            SubTotal = mmult(mmult(F, W), SubTotal)
             intensity = np.real(np.trace(SubTotal,  axis1=2, axis2=1))
         elif method == 1:
             ################### SCND WAY ###################
@@ -520,14 +531,13 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
     def get_absolute_scale(self):
         mean_d001 = 0
         mean_volume = 0
-        mean_weight =  0
         mean_density = 0
         W = self.data_probabilities.get_distribution_array()
         for wtfraction, component in zip(W, self.data_components._model_data):
             mean_d001 += (component.data_d001 * wtfraction)
-            mean_volume += (component.get_volume() * wtfraction)
-            mean_weight +=  (component.get_weight() * wtfraction)
-        mean_density = mean_weight / mean_volume
+            volume = component.get_volume()
+            mean_volume += (volume * wtfraction)
+            mean_density +=  (component.get_weight() * wtfraction / volume)
         
         if self.__last_Tmean == None or self.__last_Tmean != self.data_mean_CSDS:
             distr, ddict, real_mean = self._update_interference_distributions()

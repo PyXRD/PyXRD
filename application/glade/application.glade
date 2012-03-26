@@ -178,6 +178,16 @@
         <signal name="activate" handler="on_edit_specimen_activate" swapped="no"/>
       </object>
     </child>
+    <child>
+      <object class="GtkAction" id="remove_bg">
+        <property name="label" translatable="yes">Background</property>
+        <property name="short_label" translatable="yes">Background</property>
+        <property name="tooltip" translatable="yes">Remove the background</property>
+        <property name="stock_id">gtk-edit</property>
+        <property name="always_show_image">True</property>
+        <signal name="activate" handler="on_remove_background" swapped="no"/>
+      </object>
+    </child>
   </object>
   <object class="GtkActionGroup" id="specimens_actions">
     <property name="sensitive">False</property>
@@ -203,8 +213,8 @@
     </child>
   </object>
   <object class="GtkWindow" id="main_window">
-    <property name="width_request">800</property>
-    <property name="height_request">600</property>
+    <property name="width_request">1024</property>
+    <property name="height_request">712</property>
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">PyXRD</property>
@@ -467,7 +477,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkToolButton" id="Print">
+              <object class="GtkToolButton" id="tbtn_save_graph">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="related_action">save_graph</property>
@@ -475,6 +485,19 @@
                 <property name="label" translatable="yes">Save Graph</property>
                 <property name="use_underline">True</property>
                 <property name="stock_id">gtk-floppy</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="homogeneous">True</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkToolButton" id="tbtn_remove_bg">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="related_action">remove_bg</property>
+                <property name="label" translatable="yes">Background</property>
+                <property name="use_underline">True</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -745,7 +768,7 @@
                         <property name="can_focus">False</property>
                         <child>
                           <object class="GtkEventBox" id="matplotlib_box">
-                            <property name="width_request">400</property>
+                            <property name="width_request">600</property>
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
                             <child>

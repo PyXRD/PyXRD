@@ -266,5 +266,5 @@ class Atom(ChildModel, ObjectListStoreChildMixin, Storable):
        
     def get_structure_factors(self, stl_range):
         asf = self.data_atom_type.get_atomic_scattering_factors(stl_range)
-        return asf * self.data_pn * np.exp(2 * pi * self.data_z * stl_range * 1j)                      #(2*asf * self.data_pn * np.cos (fac), 2*asf * self.data_pn * np.sin (fac)) #TODO do we need to multiply with 2?
+        return asf * self.data_pn * np.exp(2 * pi * self.data_z * stl_range * 1j)
         

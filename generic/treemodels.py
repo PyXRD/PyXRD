@@ -69,7 +69,6 @@ class ObjectListStore(_BaseObjectListStore, Storable):
         self._model_data = list()
 
     def json_properties(self):
-        print self._class_type
         return { 'class_type': json_type(self._class_type),
                  'model_data': self._model_data }
         

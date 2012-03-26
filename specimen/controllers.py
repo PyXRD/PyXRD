@@ -19,7 +19,7 @@ from generic.validators import FloatEntryValidator
 from generic.utils import get_case_insensitive_glob
 
 from specimen.models import Specimen, Marker, ThresholdSelector
-from specimen.views import EditMarkerView, DetectPeaksView
+from specimen.views import EditMarkerView, DetectPeaksView, BackgroundView
 
 class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
 
@@ -141,6 +141,11 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
         if not self.model.inherit_calc_color:
             self.view["specimen_calc_color"].set_color(gtk.gdk.color_parse(self.model.calc_color))
 
+    def remove_background(self):
+        bg_view = BackgroundView(parent=self.view)
+        bg_ctrl = BackgroundController(self.model.data_experimental_pattern, bg_view, parent=self)
+        bg_view.present()
+
     # ------------------------------------------------------------
     #      Notifications of observable properties
     # ------------------------------------------------------------
@@ -231,8 +236,40 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
                                      on_confirm, parent=self.view.get_top_widget())
         return True
 
-    pass # end of class
-    
+    pass #end of class
+
+class BackgroundController(DialogController):
+
+
+    def register_adapters(self):
+        if self.model is not None:
+            self.model.find_bg()
+            for name in self.model.get_properties():
+                if name == "bg_type":
+                    ctrl_setup_combo_with_list(self, 
+                        self.view["cmb_bg_type"],
+                        "bg_type", "_bg_types")
+                elif name == "bg_position":
+                    FloatEntryValidator(self.view["bg_position"])
+                    self.adapt(name)
+            return
+            
+    # ------------------------------------------------------------
+    #      GTK Signal handlers
+    # ------------------------------------------------------------
+    def on_btn_ok_clicked(self, event):
+        #TODO apply background!!
+        if self.model.bg_position != 0.0:
+            self.model.remove_background()
+        self.view.hide()
+        return True
+            
+    def on_cancel(self):
+        self.model.bg_position = 0.0
+        DialogController.on_cancel(self)
+            
+    pass #end of class
+   
 class StatisticsController(ChildController):
 
     def register_adapters(self):
@@ -363,7 +400,8 @@ class MarkersController(ObjectListStoreController):
     def on_load_object_clicked(self, event):
         def on_accept(dialog):
             print "Importing markers..."
-            Marker.get_from_csv(dialog.get_filename(), self.model.add_marker)        
+            Marker.get_from_csv(dialog.get_filename(), self.model.add_marker)
+            self.parent.redraw_plot() #FIXME emit signal instead -> forwarded to containing specimen (emits a signal) -> forwarded to Application Controller -> issues a redraw
         self.run_load_dialog("Import markers", on_accept, parent=self.view.get_top_widget())
 
 
@@ -394,7 +432,7 @@ class MarkersController(ObjectListStoreController):
                 self.run_confirmation_dialog("Do you want to clear the current markers for this pattern?",
                                              on_accept, parent=self.view.get_top_widget())
             self.model.auto_add_peaks(threshold)
-            self.parent.redraw_plot()
+            self.parent.redraw_plot() #FIXME emit signal instead -> forwarded to containing specimen (emits a signal) -> forwarded to Application Controller -> issues a redraw
 
         sel_model = ThresholdSelector(parent=self.model)
         sel_view = DetectPeaksView(parent=self.view)

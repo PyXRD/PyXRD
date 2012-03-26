@@ -139,4 +139,4 @@ class DelayedProxy():
         self.__modified__ = set([])
         
 def lognormal(T, a, b):
-    return sqrt2pi * exp(-(log(T) - a)**2 / (2.0*b**2)) / (b*T)
+    return sqrt2pi * exp(-(log(T) - a)**2 / (2.0*(b**2))) / (abs(b)*T)

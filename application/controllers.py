@@ -206,6 +206,7 @@ class AppController (BaseController, DialogMixin):
     def on_new_project_activate(self, widget, data=None):
         def on_accept(dialog):
             self.model.current_project = Project()
+            self.model.current_filename = None
             self.update_title()
             self.view.project.present()
         if self.model.current_project != None:

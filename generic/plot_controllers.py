@@ -80,7 +80,7 @@ class PlotController (DialogMixin):
         raise NotImplementedError
         
     def get_save_bbox(self, width, height):
-        matplotlib.transforms.Bbox.from_bounds(0, 0, width, height)
+        return matplotlib.transforms.Bbox.from_bounds(0, 0, width, height)
         
     def save(self, parent=None, suggest_name="graph", size="auto", num_specimens=1, offset=0.75, dpi=150):
         width, height = 0,0
@@ -113,8 +113,9 @@ class PlotController (DialogMixin):
             original_dpi = self.figure.get_dpi()
             i_width, i_height = width / dpi, height / dpi            
             bbox_inches = self.get_save_bbox(i_width, i_height)
+            
             self.figure.set_size_inches((i_width, i_height))
-            self.figure.savefig(filename, dpi=dpi, bbox_inches=bbox_inches) #'tight')
+            self.figure.savefig(filename, dpi=dpi, bbox_inches=bbox_inches)
             self.figure.set_size_inches((original_width, original_height))
         
         self.run_save_dialog("Save Graph", on_accept, None, parent=parent, suggest_name=suggest_name, extra_widget=size_expander)
@@ -159,7 +160,7 @@ class MainPlotController (PlotController):
         xaxis = self.plot.get_xaxis()
         xmin, xmax = xaxis.get_view_interval()
         width = width*min((settings.get_plot_right(xmax)+0.05),1.0)
-        matplotlib.transforms.Bbox.from_bounds(0, 0, width, height)
+        return matplotlib.transforms.Bbox.from_bounds(0, 0, width, height)
         
     ###
     ### UPDATE SUBROUTINES

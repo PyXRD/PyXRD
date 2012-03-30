@@ -317,7 +317,11 @@ class AppController (BaseController, DialogMixin):
             filename = os.path.splitext(self.model.current_specimen.data_name)[0]
         else:
             filename = self.model.current_project.data_name
-        self.plot_controller.save(parent=self.view.get_toplevel(), suggest_name=filename)
+        self.plot_controller.save(
+            parent=self.view.get_toplevel(), 
+            suggest_name=filename, 
+            num_specimens=len(self.model.current_specimens), 
+            offset=self.model.current_project.display_plot_offset)
          
     def on_sample_point(self, event):
         self.cid = -1

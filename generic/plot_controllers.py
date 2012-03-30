@@ -75,9 +75,19 @@ class PlotController (DialogMixin):
         
     def draw(self):
         self.figure.canvas.draw()
+    
+    def get_save_dims(self, num_specimens=1, offset=0.75):    
+        raise NotImplementedError
         
-    def save(self, parent=None, suggest_name="graph", size="1800x1200", dpi=150):
-        width, height = map(float, size.split("x"))
+    def get_save_bbox(self, width, height):
+        matplotlib.transforms.Bbox.from_bounds(0, 0, width, height)
+        
+    def save(self, parent=None, suggest_name="graph", size="auto", num_specimens=1, offset=0.75, dpi=150):
+        width, height = 0,0
+        if size == "auto":
+            width, height = self.get_save_dims(num_specimens=num_specimens, offset=offset)
+        else:    
+            width, height = map(float, size.split("x"))
         builder = gtk.Builder()
         builder.add_from_file("specimen/glade/save_graph_size.glade")    
         size_expander = builder.get_object("size_expander")
@@ -101,9 +111,10 @@ class PlotController (DialogMixin):
             dpi = float(entry_dpi.get_text())
             original_width, original_height = self.figure.get_size_inches()      
             original_dpi = self.figure.get_dpi()
-            i_width, i_height = width / dpi, height / dpi
+            i_width, i_height = width / dpi, height / dpi            
+            bbox_inches = self.get_save_bbox(i_width, i_height)
             self.figure.set_size_inches((i_width, i_height))
-            self.figure.savefig(filename, dpi=dpi)
+            self.figure.savefig(filename, dpi=dpi, bbox_inches=bbox_inches) #'tight')
             self.figure.set_size_inches((original_width, original_height))
         
         self.run_save_dialog("Save Graph", on_accept, None, parent=parent, suggest_name=suggest_name, extra_widget=size_expander)
@@ -140,6 +151,15 @@ class MainPlotController (PlotController):
         #make_axes_area_auto_adjustable(self.stats_plot, adjust_dirs=["left"], pad=0.0, use_axes=self.plot)
 
         self.update()
+        
+    def get_save_dims(self, num_specimens=1, offset=0.75):
+        return settings.PRINT_WIDTH, settings.PRINT_MARGIN_HEIGHT + settings.PRINT_SINGLE_HEIGHT*(1 + (num_specimens-1)*offset*0.25)
+        
+    def get_save_bbox(self, width, height):
+        xaxis = self.plot.get_xaxis()
+        xmin, xmax = xaxis.get_view_interval()
+        width = width*min((settings.get_plot_right(xmax)+0.05),1.0)
+        matplotlib.transforms.Bbox.from_bounds(0, 0, width, height)
         
     ###
     ### UPDATE SUBROUTINES

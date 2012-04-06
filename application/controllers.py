@@ -289,6 +289,11 @@ class AppController (BaseController, DialogMixin):
             self.specimen.remove_background()
         return True
 
+    def on_smooth_data(self, event):
+        if self.model.current_specimen != None:
+            self.specimen.smooth_data()
+        return True
+
     def on_edit_phases_activate(self, event):
         self.edit_phases()
         return True

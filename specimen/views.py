@@ -44,7 +44,12 @@ class BackgroundView(DialogView):
     title = "Remove Background"
     subview_builder = "specimen/glade/background.glade"
     subview_toplevel = "edit_background"
-        
+      
+class SmoothDataView(DialogView):
+    title = "Smooth Data"
+    subview_builder = "specimen/glade/smoothing.glade"
+    subview_toplevel = "smooth_data"
+      
 class EditMarkersView(ObjectListStoreView):
     extra_widget_builder = "specimen/glade/find_peaks.glade"
     extra_widget_toplevel = "vbox_find_peaks"

@@ -19,7 +19,7 @@ from generic.validators import FloatEntryValidator
 from generic.utils import get_case_insensitive_glob
 
 from specimen.models import Specimen, Marker, ThresholdSelector
-from specimen.views import EditMarkerView, DetectPeaksView, BackgroundView
+from specimen.views import EditMarkerView, DetectPeaksView, BackgroundView, SmoothDataView
 
 class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
 
@@ -146,6 +146,11 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
         bg_ctrl = BackgroundController(self.model.data_experimental_pattern, bg_view, parent=self)
         bg_view.present()
 
+    def smooth_data(self):
+        sd_view = SmoothDataView(parent=self.view)
+        sd_ctrl = SmoothDataController(self.model.data_experimental_pattern, sd_view, parent=self)
+        sd_view.present()
+        
     # ------------------------------------------------------------
     #      Notifications of observable properties
     # ------------------------------------------------------------
@@ -258,14 +263,41 @@ class BackgroundController(DialogController):
     #      GTK Signal handlers
     # ------------------------------------------------------------
     def on_btn_ok_clicked(self, event):
-        #TODO apply background!!
-        if self.model.bg_position != 0.0:
-            self.model.remove_background()
+        self.model.remove_background()
         self.view.hide()
         return True
             
     def on_cancel(self):
         self.model.bg_position = 0.0
+        DialogController.on_cancel(self)
+            
+    pass #end of class
+   
+class SmoothDataController(DialogController):
+
+    def register_adapters(self):
+        if self.model is not None:
+            self.model.sd_degree = 5
+            for name in self.model.get_properties():
+                if name == "sd_type":
+                    ctrl_setup_combo_with_list(self, 
+                        self.view["cmb_sd_type"],
+                        "sd_type", "_sd_types")
+                elif name == "sd_degree":
+                    #FloatEntryValidator(self.view["sd_degree"])
+                    self.adapt(name)
+            return
+            
+    # ------------------------------------------------------------
+    #      GTK Signal handlers
+    # ------------------------------------------------------------
+    def on_btn_ok_clicked(self, event):
+        self.model.smooth_data()
+        self.view.hide()
+        return True
+            
+    def on_cancel(self):
+        self.model.sd_degree = 0
         DialogController.on_cancel(self)
             
     pass #end of class

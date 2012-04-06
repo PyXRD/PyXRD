@@ -17,6 +17,7 @@ from gtkmvc.support.metaclasses import ObservablePropertyMeta
 
 from generic.treemodels import XYListStore
 from generic.io import Storable, PyXRDDecoder
+from generic.utils import smooth
 
 class CSVMixin():
     
@@ -156,11 +157,38 @@ class XYData(Model, Storable, Observable):
         else:
             raise ValueError, "'%s' is not a valid value for a background type!" % value
     
+    _sd_degree = 0
+    sd_data = None
+    sd_line = None
+    @Model.getter("sd_degree")
+    def get_sd_degree(self, prop_name):
+        return self._sd_degree
+    @Model.setter("sd_degree")
+    def set_sd_degree(self, prop_name, value):
+        value = float(value)
+        if value != self._sd_degree:
+            self._sd_degree = value
+            self.try_smooth_data()
+            self.plot_update.emit()
+
+    _sd_type = 0
+    _sd_types = { 0: "Moving Triangle" } #TODO add more types
+    @Model.getter("sd_type")
+    def get_sd_type(self, prop_name):
+        return self._sd_type
+    @Model.setter("sd_type")
+    def set_sd_type(self, prop_name, value):
+        value = int(value)
+        if value in self._sd_types: 
+            self._sd_type = value      
+        else:
+            raise ValueError, "'%s' is not a valid value for a smoothing type!" % value
+    
     plot_update = None
     data_update = None
     
-    __observables__ = ["data_name", "data_label", "xy_data", "plot_update", "data_update", "display_offset", "bg_position", "bg_type"]
-    __storables__ = [val for val in __observables__ if not val in ("plot_update", "data_update", "display_offset", "bg_position", "bg_type") ] + ["color",]
+    __observables__ = ["data_name", "data_label", "xy_data", "plot_update", "data_update", "display_offset", "bg_position", "bg_type", "sd_degree", "sd_type"]
+    __storables__ = [val for val in __observables__ if not val in ("plot_update", "data_update", "display_offset", "bg_position", "bg_type", "sd_degree", "sd_type") ] + ["color",]
        
     @property
     def color(self):
@@ -223,20 +251,54 @@ class XYData(Model, Storable, Observable):
             self.bg_line = axes.axhline(y=self.bg_position, c="#660099")
         else:
             self.bg_line = None
+            
+        #Add bg line (if present)
+        try:
+            self.sd_line.remove()
+        except:
+            pass
+        if self._sd_degree != 0.0:
+            print self.sd_data.shape
+            print self.xy_data._model_data_x.shape
+            self.sd_line = matplotlib.lines.Line2D(xdata=self.xy_data._model_data_x, ydata=self.sd_data, c="#660099")
+            axes.add_line(self.sd_line)
     
+    
+    """
+        Background Removal stuff
+    """
     def remove_background(self):
         y_data = self.xy_data._model_data_y
-        print y_data
-        if self.bg_type == 0:
-            y_data = np.maximum((y_data - self.bg_position) / (1.0 - self.bg_position), 0.0)
-        print y_data
-        self.xy_data._model_data_y = y_data
-        self.bg_position = 0
-        self.update_data()
+        if self.bg_position != 0.0:
+            if self.bg_type == 0:
+                y_data = np.maximum((y_data - self.bg_position) / (1.0 - self.bg_position), 0.0)
+            self.xy_data._model_data_y = y_data
+            self.bg_position = 0
+            self.update_data()
         
     def find_bg(self):
         y_min = np.min(self.xy_data._model_data_y)
         self.bg_position = y_min
+           
+    """
+        Data smoothing stuff
+    """
+    def smooth_data(self):
+        y_data = self.xy_data._model_data_y
+        if self.sd_degree > 0:
+            degree = int(self.sd_degree)
+            smoothed = smooth(y_data, degree)
+            #smoothed = y_data[:degree] + smoothed + y_data[-degree:]
+            self.xy_data._model_data_y = smoothed
+        self.sd_degree = 0
+        self.update_data()
+    
+    def try_smooth_data(self):
+        y_data = self.xy_data._model_data_y
+        if self.sd_degree > 0:
+            degree = int(self.sd_degree)
+            smoothed = smooth(y_data, degree)
+            self.sd_data = smoothed
             
     def load_data(self, data, format="DAT", has_header=True, clear=True, silent=False):
         xydata = []

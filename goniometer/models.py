@@ -21,7 +21,7 @@ from matplotlib.backends.backend_gtk import FigureCanvasGTK
 
 import json
 import time
-from math import sin, cos, pi, sqrt
+from math import sin, cos, pi, sqrt, radians, degrees, asin
 
 from generic.treemodels import ObjectListStore, XYListStore, Point
 from generic.io import Storable
@@ -78,3 +78,23 @@ class Goniometer(Model, Observable, Storable):
         #    self._S = sqrt( (self.data_soller1 * 0.5)**2 + (self.data_soller2 * 0.5)**2)
         #    self._dirty_cache = False
         return sqrt( (self.data_soller1 * 0.5)**2 + (self.data_soller2 * 0.5)**2) #self._S
+       
+    def get_nm_from_t(self, theta):
+        return self.get_nm_from_2t(2*theta)
+    
+    def get_nm_from_2t(self, twotheta):
+        if twotheta != 0:
+            return self.data_lambda / (2.0*sin(radians(twotheta/2.0)))
+        else:
+            return 0.0
+        
+    def get_t_from_nm(self, nm):
+        return self.get_2t_from_nm(nm)/2
+
+    def get_2t_from_nm(self, nm):
+        twotheta = 0.0
+        if nm != 0: 
+            twotheta = degrees(asin(max(-1.0, min(1.0, self.data_lambda/(2.0*nm)))))*2.0
+        return twotheta
+       
+    pass #end of class

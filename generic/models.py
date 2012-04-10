@@ -97,7 +97,7 @@ class ChildModel(Model):
         if self.parent != None:
             self.added.emit()
 
-class XYData(Model, Storable, Observable):
+class XYData(ChildModel, Storable, Observable):
     xy_empty_data = ([0,0],[0,0])
     line = None
     
@@ -184,11 +184,43 @@ class XYData(Model, Storable, Observable):
         else:
             raise ValueError, "'%s' is not a valid value for a smoothing type!" % value
     
+    _shift_value = 0.0
+    shifted_line = None
+    reference_line = None
+    @Model.getter("shift_value")
+    def get_shift_value(self, prop_name):
+        return self._shift_value
+    @Model.setter("shift_value")
+    def set_shift_value(self, prop_name, value):
+        value = float(value)
+        if value != self._shift_value:
+            self._shift_value = value
+            self.plot_update.emit()
+    
+    _shift_position = 0.42574
+    _shift_positions = { 
+        0.42574: "Quartz\t(SiO2)",
+        0.3134: "Silicon\t(Si)",
+        0.2476: "Zincite\t(ZnO)",
+        0.2085: "Corundum\t(Al2O3)"
+    }
+    @Model.getter("shift_position")
+    def get_shift_position(self, prop_name):
+        return self._shift_position
+    @Model.setter("shift_position")
+    def set_shift_position(self, prop_name, value):
+        value = float(value)
+        if value in self._shift_positions: 
+            self._shift_position = value    
+            self.find_shift_value()
+        else:
+            raise ValueError, "'%s' is not a valid value for a shift position!" % value
+    
     plot_update = None
     data_update = None
     
-    __observables__ = ["data_name", "data_label", "xy_data", "plot_update", "data_update", "display_offset", "bg_position", "bg_type", "sd_degree", "sd_type"]
-    __storables__ = [val for val in __observables__ if not val in ("plot_update", "data_update", "display_offset", "bg_position", "bg_type", "sd_degree", "sd_type") ] + ["color",]
+    __observables__ = ["data_name", "data_label", "xy_data", "plot_update", "data_update", "display_offset", "bg_position", "bg_type", "sd_degree", "sd_type", "shift_value", "shift_position"]
+    __storables__ = [val for val in __observables__ if not val in ("plot_update", "data_update", "display_offset", "bg_position", "bg_type", "sd_degree", "sd_type", "shift_value", "shift_position") ] + ["color",]
        
     @property
     def color(self):
@@ -200,8 +232,8 @@ class XYData(Model, Storable, Observable):
             if self.line.get_visible() and self.line.get_axes() != None:
                 self.plot_update.emit()
        
-    def __init__(self, data_name=None, data_label=None, xy_data=None, color="#0000FF", **kwargs):
-        Model.__init__(self)
+    def __init__(self, data_name=None, data_label=None, xy_data=None, color="#0000FF", parent=None, **kwargs):
+        ChildModel.__init__(self, parent=parent)
         Storable.__init__(self)
         Observable.__init__(self)
         self.plot_update = Signal()
@@ -241,27 +273,37 @@ class XYData(Model, Storable, Observable):
         lines = axes.get_lines()
         if not self.line in lines:
             axes.add_line(self.line)
-            
+        
+        def try_or_die(line):
+            try: line.remove()
+            except: pass            
+        
         #Add bg line (if present)
-        try:
-            self.bg_line.remove()
-        except:
-            pass
+        try_or_die(self.bg_line)
         if self._bg_position != 0.0:
             self.bg_line = axes.axhline(y=self.bg_position, c="#660099")
         else:
             self.bg_line = None
             
         #Add bg line (if present)
-        try:
-            self.sd_line.remove()
-        except:
-            pass
+        try_or_die(self.sd_line)
         if self._sd_degree != 0.0:
-            print self.sd_data.shape
-            print self.xy_data._model_data_x.shape
             self.sd_line = matplotlib.lines.Line2D(xdata=self.xy_data._model_data_x, ydata=self.sd_data, c="#660099")
             axes.add_line(self.sd_line)
+        else:
+            self.sd_line = None
+    
+        #Add shifted line (if present)
+        try_or_die(self.shifted_line)
+        try_or_die(self.reference_line)
+        if self._shift_value != 0.0:
+            self.shifted_line = matplotlib.lines.Line2D(xdata=(self.xy_data._model_data_x-self._shift_value), ydata=self.xy_data._model_data_y, c="#660099")
+            position = self.parent.parent.data_goniometer.get_2t_from_nm(self.shift_position)
+            self.reference_line = axes.axvline(x=position, c="#660099", ls="--")     
+            axes.add_line(self.shifted_line)
+        else:
+            self.shifted_line = None
+            self.reference_line = None
     
     
     """
@@ -273,8 +315,8 @@ class XYData(Model, Storable, Observable):
             if self.bg_type == 0:
                 y_data = np.maximum((y_data - self.bg_position) / (1.0 - self.bg_position), 0.0)
             self.xy_data._model_data_y = y_data
-            self.bg_position = 0
-            self.update_data()
+        self.bg_position = 0.0
+        self.update_data()
         
     def find_bg(self):
         y_min = np.min(self.xy_data._model_data_y)
@@ -290,8 +332,8 @@ class XYData(Model, Storable, Observable):
             smoothed = smooth(y_data, degree)
             #smoothed = y_data[:degree] + smoothed + y_data[-degree:]
             self.xy_data._model_data_y = smoothed
-        self.sd_degree = 0
-        self.update_data()
+        self.sd_degree = 0.0
+        self.update_data()            
     
     def try_smooth_data(self):
         y_data = self.xy_data._model_data_y
@@ -299,7 +341,33 @@ class XYData(Model, Storable, Observable):
             degree = int(self.sd_degree)
             smoothed = smooth(y_data, degree)
             self.sd_data = smoothed
+           
+    """
+        Data shifting stuff
+    """  
+    def shift_data(self):
+        x_data = self.xy_data._model_data_x
+        print self.shift_value
+        if self.shift_value != 0.0:
+            x_data = x_data - self.shift_value
+            self.xy_data._model_data_x = x_data
+            for marker in self.parent.data_markers._model_data:
+                marker.data_position = marker.data_position-self.shift_value
+        self.shift_value = 0.0
+        self.update_data()
             
+    def find_shift_value(self):
+        position = self.parent.parent.data_goniometer.get_2t_from_nm(self.shift_position)
+        if position > 0.1:
+            x_data = self.xy_data._model_data_x
+            y_data = self.xy_data._model_data_y
+            max_x = position + 0.5
+            min_x = position - 0.5
+            condition = (x_data>=min_x) & (x_data<=max_x)
+            section_x, section_y = np.extract(condition, x_data), np.extract(condition, y_data)
+            actual_position = section_x[np.argmax(section_y)]
+            self.shift_value = actual_position - position
+         
     def load_data(self, data, format="DAT", has_header=True, clear=True, silent=False):
         xydata = []
         max_y = 0.0
@@ -344,6 +412,7 @@ class XYData(Model, Storable, Observable):
                 #close file
                 if close: f.close()
             
+        print max_y
         #import data            
         if xydata != []:
             for x, y in xydata:

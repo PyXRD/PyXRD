@@ -44,11 +44,19 @@ class BackgroundView(DialogView):
     title = "Remove Background"
     subview_builder = "specimen/glade/background.glade"
     subview_toplevel = "edit_background"
+    modal = True
       
 class SmoothDataView(DialogView):
     title = "Smooth Data"
     subview_builder = "specimen/glade/smoothing.glade"
     subview_toplevel = "smooth_data"
+    modal = True    
+     
+class ShiftDataView(DialogView):
+    title = "Shift Pattern"
+    subview_builder = "specimen/glade/shifting.glade"
+    subview_toplevel = "shift_pattern"
+    modal = True
       
 class EditMarkersView(ObjectListStoreView):
     extra_widget_builder = "specimen/glade/find_peaks.glade"

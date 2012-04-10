@@ -19,7 +19,7 @@ from generic.validators import FloatEntryValidator
 from generic.utils import get_case_insensitive_glob
 
 from specimen.models import Specimen, Marker, ThresholdSelector
-from specimen.views import EditMarkerView, DetectPeaksView, BackgroundView, SmoothDataView
+from specimen.views import EditMarkerView, DetectPeaksView, BackgroundView, SmoothDataView, ShiftDataView
 
 class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
 
@@ -151,23 +151,28 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
         sd_ctrl = SmoothDataController(self.model.data_experimental_pattern, sd_view, parent=self)
         sd_view.present()
         
+    def shift_data(self):
+        sh_view = ShiftDataView(parent=self.view)
+        sh_ctrl = ShiftDataController(self.model.data_experimental_pattern, sh_view, parent=self)
+        sh_view.present()
+        
     # ------------------------------------------------------------
     #      Notifications of observable properties
     # ------------------------------------------------------------
     @Controller.observe("display_calculated", assign=True)
     @Controller.observe("display_experimental", assign=True)
     @Controller.observe("display_phases", assign=True)
+    @Controller.observe("data_name", assign=True)
+    @Controller.observe("data_sample", assign=True)
     def notif_display_toggled(self, model, prop_name, info):
         self.parent.update_plot()
         return
         
-    @Controller.observe("data_name", assign=True)
-    @Controller.observe("data_sample", assign=True)
-    def notif_data_changed(self, model, prop_name, info):
+    """def notif_data_changed(self, model, prop_name, info):
         self._update_plot_title_timeout()
     @delayed
     def _update_plot_title_timeout(self):
-        self.parent.plot_controller.update_title(title=self.parent.get_plot_title())
+        self.parent.plot_controller.update_title(title=self.parent.get_plot_title())"""
         
     @Controller.observe("inherit_exp_color", assign=True)
     @Controller.observe("inherit_calc_color", assign=True)
@@ -298,6 +303,36 @@ class SmoothDataController(DialogController):
             
     def on_cancel(self):
         self.model.sd_degree = 0
+        DialogController.on_cancel(self)
+            
+    pass #end of class
+   
+class ShiftDataController(DialogController):
+
+    def register_adapters(self):
+        if self.model is not None:
+            self.model.find_shift_value()
+            for name in self.model.get_properties():
+                if name == "shift_position":
+                    ctrl_setup_combo_with_list(self, 
+                        self.view["cmb_shift_position"],
+                        "shift_position", "_shift_positions")
+                elif name == "shift_value":
+                    FloatEntryValidator(self.view["shift_value"])
+                    self.adapt(name)
+            return
+            
+    # ------------------------------------------------------------
+    #      GTK Signal handlers
+    # ------------------------------------------------------------
+    def on_btn_ok_clicked(self, event):
+        print "SHIFT!!"
+        self.model.shift_data()
+        self.view.hide()
+        return True
+            
+    def on_cancel(self):
+        self.model.shift_value = 0
         DialogController.on_cancel(self)
             
     pass #end of class

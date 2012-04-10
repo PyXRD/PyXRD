@@ -185,8 +185,8 @@ class MainPlotController (PlotController):
         
         xaxis = self.plot.get_xaxis()
         xmin, xmax = xaxis.get_view_interval()
-        if xmax < 30:
-            self.plot.set_xlim(right=30, auto=True)
+        if xmax < 20:
+            self.plot.set_xlim(right=20, auto=True)
 
     def update_axes(self, draw=True, single=True, labels=None, stats=(False,None)):
         self.update_lim()

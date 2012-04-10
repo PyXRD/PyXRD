@@ -229,8 +229,8 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
         self.inherit_calc_color = inherit_calc_color
         self.inherit_exp_color = inherit_exp_color
         
-        self.data_calculated_pattern = data_calculated_pattern or XYData("Calculated Profile", color=self.calc_color)
-        self.data_experimental_pattern = data_experimental_pattern or XYData("Experimental Profile", color=self.exp_color)
+        self.data_calculated_pattern = data_calculated_pattern or XYData("Calculated Profile", color=self.calc_color, parent=self)
+        self.data_experimental_pattern = data_experimental_pattern or XYData("Experimental Profile", color=self.exp_color, parent=self)
         self._data_markers =  data_markers or ObjectListStore(Marker)
         
         self.display_calculated = display_calculated
@@ -270,6 +270,8 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
         specimen = Specimen(**kwargs)
         for marker in specimen.data_markers._model_data:
             marker.parent = specimen
+        specimen.data_calculated_pattern.parent = specimen
+        specimen.data_experimental_pattern.parent = specimen
         return specimen
               
     @staticmethod
@@ -537,7 +539,6 @@ class Marker(ChildModel, Observable, Storable, ObjectListStoreChildMixin, CSVMix
             return self._data_angle
     @Model.setter("data_angle")
     def set_data_angle(self, prop_name, value):
-        if value != self._data_angle:
             self._data_angle = value
             if self._text!=None:
                 self._text.set_rotation(90-self.data_angle)
@@ -606,7 +607,7 @@ class Marker(ChildModel, Observable, Storable, ObjectListStoreChildMixin, CSVMix
     def update_text(self, figure, axes):
         if self.data_style != "offset":
             kws = dict(text=self.data_label,
-                       x=self.data_position+self.data_x_offset, y=settings.PLOT_TOP,
+                       x=float(self.data_position)+float(self.data_x_offset), y=settings.PLOT_TOP,
                        clip_on=False,
                        transform=transforms.blended_transform_factory(axes.transData, figure.transFigure),
                        horizontalalignment="left", verticalalignment="center",
@@ -691,16 +692,16 @@ class Marker(ChildModel, Observable, Storable, ObjectListStoreChildMixin, CSVMix
             self.update_text(figure, axes)
                
     def get_nm_position(self):
-        if self.data_position != 0 and self.parent != None:
-            return self.parent.parent.data_goniometer.data_lambda / (2.0*sin(radians(self.data_position/2.0)))
+        if self.parent != None:
+            return self.parent.parent.data_goniometer.get_nm_from_2t(self.data_position)
         else:
             return 0.0
         
     def set_nm_position(self, position):
-        t = 0.0
-        if position != 0: 
-            t = degrees(asin(max(-1.0, min(1.0, self.parent.parent.data_goniometer.data_lambda/(2.0*position)))))*2.0
-        self.data_position = t
+        if self.parent != None:
+            self.data_position = self.parent.parent.data_goniometer.get_2t_from_nm(position)
+        #else:
+        #    self.data_position = 0.0
         
 class Statistics(Model, Observable):
     __observables__ = [ "data_specimen", "data_points", "data_residual_pattern", "data_chi2", "data_Rp", "data_R2" ]

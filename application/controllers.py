@@ -289,9 +289,14 @@ class AppController (BaseController, DialogMixin):
             self.specimen.remove_background()
         return True
 
-    def on_smooth_data(self, event):
+    def on_smooth_data(self, event): #TODO LOCK SPECIMENS WHEN THESE WINDOWS ARE DISPLAYED!!
         if self.model.current_specimen != None:
             self.specimen.smooth_data()
+        return True
+        
+    def on_shift_data(self, event):
+        if self.model.current_specimen != None:
+            self.specimen.shift_data()
         return True
 
     def on_edit_phases_activate(self, event):

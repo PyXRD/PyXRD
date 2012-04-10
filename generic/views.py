@@ -16,6 +16,7 @@ import settings
 """
 class BaseView(View):
     builder = ""
+    modal = False
     
     __widgets_to_hide__ = ()
     
@@ -46,6 +47,7 @@ class BaseView(View):
         self.show(*args, **kwargs)
         
     def present(self):
+        self.get_toplevel().set_modal(self.modal)
         self.get_toplevel().show_all()
         self.get_toplevel().present()
         
@@ -108,6 +110,7 @@ class DialogView(BaseView, TitleView, HasChildView):
     def _before_hide_widgets(self):
         self._builder.add_from_file(self.subview_builder)
         self._add_child_view(self[self.subview_toplevel], self[self.container_widget])
+        
         
 class ObjectListStoreViewMixin(HasChildView):   
     edit_view = None

@@ -13,6 +13,8 @@ import matplotlib
 
 font = {'weight' : 'heavy', 'size': 14}
 matplotlib.rc('font', **font)
+mathtext = {'default': 'regular'}
+matplotlib.rc('mathtext', **mathtext)
 
 from application.models import AppModel
 from application.views import AppView

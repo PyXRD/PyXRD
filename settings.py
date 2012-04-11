@@ -1,9 +1,11 @@
-VERSION = "0.3.3"
+VERSION = "0.3.5"
 
 DEBUG = False
 VIEW_MODE = True
 
 LOG_FILENAME = 'errors.log'
+
+UPDATE_URL = 'http://users.ugent.be/~madumon/pyxrd/'
 
 PLOT_STATS_OFFSET = 0.15
 
@@ -40,3 +42,16 @@ PRINT_BASE_HEIGHT = 1200
 PRINT_MARGIN_HEIGHT = PRINT_BASE_HEIGHT*(1.0-PLOT_HEIGHT)
 PRINT_SINGLE_HEIGHT = PRINT_BASE_HEIGHT*PLOT_HEIGHT
 
+SETTINGS_APPLIED = False
+def apply_runtime_settings():
+    global SETTINGS_APPLIED
+    if not SETTINGS_APPLIED:
+        import matplotlib
+
+        font = {'weight' : 'heavy', 'size': 14}
+        matplotlib.rc('font', **font)
+        mathtext = {'default': 'regular'}
+        matplotlib.rc('mathtext', **mathtext)
+        
+        print "Runtime settings applied"
+    SETTINGS_APPLIED = True

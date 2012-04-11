@@ -481,8 +481,8 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
         #            Q[i,r,c] = P[i,r,c] * PF[i,r]
         #Qn = np.copy(Q)
             
-        print W
-        print P
+        #print W
+        #print P
                
         #Calculate the intensity:
         method = 0

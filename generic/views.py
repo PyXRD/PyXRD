@@ -103,9 +103,6 @@ class DialogView(BaseView, TitleView, HasChildView):
         BaseView.__init__(self, **kwargs)
         TitleView.__init__(self)
         return
-    
-    def setup_subview(self):
-        pass
         
     def _before_hide_widgets(self):
         self._builder.add_from_file(self.subview_builder)

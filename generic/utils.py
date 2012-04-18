@@ -133,12 +133,11 @@ def smooth(x,window_len=3,window='blackman'):
     return sign*y"""
     
 #def erf(x, steps=1000):
-#    result = 0.0
-#    x = float(x)
+#    result = np.zeros(x.shape)
 #    dt = x / float(steps)
 #    for i in range(steps+1):
 #        t = float(i + 0.5)*dt
-#        result += exp(-t**2)*dt
+#        result += np.exp(-(t**2))*dt
 #    result *= 2 / sqrtpi
 #    return result
    

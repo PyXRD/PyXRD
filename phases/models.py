@@ -328,12 +328,10 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
 
     #CALCULATIONS:
     def get_lorentz_polarisation_factor(self, range_theta, S, S1S2):
-        lpf_range = list()
         ss = max(self.data_sigma_star, 0.0000000000001)
         Q = S / (sqrt8 * np.sin(range_theta) * ss)
         T = erf(Q) * sqrt2pi / (2.0*ss * S) - 2.0*np.sin(range_theta) * (1.0- np.exp(-(Q**2.0))) / (S**2.0)
-        cosrt = np.cos(2.0*range_theta)
-        return (1.0 + cosrt) * cosrt * T / np.sin(range_theta)    
+        return (1.0 + np.cos(2.0*range_theta)**2) * T / np.sin(range_theta)    
     
     __last_Tmean = None
     __last_Tmax = None
@@ -347,7 +345,7 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
 
         #if self.__last_Tmean != Tmean and self.__last_Tmax != Tmax and self.__last_Tmin != Tmin:
         a = 0.9485 * log(Tmean) - 0.017
-        b = sqrt(0.1032*log(Tmean) + 0.034)
+        b = sqrt(0.1032*log(Tmean) + 0.0034)
         
         steps = int(Tmax - Tmin) + 1
         
@@ -482,7 +480,7 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
         #Qn = np.copy(Q)
             
         #print W
-        #print P
+        print P
                
         #Calculate the intensity:
         method = 0
@@ -499,7 +497,7 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
             CSDS_I = repeat_to_stl(np.identity(rank, dtype=np.complex) * real_mean)
             for n in range(1, int(self.data_max_CSDS)+1):
                 factor = 0
-                for m in range(n, int(self.data_max_CSDS)+1):
+                for m in range(n+1, int(self.data_max_CSDS)+1):
                     factor += (m-n) * ddict[m]
                 SubTotal += 2 * factor * Qn[n]
             SubTotal = (CSDS_I + SubTotal)
@@ -509,7 +507,7 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
             ################### SCND WAY ###################
             SubTotal = np.zeros(Q.shape, dtype=np.complex_)
             I = repeat_to_stl(np.identity(rank))
-            CSDS_I = repeat_to_stl(np.identity(rank) * real_mean)
+            CSDS_I = repeat_to_stl(np.identity(rank, dtype=np.complex_) * real_mean)
                   
             Qn = np.empty((self.data_max_CSDS+1,), dtype=object)
             Qn[1] = np.copy(Q)
@@ -521,12 +519,12 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
             IIQ2 = solve_division(I, mmult(IQ,IQ))
             R = np.zeros(Q.shape, dtype=np.complex_)
             for n in range(1, int(self.data_max_CSDS)):
-                R += (I + 2*Q*IIQ + (2 / n) * (Qn[n+1]-Q) * IIQ2) * ddict[n]
-            intensity = np.real(np.trace(mmult(mmult(F, W), R), axis1=2, axis2=1))
+                R = (I + 2*Q*IIQ + (2 / n) * (Qn[n+1]-Q) * IIQ2) * ddict[n]
+                intensity += np.real(np.trace(mmult(mmult(F, W), R), axis1=2, axis2=1))
             
         lpf = self.get_lorentz_polarisation_factor(range_theta, S, S1S2)
         scale = self.get_absolute_scale() * quantity
-        return intensity * lpf * correction_range * scale
+        return intensity * correction_range * scale * lpf
 
     def get_absolute_scale(self):
         mean_d001 = 0

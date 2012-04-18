@@ -1,37 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
   <requires lib="gtk+" version="2.20"/>
-  <object class="GtkTable" id="edit_background">
-    <property name="width_request">320</property>
+  <object class="GtkTable" id="bg_linear">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
-    <property name="border_width">10</property>
-    <property name="n_rows">4</property>
     <property name="n_columns">2</property>
-    <property name="column_spacing">10</property>
+    <property name="column_spacing">5</property>
     <property name="row_spacing">5</property>
-    <child>
-      <object class="GtkLabel" id="lbl_type">
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="xalign">1</property>
-        <property name="label" translatable="yes">Type</property>
-      </object>
-      <packing>
-        <property name="x_options">GTK_FILL</property>
-        <property name="y_options"></property>
-      </packing>
-    </child>
     <child>
       <object class="GtkLabel" id="lbl_position">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">1</property>
-        <property name="label" translatable="yes">Position</property>
+        <property name="label" translatable="yes">Background value</property>
       </object>
       <packing>
-        <property name="top_attach">2</property>
-        <property name="bottom_attach">3</property>
         <property name="x_options">GTK_FILL</property>
         <property name="y_options"></property>
       </packing>
@@ -48,8 +31,122 @@
       <packing>
         <property name="left_attach">1</property>
         <property name="right_attach">2</property>
+        <property name="y_options"></property>
+      </packing>
+    </child>
+  </object>
+  <object class="GtkTable" id="bg_pattern">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="n_rows">3</property>
+    <property name="n_columns">2</property>
+    <property name="column_spacing">6</property>
+    <property name="row_spacing">6</property>
+    <child>
+      <object class="GtkLabel" id="lbl_file">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="xalign">1</property>
+        <property name="label" translatable="yes">Pattern file</property>
+      </object>
+      <packing>
+        <property name="x_options">GTK_FILL</property>
+        <property name="y_options"></property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkFileChooserButton" id="fcb_bg_pattern">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="orientation">vertical</property>
+        <signal name="file-set" handler="on_pattern_file_set" swapped="no"/>
+      </object>
+      <packing>
+        <property name="left_attach">1</property>
+        <property name="right_attach">2</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkLabel" id="lbl_scale">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="xalign">1</property>
+        <property name="label" translatable="yes">Scale factor</property>
+      </object>
+      <packing>
+        <property name="top_attach">1</property>
+        <property name="bottom_attach">2</property>
+        <property name="x_options">GTK_FILL</property>
+        <property name="y_options"></property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkLabel" id="lbl_offset">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="xalign">1</property>
+        <property name="label" translatable="yes">Offset value</property>
+      </object>
+      <packing>
         <property name="top_attach">2</property>
         <property name="bottom_attach">3</property>
+        <property name="x_options">GTK_FILL</property>
+        <property name="y_options"></property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkEntry" id="bg_offset">
+        <property name="visible">True</property>
+        <property name="can_focus">True</property>
+        <property name="invisible_char">•</property>
+        <property name="invisible_char_set">True</property>
+        <property name="primary_icon_activatable">False</property>
+        <property name="secondary_icon_activatable">False</property>
+      </object>
+      <packing>
+        <property name="left_attach">1</property>
+        <property name="right_attach">2</property>
+        <property name="top_attach">2</property>
+        <property name="bottom_attach">3</property>
+        <property name="y_options"></property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkEntry" id="bg_scale">
+        <property name="visible">True</property>
+        <property name="can_focus">True</property>
+        <property name="invisible_char">•</property>
+        <property name="invisible_char_set">True</property>
+        <property name="primary_icon_activatable">False</property>
+        <property name="secondary_icon_activatable">False</property>
+      </object>
+      <packing>
+        <property name="left_attach">1</property>
+        <property name="right_attach">2</property>
+        <property name="top_attach">1</property>
+        <property name="bottom_attach">2</property>
+        <property name="y_options"></property>
+      </packing>
+    </child>
+  </object>
+  <object class="GtkTable" id="edit_background">
+    <property name="width_request">320</property>
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="border_width">10</property>
+    <property name="n_rows">3</property>
+    <property name="n_columns">2</property>
+    <property name="column_spacing">10</property>
+    <property name="row_spacing">5</property>
+    <child>
+      <object class="GtkLabel" id="lbl_type">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="xalign">1</property>
+        <property name="label" translatable="yes">Type</property>
+      </object>
+      <packing>
+        <property name="x_options">GTK_FILL</property>
         <property name="y_options"></property>
       </packing>
     </child>
@@ -77,10 +174,18 @@
       </packing>
     </child>
     <child>
-      <placeholder/>
-    </child>
-    <child>
-      <placeholder/>
+      <object class="GtkEventBox" id="bg_view_container">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <child>
+          <placeholder/>
+        </child>
+      </object>
+      <packing>
+        <property name="right_attach">2</property>
+        <property name="top_attach">2</property>
+        <property name="bottom_attach">3</property>
+      </packing>
     </child>
   </object>
 </interface>

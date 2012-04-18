@@ -131,6 +131,7 @@ class XYData(ChildModel, Storable, Observable):
             self._display_offset = value
             self.update_data()
     
+    #TODO get a metaclass that can generate these properties below as they are too similar:
     
     _bg_position = 0
     bg_line = None
@@ -141,11 +142,34 @@ class XYData(ChildModel, Storable, Observable):
     def set_bg_position(self, prop_name, value):
         value = float(value)
         if value != self._bg_position:
+            print "BG POSITION SET"
             self._bg_position = value
             self.plot_update.emit()
 
+    _bg_scale = 1.0
+    @Model.getter("bg_scale")
+    def get_bg_scale(self, prop_name):
+        return self._bg_scale
+    @Model.setter("bg_scale")
+    def set_bg_scale(self, prop_name, value):
+        value = float(value)
+        if value != self._bg_scale:
+            self._bg_scale = value
+            print "BG SCALE SET"
+            self.plot_update.emit()
+            
+    _bg_pattern = None
+    @Model.getter("bg_pattern")
+    def get_bg_pattern(self, prop_name):
+        return self._bg_pattern
+    @Model.setter("bg_pattern")
+    def set_bg_pattern(self, prop_name, value):
+        self._bg_pattern = value
+        print "BG PATTER SET"
+        self.plot_update.emit()
+
     _bg_type = 0
-    _bg_types = { 0: "Linear" } #TODO add more types
+    _bg_types = { 0: "Linear", 1: "Pattern" } #TODO add more types
     @Model.getter("bg_type")
     def get_bg_type(self, prop_name):
         return self._bg_type
@@ -153,9 +177,12 @@ class XYData(ChildModel, Storable, Observable):
     def set_bg_type(self, prop_name, value):
         value = int(value)
         if value in self._bg_types: 
-            self._bg_type = value      
+            self._bg_type = value
+            self.find_bg()
         else:
             raise ValueError, "'%s' is not a valid value for a background type!" % value
+    def get_bg_type_lbl(self):
+        return self._bg_types[self._bg_type]
     
     _sd_degree = 0
     sd_data = None
@@ -219,8 +246,8 @@ class XYData(ChildModel, Storable, Observable):
     plot_update = None
     data_update = None
     
-    __observables__ = ["data_name", "data_label", "xy_data", "plot_update", "data_update", "display_offset", "bg_position", "bg_type", "sd_degree", "sd_type", "shift_value", "shift_position"]
-    __storables__ = [val for val in __observables__ if not val in ("plot_update", "data_update", "display_offset", "bg_position", "bg_type", "sd_degree", "sd_type", "shift_value", "shift_position") ] + ["color",]
+    __observables__ = ["data_name", "data_label", "xy_data", "plot_update", "data_update", "display_offset", "bg_position", "bg_scale", "bg_pattern", "bg_type", "sd_degree", "sd_type", "shift_value", "shift_position"]
+    __storables__ = [val for val in __observables__ if not val in ("plot_update", "data_update", "display_offset", "bg_position", "bg_scale", "bg_pattern", "bg_type", "sd_degree", "sd_type", "shift_value", "shift_position") ] + ["color",]
        
     @property
     def color(self):
@@ -231,7 +258,7 @@ class XYData(ChildModel, Storable, Observable):
             self.line.set_color(color)
             if self.line.get_visible() and self.line.get_axes() != None:
                 self.plot_update.emit()
-       
+    
     def __init__(self, data_name=None, data_label=None, xy_data=None, color="#0000FF", parent=None, **kwargs):
         ChildModel.__init__(self, parent=parent)
         Storable.__init__(self)
@@ -280,8 +307,13 @@ class XYData(ChildModel, Storable, Observable):
         
         #Add bg line (if present)
         try_or_die(self.bg_line)
-        if self._bg_position != 0.0:
+        if self.bg_type == 0 and self._bg_position != 0.0:
             self.bg_line = axes.axhline(y=self.bg_position, c="#660099")
+        elif self.bg_type == 1 and self.bg_pattern != None:
+            bg = self.bg_pattern * self.bg_scale + self.bg_position
+            self.bg_line = matplotlib.lines.Line2D(xdata=self.xy_data._model_data_x, ydata=bg, c="#660099")
+            axes.add_line(self.bg_line)            
+            print "ADDING BG LINE!!"
         else:
             self.bg_line = None
             
@@ -311,16 +343,27 @@ class XYData(ChildModel, Storable, Observable):
     """
     def remove_background(self):
         y_data = self.xy_data._model_data_y
-        if self.bg_position != 0.0:
-            if self.bg_type == 0:
+        if self.bg_type == 0:
+            if self.bg_position != 0.0:
                 y_data = np.maximum((y_data - self.bg_position) / (1.0 - self.bg_position), 0.0)
-            self.xy_data._model_data_y = y_data
+        elif self.bg_type == 1:
+            if self.bg_pattern != None and not (self.bg_position == 0 and self.bg_scale == 0):
+                y_data -= (self.bg_pattern * self.bg_scale + self.bg_position)
+                miny = np.min(y_data)
+                maxy = np.max(y_data)
+                y_data = (y_data - miny) / (maxy - miny)                
+        self.xy_data._model_data_y = y_data
+        self.bg_pattern = None
+        self.bg_scale = 0.0
         self.bg_position = 0.0
         self.update_data()
         
     def find_bg(self):
-        y_min = np.min(self.xy_data._model_data_y)
-        self.bg_position = y_min
+        if self.bg_type == 0:
+            y_min = np.min(self.xy_data._model_data_y)
+            self.bg_position = y_min
+        #elif self.bg_type == 1:
+        #    self.bg_scale = #TODO
            
     """
         Data smoothing stuff
@@ -367,6 +410,12 @@ class XYData(ChildModel, Storable, Observable):
             section_x, section_y = np.extract(condition, x_data), np.extract(condition, y_data)
             actual_position = section_x[np.argmax(section_y)]
             self.shift_value = actual_position - position
+         
+    def save_data(self, filename):
+        f = open(filename, 'w')
+        f.write("%s %s\n" % (self.parent.data_name, self.parent.data_sample))
+        np.savetxt(f, zip(self.xy_data._model_data_x, self.xy_data._model_data_y), fmt="%.8f")
+        f.close()
          
     def load_data(self, data, format="DAT", has_header=True, clear=True, silent=False):
         xydata = []

@@ -14,6 +14,7 @@ from gtkmvc import Controller, Observer
 from gtkmvc.adapters import Adapter
 
 from generic.plot_controllers import DraggableVLine, EyedropperCursorPlot
+from generic.models import XYData
 from generic.controllers import DialogController, DialogMixin, ChildController, ObjectListStoreController, HasObjectTreeview, get_color_val, delayed, ctrl_setup_combo_with_list
 from generic.validators import FloatEntryValidator
 from generic.utils import get_case_insensitive_glob
@@ -245,6 +246,19 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
         self.run_confirmation_dialog("Importing a new experimental file will erase all current data.\nAre you sure you want to continue?",
                                      on_confirm, parent=self.view.get_top_widget())
         return True
+        
+    def on_btn_export_experimental_data_clicked(self, widget, data=None):
+        def on_accept(dialog):
+            filename = self.extract_filename(dialog)
+            if filename[-3:].lower() == "dat":
+                print "Opening file %s for export using ASCII DAT format" % filename
+                self.model.data_experimental_pattern.save_data(filename)
+            if filename[-2:].lower() == "rd":
+                self.run_information_dialog("RD file format not supported (yet)!", parent=self.view.get_top_widget())
+        self.run_save_dialog(title="Select file for export",
+                             on_accept_callback=on_accept, 
+                             parent=self.view.get_top_widget())
+        return True
 
     pass #end of class
 
@@ -253,20 +267,51 @@ class BackgroundController(DialogController):
 
     def register_adapters(self):
         if self.model is not None:
-            self.model.find_bg()
             for name in self.model.get_properties():
                 if name == "bg_type":
                     ctrl_setup_combo_with_list(self, 
                         self.view["cmb_bg_type"],
                         "bg_type", "_bg_types")
                 elif name == "bg_position":
+                    FloatEntryValidator(self.view["bg_offset"])
                     FloatEntryValidator(self.view["bg_position"])
+                    self.adapt(name, "bg_offset")
+                    self.adapt(name, "bg_position")
+                elif name == "bg_scale":
+                    FloatEntryValidator(self.view["bg_scale"])
                     self.adapt(name)
             return
             
     # ------------------------------------------------------------
+    #      Notifications of observable properties
+    # ------------------------------------------------------------
+    @Controller.observe("bg_type", assign=True)
+    def notif_bg_type_changed(self, model, prop_name, info):
+        self.view.select_bg_view(self.model.get_bg_type_lbl().lower())
+        return
+            
+    # ------------------------------------------------------------
     #      GTK Signal handlers
     # ------------------------------------------------------------
+    def on_pattern_file_set(self, dialog):
+        filename = dialog.get_filename()
+        xydata_bg = XYData("Background Profile", color="#660099", parent=self.model.parent)
+        if filename[-3:].lower() == "dat":
+            print "Opening file %s for import using ASCII DAT format" % filename
+            data, size, entity = dialog.get_file().load_contents()
+            xydata_bg.load_data(data, format="DAT", silent=True)
+        if filename[-2:].lower() == "rd":
+            print "Opening file %s for import using BINARY RD format" % filename
+            xydata_bg.load_data(filename, format="BIN", silent=True)
+        bg_pattern_x = xydata_bg.xy_data._model_data_x
+        bg_pattern_y = xydata_bg.xy_data._model_data_y
+        our_x = self.model.xy_data._model_data_x
+        if bg_pattern_x.shape != our_x.shape or bg_pattern_x[0] != our_x[0] or bg_pattern_x[-1] != our_x[-1]:
+            print "WRONG SHAPE, BG PATTERN NOT LOADED!!"
+            dialog.unselect_filename(filename)
+        else:        
+            self.model.bg_pattern = bg_pattern_y
+
     def on_btn_ok_clicked(self, event):
         self.model.remove_background()
         self.view.hide()

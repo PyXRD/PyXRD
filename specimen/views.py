@@ -46,11 +46,22 @@ class BackgroundView(DialogView):
     subview_toplevel = "edit_background"
     modal = True
       
+    def_bg_view = "bg_linear"
+    bg_view_cont = "bg_view_container"
+    
+    def select_bg_view(self, bg_view=None):
+        if bg_view != None:
+            bg_view = "bg_%s" % bg_view
+        else:
+            bg_view = self.def_bg_view
+        print self[bg_view], self[self.bg_view_cont]
+        self._add_child_view(self[bg_view], self[self.bg_view_cont])
+      
 class SmoothDataView(DialogView):
     title = "Smooth Data"
     subview_builder = "specimen/glade/smoothing.glade"
     subview_toplevel = "smooth_data"
-    modal = True    
+    modal = True
      
 class ShiftDataView(DialogView):
     title = "Shift Pattern"

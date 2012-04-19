@@ -45,6 +45,9 @@ class Project(Model, Observable, Storable):
     display_marker_angle = 0.0
     display_plot_offset = 0.75
     
+    axes_xscale = 1
+    
+    
     _display_calc_color = "#666666"
     @Model.getter("display_calc_color")
     def get_calc_color(self, prop_name):

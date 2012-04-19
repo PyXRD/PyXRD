@@ -429,14 +429,18 @@ class XYListStore(_BaseObjectListStore, Storable):
         self.remove_from_path(path)
 
     def clear(self):
-        self._model_data_x = np.array([])
-        self._model_data_y = np.array([])
-        self.invalidate_iters()
+        self.remove_from_path(*map(lambda i: (i,), range(self._model_data_x.shape[0])))
+        #self._model_data_x = np.array([])
+        #self._model_data_y = np.array([])
+        #self.invalidate_iters()
         
     def set_from_data(self, data_x, data_y):
+        self.remove_from_path(*map(lambda i: (i,), range(self._model_data_x.shape[0])))
         self._model_data_x = np.array(data_x)
         self._model_data_y = np.array(data_y)
-        self.invalidate_iters()
+        for pos in range(self._model_data_x.shape[0]):
+            self._emit_added((pos,))
+        #self.invalidate_iters()
         
     def get_raw_model_data(self):
         return self._model_data_x, self._model_data_y

@@ -31,10 +31,9 @@ import settings
 
 from generic.utils import interpolate, print_timing
 from generic.io import Storable, PyXRDDecoder
-from generic.models import XYData, ChildModel, CSVMixin, ObjectListStoreChildMixin
+from generic.models import XYData, ChildModel, CSVMixin, ObjectListStoreChildMixin, ListPropsMixin
 from generic.treemodels import ObjectListStore, XYListStore, Point
 from generic.peak_detection import multi_peakdetect, peakdetect, smooth
-
 
 
 class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
@@ -486,7 +485,7 @@ class ThresholdSelector(ChildModel, Observable):
 
             self.sel_threshold = peak_x
             
-class Marker(ChildModel, Observable, Storable, ObjectListStoreChildMixin, CSVMixin):
+class Marker(ChildModel, Observable, Storable, ObjectListStoreChildMixin, CSVMixin, ListPropsMixin):
     
     __columns__ = [
         ('data_label', str),
@@ -542,11 +541,19 @@ class Marker(ChildModel, Observable, Storable, ObjectListStoreChildMixin, CSVMix
             self._data_angle = value
             if self._text!=None:
                 self._text.set_rotation(90-self.data_angle)
-        
+    
     _data_base = 1
     _data_bases = { 0: "X-axis", 1: "Experimental profile" }
     if not settings.VIEW_MODE:
         _data_bases.update({ 2: "Calculated profile", 3: "Lowest of both", 4: "Highest of both" })
+
+    _data_style = "none"
+    _data_styles = { "none": "Display at base", "solid": "Solid", "dashed": "Dash", "dotted": "Dotted", "dashdot": "Dash-Dotted", "offset": "Display at Y-offset" }
+        
+    ListPropsMixin.add_cbb_props(("data_base", int), ("data_style", lambda i: i))
+        
+    """_data_base = 1
+    _data_bases = { 0: "X-axis", 1: "Experimental profile" }       
     @Model.getter("data_base")
     def get_data_base(self, prop_name):
         return self._data_base
@@ -556,10 +563,10 @@ class Marker(ChildModel, Observable, Storable, ObjectListStoreChildMixin, CSVMix
         if value in self._data_bases: 
             self._data_base = value      
         else:
-            raise ValueError, "'%s' is not a valid value for a marker base!" % value
+            raise ValueError, "'%s' is not a valid value for a marker base!" % value"""
     
     
-    _data_style = "none"
+    """_data_style = "none"
     _data_styles = { "none": "Display at base", "solid": "Solid", "dashed": "Dash", "dotted": "Dotted", "dashdot": "Dash-Dotted", "offset": "Display at Y-offset" }
     @Model.getter("data_style")
     def get_data_style(self, prop_name):
@@ -569,7 +576,7 @@ class Marker(ChildModel, Observable, Storable, ObjectListStoreChildMixin, CSVMix
         if value in self._data_styles: 
             self._data_style = value      
         else:
-            raise ValueError, "'%s' is not a valid value for a marker style!" % value
+            raise ValueError, "'%s' is not a valid value for a marker style!" % value"""
     
     def __init__(self, data_label="", data_visible=True, data_position=0.0, data_x_offset=0.0, data_y_offset=0.05, 
                  data_color="#000000", data_base=1, data_angle=0.0, inherit_angle=True, data_style="none", parent=None):

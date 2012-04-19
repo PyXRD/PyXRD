@@ -349,8 +349,6 @@ class XYListStore(_BaseObjectListStore, Storable):
     def set_value(self, itr, column, value):
         i = self.get_user_data(itr)[0]
         if i < self._model_data_x.size:
-            #self._model_data_x = np.resize(self._model_data_x, i+1)
-            #self._model_data_y = np.resize(self._model_data_y, i+1)
             if column == self.c_x:
                 self._model_data_x[i] = value
             elif column == self.c_y:
@@ -421,9 +419,10 @@ class XYListStore(_BaseObjectListStore, Storable):
 
     def remove_from_path(self, *paths):
         self._model_data_x = np.delete(self._model_data_x, paths)
-        self._model_data_y = np.delete(self._model_data_y, paths)       
+        self._model_data_y = np.delete(self._model_data_y, paths)
+        paths = np.sort(paths)[::-1]
         for path in paths:
-            self.row_deleted(path)
+            self.row_deleted((int(path[0]),))
 
     def remove(self, itr):
         path = self.get_path(itr)

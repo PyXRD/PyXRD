@@ -18,7 +18,7 @@ from gtkmvc.adapters import Adapter
 import settings
 
 from generic.validators import FloatEntryValidator 
-from generic.controllers import DialogController, HasObjectTreeview, DialogMixin, get_color_val
+from generic.controllers import DialogController, HasObjectTreeview, DialogMixin, get_color_val, ctrl_setup_combo_with_list
 from project.models import Project
 from specimen.models import Specimen
 from specimen.controllers import SpecimenController
@@ -47,13 +47,15 @@ class ProjectController (DialogController, HasObjectTreeview, DialogMixin):
                     self.adapt(ad)
                 elif name == "data_description":
                     pass
-                elif name in ["display_calc_color", "display_exp_color"]:
+                elif name in ("display_calc_color", "display_exp_color"):
                     ad = Adapter(self.model, name)
                     ad.connect_widget(self.view["project_%s" % name], getter=get_color_val)
                     self.adapt(ad)
-                elif name == ("display_marker_angle", "display_plot_offset"):
+                elif name in ("display_marker_angle", "display_plot_offset", "project_axes_xmin", "project_axes_xmax", "display_label_pos"):
                     FloatEntryValidator(self.view["project_%s" % name])
                     self.adapt(name)
+                elif name in ("axes_xscale", "axes_yscale"):
+                    ctrl_setup_combo_with_list(self, self.view["cmb_%s" % name], name, "_%ss"%name)
                 elif name == "data_specimens":
                     # connects the treeview to the liststore
                     tv = self.parent.view['specimens_treeview']
@@ -137,6 +139,7 @@ class ProjectController (DialogController, HasObjectTreeview, DialogMixin):
     # ------------------------------------------------------------
     #      Notifications of observable properties
     # ------------------------------------------------------------
+    
     @Controller.observe("data_name", assign=True)
     def notif_change_name(self, model, prop_name, info):
         self.parent.update_title()
@@ -147,6 +150,17 @@ class ProjectController (DialogController, HasObjectTreeview, DialogMixin):
         print "prop_name = %s" % prop_name
         return
 
+    @Controller.observe("axes_xscale", assign=True)
+    def notif_xscale_toggled(self, model, prop_name, info):
+        for widget in ("lbl_minx", "lbl_maxx", "project_axes_xmin", "project_axes_xmax"):
+            self.view[widget].set_sensitive(self.model.axes_xscale==1)
+        
+    @Controller.observe("axes_xscale", assign=True)
+    @Controller.observe("axes_xmin", assign=True)
+    @Controller.observe("axes_xmax", assign=True)
+    @Controller.observe("axes_xstretch", assign=True)
+    @Controller.observe("axes_yscale", assign=True)
+    @Controller.observe("axes_yvisible", assign=True)
     @Controller.observe("display_exp_color", assign=True)
     @Controller.observe("display_calc_color", assign=True)
     @Controller.observe("display_marker_angle", assign=True)

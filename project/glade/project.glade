@@ -351,14 +351,14 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkSpinButton" id="spb_display_label_position">
+                      <object class="GtkEntry" id="project_display_label_pos">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="invisible_char">•</property>
                         <property name="width_chars">4</property>
-                        <property name="climb_rate">0.050000000000000003</property>
-                        <property name="digits">2</property>
-                        <property name="numeric">True</property>
+                        <property name="invisible_char_set">True</property>
+                        <property name="primary_icon_activatable">False</property>
+                        <property name="secondary_icon_activatable">False</property>
                       </object>
                       <packing>
                         <property name="left_attach">1</property>
@@ -366,6 +366,7 @@
                         <property name="top_attach">1</property>
                         <property name="bottom_attach">2</property>
                         <property name="x_options"></property>
+                        <property name="y_options"></property>
                       </packing>
                     </child>
                   </object>
@@ -544,7 +545,7 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkComboBox" id="project_axes_xscale">
+                      <object class="GtkComboBox" id="cmb_axes_xscale">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                       </object>
@@ -556,7 +557,7 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkComboBox" id="project_axes_yscale">
+                      <object class="GtkComboBox" id="cmb_axes_yscale">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                       </object>
@@ -570,7 +571,7 @@
                     </child>
                     <child>
                       <object class="GtkCheckButton" id="project_axes_yvisible">
-                        <property name="label" translatable="yes">Stretch X-axis to fit window</property>
+                        <property name="label" translatable="yes">Y-axis visible</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">False</property>

@@ -11,17 +11,22 @@ import gtk
 from math import sin, radians
 
 import matplotlib
-#matplotlib.use('GTKCairo')
+import matplotlib.transforms as transforms
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_gtkcairo import FigureCanvasGTKCairo as FigureCanvasGTK
 from matplotlib.ticker import FuncFormatter, IndexLocator
 from matplotlib.font_manager import FontProperties
 
-from mpl_toolkits.axes_grid1.axes_divider import make_axes_area_auto_adjustable
+#from mpl_toolkits.axes_grid1.axislines import Subplot
+from mpl_toolkits.axisartist import Subplot
 
 import settings
 
 from generic.controllers import DialogMixin
+
+#TODO:
+# - add PlotModel with settings now stored a.o. in the Project model
+# - make PlotController a real Controller with a real View (the matplotlib widget) and a real model
 
 class PlotController (DialogMixin):
     file_filters = ("Portable Network Graphics (PNG)", "*.png"), \
@@ -131,25 +136,18 @@ class MainPlotController (PlotController):
         bg_color = (gtkcol.red_float, gtkcol.green_float, gtkcol.blue_float)
     
         self.title = self.figure.text(s="", va='bottom', ha='left', x=0.1, y=0.1, weight="bold")
-        self.plot = self.figure.add_subplot(211, axisbg=(1.0,1.0,1.0,0.0))
-        self.plot.set_frame_on(False)
+        self.plot = Subplot(self.figure, 211, axisbg=(1.0,1.0,1.0,0.0))
+        self.figure.add_axes(self.plot)
+        self.plot.axis["right"].set_visible(False)
+        self.plot.axis["left"].set_visible(False)
+        self.plot.axis["top"].set_visible(False)
         self.plot.get_xaxis().tick_bottom()
-        self.plot.get_yaxis().set_ticks_position('none')
-        #make_axes_area_auto_adjustable(self.plot, adjust_dirs=["left"], pad=0)
+        self.plot.get_yaxis().tick_left()
         
-        xmin, xmax = self.plot.get_xaxis().get_view_interval()
-        ymin, ymax = self.plot.get_yaxis().get_view_interval()
-        self.xaxis_line = matplotlib.lines.Line2D((xmin, xmax), (ymin, ymin), color='black', linewidth=2)
-        
-        
-        self.stats_plot = self.figure.add_subplot(212, sharex=self.plot, axisbg=(1.0,1.0,1.0,0.0))
+        self.stats_plot = Subplot(self.figure, 212, sharex=self.plot, axisbg=(1.0,1.0,1.0,0.0))
         self.stats_plot.get_xaxis().tick_bottom()
         yaxis = self.stats_plot.get_yaxis()
         yaxis.tick_left()
-        #yaxis.get_major_locator().set_params(symmetric=True, nbins=2)
-        self.figure.delaxes(self.stats_plot) #remove for now until we need it
-        #self.stats_plot.autoscale(axis='y')
-        #make_axes_area_auto_adjustable(self.stats_plot, adjust_dirs=["left"], pad=0.0, use_axes=self.plot)
 
         self.update()
         
@@ -165,11 +163,11 @@ class MainPlotController (PlotController):
     ###
     ### UPDATE SUBROUTINES
     ###
-    def update(self, clear=False, single=True, labels=None, stats=(False,None)):
+    def update(self, clear=False, single=True, labels=None, stats=(False,None), project=None):
         if clear: self.plot.cla()
         
         self.update_proxies(draw=False)
-        self.update_axes(draw=False, single=single, labels=labels, stats=stats)
+        self.update_axes(draw=False, single=single, labels=labels, stats=stats, project=project)
         
         self.draw()
 
@@ -178,68 +176,79 @@ class MainPlotController (PlotController):
             ret = getattr(obj, callback)(self.figure, self.plot, self)
         if draw: self.draw()
     
-    def update_lim(self):
+    def update_lim(self, project=None):
         self.plot.relim()
         self.plot.autoscale_view()
         self.plot.set_ylim(bottom=0, auto=True)
         
         xaxis = self.plot.get_xaxis()
-        xmin, xmax = xaxis.get_view_interval()
-        if xmax < 20:
-            self.plot.set_xlim(right=20, auto=True)
+        if project==None or project.axes_xscale == 0:
+            xmin, xmax = xaxis.get_view_interval()
+            if xmax < 20:
+                self.plot.set_xlim(right=20, auto=True)
+        else:
+            xmin, xmax = project.axes_xmin, project.axes_xmax
+            self.plot.set_xlim(left=xmin, right=xmax, auto=False)
 
-    def update_axes(self, draw=True, single=True, labels=None, stats=(False,None)):
-        self.update_lim()
+    def update_axes(self, draw=True, single=True, labels=None, stats=(False,None), project=None):
+        self.update_lim(project=project)
         
-        stats, res_pattern = stats
+        stats, res_pattern = stats        
+        stretch = project.axes_xstretch if project != None else False
         
         xaxis = self.plot.get_xaxis()
         yaxis = self.plot.get_yaxis()
         xmin, xmax = xaxis.get_view_interval()
         ymin, ymax = yaxis.get_view_interval()
+        xdiff = xmax-xmin
         
         if labels != None and labels != []:
-            labels, ticks = zip(*labels)
-            yaxis.set_ticks(ticks)
-            yaxis.set_ticklabels(labels)
-            yaxis.set_ticks_position('none')
+            for label, position in labels:
+                self.plot.text(
+                    settings.PLOT_LEFT-0.02, position, label, 
+                    horizontalalignment='right', verticalalignment='center', 
+                    transform=transforms.blended_transform_factory(self.figure.transFigure, self.plot.transData)
+                )
+        if project==None or project.axes_yvisible==False:
+            self.plot.axis["left"].set_visible(False)
         else:
-            yaxis.set_ticks_position('none')
-            yaxis.set_ticklabels([])
-            matplotlib.artist.setp(self.plot.get_yticklabels(), visible=False)
-        self.xaxis_line.set_data((xmin, xmax), (ymin, ymin))
+            self.plot.axis["left"].set_visible(True)
+        self.plot.axis["bottom"].major_ticks.set_visible(True)
+        self.plot.axis["right"].set_visible(False)
+        self.plot.axis["top"].set_visible(False)
+           
+           
+        def set_label_text(label, text):
+            label.set_text(text)
+            label.set_weight('heavy')
+            label.set_size(16)
                         
         if stats:
-            self.plot.set_position(settings.get_plot_stats_position(xmax))
+            self.plot.set_position(settings.get_plot_stats_position(xdiff, stretch=stretch))
             
             self.figure.add_axes(self.stats_plot)
             self.stats_plot.cla()
             self.stats_plot.add_line(res_pattern)
             self.stats_plot.set_ylim(auto=True)
-            self.stats_plot.relim()
-            self.stats_plot.get_yaxis().get_major_locator().set_params(symmetric=True, nbins=2, integer=False)            
             self.stats_plot.axhline(ls=":", c="k")
-            
+
+            self.stats_plot.relim()            
             self.stats_plot.autoscale_view()
-            self.stats_plot.set_position(settings.get_stats_plot_position(xmax))
-            self.stats_plot.set_ylabel('Residual',  weight="heavy", size=16)
-        
-            self.plot.set_xlabel('')
-            matplotlib.artist.setp(self.plot.get_xticklabels(), visible=False)
+            self.stats_plot.get_yaxis().get_major_locator().set_params(symmetric=True, nbins=2, integer=False)            
+            self.stats_plot.set_position(settings.get_stats_plot_position(xdiff)) 
             
-            self.stats_plot.set_xlabel('Angle (°2θ)', weight="heavy", size=16)
+            set_label_text(self.plot.axis["bottom"].label, '')
+            set_label_text(self.stats_plot.axis["bottom"].label, 'Angle (°2θ)')
+            set_label_text(self.stats_plot.axis["left"].label, 'Residual')
+            self.plot.axis["bottom"].major_ticklabels.set_visible(False)
         else:    
-            self.plot.set_position(settings.get_plot_position(xmax))
-            self.plot.set_xlabel('Angle (°2θ)', weight="heavy", size=16, visible=True)
-            matplotlib.artist.setp(self.plot.get_xticklabels(), visible=True)
-            xaxis.tick_bottom()            
+            self.plot.set_position(settings.get_plot_position(xdiff, stretch=stretch))
+            
+            set_label_text(self.plot.axis["bottom"].label, 'Angle (°2θ)')
+            self.plot.axis["bottom"].major_ticklabels.set_visible(True)
 
-            #delete stats plot if present:                        
-            if self.stats_plot in self.figure.axes:
+            if self.stats_plot in self.figure.axes: #delete stats plot if present:
                 self.figure.delaxes(self.stats_plot)
-
-        self.xaxis_line.set_data((xmin, xmax), (ymin, ymin))
-        self.plot.add_artist(self.xaxis_line)
         
         if draw: self.draw()
     

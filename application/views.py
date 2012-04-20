@@ -78,6 +78,15 @@ class AppView(BaseView):
         setattr(self, view_name, class_type(parent=self))
         return getattr(self, view_name)
 
+    def reset_all_views(self):
+        self.reset_project_view()
+        self.reset_goniometer_view()
+        self.reset_specimen_view()
+        self.reset_statistics_view()
+        self.reset_markers_view()
+        self.reset_atom_types_view()
+        self.reset_phases_view()
+
     def reset_project_view(self):
         return self._reset_child_view("project", ProjectView)
 

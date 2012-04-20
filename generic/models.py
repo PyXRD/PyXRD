@@ -54,22 +54,20 @@ class CSVMixin():
             header = False
         return items
 
-class ListPropsMixin():
-    @classmethod
-    def add_cbb_props(cls, *props):
-        mapper_dict = dict(props)
-        props, mappers = zip(*props)
-    
-        @Model.getter(*props)
-        def get_cbb_prop(self, prop_name):
-            return getattr(self, "_%s" % prop_name)
-        @Model.setter(*props)
-        def set_cbb_prop(self, prop_name, value):
-            value = mapper_dict[prop_name](value)
-            if value in getattr(self, "_%ss" % prop_name): 
-                setattr(self, "_%s" % prop_name, value)
-            else:
-                raise ValueError, "'%s' is not a valid value for %s!" % (value, prop_name)
+def add_cbb_props(*props):
+    mapper_dict = dict(props)
+    props, mappers = zip(*props)
+
+    @Model.getter(*props)
+    def get_cbb_prop(self, prop_name):
+        return getattr(self, "_%s" % prop_name)
+    @Model.setter(*props)
+    def set_cbb_prop(self, prop_name, value):
+        value = mapper_dict[prop_name](value)
+        if value in getattr(self, "_%ss" % prop_name): 
+            setattr(self, "_%s" % prop_name, value)
+        else:
+            raise ValueError, "'%s' is not a valid value for %s!" % (value, prop_name)
 
 class ObjectListStoreChildMixin():
     

@@ -31,7 +31,7 @@ import settings
 
 from generic.utils import interpolate, print_timing
 from generic.io import Storable, PyXRDDecoder
-from generic.models import XYData, ChildModel, CSVMixin, ObjectListStoreChildMixin, ListPropsMixin
+from generic.models import XYData, ChildModel, CSVMixin, ObjectListStoreChildMixin, add_cbb_props
 from generic.treemodels import ObjectListStore, XYListStore, Point
 from generic.peak_detection import multi_peakdetect, peakdetect, smooth
 
@@ -485,7 +485,7 @@ class ThresholdSelector(ChildModel, Observable):
 
             self.sel_threshold = peak_x
             
-class Marker(ChildModel, Observable, Storable, ObjectListStoreChildMixin, CSVMixin, ListPropsMixin):
+class Marker(ChildModel, Observable, Storable, ObjectListStoreChildMixin, CSVMixin):
     
     __columns__ = [
         ('data_label', str),
@@ -550,7 +550,7 @@ class Marker(ChildModel, Observable, Storable, ObjectListStoreChildMixin, CSVMix
     _data_style = "none"
     _data_styles = { "none": "Display at base", "solid": "Solid", "dashed": "Dash", "dotted": "Dotted", "dashdot": "Dash-Dotted", "offset": "Display at Y-offset" }
         
-    ListPropsMixin.add_cbb_props(("data_base", int), ("data_style", lambda i: i))
+    add_cbb_props(("data_base", int), ("data_style", lambda i: i))
         
     """_data_base = 1
     _data_bases = { 0: "X-axis", 1: "Experimental profile" }       

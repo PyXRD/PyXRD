@@ -57,6 +57,7 @@ class AppController (BaseController, DialogMixin):
         return
 
     def reset_project_controller(self):
+        self.view.reset_all_views()
         self.project = ProjectController(self.model.current_project, self.view.project, parent=self)
         self.phases = PhasesController(self.model.current_project, self.view.phases, parent=self)
         self.atom_types = AtomTypesController(self.model.current_project, self.view.atom_types, parent=self)
@@ -131,7 +132,8 @@ class AppController (BaseController, DialogMixin):
             clear=True,
             single=single,
             labels=labels,
-            stats=stats)
+            stats=stats,
+            project=self.model.current_project)
         
         self.pop_status_msg()
         

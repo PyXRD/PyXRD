@@ -18,23 +18,26 @@ PLOT_HEIGHT = PLOT_TOP - PLOT_BOTTOM
 
 STATS_PLOT_BOTTOM = 0.10
 
-def _get_ratio(angle):
-    return min((angle / 70), 1.0) * MAX_PLOT_WIDTH
+def _get_ratio(angle, stretch=False):
+    if stretch:
+        return MAX_PLOT_WIDTH
+    else:
+        return min((angle / 70), 1.0) * MAX_PLOT_WIDTH
 
-def get_plot_position(angle):
-    PLOT_WIDTH = _get_ratio(angle)
+def get_plot_position(angle, stretch=False):
+    PLOT_WIDTH = _get_ratio(angle, stretch=stretch)
     return [PLOT_LEFT, PLOT_BOTTOM, PLOT_WIDTH, PLOT_HEIGHT]
 
-def get_plot_stats_position(angle):
-    PLOT_WIDTH = _get_ratio(angle)
+def get_plot_stats_position(angle, stretch=False):
+    PLOT_WIDTH = _get_ratio(angle, stretch=stretch)
     return [PLOT_LEFT, PLOT_BOTTOM+PLOT_STATS_OFFSET, PLOT_WIDTH, PLOT_HEIGHT-PLOT_STATS_OFFSET]
 
-def get_stats_plot_position(angle):
-    PLOT_WIDTH = _get_ratio(angle)
+def get_stats_plot_position(angle, stretch=False):
+    PLOT_WIDTH = _get_ratio(angle, stretch=stretch)
     return [PLOT_LEFT, STATS_PLOT_BOTTOM, PLOT_WIDTH, PLOT_STATS_OFFSET]
     
-def get_plot_right(angle):
-    PLOT_WIDTH = _get_ratio(angle)
+def get_plot_right(angle, stretch=False):
+    PLOT_WIDTH = _get_ratio(angle, stretch=stretch)
     return PLOT_LEFT + PLOT_WIDTH
     
 PRINT_WIDTH = 1800

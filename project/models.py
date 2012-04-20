@@ -17,6 +17,7 @@ from math import sin, cos, pi, sqrt
 import settings
 
 from generic.utils import interpolate
+from generic.models import add_cbb_props
 from generic.treemodels import ObjectListStore, IndexListStore
 from generic.io import Storable
 
@@ -34,33 +35,55 @@ class Project(Model, Observable, Storable):
                         "display_marker_angle",
                         "display_calc_color",
                         "display_exp_color",
-                        "display_plot_offset" )
+                        "display_plot_offset",
+                        "display_label_pos",
+                        "axes_xscale",
+                        "axes_xmin",
+                        "axes_xmax",
+                        "axes_xstretch",
+                        "axes_yscale",
+                        "axes_yvisible" )
     __storables__ = __observables__
 
     data_name = ""
     data_date = ""
     data_description = None
     data_author = ""
+
+       
+    _axes_xscale = 0
+    _axes_xscales = { 0: "Auto", 1: "Manual" }
+    axes_xmin = 0.0
+    axes_xmax = 70.0
+    axes_xstretch = False
+    
+    _axes_yscale = 0
+    _axes_yscales = { 0: "Multi normalised", 1: "Single normalised", 2: "Unchanged raw counts", 4: "Custom (per specimen)" }
+    axes_yvisible = False
+    
+    add_cbb_props(("axes_xscale", int), ("axes_yscale", int))
+    
+    display_plot_offset = 0.75
+    _display_calc_color = "#666666"
+    _display_exp_color = "#000000"    
+    @Model.getter("display_calc_color", "display_exp_color")
+    def get_color(self, prop_name):
+        return getattr(self, "_%s" % prop_name)
+    @Model.setter("display_calc_color", "display_exp_color")
+    def set_color(self, prop_name, value):
+        if value != getattr(self, "_%s" % prop_name):
+            setattr(self, "_%s" % prop_name, value)
+            calc = ("calc" in prop_name)
+            for specimen in self.data_specimens._model_data:
+                if calc:
+                    specimen.data_calculated_pattern.color = value
+                else:
+                    specimen.data_experimental_pattern.color = value
     
     display_marker_angle = 0.0
-    display_plot_offset = 0.75
-    
-    axes_xscale = 1
-    
-    
-    _display_calc_color = "#666666"
-    @Model.getter("display_calc_color")
-    def get_calc_color(self, prop_name):
-            return self._display_calc_color
-    @Model.setter("display_calc_color")
-    def set_calc_color(self, prop_name, value):
-        if value != self._display_calc_color:
-            self._display_calc_color = value
-            for specimen in self.data_specimens._model_data:
-                specimen.data_calculated_pattern.color = value
-    
-    _display_exp_color = "#000000"
-    @Model.getter("display_exp_color")
+    display_label_pos = 0.35
+
+    """@Model.getter("display_exp_color")
     def get_exp_color(self, prop_name):
             return self._display_exp_color
     @Model.setter("display_exp_color")
@@ -68,7 +91,8 @@ class Project(Model, Observable, Storable):
         if value != self._display_exp_color:
             self._display_exp_color = value
             for specimen in self.data_specimens._model_data:
-                specimen.data_experimental_pattern.color = value
+                specimen.data_experimental_pattern.color = value"""
+
     
     _data_specimens = None
     @Model.getter("data_specimens")
@@ -175,7 +199,8 @@ class Project(Model, Observable, Storable):
                  author = "Project author",
                  goniometer = None,
                  atom_types = None, data_phases = None, data_specimens = None,
-                 display_marker_angle=None, display_calc_color=None, display_exp_color=None, display_plot_offset=None,
+                 display_marker_angle=None, display_calc_color=None, display_exp_color=None, display_plot_offset=None, display_label_pos=None,
+                 axes_xscale=None, axes_xmin=None, axes_xmax=None, axes_xstretch=None, axes_yscale=None, axes_yvisible=None,
                  load_default_data=True):
         Model.__init__(self)
         Observable.__init__(self)
@@ -199,6 +224,14 @@ class Project(Model, Observable, Storable):
         self.display_calc_color = display_calc_color or self.display_calc_color
         self.display_exp_color = display_exp_color or self.display_exp_color
         self.display_plot_offset = display_plot_offset or self.display_plot_offset
+        self.display_label_pos = display_label_pos or self.display_label_pos
+        
+        self.axes_xscale = axes_xscale or self.axes_xscale
+        self.axes_xmin = axes_xmin or self.axes_xmin
+        self.axes_xmax = axes_xmax or self.axes_xmax
+        self.axes_xstretch = axes_xstretch or self.axes_xstretch
+        self.axes_yscale = axes_yscale or self.axes_yscale
+        self.axes_yvisible = axes_yvisible or self.axes_yvisible
 
         if load_default_data and not settings.VIEW_MODE: self.load_default_data()
         

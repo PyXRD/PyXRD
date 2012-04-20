@@ -147,8 +147,16 @@ class XYData(ChildModel, Storable, Observable):
             self._display_offset = value
             self.update_data()
     
-    #TODO get a metaclass that can generate these properties below as they are too similar:
-    
+    """_display_scale = 1.0
+    @Model.getter("display_scale")
+    def get_display_scale(self, prop_name):
+        return self._display_scale
+    @Model.setter("display_scale")
+    def set_display_scale(self, prop_name, value):
+        if value != self._display_scale:
+            self._display_scale = value
+            self.update_data()"""
+        
     _bg_position = 0
     bg_line = None
     @Model.getter("bg_position")
@@ -171,7 +179,6 @@ class XYData(ChildModel, Storable, Observable):
         value = float(value)
         if value != self._bg_scale:
             self._bg_scale = value
-            print "BG SCALE SET"
             self.plot_update.emit()
             
     _bg_pattern = None
@@ -267,12 +274,34 @@ class XYData(ChildModel, Storable, Observable):
         xy_data = PyXRDDecoder.__pyxrd_decode__(xy_data)
         return XYData(data_name=data_name, data_label=data_label, xy_data=xy_data, color=color)
             
+    @property
+    def max_intensity(self):
+        if len(self.xy_data._model_data_x) > 1:
+            return np.max(self.xy_data._model_data_y)
+        else:
+            return 0
+    
     def update_data(self, silent=False):
         if len(self.xy_data._model_data_x) > 1:
-            data = np.array(zip(self.xy_data._model_data_x, self.xy_data._model_data_y))
-            if self._display_offset != 0:
-                trans = transforms.Affine2D().translate(0, self._display_offset)
-                data = trans.transform(data)
+            
+            data_x = self.xy_data._model_data_x
+            data_y = self.xy_data._model_data_y
+            
+            offset = self._display_offset
+            
+            yscale = self.parent.parent.axes_yscale if (self.parent!=None and self.parent.parent != None) else 1            
+            if yscale == 0:
+                data_y = data_y / self.parent.parent.get_max_intensity()
+            elif yscale == 1:
+                data_y = data_y / self.max_intensity
+            elif yscale == 2:
+                offset *= self.parent.parent.get_max_intensity()
+            #elif yscale == 3:
+            #    data_y = data_y * self.display_scale
+            #    offset *= self.parent.parent.get_max_intensity()
+            
+            trans = transforms.Affine2D().translate(0, offset)
+            data = trans.transform(np.array(zip(data_x, data_y)))
             self.line.set_data(np.transpose(data))
             self.line.set_visible(True)
         else:
@@ -422,7 +451,7 @@ class XYData(ChildModel, Storable, Observable):
                 if line != "": #i is not 0 and 
                     x, y = map(float, line.split())
                     max_y = max(y, max_y)
-                    xydata.append((x,y))
+                    self.xy_data.append(x,y)
         if format=="BIN":
             import struct
             #open file
@@ -443,20 +472,19 @@ class XYData(ChildModel, Storable, Observable):
                 #read values                          
                 f.seek(250)
                 n = 0
-                xydata = []
                 while n < nx:
                     y, = struct.unpack("H", f.read(2))
                     max_y = max(y, max_y)
-                    xydata.append((minx + stepx*n, float(y)))
+                    self.xy_data.append(minx + stepx*n, float(y))
                     n += 1
                 #close file
                 if close: f.close()
             
         print max_y
         #import data            
-        if xydata != []:
-            for x, y in xydata:
-                self.xy_data.append(x, y / max_y )
-            
+        #if xydata != []:
+        #    for x, y in xydata:
+        #        self.xy_data.append(x, y / max_y )
+        
         self.update_data(silent=silent)
 

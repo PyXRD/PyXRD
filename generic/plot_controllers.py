@@ -203,9 +203,14 @@ class MainPlotController (PlotController):
         xdiff = xmax-xmin
         
         if labels != None and labels != []:
+            max_intensity = 1.0
+            if project!=None and project.axes_yscale==2:
+                max_intensity = project.get_max_intensity()
             for label, position in labels:
+                position *= max_intensity
+                print position
                 self.plot.text(
-                    settings.PLOT_LEFT-0.02, position, label, 
+                    settings.PLOT_LEFT-0.05, position, label, 
                     horizontalalignment='right', verticalalignment='center', 
                     transform=transforms.blended_transform_factory(self.figure.transFigure, self.plot.transData)
                 )

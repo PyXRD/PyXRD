@@ -305,7 +305,9 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
         pctrl.update_lim()
         
         
-
+    @property
+    def max_intensity(self):
+        return max(np.max(self.data_experimental_pattern.max_intensity), np.max(self.data_calculated_pattern.max_intensity))
 
     # declare the @ decorator just before the function, invokes print_timing()
     #@print_timing

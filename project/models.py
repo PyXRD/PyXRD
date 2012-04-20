@@ -58,7 +58,7 @@ class Project(Model, Observable, Storable):
     axes_xstretch = False
     
     _axes_yscale = 0
-    _axes_yscales = { 0: "Multi normalised", 1: "Single normalised", 2: "Unchanged raw counts", 4: "Custom (per specimen)" }
+    _axes_yscales = { 0: "Multi normalised", 1: "Single normalised", 2: "Unchanged raw counts"} #, 4: "Custom (per specimen)" }
     axes_yvisible = False
     
     add_cbb_props(("axes_xscale", int, None), ("axes_yscale", int, None))
@@ -182,12 +182,12 @@ class Project(Model, Observable, Storable):
                 signal.emit(item)
     
     def __init__(self, 
-                 name = "Project name",
-                 date = time.strftime("%d/%m/%Y"),
-                 description = "Project description",
-                 author = "Project author",
-                 goniometer = None,
-                 atom_types = None, data_phases = None, data_specimens = None,
+                 data_name = "Project name",
+                 data_date = time.strftime("%d/%m/%Y"),
+                 data_description = "Project description",
+                 data_author = "Project author",
+                 data_goniometer = None,
+                 data_atom_types = None, data_phases = None, data_specimens = None,
                  display_marker_angle=None, display_calc_color=None, display_exp_color=None, display_plot_offset=None, display_label_pos=None,
                  axes_xscale=None, axes_xmin=None, axes_xmax=None, axes_xstretch=None, axes_yscale=None, axes_yvisible=None,
                  load_default_data=True):
@@ -197,17 +197,17 @@ class Project(Model, Observable, Storable):
         
         self._data_specimens = data_specimens or ObjectListStore(Specimen)
         self._data_phases = data_phases or ObjectListStore(Phase)
-        self._data_atom_types = atom_types or IndexListStore(AtomType)
+        self._data_atom_types = data_atom_types or IndexListStore(AtomType)
         self.data_description = gtk.TextBuffer()
         
         self.specimen_observer = Project.SpecimenObserver(project=self)
         
-        self.data_name = name
-        self.data_date = date
-        self.data_description.set_text(description)
-        self.data_author = author
+        self.data_name = data_name
+        self.data_date = data_date
+        self.data_description.set_text(data_description)
+        self.data_author = data_author
         
-        self.data_goniometer = goniometer or Goniometer()
+        self.data_goniometer = data_goniometer or Goniometer()
         
         self.display_marker_angle = display_marker_angle or self.display_marker_angle
         self.display_calc_color = display_calc_color or self.display_calc_color
@@ -229,36 +229,45 @@ class Project(Model, Observable, Storable):
         AtomType.get_from_csv(os.path.abspath(os.path.join(os.path.dirname(__file__), '../data/atomic scattering factors.atl')), self.add_atom_type)
              
     @staticmethod          
-    def from_json(data_name=None, data_date=None, data_description=None, data_author=None, 
-                 data_goniometer=None, data_phases=None, data_specimens=None, data_atom_types=None,
-                 display_marker_angle=None, display_calc_color=None, display_exp_color=None, display_plot_offset=None, **kwargs): #TODO wraps this in kwargs!!
+    def from_json(**kwargs): #TODO wraps this in kwargs!!
+        
+        sargs = dict()
+        for key in ("data_atom_types", "data_goniometer", "data_phases", "data_specimens"):
+            sargs[key] = kwargs[key]
+            del kwargs[key]
              
-        data_goniometer = Goniometer.from_json(**data_goniometer['properties'])
-              
+        data_goniometer = Goniometer.from_json(**sargs["data_goniometer"]['properties'])
+
         #Setup project   
-        project = Project(name=data_name, date=data_date, description=data_description, author=data_author,
-                          goniometer=data_goniometer, 
-                          display_marker_angle=display_marker_angle, display_calc_color=display_calc_color, display_exp_color=display_exp_color,
-                          display_plot_offset=display_plot_offset, load_default_data=False)
+        project = Project(load_default_data=False, **kwargs)
         
         #Create temporary ObjectListStore to transfer atom types to project
-        atom_types = ObjectListStore.from_json(parent=project, **data_atom_types['properties'])
+        atom_types = ObjectListStore.from_json(parent=project, **sargs["data_atom_types"]['properties'])
         for atom_type in atom_types._model_data:
             project.add_atom_type(atom_type, silent=True)
+        del atom_types
         
         #Create temporary ObjectListStore to transfer phases to project & resolve references
-        data_phases = ObjectListStore.from_json(parent=project, **data_phases['properties'])
+        data_phases = ObjectListStore.from_json(parent=project, **sargs["data_phases"]['properties'])
         for phase in data_phases._model_data:
             project.add_phase(phase, silent=True)
+        del data_phases
         for phase in project._data_phases._model_data: #FIXME we could solve this by making this sorted before export (place referenced specimens first)
             phase.resolve_json_references()
             
         #Create temporary ObjectListStore to transfer specimens to project, references to phases can be resolved immediately
-        data_specimens = ObjectListStore.from_json(parent=project, **data_specimens['properties'])
+        data_specimens = ObjectListStore.from_json(parent=project, **sargs["data_specimens"]['properties'])
         for specimen in data_specimens._model_data:
             project.add_specimen(specimen, silent=True, copy_phases=False)
+        del data_specimens
         
         return project
+    
+    def get_max_intensity(self):
+        max_intensity = 0
+        for specimen in self.data_specimens._model_data:
+            max_intensity = max(specimen.max_intensity, max_intensity)
+        return max_intensity
     
     pass #TODO: calculate all patterns
     

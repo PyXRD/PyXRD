@@ -61,7 +61,7 @@ class Project(Model, Observable, Storable):
     _axes_yscales = { 0: "Multi normalised", 1: "Single normalised", 2: "Unchanged raw counts", 4: "Custom (per specimen)" }
     axes_yvisible = False
     
-    add_cbb_props(("axes_xscale", int), ("axes_yscale", int))
+    add_cbb_props(("axes_xscale", int, None), ("axes_yscale", int, None))
     
     display_plot_offset = 0.75
     _display_calc_color = "#666666"
@@ -82,17 +82,6 @@ class Project(Model, Observable, Storable):
     
     display_marker_angle = 0.0
     display_label_pos = 0.35
-
-    """@Model.getter("display_exp_color")
-    def get_exp_color(self, prop_name):
-            return self._display_exp_color
-    @Model.setter("display_exp_color")
-    def set_exp_color(self, prop_name, value):
-        if value != self._display_exp_color:
-            self._display_exp_color = value
-            for specimen in self.data_specimens._model_data:
-                specimen.data_experimental_pattern.color = value"""
-
     
     _data_specimens = None
     @Model.getter("data_specimens")

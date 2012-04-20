@@ -55,17 +55,20 @@ class CSVMixin():
         return items
 
 def add_cbb_props(*props):
-    mapper_dict = dict(props)
-    props, mappers = zip(*props)
+    props, mappers, callbacks = zip(*props)
+    prop_dict = dict(zip(props, zip(mappers, callbacks)))
 
     @Model.getter(*props)
     def get_cbb_prop(self, prop_name):
         return getattr(self, "_%s" % prop_name)
     @Model.setter(*props)
     def set_cbb_prop(self, prop_name, value):
-        value = mapper_dict[prop_name](value)
+        value = prop_dict[prop_name][0](value)
         if value in getattr(self, "_%ss" % prop_name): 
             setattr(self, "_%s" % prop_name, value)
+            callback = prop_dict[prop_name][1]
+            if callback!=None and callable(callback):
+                prop_dict[prop_name][1](self, prop_name, value)
         else:
             raise ValueError, "'%s' is not a valid value for %s!" % (value, prop_name)
 
@@ -181,22 +184,6 @@ class XYData(ChildModel, Storable, Observable):
         print "BG PATTER SET"
         self.plot_update.emit()
 
-    _bg_type = 0
-    _bg_types = { 0: "Linear", 1: "Pattern" } #TODO add more types
-    @Model.getter("bg_type")
-    def get_bg_type(self, prop_name):
-        return self._bg_type
-    @Model.setter("bg_type")
-    def set_bg_type(self, prop_name, value):
-        value = int(value)
-        if value in self._bg_types: 
-            self._bg_type = value
-            self.find_bg()
-        else:
-            raise ValueError, "'%s' is not a valid value for a background type!" % value
-    def get_bg_type_lbl(self):
-        return self._bg_types[self._bg_type]
-    
     _sd_degree = 0
     sd_data = None
     sd_line = None
@@ -211,19 +198,6 @@ class XYData(ChildModel, Storable, Observable):
             self.try_smooth_data()
             self.plot_update.emit()
 
-    _sd_type = 0
-    _sd_types = { 0: "Moving Triangle" } #TODO add more types
-    @Model.getter("sd_type")
-    def get_sd_type(self, prop_name):
-        return self._sd_type
-    @Model.setter("sd_type")
-    def set_sd_type(self, prop_name, value):
-        value = int(value)
-        if value in self._sd_types: 
-            self._sd_type = value      
-        else:
-            raise ValueError, "'%s' is not a valid value for a smoothing type!" % value
-    
     _shift_value = 0.0
     shifted_line = None
     reference_line = None
@@ -236,6 +210,16 @@ class XYData(ChildModel, Storable, Observable):
         if value != self._shift_value:
             self._shift_value = value
             self.plot_update.emit()
+
+    _bg_type = 0
+    _bg_types = { 0: "Linear", 1: "Pattern" } #TODO add more types
+    def get_bg_type_lbl(self):
+        return self._bg_types[self._bg_type]    
+    def on_bgtype(self, prop_name, value):
+        self.find_bg()
+
+    _sd_type = 0
+    _sd_types = { 0: "Moving Triangle" } #TODO add more types  
     
     _shift_position = 0.42574
     _shift_positions = { 
@@ -243,18 +227,12 @@ class XYData(ChildModel, Storable, Observable):
         0.3134: "Silicon\t(Si)",
         0.2476: "Zincite\t(ZnO)",
         0.2085: "Corundum\t(Al2O3)"
-    }
-    @Model.getter("shift_position")
-    def get_shift_position(self, prop_name):
-        return self._shift_position
-    @Model.setter("shift_position")
-    def set_shift_position(self, prop_name, value):
-        value = float(value)
-        if value in self._shift_positions: 
-            self._shift_position = value    
-            self.find_shift_value()
-        else:
-            raise ValueError, "'%s' is not a valid value for a shift position!" % value
+    }    
+    def on_shift(self, prop_name, value):
+        self.find_shift_value()
+           
+    add_cbb_props(("shift_position", float, on_shift), ("sd_type", int, None), ("bg_type", int, on_bgtype))
+    
     
     plot_update = None
     data_update = None

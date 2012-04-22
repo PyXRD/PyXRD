@@ -80,7 +80,7 @@ class R0IndependentsController(ChildController):
     def register_adapters(self):
         if self.model is not None:
             for name in self.model.get_properties():
-                if name in ["parent"]:
+                if name in ["parent", "added", "removed"]:
                     pass
                 elif name in ["W1", "W2", "W3", "W4"]:
                     if int(name[1]) <= self.model.G:

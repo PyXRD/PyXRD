@@ -229,8 +229,7 @@ class EditComponentController(ChildController, HasObjectTreeview):
                     self.view.set_layer_view(self.layer_view.get_top_widget())
                     self.view.set_interlayer_view(self.interlayer_view.get_top_widget())
                     pass
-                elif not name in ("data_all_atoms", "parent"):
-                    print name
+                elif not name in ("data_all_atoms", "parent", "added", "removed", "needs_update"):
                     FloatEntryValidator(self.view["component_%s" % name])
                     self.adapt(name)
             self.update_sensitivities()
@@ -328,7 +327,7 @@ class EditPhaseController(ChildController):
     def register_adapters(self):
         if self.model is not None:
             for name in self.model.get_properties():
-                if name in ["data_all_atoms", "parent"]:
+                if name in ["data_all_atoms", "parent", "added", "removed", "needs_update"]:
                     pass
                 elif name == "data_name":
                     self.adapt(name, "phase_data_name")
@@ -354,7 +353,6 @@ class EditPhaseController(ChildController):
                 elif name.find("inherit") is not -1 or name == "data_numcomp":
                     self.adapt(name)
                 else:
-                    print name
                     FloatEntryValidator(self.view["phase_%s" % name])
                     self.adapt(name)
             self.update_sensitivities()

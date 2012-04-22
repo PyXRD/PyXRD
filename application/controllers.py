@@ -101,41 +101,45 @@ class AppController (BaseController, DialogMixin):
     def update_plot(self):
         self.redraw_plot(complete=False)
         
+    in_update_cycle = False
     def redraw_plot(self, complete=True):
-        self.push_status_msg("Updating display...")       
+        if not self.in_update_cycle:
+            self.in_update_cycle = True
+            self.push_status_msg("Updating display...")       
+            
+            single = self.model.single_specimen_selected
+            labels = []
+            
+            if complete: self.plot_controller.unregister_all()
+            
+            if self.model.current_specimens is not None:
+                num_species = len(self.model.current_specimens)
+                offset_increment = self.model.current_project.display_plot_offset
+                offset = 0
+                i = 0
+                for specimen in self.model.current_specimens[::-1]:
+                    specimen.set_display_offset(offset)
+                    if complete: 
+                        self.plot_controller.register(specimen, "on_update_plot", last=False)
+                        for marker in specimen.data_markers._model_data:
+                            self.plot_controller.register(marker, "on_update_plot", last=True)
+                    labels.append((specimen.data_sample, 0.35 + offset))
+                    offset += offset_increment
+                    i += 1
         
-        single = self.model.single_specimen_selected
-        labels = []
-        
-        if complete: self.plot_controller.unregister_all()
-        
-        if self.model.current_specimens is not None:
-            num_species = len(self.model.current_specimens)
-            offset_increment = self.model.current_project.display_plot_offset
-            offset = 0
-            i = 0
-            for specimen in self.model.current_specimens[::-1]:
-                specimen.set_display_offset(offset)
-                if complete: 
-                    self.plot_controller.register(specimen, "on_update_plot", last=False)
-                    for marker in specimen.data_markers._model_data:
-                        self.plot_controller.register(marker, "on_update_plot", last=True)
-                labels.append((specimen.data_sample, 0.35 + offset))
-                offset += offset_increment
-                i += 1
-    
-        stats = (False, None)
-        if single and self.model.statistics_visible:
-            stats = (True, self.model.current_specimen.statistics.data_residual_pattern.line)
-  
-        self.plot_controller.update(
-            clear=True,
-            single=single,
-            labels=labels,
-            stats=stats,
-            project=self.model.current_project)
-        
-        self.pop_status_msg()
+            stats = (False, None)
+            if single and self.model.statistics_visible:
+                stats = (True, self.model.current_specimen.statistics.data_residual_pattern.line)
+      
+            self.plot_controller.update(
+                clear=True,
+                single=single,
+                labels=labels,
+                stats=stats,
+                project=self.model.current_project)
+            
+            self.pop_status_msg()
+            self.in_update_cycle = False
         
     def update_title(self):
          self.view.get_top_widget().set_title("PyXRD - %s" % self.model.current_project.data_name)        
@@ -154,7 +158,7 @@ class AppController (BaseController, DialogMixin):
         self.view["specimen_actions"].set_sensitive(sensitive)
         self.view["statistics_expander"].set_sensitive(sensitive)
         self.view['statistics_expander'].set_expanded(self.model.statistics_visible)
-        sensitive = sensitive or (self.model.current_specimens is not None and len(self.model.current_specimens) >= 1)
+        sensitive = sensitive or (self.model.current_specimens is not None and len(self.model.current_specimens) >= 1)      
         self.view["specimens_actions"].set_sensitive(sensitive)
         
     def save_project(self, filename=None):

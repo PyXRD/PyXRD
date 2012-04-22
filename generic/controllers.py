@@ -339,13 +339,16 @@ class ObjectListStoreMixin(HasObjectTreeview):
     def on_add_object_clicked(self, event):
         raise NotImplementedError
 
-    def on_del_object_clicked(self, event, callback=None):
+    def on_del_object_clicked(self, event, del_callback=None, callback=None):
         tv = self.view['edit_objects_treeview']
         selection = tv.get_selection()
         if selection.count_selected_rows() >= 1:
             def delete_objects(dialog):
                 for obj in self.get_selected_objects():
-                    self.liststore.remove_item(obj)
+                    if callable(del_callback):
+                        del_callback(obj)
+                    else:
+                        self.liststore.remove_item(obj)
                     if callable(callback): callback(obj)
                 self.set_object_sensitivities(False)
                 self.edit_object(None)

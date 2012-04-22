@@ -142,13 +142,13 @@ class ObjectListStore(_BaseObjectListStore, Storable):
     def append(self, item):
         if not isinstance(item, self._class_type):
             raise ValueError, 'Invalid type, must be %s but got %s instead' % (self._class_type, type(item))
-        else:
+        elif not self.item_in_model(item):
             self._model_data.append(item)
             return self._emit_added(item)          
     def insert(self, pos, item):
         if not isinstance(item, self._class_type):
             raise ValueError, 'Invalid type, must be %s but got %s instead' % (self._class_type, type(item))
-        else:
+        elif not self.item_in_model(item):
             self._model_data.insert(pos, item)
             return self._emit_added(item)
     def _emit_added(self, item):

@@ -34,7 +34,7 @@ class EditAtomTypeController(ChildController):
                 elif name in ("data_atom_nr", "data_debye", "data_weight" "data_par_a1", "data_par_a2", "data_par_a3", "data_par_a4", "data_par_a5", "data_par_b1", "data_par_b2", "data_par_b3", "data_par_b4", "data_par_b5", "data_par_c"):
                     FloatEntryValidator(self.view["atom_%s" % name])
                     self.adapt(name)                
-                elif not name in ("parameters_changed", "data_atom_nr", "parent"):
+                elif not name in ("parameters_changed", "data_atom_nr", "parent", "added", "removed"):
                     self.adapt(name)
             self.update_plot()
             return
@@ -117,3 +117,10 @@ class AtomTypesController(ObjectListStoreController):
         self.model.add_atom_type(new_atom_type)
         self.select_object(new_atom_type)
         return True
+        
+    def on_del_object_clicked(self, event):
+        ObjectListStoreController.on_del_object_clicked(self, event, del_callback=self.model.del_atom_type)
+        
+        
+    pass #end of class
+        

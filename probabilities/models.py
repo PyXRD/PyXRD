@@ -49,8 +49,10 @@ def get_correct_probability_model(phase):
 
 class _AbstractProbability(ChildModel, Storable):
 
+    #MODEL INTEL:
     __storables__ = []
 
+    #PROPERTIES:
     _R = -1
     @property
     def R(self):
@@ -69,6 +71,9 @@ class _AbstractProbability(ChildModel, Storable):
     def parameters(self):
         return self._parameters
     
+    # ------------------------------------------------------------
+    #      Initialisation and other internals
+    # ------------------------------------------------------------
     def __init__(self, parent=None, **kwargs):
         ChildModel.__init__(self, parent=parent)
         self.setup(**kwargs)
@@ -79,6 +84,9 @@ class _AbstractProbability(ChildModel, Storable):
         self._W = None
         self._P = None
     
+    # ------------------------------------------------------------
+    #      Methods & Functions
+    # ------------------------------------------------------------ 
     def update(self):
         raise NotImplementedError        
         
@@ -90,13 +98,18 @@ class _AbstractProbability(ChildModel, Storable):
         
     def get_independent_label_map(self):
         raise NotImplementedError
-        
+    
+    pass #end of class
         
 class _AbstractR0R1Model(_AbstractProbability):
 
+    #MODEL INTEL:
     __independent_label_map__ = []
     __observables__ = [ prop for prop, lbl in  __independent_label_map__ ]
 
+    # ------------------------------------------------------------
+    #      Methods & Functions
+    # ------------------------------------------------------------ 
     def get_probability_matrix(self):
         self.update()
         return np.array(np.matrix(self._P))
@@ -111,18 +124,22 @@ class _AbstractR0R1Model(_AbstractProbability):
         
     def get_independent_label_map(self):
         return self.__independent_label_map__
-        
-class R0Model(_AbstractR0R1Model):
+    
+    pass #end of class
 
+class R0Model(_AbstractR0R1Model):
     """
+    Reichweite = 0
 	(g-1) independent variables: W0, W1, ... W(g-2)
 
 	Pij = Wj
 	∑W = 1
 	∑P = 1
 	
-	indexes are not zero-based in external property names!
+	indexes are NOT zero-based in external property names!
 	"""
+	
+    #MODEL INTEL:
     __independent_label_map__ = [
         ("W1", "W1"),
         ("W2", "W2"),
@@ -132,6 +149,7 @@ class R0Model(_AbstractR0R1Model):
     __observables__ = [ prop for prop, lbl in  __independent_label_map__ ]
     __storables__ = [ val for val in __observables__ if not val in ('parent')]
 
+    #PROPERTIES:
     @Model.getter("W[1-4]")
     def get_W(self, prop_name):
         index = int(prop_name[1:])-1
@@ -142,6 +160,9 @@ class R0Model(_AbstractR0R1Model):
         self._W[index] = min(max(float(value), 0.0), 1.0)
         self.update()
 
+    # ------------------------------------------------------------
+    #      Initialisation and other internals
+    # ------------------------------------------------------------
     def setup(self, W1=None, W2=None, W3=None, W4=None, **kwargs):
         self._R = 0
         self._W = np.zeros(shape=(self.G), dtype=float)
@@ -149,6 +170,9 @@ class R0Model(_AbstractR0R1Model):
         for i in range(self.G):
             self._W[i] = loc["W%d"%(i+1)]
 
+    # ------------------------------------------------------------
+    #      Methods & Functions
+    # ------------------------------------------------------------ 
     def update(self):
         if self.G == 1:
             self._W[0] = 1.0
@@ -160,9 +184,11 @@ class R0Model(_AbstractR0R1Model):
         self._P = np.repeat(self._W[np.newaxis,:], self.G, 0)
         pass
     
-class R1G2Model(_AbstractR0R1Model):
+    pass #end of class
 
+class R1G2Model(_AbstractR0R1Model):
 	"""
+	Reichweite = 1 / Components = 2
 	g*(g-1) independent variables = 2
 	W0 & P00 (W0<0,5) of P11 (W0>0,5)
 	
@@ -173,14 +199,16 @@ class R1G2Model(_AbstractR0R1Model):
 	P11 = (1 - P01*W0) / W1     or      P00 = (1 - P10*W1) / W0
 	P10 = 1 - P11               or      P01 = 1 - P00
 	
-	indexes are not zero-based in external property names!
+	indexes are NOT zero-based in external property names!
 	"""
 
+    #MODEL INTEL:
     __independent_label_map__ = [
         ("W1", "W1"),
         ("P11_or_P22", "P11 or P22"),
     ]
 
+    #PROPERTIES:
     @Model.getter("W1")
     def get_W(self, prop_name):
         return self._W[0]
@@ -201,12 +229,18 @@ class R1G2Model(_AbstractR0R1Model):
             self._P[1,1] = min(max(value, 0), 1)
         self.update()
 
+    # ------------------------------------------------------------
+    #      Initialisation and other internals
+    # ------------------------------------------------------------
     def setup(self):
         self._R = 0
         self._W = np.zeros(shape=(2), dtype=float)
         self._P = np.matrix(np.zeros(shape=(2, 2), dtype=float))
         self.__observables__ += [ "W1", "P11_or_P22" ]
 
+    # ------------------------------------------------------------
+    #      Methods & Functions
+    # ------------------------------------------------------------ 
     def update(self):           
         self._W[1] = 1 - self.W[0]
         if self._W[1] <= 0.5:
@@ -217,10 +251,12 @@ class R1G2Model(_AbstractR0R1Model):
             self._P[1,0] = 1 - self._P[1,1]
             self._P[0,0] = (1 - self._P[1,0]*self._W[1]) / self._W[0]
             self._P[0,1] = 1 - self._P[0,0]
+    
+    pass #end of class
         
 class R1G3Model(_AbstractR0R1Model):
-
 	"""
+	Reichweite = 1 / Components = 2
 	g*(g-1) independent variables = 6
 	W0 & P00 (W0<0,5) of P11 (W0>0,5)
 	W1/(W2+W1) = G1
@@ -261,9 +297,10 @@ class R1G3Model(_AbstractR0R1Model):
 	P01 = 1 – P11 – P21
 	P02 = 1 – P21 – P22
 		
-	indexes are not zero-based in external property names!
+	indexes are NOT zero-based in external property names!
 	"""
-
+	
+    #MODEL INTEL:
     __independent_label_map__ = [
         ("W1", "W1"),
         ("P11_or_P22", "P11 or P22"),
@@ -273,6 +310,7 @@ class R1G3Model(_AbstractR0R1Model):
         ("G4", "W21 / (W21 + W22)"),
     ]
 
+    #PROPERTIES
     @Model.getter("W1")
     def get_W(self, prop_name):
         return self._W[0]
@@ -305,14 +343,19 @@ class R1G3Model(_AbstractR0R1Model):
         setattr(self, "_%s"%prop_name, min(max(value, 0), 1))
         self.update()
 
+    # ------------------------------------------------------------
+    #      Initialisation and other internals
+    # ------------------------------------------------------------
     def setup(self):
         self._R = 0
         self._W = np.zeros(shape=(3), dtype=float)
         self._P = np.matrix(np.zeros(shape=(3, 3), dtype=float))
         self.__observables__ += [ "W1", "P11_or_P22", "G1", "G2", "G3", "G4"]
 
-    def update(self):  
-    
+    # ------------------------------------------------------------
+    #      Methods & Functions
+    # ------------------------------------------------------------ 
+    def update(self):    
         #temporary storage:
         WW = np.matrix(np.zeros(shape=(3,3), dtype=float))
              
@@ -345,5 +388,6 @@ class R1G3Model(_AbstractR0R1Model):
 		self._P[0,0]    = 1.0 - self._P[1,0] - self._P[2,0]
 		self._P[0,1]    = 1.0 - self._P[1,1] - self._P[2,1]
 		self._P[0,2]    = 1.0 - self._P[2,1] - self._P[2,2]
-        
+    
+    pass #end of class
         

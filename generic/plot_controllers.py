@@ -208,7 +208,6 @@ class MainPlotController (PlotController):
                 max_intensity = project.get_max_intensity()
             for label, position in labels:
                 position *= max_intensity
-                print position
                 self.plot.text(
                     settings.PLOT_LEFT-0.05, position, label, 
                     horizontalalignment='right', verticalalignment='center', 

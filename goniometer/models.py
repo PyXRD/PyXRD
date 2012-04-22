@@ -27,6 +27,17 @@ from generic.treemodels import ObjectListStore, XYListStore, Point
 from generic.io import Storable
        
 class Goniometer(Model, Observable, Storable):
+    #MODEL INTEL:
+    __observables__ = ( "data_radius",
+                        "data_divergence",
+                        "data_soller1",
+                        "data_soller2",
+                        "data_min_2theta",
+                        "data_max_2theta",
+                        "data_lambda" )
+    __storables__ = __observables__  
+    
+    #PROPERTIES:
     data_radius = float(24)
     data_divergence = float(0.5) #slit
     data_min_2theta = float(2)
@@ -38,26 +49,20 @@ class Goniometer(Model, Observable, Storable):
     
     _data_soller1 = float(2.3)
     _data_soller2 = float(2.3)
-    @Model.getter("data_soller1", "data_soller2")
+    @Model.getter("data_soller[12]")
     def get_data_soller(self, prop_name):
         prop_name = "_%s" % prop_name
         return getattr(self, prop_name)
-    @Model.setter("data_soller1", "data_soller2")
+    @Model.setter("data_soller[12]")
     def set_data_soller(self, prop_name, value):
         prop_name = "_%s" % prop_name
         if value != getattr(self, prop_name):
             setattr(self, prop_name, value)
-            self._dirty_cache = True    
-                    
-    __observables__ = ( "data_radius",
-                        "data_divergence",
-                        "data_soller1",
-                        "data_soller2",
-                        "data_min_2theta",
-                        "data_max_2theta",
-                        "data_lambda" )
-    __storables__ = __observables__    
+            self._dirty_cache = True
         
+    # ------------------------------------------------------------
+    #      Initialisation and other internals
+    # ------------------------------------------------------------
     def __init__(self, data_radius = None, data_divergence = None, 
                  data_soller1 = None, data_soller2 = None,
                  data_min_2theta = None, data_max_2theta = None, data_lambda = None):
@@ -72,7 +77,9 @@ class Goniometer(Model, Observable, Storable):
         self.data_max_2theta = data_max_2theta or self.data_max_2theta
         self.data_lambda = data_lambda or self.data_lambda
         
-    
+    # ------------------------------------------------------------
+    #      Methods & Functions
+    # ------------------------------------------------------------    
     def get_S(self):
         #if self._dirty_cache:
         #    self._S = sqrt( (self.data_soller1 * 0.5)**2 + (self.data_soller2 * 0.5)**2)

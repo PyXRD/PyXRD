@@ -17,9 +17,6 @@ from generic.controllers import DialogController
 
 class GoniometerController (DialogController):
 
-    #def __init__(self, *args, **kwargs):
-    #    DialogController.__init__(self, *args, **kwargs)
-
     def register_adapters(self):
         print "GoniometerController.register_adapters() model = %s" % self.model
         if self.model is not None:

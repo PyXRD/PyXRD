@@ -26,25 +26,31 @@ from specimen.models import Specimen
 from phases.models import Phase
 from atoms.models import Atom, AtomType
 
-class Project(Model, Observable, Storable): 
+class Project(Model, Observable, Storable):
+
+    #MODEL INTEL:
     __observables__ = ( "data_name", "data_date", "data_description", "data_author", 
                         "data_goniometer",
                         "data_phases",
                         "data_specimens",
                         "data_atom_types",
                         "display_marker_angle",
-                        "display_calc_color",
-                        "display_exp_color",
+                        "display_calc_color", "display_exp_color",
                         "display_plot_offset",
                         "display_label_pos",
-                        "axes_xscale",
-                        "axes_xmin",
-                        "axes_xmax",
-                        "axes_xstretch",
-                        "axes_yscale",
-                        "axes_yvisible" )
+                        "axes_xscale", "axes_xmin", "axes_xmax", "axes_xstretch",
+                        "axes_yscale", "axes_yvisible" )
     __storables__ = __observables__
 
+    #SIGNALS:
+    data_specimen_added = None
+    data_specimen_removed = None    
+    data_phase_added = None
+    data_phase_removed = None
+    data_atom_type_added = None
+    data_atom_type_removed = None
+
+    #PROPERTIES:
     data_name = ""
     data_date = ""
     data_description = None
@@ -84,103 +90,19 @@ class Project(Model, Observable, Storable):
     display_label_pos = 0.35
     
     _data_specimens = None
-    @Model.getter("data_specimens")
-    def get_data_specimens(self, prop_name):
-        return self._data_specimens
+    def get_data_specimens_value(self): return self._data_specimens
     
     _data_phases = None
-    @Model.getter("data_phases")
-    def get_data_phases(self, prop_name):
-        return self._data_phases
+    def get_data_phases_value(self): return self._data_phases
     
     _data_atom_types = None
-    @Model.getter("data_atom_types")
-    def get_data_atom_types(self, prop_name):
-        return self._data_atom_types
+    def get_data_atom_types_value(self): return self._data_atom_types
     
     data_goniometer = None
-    
-    specimen_observer = None
-    class SpecimenObserver(Observer):
-        project = None
-        
-        def __init__(self, project, *args, **kwargs):
-            self.project = project
-            Observer.__init__(self, *args, **kwargs)
-        
-        @Observer.observe("data_phase_added", signal=True)
-        def notification(self, model, prop_name, info):
-            self.project.add_phase(info["arg"])
-    
-    data_specimen_added = Signal()
-    def add_specimen(self, specimen, silent=False, copy_phases=True):
-        def copy_and_setup_observer(store, specimen, silent=False):
-            if copy_phases:
-                for phase in specimen.data_phases: self.add_phase(phase) 
-            self.specimen_observer.observe_model(specimen)
-        return self._add_item_to_store(self._data_specimens, specimen, 
-                                       signal=self.data_specimen_added,
-                                       callback=copy_and_setup_observer,
-                                       silent=silent)
-    data_specimen_removed = Signal()
-    def del_specimen(self, specimen, silent=False):
-        def detach_observer(store, specimen, silent=False):
-            self.specimen_observer.relieve_model(specimen)
-        return self._del_item_from_store(self._data_specimens, specimen, 
-                                         signal=self.data_specimen_removed,
-                                         callback=detach_observer,
-                                         silent=silent)
-    
-    data_phase_added = Signal()
-    def add_phase(self, phase, silent=False):
-        return self._add_item_to_store(self._data_phases, phase, 
-                                       signal=self.data_phase_added,
-                                       silent=silent)
-    data_phase_removed = Signal()
-    def del_phase(self, phase, silent=False):
-        def break_links(store, phase, silent=False):
-            if phase.data_based_on != None:
-                phase.data_based_on = None
-        return self._del_item_from_store(self._data_phases, phase, 
-                                         signal=self.data_phase_removed,
-                                         callback=break_links,
-                                         silent=silent)
-
-    data_atom_type_added = Signal()
-    def add_atom_type(self, atom_type, silent=False):
-        atom_type.parent = self
-        return self._add_item_to_store(self._data_atom_types, atom_type, 
-                                       signal=self.data_atom_type_added,
-                                       silent=silent)
-    data_atom_type_removed = Signal()
-    def del_atom_type(self, atom_type, silent=False):
-        return self._del_item_from_store(self._data_atom_types, atom_type, 
-                                         signal=self.data_atom_type_removed,
-                                         silent=silent)
-
-    #generic methods:
-    def _add_item_to_store(self, store, item, signal=None, callback=None, silent=False):
-        if not store.item_in_model(item):
-            path = store.append(item)
-            if callback != None and callable(callback):
-                callback(store, item, silent)
-            if item.parent != self:
-                item.parent = self
-            if signal != None and not silent:
-                signal.emit(item)
-            return path
-        return None
-   
-    def _del_item_from_store(self, store, item, signal=None, callback=None, silent=False):
-        if store.item_in_model(item):
-            store.remove_item(item)
-            if callback != None and callable(callback):
-                callback(store, item, silent)
-            if item.parent != None:
-                item.parent = None
-            if signal != None and not silent:
-                signal.emit(item)
-    
+           
+    # ------------------------------------------------------------
+    #      Initialisation and other internals
+    # ------------------------------------------------------------
     def __init__(self, 
                  data_name = "Project name",
                  data_date = time.strftime("%d/%m/%Y"),
@@ -195,12 +117,17 @@ class Project(Model, Observable, Storable):
         Observable.__init__(self)
         Storable.__init__(self)
         
+        self.data_specimen_added = Signal()
+        self.data_specimen_removed = Signal()
+        self.data_phase_added = Signal()
+        self.data_phase_removed = Signal()
+        self.data_atom_type_added = Signal()
+        self.data_atom_type_removed = Signal()
+        
         self._data_specimens = data_specimens or ObjectListStore(Specimen)
         self._data_phases = data_phases or ObjectListStore(Phase)
         self._data_atom_types = data_atom_types or IndexListStore(AtomType)
         self.data_description = gtk.TextBuffer()
-        
-        self.specimen_observer = Project.SpecimenObserver(project=self)
         
         self.data_name = data_name
         self.data_date = data_date
@@ -227,7 +154,18 @@ class Project(Model, Observable, Storable):
     def load_default_data(self):
         import os
         AtomType.get_from_csv(os.path.abspath(os.path.join(os.path.dirname(__file__), '../data/atomic scattering factors.atl')), self.add_atom_type)
-             
+
+    # ------------------------------------------------------------
+    #      Notifications of observable properties
+    # ------------------------------------------------------------
+    @Observer.observe("data_phase_added", signal=True)
+    def notification(self, model, prop_name, info):
+        print "DATA PHASE ADDED OBSERVER CALLED IN PROJECT"
+        self.add_phase(info["arg"])
+
+    # ------------------------------------------------------------
+    #      Input/Output stuff
+    # ------------------------------------------------------------
     @staticmethod          
     def from_json(**kwargs): #TODO wraps this in kwargs!!
         
@@ -262,6 +200,66 @@ class Project(Model, Observable, Storable):
         del data_specimens
         
         return project
+    
+    # ------------------------------------------------------------
+    #      Methods & Functions
+    # ------------------------------------------------------------ 
+    def add_specimen(self, specimen, silent=False, copy_phases=True):
+        def copy_and_setup_observer(store, specimen, silent=False):
+            if copy_phases:
+                for phase in specimen.data_phases: self.add_phase(phase) 
+            self.observe_model(specimen)
+        return self._add_item_to_store(self._data_specimens, specimen, 
+                                       signal=self.data_specimen_added,
+                                       callback=copy_and_setup_observer,
+                                       silent=silent)
+    def del_specimen(self, specimen, silent=False):
+        def detach_observer(store, specimen, silent=False):
+            self.relieve_model(specimen)
+        return self._del_item_from_store(self._data_specimens, specimen, 
+                                         signal=self.data_specimen_removed,
+                                         callback=detach_observer,
+                                         silent=silent)
+    def add_phase(self, phase, silent=False):
+        return self._add_item_to_store(self._data_phases, phase, 
+                                       signal=self.data_phase_added,
+                                       silent=silent)
+    def del_phase(self, phase, silent=False):
+        def break_links(store, phase, silent=False):
+            if phase.data_based_on != None:
+                phase.data_based_on = None
+            for phase in self._data_phases._model_data:
+                if phase.data_based_on == phase:
+                    phase.data_based_on = None
+        return self._del_item_from_store(self._data_phases, phase, 
+                                         signal=self.data_phase_removed,
+                                         callback=break_links,
+                                         silent=silent)
+    def add_atom_type(self, atom_type, silent=False):
+        return self._add_item_to_store(self._data_atom_types, atom_type, 
+                                       signal=self.data_atom_type_added,
+                                       silent=silent)
+    def del_atom_type(self, atom_type, silent=False):
+        return self._del_item_from_store(self._data_atom_types, atom_type, 
+                                         signal=self.data_atom_type_removed,
+                                         silent=silent)
+
+    #generic methods:
+    def _add_item_to_store(self, store, item, signal=None, callback=None, silent=False):
+        if not store.item_in_model(item):
+            path = store.append(item)
+            if callback != None and callable(callback): callback(store, item, silent)
+            if item.parent != self: item.parent = self
+            if signal != None and not silent: signal.emit(item)
+            return path
+        return None
+   
+    def _del_item_from_store(self, store, item, signal=None, callback=None, silent=False):
+        if store.item_in_model(item):
+            store.remove_item(item)
+            if callback != None and callable(callback): callback(store, item, silent)
+            if item.parent != None: item.parent = None
+            if signal != None and not silent: signal.emit(item)
     
     def get_max_intensity(self):
         max_intensity = 0

@@ -25,6 +25,12 @@ from generic.treemodels import XYListStore
 #  - cache calculated values
 
 class AtomType(ChildModel, ObjectListStoreChildMixin, Storable, CSVMixin):
+    """
+        AtomTypes contain all physical & chemical information for one element 
+        in a certain state (e.g. Fe3+ & Fe2+ are two different AtomTypes)
+    """
+
+    #MODEL INTEL:
     __index_column__ = 'data_name'
 
     __columns__ = [
@@ -34,35 +40,33 @@ class AtomType(ChildModel, ObjectListStoreChildMixin, Storable, CSVMixin):
         ('data_debye', float),
         ('data_par_c', float),
     ]
-    __columns__ += [ ('data_par_a%d' % i, float) for i in [1,2,3,4,5] ]
-    __columns__ += [ ('data_par_b%d' % i, float) for i in [1,2,3,4,5] ]
+    __columns__ += [ ('data_par_a%d' % i, float) for i in [1,2,3,4,5] ] + [ ('data_par_b%d' % i, float) for i in [1,2,3,4,5] ]
 
     __storables__ = [ key for key, val in __columns__]
     __csv_storables__ = zip(__storables__, __storables__)
     
     __observables__ = ["parameters_changed"] + __storables__
     
+    #SIGNALS:
+    parameters_changed = None
+    
+    #PROPERTIES:
     _data_name = ""
-    @Model.getter("data_name")
-    def get_data_name(self, prop_name):
-        return getattr(self, "_%s" % prop_name)
-    @Model.setter("data_name")
-    def set_data_name(self, prop_name, value):
-        setattr(self, "_%s" % prop_name, value)
+    def get_data_name_value(self): return self._data_name
+    def set_data_name_value(self, value):
+        self._data_name = value
         self.liststore_item_changed()
      
     data_atom_nr = 0
     data_weight = 0
     data_debye = 0
     
-    parameters_changed = Signal()
-    
     _data_a = None
     _data_b = None
     _data_c = 0
     
     @Model.getter("data_par_a*", "data_par_b*", "data_par_c")
-    def get_data_atom_type(self, prop_name):
+    def get_data_atom_par(self, prop_name):
         name = prop_name[9]
         if name == "a":
             index = int(prop_name[-1:])-1
@@ -75,7 +79,7 @@ class AtomType(ChildModel, ObjectListStoreChildMixin, Storable, CSVMixin):
         return None
         
     @Model.setter("data_par_a*", "data_par_b*", "data_par_c")
-    def set_data_atom_type(self, prop_name, value):
+    def set_data_atom_par(self, prop_name, value):
         name = prop_name[-2:-1]
         if name == "a":
             index = int(prop_name[-1:])-1
@@ -88,28 +92,14 @@ class AtomType(ChildModel, ObjectListStoreChildMixin, Storable, CSVMixin):
         elif name == "c":
             self._data_c = value
             self.parameters_changed.emit()            
-            
-    def get_atomic_scattering_factors(self, stl_range): 
-        f = np.zeros(stl_range.shape)
-        #if self.cache and self.cache.has_key(stl): #TODO
-        #    return self.cache[stl]
-        angstrom_range = stl_range*0.05
-        for i in range(0,5):
-             f += self._data_a[i] * np.exp(-self._data_b[i]*(angstrom_range)**2)
-        f += self._data_c
-        b = self.data_debye
-        #if "-" in self.data_name:
-        #    b = 2.0
-        #elif "+" in self.data_name:
-        #    b = 1.5
-        f = f * np.exp(-float(b) * (angstrom_range)**2)
-        #if self.cache:
-        #    self.cache[stl] = f
-        return f
 
+    # ------------------------------------------------------------
+    #      Initialisation and other internals
+    # ------------------------------------------------------------
     def __init__(self, data_name, parent=None, data_debye=0, data_weight=0, data_atom_nr=0, data_par_c=0, data_par_a1=0, data_par_a2=0, data_par_a3=0, data_par_a4=0, data_par_a5=0, data_par_b1=0, data_par_b2=0, data_par_b3=0, data_par_b4=0, data_par_b5=0):
         ChildModel.__init__(self, parent=parent)
         Storable.__init__(self)
+        self.parameters_changed = Signal()
         
         self.data_name = str(data_name) or self.data_name
         self.data_atom_nr = int(data_atom_nr) or self.data_atom_nr
@@ -123,80 +113,66 @@ class AtomType(ChildModel, ObjectListStoreChildMixin, Storable, CSVMixin):
     def __str__(self):
         return "<AtomType %s(%s)>" % (self.data_name, repr(self))
         
-"""
-    Atoms have an atom type plus structural parameters (position and proportion)
-"""
+    # ------------------------------------------------------------
+    #      Methods & Functions
+    # ------------------------------------------------------------
+    def get_atomic_scattering_factors(self, stl_range): 
+        f = np.zeros(stl_range.shape)
+        #if self.cache and self.cache.has_key(stl): #TODO: check if this would be an improvement or not
+        #    return self.cache[stl]
+        angstrom_range = stl_range*0.05
+        for i in range(0,5):
+             f += self._data_a[i] * np.exp(-self._data_b[i]*(angstrom_range)**2)
+        f += self._data_c
+        b = self.data_debye
+        f = f * np.exp(-float(b) * (angstrom_range)**2)
+        #if self.cache:
+        #    self.cache[stl] = f
+        return f
+        
+
 class Atom(ChildModel, ObjectListStoreChildMixin, Storable):
-    __observables__ = ( "data_*", )
+    """
+        Atoms have an atom type plus structural parameters (position and proportion)
+    """
+    #MODEL INTEL:
+    __observables__ = ( "data_name", "data_z", "data_pn", "data_atom_type" )
     __columns__ = [
         ('data_name', str),
         ('data_z', float),
         ('data_pn', float),
-        ('data_atom_type', AtomType) #rowref from AtomTypes property in project
+        ('data_atom_type', AtomType)
     ]
     __storables__ = [key for key, val in __columns__ if key is not "data_atom_type"]
     
+    #PROPERTIES:
     data_name = ""
     
-    _dirty_cache = False
-    _memoize = None
-    
     _data_z = 0
-    @Model.getter("data_z")
-    def get_data_z(self, prop_name):
-        return self._data_z
-    @Model.setter("data_z")
-    def set_data_z(self, prop_name, value):
+    def get_data_z_value(self): return self._data_z
+    def set_data_z_value(self, value):
         if value != self._data_z:
             self._data_z = value
-            self._dirty_cache = True
     
     _data_pn = 0
-    @Model.getter("data_pn")
-    def get_data_pn(self, prop_name):
-        return self._data_pn
-    @Model.setter("data_pn")
-    def set_data_pn(self, prop_name, value):
+    def get_data_pn_value(self): return self._data_pn
+    def set_data_pn_value(self, value):
         if value != self._data_pn:
             self._data_pn = value
-            self._dirty_cache = True
-    
-    atom_type_observer = None
-    class AtomTypeObserver(Observer):
-        atom = None
-        
-        def __init__(self, atom, *args, **kwargs):
-            self.atom = atom
-            Observer.__init__(self, *args, **kwargs)
-        
-        @Observer.observe("removed", signal=True)
-        def notification(self, model, prop_name, info):
-            #model      = AtomType that we're observing
-            #self.atom  = Atom that is observing the model
-            if model == self.atom.data_atom_type: #this check is not 100% neccesary, but it can't hurt either
-                self.atom.data_atom_type = None
     
     _atom_type_index = None
     _data_atom_type = None
-    @Model.getter("data_atom_type")
-    def get_data_atom_type(self, prop_name):
-        return self._data_atom_type
-    @Model.setter("data_atom_type")
-    def set_data_atom_type(self, prop_name, value):
-        if value != self._data_atom_type:
-            if self.atom_type_observer == None:
-                self.atom_type_observer = Atom.AtomTypeObserver(self)
-            elif self._data_atom_type is not None:
-                self.atom_type_observer.relieve_model(self._data_atom_type)
-            self._data_atom_type = value
-            self._dirty_cache = True
-            if self._data_atom_type is not None:
-                self.atom_type_observer.observe_model(self._data_atom_type)
-    
-    def _unattach_parent(self):
-        self.data_atom_type = None
-        ChildModel._unattach_parent(self)
-      
+    def get_data_atom_type_value(self): return self._data_atom_type
+    def set_data_atom_type_value(self, value):
+        if self._data_atom_type is not None:
+            self.relieve_model(self._data_atom_type)
+        self._data_atom_type = value
+        if self._data_atom_type is not None:
+            self.observe_model(self._data_atom_type)
+         
+    # ------------------------------------------------------------
+    #      Initialisation and other internals
+    # ------------------------------------------------------------
     def __init__(self, data_name=None, data_z=None, data_pn=None, data_atom_type=None, atom_type_index=None, parent=None):
         ChildModel.__init__(self, parent=parent)
         Storable.__init__(self)
@@ -208,12 +184,37 @@ class Atom(ChildModel, ObjectListStoreChildMixin, Storable):
         self.data_atom_type = data_atom_type
         
         self._atom_type_index = atom_type_index if atom_type_index > -1 else None
-        
-        self._memoize = dict()
          
     def __str__(self):
         return "<Atom %s(%s)>" % (self.data_name, repr(self))
-            
+    
+    def _unattach_parent(self):
+        self.data_atom_type = None
+        ChildModel._unattach_parent(self)
+         
+    # ------------------------------------------------------------
+    #      Notifications of observable properties
+    # ------------------------------------------------------------
+    @Observer.observe("removed", signal=True)
+    def on_removed(self, model, prop_name, info):
+        """
+            This method observes the Atom types 'removed' signal,
+            as such, if the AtomType gets removed from the parent project,
+            it is also cleared from this Atom
+        """
+        if model == self.data_atom_type:
+            self.data_atom_type = None
+    
+    # ------------------------------------------------------------
+    #      Methods & Functions
+    # ------------------------------------------------------------    
+    def get_structure_factors(self, stl_range):
+        asf = self.data_atom_type.get_atomic_scattering_factors(stl_range)
+        return asf * self.data_pn * np.exp(2 * pi * self.data_z * stl_range * 1j)
+    
+    # ------------------------------------------------------------
+    #      Input/Output stuff
+    # ------------------------------------------------------------        
     @staticmethod
     def from_json(**kwargs):
         return Atom(**kwargs)
@@ -262,9 +263,6 @@ class Atom(ChildModel, ObjectListStoreChildMixin, Storable):
         atl_writer.writerow(["Atom","z","pn","Element"])
         for item in atoms:
             atl_writer.writerow([item.data_name, item.data_z, item.data_pn, item.data_atom_type.data_name])
-    
-       
-    def get_structure_factors(self, stl_range):
-        asf = self.data_atom_type.get_atomic_scattering_factors(stl_range)
-        return asf * self.data_pn * np.exp(2 * pi * self.data_z * stl_range * 1j)
+            
+    pass #end of class
         

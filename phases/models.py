@@ -6,7 +6,7 @@
 # To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/3.0/ or send
 # a letter to Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
 
-from gtkmvc.model import Model, Observer
+from gtkmvc.model import Model, Observer, Signal
 
 import numpy as np
 import time
@@ -24,6 +24,8 @@ from atoms.models import Atom
 from probabilities.models import get_correct_probability_model
 
 class Component(ChildModel, ObjectListStoreChildMixin, Storable):
+
+    #MODEL INTEL:
     __inheritables__ = ("data_name", "data_based_on",
                         "data_d001", "data_cell_a", "data_cell_b",
                         "data_layer_atoms", "data_interlayer_atoms")
@@ -42,9 +44,13 @@ class Component(ChildModel, ObjectListStoreChildMixin, Storable):
         ('data_interlayer_atoms', float),
         ('inherit_interlayer_atoms', bool),
     ]
-    __observables__ = [ key for key, val in __columns__]
-    __storables__ = [ val for val in __observables__ if not val in ('data_linked_with', 'parent')]
+    __observables__ = [ key for key, val in __columns__] + ["needs_update"]
+    __storables__ = [ val for val in __observables__ if not val in ('data_linked_with', 'parent', 'needs_update')]
 
+    #SIGNALS:
+    needs_update = None
+
+    #PROPERTIES:
     data_name = "Name of this component"
     
     inherit_cell_a = False
@@ -55,33 +61,34 @@ class Component(ChildModel, ObjectListStoreChildMixin, Storable):
 
     _data_linked_with = None
     _linked_with_index = None
-    @Model.getter("data_linked_with")
-    def get_data_linked_with(self, prop_name):
-        return self._data_linked_with
-    @Model.setter("data_linked_with")
-    def set_data_linked_with(self, prop_name, value):
+    def get_data_linked_with_value(self): return self._data_linked_with
+    def set_data_linked_with_value(self, value):
         if self._data_linked_with != value:
             self._data_linked_with = value
             for prop in self.__inheritables__:
                 setattr(self, prop.replace("data_", "inherit_", 1), False)
             
-    #INHERTIABLE PROPERTIES:
+    #INHERITABLE PROPERTIES:
     _data_cell_a = 1.0
     _data_cell_b = 1.0
     _data_d001 = 1.0
     _data_layer_atoms = None
     _data_interlayer_atoms = None
+    @Model.setter(*__inheritables__)
+    def set_inheritable(self, prop_name, value):
+        setattr(self, "_%s" % prop_name, value)
+        self.needs_update.emit()
     @Model.getter(*__inheritables__)
-    def get_data(self, prop_name):
+    def get_inheritable(self, prop_name):
         inh_name = prop_name.replace("data_", "inherit_", 1)
         if self.data_linked_with != None and getattr(self, inh_name):
             return getattr(self.data_linked_with, prop_name)
         else:
             return getattr(self, "_%s" % prop_name)
-    @Model.setter(*__inheritables__)
-    def set_data(self, prop_name, value):
-        setattr(self, "_%s" % prop_name, value)
 
+    # ------------------------------------------------------------
+    #      Initialisation and other internals
+    # ------------------------------------------------------------
     def __init__(self, data_name=None, data_cell_a=1.0, data_cell_b=1.0, data_d001=None,
                  data_layer_atoms=None, data_interlayer_atoms=None,
                  inherit_cell_a=False, inherit_cell_b=False, inherit_d001=False, inherit_proportion=False, 
@@ -89,6 +96,7 @@ class Component(ChildModel, ObjectListStoreChildMixin, Storable):
                  linked_with_index = None, parent=None):
         ChildModel.__init__(self, parent=parent)
         Storable.__init__(self)
+        self.needs_update = Signal()
         
         self.data_name = data_name or self.data_name
     
@@ -107,7 +115,9 @@ class Component(ChildModel, ObjectListStoreChildMixin, Storable):
 
         self._linked_with_index = linked_with_index if linked_with_index > -1 else None
 
-    #IO STUFF:
+    # ------------------------------------------------------------
+    #      Input/Output stuff
+    # ------------------------------------------------------------  
     def resolve_json_references(self):
         for atom in self._data_layer_atoms._model_data:
             atom.resolve_json_references()
@@ -128,6 +138,9 @@ class Component(ChildModel, ObjectListStoreChildMixin, Storable):
         kwargs['data_interlayer_atoms'] = ObjectListStore.from_json(parent=project, **kwargs['data_interlayer_atoms']['properties'])
         return type(**kwargs)
 
+    # ------------------------------------------------------------
+    #      Methods & Functions
+    # ------------------------------------------------------------  
     def get_structure_factors(self, range_stl):
         sf_tot = np.zeros(range_stl.shape, dtype=np.complex_)
         atoms = (self.data_layer_atoms._model_data + self.data_interlayer_atoms._model_data)
@@ -158,6 +171,8 @@ class Component(ChildModel, ObjectListStoreChildMixin, Storable):
 
 
 class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
+
+    #MODEL INTEL:
     __inheritables__ = ("data_mean_CSDS", "data_min_CSDS", "data_max_CSDS", "data_sigma_star", "data_probabilities")
     
     __columns__ = [
@@ -177,21 +192,13 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
         ('data_R', int),
         ('data_components', object),
     ]
-    __observables__ = [ key for key, val in __columns__]
-    __storables__ = [ val for val in __observables__ if not val in ('data_based_on', 'parent')]
+    __observables__ = [ key for key, val in __columns__] + ["needs_update"]
+    __storables__ = [ val for val in __observables__ if not val in ('data_based_on', 'parent', 'needs_update')]
     
-    #STATIC PROPERTIES & RELATED STUFF (NON-INHERITABLE):
+    #SIGNALS:
+    needs_update = None
     
-    def _unattach_parent(self):
-        if self._parent != None:
-            self.parent.del_phase(self)
-        ChildModel._unattach_parent(self)
-        
-    def _attach_parent(self):
-        if self._parent != None:
-            self.parent.add_phase(self)
-        ChildModel._attach_parent(self)
-
+    #PROPERTIES:
     data_name = "Name of this phase"
     
     inherit_mean_CSDS = False
@@ -201,7 +208,7 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
     inherit_probabilities = False
     
     based_on_observer = None
-    class BasedOnObserver(Observer):
+    class BasedOnObserver(Observer): #FIXME MOVE THIS DOWN!
         phase = None
         
         def __init__(self, phase, *args, **kwargs):
@@ -219,11 +226,8 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
                 
     _based_on_index = None #temporary property
     _data_based_on = None
-    @Model.getter("data_based_on")
-    def get_data_based_on(self, prop_name):
-        return self._data_based_on
-    @Model.setter("data_based_on")
-    def set_data_based_on(self, prop_name, value):
+    def get_data_based_on_value(self): return self._data_based_on
+    def set_data_based_on_value(self, value):
         if self.based_on_observer == None:
             self.based_on_observer = Phase.BasedOnObserver(self)
         elif self._data_based_on is not None:
@@ -241,41 +245,52 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
         else:
             return self
     
-    #INHERTIABLE PROPERTIES:
+    #INHERITABLE PROPERTIES:
     _data_mean_CSDS = 10.0
     _data_min_CSDS = 1.0
     _data_max_CSDS = 50.0
     _data_sigma_star = 3.0
     _data_probabilities = None
     @Model.getter(*__inheritables__)
-    def get_data(self, prop_name):
+    def get_inheritable(self, prop_name):
         inh_name = "inherit_" + prop_name.replace("data_", "", 1)
         if self.data_based_on is not None and getattr(self, inh_name):
             return getattr(self.data_based_on, prop_name)
         else:
             return getattr(self, "_%s" % prop_name)
     @Model.setter(*__inheritables__)
-    def set_data(self, prop_name, value):
+    def set_inheritable(self, prop_name, value):
         setattr(self, "_%s" % prop_name, value)
+        self.needs_update.emit()
     
-    data_components = None    
-    @Model.getter("data_G")
-    def get_data_G(self, prop_name):
+    _data_components = None    
+    def get_data_components_value(self): return self._data_components
+    def set_data_components_value(self, value):
+        if self._data_components != None:
+            for comp in self._data_components._model_data: self.relieve_model(comp)
+        self._data_components = value
+        if self._data_components != None:
+            for comp in self._data_components._model_data: self.observe_model(comp)
+    def get_data_G_value(self):
         if self.data_components != None:
             return len(self.data_components._model_data)
         else:
             return 0
             
     _data_R = 0
-    @Model.getter("data_R")
-    def get_data_R(self, prop_name):
+    def get_data_R_value(self):
         return self._data_R
     
+    # ------------------------------------------------------------
+    #      Initialisation and other internals
+    # ------------------------------------------------------------
     def __init__(self, data_name=None, data_mean_CSDS=None, data_max_CSDS=None, data_min_CSDS=None, data_sigma_star=None, data_probabilities=None, data_G=None, data_R=None,
                  inherit_mean_CSDS=False, inherit_min_CSDS=False, inherit_max_CSDS=False, inherit_sigma_star=False, inherit_probabilities=False, inherit_wtfractions=False,
                  based_on_index = None, parent=None):
         ChildModel.__init__(self, parent=parent)
         Storable.__init__(self)
+        
+        self.needs_update = Signal()
         
         self.data_name = data_name or self.data_name
     
@@ -293,7 +308,8 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
             self.data_components = ObjectListStore(Component)
             for i in range(data_G):
                 new_comp = Component("Component %d" % (i+1), parent=self)
-                self.data_components.append(new_comp)                
+                self.data_components.append(new_comp)
+                self.observe_model(new_comp)
         self._data_R = data_R or self._data_R
         
         self._data_probabilities = data_probabilities or get_correct_probability_model(self)
@@ -301,7 +317,29 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
 
         self._based_on_index = based_on_index if based_on_index > -1 else None
 
-    #IO STUFF:
+    def __str__(self):
+        return "<PHASE %s(%s) %s>" % (self.data_name, repr(self), self.data_based_on)
+
+    def _unattach_parent(self):
+        if self._parent != None:
+            self.parent.del_phase(self)
+        ChildModel._unattach_parent(self)
+        
+    def _attach_parent(self):
+        if self._parent != None:
+            self.parent.add_phase(self)
+        ChildModel._attach_parent(self)
+
+    # ------------------------------------------------------------
+    #      Notifications of observable properties
+    # ------------------------------------------------------------
+    @Observer.observe("needs_update", signal=True)
+    def notify_needs_update(self, model, prop_name, info):
+        self.needs_update.emit() #propagate signal
+
+    # ------------------------------------------------------------
+    #      Input/Output stuff
+    # ------------------------------------------------------------  
     def resolve_json_references(self):          
         if self._based_on_index != None and self._based_on_index != -1:
             self.data_based_on = self.parent.data_phases.get_user_data_from_index(self._based_on_index)
@@ -326,7 +364,9 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
         phase.data_probabilities = PyXRDDecoder.__pyxrd_decode__(data_probabilities, parent=phase)
         return phase
 
-    #CALCULATIONS:
+    # ------------------------------------------------------------
+    #      Methods & Functions
+    # ------------------------------------------------------------  
     def get_lorentz_polarisation_factor(self, range_theta, S, S1S2):
         ss = max(self.data_sigma_star, 0.0000000000001)
         Q = S / (sqrt8 * np.sin(range_theta) * ss)
@@ -339,7 +379,7 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
     __last_Tdistr = None
     __last_Qdistr = None
     def _update_interference_distributions(self):
-        Tmean = self.data_mean_CSDS
+        Tmean = max(self.data_mean_CSDS, 1)
         Tmax = self.data_max_CSDS
         Tmin = self.data_min_CSDS
 
@@ -408,7 +448,7 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
     
     @print_timing            
     def get_diffracted_intensity (self, range_theta, range_stl, S, S1S2, quantity, correction_range):      
-        
+        #print "for specimen %s" % self
         from numpy.core.umath_tests import matrix_multiply as mmultr
         def mmult(A, B):
             return np.sum(np.transpose(A,(0,2,1))[:,:,:,np.newaxis]*B[:,:,np.newaxis,:],-3)
@@ -480,7 +520,7 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
         #Qn = np.copy(Q)
             
         #print W
-        print P
+        #print P
                
         #Calculate the intensity:
         method = 0
@@ -544,5 +584,4 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
         
         return mean_d001 / (real_mean *  mean_volume**2 * mean_density);
 
-    def __str__(self):
-        return "<PHASE %s(%s) %s>" % (self.data_name, repr(self), self.data_based_on)
+    pass #end of class

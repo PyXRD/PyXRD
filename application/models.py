@@ -10,47 +10,42 @@ import settings
 from gtkmvc.model import Model
     
 class AppModel(Model):
+
+    #MODEL INTEL:
+    __observables__ = ( "current_project", "current_specimen", "current_specimens", "statistics_visible" )
+
+    #PROPERTIES:
     current_project = None
     current_filename = None
     
-    _statistics_visible = None
-    @Model.getter("statistics_visible")
-    def get_statistics_visible(self, prop_name):
-        return self._statistics_visible and (self._current_specimen != None) and (not settings.VIEW_MODE)
-    @Model.setter("statistics_visible")
-    def set_statistics_visible(self, prop_name, value):
-        if self._current_specimen != None:
-            self._statistics_visible = value
+    current_specimen = None
     
-    _current_specimen = None
-    @Model.getter("current_specimen")
-    def get_current_specimen(self, prop_name):
-        return self._current_specimen
-    @Model.setter("current_specimen")
-    def set_current_specimen(self, prop_name, value):
-        self._current_specimen = value
+    _statistics_visible = None
+    def set_statistics_visible_value(self, value): self._statistics_visible = value
+    def get_statistics_visible_value(self):
+        return self._statistics_visible and (self.current_specimen != None) and (not settings.VIEW_MODE)
     
     _current_specimens = None
-    @Model.getter("current_specimens")
-    def get_current_specimens(self, prop_name):
-        return self._current_specimens
-    @Model.setter("current_specimens")
-    def set_current_specimens(self, prop_name, value):
+    def get_current_specimens_value(self): return self._current_specimens
+    def set_current_specimens_value(self, value):
         if value == None:
             value = []
         self._current_specimens = value
         if len(self._current_specimens) == 1:
-            self._current_specimen = self._current_specimens[0]
+            self.current_specimen = self._current_specimens[0]
         else:
-            self._current_specimen = None
+            self.current_specimen = None
     
     @property
     def single_specimen_selected(self):
         return bool(self.current_specimen is not None or self.current_specimens == [])
     
-    __observables__ = ( "current_project", "current_specimen", "current_specimens", "statistics_visible" )
-    
+    # ------------------------------------------------------------
+    #      Initialisation and other internals
+    # ------------------------------------------------------------
     def __init__(self, project = None):
         Model.__init__(self)
         self.current_project = project
         self._statistics_visible = False
+        
+    pass #end of class

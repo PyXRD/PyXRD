@@ -29,19 +29,7 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
                     ("Phillips Binary Data", get_case_insensitive_glob("*.RD")),
                     ("All Files", "*.*")]
 
-    xydataobserver = None
-    class XYDataObserver (Observer):
-        @Observer.observe('plot_update', signal=True)
-        def notifications(self, model, prop_name, info):
-            print "UPDATING PLOT BECAUSE OF SIGNAL IN XYDATA"
-            self.callback()
-            
-        def __init__(self, callback, *args, **kwargs):
-            Observer.__init__(self, *args, **kwargs)
-            self.callback = callback
-
     def register_adapters(self):
-        self.xydataobserver = self.XYDataObserver(self.parent.update_plot)
         if self.model is not None:
             for name in self.model.get_properties():
                 if name == "data_name":
@@ -49,7 +37,7 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
                     ad.connect_widget(self.view["specimen_data_name"])
                     self.adapt(ad)
                 elif name in ["data_calculated_pattern", "data_experimental_pattern"]:
-                    self.xydataobserver.observe_model(getattr(self.model, name))
+                    self.observe_model(getattr(self.model, name))
                     if name == "data_experimental_pattern":
                         tv = self.view['experimental_data_tv']
                         model = self.model.data_experimental_pattern.xy_data
@@ -124,7 +112,7 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
                 elif name == "data_sample_length":
                     FloatEntryValidator(self.view["specimen_%s" % name])
                     self.adapt(name)
-                elif not name in ("statistics", "parent",
+                elif not name in ("statistics", "parent", "added", "removed",
                     "data_phase_removed", "data_phase_added", "del_phase", "add_phase",
                     "data_markers", "data_marker_removed", "data_marker_added", "del_marker", "add_marker"):
                     self.adapt(name)
@@ -179,6 +167,10 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
     @Controller.observe("inherit_calc_color", assign=True)
     def notif_color_toggled(self, model, prop_name, info):
         self.update_sensitivities()
+
+    @Observer.observe('plot_update', signal=True)
+    def notifications(self, model, prop_name, info):
+        self.parent.update_plot()
 
     # ------------------------------------------------------------
     #      GTK Signal handlers
@@ -239,7 +231,7 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
                 if filename[-2:].lower() == "rd":
                     print "Opening file %s for import using BINARY RD format" % filename
                     self.model.data_experimental_pattern.load_data(filename, format="BIN", silent=True)
-                self.model.calculate_pattern()
+                #self.model.calculate_pattern()
             self.run_load_dialog(title="Open XRD file for import",
                                  on_accept_callback=on_accept, 
                                  parent=self.view.get_top_widget())

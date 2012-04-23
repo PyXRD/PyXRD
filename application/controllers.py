@@ -9,6 +9,7 @@
 import os, sys
 import locale
 from shutil import copy2 as copy, move
+from os.path import basename, dirname
 
 import gtk
 
@@ -252,6 +253,8 @@ class AppController (BaseController, DialogMixin):
             filename = self.extract_filename(dialog)
             self.save_project(filename=filename)
         self.run_save_dialog(title=title,
+                             suggest_name=basename(self.model.current_filename),
+                             suggest_folder=dirname(self.model.current_filename),
                              on_accept_callback=on_accept,
                              parent=self.view.get_top_widget())
 

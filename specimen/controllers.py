@@ -413,23 +413,14 @@ class EditMarkerController(ChildController):
             
     def update_sensitivities(self):
         self.view["marker_data_angle"].set_sensitive(not self.model.inherit_angle)
-        
     
     # ------------------------------------------------------------
     #      Notifications of observable properties
     # ------------------------------------------------------------   
-    @Controller.observe("data_label", assign=True, after=True)
     @Controller.observe("data_position", assign=True, after=True)
-    @Controller.observe("data_x_offset", assign=True, after=True)
-    @Controller.observe("data_y_offset", assign=True, after=True)    
-    @Controller.observe("data_color", assign=True, after=True)
-    @Controller.observe("data_base", assign=True, after=True)
-    @Controller.observe("data_angle", assign=True, after=True)
-    @Controller.observe("data_style", assign=True, after=True)
     def notif_parameter_changed(self, model, prop_name, info):
         if prop_name=="data_position":
             self.view["entry_nanometer"].set_text("%f" % self.model.get_nm_position())
-        self.cparent.update_plot()
 
     @Controller.observe("inherit_angle", assign=True)
     def notif_angle_toggled(self, model, prop_name, info):
@@ -498,11 +489,7 @@ class MarkersController(ObjectListStoreController):
     
     # ------------------------------------------------------------
     #      GTK Signal handlers
-    # ------------------------------------------------------------
-    def on_item_removed(self, model, item):
-        item.parent = None
-        self.parent.update_plot()
-        
+    # ------------------------------------------------------------        
     def on_load_object_clicked(self, event):
         def on_accept(dialog):
             print "Importing markers..."

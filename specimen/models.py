@@ -61,15 +61,12 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
         ('exp_color', str),
         ('statistics', object),
     ]
-    __observables__ = [ key for key, val in __columns__] + ["needs_plot_update"]
-    __storables__ = [ val for val in __observables__ if not val in ("parent", "data_phases", "statistics", "needs_plot_update") ]
+    __observables__ = [ key for key, val in __columns__]
+    __storables__ = [ val for val in __observables__ if not val in ("parent", "data_phases", "statistics") ]
 
     __parent_alias__ = 'project'
 
     __pctrl__ = None
-    
-    #SIGNALS:
-    needs_plot_update = None
 
     #PROPERTIES:
     _data_sample = ""
@@ -154,12 +151,7 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
         ChildModel.__init__(self, parent=parent)
         Observable.__init__(self)
         Storable.__init__(self)
-                
-        #self.data_phase_added = Signal()
-        #self.data_phase_removed = Signal()
-        #self.data_marker_added = Signal()
-        #self.data_marker_removed = Signal()
-        
+               
         self.data_name = data_name
         self.data_sample = data_sample
         self.data_sample_length = data_sample_length
@@ -199,33 +191,18 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
     
     # ------------------------------------------------------------
     #      Notifications of observable properties
-    # ------------------------------------------------------------
-    @Observer.observe("removed", signal=True)
-    def notify_on_removed(self, model, prop_name, info):
-        """
-            This observes the phase & marker models for deletion, 
-            if it is inside this specimen, it is removed as well.
-        """
-        #TODO FIXME this should be inside the project models logic!! Not the specimens job to koop things sane...
-        if isinstance(model, Marker):
-            self.del_marker(model)
-        if isinstance(model, Phase):
-            print "PHASE IS REMOVED..."
-            self.del_phase(model)
-            
+    # ------------------------------------------------------------           
     @Observer.observe("needs_update", signal=True)
     def notify_needs_update(self, model, prop_name, info):
         self.calculate_pattern()
         
     def on_marker_removed(self, model, item):
-        self.relieve_model(item)
         item.parent = None
         if self.parent != None:
             self.parent.needs_plot_update.emit()
         
     def on_marker_inserted(self, model, item):
         item.parent = self
-        self.observe_model(item)
         if self.__pctrl__:
             self.__pctrl__.register(item, "on_update_plot", last=True)
                   
@@ -500,17 +477,28 @@ class Marker(ChildModel, Observable, Storable, ObjectListStoreChildMixin, CSVMix
     __parent_alias__ = 'specimen'
 
     #PROPERTIES:
+    
     _data_label = ""
     def get_data_label_value(self): return self._data_label
     def set_data_label_value(self, value):
         self._data_label = value
         self.liststore_item_changed()
+        if self.parent and self.parent.parent:
+            self.parent.parent.needs_plot_update.emit()
     
-    data_visible = True
-    data_position = 0.0
-    data_x_offset = 0.0
-    data_y_offset = 0.05
-    data_color = "#000000"
+    _data_visible = True
+    _data_position = 0.0
+    _data_x_offset = 0.0
+    _data_y_offset = 0.05
+    _data_color = "#000000"
+    @Model.getter("data_visible", "data_position", "data_x_offset", "data_y_offset", "data_color")
+    def get_data_plot_value(self, prop_name):
+        return getattr(self, "_%s" % prop_name)
+    @Model.setter("data_visible", "data_position", "data_x_offset", "data_y_offset", "data_color")
+    def set_data_plot_value(self, prop_name, value):
+        setattr(self, "_%s" % prop_name, value)
+        if self.parent and self.parent.parent:
+            self.parent.parent.needs_plot_update.emit()
 
     _inherit_angle = True
     def get_inherit_angle_value(self): return self._inherit_angle
@@ -518,6 +506,8 @@ class Marker(ChildModel, Observable, Storable, ObjectListStoreChildMixin, CSVMix
         self._inherit_angle = value
         if self._text!=None:
             self._text.set_rotation(90-self.data_angle)
+        if self.parent and self.parent.parent:
+            self.parent.parent.needs_plot_update.emit()
             
     _data_angle = 0.0
     def get_data_angle_value(self):
@@ -529,6 +519,8 @@ class Marker(ChildModel, Observable, Storable, ObjectListStoreChildMixin, CSVMix
         self._data_angle = value
         if self._text!=None:
             self._text.set_rotation(90-self.data_angle)
+        if self.parent and self.parent.parent:
+            self.parent.parent.needs_plot_update.emit()
 
     _data_base = 1
     _data_bases = { 0: "X-axis", 1: "Experimental profile" }
@@ -538,7 +530,10 @@ class Marker(ChildModel, Observable, Storable, ObjectListStoreChildMixin, CSVMix
     _data_style = "none"
     _data_styles = { "none": "Display at base", "solid": "Solid", "dashed": "Dash", "dotted": "Dotted", "dashdot": "Dash-Dotted", "offset": "Display at Y-offset" }
         
-    add_cbb_props(("data_base", int, None), ("data_style", lambda i: i, None))
+    def cbb_callback(self, prop_name, value):
+        if self.parent and self.parent.parent:
+            self.parent.parent.needs_plot_update.emit()
+    add_cbb_props(("data_base", int, cbb_callback), ("data_style", lambda i: i, cbb_callback))
     
     _vline = None
     _text = None

@@ -63,6 +63,11 @@ class _BaseObjectListStore(gtk.GenericTreeModel):
 class ObjectListStore(_BaseObjectListStore, Storable):
     _model_data = None #list of objects of class_type
 
+    __gsignals__ = { 
+        'item-removed' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
+        'item-inserted' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,))
+    }
+
     def __init__(self, class_type):
         _BaseObjectListStore.__init__(self, class_type)
         Storable.__init__(self)
@@ -92,6 +97,7 @@ class ObjectListStore(_BaseObjectListStore, Storable):
         try:
             return (self._model_data.index(rowref),)
         except ValueError:
+            print "ValueError in on_get_path of %s caused by %s" % (self, rowref)
             return None
 
     def set_value(self, itr, column, value):
@@ -157,11 +163,13 @@ class ObjectListStore(_BaseObjectListStore, Storable):
         itr = self.create_tree_iter(item)
         path = self.get_path(itr)
         self.row_inserted(path, itr)
+        self.emit('item-inserted', item)
         return path
                 
     def remove(self, itr):
         self.remove_item(self.get_user_data(itr))
     def remove_item(self, item):
+        self.emit('item-removed', item)
         path = (self._model_data.index(item),)
         self._model_data.remove(item)
         if hasattr(item, "__list_store__"):
@@ -216,6 +224,8 @@ class ObjectListStore(_BaseObjectListStore, Storable):
         return self._model_data
 
     pass #end of class
+
+gobject.type_register(ObjectListStore)
 
 class IndexListStore(ObjectListStore):
     
@@ -301,6 +311,8 @@ class IndexListStore(ObjectListStore):
 
     pass #end of class
 
+gobject.type_register(IndexListStore)
+
 Point = namedtuple('Point', ['x', 'y'], verbose=False)
 Point.__columns__ = [
     ('x', float),
@@ -310,6 +322,12 @@ Point.__columns__ = [
 #TODO: make use of numpy array for XYListStore
 
 class XYListStore(_BaseObjectListStore, Storable):
+
+    __gsignals__ = { 
+        'item-removed' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
+        'item-inserted' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,))
+    }
+
     _model_data_x = None
     _model_data_y = None
 
@@ -414,15 +432,19 @@ class XYListStore(_BaseObjectListStore, Storable):
         self._emit_added((pos,))
       
     def _emit_added(self, path):
+        index = int(path[0])
+        self.emit('item-inserted', (self._model_data_x[index], self._model_data_y[index]))
         itr = self.get_iter(path)
         self.row_inserted(path, itr)
 
     def remove_from_path(self, *paths):
-        self._model_data_x = np.delete(self._model_data_x, paths)
-        self._model_data_y = np.delete(self._model_data_y, paths)
         paths = np.sort(paths)[::-1]
         for path in paths:
-            self.row_deleted((int(path[0]),))
+            index = int(path)
+            self.emit('item-removed', (self._model_data_x[index], self._model_data_y[index]))
+            self._model_data_x = np.delete(self._model_data_x, index)
+            self._model_data_y = np.delete(self._model_data_y, index)
+            self.row_deleted((index,))
 
     def remove(self, itr):
         path = self.get_path(itr)
@@ -449,3 +471,5 @@ class XYListStore(_BaseObjectListStore, Storable):
         f = interp1d(self._model_data_x, self._model_data_y)
         return zip(x_vals, f(x_vals))
     pass #end of class
+    
+gobject.type_register(XYListStore)

@@ -117,12 +117,15 @@ class DialogMixin():
             self._run_dialog(dialog, None, None)
 
 class _Delayed():
-    def __init__(self, f):
+    def __init__(self, f, lock=None):
+        self.__lock = lock
         self.__f = f
         self.__tmrid = None
 
     def __call__(self):
         def wrapper(*args, **kwargs):
+            if self.__lock != None and getattr(args[0], self.__lock):
+                return #if the function is locked, do not qeue this call
             if self.__tmrid != None:
                 gobject.source_remove(self.__tmrid)   
             self.__tmrid = gobject.timeout_add(500, self.__timeout_handler__, *args, **kwargs)
@@ -133,8 +136,10 @@ class _Delayed():
         self._upt_id = None
         return False
 
-def delayed(f, *args, **kwargs):
-    return _Delayed(f).__call__()
+def delayed(lock=None, *args, **kwargs):
+    def dec(f):
+        return _Delayed(f, lock=lock).__call__()
+    return dec
 
 class BaseController (Controller, DialogMixin):
 
@@ -244,6 +249,10 @@ class ObjectListStoreMixin(HasObjectTreeview):
 
     def __init__(self, model_property_name="", columns=[], delete_msg=""):
         self.model_property_name = model_property_name or self.model_property_name
+        
+        self.liststore.connect("item-removed", self.on_item_removed)
+        self.liststore.connect("item-inserted", self.on_item_inserted)
+        
         self.columns = columns or self.columns
         self.delete_msg = delete_msg or self.delete_msg
 
@@ -323,6 +332,13 @@ class ObjectListStoreMixin(HasObjectTreeview):
     # ------------------------------------------------------------
     #      GTK Signal handlers
     # ------------------------------------------------------------
+    
+    def on_item_removed(self, model, item):
+        pass
+        
+    def on_item_inserted(self, model, item):
+        pass
+    
     def objects_tv_selection_changed(self, selection):        
         obj = self.get_selected_object()
         objs = self.get_selected_objects()
@@ -336,8 +352,15 @@ class ObjectListStoreMixin(HasObjectTreeview):
     def on_save_object_clicked(self, event):
         raise NotImplementedError
 
-    def on_add_object_clicked(self, event):
+    def create_new_object_proxy(self):
         raise NotImplementedError
+
+    def on_add_object_clicked(self, event): #TODO insert item after currently selected item
+        new_object = self.create_new_object_proxy()
+        if new_object != None:
+            self.liststore.append(new_object)
+            self.select_object(new_object)
+        return True
 
     def on_del_object_clicked(self, event, del_callback=None, callback=None):
         tv = self.view['edit_objects_treeview']

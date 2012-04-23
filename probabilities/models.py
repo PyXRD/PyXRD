@@ -51,7 +51,8 @@ class _AbstractProbability(ChildModel, Storable):
 
     #MODEL INTEL:
     __storables__ = []
-
+    __parent_alias__ = 'phase'
+    
     #PROPERTIES:
     _R = -1
     @property

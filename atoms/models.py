@@ -32,6 +32,7 @@ class AtomType(ChildModel, ObjectListStoreChildMixin, Storable, CSVMixin):
 
     #MODEL INTEL:
     __index_column__ = 'data_name'
+    __parent_alias__ = 'project'
 
     __columns__ = [
         ('data_atom_nr', int),
@@ -144,6 +145,7 @@ class Atom(ChildModel, ObjectListStoreChildMixin, Storable):
         ('data_atom_type', AtomType)
     ]
     __storables__ = [key for key, val in __columns__ if key is not "data_atom_type"]
+    __parent_alias__ = 'component'
     
     #PROPERTIES:
     data_name = ""

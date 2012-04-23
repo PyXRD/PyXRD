@@ -36,7 +36,8 @@ class Goniometer(Model, Observable, Storable):
                         "data_max_2theta",
                         "data_lambda" )
     __storables__ = __observables__  
-    
+    __parent_alias__ = 'project'
+        
     #PROPERTIES:
     data_radius = float(24)
     data_divergence = float(0.5) #slit

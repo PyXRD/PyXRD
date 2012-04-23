@@ -451,7 +451,7 @@ class PhasesController(ObjectListStoreController):
             R = int(R)
             if G != None and G > 0 and R != None and R >= 0 and R <= 4:
                 new_phase = Phase("New Phase",  data_G=G, data_R=R, parent=self.model)
-                self.model.add_phase(new_phase)
+                self.model.data_phases.append(new_phase)
                 self.select_object(new_phase)
                 
         add_model = Model()

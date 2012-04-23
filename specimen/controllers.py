@@ -109,12 +109,10 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
                     ad = Adapter(self.model, name)
                     ad.connect_widget(self.view["specimen_%s" % name], getter=get_color_val)
                     self.adapt(ad)
-                elif name == "data_sample_length":
+                elif name in ("data_sample_length", "data_abs_scale"):
                     FloatEntryValidator(self.view["specimen_%s" % name])
                     self.adapt(name)
-                elif not name in ("statistics", "parent", "added", "removed",
-                    "data_phase_removed", "data_phase_added", "del_phase", "add_phase",
-                    "data_markers", "data_marker_removed", "data_marker_added", "del_marker", "add_marker"):
+                elif not name in self.model.__have_no_widget__:
                     self.adapt(name)
             self.update_sensitivities()
             return
@@ -379,7 +377,7 @@ class StatisticsController(ChildController):
     def register_adapters(self):
         if self.model is not None:
             for name in self.model.get_properties():
-                if name in ("data_specimen", "data_residual_pattern", "parent"):
+                if name in self.model.__have_no_widget__:
                     pass
                 else:
                     self.adapt(name)
@@ -407,7 +405,7 @@ class EditMarkerController(ChildController):
                 elif name in ("data_position", "data_angle", "data_x_offset", "data_y_offset"):
                     FloatEntryValidator(self.view["marker_%s" % name])
                     self.adapt(name)
-                elif not name in ("parent"):
+                elif not name in self.model.__have_no_widget__:
                     self.adapt(name)
                 self.view["entry_nanometer"].set_text("%f" % self.model.get_nm_position())
                 FloatEntryValidator(self.view["entry_nanometer"])
@@ -501,11 +499,14 @@ class MarkersController(ObjectListStoreController):
     # ------------------------------------------------------------
     #      GTK Signal handlers
     # ------------------------------------------------------------
+    def on_item_removed(self, model, item):
+        item.parent = None
+        self.parent.update_plot()
+        
     def on_load_object_clicked(self, event):
         def on_accept(dialog):
             print "Importing markers..."
-            Marker.get_from_csv(dialog.get_filename(), self.model.add_marker)
-            self.parent.redraw_plot() #FIXME emit signal instead -> forwarded to containing specimen (emits a signal) -> forwarded to Application Controller -> issues a redraw
+            Marker.get_from_csv(dialog.get_filename(), self.model.data_markers.append)
         self.run_load_dialog("Import markers", on_accept, parent=self.view.get_top_widget())
 
 
@@ -516,18 +517,9 @@ class MarkersController(ObjectListStoreController):
             Marker.save_as_csv(filename, self.get_selected_objects())
         self.run_save_dialog("Export markers", on_accept, parent=self.view.get_top_widget())
         
-    def on_del_object_clicked(self, event):
-        def on_delete(marker):
-            marker.parent = None
-        ObjectListStoreController.on_del_object_clicked(self, event, on_delete)
-        self.parent.update_plot()
-        
-    def on_add_object_clicked(self, event):
-        new_marker = Marker("New Marker", parent=self.model)
-        self.model.add_marker(new_marker)
-        self.select_object(new_marker)
-        self.parent.update_plot()
-    
+    def create_new_object_proxy(self):
+        return Marker("New Marker", parent=self.model)
+            
     def on_find_peaks_clicked(self, widget):        
         def after_cb(threshold):
             if len(self.model.data_markers._model_data) > 0:            
@@ -591,7 +583,7 @@ class ThresholdController(DialogController):
                 elif name in ("sel_threshold", "max_threshold"):
                     FloatEntryValidator(self.view[name])
                     self.adapt(name)
-                elif not name in ("threshold_plot_data", "parent"):
+                elif not name in self.model.__have_no_widget__:
                     self.adapt(name)
             return
         

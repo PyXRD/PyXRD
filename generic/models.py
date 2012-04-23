@@ -87,7 +87,9 @@ class ObjectListStoreChildMixin():
 class ChildModel(Model):
 
     #MODEL INTEL:
-    __observables__ = ["parent", "removed", "added"]
+    __have_no_widget__ = ["parent", "removed", "added"]
+    __observables__ = __have_no_widget__
+    __parent_alias__ = None
 
     #SIGNALS:
     removed = None
@@ -105,7 +107,10 @@ class ChildModel(Model):
         Model.__init__(self)
         self.removed = Signal()
         self.added = Signal()
+        
         self.parent = parent
+        if self.__parent_alias__ != None:
+            setattr(self.__class__, self.__parent_alias__, property(lambda self: self.parent)) 
 
     # ------------------------------------------------------------
     #      Methods & Functions
@@ -135,6 +140,7 @@ class XYData(ChildModel, Storable, Observable):
         "data_name", "data_label", 
         "xy_data"
     ]
+    __parent_alias__ = 'specimen'
     __storables__ = [val for val in __observables__ if not val in __temporarals__ ] + ["color",]
 
     #SIGNALS:
@@ -162,7 +168,7 @@ class XYData(ChildModel, Storable, Observable):
     def get_display_offset_value(self): return self._display_offset
     def set_display_offset_value(self, value):
         self._display_offset = float(value)
-        self.update_data()
+        self.plot_update.emit()
         
     _bg_position = 0
     bg_line = None
@@ -357,7 +363,7 @@ class XYData(ChildModel, Storable, Observable):
         if update: self.update_data()
     
     def on_update_plot(self, figure, axes, pctrl):
-        self.update_data()
+        self.update_data(silent=True)
         
         #Add pattern
         lines = axes.get_lines()
@@ -368,15 +374,24 @@ class XYData(ChildModel, Storable, Observable):
             try: line.remove()
             except: pass            
         
+        yscale = self.parent.parent.axes_yscale if (self.parent!=None and self.parent.parent != None) else 1
+        yfactor = 1.0
+        if yscale == 0:
+            yfactor = 1.0 / (self.parent.parent.get_max_intensity() or 1.0)
+        elif yscale == 1:
+            yfactor = 1.0 / (self.max_intensity or 1.0)
+        elif yscale == 2:
+            yfactor = 1.0
+        
         #Add bg line (if present)
         try_or_die(self.bg_line)
         if self.bg_type == 0 and self._bg_position != 0.0:
-            self.bg_line = axes.axhline(y=self.bg_position, c="#660099")
+            self.bg_line = axes.axhline(y=self.bg_position*yfactor, c="#660099")
         elif self.bg_type == 1 and self.bg_pattern != None:
-            bg = self.bg_pattern * self.bg_scale + self.bg_position
+            bg = ((self.bg_pattern * self.bg_scale) + self.bg_position) * yfactor
             self.bg_line = matplotlib.lines.Line2D(xdata=self.xy_data._model_data_x, ydata=bg, c="#660099")
             axes.add_line(self.bg_line)            
-            print "ADDING BG LINE!!"
+            #print "ADDING BG LINE!!"
         else:
             self.bg_line = None
             
@@ -405,16 +420,13 @@ class XYData(ChildModel, Storable, Observable):
     # ------------------------------------------------------------
     def remove_background(self):
         y_data = self.xy_data._model_data_y
+        bg = 0
         if self.bg_type == 0:
-            if self.bg_position != 0.0:
-                y_data = np.maximum((y_data - self.bg_position) / (1.0 - self.bg_position), 0.0)
-        elif self.bg_type == 1:
-            if self.bg_pattern != None and not (self.bg_position == 0 and self.bg_scale == 0):
-                y_data -= (self.bg_pattern * self.bg_scale + self.bg_position)
-                miny = np.min(y_data)
-                maxy = np.max(y_data)
-                y_data = (y_data - miny) / (maxy - miny)                
-        self.xy_data._model_data_y = y_data
+            bg = self.bg_position
+        elif self.bg_type == 1 and self.bg_pattern != None and not (self.bg_position == 0 and self.bg_scale == 0):
+            bg = self.bg_pattern * self.bg_scale + self.bg_position
+        y_data -= bg
+        self.xy_data._model_data_y = y_data - np.min(y_data)
         self.bg_pattern = None
         self.bg_scale = 0.0
         self.bg_position = 0.0

@@ -15,6 +15,9 @@ sqrtpi = sqrt(pi)
 sqrt2pi = sqrt(2*pi)
 sqrt8 = sqrt(8)
 
+def u(string):
+    return unicode(string, errors='replace', encoding='UTF-8')
+
 def print_timing(func):
     def wrapper(*args, **kwargs):
         t1 = time.time()

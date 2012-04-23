@@ -110,7 +110,7 @@ class ProjectController (DialogController, HasObjectTreeview, DialogMixin):
                     setup_image_button("UP", None, gtk.STOCK_GO_UP)
                     setup_image_button("DOWN", None, gtk.STOCK_GO_DOWN)
 
-                elif not name in ("data_phases", "data_atom_types", "data_goniometer"):
+                elif not name in self.model.__have_no_widget__:
                     self.adapt(name)
             return
 
@@ -145,26 +145,12 @@ class ProjectController (DialogController, HasObjectTreeview, DialogMixin):
         self.parent.update_title()
         return
 
-    @Controller.observe("data_date", assign=True)
-    def notif_change_date(self, model, prop_name, info):
-        print "prop_name = %s" % prop_name
-        return
-
     @Controller.observe("axes_xscale", assign=True)
     def notif_xscale_toggled(self, model, prop_name, info):
         for widget in ("lbl_minx", "lbl_maxx", "project_axes_xmin", "project_axes_xmax"):
             self.view[widget].set_sensitive(self.model.axes_xscale==1)
         
-    @Controller.observe("axes_xscale", assign=True)
-    @Controller.observe("axes_xmin", assign=True)
-    @Controller.observe("axes_xmax", assign=True)
-    @Controller.observe("axes_xstretch", assign=True)
-    @Controller.observe("axes_yscale", assign=True)
-    @Controller.observe("axes_yvisible", assign=True)
-    @Controller.observe("display_exp_color", assign=True)
-    @Controller.observe("display_calc_color", assign=True)
-    @Controller.observe("display_marker_angle", assign=True)
-    @Controller.observe("display_plot_offset", assign=True)
+    @Controller.observe("needs_plot_update", signal=True)
     def notif_display_props(self, model, prop_name, info):
         self.parent.update_plot()
 

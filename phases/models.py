@@ -29,7 +29,7 @@ class Component(ChildModel, ObjectListStoreChildMixin, Storable):
     __inheritables__ = ("data_name", "data_based_on",
                         "data_d001", "data_cell_a", "data_cell_b",
                         "data_layer_atoms", "data_interlayer_atoms")
-
+    __parent_alias__ = 'phase'
     __columns__ = [
         ('data_name', str),
         ('data_linked_with', object),
@@ -174,7 +174,7 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
 
     #MODEL INTEL:
     __inheritables__ = ("data_mean_CSDS", "data_min_CSDS", "data_max_CSDS", "data_sigma_star", "data_probabilities")
-    
+    __parent_alias__ = 'project'
     __columns__ = [
         ('data_name', str),
         ('data_based_on', object),
@@ -320,15 +320,15 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
     def __str__(self):
         return "<PHASE %s(%s) %s>" % (self.data_name, repr(self), self.data_based_on)
 
-    def _unattach_parent(self):
+    """def _unattach_parent(self):
         if self._parent != None:
             self.parent.del_phase(self)
         ChildModel._unattach_parent(self)
         
     def _attach_parent(self):
-        if self._parent != None:
-            self.parent.add_phase(self)
-        ChildModel._attach_parent(self)
+        if self._parent != None and not self.parent.data_phases.item_in_model(self):
+            self.parent.data_phases.append(self)
+        ChildModel._attach_parent(self)"""
 
     # ------------------------------------------------------------
     #      Notifications of observable properties

@@ -29,7 +29,7 @@ from math import tan, asin, sin, cos, pi, sqrt, radians, degrees, exp, log
 
 import settings
 
-from generic.utils import interpolate, print_timing
+from generic.utils import interpolate, print_timing, u
 from generic.io import Storable, PyXRDDecoder
 from generic.models import XYData, ChildModel, CSVMixin, ObjectListStoreChildMixin, add_cbb_props
 from generic.treemodels import ObjectListStore, XYListStore, Point
@@ -40,10 +40,14 @@ from phases.models import Phase
 class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
 
     #MODEL INTEL:
+    __have_no_widget__ = ChildModel.__have_no_widget__ + [
+        "statistics", "needs_plot_update", "data_markers"
+    ]
     __columns__ = [
         ('data_name', str),
         ('data_sample', str),
-        ('data_sample_length', str),
+        ('data_sample_length', float),
+        ('data_abs_scale', float),
         ('display_calculated', bool),
         ('display_experimental', bool),
         ('display_phases', bool),
@@ -57,16 +61,15 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
         ('exp_color', str),
         ('statistics', object),
     ]
-    __observables__ = [ key for key, val in __columns__]
-    __storables__ = [ val for val in __observables__ if not val in ('parent', 'data_phases', 'statistics') ]
+    __observables__ = [ key for key, val in __columns__] + ["needs_plot_update"]
+    __storables__ = [ val for val in __observables__ if not val in ("parent", "data_phases", "statistics", "needs_plot_update") ]
+
+    __parent_alias__ = 'project'
 
     __pctrl__ = None
     
     #SIGNALS:
-    data_phase_added = None
-    data_phase_removed = None
-    data_marker_added = None
-    data_marker_removed = None    
+    needs_plot_update = None
 
     #PROPERTIES:
     _data_sample = ""
@@ -87,6 +90,7 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
     data_experimental_pattern = None
     
     data_sample_length = 3.0  
+    data_abs_scale = 1.0
     
     statistics = None
     
@@ -142,7 +146,7 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def __init__(self, data_name="", data_sample="", data_sample_length=3.0,
+    def __init__(self, data_name="", data_sample="", data_sample_length=3.0, data_abs_scale=1.0,
                  display_calculated=True, display_experimental=True, display_phases=False,
                  data_experimental_pattern = None, data_calculated_pattern = None, data_markers = None,
                  phase_indeces=None, calc_color=None, exp_color=None, 
@@ -150,15 +154,16 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
         ChildModel.__init__(self, parent=parent)
         Observable.__init__(self)
         Storable.__init__(self)
-        
-        self.data_phase_added = Signal()
-        self.data_phase_removed = Signal()
-        self.data_marker_added = Signal()
-        self.data_marker_removed = Signal()
+                
+        #self.data_phase_added = Signal()
+        #self.data_phase_removed = Signal()
+        #self.data_marker_added = Signal()
+        #self.data_marker_removed = Signal()
         
         self.data_name = data_name
         self.data_sample = data_sample
         self.data_sample_length = data_sample_length
+        self.data_abs_scale  = data_abs_scale
 
         self._calc_color = calc_color or self.calc_color
         self._exp_color = exp_color or self.exp_color
@@ -168,7 +173,10 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
         
         self.data_calculated_pattern = data_calculated_pattern or XYData("Calculated Profile", color=self.calc_color, parent=self)
         self.data_experimental_pattern = data_experimental_pattern or XYData("Experimental Profile", color=self.exp_color, parent=self)
+        
         self._data_markers =  data_markers or ObjectListStore(Marker)
+        self.data_markers.connect("item-removed", self.on_marker_removed)
+        self.data_markers.connect("item-inserted", self.on_marker_inserted)
         
         self.display_calculated = display_calculated
         self.display_experimental = display_experimental
@@ -198,15 +206,29 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
             This observes the phase & marker models for deletion, 
             if it is inside this specimen, it is removed as well.
         """
+        #TODO FIXME this should be inside the project models logic!! Not the specimens job to koop things sane...
         if isinstance(model, Marker):
             self.del_marker(model)
         if isinstance(model, Phase):
+            print "PHASE IS REMOVED..."
             self.del_phase(model)
             
     @Observer.observe("needs_update", signal=True)
     def notify_needs_update(self, model, prop_name, info):
         self.calculate_pattern()
         
+    def on_marker_removed(self, model, item):
+        self.relieve_model(item)
+        item.parent = None
+        if self.parent != None:
+            self.parent.needs_plot_update.emit()
+        
+    def on_marker_inserted(self, model, item):
+        item.parent = self
+        self.observe_model(item)
+        if self.__pctrl__:
+            self.__pctrl__.register(item, "on_update_plot", last=True)
+                  
     # ------------------------------------------------------------
     #      Input/Output stuff
     # ------------------------------------------------------------   
@@ -240,16 +262,16 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
             header, data = data.split("\n", 1)
             
             specimen.data_experimental_pattern.load_data(data, format=format, has_header=False)
-            specimen.data_name = os.path.basename(filename)
-            specimen.data_sample = header
+            specimen.data_name = u(os.path.basename(filename))
+            specimen.data_sample = u(header)
             
         elif format=="BIN":
             import struct
             
             f = open(data, 'rb')
             f.seek(146)
-            specimen.data_sample = str(f.read(16)).replace("\0", "")
-            specimen.data_name = os.path.basename(data)
+            specimen.data_sample = u(str(f.read(16)).replace("\0", ""))
+            specimen.data_name = u(os.path.basename(data))
             specimen.data_experimental_pattern.load_data(data=f, format=format)
             f.close()
         
@@ -262,36 +284,18 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
         if not phase in self._data_phases:
             self.observe_model(phase)
             self._data_phases.update({phase: quantity})
-            self.data_phase_added.emit(phase)
     
 
     def del_phase(self, phase):
         if phase in self._data_phases:
             self.relieve_model(phase)
             del self.data_phases[phase]
-            self.data_phase_removed.emit(phase)
-        
-    def add_marker(self, marker):
-        marker.parent = self
-        if not marker in self._data_markers:
-            self.observe_model(marker)
-            self._data_markers.append(marker)
-            self.data_marker_added.emit(marker)            
-        if self.__pctrl__:
-            self.__pctrl__.register(marker, "on_update_plot", last=True)
-    
-    def del_marker(self, marker):
-        if marker in self._data_markers:
-            self.relieve_model(marker)
-            self.specimen._data_markers.remove_item(marker)
-            self.data_marker_removed.emit(marker)
-        marker.parent = None
         
     def on_update_plot(self, figure, axes, pctrl):       
         if self.display_experimental:
             self.data_experimental_pattern.on_update_plot(figure, axes, pctrl)
         if self.display_calculated:
-            #self.calculate_pattern()
+            self.calculate_pattern()
             self.data_calculated_pattern.on_update_plot(figure, axes, pctrl)        
         pctrl.update_lim()
         
@@ -331,9 +335,9 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
                 intensity_range += phase.get_diffracted_intensity(theta_range, stl_range, S, S1S2, quantity, correction_range)
             
             Imax = max(intensity_range)
-            intensity_range /= Imax
+            intensity_range = intensity_range * (self.data_abs_scale / Imax)
             
-            self.data_calculated_pattern.clear(update=False)
+            self.data_calculated_pattern.clear(update=False) #FIXME this should be done in ONE single call instead of 3 (see further)
             
             theta_range = theta_range * 2 / torad
             self.data_calculated_pattern.xy_data.set_from_data(theta_range, intensity_range)
@@ -356,14 +360,16 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
                 if x != 0:
                     nm = self.parent.data_goniometer.data_lambda / (2.0*sin(radians(x/2.0)))
                 new_marker = Marker("%%.%df" % (3 + min(int(log(nm, 10)), 0)) % nm, parent=self, data_position=x)
-                self.add_marker(new_marker)
+                self.data_markers.append(new_marker)
             i += 1
     pass #end of class
     
 class ThresholdSelector(ChildModel, Observable):
     
     #MODEL INTEL:
+    __have_no_widget__ = ChildModel.__have_no_widget__ + ["threshold_plot_data"]
     __observables__ = [ "pattern", "max_threshold", "steps", "sel_threshold", "threshold_plot_data", "sel_num_peaks" ]
+    __parent_alias__ = 'specimen'
     
     #PROPERTIES:
     _pattern = "exp"
@@ -475,6 +481,7 @@ class ThresholdSelector(ChildModel, Observable):
 class Marker(ChildModel, Observable, Storable, ObjectListStoreChildMixin, CSVMixin):
     
     #MODEL INTEL:
+    #__have_no_widget__ = ChildModel.__have_no_widget__
     __columns__ = [
         ('data_label', str),
         ('data_visible', bool),
@@ -490,6 +497,7 @@ class Marker(ChildModel, Observable, Storable, ObjectListStoreChildMixin, CSVMix
     __observables__ = [ key for key, val in __columns__]
     __storables__ = __observables__
     __csv_storables__ = zip(__storables__, __storables__)
+    __parent_alias__ = 'specimen'
 
     #PROPERTIES:
     _data_label = ""
@@ -675,6 +683,7 @@ class Marker(ChildModel, Observable, Storable, ObjectListStoreChildMixin, CSVMix
 class Statistics(Model, Observable):
 
     #MODEL INTEL:
+    __have_no_widget__ = ["data_specimen", "data_residual_pattern"]
     __observables__ = [ 
         "data_specimen", 
         "data_points", 

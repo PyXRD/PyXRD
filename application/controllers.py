@@ -6,8 +6,9 @@
 # To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/3.0/ or send
 # a letter to Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
 
-import os
+import os, sys
 import locale
+from shutil import copy2 as copy, move
 
 import gtk
 
@@ -97,7 +98,7 @@ class AppController (BaseController, DialogMixin):
             self.view.markers.present()
         return True
 
-    @delayed
+    @delayed(lock="in_update_cycle")
     def update_plot(self):
         self.redraw_plot(complete=False)
         
@@ -162,12 +163,24 @@ class AppController (BaseController, DialogMixin):
         self.view["specimens_actions"].set_sensitive(sensitive)
         
     def save_project(self, filename=None):
-        self.model.current_filename = filename or self.model.current_filename
+        filename = filename or self.model.current_filename
         try:
-            self.model.current_project.save_object(self.model.current_filename)
+            backupfile = sys.path[0] + "/data/temp_backup.pyxrd"
+            copy(filename, backupfile) #create backup in case something goes wrong
+        except IOError:
+            backupfile = None
+        try:
+            self.model.current_project.save_object(filename)
+            self.model.current_filename = filename
         except:
+            if backupfile: 
+                move(backupfile, self.model.current_filename) #move original file back
+                backupfile = None
             self.run_information_dialog("An error has occured.\n Your project was not saved!", parent=self.view.get_top_widget())
             raise
+        finally:
+            if backupfile: os.remove(backupfile) #remove backup file
+            
         
     def open_project(self, filename):
         try:

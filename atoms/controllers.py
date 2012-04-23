@@ -112,15 +112,11 @@ class AtomTypesController(ObjectListStoreController):
                 AtomType.save_as_csv(filename, self.get_selected_objects())
         self.run_save_dialog("Export atom types", on_accept, parent=self.view.get_top_widget())
         
-    def on_add_object_clicked(self, event):
-        new_atom_type = AtomType("New Atom Type", parent=self.model)
-        self.model.add_atom_type(new_atom_type)
-        self.select_object(new_atom_type)
-        return True
-        
-    def on_del_object_clicked(self, event):
-        ObjectListStoreController.on_del_object_clicked(self, event, del_callback=self.model.del_atom_type)
-        
+    def create_new_object_proxy(self):
+        #new_atom_type = 
+        #self.model.add_atom_type(new_atom_type)
+        #self.select_object(new_atom_type)
+        return AtomType("New Atom Type", parent=self.model)
         
     pass #end of class
         

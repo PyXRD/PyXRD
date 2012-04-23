@@ -169,11 +169,12 @@ class ObjectListStore(_BaseObjectListStore, Storable):
     def remove(self, itr):
         self.remove_item(self.get_user_data(itr))
     def remove_item(self, item):
-        self.emit('item-removed', item)
+        print "REMOVE ITEM CALLED %s" % item
         path = (self._model_data.index(item),)
         self._model_data.remove(item)
         if hasattr(item, "__list_store__"):
             item.__list_store__ = None
+        self.emit('item-removed', item)
         self.row_deleted(path)
 
     def clear(self):

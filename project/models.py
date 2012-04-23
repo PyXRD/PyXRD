@@ -176,9 +176,9 @@ class Project(Model, Observable, Storable):
             item.data_based_on = None
         for phase in self._data_phases._model_data:
             if phase.data_based_on == item:
-                phase.data_based_on = None        
+                phase.data_based_on = None
         for specimen in self.data_specimens._model_data:
-            specimen.del_phase(phase)
+            specimen.del_phase(item)
     def on_atom_type_item_removed(self, model, item, *data):
         pass
     def on_specimen_item_removed(self, model, item, *data):

@@ -181,14 +181,21 @@ class MainPlotController (PlotController):
         self.plot.autoscale_view()
         self.plot.set_ylim(bottom=0, auto=True)
         
+        self.stats_plot.relim()
+        self.stats_plot.autoscale_view()
+        self.stats_plot.set_ylim(auto=True)
+        self.stats_plot.get_yaxis().get_major_locator().set_params(symmetric=True, nbins=2, integer=False)
+        
         xaxis = self.plot.get_xaxis()
         if project==None or project.axes_xscale == 0:
             xmin, xmax = xaxis.get_view_interval()
             if xmax < 20:
                 self.plot.set_xlim(right=20, auto=True)
+                self.stats_plot.set_xlim(right=20, auto=True)
         else:
             xmin, xmax = project.axes_xmin, project.axes_xmax
             self.plot.set_xlim(left=xmin, right=xmax, auto=False)
+            self.stats_plot.set_xlim(left=xmin, right=xmax, auto=False)
 
     def update_axes(self, draw=True, single=True, labels=None, stats=(False,None), project=None):
         self.update_lim(project=project)
@@ -233,13 +240,9 @@ class MainPlotController (PlotController):
             self.figure.add_axes(self.stats_plot)
             self.stats_plot.cla()
             self.stats_plot.add_line(res_pattern)
-            self.stats_plot.set_ylim(auto=True)
             self.stats_plot.axhline(ls=":", c="k")
 
-            self.stats_plot.relim()            
-            self.stats_plot.autoscale_view()
-            self.stats_plot.get_yaxis().get_major_locator().set_params(symmetric=True, nbins=2, integer=False)            
-            self.stats_plot.set_position(settings.get_stats_plot_position(xdiff)) 
+            self.stats_plot.set_position(settings.get_stats_plot_position(xdiff, stretch=stretch)) 
             
             set_label_text(self.plot.axis["bottom"].label, '')
             set_label_text(self.stats_plot.axis["bottom"].label, 'Angle (°2θ)')

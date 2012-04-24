@@ -1,7 +1,7 @@
 VERSION = "0.3.7"
 
 DEBUG = False
-VIEW_MODE = True
+VIEW_MODE = False
 
 LOG_FILENAME = 'errors.log'
 

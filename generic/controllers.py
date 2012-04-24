@@ -244,13 +244,15 @@ class HasObjectTreeview():
 class ObjectListStoreMixin(HasObjectTreeview):
 
     model_property_name = ""
+    multi_selection = True
     edit_controller = None
     edit_view = None
     columns = [ ("Object name", 0) ]
     delete_msg = "Deleting objects is irreverisble!\nAre You sure you want to continue?"
 
-    def __init__(self, model_property_name="", columns=[], delete_msg=""):
+    def __init__(self, model_property_name="", multi_selection=None, columns=[], delete_msg=""):
         self.model_property_name = model_property_name or self.model_property_name
+        self.multi_selection = multi_selection or self.multi_selection
         
         self.liststore.connect("item-removed", self.on_item_removed)
         self.liststore.connect("item-inserted", self.on_item_inserted)
@@ -290,7 +292,8 @@ class ObjectListStoreMixin(HasObjectTreeview):
             #tv.connect('button-press-event', self.phases_tv_button_press)
 
             sel = tv.get_selection()
-            sel.set_mode(gtk.SELECTION_MULTIPLE)
+            if self.multi_selection:
+                sel.set_mode(gtk.SELECTION_MULTIPLE)
             sel.connect('changed', self.objects_tv_selection_changed)
 
             #reset:

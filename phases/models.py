@@ -130,7 +130,7 @@ class Component(ChildModel, ObjectListStoreChildMixin, Storable):
         retval = Storable.json_properties(self)
         retval["linked_with_index"] = self.parent.data_based_on.data_components.index(self.data_linked_with) if self.data_linked_with != None else -1
         return retval
-    
+        
     @classmethod          
     def from_json(type, **kwargs):
         project = kwargs['parent'].parent

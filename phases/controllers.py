@@ -309,7 +309,7 @@ class ComponentsController(ChildObjectListStoreController): #limit # of componen
             return ChildObjectListStoreController.get_new_edit_controller(self, obj, view, parent=parent)
 
 class EditPhaseController(ChildController):
-       
+    
     probabilities_controller = None
     
     components_view = None
@@ -412,20 +412,12 @@ class EditPhaseController(ChildController):
                 return
         combo.set_active(-1)
         self.update_sensitivities()
-        self.model.data_based_on = None
-
-    def on_button_save_phase_clicked(self, widget, user_data=None):
-        print "TODO SAVE PHASE"
-        pass
-
-    def on_button_load_phase_clicked(self, widget, user_data=None):
-        print "TODO LOAD PHASE"
-        pass
-        
+        self.model.data_based_on = None        
 
 class PhasesController(ObjectListStoreController):
-
+    file_filters = ("Phase file", "*.phs"),
     model_property_name = "data_phases"
+    multi_selection = False
     columns = [ ("Phase name", 0) ]
     delete_msg = "Deleting a phase is irreverisble!\nAre You sure you want to continue?"
     title="Edit Phases"
@@ -460,6 +452,19 @@ class PhasesController(ObjectListStoreController):
         
         add_view.present()
 
+        return True
+        
+    def on_save_object_clicked(self, event):
+        def on_accept(save_dialog):
+            print "Exporting phase..."
+            filename = self.extract_filename(dialog)
+            phase = self.get_selected_object()
+            if phase is not None:
+                phase.save_object(filename=filename)
+        self.run_save_dialog("Export phase", on_accept, parent=self.view.get_top_widget())
+        return True
+        
+    def on_load_object_clicked(self, event):
         return True
         
 class AddPhaseController(DialogController):

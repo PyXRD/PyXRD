@@ -125,7 +125,7 @@ class AppController (BaseController, DialogMixin):
                         self.plot_controller.register(specimen, "on_update_plot", last=False)
                         for marker in specimen.data_markers._model_data:
                             self.plot_controller.register(marker, "on_update_plot", last=True)
-                    labels.append((specimen.data_sample, 0.35 + offset))
+                    labels.append((specimen.data_sample, self.model.current_project.display_label_pos + offset))
                     offset += offset_increment
                     i += 1
         
@@ -304,7 +304,7 @@ class AppController (BaseController, DialogMixin):
                 msg.destroy()
                 return
             msg.destroy()
-            self.model.current_project.del_specimen(obj)
+            self.model.current_project.data_specimens.remove_item(obj)
         self.pop_status_msg('del_specimen')
         return True
 

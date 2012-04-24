@@ -182,7 +182,7 @@ class Project(Model, Observable, Storable):
     def on_atom_type_item_removed(self, model, item, *data):
         pass
     def on_specimen_item_removed(self, model, item, *data):
-        self.relieve_model(specimen)
+        self.relieve_model(item)
 
     # ------------------------------------------------------------
     #      Input/Output stuff

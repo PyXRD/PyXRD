@@ -28,7 +28,7 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
                     ("ASCII Data", get_case_insensitive_glob("*.DAT")),
                     ("Phillips Binary Data", get_case_insensitive_glob("*.RD")),
                     ("All Files", "*.*")]
-
+    
     def register_adapters(self):
         if self.model is not None:
             for name in self.model.get_properties():
@@ -587,5 +587,5 @@ class ThresholdController(DialogController):
     # ------------------------------------------------------------
     def on_btn_ok_clicked(self, event):
         if self.callback != None and callable(self.callback):
-            self.callback(self.model.sel_threshold)
+            self.callback(self.model)
         return DialogController.on_btn_ok_clicked(self, event)

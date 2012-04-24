@@ -323,8 +323,11 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
 
             return (theta_range, intensity_range)
         
-    def auto_add_peaks(self, threshold):       
-        xy = self.data_experimental_pattern.xy_data              
+    def auto_add_peaks(self, tmodel):
+    
+        threshold = tmodel.sel_threshold
+        data_base = 1 if (tmodel.pattern == "exp") else 2
+        xy = tmodel.get_xy()
         maxtab, mintab = peakdetect(xy._model_data_y, xy._model_data_x, 5, threshold)
         
         mpositions = []
@@ -337,7 +340,7 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
                 nm = 0
                 if x != 0:
                     nm = self.parent.data_goniometer.data_lambda / (2.0*sin(radians(x/2.0)))
-                new_marker = Marker("%%.%df" % (3 + min(int(log(nm, 10)), 0)) % nm, parent=self, data_position=x)
+                new_marker = Marker("%%.%df" % (3 + min(int(log(nm, 10)), 0)) % nm, parent=self, data_position=x, data_base=data_base)
                 self.data_markers.append(new_marker)
             i += 1
     pass #end of class
@@ -409,7 +412,7 @@ class ThresholdSelector(ChildModel, Observable):
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------
-    def _get_xy(self):
+    def get_xy(self):
         if self._pattern == "exp":
             return self.parent.data_experimental_pattern.xy_data
         elif self._pattern == "calc":
@@ -417,43 +420,44 @@ class ThresholdSelector(ChildModel, Observable):
     
     def update_threshold_plot_data(self):
         if self.parent != None:
-            xy = self._get_xy()
-            
+            xy = self.get_xy()
             length = xy._model_data_x.size
-            resolution = length / (xy._model_data_x[-1] - xy._model_data_x[0])
-            delta_angle = 0.05
-            window = int(delta_angle * resolution)
-            window += (window % 2)*2
             
-            steps = max(self.steps, 2) - 1
-            factor = self.max_threshold / steps
+            if length > 2:
+                resolution = length / (xy._model_data_x[-1] - xy._model_data_x[0])
+                delta_angle = 0.05
+                window = int(delta_angle * resolution)
+                window += (window % 2)*2
+                
+                steps = max(self.steps, 2) - 1
+                factor = self.max_threshold / steps
 
-            deltas = [i*factor for i in range(0, self.steps)]
-            
-            numpeaks = []
-            maxtabs, mintabs = multi_peakdetect(xy._model_data_y, xy._model_data_x, 5, deltas)
-            for maxtab, mintab in zip(maxtabs, mintabs):
-                numpeak = len(maxtab)
-                numpeaks.append(numpeak)
-            numpeaks = map(float, numpeaks)
-            
-            #update plot:
-            self.threshold_plot_data = (deltas, numpeaks)
-            
-            #update auto selected threshold:
-            ln = 4
-            max_ln = len(deltas)
-            stop = False
-            while not stop:
-                x = deltas[0:ln]
-                y = numpeaks[0:ln]
-                slope, intercept, R, p_value, std_err = stats.linregress(x,y)
-                ln += 1
-                if abs(R) < 0.95 or ln >= max_ln:
-                    stop = True
-                peak_x = -intercept / slope                
+                deltas = [i*factor for i in range(0, self.steps)]
+                
+                numpeaks = []
+                maxtabs, mintabs = multi_peakdetect(xy._model_data_y, xy._model_data_x, 5, deltas)
+                for maxtab, mintab in zip(maxtabs, mintabs):
+                    numpeak = len(maxtab)
+                    numpeaks.append(numpeak)
+                numpeaks = map(float, numpeaks)
+                
+                #update plot:
+                self.threshold_plot_data = (deltas, numpeaks)
+                
+                #update auto selected threshold:
+                ln = 4
+                max_ln = len(deltas)
+                stop = False
+                while not stop:
+                    x = deltas[0:ln]
+                    y = numpeaks[0:ln]
+                    slope, intercept, R, p_value, std_err = stats.linregress(x,y)
+                    ln += 1
+                    if abs(R) < 0.95 or ln >= max_ln:
+                        stop = True
+                    peak_x = -intercept / slope                
 
-            self.sel_threshold = peak_x
+                self.sel_threshold = peak_x
     pass #end of class
             
 class Marker(ChildModel, Observable, Storable, ObjectListStoreChildMixin, CSVMixin):

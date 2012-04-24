@@ -29,7 +29,9 @@ class SpecimenView(DialogView):
         "specimen_display_phases",
         "specimen_display_auto_update",
         "scw_display_phases_tv",
-        "lbl_specimen_phases")
+        "lbl_specimen_phases",
+        "lbl_spec_scale",
+        "specimen_data_abs_scale")
 
 class EditMarkerView(BaseView):
     builder = "specimen/glade/edit_marker.glade"

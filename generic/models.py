@@ -202,7 +202,7 @@ class XYData(ChildModel, Storable, Observable):
     shifted_line = None
     reference_line = None
     def get_shift_value_value(self): return self._shift_value
-    def set_shift_value(self, value):
+    def set_shift_value_value(self, value):
         self._shift_value = float(value)
         self.plot_update.emit()
 

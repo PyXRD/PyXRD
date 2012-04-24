@@ -192,7 +192,7 @@ class R0Model(_AbstractR0R1Model):
         self.updated.emit()
     
     def get_independent_label_map(self):
-        return self.__independent_label_map__[:self.G+1]    
+        return self.__independent_label_map__[:self.G]
     
     pass #end of class
 

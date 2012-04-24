@@ -260,7 +260,7 @@ class XYData(ChildModel, Storable, Observable):
     # ------------------------------------------------------------    
     @staticmethod
     def from_json(data_name=None, data_label=None, xy_data=None, color=None, **kwargs):
-        xy_data = PyXRDDecoder.__pyxrd_decode__(xy_data)
+        xy_data = PyXRDDecoder().__pyxrd_decode__(xy_data)
         return XYData(data_name=data_name, data_label=data_label, xy_data=xy_data, color=color)
             
     def save_data(self, filename):

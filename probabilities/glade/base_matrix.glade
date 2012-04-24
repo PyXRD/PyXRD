@@ -5,7 +5,7 @@
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="border_width">5</property>
-    <property name="n_rows">3</property>
+    <property name="n_rows">4</property>
     <property name="n_columns">2</property>
     <property name="column_spacing">5</property>
     <property name="row_spacing">5</property>
@@ -13,7 +13,7 @@
       <object class="GtkLabel" id="lbl_weight">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="label" translatable="yes">W</property>
+        <property name="label" translatable="yes">W matrix</property>
       </object>
       <packing>
         <property name="y_options"></property>
@@ -23,7 +23,7 @@
       <object class="GtkLabel" id="lbl_probab">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="label" translatable="yes">P</property>
+        <property name="label" translatable="yes">P matrix</property>
       </object>
       <packing>
         <property name="left_attach">1</property>
@@ -39,7 +39,7 @@
       <packing>
         <property name="top_attach">1</property>
         <property name="bottom_attach">2</property>
-        <property name="y_options">GTK_FILL</property>
+        <property name="y_options"></property>
       </packing>
     </child>
     <child>
@@ -52,11 +52,12 @@
         <property name="right_attach">2</property>
         <property name="top_attach">1</property>
         <property name="bottom_attach">2</property>
-        <property name="y_options">GTK_FILL</property>
+        <property name="y_options"></property>
       </packing>
     </child>
     <child>
       <object class="GtkEventBox" id="w_box">
+        <property name="height_request">100</property>
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <child>
@@ -81,6 +82,18 @@
         <property name="right_attach">2</property>
         <property name="top_attach">2</property>
         <property name="bottom_attach">3</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkHSeparator" id="seperator_W1">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+      </object>
+      <packing>
+        <property name="right_attach">2</property>
+        <property name="top_attach">3</property>
+        <property name="bottom_attach">4</property>
+        <property name="y_options"></property>
       </packing>
     </child>
   </object>

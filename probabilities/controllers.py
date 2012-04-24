@@ -70,17 +70,27 @@ class EditProbabilitiesController(ChildController):
         view.set_views(self.independents_view, self.dependents_view)
 
     def update_views(self): #needs to be called whenever an independent value changes
-        #self.independents_view.update()
-        self.independents_view.update_matrices(self.model.get_distribution_matrix(), self.model.get_probability_matrix())
-
-    pass
+        self.dependents_view.update_matrices(self.model.get_distribution_matrix(), self.model.get_probability_matrix())
+        self.independents_view.update_matrices(self.model)
+        
+    # ------------------------------------------------------------
+    #      Notifications of observable properties
+    # ------------------------------------------------------------
+    @Controller.observe("updated", signal=True)
+    def notif_updated(self, model, prop_name, info):
+        self.update_views()
+        return
+        
+        
+        
+    pass #end of class
     
 class R0IndependentsController(ChildController):
 
     def register_adapters(self):
         if self.model is not None:
             for name in self.model.get_properties():
-                if name in ["parent", "added", "removed"]:
+                if name in ["parent", "added", "removed", "updated"]:
                     pass
                 elif name in ["W1", "W2", "W3", "W4"]:
                     if int(name[1]) <= self.model.G:
@@ -96,8 +106,17 @@ class R0IndependentsController(ChildController):
     
 class R1G2IndependentsController(ChildController):
 
-    def __init__(self, *args, **kwargs):
-        ChildController.__init__(self, *args, **kwargs)
+    def register_adapters(self):
+        print "R1G2IndependentsController.register_adapters()"
+        if self.model is not None:
+            for name in self.model.get_properties():
+                if name in ["parent", "added", "removed", "updated"]:
+                    pass
+                else:
+                    print name
+                    FloatEntryValidator(self.view["prob_%s" % name])
+                    self.adapt(name)
+            return
 
     pass #TODO
     

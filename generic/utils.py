@@ -10,10 +10,12 @@ from math import exp, sqrt, log, pi
 import numpy as np
 import inspect
 import time
+import gobject
 
 sqrtpi = sqrt(pi)
 sqrt2pi = sqrt(2*pi)
-sqrt8 = sqrt(8)
+sqrt8 = sqrt(8) 
+    
 
 def u(string):
     return unicode(string, errors='replace', encoding='UTF-8')
@@ -26,6 +28,32 @@ def print_timing(func):
         print '%s took %0.3f ms' % (func.func_name, (t2-t1)*1000.0)
         return res
     return wrapper
+
+
+class _Delayed():
+    def __init__(self, f, lock=None):
+        self.__lock = lock
+        self.__f = f
+        self.__tmrid = None
+
+    def __call__(self):
+        def wrapper(*args, **kwargs):
+            if self.__lock != None and getattr(args[0], self.__lock):
+                return #if the function is locked, do not qeue this call
+            if self.__tmrid != None:
+                gobject.source_remove(self.__tmrid)   
+            self.__tmrid = gobject.timeout_add(500, self.__timeout_handler__, *args, **kwargs)
+        return wrapper
+      
+    def __timeout_handler__(self, *args, **kwargs):
+        self.__f(*args, **kwargs)
+        self._upt_id = None
+        return False
+
+def delayed(lock=None, *args, **kwargs):
+    def dec(f):
+        return _Delayed(f, lock=lock).__call__()
+    return dec
 
 def get_case_insensitive_glob(*strings):
     '''Ex: '*.ora' => '*.[oO][rR][aA]' '''

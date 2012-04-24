@@ -455,7 +455,7 @@ class PhasesController(ObjectListStoreController):
         return True
         
     def on_save_object_clicked(self, event):
-        def on_accept(save_dialog):
+        def on_accept(dialog):
             print "Exporting phase..."
             filename = self.extract_filename(dialog)
             phase = self.get_selected_object()
@@ -464,7 +464,15 @@ class PhasesController(ObjectListStoreController):
         self.run_save_dialog("Export phase", on_accept, parent=self.view.get_top_widget())
         return True
         
+        
     def on_load_object_clicked(self, event):
+        def on_accept(dialog):
+            print "Importing phase..."
+            new_phase = Phase.load_object(dialog.get_filename(), parent=self.model)
+            #new_phase.parent = self.model
+            new_phase.resolve_json_references()
+            self.model.data_phases.append(new_phase)
+        self.run_load_dialog("Import phase", on_accept, parent=self.view.get_top_widget())
         return True
         
 class AddPhaseController(DialogController):
@@ -481,10 +489,8 @@ class AddPhaseController(DialogController):
     def on_keypress(self, widget, event) :
 		if event.keyval == gtk.keysyms.Escape :
 			self.view.hide()
-			self.callback(None)
 			return True
         
     def on_window_edit_dialog_delete_event(self, event, args=None):
         self.view.hide()
-		self.callback(None)
         return True #do not propagate

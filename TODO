@@ -1,8 +1,4 @@
-- provide general plotting settings:
-    - 
 - MLM support
-- statistics
+    - when user selects components, change range of the R spinner so it can be larger then 0 if #comp > 1
+    - 
 - change goniometer into a ObjectListStore so we can create a list of predefined 'machines' and add or delete custom ones
-- implement auto-update graph:
-    - add chained "is_dirty" signal to specimens, phases and atom types
-    - add callback that checks state of auto-update and acts accordingly

@@ -284,7 +284,7 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def __init__(self, data_name=None, data_mean_CSDS=None, data_max_CSDS=None, data_min_CSDS=None, data_sigma_star=None, data_probabilities=None, data_G=None, data_R=None,
+    def __init__(self, data_name=None, data_mean_CSDS=None, data_max_CSDS=None, data_min_CSDS=None, data_sigma_star=None, data_probabilities=None, data_G=None, data_R=0,
                  inherit_mean_CSDS=False, inherit_min_CSDS=False, inherit_max_CSDS=False, inherit_sigma_star=False, inherit_probabilities=False, inherit_wtfractions=False,
                  based_on_index = None, parent=None):
         ChildModel.__init__(self, parent=parent)
@@ -310,7 +310,7 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
                 new_comp = Component("Component %d" % (i+1), parent=self)
                 self.data_components.append(new_comp)
                 self.observe_model(new_comp)
-        self._data_R = data_R or self._data_R
+        self._data_R = data_R
         
         self._data_probabilities = data_probabilities or get_correct_probability_model(self)
         self.inherit_probabilities = inherit_probabilities or self.inherit_probabilities
@@ -340,7 +340,7 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
     # ------------------------------------------------------------
     #      Input/Output stuff
     # ------------------------------------------------------------  
-    def resolve_json_references(self):          
+    def resolve_json_references(self):
         if self._based_on_index != None and self._based_on_index != -1:
             self.data_based_on = self.parent.data_phases.get_user_data_from_index(self._based_on_index)
         for component in self.data_components._model_data:
@@ -361,7 +361,7 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
         
         phase = type(**kwargs)
         phase.data_components = ObjectListStore.from_json(parent=phase, **data_components)
-        phase.data_probabilities = PyXRDDecoder.__pyxrd_decode__(data_probabilities, parent=phase)
+        phase.data_probabilities = PyXRDDecoder(parent=phase).__pyxrd_decode__(data_probabilities)
         return phase
 
     # ------------------------------------------------------------

@@ -30,15 +30,20 @@ class PyXRDEncoder(json.JSONEncoder):
         return json.JSONEncoder(self).default(obj)
             
 class PyXRDDecoder(json.JSONDecoder):
+    def __init__(self, parent=None, **kwargs):
+        json.JSONDecoder.__init__(self, **kwargs)
+        self.parent = parent
+
     def decode(self, obj):
         obj = json.JSONDecoder.decode(self, obj)
-        return PyXRDDecoder.__pyxrd_decode__(obj) or obj
+        return self.__pyxrd_decode__(obj) or obj
     
-    @staticmethod
-    def __pyxrd_decode__(obj, **kwargs):
+    def __pyxrd_decode__(self, obj, **kwargs):
         if "type" in obj:
             objtype = get_json_type(obj["type"])
             if "properties" in obj and hasattr(objtype, "from_json"):
+                if self.parent!=None and not "parent" in kwargs:
+                    kwargs["parent"] = self.parent
                 return objtype.from_json(**dict(obj["properties"], **kwargs))
         raise Warning, "__pyxrd_decode__ will return None for %s!" % obj
         return None
@@ -61,9 +66,9 @@ class Storable():
         f.close()
         
     @staticmethod
-    def load_object(filename):
+    def load_object(filename, parent=None):
         f = open(filename, 'r')
-        ret = json.load(f, cls=PyXRDDecoder)
+        ret = json.load(f, cls=PyXRDDecoder, parent=parent)
         f.close()
         return ret
 

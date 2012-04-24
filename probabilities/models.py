@@ -6,19 +6,22 @@
 # To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/3.0/ or send
 # a letter to Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
 
+import os
 import warnings
 
-from gtkmvc.model import Model, Observer
+from gtkmvc.model import Model, Observer, Signal
 
 import numpy as np
 
 from generic.io import Storable
 from generic.models import ChildModel
+from generic.utils import delayed
 
 def get_correct_probability_model(phase):
     if phase!=None:
         G = phase.data_G
         R = phase.data_R
+        print "get_correct_probability_model %d %d" % (G, R)
         if R == 0 or G == 1:
             return R0Model(parent=phase)
         elif G > 1:
@@ -50,8 +53,12 @@ def get_correct_probability_model(phase):
 class _AbstractProbability(ChildModel, Storable):
 
     #MODEL INTEL:
+    __observables__ = ['updated']
     __storables__ = []
     __parent_alias__ = 'phase'
+    
+    #SIGNALS:
+    updated = None
     
     #PROPERTIES:
     _R = -1
@@ -77,6 +84,7 @@ class _AbstractProbability(ChildModel, Storable):
     # ------------------------------------------------------------
     def __init__(self, parent=None, **kwargs):
         ChildModel.__init__(self, parent=parent)
+        self.updated = Signal()
         self.setup(**kwargs)
         self.update()
     
@@ -89,7 +97,7 @@ class _AbstractProbability(ChildModel, Storable):
     #      Methods & Functions
     # ------------------------------------------------------------ 
     def update(self):
-        raise NotImplementedError        
+        raise NotImplementedError
         
     def get_probability_matrix(self):
         raise NotImplementedError
@@ -106,17 +114,14 @@ class _AbstractR0R1Model(_AbstractProbability):
 
     #MODEL INTEL:
     __independent_label_map__ = []
-    __observables__ = [ prop for prop, lbl in  __independent_label_map__ ]
 
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------ 
     def get_probability_matrix(self):
-        self.update()
         return np.array(np.matrix(self._P))
         
     def get_distribution_matrix(self):
-        self.update()
         return np.array(np.matrix(np.diag(self._W)))
         
     def get_distribution_array(self):
@@ -148,7 +153,7 @@ class R0Model(_AbstractR0R1Model):
         ("W4", "W4"),
     ]
     __observables__ = [ prop for prop, lbl in  __independent_label_map__ ]
-    __storables__ = [ val for val in __observables__ if not val in ('parent')]
+    __storables__ = [ val for val in __observables__ if not val in ('parent', "added", "removed")]
 
     #PROPERTIES:
     @Model.getter("W[1-4]")
@@ -174,6 +179,7 @@ class R0Model(_AbstractR0R1Model):
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------ 
+    @delayed()
     def update(self):
         if self.G == 1:
             self._W[0] = 1.0
@@ -183,7 +189,10 @@ class R0Model(_AbstractR0R1Model):
             if partial_sum > 1.0:
                 self._W *= 1.0 / partial_sum
         self._P = np.repeat(self._W[np.newaxis,:], self.G, 0)
-        pass
+        self.updated.emit()
+    
+    def get_independent_label_map(self):
+        return self.__independent_label_map__[:self.G+1]    
     
     pass #end of class
 
@@ -208,6 +217,8 @@ class R1G2Model(_AbstractR0R1Model):
         ("W1", "W1"),
         ("P11_or_P22", "P11 or P22"),
     ]
+    __observables__ = [ prop for prop, lbl in  __independent_label_map__ ]
+    __storables__ = [ val for val in __observables__ if not val in ('parent', "added", "removed")]
 
     #PROPERTIES:
     @Model.getter("W1")
@@ -215,43 +226,52 @@ class R1G2Model(_AbstractR0R1Model):
         return self._W[0]
     @Model.setter("W1")
     def set_W(self, prop_name, value):
-        self._W[0] = min(max(value, 0), 1)
+        self._W[0] = min(max(value, 0.0), 1.0)
         self.update()
-            
+                    
     @Model.getter("P11_or_P22")
-    def get_P(self, prop_name):
-        index = int(prop_name[1:])
-        return self._P[index]
-    @Model.setter("P11_or_P22") 
-    def set_P(self, prop_name, value):
-        if self._W[0] >= 0.5:
-            self._P[0,0] = min(max(value, 0), 1)
+    def get_P_val(self, prop_name):
+        if self._W[0] <= 0.5:
+            return self._P[0,0]
         else:
-            self._P[1,1] = min(max(value, 0), 1)
+            return self._P[1,1]
+    @Model.setter("P11_or_P22") 
+    def set_P_val(self, prop_name, value):
+        #import traceback
+        #traceback.print_stack()
+        
+        if self._W[0] <= 0.5:
+            self._P[0,0] = min(max(value, 0.0), 1.0)
+        else:
+            self._P[1,1] = min(max(value, 0.0), 1.0)
         self.update()
 
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def setup(self):
-        self._R = 0
+    def setup(self, W1=0.25, P11_or_P22=0.5):
+        self._R = 1
         self._W = np.zeros(shape=(2), dtype=float)
-        self._P = np.matrix(np.zeros(shape=(2, 2), dtype=float))
-        self.__observables__ += [ "W1", "P11_or_P22" ]
+        self._P = np.zeros(shape=(2, 2), dtype=float)
+        self.W1 = W1
+        self.P11_or_P22 = P11_or_P22
 
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------ 
-    def update(self):           
-        self._W[1] = 1 - self.W[0]
-        if self._W[1] <= 0.5:
-            self._P[0,1] = 1 - self._P[0,0]
-            self._P[1,1] = (1 - self._P[0,1]*self._W[0]) / self._W[1]
-            self._P[1,0] = 1 - self._P[1,1]
+    @delayed()
+    def update(self):
+        #print "%s %s Case 1" % (self._P, self._W)
+        self._W[1] = 1.0 - self._W[0]
+        if self._W[0] <= 0.5:
+            self._P[0,1] = 1.0 - self._P[0,0]
+            self._P[1,0] = self._W[0] * self._P[0,1] / self._W[1]
+            self._P[1,1] = 1.0 - self._P[1,0]
         else:
-            self._P[1,0] = 1 - self._P[1,1]
-            self._P[0,0] = (1 - self._P[1,0]*self._W[1]) / self._W[0]
-            self._P[0,1] = 1 - self._P[0,0]
+            self._P[1,0] = 1.0 - self._P[1,1]
+            self._P[0,1] = self._W[1] * self._P[1,0] / self._W[0]
+            self._P[0,0] = 1.0 - self._P[0,1]
+        self.updated.emit()
     
     pass #end of class
         
@@ -310,6 +330,8 @@ class R1G3Model(_AbstractR0R1Model):
         ("G3", "W11 / (W11 + W12)"),
         ("G4", "W21 / (W21 + W22)"),
     ]
+    __observables__ = [ prop for prop, lbl in  __independent_label_map__ ]
+    __storables__ = [ val for val in __observables__ if not val in ('parent', "added", "removed")]
 
     #PROPERTIES
     @Model.getter("W1")
@@ -319,6 +341,7 @@ class R1G3Model(_AbstractR0R1Model):
     def set_W(self, prop_name, value):
         self._W[0] = min(max(value, 0), 1)
         self.update()
+        self.updated.emit()        
             
     @Model.getter("P11_or_P22")
     def get_P(self, prop_name):
@@ -331,6 +354,7 @@ class R1G3Model(_AbstractR0R1Model):
         else:
             self._P[1,1] = min(max(value, 0), 1)
         self.update()
+        self.updated.emit()
 
     _G1 = 0
     _G2 = 0
@@ -343,6 +367,7 @@ class R1G3Model(_AbstractR0R1Model):
     def set_G(self, prop_name, value):
         setattr(self, "_%s"%prop_name, min(max(value, 0), 1))
         self.update()
+        self.updated.emit()
 
     # ------------------------------------------------------------
     #      Initialisation and other internals
@@ -350,12 +375,12 @@ class R1G3Model(_AbstractR0R1Model):
     def setup(self):
         self._R = 0
         self._W = np.zeros(shape=(3), dtype=float)
-        self._P = np.matrix(np.zeros(shape=(3, 3), dtype=float))
-        self.__observables__ += [ "W1", "P11_or_P22", "G1", "G2", "G3", "G4"]
+        self._P = np.zeros(shape=(3, 3), dtype=float)
 
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------ 
+    @delayed()    
     def update(self):    
         #temporary storage:
         WW = np.matrix(np.zeros(shape=(3,3), dtype=float))

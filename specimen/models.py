@@ -218,12 +218,13 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
     
     @staticmethod          
     def from_json(**kwargs):
+        decoder = PyXRDDecoder()
         if "data_calculated_pattern" in kwargs:
-            kwargs["data_calculated_pattern"] = PyXRDDecoder.__pyxrd_decode__(kwargs["data_calculated_pattern"])
+            kwargs["data_calculated_pattern"] = decoder.__pyxrd_decode__(kwargs["data_calculated_pattern"])
         if "data_experimental_pattern" in kwargs:
-            kwargs["data_experimental_pattern"] = PyXRDDecoder.__pyxrd_decode__(kwargs["data_experimental_pattern"])
+            kwargs["data_experimental_pattern"] = decoder.__pyxrd_decode__(kwargs["data_experimental_pattern"])
         if "data_markers" in kwargs:
-            kwargs["data_markers"] = PyXRDDecoder.__pyxrd_decode__(kwargs["data_markers"])
+            kwargs["data_markers"] = decoder.__pyxrd_decode__(kwargs["data_markers"])
         specimen = Specimen(**kwargs)
         for marker in specimen.data_markers._model_data:
             marker.parent = specimen

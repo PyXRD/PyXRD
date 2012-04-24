@@ -81,8 +81,9 @@ class ObjectListStore(_BaseObjectListStore, Storable):
     def from_json(type, parent=None, class_type=None, model_data=None, **kwargs):
         class_type = get_json_type(class_type)
         store = type(class_type)
+        decoder = PyXRDDecoder(parent=parent)
         for obj in model_data:
-            item = PyXRDDecoder.__pyxrd_decode__(obj, parent=parent)
+            item = decoder.__pyxrd_decode__(obj, parent=parent)
             store._model_data.append(item)
         store.invalidate_iters()
         return store

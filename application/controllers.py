@@ -16,8 +16,8 @@ import gtk
 from gtkmvc import Controller
 from gtkmvc.adapters import Adapter
 
-from generic.utils import get_case_insensitive_glob
-from generic.controllers import BaseController, DialogMixin, delayed
+from generic.utils import get_case_insensitive_glob, delayed
+from generic.controllers import BaseController, DialogMixin
 from generic.plot_controllers import MainPlotController, EyedropperCursorPlot
 
 from project.controllers import ProjectController
@@ -252,9 +252,11 @@ class AppController (BaseController, DialogMixin):
             print "Saving project..."
             filename = self.extract_filename(dialog)
             self.save_project(filename=filename)
+        suggest_name = basename(self.model.current_filename) if self.model.current_filename!=None else None
+        suggest_folder = dirname(self.model.current_filename) if self.model.current_filename!=None else None
         self.run_save_dialog(title=title,
-                             suggest_name=basename(self.model.current_filename),
-                             suggest_folder=dirname(self.model.current_filename),
+                             suggest_name=suggest_name,
+                             suggest_folder=suggest_folder,
                              on_accept_callback=on_accept,
                              parent=self.view.get_top_widget())
 
@@ -276,7 +278,7 @@ class AppController (BaseController, DialogMixin):
     def on_add_specimen_activate(self, event):
         #self.push_status_msg("Adding new specimen...", 'add_specimen')
         specimen = Specimen(parent=self.model.current_project)
-        self.view["specimens_treeview"].set_cursor(self.model.current_project.add_specimen(specimen))
+        self.view["specimens_treeview"].set_cursor(self.model.current_project.data_specimens.append(specimen))
         self.edit_specimen(specimen, title="Create New Specimen")
         self.pop_status_msg('add_specimen')
         return True

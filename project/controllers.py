@@ -127,7 +127,7 @@ class ProjectController (DialogController, HasObjectTreeview, DialogMixin):
                 if filename[-2:].lower() == "rd":
                     print "Opening file %s for import using BINARY RD format" % filename
                     specimen = Specimen.from_experimental_data(parent=self.model, data=filename, filename=filename, format="BIN")
-                last_iter = self.model.add_specimen(specimen)
+                last_iter = self.model.data_specimens.append(specimen)
             if last_iter != None:
                 self.parent.view["specimens_treeview"].set_cursor(last_iter)
         

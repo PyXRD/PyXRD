@@ -15,7 +15,7 @@ from gtkmvc.adapters import Adapter
 
 from generic.plot_controllers import DraggableVLine, EyedropperCursorPlot
 from generic.models import XYData
-from generic.controllers import DialogController, DialogMixin, ChildController, ObjectListStoreController, HasObjectTreeview, get_color_val, delayed, ctrl_setup_combo_with_list
+from generic.controllers import DialogController, DialogMixin, ChildController, ObjectListStoreController, HasObjectTreeview, get_color_val, ctrl_setup_combo_with_list
 from generic.validators import FloatEntryValidator
 from generic.utils import get_case_insensitive_glob
 

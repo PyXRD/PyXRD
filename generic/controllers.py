@@ -7,7 +7,6 @@
 # a letter to Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
 
 import gtk
-import gobject
  
 from gtkmvc import Controller
 
@@ -117,31 +116,6 @@ class DialogMixin():
                         buttons=gtk.BUTTONS_OK,
                         message_format=message)
             self._run_dialog(dialog, None, None)
-
-class _Delayed():
-    def __init__(self, f, lock=None):
-        self.__lock = lock
-        self.__f = f
-        self.__tmrid = None
-
-    def __call__(self):
-        def wrapper(*args, **kwargs):
-            if self.__lock != None and getattr(args[0], self.__lock):
-                return #if the function is locked, do not qeue this call
-            if self.__tmrid != None:
-                gobject.source_remove(self.__tmrid)   
-            self.__tmrid = gobject.timeout_add(500, self.__timeout_handler__, *args, **kwargs)
-        return wrapper
-      
-    def __timeout_handler__(self, *args, **kwargs):
-        self.__f(*args, **kwargs)
-        self._upt_id = None
-        return False
-
-def delayed(lock=None, *args, **kwargs):
-    def dec(f):
-        return _Delayed(f, lock=lock).__call__()
-    return dec
 
 class BaseController (Controller, DialogMixin):
 

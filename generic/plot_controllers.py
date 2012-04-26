@@ -179,13 +179,13 @@ class MainPlotController (PlotController):
     def update_lim(self, project=None):
         self.plot.relim()
         self.plot.autoscale_view()
-        self.plot.set_ylim(bottom=0, auto=True)
+        #self.plot.set_ylim(bottom=0, auto=True)
         
         self.stats_plot.relim()
         self.stats_plot.autoscale_view()
-        self.stats_plot.set_ylim(auto=True)
-        self.stats_plot.get_yaxis().get_major_locator().set_params(symmetric=True, nbins=2, integer=False)
         
+        self.plot.set_ylim(bottom=0, auto=True)
+               
         xaxis = self.plot.get_xaxis()
         if project==None or project.axes_xscale == 0:
             xmin, xmax = xaxis.get_view_interval()
@@ -196,6 +196,11 @@ class MainPlotController (PlotController):
             xmin, xmax = project.axes_xmin, project.axes_xmax
             self.plot.set_xlim(left=xmin, right=xmax, auto=False)
             self.stats_plot.set_xlim(left=xmin, right=xmax, auto=False)
+        
+        self.stats_plot.set_ylim(auto=True)
+        self.stats_plot.get_yaxis().get_major_locator().set_params(symmetric=True, nbins=2, integer=False)
+        
+
 
     def update_axes(self, draw=True, single=True, labels=None, stats=(False,None), project=None):
         self.update_lim(project=project)

@@ -17,7 +17,23 @@ from gtkmvc.support.metaclasses import ObservablePropertyMeta
 
 from generic.treemodels import XYListStore
 from generic.io import Storable, PyXRDDecoder
-from generic.utils import smooth
+from generic.utils import smooth, delayed
+
+class DefaultSignal (Signal):
+    def __init__(self, before=None, after=None):
+        Signal.__init__(self)
+        self.before = before
+        self.after = after
+        return
+
+    def emit(self):
+        def after():
+            Signal.emit(self)
+            if callable(self.after): self.after()
+        if callable(self.before): self.before(after)
+        else: after()
+            
+    pass # end of class
 
 def add_cbb_props(*props):
     props, mappers, callbacks = zip(*props)
@@ -129,7 +145,7 @@ class XYData(ChildModel, Storable, Observable):
 
     #MODEL INTEL:
     __temporarals__ = [
-        "plot_update",
+        "needs_update",
         "display_offset", 
         "bg_position", "bg_scale", "bg_pattern", "bg_type", 
         "sd_degree", "sd_type", 
@@ -144,7 +160,7 @@ class XYData(ChildModel, Storable, Observable):
     __storables__ = [val for val in __observables__ if not val in __temporarals__ ] + ["color",]
 
     #SIGNALS:
-    plot_update = None
+    needs_update = None
 
     #PROPERTIES:
     xy_empty_data = ([0,0],[0,0])
@@ -168,26 +184,25 @@ class XYData(ChildModel, Storable, Observable):
     def get_display_offset_value(self): return self._display_offset
     def set_display_offset_value(self, value):
         self._display_offset = float(value)
-        self.plot_update.emit()
         
     _bg_position = 0
     bg_line = None
     def get_bg_position_value(self): return self._bg_position
     def set_bg_position_value(self, value):
         self._bg_position = float(value)
-        self.plot_update.emit()
+        self.needs_update.emit()
 
     _bg_scale = 1.0
     def get_bg_scale_value(self): return self._bg_scale
     def set_bg_scale_value(self, value):
         self._bg_scale = float(value)
-        self.plot_update.emit()
+        self.needs_update.emit()
             
     _bg_pattern = None
     def get_bg_pattern_value(self): return self._bg_pattern
     def set_bg_pattern_value(self, value):
         self._bg_pattern = value
-        self.plot_update.emit()
+        self.needs_update.emit()
 
     _sd_degree = 0
     sd_data = None
@@ -196,7 +211,7 @@ class XYData(ChildModel, Storable, Observable):
     def set_sd_degree_value(self, value):
         self._sd_degree = float(value)
         self.try_smooth_data()
-        self.plot_update.emit()
+        self.needs_update.emit()
 
     _shift_value = 0.0
     shifted_line = None
@@ -204,7 +219,7 @@ class XYData(ChildModel, Storable, Observable):
     def get_shift_value_value(self): return self._shift_value
     def set_shift_value_value(self, value):
         self._shift_value = float(value)
-        self.plot_update.emit()
+        self.needs_update.emit()
 
     _shift_position = 0.42574
     _shift_positions = { 
@@ -236,7 +251,7 @@ class XYData(ChildModel, Storable, Observable):
         if self.color != color:
             self.line.set_color(color)
             if self.line.get_visible() and self.line.get_axes() != None:
-                self.plot_update.emit()
+                self.needs_update.emit()
     
     # ------------------------------------------------------------
     #      Initialisation and other internals
@@ -246,7 +261,7 @@ class XYData(ChildModel, Storable, Observable):
         Storable.__init__(self)
         Observable.__init__(self)
         
-        self.plot_update = Signal()
+        self.needs_update = Signal()
         
         self._data_name = data_name or self._data_name
         self._data_label = data_label or self._data_label
@@ -356,11 +371,12 @@ class XYData(ChildModel, Storable, Observable):
         else:
             self.line.set_data(self.xy_empty_data)
             self.line.set_visible(False)
-        if not silent: self.plot_update.emit()
+        if not silent: self.needs_update.emit()
     
     def clear(self, update=True):
-        self.xy_data.clear()
-        if update: self.update_data()
+        if len(self.xy_data._model_data_x) > 1:
+            self.xy_data.clear()
+            if update: self.update_data()
     
     def on_update_plot(self, figure, axes, pctrl):
         self.update_data(silent=True)

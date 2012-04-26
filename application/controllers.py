@@ -25,6 +25,7 @@ from project.models import Project
 from specimen.controllers import SpecimenController, MarkersController, StatisticsController
 from specimen.models import Specimen
 
+from mixture.controllers import MixturesController
 from goniometer.controllers import GoniometerController
 from phases.controllers import PhasesController
 from atoms.controllers import AtomTypesController
@@ -46,6 +47,7 @@ class AppController (BaseController, DialogMixin):
         self.markers = None
         self.phases = None
         self.atom_types = None
+        self.mixtures = None
         
         self.push_status_msg("Done.")
         return
@@ -63,6 +65,7 @@ class AppController (BaseController, DialogMixin):
         self.project = ProjectController(self.model.current_project, self.view.project, parent=self)
         self.phases = PhasesController(self.model.current_project, self.view.phases, parent=self)
         self.atom_types = AtomTypesController(self.model.current_project, self.view.atom_types, parent=self)
+        self.mixtures = MixturesController(self.model.current_project, self.view.mixtures, parent=self)
         #self.goniometer = GoniometerController(self.model.current_project.data_goniometer, self.view.goniometer, parent=self) FIXME?
         
     def reset_specimen_controller(self):
@@ -94,25 +97,28 @@ class AppController (BaseController, DialogMixin):
             self.view.atom_types.present()
         return True
 
+    def edit_mixtures(self):
+        if self.model.current_project is not None:
+            self.view.mixtures.present()
+        return True
+
     def edit_markers(self):
         if self.model.current_specimen is not None:
             self.view.markers.present()
         return True
 
-    @delayed(lock="in_update_cycle")
-    def update_plot(self):
-        self.redraw_plot(complete=False)
-        
+
     in_update_cycle = False
-    def redraw_plot(self, complete=True):
+    @delayed(lock="in_update_cycle")
+    def redraw_plot(self):
         if not self.in_update_cycle:
             self.in_update_cycle = True
             self.push_status_msg("Updating display...")       
             
             single = self.model.single_specimen_selected
             labels = []
-            
-            if complete: self.plot_controller.unregister_all()
+                        
+            self.plot_controller.unregister_all()
             
             if self.model.current_specimens is not None:
                 num_species = len(self.model.current_specimens)
@@ -121,10 +127,9 @@ class AppController (BaseController, DialogMixin):
                 i = 0
                 for specimen in self.model.current_specimens[::-1]:
                     specimen.set_display_offset(offset)
-                    if complete: 
-                        self.plot_controller.register(specimen, "on_update_plot", last=False)
-                        for marker in specimen.data_markers._model_data:
-                            self.plot_controller.register(marker, "on_update_plot", last=True)
+                    self.plot_controller.register(specimen, "on_update_plot", last=False)
+                    for marker in specimen.data_markers._model_data:
+                        self.plot_controller.register(marker, "on_update_plot", last=True)
                     labels.append((specimen.data_sample, self.model.current_project.display_label_pos + offset))
                     offset += offset_increment
                     i += 1
@@ -194,6 +199,11 @@ class AppController (BaseController, DialogMixin):
     # ------------------------------------------------------------
     #      Notifications of observable properties
     # ------------------------------------------------------------
+    @Controller.observe("needs_plot_update", signal=True)
+    def notif_plot_update(self, model, prop_name, info):
+        self.redraw_plot()
+        return
+        
     @Controller.observe("current_project", assign=True, after=True)
     def notif_project_update(self, model, prop_name, info):
         self.reset_project_controller ()
@@ -266,12 +276,16 @@ class AppController (BaseController, DialogMixin):
         else:
             self.save_project()
 
+    def on_edit_mixtures(self, widget, data=None):
+        self.edit_mixtures()
+        pass
+
     def on_edit_gonio_activate(self, widget, data=None):
         #FIXME self.push_status_msg("Editing project...", 'edit_project')
         self.goniometer = GoniometerController(self.model.current_project.data_goniometer, self.view.goniometer, parent=self)
         self.view.goniometer.present()
 
-    def on_specimens_treeview_popup_menu(self, widget, event):
+    def on_specimens_treeview_popup_menu(self, widget, data=None):
         self.view["specimen_popup"].popup(None, None, None, 0, 0)
         return True
 
@@ -344,7 +358,7 @@ class AppController (BaseController, DialogMixin):
         return False
 
     def on_refresh_graph(self, event):
-        self.update_plot()
+        self.redraw_plot()
 
     def on_save_graph(self, event):
         filename = None

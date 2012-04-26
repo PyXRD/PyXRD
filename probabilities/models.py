@@ -21,7 +21,7 @@ def get_correct_probability_model(phase):
     if phase!=None:
         G = phase.data_G
         R = phase.data_R
-        print "get_correct_probability_model %d %d" % (G, R)
+        #print "get_correct_probability_model %d %d" % (G, R)
         if R == 0 or G == 1:
             return R0Model(parent=phase)
         elif G > 1:
@@ -125,7 +125,6 @@ class _AbstractR0R1Model(_AbstractProbability):
         return np.array(np.matrix(np.diag(self._W)))
         
     def get_distribution_array(self):
-        self.update()
         return self._W
         
     def get_independent_label_map(self):
@@ -169,12 +168,13 @@ class R0Model(_AbstractR0R1Model):
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def setup(self, W1=None, W2=None, W3=None, W4=None, **kwargs):
+    def setup(self, W1=1.0, W2=0.0, W3=0.0, W4=0.0, **kwargs):
         self._R = 0
         self._W = np.zeros(shape=(self.G), dtype=float)
         loc = locals()
         for i in range(self.G):
             self._W[i] = loc["W%d"%(i+1)]
+        self._P = np.repeat(self._W[np.newaxis,:], self.G, 0)
 
     # ------------------------------------------------------------
     #      Methods & Functions
@@ -236,10 +236,7 @@ class R1G2Model(_AbstractR0R1Model):
         else:
             return self._P[1,1]
     @Model.setter("P11_or_P22") 
-    def set_P_val(self, prop_name, value):
-        #import traceback
-        #traceback.print_stack()
-        
+    def set_P_val(self, prop_name, value):       
         if self._W[0] <= 0.5:
             self._P[0,0] = min(max(value, 0.0), 1.0)
         else:
@@ -259,7 +256,7 @@ class R1G2Model(_AbstractR0R1Model):
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------ 
-    @delayed()
+    #@delayed()
     def update(self):
         #print "%s %s Case 1" % (self._P, self._W)
         self._W[1] = 1.0 - self._W[0]
@@ -341,7 +338,6 @@ class R1G3Model(_AbstractR0R1Model):
     def set_W(self, prop_name, value):
         self._W[0] = min(max(value, 0), 1)
         self.update()
-        self.updated.emit()        
             
     @Model.getter("P11_or_P22")
     def get_P(self, prop_name):
@@ -354,7 +350,6 @@ class R1G3Model(_AbstractR0R1Model):
         else:
             self._P[1,1] = min(max(value, 0), 1)
         self.update()
-        self.updated.emit()
 
     _G1 = 0
     _G2 = 0
@@ -367,7 +362,6 @@ class R1G3Model(_AbstractR0R1Model):
     def set_G(self, prop_name, value):
         setattr(self, "_%s"%prop_name, min(max(value, 0), 1))
         self.update()
-        self.updated.emit()
 
     # ------------------------------------------------------------
     #      Initialisation and other internals
@@ -414,6 +408,8 @@ class R1G3Model(_AbstractR0R1Model):
 		self._P[0,0]    = 1.0 - self._P[1,0] - self._P[2,0]
 		self._P[0,1]    = 1.0 - self._P[1,1] - self._P[2,1]
 		self._P[0,2]    = 1.0 - self._P[2,1] - self._P[2,2]
+    
+        self.updated.emit()
     
     pass #end of class
         

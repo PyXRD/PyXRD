@@ -29,11 +29,13 @@ class AppView(BaseView):
     phases = None
     atom_types = None
     statistics = None
+    mixtures = None
     
     __widgets_to_hide__ = (
         "statistics_container",
         "tbtn_edit_phases",
         "tbtn_edit_atom_types",
+        "tbtn_edit_mixtures",
         "tbtn_separator1",
         "btn_sample",
         "btn_view_statistics",
@@ -46,13 +48,7 @@ class AppView(BaseView):
     def __init__(self, *args, **kwargs):
         BaseView.__init__(self, *args, **kwargs)
 
-        self.reset_project_view()
-        self.reset_specimen_view()
-        self.reset_statistics_view()
-        self.reset_markers_view()
-        self.reset_goniometer_view()
-        self.reset_phases_view()
-        self.reset_atom_types_view()
+        self.reset_all_views()
         
         self.get_top_widget().set_icon(gtk.gdk.pixbuf_new_from_file(os.path.join(__file__[:__file__.rfind(os.sep)], "icon.png")))
         if not settings.DEBUG:
@@ -86,6 +82,7 @@ class AppView(BaseView):
         self.reset_markers_view()
         self.reset_atom_types_view()
         self.reset_phases_view()
+        self.reset_mixtures_view()
 
     def reset_project_view(self):
         return self._reset_child_view("project", ProjectView)
@@ -113,6 +110,9 @@ class AppView(BaseView):
         
     def reset_atom_types_view(self):
         return self._reset_child_view("atom_types", ObjectListStoreView)
+
+    def reset_mixtures_view(self):
+        return self._reset_child_view("mixtures", ObjectListStoreView)
 
     def reset_phases_view(self):
         return self._reset_child_view("phases", ObjectListStoreView)

@@ -37,7 +37,7 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
                     ad.connect_widget(self.view["specimen_data_name"])
                     self.adapt(ad)
                 elif name in ["data_calculated_pattern", "data_experimental_pattern"]:
-                    self.observe_model(getattr(self.model, name))
+                    #self.observe_model(getattr(self.model, name))
                     if name == "data_experimental_pattern":
                         tv = self.view['experimental_data_tv']
                         model = self.model.data_experimental_pattern.xy_data
@@ -146,29 +146,10 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
     # ------------------------------------------------------------
     #      Notifications of observable properties
     # ------------------------------------------------------------
-    @Controller.observe("display_calculated", assign=True)
-    @Controller.observe("display_experimental", assign=True)
-    @Controller.observe("display_phases", assign=True)
-    @Controller.observe("data_name", assign=True)
-    @Controller.observe("data_sample", assign=True)
-    def notif_display_toggled(self, model, prop_name, info):
-        self.parent.update_plot()
-        return
-        
-    """def notif_data_changed(self, model, prop_name, info):
-        self._update_plot_title_timeout()
-    @delayed
-    def _update_plot_title_timeout(self):
-        self.parent.plot_controller.update_title(title=self.parent.get_plot_title())"""
-        
     @Controller.observe("inherit_exp_color", assign=True)
     @Controller.observe("inherit_calc_color", assign=True)
     def notif_color_toggled(self, model, prop_name, info):
         self.update_sensitivities()
-
-    @Observer.observe('plot_update', signal=True)
-    def notifications(self, model, prop_name, info):
-        self.parent.update_plot()
 
     # ------------------------------------------------------------
     #      GTK Signal handlers
@@ -535,7 +516,6 @@ class ThresholdController(DialogController):
         self.dline = None
     
     def update_plot(self):
-        print "UPDATE PLOT"
         self.view.plot.cla()
         if self.dline != None:
             self.dline.disconnect()

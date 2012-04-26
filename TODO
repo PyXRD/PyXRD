@@ -1,4 +1,7 @@
 - MLM support
     - when user selects components, change range of the R spinner so it can be larger then 0 if #comp > 1
-    - 
+    - add R2
+    - add triple and quadruple layer support
 - change goniometer into a ObjectListStore so we can create a list of predefined 'machines' and add or delete custom ones
+- move statistics to project level so multi-specimen statistics can be shown (no residual plot, but R2 for both data sets etc.)
+- add custom CSDS distributions

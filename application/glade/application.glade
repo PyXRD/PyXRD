@@ -128,6 +128,16 @@
         <signal name="activate" handler="on_add_multiple_specimens" swapped="no"/>
       </object>
     </child>
+    <child>
+      <object class="GtkAction" id="edit_mixtures">
+        <property name="label" translatable="yes">Edit Mixtures</property>
+        <property name="short_label" translatable="yes">Mixtures</property>
+        <property name="tooltip" translatable="yes">Edit the mixtures and find optimal solutions using the multi-specimen method</property>
+        <property name="stock_id">gtk-edit</property>
+        <property name="always_show_image">True</property>
+        <signal name="activate" handler="on_edit_mixtures" swapped="no"/>
+      </object>
+    </child>
   </object>
   <object class="GtkActionGroup" id="specimen_actions">
     <property name="sensitive">False</property>
@@ -621,6 +631,19 @@
               </packing>
             </child>
             <child>
+              <object class="GtkToolButton" id="tbtn_edit_mixtures">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="related_action">edit_mixtures</property>
+                <property name="label" translatable="yes">Mixtures</property>
+                <property name="use_underline">True</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="homogeneous">True</property>
+              </packing>
+            </child>
+            <child>
               <object class="GtkToolButton" id="tbtn_edit_phases">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
@@ -637,6 +660,7 @@
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="related_action">edit_atom_types_action</property>
+                <property name="label" translatable="yes">Atoms</property>
                 <property name="use_underline">True</property>
               </object>
               <packing>

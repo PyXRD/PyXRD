@@ -202,7 +202,7 @@ class EditComponentController(ChildController, HasObjectTreeview):
     def reset_combo_box(self):
         if self.model is not None and self.model.parent is not None:
             combo = self.view["component_data_linked_with"]
-            combo.clear()                
+            combo.clear()
             if self.model.parent.data_based_on is not None:
                 tv_model = self.model.parent.data_based_on.data_components
                 combo.set_model(tv_model)
@@ -211,6 +211,7 @@ class EditComponentController(ChildController, HasObjectTreeview):
                 combo.add_attribute(cell, 'text', tv_model.c_data_name)
                 for row in tv_model:
                     if tv_model.get_user_data(row.iter) == self.model.data_linked_with:
+                        print "Found linked with: %s" % row
                         combo.set_active_iter (row.iter)
                         break
             else:
@@ -224,6 +225,7 @@ class EditComponentController(ChildController, HasObjectTreeview):
                 elif name == "data_linked_with":
                     self.reset_combo_box()
                 elif name.find("inherit") is not -1:
+                    print name
                     self.adapt(name)
                 elif name in ("data_layer_atoms", "data_interlayer_atoms"):
                     self.view.set_layer_view(self.layer_view.get_top_widget())
@@ -245,8 +247,8 @@ class EditComponentController(ChildController, HasObjectTreeview):
         for name in ("interlayer_atoms",
                      "layer_atoms"):
             widget_name = "%s_container" % name
-            #self.view[widget_name].set_sensitive(not (can_inherit and getattr(self.model, "inherit_%s" % name)))
-            #self.view["phase_inherit_%s" % name].set_sensitive(can_inherit)
+            self.view[widget_name].set_sensitive(not (can_inherit and getattr(self.model, "inherit_%s" % name)))
+            self.view["component_inherit_%s" % name].set_sensitive(can_inherit)
 
     # ------------------------------------------------------------
     #      Notifications of observable properties
@@ -361,34 +363,21 @@ class EditPhaseController(ChildController):
     def update_sensitivities(self):
         can_inherit = (self.model.data_based_on != None)
         
-        for name in ("min_CSDS", "max_CSDS", "mean_CSDS", "sigma_star"): #"d001", "cell_a", "cell_b",
+        for name in ("min_CSDS", "max_CSDS", "mean_CSDS", "sigma_star"):
             widget_name = "phase_data_%s" % name
             self.view[widget_name].set_sensitive(not (can_inherit and getattr(self.model, "inherit_%s" % name)))
             self.view["phase_inherit_%s" % name].set_sensitive(can_inherit)
-        #for name in ("interlayer_atoms",
-        #             "layer_atoms"):
-        #    widget_name = "%s_container" % name
-        #    self.view[widget_name].set_sensitive(not (can_inherit and getattr(self.model, "inherit_%s" % name)))
-        #    self.view["phase_inherit_%s" % name].set_sensitive(can_inherit)
 
     # ------------------------------------------------------------
     #      Notifications of observable properties
     # ------------------------------------------------------------
-    #@Controller.observe("inherit_layer_atoms", assign=True)
-    #@Controller.observe("inherit_interlayer_atoms", assign=True)
     @Controller.observe("inherit_sigma_star", assign=True)
     @Controller.observe("inherit_min_CSDS", assign=True)    
     @Controller.observe("inherit_max_CSDS", assign=True)    
     @Controller.observe("inherit_mean_CSDS", assign=True)
-    #@Controller.observe("inherit_cell_a", assign=True)
-    #@Controller.observe("inherit_cell_b", assign=True)
-    #@Controller.observe("inherit_d001", assign=True)
     def notif_change_data_inherit(self, model, prop_name, info):
         can_inherit = (self.model.data_based_on != None)
-        #if not (prop_name in ("inherit_layer_atoms", "inherit_interlayer_atoms")):
         widget_name = prop_name.replace("inherit_", "phase_data_")
-        #else:
-        #   widget_name = "%s_container" % prop_name.replace("inherit_", "")
         self.view[widget_name].set_sensitive(can_inherit and not info.new)
         return
     

@@ -151,7 +151,7 @@ class ProjectController (DialogController, HasObjectTreeview, DialogMixin):
             self.view[widget].set_sensitive(self.model.axes_xscale==1)
         
     @Controller.observe("needs_plot_update", signal=True)
-    def notif_display_props(self, model, prop_name, info):
+    def notif_display_props(self, model, prop_name, info):            
         self.parent.update_plot()
 
     # ------------------------------------------------------------

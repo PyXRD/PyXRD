@@ -16,20 +16,21 @@ from math import sin, cos, pi, sqrt
 
 import settings
 
-from generic.utils import interpolate
-from generic.models import add_cbb_props
+from generic.utils import interpolate, delayed
+from generic.models import add_cbb_props, DefaultSignal
 from generic.treemodels import ObjectListStore, IndexListStore
 from generic.io import Storable
 
 from goniometer.models import Goniometer
 from specimen.models import Specimen
+from mixture.models import Mixture
 from phases.models import Phase
 from atoms.models import Atom, AtomType
 
 class Project(Model, Observable, Storable):
 
     #MODEL INTEL:
-    __have_no_widget__ = ("data_phases", "data_atom_types", "data_goniometer", "needs_plot_update")
+    __have_no_widget__ = ("data_phases", "data_mixtures", "data_atom_types", "data_goniometer", "needs_update")
     __observables__ = ( "data_name", "data_date", "data_description", "data_author", 
                         "data_specimens",
                         "display_marker_angle",
@@ -38,10 +39,10 @@ class Project(Model, Observable, Storable):
                         "display_label_pos",
                         "axes_xscale", "axes_xmin", "axes_xmax", "axes_xstretch",
                         "axes_yscale", "axes_yvisible") + __have_no_widget__
-    __storables__ = [prop for prop in __observables__ if prop not in ["needs_plot_update"]]
+    __storables__ = [prop for prop in __observables__ if prop not in ["needs_update"]]
     
     #SIGNALS:
-    needs_plot_update = None
+    needs_update = None
 
     #PROPERTIES:
     data_name = ""
@@ -62,7 +63,7 @@ class Project(Model, Observable, Storable):
     @Model.setter("axes_xmin", "axes_xmax", "axes_xstretch", "axes_yvisible", "display_plot_offset", "display_marker_angle", "display_label_pos")
     def set_axes_value(self, prop_name, value):
         setattr(self, "_%s" % prop_name, value)
-        self.needs_plot_update.emit()
+        self.needs_update.emit()
 
     _axes_xscale = 0
     _axes_xscales = { 0: "Auto", 1: "Manual" }
@@ -71,7 +72,7 @@ class Project(Model, Observable, Storable):
     _axes_yscales = { 0: "Multi normalised", 1: "Single normalised", 2: "Unchanged raw counts"} #, 4: "Custom (per specimen)" }
     
     def cbb_callback(self, prop_name, value):
-        self.needs_plot_update.emit()
+        self.needs_update.emit()
     add_cbb_props(("axes_xscale", int, cbb_callback), ("axes_yscale", int, cbb_callback))
     
     _display_calc_color = "#666666"
@@ -89,7 +90,7 @@ class Project(Model, Observable, Storable):
                     specimen.data_calculated_pattern.color = value
                 else:
                     specimen.data_experimental_pattern.color = value
-            self.needs_plot_update.emit()
+            self.needs_update.emit()
     
     _data_specimens = None
     def get_data_specimens_value(self): return self._data_specimens
@@ -99,6 +100,9 @@ class Project(Model, Observable, Storable):
     
     _data_atom_types = None
     def get_data_atom_types_value(self): return self._data_atom_types
+    
+    _data_mixtures = None
+    def get_data_mixtures_value(self): return self._data_mixtures
     
     data_goniometer = None
            
@@ -111,7 +115,7 @@ class Project(Model, Observable, Storable):
                  data_description = "Project description",
                  data_author = "Project author",
                  data_goniometer = None,
-                 data_atom_types = None, data_phases = None, data_specimens = None,
+                 data_atom_types = None, data_phases = None, data_specimens = None, data_mixtures = None,
                  display_marker_angle=None, display_calc_color=None, display_exp_color=None, display_plot_offset=None, display_label_pos=None,
                  axes_xscale=None, axes_xmin=None, axes_xmax=None, axes_xstretch=None, axes_yscale=None, axes_yvisible=None,
                  load_default_data=True):
@@ -119,16 +123,21 @@ class Project(Model, Observable, Storable):
         Observable.__init__(self)
         Storable.__init__(self)
         
-        self.needs_plot_update = Signal()
+        self.before_needs_update_lock = False
+        self.needs_update = DefaultSignal(before=self.before_needs_update)
         
         self._data_specimens = data_specimens or ObjectListStore(Specimen)
         self._data_phases = data_phases or ObjectListStore(Phase)
         self._data_atom_types = data_atom_types or IndexListStore(AtomType)
+        self._data_mixtures = data_mixtures or ObjectListStore(Mixture)
         
         self._data_specimens.connect("item-removed", self.on_specimen_item_removed)
+        self._data_mixtures.connect("item-removed", self.on_mixture_item_removed)
         self._data_phases.connect("item-removed", self.on_phase_item_removed)
         self._data_atom_types.connect("item-removed", self.on_atom_type_item_removed)
+        
         self._data_specimens.connect("item-inserted", self.on_specimen_item_inserted)
+        self._data_mixtures.connect("item-inserted", self.on_mixture_item_inserted)
         self._data_phases.connect("item-inserted", self.on_phase_item_inserted)
         self._data_atom_types.connect("item-inserted", self.on_atom_type_item_inserted)
         
@@ -169,7 +178,9 @@ class Project(Model, Observable, Storable):
         if item.parent != self: item.parent = self
     def on_specimen_item_inserted(self, model, item, *data):
         if item.parent != self: item.parent = self
-        #self.observe_model(item)
+        self.observe_model(item)
+    def on_mixture_item_inserted(self, model, item, *data):
+        if item.parent != self: item.parent = self
 
     def on_phase_item_removed(self, model, item, *data):
         if item.data_based_on != None:
@@ -183,6 +194,30 @@ class Project(Model, Observable, Storable):
         pass
     def on_specimen_item_removed(self, model, item, *data):
         self.relieve_model(item)
+    def on_mixture_item_removed(self, model, item, *data):
+        pass
+
+    @Observer.observe("needs_update", signal=True)
+    def notify_needs_update(self, model, prop_name, info):
+        if not self.before_needs_update_lock:
+            self.needs_update.emit() #propagate signal
+
+    @delayed("before_needs_update_lock")
+    def before_needs_update(self, after):
+        if not self.before_needs_update_lock:
+            self.before_needs_update_lock = True
+            t1 = time.time()
+            for mixture in self.data_mixtures._model_data:
+                if mixture.auto_run: 
+                    mixture.optimize()
+                    mixture.apply_result()
+            for specimen in self.data_specimens._model_data:
+                specimen.calculate_pattern()
+                specimen.statistics.update_statistics()
+            after()
+            t2 = time.time()
+            print '%s took %0.3f ms' % ("before_needs_update", (t2-t1)*1000.0)
+            self.before_needs_update_lock = False
 
     # ------------------------------------------------------------
     #      Input/Output stuff
@@ -191,9 +226,12 @@ class Project(Model, Observable, Storable):
     def from_json(**kwargs): #TODO wraps this in kwargs!!
         
         sargs = dict()
-        for key in ("data_atom_types", "data_goniometer", "data_phases", "data_specimens"):
-            sargs[key] = kwargs[key]
-            del kwargs[key]
+        for key in ("data_atom_types", "data_goniometer", "data_phases", "data_specimens", "data_mixtures"):
+            if key in kwargs:
+                sargs[key] = kwargs[key]
+                del kwargs[key]
+            else:
+                sargs[key] = None
              
         data_goniometer = Goniometer.from_json(**sargs["data_goniometer"]['properties'])
 
@@ -201,24 +239,34 @@ class Project(Model, Observable, Storable):
         project = Project(load_default_data=False, **kwargs)
         
         #Create temporary ObjectListStore to transfer atom types to project
-        atom_types = ObjectListStore.from_json(parent=project, **sargs["data_atom_types"]['properties'])
-        for atom_type in atom_types._model_data:
-            project.data_atom_types.append(atom_type) #add_atom_type(atom_type, silent=True)
-        del atom_types
+        if sargs["data_atom_types"] != None:
+            atom_types = ObjectListStore.from_json(parent=project, **sargs["data_atom_types"]['properties'])
+            for atom_type in atom_types._model_data:
+                project.data_atom_types.append(atom_type)
+            del atom_types
         
         #Create temporary ObjectListStore to transfer phases to project & resolve references
-        data_phases = ObjectListStore.from_json(parent=project, **sargs["data_phases"]['properties'])
-        for phase in data_phases._model_data:
-            project.data_phases.append(phase) #add_phase(phase, silent=True)
-        del data_phases
-        for phase in project._data_phases._model_data: #FIXME we could solve this by making this sorted before export (place referenced specimens first)
-            phase.resolve_json_references()
+        if sargs["data_phases"] != None:
+            data_phases = ObjectListStore.from_json(parent=project, **sargs["data_phases"]['properties'])
+            for phase in data_phases._model_data:
+                project.data_phases.append(phase) #add_phase(phase, silent=True)
+            del data_phases
+            for phase in project._data_phases._model_data: #FIXME we could solve this by making this sorted before export (place referenced specimens first)
+                phase.resolve_json_references()
             
         #Create temporary ObjectListStore to transfer specimens to project, references to phases can be resolved immediately
-        data_specimens = ObjectListStore.from_json(parent=project, **sargs["data_specimens"]['properties'])
-        for specimen in data_specimens._model_data:
-            project.data_specimens.append(specimen) #add_specimen(specimen, silent=True, copy_phases=False)
-        del data_specimens
+        if sargs["data_specimens"] != None:
+            data_specimens = ObjectListStore.from_json(parent=project, **sargs["data_specimens"]['properties'])
+            for specimen in data_specimens._model_data:
+                project.data_specimens.append(specimen)
+            del data_specimens
+        
+        #Create temporary ObjectListStore to transfer mixtures to project, references to phases & specimens can be resolved immediately
+        if sargs["data_mixtures"] != None:
+            data_mixtures = ObjectListStore.from_json(parent=project, **sargs["data_mixtures"]['properties'])
+            for mixture in data_mixtures._model_data:
+                project.data_mixtures.append(mixture)
+            del data_mixtures
         
         return project
     

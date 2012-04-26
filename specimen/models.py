@@ -13,7 +13,7 @@ import gtk
 import gobject
 
 from gtkmvc import Observable
-from gtkmvc.model import ListStoreModel, Model, Signal, Observer
+from gtkmvc.model import Model, Signal, Observer
 
 import matplotlib
 import matplotlib.transforms as transforms
@@ -41,7 +41,7 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
 
     #MODEL INTEL:
     __have_no_widget__ = ChildModel.__have_no_widget__ + [
-        "statistics", "needs_plot_update", "data_markers"
+        "statistics", "data_markers", "needs_update"
     ]
     __columns__ = [
         ('data_name', str),
@@ -61,12 +61,15 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
         ('exp_color', str),
         ('statistics', object),
     ]
-    __observables__ = [ key for key, val in __columns__]
-    __storables__ = [ val for val in __observables__ if not val in ("parent", "data_phases", "statistics") ]
+    __observables__ = [ key for key, val in __columns__] + ["needs_update"]
+    __storables__ = [ val for val in __observables__ if not val in ("parent", "data_phases", "statistics", "needs_update") ]
 
     __parent_alias__ = 'project'
 
     __pctrl__ = None
+
+    #SIGNALS:
+    needs_update = None
 
     #PROPERTIES:
     _data_sample = ""
@@ -82,12 +85,30 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
     def set_data_name(self, prop_name, value):
         setattr(self, "_%s" % prop_name, value)
         self.liststore_item_changed()
+        self.needs_update.emit()
  
-    data_calculated_pattern = None
-    data_experimental_pattern = None
+    _data_calculated_pattern = None
+    def get_data_calculated_pattern_value(self): return self._data_calculated_pattern
+    def set_data_calculated_pattern_value(self, value):
+        if self._data_calculated_pattern != None: self.relieve_model(self._data_calculated_pattern)
+        self._data_calculated_pattern = value
+        if self._data_calculated_pattern != None: self.observe_model(self._data_calculated_pattern)
+    _data_experimental_pattern = None
+    def get_data_experimental_pattern_value(self): return self._data_experimental_pattern
+    def set_data_experimental_pattern_value(self, value):
+        if self._data_experimental_pattern != None: self.relieve_model(self._data_experimental_pattern)
+        self._data_experimental_pattern = value
+        if self._data_experimental_pattern != None: self.observe_model(self._data_experimental_pattern)    
     
-    data_sample_length = 3.0  
-    data_abs_scale = 1.0
+    _data_sample_length = 3.0
+    _data_abs_scale = 1.0
+    @Model.getter("data_sample_length", "data_abs_scale")
+    def get_data_sample_length_value(self, prop_name):
+        return getattr(self, "_%s" % prop_name)
+    @Model.setter("data_sample_length", "data_abs_scale")
+    def set_data_sample_length_value(self, prop_name, value):
+        setattr(self, "_%s" % prop_name, value)
+        self.needs_update.emit()
     
     statistics = None
     
@@ -152,6 +173,8 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
         Observable.__init__(self)
         Storable.__init__(self)
                
+        self.needs_update = Signal()
+               
         self.data_name = data_name
         self.data_sample = data_sample
         self.data_sample_length = data_sample_length
@@ -166,7 +189,9 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
         self.data_calculated_pattern = data_calculated_pattern or XYData("Calculated Profile", color=self.calc_color, parent=self)
         self.data_experimental_pattern = data_experimental_pattern or XYData("Experimental Profile", color=self.exp_color, parent=self)
         
-        self._data_markers =  data_markers or ObjectListStore(Marker)
+        self._data_markers = data_markers or ObjectListStore(Marker)
+        for marker in self._data_markers._model_data:
+            self.observe_model(marker)
         self.data_markers.connect("item-removed", self.on_marker_removed)
         self.data_markers.connect("item-inserted", self.on_marker_inserted)
         
@@ -191,27 +216,29 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
     
     # ------------------------------------------------------------
     #      Notifications of observable properties
-    # ------------------------------------------------------------           
+    # ------------------------------------------------------------
     @Observer.observe("needs_update", signal=True)
     def notify_needs_update(self, model, prop_name, info):
-        self.calculate_pattern()
+        self.needs_update.emit() #propagate signal
         
     def on_marker_removed(self, model, item):
+        self.relieve_model(item)
         item.parent = None
-        if self.parent != None:
-            self.parent.needs_plot_update.emit()
+        self.needs_update.emit()
         
     def on_marker_inserted(self, model, item):
+        self.observe_model(item)
         item.parent = self
         if self.__pctrl__:
             self.__pctrl__.register(item, "on_update_plot", last=True)
+        self.needs_update.emit()
                   
     # ------------------------------------------------------------
     #      Input/Output stuff
     # ------------------------------------------------------------   
     def json_properties(self):
         retval = Storable.json_properties(self)
-        retval["phase_indeces"] = { self.parent.data_phases.index(phase): quantity for phase, quantity in self.data_phases.iteritems()}
+        retval["phase_indeces"] = { self.parent.data_phases.index(phase): quantity for phase, quantity in self.data_phases.iteritems() if phase }
         retval["calc_color"] = self._calc_color
         retval["exp_color"] = self._exp_color
         return retval
@@ -262,7 +289,6 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
         if not phase in self._data_phases:
             self.observe_model(phase)
             self._data_phases.update({phase: quantity})
-    
 
     def del_phase(self, phase):
         if phase in self._data_phases:
@@ -273,7 +299,6 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
         if self.display_experimental:
             self.data_experimental_pattern.on_update_plot(figure, axes, pctrl)
         if self.display_calculated:
-            self.calculate_pattern()
             self.data_calculated_pattern.on_update_plot(figure, axes, pctrl)        
         pctrl.update_lim()
         
@@ -281,13 +306,8 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
     def max_intensity(self):
         return max(np.max(self.data_experimental_pattern.max_intensity), np.max(self.data_calculated_pattern.max_intensity))
 
-    # declare the @ decorator just before the function, invokes print_timing()
-    #@print_timing
-    def calculate_pattern(self, steps=2500):
-        if len(self._data_phases) == 0:
-            self.data_calculated_pattern.xy_data.clear()
-            return None
-        else:
+    def get_phase_intensities(self, phases, steps=2500):
+        if phases!=None:
             #todo part of these things should be calculated in the Goniometer and only changed when needed (e.g. the normal range)
             S = self.parent.data_goniometer.get_S()
             S1S2 = self.parent.data_goniometer.data_soller1 * self.parent.data_goniometer.data_soller2
@@ -308,16 +328,25 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
             #sample length correction array:
             correction_range =  np.minimum(np.sin(theta_range) * L_Rta, 1)
             
-            intensity_range = np.zeros(len(theta_range))
-            for phase, quantity in self._data_phases.iteritems():
-                intensity_range += phase.get_diffracted_intensity(theta_range, stl_range, S, S1S2, quantity, correction_range)
+            return theta_range, np.array([phase.get_diffracted_intensity(theta_range, stl_range, S, S1S2, 1.0, correction_range) if phase else np.zeros(shape=theta_range.shape) for phase in phases])
+
+
+    # declare the @ decorator just before the function, invokes print_timing()
+    #@print_timing
+    def calculate_pattern(self, steps=2500):
+        if len(self._data_phases) == 0:
+            self.data_calculated_pattern.xy_data.clear()
+            return None
+        else:           
+            theta_range, intensities = self.get_phase_intensities(self._data_phases.keys(), steps=steps)
+            intensity_range = np.zeros(len(intensities[0]))
             
-            Imax = max(intensity_range)
-            intensity_range = intensity_range * (self.data_abs_scale / Imax)
+            fractions = np.array(self._data_phases.values())[:,np.newaxis]
+            intensity_range = np.sum(intensities*fractions, axis=0) * self.data_abs_scale
             
             self.data_calculated_pattern.clear(update=False) #FIXME this should be done in ONE single call instead of 3 (see further)
             
-            theta_range = theta_range * 2 / torad
+            theta_range = theta_range * 2 * 180.0 / pi 
             self.data_calculated_pattern.xy_data.set_from_data(theta_range, intensity_range)
             self.data_calculated_pattern.update_data()
 
@@ -327,8 +356,8 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
     
         threshold = tmodel.sel_threshold
         data_base = 1 if (tmodel.pattern == "exp") else 2
-        xy = tmodel.get_xy()
-        maxtab, mintab = peakdetect(xy._model_data_y, xy._model_data_x, 5, threshold)
+        data_x, data_y = tmodel.get_xy()
+        maxtab, mintab = peakdetect(data_y, data_x, 5, threshold)
         
         mpositions = []
         for marker in self.data_markers._model_data:
@@ -414,17 +443,21 @@ class ThresholdSelector(ChildModel, Observable):
     # ------------------------------------------------------------
     def get_xy(self):
         if self._pattern == "exp":
-            return self.parent.data_experimental_pattern.xy_data
+            data_y = self.parent.data_experimental_pattern.xy_data._model_data_y
+            data_y = data_y / np.max(data_y)
+            return self.parent.data_experimental_pattern.xy_data._model_data_x, data_y
         elif self._pattern == "calc":
-            return self.parent.data_calculated_pattern.xy_data
+            data_y = self.parent.data_calculated_pattern.xy_data._model_data_y
+            data_y = data_y / np.max(data_y)
+            return self.parent.data_calculated_pattern.xy_data._model_data_x, data_y
     
     def update_threshold_plot_data(self):
         if self.parent != None:
-            xy = self.get_xy()
-            length = xy._model_data_x.size
+            data_x, data_y = self.get_xy()
+            length = data_x.size
             
             if length > 2:
-                resolution = length / (xy._model_data_x[-1] - xy._model_data_x[0])
+                resolution = length / (data_x[-1] - data_x[0])
                 delta_angle = 0.05
                 window = int(delta_angle * resolution)
                 window += (window % 2)*2
@@ -435,7 +468,7 @@ class ThresholdSelector(ChildModel, Observable):
                 deltas = [i*factor for i in range(0, self.steps)]
                 
                 numpeaks = []
-                maxtabs, mintabs = multi_peakdetect(xy._model_data_y, xy._model_data_x, 5, deltas)
+                maxtabs, mintabs = multi_peakdetect(data_y, data_x, 5, deltas)
                 for maxtab, mintab in zip(maxtabs, mintabs):
                     numpeak = len(maxtab)
                     numpeaks.append(numpeak)
@@ -463,7 +496,7 @@ class ThresholdSelector(ChildModel, Observable):
 class Marker(ChildModel, Observable, Storable, ObjectListStoreChildMixin, CSVMixin):
     
     #MODEL INTEL:
-    #__have_no_widget__ = ChildModel.__have_no_widget__
+    __have_no_widget__ = ChildModel.__have_no_widget__ + ["needs_update"]
     __columns__ = [
         ('data_label', str),
         ('data_visible', bool),
@@ -476,20 +509,21 @@ class Marker(ChildModel, Observable, Storable, ObjectListStoreChildMixin, CSVMix
         ('inherit_angle', bool),
         ('data_style', str)
     ]
-    __observables__ = [ key for key, val in __columns__]
-    __storables__ = __observables__
+    __storables__ = [ key for key, val in __columns__]
+    __observables__ = __storables__ + ["needs_update"]
     __csv_storables__ = zip(__storables__, __storables__)
     __parent_alias__ = 'specimen'
 
+    #SIGNALS:
+    needs_update = None
+
     #PROPERTIES:
-    
     _data_label = ""
     def get_data_label_value(self): return self._data_label
     def set_data_label_value(self, value):
         self._data_label = value
         self.liststore_item_changed()
-        if self.parent and self.parent.parent:
-            self.parent.parent.needs_plot_update.emit()
+        self.needs_update.emit()
     
     _data_visible = True
     _data_position = 0.0
@@ -502,8 +536,7 @@ class Marker(ChildModel, Observable, Storable, ObjectListStoreChildMixin, CSVMix
     @Model.setter("data_visible", "data_position", "data_x_offset", "data_y_offset", "data_color")
     def set_data_plot_value(self, prop_name, value):
         setattr(self, "_%s" % prop_name, value)
-        if self.parent and self.parent.parent:
-            self.parent.parent.needs_plot_update.emit()
+        self.needs_update.emit()
 
     _inherit_angle = True
     def get_inherit_angle_value(self): return self._inherit_angle
@@ -511,8 +544,7 @@ class Marker(ChildModel, Observable, Storable, ObjectListStoreChildMixin, CSVMix
         self._inherit_angle = value
         if self._text!=None:
             self._text.set_rotation(90-self.data_angle)
-        if self.parent and self.parent.parent:
-            self.parent.parent.needs_plot_update.emit()
+        self.needs_update.emit()
             
     _data_angle = 0.0
     def get_data_angle_value(self):
@@ -524,8 +556,7 @@ class Marker(ChildModel, Observable, Storable, ObjectListStoreChildMixin, CSVMix
         self._data_angle = value
         if self._text!=None:
             self._text.set_rotation(90-self.data_angle)
-        if self.parent and self.parent.parent:
-            self.parent.parent.needs_plot_update.emit()
+        self.needs_update.emit()
 
     _data_base = 1
     _data_bases = { 0: "X-axis", 1: "Experimental profile" }
@@ -536,8 +567,7 @@ class Marker(ChildModel, Observable, Storable, ObjectListStoreChildMixin, CSVMix
     _data_styles = { "none": "Display at base", "solid": "Solid", "dashed": "Dash", "dotted": "Dotted", "dashdot": "Dash-Dotted", "offset": "Display at Y-offset" }
         
     def cbb_callback(self, prop_name, value):
-        if self.parent and self.parent.parent:
-            self.parent.parent.needs_plot_update.emit()
+        self.needs_update.emit()
     add_cbb_props(("data_base", int, cbb_callback), ("data_style", lambda i: i, cbb_callback))
     
     _vline = None
@@ -551,6 +581,8 @@ class Marker(ChildModel, Observable, Storable, ObjectListStoreChildMixin, CSVMix
         ChildModel.__init__(self, parent=parent)
         Observable.__init__(self)
         Storable.__init__(self)
+        
+        self.needs_update = Signal()
         
         self.data_label = data_label
         self.data_visible = data_visible
@@ -603,8 +635,8 @@ class Marker(ChildModel, Observable, Storable, ObjectListStoreChildMixin, CSVMix
                     
                 ymin, ymax = axes.get_ybound()
                 trans = transforms.blended_transform_factory(axes.transData, axes.transAxes)
-                y = ((y+self.data_y_offset) - ymin) / (ymax - ymin)
-            
+                y = (y - ymin) / (ymax - ymin) + self.data_y_offset
+                
                 kws.update(dict(
                     y=y,
                     transform=trans,
@@ -642,8 +674,8 @@ class Marker(ChildModel, Observable, Storable, ObjectListStoreChildMixin, CSVMix
         data = [y,1]
         if data_style == "offset":
             data_style = "solid"
-            y = (y + self.parent.data_experimental_pattern.display_offset - ymin) / (ymax - ymin)
-            offset = (self.data_y_offset + self.parent.data_experimental_pattern.display_offset - ymin) / (ymax - ymin)
+            y = (self.parent.data_experimental_pattern.display_offset - ymin) / (ymax - ymin)
+            offset = y + (self.data_y_offset - ymin) / (ymax - ymin)
             
             data = [y,offset]
             
@@ -696,13 +728,7 @@ class Statistics(Model, Observable):
     def get_data_specimen_value(self): return self._data_specimen
     def set_data_specimen_value(self, value):
         if value != self._data_specimen:
-            if self._data_specimen != None:
-                self.relieve(self._data_specimen.data_experimental_pattern)
-                self.relieve(self._data_specimen.data_calculated_pattern)
             self._data_specimen = value
-            if self._data_specimen != None:
-                self.observe_model(self._data_specimen.data_experimental_pattern)
-                self.observe_model(self._data_specimen.data_calculated_pattern)
             self.update_statistics()
        
     def get_data_points_value(self):
@@ -722,13 +748,6 @@ class Statistics(Model, Observable):
         
         self.data_specimen = data_specimen or self.data_specimen        
         self.update_statistics()
-  
-    # ------------------------------------------------------------
-    #      Notifications of observable properties
-    # ------------------------------------------------------------
-    @Observer.observe("data_update", signal=True)
-    def notification(self, model, prop_name, info):
-        self.update_statistics()
         
     # ------------------------------------------------------------
     #      Methods & Functions
@@ -744,8 +763,8 @@ class Statistics(Model, Observable):
         else:
             return None, None 
         
-    def on_data_update(self, model, name, info):
-        self.update_statistics()
+    """def on_data_update(self, model, name, info):
+        self.update_statistics()"""
         
     def update_statistics(self):
         self.data_chi2 = 0        
@@ -771,7 +790,8 @@ class Statistics(Model, Observable):
             self.data_chi2 = stats.chisquare(exp_y, cal_y)[0]
             self.data_Rp, self.data_R2 = self._calc_RpR2(exp_y, cal_y)
            
-    def _calc_RpR2(self, o, e): 
+    @staticmethod
+    def _calc_RpR2(o, e): 
         avg = sum(o)/o.size
         sserr = np.sum((o - e)**2)
         sstot = np.sum((o - avg)**2)

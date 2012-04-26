@@ -192,6 +192,7 @@ class ObjectListStore(_BaseObjectListStore, Storable):
         return item in self._model_data
 
     def index(self, item):
+        print item
         return self._model_data.index(item)
         
     def get_user_data_from_index(self, index):

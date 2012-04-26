@@ -26,8 +26,7 @@ from probabilities.models import get_correct_probability_model
 class Component(ChildModel, ObjectListStoreChildMixin, Storable):
 
     #MODEL INTEL:
-    __inheritables__ = ("data_name", "data_based_on",
-                        "data_d001", "data_cell_a", "data_cell_b",
+    __inheritables__ = ("data_d001", "data_cell_a", "data_cell_b",
                         "data_layer_atoms", "data_interlayer_atoms")
     __parent_alias__ = 'phase'
     __columns__ = [
@@ -63,10 +62,12 @@ class Component(ChildModel, ObjectListStoreChildMixin, Storable):
     _linked_with_index = None
     def get_data_linked_with_value(self): return self._data_linked_with
     def set_data_linked_with_value(self, value):
-        if self._data_linked_with != value:
+        if value != self._data_linked_with:
             self._data_linked_with = value
-            for prop in self.__inheritables__:
-                setattr(self, prop.replace("data_", "inherit_", 1), False)
+            if self._data_linked_with==None:
+                print "RESETTING INHERITABLES"
+                for prop in self.__inheritables__:
+                    setattr(self, prop.replace("data_", "inherit_", 1), False)
             
     #INHERITABLE PROPERTIES:
     _data_cell_a = 1.0
@@ -107,13 +108,39 @@ class Component(ChildModel, ObjectListStoreChildMixin, Storable):
         self._data_layer_atoms = data_layer_atoms or ObjectListStore(Atom)
         self._data_interlayer_atoms = data_interlayer_atoms or ObjectListStore(Atom)
         
+        self._data_layer_atoms.connect("item-removed", self.on_layer_item_removed)
+        self._data_interlayer_atoms.connect("item-removed", self.on_interlayer_item_removed)        
+        self._data_layer_atoms.connect("item-inserted", self.on_layer_item_inserted)
+        self._data_interlayer_atoms.connect("item-inserted", self.on_interlayer_item_inserted)
+        self._data_layer_atoms.connect("row-changed", self.on_layer_item_changed)
+        self._data_interlayer_atoms.connect("row-changed", self.on_interlayer_item_changed)        
+
+        self._linked_with_index = linked_with_index if linked_with_index > -1 else None
+        
         self.inherit_d001 = inherit_d001
         self.inherit_cell_a = inherit_cell_a
         self.inherit_cell_b = inherit_cell_b        
         self.inherit_layer_atoms = inherit_layer_atoms          
         self.inherit_interlayer_atoms = inherit_interlayer_atoms
 
-        self._linked_with_index = linked_with_index if linked_with_index > -1 else None
+
+    # ------------------------------------------------------------
+    #      Notifications of observable properties
+    # ------------------------------------------------------------
+    def on_layer_item_inserted(self, model, item, *data):
+        self.needs_update.emit()
+    def on_interlayer_item_inserted(self, model, item, *data):
+        self.needs_update.emit()
+
+    def on_layer_item_removed(self, model, item, *data):
+        self.needs_update.emit()
+    def on_interlayer_item_removed(self, model, item, *data):
+        self.needs_update.emit()
+
+    def on_layer_item_changed(self, model, item, *data):
+        self.needs_update.emit()
+    def on_interlayer_item_changed(self, model, item, *data):
+        self.needs_update.emit()
 
     # ------------------------------------------------------------
     #      Input/Output stuff
@@ -122,10 +149,11 @@ class Component(ChildModel, ObjectListStoreChildMixin, Storable):
         for atom in self._data_layer_atoms._model_data:
             atom.resolve_json_references()
         for atom in self._data_interlayer_atoms._model_data:
-            atom.resolve_json_references()            
+            atom.resolve_json_references()
+        
         if self._linked_with_index != None and self._linked_with_index != -1:
             self.data_linked_with = self.parent.data_based_on.data_components.get_user_data_from_index(self._linked_with_index)
-
+            
     def json_properties(self):
         retval = Storable.json_properties(self)
         retval["linked_with_index"] = self.parent.data_based_on.data_components.index(self.data_linked_with) if self.data_linked_with != None else -1
@@ -193,7 +221,7 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
         ('data_components', object),
     ]
     __observables__ = [ key for key, val in __columns__] + ["needs_update"]
-    __storables__ = [ val for val in __observables__ if not val in ('data_based_on', 'parent', 'needs_update')]
+    __storables__ = [ val for val in __observables__ if not val in ("data_based_on", "parent", "needs_update")]
     
     #SIGNALS:
     needs_update = None
@@ -234,11 +262,13 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
             self.based_on_observer.relieve_model(self._data_based_on)
         if value == None or value.get_based_on_root() == self or value.parent != self.parent:
             value = None
-        self._data_based_on = value
-        for component in self.data_components._model_data: #TODO set probs, wt fracs and comp dimensions accordingly!
-            component.data_linked_with = None
+        if value != self._data_based_on:
+            self._data_based_on = value
+            for component in self.data_components._model_data:
+                component.data_linked_with = None
         if self._data_based_on is not None:
             self.based_on_observer.observe_model(self._data_based_on)
+        self.needs_update.emit()
     def get_based_on_root(self):
         if self.data_based_on != None:
             return self.data_based_on.get_based_on_root()
@@ -260,7 +290,12 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
             return getattr(self, "_%s" % prop_name)
     @Model.setter(*__inheritables__)
     def set_inheritable(self, prop_name, value):
+        prob = (prop_name == "data_probabilities")
+        if prob and self._data_probabilities:
+            self.relieve_model(self._data_probabilities)
         setattr(self, "_%s" % prop_name, value)
+        if prob and self._data_probabilities:
+            self.observe_model(self._data_probabilities)
         self.needs_update.emit()
     
     _data_components = None    
@@ -313,6 +348,7 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
         self._data_R = data_R
         
         self._data_probabilities = data_probabilities or get_correct_probability_model(self)
+        self.observe_model(self._data_probabilities)
         self.inherit_probabilities = inherit_probabilities or self.inherit_probabilities
 
         self._based_on_index = based_on_index if based_on_index > -1 else None
@@ -335,6 +371,11 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
     # ------------------------------------------------------------
     @Observer.observe("needs_update", signal=True)
     def notify_needs_update(self, model, prop_name, info):
+        self.needs_update.emit() #propagate signal
+
+    @Observer.observe("updated", signal=True)
+    def notify_needs_update(self, model, prop_name, info):
+        print "UPDATED RECEIVED"
         self.needs_update.emit() #propagate signal
 
     # ------------------------------------------------------------
@@ -446,7 +487,7 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
             
         return ifs"""
     
-    @print_timing            
+    #@print_timing            
     def get_diffracted_intensity (self, range_theta, range_stl, S, S1S2, quantity, correction_range):      
         #print "for specimen %s" % self
         from numpy.core.umath_tests import matrix_multiply as mmultr
@@ -477,10 +518,10 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
         distr, ddict, real_mean = self._update_interference_distributions()
         
         #Get junction probabilities & weight fractions
-        W = self.data_probabilities.get_distribution_matrix()
+        W, P = self.data_probabilities.get_distribution_matrix(), self.data_probabilities.get_probability_matrix()
         
         W = repeat_to_stl(W).astype(np.complex_)
-        P = repeat_to_stl(self.data_probabilities.get_probability_matrix()).astype(np.complex_)
+        P = repeat_to_stl(P).astype(np.complex_)
         G = self.data_G
         
         #get structure factors and phase factors for individual components:

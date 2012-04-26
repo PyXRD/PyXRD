@@ -119,16 +119,19 @@ class Updater(gtk.Dialog):
     pass #end of class
 
 def update():
-    response = urllib2.urlopen(settings.UPDATE_URL+'version')
-    html = response.read()
-    last_version, filename = html.split("\n")[:2]
-    if mycmp(last_version, settings.VERSION) >= 1:
-        print "New version available (%s), now at (%s)" % (last_version, settings.VERSION)
-        dialog = Updater(filename)
-        dialog.show_all()
-        gtk.main()
-    else:
-        print "Most recent version installed (%s), remote is (%s)" % (settings.VERSION, last_version)
+    try:
+        response = urllib2.urlopen(settings.UPDATE_URL+'version')
+        html = response.read()
+        last_version, filename = html.split("\n")[:2]
+        if mycmp(last_version, settings.VERSION) >= 1:
+            print "New version available (%s), now at (%s)" % (last_version, settings.VERSION)
+            dialog = Updater(filename)
+            dialog.show_all()
+            gtk.main()
+        else:
+            print "Most recent version installed (%s), remote is (%s)" % (settings.VERSION, last_version)
+    except:
+        print "An error occured while trying to acces the update server, current version is (%s)" % (settings.VERSION,)
         
 
 

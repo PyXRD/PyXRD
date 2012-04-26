@@ -7,15 +7,24 @@
 # a letter to Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
 
 import settings
-from gtkmvc.model import Model
+from gtkmvc.model import Model, Observer, Signal
     
 class AppModel(Model):
 
     #MODEL INTEL:
-    __observables__ = ( "current_project", "current_specimen", "current_specimens", "statistics_visible" )
+    __observables__ = ( "current_project", "current_specimen", "current_specimens", "statistics_visible", "needs_plot_update")
+
+    #SIGNALS:
+    needs_plot_update = None
 
     #PROPERTIES:
-    current_project = None
+    _current_project = None
+    def get_current_project_value(self):
+        return self._current_project
+    def set_current_project_value(self, value):
+        if self._current_project != None: self.relieve_model(self._current_project)
+        self._current_project = value
+        if self._current_project != None: self.observe_model(self._current_project)
     current_filename = None
     
     current_specimen = None
@@ -45,7 +54,15 @@ class AppModel(Model):
     # ------------------------------------------------------------
     def __init__(self, project = None):
         Model.__init__(self)
+        self.needs_plot_update = Signal()
         self.current_project = project
         self._statistics_visible = False
+        
+    # ------------------------------------------------------------
+    #      Notifications of observable properties
+    # ------------------------------------------------------------
+    @Observer.observe("needs_update", signal=True)
+    def notify_needs_update(self, model, prop_name, info):
+        self.needs_plot_update.emit()
         
     pass #end of class

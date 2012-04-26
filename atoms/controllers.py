@@ -79,7 +79,7 @@ class AtomTypesController(ObjectListStoreController):
             return ObjectListStoreController.get_new_edit_controller(self, obj, view, parent=parent)
 
     def open_atom_type(self, filename):
-        self.model.add_atom_type(AtomType.load_object(filename))
+        self.model.append(AtomType.load_object(filename))
           
     # ------------------------------------------------------------
     #      GTK Signal handlers
@@ -91,7 +91,7 @@ class AtomTypesController(ObjectListStoreController):
             if fltr.get_name() == self.file_filters[0][0]:
                 self.open_atom_type(open_dialog.get_filename())
             elif fltr.get_name() == self.file_filters[1][0]:
-                AtomType.get_from_csv(open_dialog.get_filename(), self.model.add_atom_type)        
+                AtomType.get_from_csv(open_dialog.get_filename(), self.model.data_atom_types.append)
         self.run_load_dialog("Import atom types", on_accept, parent=self.view.get_top_widget())
 
 

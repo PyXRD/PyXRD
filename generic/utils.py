@@ -31,8 +31,9 @@ def print_timing(func):
 
 
 class _Delayed():
-    def __init__(self, f, lock=None):
+    def __init__(self, f, lock=None, delay=500):
         self.__lock = lock
+        self.__delay = delay
         self.__f = f
         self.__tmrid = None
 
@@ -42,7 +43,12 @@ class _Delayed():
                 return #if the function is locked, do not qeue this call
             if self.__tmrid != None:
                 gobject.source_remove(self.__tmrid)   
-            self.__tmrid = gobject.timeout_add(500, self.__timeout_handler__, *args, **kwargs)
+            delay = 0
+            try:
+                delay = int(self.__delay)
+            except:
+                delay = getattr(args[0], self.__delay)
+            self.__tmrid = gobject.timeout_add(delay, self.__timeout_handler__, *args)
         return wrapper
       
     def __timeout_handler__(self, *args, **kwargs):
@@ -50,9 +56,9 @@ class _Delayed():
         self._upt_id = None
         return False
 
-def delayed(lock=None, *args, **kwargs):
+def delayed(lock=None, delay=500, *args, **kwargs):
     def dec(f):
-        return _Delayed(f, lock=lock).__call__()
+        return _Delayed(f, lock=lock, delay=delay).__call__()
     return dec
 
 def get_case_insensitive_glob(*strings):

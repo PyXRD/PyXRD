@@ -62,6 +62,7 @@ class Project(Model, Observable, Storable):
         return getattr(self, "_%s" % prop_name)
     @Model.setter("axes_xmin", "axes_xmax", "axes_xstretch", "axes_yvisible", "display_plot_offset", "display_marker_angle", "display_label_pos")
     def set_axes_value(self, prop_name, value):
+        if prop_name == "axes_xmin": value = max(value, 0.0)
         setattr(self, "_%s" % prop_name, value)
         self.needs_update.emit()
 
@@ -212,7 +213,7 @@ class Project(Model, Observable, Storable):
                     mixture.optimize()
                     mixture.apply_result()
             for specimen in self.data_specimens._model_data:
-                specimen.calculate_pattern()
+                specimen.calculate_pattern(self.data_goniometer.get_lorentz_polarisation_factor)
                 specimen.statistics.update_statistics()
             after()
             t2 = time.time()

@@ -61,6 +61,8 @@ class _AbstractProbability(ChildModel, Storable):
     updated = None
     
     #PROPERTIES:
+    data_name = "Probabilities"
+    
     _R = -1
     @property
     def R(self):
@@ -151,6 +153,9 @@ class R0Model(_AbstractR0R1Model):
         ("W3", "W3"),
         ("W4", "W4"),
     ]
+    @property
+    def __refineables__(self):
+        return [ "W%d" % i for i in range(self.G) ]
     __observables__ = [ prop for prop, lbl in  __independent_label_map__ ]
     __storables__ = [ val for val in __observables__ if not val in ('parent', "added", "removed")]
 
@@ -217,7 +222,8 @@ class R1G2Model(_AbstractR0R1Model):
         ("W1", "W1"),
         ("P11_or_P22", "P11 or P22"),
     ]
-    __observables__ = [ prop for prop, lbl in  __independent_label_map__ ]
+    __refineables__ = [ prop for prop, lbl in  __independent_label_map__ ]
+    __observables__ = __refineables__
     __storables__ = [ val for val in __observables__ if not val in ('parent', "added", "removed")]
 
     #PROPERTIES:
@@ -327,7 +333,8 @@ class R1G3Model(_AbstractR0R1Model):
         ("G3", "W11 / (W11 + W12)"),
         ("G4", "W21 / (W21 + W22)"),
     ]
-    __observables__ = [ prop for prop, lbl in  __independent_label_map__ ]
+    __refineables__ = [ prop for prop, lbl in  __independent_label_map__ ]
+    __observables__ = __refineables__
     __storables__ = [ val for val in __observables__ if not val in ('parent', "added", "removed")]
 
     #PROPERTIES

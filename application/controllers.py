@@ -128,6 +128,7 @@ class AppController (BaseController, DialogMixin):
                 for specimen in self.model.current_specimens[::-1]:
                     specimen.set_display_offset(offset)
                     self.plot_controller.register(specimen, "on_update_plot", last=False)
+                    self.plot_controller.register(specimen, "on_update_hatches", last=True)
                     for marker in specimen.data_markers._model_data:
                         self.plot_controller.register(marker, "on_update_plot", last=True)
                     labels.append((specimen.data_sample, self.model.current_project.display_label_pos + offset))

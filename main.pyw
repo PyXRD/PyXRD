@@ -22,7 +22,9 @@ if __name__ == "__main__":
     import settings
     import gtk
         
-    settings.apply_runtime_settings()    
+    settings.apply_runtime_settings()
+    
+    gtk.gdk.threads_init()
 
     m = AppModel()
     v = AppView()

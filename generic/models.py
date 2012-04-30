@@ -279,60 +279,10 @@ class XYData(ChildModel, Storable, Observable):
         return XYData(data_name=data_name, data_label=data_label, xy_data=xy_data, color=color)
             
     def save_data(self, filename):
-        f = open(filename, 'w')
-        f.write("%s %s\n" % (self.parent.data_name, self.parent.data_sample))
-        np.savetxt(f, zip(self.xy_data._model_data_x, self.xy_data._model_data_y), fmt="%.8f")
-        f.close()
+        self.xy_data.save_data(self, "%s %s" % (self.parent.data_name, self.parent.data_sample), filename)
          
-    def load_data(self, data, format="DAT", has_header=True, clear=True, silent=False):
-        xydata = []
-        max_y = 0.0
-    
-        if clear:
-            self.clear(update=False)    
-
-        if format=="DAT":
-            if has_header:
-                header, data = data.split("\n", 1)
-            for i, line in enumerate(data.split("\n")):
-                if line != "": #i is not 0 and 
-                    x, y = map(float, line.split())
-                    max_y = max(y, max_y)
-                    self.xy_data.append(x,y)
-        if format=="BIN":
-            import struct
-            #open file
-            f = None
-            close = False
-            if type(data) is file:
-                f = data
-            elif type(data) is str:
-                f = open(data, 'rb')
-                close = True
-            else:
-                raise TypeError, "Wrong data type supplied for binary format, must be either file or string, but %s was given" % type(data)
-            if f != None:
-                #seek data limits
-                f.seek(214)
-                stepx, minx, maxx = struct.unpack("ddd", f.read(24))
-                nx = int((maxx-minx)/stepx)
-                #read values                          
-                f.seek(250)
-                n = 0
-                while n < nx:
-                    y, = struct.unpack("H", f.read(2))
-                    max_y = max(y, max_y)
-                    self.xy_data.append(minx + stepx*n, float(y))
-                    n += 1
-                #close file
-                if close: f.close()
-            
-        print max_y
-        #import data            
-        #if xydata != []:
-        #    for x, y in xydata:
-        #        self.xy_data.append(x, y / max_y )
-        
+    def load_data(self, data, format="DAT", has_header=True, clear=True, silent=False):    
+        self.xy_data.load_data(data, format, has_header, clear)
         self.update_data(silent=silent)
             
     # ------------------------------------------------------------

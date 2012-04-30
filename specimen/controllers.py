@@ -28,6 +28,9 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
                     ("ASCII Data", get_case_insensitive_glob("*.DAT")),
                     ("Phillips Binary Data", get_case_insensitive_glob("*.RD")),
                     ("All Files", "*.*")]
+                    
+    excl_filters = [("Exclusion range file", get_case_insensitive_glob("*.EXC")),
+                    ("All Files", "*.*")]
     
     def register_adapters(self):
         if self.model is not None:
@@ -37,7 +40,6 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
                     ad.connect_widget(self.view["specimen_data_name"])
                     self.adapt(ad)
                 elif name in ["data_calculated_pattern", "data_experimental_pattern"]:
-                    #self.observe_model(getattr(self.model, name))
                     if name == "data_experimental_pattern":
                         tv = self.view['experimental_data_tv']
                         model = self.model.data_experimental_pattern.xy_data
@@ -51,13 +53,33 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
                         def add_column(title, colnr):
                             rend = gtk.CellRendererText()
                             rend.set_property("editable", True)
-                            rend.connect('edited', self.on_exp_data_cell_edited, (model, colnr))
+                            rend.connect('edited', self.on_xy_data_cell_edited, (model, colnr))
                             col = gtk.TreeViewColumn(title, rend, text=colnr)
                             col.set_resizable(True)
                             col.set_expand(True)
                             tv.append_column(col)
                         add_column('2θ', model.c_x)
                         add_column('Intensity', model.c_y)
+                elif name == "data_exclusion_ranges":
+                    tv = self.view['exclusion_ranges_tv']
+                    model = self.model.data_exclusion_ranges
+                    tv.set_model(model)
+                    tv.connect('cursor_changed', self.on_exclusion_ranges_tv_cursor_changed)
+
+                    #allow multiple selection:
+                    sel = tv.get_selection()
+                    sel.set_mode(gtk.SELECTION_MULTIPLE)
+
+                    def add_column(title, colnr):
+                        rend = gtk.CellRendererText()
+                        rend.set_property("editable", True)
+                        rend.connect('edited', self.on_xy_data_cell_edited, (model, colnr))
+                        col = gtk.TreeViewColumn(title, rend, text=colnr)
+                        col.set_resizable(True)
+                        col.set_expand(True)
+                        tv.append_column(col)
+                    add_column(u'From [2θ]', model.c_x)
+                    add_column(u'To [2θ]', model.c_y)
                 elif name == "data_phases":
                     # connects the treeview to the liststore
                     tv = self.view['display_phases_treeview']
@@ -119,6 +141,9 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
 
     def set_exp_data_sensitivites(self, val):
         self.view["btn_del_experimental_data"].set_sensitive(val)
+        
+    def set_exclusion_ranges_sensitivites(self, val):
+        self.view["btn_del_exclusion_ranges"].set_sensitive(val)
 
     def update_sensitivities(self):
         self.view["specimen_exp_color"].set_sensitive(not self.model.inherit_exp_color)
@@ -175,6 +200,12 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
         self.parent.pop_status_msg('edit_specimen')
         return DialogController.on_btn_ok_clicked(self, event)
 
+
+    def on_exclusion_ranges_tv_cursor_changed(self, tv):
+        path, col = tv.get_cursor()
+        self.set_exclusion_ranges_sensitivites(path != None)
+        return True
+
     def on_exp_data_tv_cursor_changed(self, tv):
         path, col = tv.get_cursor()
         self.set_exp_data_sensitivites(path != None)
@@ -185,6 +216,12 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
         path = model.append(0,0)
         self.set_selected_paths(self.view["experimental_data_tv"], (path,))
         return True
+        
+    def on_add_exclusion_range_clicked(self, widget):
+        model = self.model.data_exclusion_ranges
+        path = model.append(0,0)
+        self.set_selected_paths(self.view["exclusion_ranges_tv"], (path,))
+        return True        
 
     def on_del_experimental_data_clicked(self, widget):
         paths = self.get_selected_paths(self.view["experimental_data_tv"])
@@ -192,25 +229,51 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
             model = self.model.data_experimental_pattern.xy_data
             model.remove_from_path(*paths)
         return True
+        
+    def on_del_exclusion_ranges_clicked(self, widget):
+        paths = self.get_selected_paths(self.view["exclusion_ranges_tv"])
+        if paths != None:
+            model = self.model.data_exclusion_ranges
+            model.remove_from_path(*paths)
+        return True        
 
-    def on_exp_data_cell_edited(self, cell, path, new_text, user_data):
+    def on_xy_data_cell_edited(self, cell, path, new_text, user_data):
         model, col = user_data
         itr = model.get_iter(path)
         model.set_value(itr, col, model.convert(col, locale.atof(new_text)))
         return True
+
+    def on_import_exclusion_ranges_clicked(self, widget, data=None):
+        def on_confirm(dialog):
+            def on_accept(dialog):
+                filename = dialog.get_filename()
+                if filename[-3:].lower() == "exc":
+                    self.model.data_exclusion_ranges.load_data(filename, format="DAT")
+            self.run_load_dialog(title="Import exclusion ranges",
+                                 on_accept_callback=on_accept, 
+                                 parent=self.view.get_top_widget(),
+                                 filters=self.excl_filters)
+        self.run_confirmation_dialog("Importing exclusion ranges will erase all current data.\nAre you sure you want to continue?",
+                                     on_confirm, parent=self.view.get_top_widget())
+        
+    def on_export_exclusion_ranges_clicked(self, widget, data=None):
+        def on_accept(dialog):
+            filename = self.extract_filename(dialog, filters=self.excl_filters)
+            if filename[-3:].lower() == "exc":
+                self.model.data_exclusion_ranges.save_data("%s %s" % (self.model.data_name, self.model.data_sample), filename)
+        self.run_save_dialog(title="Select file for exclusion ranges export",
+                             on_accept_callback=on_accept, 
+                             parent=self.view.get_top_widget(),
+                             filters=self.excl_filters)
 
     def on_btn_import_experimental_data_clicked(self, widget, data=None):
         def on_confirm(dialog):
             def on_accept(dialog):
                 filename = dialog.get_filename()
                 if filename[-3:].lower() == "dat":
-                    print "Opening file %s for import using ASCII DAT format" % filename
-                    data, size, entity = dialog.get_file().load_contents()
-                    self.model.data_experimental_pattern.load_data(data, format="DAT", silent=True)
+                    self.model.data_experimental_pattern.load_data(filename, format="DAT", silent=True)
                 if filename[-2:].lower() == "rd":
-                    print "Opening file %s for import using BINARY RD format" % filename
                     self.model.data_experimental_pattern.load_data(filename, format="BIN", silent=True)
-                #self.model.calculate_pattern()
             self.run_load_dialog(title="Open XRD file for import",
                                  on_accept_callback=on_accept, 
                                  parent=self.view.get_top_widget())
@@ -222,11 +285,10 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
         def on_accept(dialog):
             filename = self.extract_filename(dialog)
             if filename[-3:].lower() == "dat":
-                print "Opening file %s for export using ASCII DAT format" % filename
                 self.model.data_experimental_pattern.save_data(filename)
             if filename[-2:].lower() == "rd":
                 self.run_information_dialog("RD file format not supported (yet)!", parent=self.view.get_top_widget())
-        self.run_save_dialog(title="Select file for export",
+        self.run_save_dialog(title="Select file for XRD export",
                              on_accept_callback=on_accept, 
                              parent=self.view.get_top_widget())
         return True

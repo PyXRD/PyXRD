@@ -20,9 +20,98 @@ from generic.validators import FloatEntryValidator
 from generic.utils import get_case_insensitive_glob
 
 from mixture.models import Mixture
-from mixture.views import EditMixtureView
+from mixture.views import EditMixtureView, RefinementView, BusyView
 
+class RefinementController(DialogController):
+    def register_adapters(self):
+        if self.model is not None:
+            tv = self.view['tv_param_selection']
+            tv_model = self.model.data_refineables
+            tv.set_model(tv_model)
+            #tv.connect('cursor_changed', self.on_exp_data_tv_cursor_changed)
 
+            def add_column(title):
+                rend = gtk.CellRendererText()
+                col = gtk.TreeViewColumn(title, rend)
+                def get_name(column, cell, model, itr, user_data=None):
+                    obj = model.get_value(itr, 0)
+                    prop = model.get_value(itr, 1)
+                    enabled = model.get_value(itr, 3)
+                    cell.set_sensitive(enabled)
+                    cell.set_property("text", prop if prop else obj.data_name)
+                    return
+                col.set_cell_data_func(rend, get_name, data=None)
+                col.set_expand(True)                
+                tv.append_column(col)
+            add_column('Name/Prop')
+            
+            def add_column(title):
+                rend = gtk.CellRendererText()
+                col = gtk.TreeViewColumn(title, rend, text=2)
+                def get_name(column, cell, model, itr, user_data=None):
+                    sens = model.get_value(itr, 2)
+                    enabled = model.get_value(itr, 3)
+                    cell.set_sensitive(enabled)
+                    cell.set_property("text", "%.5f" % sens)
+                    return
+                col.set_cell_data_func(rend, get_name, data=None)              
+                tv.append_column(col)
+            add_column('Sensitivity [%]')
+            
+            def get_refine(column, cell, model, itr, user_data=None):
+                enabled = model.get_value(itr, 3)
+                refine = model.get_value(itr, 4)
+                cell.set_sensitive(enabled)
+                cell.set_property("activatable", enabled)
+                cell.set_property("active", enabled and refine)
+                return
+            rend = gtk.CellRendererToggle()
+            rend.connect('toggled', self.refine_toggled, tv_model)
+            col = gtk.TreeViewColumn("Refine", rend, active=4)
+            col.set_cell_data_func(rend, get_refine)
+            col.activatable = True
+            col.set_resizable(False)
+            col.set_expand(False)
+            tv.append_column(col)
+            
+            
+            for name in self.model.get_properties():
+                pass#TODO
+            return
+
+    # ------------------------------------------------------------
+    #      Notifications of observable properties
+    # ------------------------------------------------------------
+    """@Controller.observe("bg_type", assign=True)
+    def notif_bg_type_changed(self, model, prop_name, info):
+        self.view.select_bg_view(self.model.get_bg_type_lbl().lower())
+        return"""
+            
+    # ------------------------------------------------------------
+    #      GTK Signal handlers
+    # ------------------------------------------------------------
+    def refine_toggled(self, cell, path, model=None, col=4):
+        if model is not None:
+            itr = model.get_iter(path)
+            refine = cell.get_active()
+            model.set_value(itr, col, not refine)
+        return True
+        
+    def on_refine_clicked(self,event):
+        #TODO display progress window...
+        busy = BusyView(parent=self.view)
+        busy.present()
+        while gtk.events_pending():
+            gtk.main_iteration(False)
+        self.model.refine()
+        busy.hide()
+        pass
+        
+    def on_sens_clicked(self,event):
+        self.model.update_sensitivities()
+        
+    pass #end of class
+        
 class EditMixtureController(ChildController):
 
     chicken_egg = False
@@ -32,7 +121,7 @@ class EditMixtureController(ChildController):
             for name in self.model.get_properties():
                 if name == "data_name":
                     self.adapt(name, "mixture_data_name")
-                elif not name in self.model.__have_no_widget__:
+                elif not name in self.model.__have_no_widget__+  ["data_refineables"]:
                     self.adapt(name)
             for index, phase in enumerate(self.model.data_phases):
                 self.add_phase_view(index)
@@ -107,6 +196,12 @@ class EditMixtureController(ChildController):
     def on_apply_result(self, widget, *args):
         self.model.apply_result()
         return True
+    
+    def on_refine_clicked(self, widget, *args):
+        self.model.update_refinement_treestore()
+        view = RefinementView()
+        ctrl = RefinementController(self.model, view)
+        view.present()
     
     pass #end of class
 

@@ -6,6 +6,7 @@
 # To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/3.0/ or send
 # a letter to Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
 
+import os
 import gtk
  
 from gtkmvc import Controller
@@ -38,8 +39,8 @@ def ctrl_setup_combo_with_list(ctrl, combo, prop_name, list_prop_name):
 
 
 class DialogMixin():
-    def extract_filename(self, dialog):
-        filename = self._adjust_filename(dialog.get_filename(), self.get_selected_glob(dialog.get_filter()))
+    def extract_filename(self, dialog, filters=None):
+        filename = self._adjust_filename(dialog.get_filename(), self.get_selected_glob(dialog.get_filter(), filters=filters))
         dialog.set_filename(filename)
         return filename
 
@@ -49,14 +50,15 @@ class DialogMixin():
             filename = "%s%s" % (filename, glob[1:])
         return filename
 
-    def get_selected_glob(self, filter, file_filters=None):
+    def get_selected_glob(self, filter, filters=None):
         selected_name = filter.get_name()
-        for name, globs in (file_filters or self.file_filters):
+        for name, globs in (filters or self.file_filters):
             if selected_name==name:
                 return retreive_lowercase_extension(globs[0])
 
-    def _get_object_file_filters(self):
-        for name, re in self.file_filters:
+    def _get_object_file_filters(self, filters=None):
+        filters = filters or self.file_filters
+        for name, re in filters:
             ffilter = gtk.FileFilter()
             ffilter.set_name(name)
             if isinstance(re, (str, unicode)):
@@ -74,7 +76,7 @@ class DialogMixin():
             on_reject_callback(dialog)
         dialog.destroy() 
 
-    def run_file_dialog(self, action, title, on_accept_callback, on_reject_callback=None, parent=None, suggest_name=None, suggest_folder=None, extra_widget=None, multiple=False):
+    def run_file_dialog(self, action, title, on_accept_callback, on_reject_callback=None, parent=None, suggest_name=None, suggest_folder=None, extra_widget=None, multiple=False, filters=None):
         dialog = gtk.FileChooserDialog(
                         title=title,
                         parent=parent,
@@ -87,17 +89,16 @@ class DialogMixin():
         dialog.set_do_overwrite_confirmation(True)
         if suggest_name:
             dialog.set_current_name(suggest_name)
-        if suggest_folder:
-            dialog.set_current_folder(suggest_folder)
-        for fltr in self._get_object_file_filters():
+        dialog.set_current_folder(suggest_folder or os.getenv("HOME"))
+        for fltr in self._get_object_file_filters(filters):
             dialog.add_filter (fltr)
         self._run_dialog(dialog, on_accept_callback, on_reject_callback)
         
-    def run_save_dialog(self, title, on_accept_callback, on_reject_callback=None, parent=None, suggest_name=None, suggest_folder=None, extra_widget=None):
-        self.run_file_dialog(gtk.FILE_CHOOSER_ACTION_SAVE, title, on_accept_callback, on_reject_callback, parent, suggest_name, suggest_folder, extra_widget, multiple=False)
+    def run_save_dialog(self, title, on_accept_callback, on_reject_callback=None, parent=None, suggest_name=None, suggest_folder=None, extra_widget=None, filters=None):
+        self.run_file_dialog(gtk.FILE_CHOOSER_ACTION_SAVE, title, on_accept_callback, on_reject_callback, parent, suggest_name, suggest_folder, extra_widget, multiple=False, filters=filters)
             
-    def run_load_dialog(self, title, on_accept_callback, on_reject_callback=None, parent=None, suggest_name=None, suggest_folder=None, extra_widget=None, multiple=False):
-        self.run_file_dialog(gtk.FILE_CHOOSER_ACTION_OPEN, title, on_accept_callback, on_reject_callback, parent, suggest_name, suggest_folder, extra_widget, multiple=multiple)
+    def run_load_dialog(self, title, on_accept_callback, on_reject_callback=None, parent=None, suggest_name=None, suggest_folder=None, extra_widget=None, multiple=False, filters=None):
+        self.run_file_dialog(gtk.FILE_CHOOSER_ACTION_OPEN, title, on_accept_callback, on_reject_callback, parent, suggest_name, suggest_folder, extra_widget, multiple=multiple, filters=filters)
 
     def run_confirmation_dialog(self, message, on_accept_callback, on_reject_callback=None, parent=None):
             dialog = gtk.MessageDialog(

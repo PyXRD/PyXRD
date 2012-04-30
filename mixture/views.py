@@ -9,10 +9,20 @@ import gtk
 
 import numpy as np
 
-from generic.views import BaseView
+from generic.views import BaseView, DialogView
 from generic.validators import FloatEntryValidator
 
-class EditMixtureView(BaseView):
+class BusyView(BaseView):
+    builder = "mixture/glade/busy.glade"
+    top = "busy_window"
+
+class RefinementView(DialogView):
+    title = "Refine Phase Parameters"
+    subview_builder = "mixture/glade/refinement.glade"
+    subview_toplevel = "refine_params"
+    modal = True      
+
+class EditMixtureView(BaseView): #TODO add delete buttons as well!
     builder = "mixture/glade/edit_mixture.glade"
     top = "edit_mixture"
     
@@ -54,7 +64,6 @@ class EditMixtureView(BaseView):
         self.phase_combos.resize((r-2,c-1))
         for row in range(r-2):
             self.__add_new_phase_combo__(phase_store, phase_store.c_data_name, phases[row, c-2], row, c-2, combo_callback)
-        print self.phase_combos
         
         self.wrapper.show_all()
     
@@ -74,7 +83,6 @@ class EditMixtureView(BaseView):
         self.phase_combos.resize((r-1,c-2))
         for col in range(c-2):
             self.__add_new_phase_combo__(phase_store, phase_store.c_data_name, phases[r-2, col], r-2, col, combo_callback)
-        print self.phase_combos
             
         self.wrapper.show_all()
 

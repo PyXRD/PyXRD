@@ -54,6 +54,7 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
         ('data_phases', object),
         ('data_calculated_pattern', object),
         ('data_experimental_pattern', object),
+        ('data_exclusion_ranges', object),
         ('data_markers', object),
         ('inherit_calc_color', bool),
         ('calc_color', str),
@@ -99,6 +100,16 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
         if self._data_experimental_pattern != None: self.relieve_model(self._data_experimental_pattern)
         self._data_experimental_pattern = value
         if self._data_experimental_pattern != None: self.observe_model(self._data_experimental_pattern)    
+    
+    _data_exclusion_ranges = None
+    def get_data_exclusion_ranges_value(self): return self._data_exclusion_ranges
+    def set_data_exclusion_ranges_value(self, value):
+        if value != self._data_exclusion_ranges:
+            if self._data_exclusion_ranges!=None:
+                pass
+            self._data_exclusion_ranges = value
+            if self._data_exclusion_ranges!=None:
+                pass
     
     _data_sample_length = 3.0
     _data_abs_scale = 1.0
@@ -166,7 +177,7 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
     # ------------------------------------------------------------
     def __init__(self, data_name="", data_sample="", data_sample_length=3.0, data_abs_scale=1.0,
                  display_calculated=True, display_experimental=True, display_phases=False,
-                 data_experimental_pattern = None, data_calculated_pattern = None, data_markers = None,
+                 data_experimental_pattern = None, data_calculated_pattern = None, data_exclusion_ranges = None, data_markers = None,
                  phase_indeces=None, calc_color=None, exp_color=None, 
                  inherit_calc_color=True, inherit_exp_color=True, parent=None):
         ChildModel.__init__(self, parent=parent)
@@ -188,6 +199,10 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
         
         self.data_calculated_pattern = data_calculated_pattern or XYData("Calculated Profile", color=self.calc_color, parent=self)
         self.data_experimental_pattern = data_experimental_pattern or XYData("Experimental Profile", color=self.exp_color, parent=self)
+        self.data_exclusion_ranges = data_exclusion_ranges or XYListStore()
+        self.data_exclusion_ranges.connect("item-removed", self.on_exclusion_range_changed)
+        self.data_exclusion_ranges.connect("item-inserted", self.on_exclusion_range_changed)
+        self.data_exclusion_ranges.connect("row-changed", self.on_exclusion_range_changed)
         
         self._data_markers = data_markers or ObjectListStore(Marker)
         for marker in self._data_markers._model_data:
@@ -221,6 +236,9 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
     def notify_needs_update(self, model, prop_name, info):
         self.needs_update.emit() #propagate signal
         
+    def on_exclusion_range_changed(self, model, item, *args):
+        self.needs_update.emit()
+        
     def on_marker_removed(self, model, item):
         self.relieve_model(item)
         item.parent = None
@@ -250,6 +268,8 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
             kwargs["data_calculated_pattern"] = decoder.__pyxrd_decode__(kwargs["data_calculated_pattern"])
         if "data_experimental_pattern" in kwargs:
             kwargs["data_experimental_pattern"] = decoder.__pyxrd_decode__(kwargs["data_experimental_pattern"])
+        if "data_exclusion_ranges" in kwargs:
+            kwargs["data_exclusion_ranges"] = decoder.__pyxrd_decode__(kwargs["data_exclusion_ranges"])
         if "data_markers" in kwargs:
             kwargs["data_markers"] = decoder.__pyxrd_decode__(kwargs["data_markers"])
         specimen = Specimen(**kwargs)
@@ -299,18 +319,39 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
         if self.display_experimental:
             self.data_experimental_pattern.on_update_plot(figure, axes, pctrl)
         if self.display_calculated:
-            self.data_calculated_pattern.on_update_plot(figure, axes, pctrl)        
+            self.data_calculated_pattern.on_update_plot(figure, axes, pctrl)
         pctrl.update_lim()
+
+    _hatches = None        
+    def on_update_hatches(self, figure, axes, pctrl):
+        if self._hatches:
+            for leftborder, hatch, rightborder in self._hatches:
+                try:
+                    hatch.remove()
+                    leftborder.remove()
+                    rightborder.remove()
+                except: pass
+        self._hatches = list()
+        
+        xmin, xmax = axes.get_xbound()
+        ymin, ymax = axes.get_ybound()
+        y0 = (self.data_experimental_pattern.display_offset - ymin) / (ymax - ymin)
+        y1 = y0 + (1.0 - ymin) / (ymax - ymin)
+        
+        for i, (x0, x1) in enumerate(zip(*self.data_exclusion_ranges.get_raw_model_data())):        
+            leftborder = axes.axvline(x0, y0, y1, c="#000000", alpha=0.5)
+            hatch = axes.axvspan(x0, x1, y0, y1, fill=True, hatch="/", facecolor='none', edgecolor="#000000", linewidth=0, alpha=0.5)
+            rightborder = axes.axvline(x1, y0, y1, c="#000000", alpha=0.5)
+            
+            self._hatches.append((leftborder, hatch, rightborder))        
         
     @property
     def max_intensity(self):
         return max(np.max(self.data_experimental_pattern.max_intensity), np.max(self.data_calculated_pattern.max_intensity))
 
-    def get_phase_intensities(self, phases, steps=2500):
+    def get_phase_intensities(self, phases, lpf_callback, steps=2500):
         if phases!=None:
             #todo part of these things should be calculated in the Goniometer and only changed when needed (e.g. the normal range)
-            S = self.parent.data_goniometer.get_S()
-            S1S2 = self.parent.data_goniometer.data_soller1 * self.parent.data_goniometer.data_soller2
             l = self.parent.data_goniometer.data_lambda
             L_Rta =  self.data_sample_length / (self.parent.data_goniometer.data_radius * tan(radians(self.parent.data_goniometer.data_divergence)))
             min_theta = radians(self.parent.data_goniometer.data_min_2theta*0.5)
@@ -328,17 +369,17 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
             #sample length correction array:
             correction_range =  np.minimum(np.sin(theta_range) * L_Rta, 1)
             
-            return theta_range, np.array([phase.get_diffracted_intensity(theta_range, stl_range, S, S1S2, 1.0, correction_range) if phase else np.zeros(shape=theta_range.shape) for phase in phases])
+            return theta_range, np.array([phase.get_diffracted_intensity(theta_range, stl_range, lpf_callback, 1.0, correction_range) if phase else np.zeros(shape=theta_range.shape) for phase in phases], dtype=np.float_)
 
 
     # declare the @ decorator just before the function, invokes print_timing()
     #@print_timing
-    def calculate_pattern(self, steps=2500):
+    def calculate_pattern(self, lpf_callback, steps=2500):
         if len(self._data_phases) == 0:
             self.data_calculated_pattern.xy_data.clear()
             return None
         else:           
-            theta_range, intensities = self.get_phase_intensities(self._data_phases.keys(), steps=steps)
+            theta_range, intensities = self.get_phase_intensities(self._data_phases.keys(), lpf_callback, steps=steps)
             intensity_range = np.zeros(len(intensities[0]))
             
             fractions = np.array(self._data_phases.values())[:,np.newaxis]
@@ -372,6 +413,22 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
                 new_marker = Marker("%%.%df" % (3 + min(int(log(nm, 10)), 0)) % nm, parent=self, data_position=x, data_base=data_base)
                 self.data_markers.append(new_marker)
             i += 1
+            
+    def get_exclusion_selector(self, x):
+        if x != None:
+            selector = np.ones(x.shape, dtype=bool)
+            for x0,x1 in zip(*np.sort(np.array(self.data_exclusion_ranges.get_raw_model_data()), axis=0)):
+                new_selector = ((x < x0) | (x > x1))
+                selector = selector & new_selector
+            return selector
+        return None
+        
+    def get_exclusion_xy(self):
+        ex, ey = self.data_experimental_pattern.xy_data.get_raw_model_data()
+        cx, cy = self.data_calculated_pattern.xy_data.get_raw_model_data()
+        selector = self.get_exclusion_selector(ex)
+        return ex[selector], ey[selector], cx[selector], cy[selector]
+    
     pass #end of class
     
 class ThresholdSelector(ChildModel, Observable):
@@ -732,7 +789,11 @@ class Statistics(Model, Observable):
             self.update_statistics()
        
     def get_data_points_value(self):
-        return min(self._get_experimental()[0].size, self._get_calculated()[0].size) or 0
+        try:
+            e_ex, e_ey, e_cx, e_cy = self.data_specimen.get_exclusion_xy()
+            return e_ex.size
+        except: pass
+        return 0
     
     data_chi2 = None      
     data_R2 = None
@@ -787,15 +848,20 @@ class Statistics(Model, Observable):
             self.data_residual_pattern.xy_data = residual_pattern
             self.data_residual_pattern.update_data()
 
-            self.data_chi2 = stats.chisquare(exp_y, cal_y)[0]
-            self.data_Rp, self.data_R2 = self._calc_RpR2(exp_y, cal_y)
+            e_ex, e_ey, e_cx, e_cy = self.data_specimen.get_exclusion_xy()
+
+            self.data_chi2 = stats.chisquare(e_ey, e_cy)[0]
+            self.data_Rp, self.data_R2 = self._calc_RpR2(e_ey, e_cy)
            
     @staticmethod
     def _calc_RpR2(o, e): 
         avg = sum(o)/o.size
         sserr = np.sum((o - e)**2)
         sstot = np.sum((o - avg)**2)
-        Rp = np.sum(np.abs(o - e)) / np.sum(np.abs(o)) * 100
-        return Rp, 1 - (sserr / sstot)
+        return Statistics._calc_Rp(o, e), 1 - (sserr / sstot)
+        
+    @staticmethod
+    def _calc_Rp(o, e):
+        return np.sum(np.abs(o - e)) / np.sum(np.abs(o)) * 100
         
     pass #end of class

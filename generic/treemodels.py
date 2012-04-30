@@ -170,7 +170,6 @@ class ObjectListStore(_BaseObjectListStore, Storable):
     def remove(self, itr):
         self.remove_item(self.get_user_data(itr))
     def remove_item(self, item):
-        print "REMOVE ITEM CALLED %s" % item
         path = (self._model_data.index(item),)
         self._model_data.remove(item)
         if hasattr(item, "__list_store__"):
@@ -192,7 +191,6 @@ class ObjectListStore(_BaseObjectListStore, Storable):
         return item in self._model_data
 
     def index(self, item):
-        print item
         return self._model_data.index(item)
         
     def get_user_data_from_index(self, index):
@@ -473,6 +471,55 @@ class XYListStore(_BaseObjectListStore, Storable):
     def interpolate(self, *x_vals):
         f = interp1d(self._model_data_x, self._model_data_y)
         return zip(x_vals, f(x_vals))
+        
+    def save_data(self, header, filename):
+        f = open(filename, 'w')
+        f.write("%s\n" % header)
+        np.savetxt(f, zip(self._model_data_x, self._model_data_y), fmt="%.8f")
+        f.close()
+        
+    def load_data(self, data, format="DAT", has_header=True, clear=True):
+        if clear:
+            self.clear()
+
+        f = None
+        close = False
+        if type(data) is file:
+            f = data
+        elif type(data) is str:
+            if format=="BIN":
+                f = open(data, 'rb')
+            else:
+                f = open(data, 'r')
+            close = True
+        else:
+            raise TypeError, "Wrong data type supplied for binary format, must be either file or string, but %s was given" % type(data)
+
+        if format=="DAT":
+            for line in f:
+                if has_header:
+                    has_header=False #skip header
+                elif line != "":
+                    x, y = map(float, line.split())
+                    self.append(x,y)
+        if format=="BIN":
+            if f != None:
+                import struct
+                #seek data limits
+                f.seek(214)
+                stepx, minx, maxx = struct.unpack("ddd", f.read(24))
+                nx = int((maxx-minx)/stepx)
+                #read values                          
+                f.seek(250)
+                n = 0
+                while n < nx:
+                    y, = struct.unpack("H", f.read(2))
+                    self.append(minx + stepx*n, float(y))
+                    n += 1
+                    
+        #close file
+        if close: f.close()
+        
     pass #end of class
     
 gobject.type_register(XYListStore)

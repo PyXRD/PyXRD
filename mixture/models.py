@@ -6,9 +6,16 @@
 # To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/3.0/ or send
 # a letter to Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
 
+import gtk
+import gobject
+import time
+
+from math import pi
+
 from gtkmvc.model import Model, Signal
 import numpy as np
 import scipy
+#from scipy.optimize import minimize
 
 import settings
 
@@ -19,11 +26,12 @@ from generic.models import ChildModel, ObjectListStoreChildMixin, Storable
 
 class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
     #MODEL INTEL:
-    __observables__ = ["has_changed", "data_name", "auto_run"]
+    __observables__ = ["has_changed", "data_name", "data_refineables", "auto_run"]
     __have_no_widget__ = ChildModel.__have_no_widget__ + ["has_changed"]
-    __storables__ = [prop for prop in __observables__ if not prop in ["parent", "has_changed"] ]
+    __storables__ = [prop for prop in __observables__ if not prop in ["parent", "has_changed", "data_refineables"] ]
     __columns__ = [
         ('data_name', str),
+        ('data_refineables', object),
     ]
 
     #SIGNALS:
@@ -46,6 +54,8 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
     
     data_phases = None
     data_fractions = None
+
+    data_refineables = None
 
     # ------------------------------------------------------------
     #      Initialisation and other internals
@@ -132,8 +142,8 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         self.data_phase_matrix = np.delete(self.data_phase_matrix, index, axis=0)
         self.has_changed.emit()
     
-    @print_timing
-    def optimize(self):
+    #@print_timing
+    def optimize(self, silent=False):
         
         #1 get the different intensities for each phase for each specimen 
         #  -> each specimen gets a 2D np-array of size m,t with:
@@ -141,32 +151,38 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         #         t the number of data points for that specimen
         n, m = self.data_phase_matrix.shape
                 
+        #t1 = time.time()
         calculated = [None]*n
         experimental = [None]*n
+        selectors = [None]*n
+        todeg = 180.0 / pi
         for i in range(n):
-            phases = list(self.data_phase_matrix[i])
+            phases = self.data_phase_matrix[i]
             specimen = self.data_specimens[i]
-            theta_range, calculated[i] = specimen.get_phase_intensities(phases)
-            experimental[i] = specimen.data_experimental_pattern.xy_data._model_data_y
-        
+            theta_range, calc = specimen.get_phase_intensities(phases, self.parent.data_goniometer.get_lorentz_polarisation_factor)
+            calculated[i] = calc.copy()
+            experimental[i] = specimen.data_experimental_pattern.xy_data._model_data_y.copy()
+            selectors[i] = specimen.get_exclusion_selector(theta_range*todeg)
+        #t2 = time.time()
+        #print '%s took %0.3f ms' % ("Getting phase intensities", (t2-t1)*1000.0)
+                
+                
         #2 optimize the fractions
         def calculate_total_R2(fractions_and_scales):
             tot_Rp = 0.0
             tot_R2 = 0.0
             
-            fractions = fractions_and_scales[:m] #first m numbers are the fractions
-            scales = fractions_and_scales[-n:] #last n numbers are the scales
+            fractions = fractions_and_scales.copy()[:m] #first m numbers are the fractions
+            scales = fractions_and_scales.copy()[-n:] #last n numbers are the scales
             fractions = fractions[:,np.newaxis]
-            
+                       
             for i in range(n):
-                total_diffr = np.zeros(shape=experimental[i].shape)
-                calc_phases = calculated[i]
-                                
-                total_diffr = np.sum(calculated[i]*fractions, axis=0) * scales[i]
-
-                Rp,R2 = Statistics._calc_RpR2(experimental[i], total_diffr) #TODO add exclusion ranges from specimen
+                calc = scales[i] * np.sum(calculated[i]*fractions, axis=0)
+                exp = experimental[i][selectors[i]]
+                cal = calc[selectors[i]]
+                #print cal.shape
+                Rp = Statistics._calc_Rp(exp, cal)
                 tot_Rp += Rp
-                tot_R2 += R2
             return tot_Rp
         
         x0 = np.array(self.data_fractions + self.data_scales)
@@ -193,10 +209,98 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         self.data_fractions = list(fractions)
         self.data_scales = list(scales)
         
-        self.has_changed.emit()
+        if not silent: self.has_changed.emit()
+        
+        return lastR2
         
     pass #end of class
     
+    
+    def update_refinement_treestore(self): #TODO add probabilities as well as CSDS distributions!
+        unique_phases = np.unique(self.data_phase_matrix.flatten())
+        self.data_refineables = gtk.TreeStore(gobject.TYPE_PYOBJECT, gobject.TYPE_STRING, gobject.TYPE_FLOAT, gobject.TYPE_BOOLEAN, gobject.TYPE_BOOLEAN)
+        
+        def add_property(model, parent_itr, obj, prop, inh_prop="", selectable=True):
+            if inh_prop=="":
+                inh_prop = prop.replace("data_", "inherit_", 1)
+            if inh_prop:
+                selectable = selectable and not (hasattr(obj, inh_prop) and getattr(obj, inh_prop))
+            model.append(parent_itr, row=(obj, prop, 0, selectable, False))
+        
+        for phase in unique_phases:
+            if phase:
+                phase_itr = self.data_refineables.append(None, row=(phase, "", 0, False, False))
+                for prop in phase.__refineables__: add_property(self.data_refineables, phase_itr, phase, prop)
+                for comp in phase.data_components._model_data:
+                    comp_itr = self.data_refineables.append(phase_itr, row=(comp, "", 0, False, False))
+                    for prop in comp.__refineables__:  add_property(self.data_refineables, comp_itr, comp, prop)
+                if phase.data_G > 1:
+                    prob = phase.data_probabilities
+                    prob_itr = self.data_refineables.append(phase_itr, row=(prob, "", 0, False, False))
+                    selectable = not getattr(phase, "inherit_probabilities")
+                    for prop in prob.__refineables__:  add_property(self.data_refineables, prob_itr, prob, prop, None, selectable=selectable)
+                        
+    
+    def update_sensitivities(self):
+        if self.data_refineables!=None:
+            global t1
+            t1 = time.time()
+            def for_each_item(model, path, itr, user_data=None):
+                global t1
+                item, prop, enabled, refine = model.get(itr, 0, 1, 3, 4)
+                if enabled:
+                    original_value = getattr(item, prop)
+                    try:
+                        val1 = original_value*0.95
+                        setattr(item, prop, val1)
+                        R1 = self.optimize(silent=True)
+                        val2 = original_value*1.05
+                        setattr(item, prop, val2)
+                        R2 = self.optimize(silent=True)
+                        model.set_value(itr, 2, (R2-R1) / (val2-val1))
+                    except:
+                        pass
+                    finally:
+                        setattr(item, prop, original_value)
+                        self.optimize(silent=True)
+                t2 = time.time()
+                if (t2-t1) > 0.5:
+                    t1 = time.time()
+                    while gtk.events_pending():
+                        gtk.main_iteration(False)
+            self.data_refineables.foreach(for_each_item, None)
+    
+    def refine(self):
+        items = []
+        props = []
+        values = []
+    
+        def for_each_item(model, path, itr, user_data=None):
+            item, prop, enabled, refine = model.get(itr, 0, 1, 3, 4)
+            refine = refine and enabled
+            if refine:
+                items.append(item)
+                props.append(prop)
+                values.append(getattr(item, prop))
+        
+        self.data_refineables.foreach(for_each_item, None)
+        
+        itemtpls = zip(items, props)
+        original_vals = values
+        x0 = np.array(values, dtype=float)
+        
+        def refine_func(new_values): #TODO add threading and some callback?
+            #gtk.threads_enter()        
+            for i, (item, prop) in enumerate(itemtpls):
+                setattr(item, prop, new_values[i])
+            return self.optimize(silent=True)
+            #gtk.threads_leave()            
+            
+        bounds = [(0,None) for el in x0]
+        iprint = -1 # if not settings.DEBUG else 0
+        lastx, lastR2, info = scipy.optimize.fmin_l_bfgs_b(refine_func, x0, approx_grad=True, bounds=bounds, iprint=iprint)
+        
+                    
     def apply_result(self):
         for i, specimen in enumerate(self.data_specimens):
             specimen.data_phases.clear()

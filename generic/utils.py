@@ -11,11 +11,16 @@ import numpy as np
 import inspect
 import time
 import gobject
+import hashlib
 
 sqrtpi = sqrt(pi)
 sqrt2pi = sqrt(2*pi)
 sqrt8 = sqrt(8) 
     
+def get_md5_hash(obj):
+    hsh = hashlib.md5()
+    hsh.update(obj)
+    return hsh.digest()
 
 def u(string):
     return unicode(string, errors='replace', encoding='UTF-8')

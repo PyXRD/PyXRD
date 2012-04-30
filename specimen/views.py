@@ -30,6 +30,8 @@ class SpecimenView(DialogView):
         "specimen_display_auto_update",
         "scw_display_phases_tv",
         "lbl_specimen_phases",
+        "vbox_exclusion_ranges_tv",
+        "lbl_tabexclusions",
         "lbl_spec_scale",
         "specimen_data_abs_scale")
 

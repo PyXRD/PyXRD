@@ -9,6 +9,8 @@
 import gtk
 import gobject
 
+import numpy as np
+
 from collections import deque
 
 from gtkmvc import Observable
@@ -20,8 +22,11 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_gtk import FigureCanvasGTK
 
 import json
+
 import time
+from scipy.special import erf
 from math import sin, cos, pi, sqrt, radians, degrees, asin
+from generic.utils import lognormal, sqrt2pi, sqrt8
 
 from generic.treemodels import ObjectListStore, XYListStore, Point
 from generic.io import Storable
@@ -82,10 +87,19 @@ class Goniometer(Model, Observable, Storable):
     #      Methods & Functions
     # ------------------------------------------------------------    
     def get_S(self):
-        #if self._dirty_cache:
-        #    self._S = sqrt( (self.data_soller1 * 0.5)**2 + (self.data_soller2 * 0.5)**2)
-        #    self._dirty_cache = False
-        return sqrt( (self.data_soller1 * 0.5)**2 + (self.data_soller2 * 0.5)**2) #self._S
+        if self._dirty_cache:
+            self._S = sqrt((self.data_soller1 * 0.5)**2 + (self.data_soller2 * 0.5)**2)
+            self._S1S2 = self.data_soller1 * self.data_soller2
+            self._dirty_cache = False
+        return self._S, self._S1S2
+       
+    def get_lorentz_polarisation_factor(self, range_theta, ss):
+        ss = max(ss, 0.0000000000001)
+        S, S1S2 = self.get_S()
+
+        Q = S / (sqrt8 * np.sin(range_theta) * ss)
+        T = erf(Q) * sqrt2pi / (2.0*ss * S) - 2.0*np.sin(range_theta) * (1.0- np.exp(-(Q**2.0))) / (S**2.0)
+        return (1.0 + np.cos(2.0*range_theta)**2) * T / np.sin(range_theta)
        
     def get_nm_from_t(self, theta):
         return self.get_nm_from_2t(2*theta)

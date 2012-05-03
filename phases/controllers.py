@@ -63,7 +63,7 @@ class EditLayerController(ChildController, HasObjectTreeview):
                 col.set_cell_data_func(rend, renderer, colnr)
             tv.append_column(col)
         add_text_col('Atom name', model.c_data_name)
-        add_text_col('Z (Å)', model.c_data_z, float_renderer)
+        add_text_col('Z (nm)', model.c_data_z, float_renderer)
         add_text_col('#', model.c_data_pn, float_renderer)
 
         def atom_type_renderer(column, cell, model, itr, col=None):

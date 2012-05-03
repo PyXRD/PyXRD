@@ -42,7 +42,7 @@
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">1</property>
-        <property name="label" translatable="yes">Cell length c &lt;i&gt;[Å]&lt;/i&gt;</property>
+        <property name="label" translatable="yes">Cell length c &lt;i&gt;[nm]&lt;/i&gt;</property>
         <property name="use_markup">True</property>
       </object>
       <packing>
@@ -287,7 +287,7 @@
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">1</property>
-        <property name="label" translatable="yes">Cell length b &lt;i&gt;[Å]&lt;/i&gt;</property>
+        <property name="label" translatable="yes">Cell length b &lt;i&gt;[nm]&lt;/i&gt;</property>
         <property name="use_markup">True</property>
       </object>
       <packing>
@@ -348,7 +348,7 @@
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">1</property>
-        <property name="label" translatable="yes">Cell length a &lt;i&gt;[Å]&lt;/i&gt;</property>
+        <property name="label" translatable="yes">Cell length a &lt;i&gt;[nm]&lt;/i&gt;</property>
         <property name="use_markup">True</property>
       </object>
       <packing>

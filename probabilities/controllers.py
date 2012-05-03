@@ -25,15 +25,15 @@ def get_correct_probability_controllers(probability, parent_controller, independ
         G = probability.G
         R = probability.R
         if R == 0 or G == 1:
-            return R0IndependentsController(model=probability, parent=parent_controller, view=independents_view), \
+            return R0R1IndependentsController(model=probability, parent=parent_controller, view=independents_view), \
                    R0R1MatrixController(N=G, model=probability, parent=parent_controller, view=dependents_view)
         elif G > 1:
             if R == 1: #------------------------- R1:
                 if G == 2:
-                    return R1G2IndependentsController(model=probability, parent=parent_controller, view=independents_view), \
+                    return R0R1IndependentsController(model=probability, parent=parent_controller, view=independents_view), \
                            R0R1MatrixController(N=G, model=probability, parent=parent_controller, view=dependents_view)
                 elif G == 3:
-                    return R1G3IndependentsController(model=probability, parent=parent_controller, view=independents_view), \
+                    return R0R1IndependentsController(model=probability, parent=parent_controller, view=independents_view), \
                            R0R1MatrixController(N=G, model=probability, parent=parent_controller, view=dependents_view)
                 elif G == 4:
                     raise ValueError, "Cannot yet handle R1 g=4" # ,R0R1MatrixView(N=G, parent=parent_view)
@@ -85,26 +85,25 @@ class EditProbabilitiesController(ChildController):
         
     pass #end of class
     
-class R0IndependentsController(ChildController):
+class R0R1IndependentsController(ChildController):
 
     def register_adapters(self):
         if self.model is not None:
             for name in self.model.get_properties():
                 if name in ["parent", "added", "removed", "updated"]:
                     pass
-                elif name in ["W1", "W2", "W3", "W4"]:
-                    if int(name[1]) <= self.model.G:
-                        FloatEntryValidator(self.view["prob_%s" % name])
-                        self.adapt(name)
-                else:
-                    print name
+                elif name in self.model.__refineables__:
                     FloatEntryValidator(self.view["prob_%s" % name])
                     self.adapt(name)
+                else:
+                    print name
+                    #FloatEntryValidator(self.view["prob_%s" % name])
+                    #self.adapt(name)
             return
 
     pass #TODO
     
-class R1G2IndependentsController(ChildController):
+"""class R1G2IndependentsController(ChildController):
 
     def register_adapters(self):
         print "R1G2IndependentsController.register_adapters()"
@@ -125,7 +124,7 @@ class R1G3IndependentsController(ChildController):
     def __init__(self, *args, **kwargs):
         ChildController.__init__(self, *args, **kwargs)
 
-    pass #TODO
+    pass #TODO"""
     
 class R0R1MatrixController(ChildController):
 

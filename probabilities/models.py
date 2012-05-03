@@ -29,7 +29,7 @@ def get_correct_probability_model(phase):
                 if G == 2:
                     return R1G2Model(parent=phase)
                 elif G == 3:
-                    raise R1G3Model(parent=phase)
+                    return R1G3Model(parent=phase)
                 elif G == 4:
                     raise ValueError, "Cannot yet handle R1 G4"
             elif R == 2: #----------------------- R2:
@@ -148,23 +148,25 @@ class R0Model(_AbstractR0R1Model):
 	
     #MODEL INTEL:
     __independent_label_map__ = [
-        ("W1", "W1"),
-        ("W2", "W2"),
-        ("W3", "W3"),
-        ("W4", "W4"),
+        ("W1", "W<sub>1</sub>"),
+        ("W2", "W<sub>2</sub>"),
+        ("W3", "W<sub>3</sub>"),
+        ("W4", "W<sub>4</sub>"),
+        ("W5", "W<sub>5</sub>"),
+        ("W6", "W<sub>6</sub>"),
     ]
     @property
     def __refineables__(self):
-        return [ "W%d" % i for i in range(self.G) ]
+        return [ "W%d" % i for i in range(self.G-1) ]
     __observables__ = [ prop for prop, lbl in  __independent_label_map__ ]
     __storables__ = [ val for val in __observables__ if not val in ('parent', "added", "removed")]
 
     #PROPERTIES:
-    @Model.getter("W[1-4]")
+    @Model.getter("W[1-6]")
     def get_W(self, prop_name):
         index = int(prop_name[1:])-1
         return self._W[index] if index < self.G else None
-    @Model.setter("W[1-4]")
+    @Model.setter("W[1-6]")
     def set_W(self, prop_name, value):
         index = int(prop_name[1:])-1
         self._W[index] = min(max(float(value), 0.0), 1.0)
@@ -197,7 +199,7 @@ class R0Model(_AbstractR0R1Model):
         self.updated.emit()
     
     def get_independent_label_map(self):
-        return self.__independent_label_map__[:self.G]
+        return self.__independent_label_map__[:(self.G-1)]
     
     pass #end of class
 
@@ -219,8 +221,8 @@ class R1G2Model(_AbstractR0R1Model):
 
     #MODEL INTEL:
     __independent_label_map__ = [
-        ("W1", "W1"),
-        ("P11_or_P22", "P11 or P22"),
+        ("W1", "W<sub>1</sub>"),
+        ("P11_or_P22", "P<sub>11</sub> or P<sub>22</sub>"),
     ]
     __refineables__ = [ prop for prop, lbl in  __independent_label_map__ ]
     __observables__ = __refineables__
@@ -326,12 +328,12 @@ class R1G3Model(_AbstractR0R1Model):
 	
     #MODEL INTEL:
     __independent_label_map__ = [
-        ("W1", "W1"),
-        ("P11_or_P22", "P11 or P22"),
-        ("G1", "W1 / (W2 + W1)"),
-        ("G2", "(W11 + W12) / (W11 + W12 + W21 + W22)"),
-        ("G3", "W11 / (W11 + W12)"),
-        ("G4", "W21 / (W21 + W22)"),
+        ("W1", "W<sub>1</sub>"),
+        ("P11_or_P22", "P<sub>11</sub> or P<sub>22</sub>"),
+        ("G1", "W<sub>2</sub> / (W<sub>3</sub> + W<sub>2</sub>)"),
+        ("G2", "(W<sub>22</sub> + W<sub>23</sub>) / (W<sub>22</sub> + W<sub>23</sub> + W<sub>32</sub> + W<sub>33</sub>)"),
+        ("G3", "W<sub>22</sub> / (W<sub>22</sub> + W<sub>23</sub>)"),
+        ("G4", "W<sub>32</sub> / (W<sub>32</sub> + W<sub>33</sub>)"),
     ]
     __refineables__ = [ prop for prop, lbl in  __independent_label_map__ ]
     __observables__ = __refineables__
@@ -348,14 +350,16 @@ class R1G3Model(_AbstractR0R1Model):
             
     @Model.getter("P11_or_P22")
     def get_P(self, prop_name):
-        index = int(prop_name[1:])
-        return self._P[index]
+        if self._W[0] <= 0.5:
+            return self._P[0,0]
+        else:
+            return self._P[1,1]
     @Model.setter("P11_or_P22")
     def set_P(self, prop_name, value):
-        if self._W[1] >= 0.5:
-            self._P[0,0] = min(max(value, 0), 1)
+        if self._W[0] <= 0.5:
+            self._P[0,0] = min(max(value, 0.0), 1.0)
         else:
-            self._P[1,1] = min(max(value, 0), 1)
+            self._P[1,1] = min(max(value, 0.0), 1.0)
         self.update()
 
     _G1 = 0
@@ -403,13 +407,13 @@ class R1G3Model(_AbstractR0R1Model):
         WW[1,0]         = self._W[1] - WW[1,2] - WW[1,1]
         self._P[1,0]    = WW[1,0] / self._W[1]        
 		
-		WW[2,1]         = self._G4 * (1.0 - self._G2) * (W[1,1] + W[1,2])
+		WW[2,1]         = self._G4 * (1.0 - self._G2) * (WW[1,1] + WW[1,2])
 		self._P[2,1]    = WW[2,1] / self._W[2]
 
 		WW[2,2]         = (1.0 - self._G4) * WW[2,1]
 		self._P[2,2]    = WW[2,2]/self._W[2]
 		
-		WW[2,0]         = self._W[2] - self._W[2,1] - self._W[2,2]
+		WW[2,0]         = self._W[2] - WW[2,1] - WW[2,2]
 		self._P[2,0]    = WW[2,0]/self._W[2]
 		
 		self._P[0,0]    = 1.0 - self._P[1,0] - self._P[2,0]

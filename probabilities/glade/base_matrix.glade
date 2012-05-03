@@ -5,7 +5,7 @@
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="border_width">5</property>
-    <property name="n_rows">4</property>
+    <property name="n_rows">5</property>
     <property name="n_columns">2</property>
     <property name="column_spacing">5</property>
     <property name="row_spacing">5</property>
@@ -13,9 +13,14 @@
       <object class="GtkLabel" id="lbl_weight">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="label" translatable="yes">W matrix</property>
+        <property name="label" translatable="yes">W</property>
+        <attributes>
+          <attribute name="weight" value="bold"/>
+        </attributes>
       </object>
       <packing>
+        <property name="top_attach">1</property>
+        <property name="bottom_attach">2</property>
         <property name="y_options"></property>
       </packing>
     </child>
@@ -23,11 +28,16 @@
       <object class="GtkLabel" id="lbl_probab">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="label" translatable="yes">P matrix</property>
+        <property name="label" translatable="yes">P</property>
+        <attributes>
+          <attribute name="weight" value="bold"/>
+        </attributes>
       </object>
       <packing>
         <property name="left_attach">1</property>
         <property name="right_attach">2</property>
+        <property name="top_attach">1</property>
+        <property name="bottom_attach">2</property>
         <property name="y_options"></property>
       </packing>
     </child>
@@ -37,8 +47,8 @@
         <property name="can_focus">False</property>
       </object>
       <packing>
-        <property name="top_attach">1</property>
-        <property name="bottom_attach">2</property>
+        <property name="top_attach">2</property>
+        <property name="bottom_attach">3</property>
         <property name="y_options"></property>
       </packing>
     </child>
@@ -50,8 +60,8 @@
       <packing>
         <property name="left_attach">1</property>
         <property name="right_attach">2</property>
-        <property name="top_attach">1</property>
-        <property name="bottom_attach">2</property>
+        <property name="top_attach">2</property>
+        <property name="bottom_attach">3</property>
         <property name="y_options"></property>
       </packing>
     </child>
@@ -65,8 +75,8 @@
         </child>
       </object>
       <packing>
-        <property name="top_attach">2</property>
-        <property name="bottom_attach">3</property>
+        <property name="top_attach">3</property>
+        <property name="bottom_attach">4</property>
       </packing>
     </child>
     <child>
@@ -80,8 +90,8 @@
       <packing>
         <property name="left_attach">1</property>
         <property name="right_attach">2</property>
-        <property name="top_attach">2</property>
-        <property name="bottom_attach">3</property>
+        <property name="top_attach">3</property>
+        <property name="bottom_attach">4</property>
       </packing>
     </child>
     <child>
@@ -91,9 +101,19 @@
       </object>
       <packing>
         <property name="right_attach">2</property>
-        <property name="top_attach">3</property>
-        <property name="bottom_attach">4</property>
+        <property name="top_attach">4</property>
+        <property name="bottom_attach">5</property>
         <property name="y_options"></property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkLabel" id="lbl_dependents">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Matrices</property>
+      </object>
+      <packing>
+        <property name="right_attach">2</property>
       </packing>
     </child>
   </object>

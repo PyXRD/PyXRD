@@ -18,13 +18,13 @@ def get_correct_probability_views(probability, parent_view):
         labels = probability.get_independent_label_map()
         if R == 0 or G == 1:
             print "returning R0 view %d %d" % (R, G)
-            return R0R1IndependentsView(N=G, labels=labels, parent=parent_view), R0R1MatrixView(N=G, parent=parent_view)
+            return R0R1IndependentsView(labels=labels, parent=parent_view), R0R1MatrixView(N=G, parent=parent_view)
         elif G > 1:
             if R == 1: #------------------------- R1:
                 if G == 2:
-                    return R0R1IndependentsView(N=G, labels=labels, parent=parent_view), R0R1MatrixView(N=G, parent=parent_view) #R1G2IndependentsView(parent=parent_view), R0R1MatrixView(N=G, parent=parent_view)
+                    return R0R1IndependentsView(labels=labels, parent=parent_view), R0R1MatrixView(N=G, parent=parent_view)
                 elif G == 3:
-                    return R1G3IndependentsView(parent=parent_view), R0R1MatrixView(N=G, parent=parent_view)
+                    return R0R1IndependentsView(labels=labels, parent=parent_view), R0R1MatrixView(N=G, parent=parent_view)
                 elif G == 4:
                     raise ValueError, "Cannot yet handle R1 g=4" # ,R0R1MatrixView(N=G, parent=parent_view)
             elif R == 2: #----------------------- R2:
@@ -70,41 +70,53 @@ class R0R1IndependentsView(BaseView, HasChildView, AbstractProbabilityView):
     top = "R0independents_box"
     #generated table of weight fractions! (split in two columns)
 
-    def __init__(self, N = 1, labels=[], **kwargs):
+    lbl_widget = "lbl_independents"
+    sep_widget = "seperator_i"
+
+    def __init__(self, labels=[], **kwargs):
         BaseView.__init__(self, **kwargs)
         
         self.labels = labels
         
+        N = len(labels)
+        
         def create_inputs(table):
             label_widgets = [None]*N
             input_widgets = [None]*N
-            for i in range(N):
-                new_lbl = gtk.Label()
-                new_inp = gtk.Entry()
-                
+            for i, (prop, lbl) in enumerate(labels):
                 prop, lbl = labels[i]
+                
                 new_lbl = gtk.Label(lbl % { "i": i })
+                new_lbl.set_use_markup(True)
+                label_widgets[i] = new_lbl
+                
+                new_inp = gtk.Entry()
                 new_inp.set_tooltip_text(lbl % { "i": i })
-                new_inp.set_name(prop)
-                    
+                new_inp.set_name(prop)                    
                 self["prob_%s" % prop] = new_inp
+                input_widgets[i] = new_inp
                 
                 j = (i % 2)*2
                 table.attach(new_lbl, 0+j, 1+j, i/2, (i/2)+1, xpadding=2, ypadding=2)
                 table.attach(new_inp, 1+j, 2+j, i/2, (i/2)+1, xpadding=2, ypadding=2)
                 
-                label_widgets[i] = new_lbl
-                input_widgets[i] = new_inp
                 del new_inp, new_lbl
             return input_widgets
         self.i_box = self['i_box']        
         self.i_table = gtk.Table((N+1)/2,4, True)
         self.i_inputs = create_inputs(self.i_table)
-        self._add_child_view(self.i_table, self.i_box)        
+        if len(self.i_inputs)==0:
+            self[self.lbl_widget].set_no_show_all(True)
+            self[self.sep_widget].set_no_show_all(True)
+            self[self.lbl_widget].hide()
+            self[self.sep_widget].hide()
+        else:
+            self._add_child_view(self.i_table, self.i_box)        
                 
     def update_matrices(self, model):
-        for i, (prop, lbl) in enumerate(self.labels):
-            self.i_inputs[i].set_text("%.3f" % getattr(model, prop))
+        for i, inp in enumerate(self.i_inputs):
+            prop, lbl = self.labels[i]
+            inp.set_text("%.3f" % getattr(model, prop))
 
 class R1G2IndependentsView(BaseView, AbstractProbabilityView): #TODO
     builder = "probabilities/glade/R0_independents.glade"
@@ -134,7 +146,7 @@ class R0R1MatrixView(BaseView, HasChildView, AbstractProbabilityView):
             for i in range(N):
                 for j in range(N):
                     new_lbl = gtk.Label("")
-                    new_lbl.set_tooltip_text(tooltip(i,j))
+                    new_lbl.set_tooltip_markup(tooltip(i,j))
                     table.attach(new_lbl, j, j+1, i, i+1) #, xpadding=2, ypadding=2)
                     labels[i][j] = new_lbl
                     del new_lbl
@@ -143,14 +155,14 @@ class R0R1MatrixView(BaseView, HasChildView, AbstractProbabilityView):
         self.w_box = self['w_box']        
         self.w_table = gtk.Table(N,N, True)
         def wtooltip(i,j):
-            if i==j:return "W%(i)d" % { "i": i, "j": j }
+            if i==j:return "W<sub>%(i)d</sub>" % { "i": i, "j": j }
             else: return "-"
         self.w_labels = create_labels(N, self.w_table, wtooltip)
         self._add_child_view(self.w_table, self.w_box)
         
         self.p_box = self['p_box']
         self.p_table = gtk.Table(N,N, True)
-        self.p_labels = create_labels(N, self.p_table, lambda i,j: "P%(i)d%(j)d" % { "i": i, "j": j })
+        self.p_labels = create_labels(N, self.p_table, lambda i,j: "P<sub>%(i)d%(j)d</sub>" % { "i": i, "j": j })
         self._add_child_view(self.p_table, self.p_box)
         
         self.show_all()

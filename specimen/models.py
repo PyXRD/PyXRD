@@ -313,7 +313,7 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
     def del_phase(self, phase):
         if phase in self._data_phases:
             self.relieve_model(phase)
-            del self.data_phases[phase]
+            del self._data_phases[phase]
         
     def on_update_plot(self, figure, axes, pctrl):       
         if self.display_experimental:

@@ -136,11 +136,15 @@ class EditMixtureController(ChildController):
                     self.adapt(name, "mixture_data_name")
                 elif not name in self.model.__have_no_widget__+  ["data_refineables"]:
                     self.adapt(name)
-            for index, phase in enumerate(self.model.data_phases):
-                self.add_phase_view(index)
-            for index, specimen in enumerate(self.model.data_specimens):
-                self.add_specimen_view(index)
+            self.create_ui()
             return
+            
+    def create_ui(self):
+        self.view.reset_view()
+        for index, phase in enumerate(self.model.data_phases):
+            self.add_phase_view(index)
+        for index, specimen in enumerate(self.model.data_specimens):
+            self.add_specimen_view(index)
             
     #def update_sensitivities(self):
     #    self.view["marker_data_angle"].set_sensitive(not self.model.inherit_angle)
@@ -174,7 +178,10 @@ class EditMixtureController(ChildController):
     def notif_has_changed(self, model, prop_name, info):
         if not self.chicken_egg:
             self.view.update_all(self.model.data_fractions, self.model.data_scales)
-        pass
+        
+    @Controller.observe("needs_reset", signal=True)
+    def notif_needs_reset(self, model, prop_name, info):
+        self.create_ui()
 
     # ------------------------------------------------------------
     #      GTK Signal handlers

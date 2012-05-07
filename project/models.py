@@ -191,10 +191,14 @@ class Project(Model, Observable, Storable):
                 phase.data_based_on = None
         for specimen in self.data_specimens._model_data:
             specimen.del_phase(item)
+        for mixture in self.data_mixtures._model_data:
+            mixture.uncheck_phase(item)
     def on_atom_type_item_removed(self, model, item, *data):
         pass
     def on_specimen_item_removed(self, model, item, *data):
         self.relieve_model(item)
+        for mixture in self.data_mixtures._model_data:
+            mixture.del_specimen(item)
     def on_mixture_item_removed(self, model, item, *data):
         pass
 

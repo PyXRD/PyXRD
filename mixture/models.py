@@ -31,9 +31,9 @@ from generic.treemodels import IndexListStore
 
 class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
     #MODEL INTEL:
-    __observables__ = ["has_changed", "data_name", "data_refineables", "auto_run"]
-    __have_no_widget__ = ChildModel.__have_no_widget__ + ["has_changed"]
-    __storables__ = [prop for prop in __observables__ if not prop in ["parent", "has_changed"] ]
+    __observables__ = ["has_changed", "needs_reset", "data_name", "data_refineables", "auto_run"]
+    __have_no_widget__ = ChildModel.__have_no_widget__ + ["has_changed", "needs_reset"]
+    __storables__ = [prop for prop in __observables__ if not prop in ["parent", "has_changed", "needs_reset"] ]
     __columns__ = [
         ('data_name', str),
         ('data_refineables', object),
@@ -41,6 +41,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
 
     #SIGNALS:
     has_changed = None
+    needs_reset = None
 
     #INTERNALS:
     _data_name = ""
@@ -68,6 +69,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
     def __init__(self, data_name="New Mixture", auto_run=False, phase_indeces=None, specimen_indeces=None, data_phases=None, data_scales=None, data_fractions=None, data_refineables=None, parent=None):
         ChildModel.__init__(self, parent=parent)
         self.has_changed = Signal()
+        self.needs_reset = Signal()
         self.data_name = data_name or self.data_name
         self.auto_run = auto_run or self.auto_run
         
@@ -134,12 +136,22 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------ 
+    def uncheck_phase(self, phase):
+        shape = self.data_phase_matrix.shape
+        for i in range(shape[0]):
+            for j in range(shape[1]):
+                if self.data_phase_matrix[i,j] == phase:
+                    self.data_phase_matrix[i,j] = None
+        self.update_refinement_treestore()
+        self.needs_reset.emit()
+    
     def add_phase(self, phase_name, fraction):
         self.data_phases.append(phase_name)
         self.data_fractions.append(fraction)
         n, m = self.data_phase_matrix.shape
         self.data_phase_matrix.resize((n,m+1))
         self.data_phase_matrix[:,m] = None
+        self.update_refinement_treestore()
         self.has_changed.emit()
         return m
 
@@ -148,7 +160,8 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         del self.data_phases[index]
         del self.data_fractions[index]
         self.data_phase_matrix = np.delete(self.data_phase_matrix, index, axis=1)
-        self.has_changed.emit()        
+        self.update_refinement_treestore()
+        self.has_changed.emit()
     
     def add_specimen(self, specimen, scale):
         index = len(self.data_specimens)
@@ -161,11 +174,11 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         return n
 
     def del_specimen(self, specimen):
-        index = self.data_specimens.index(phase_name)
+        index = self.data_specimens.index(specimen)
         del self.data_specimens[index]
         del self.data_scales[index]
         self.data_phase_matrix = np.delete(self.data_phase_matrix, index, axis=0)
-        self.has_changed.emit()
+        self.needs_reset.emit()
     
     #@print_timing
     def optimize(self, silent=False):

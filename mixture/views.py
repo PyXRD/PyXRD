@@ -40,6 +40,16 @@ class EditMixtureView(BaseView): #TODO add delete buttons as well!
         self.matrix = self[self.matrix_widget]
         self.wrapper = self[self.wrapper_widget]
         
+        self.labels = [ self["lbl_scales"], self["lbl_fractions"], self["lbl_phases"] ]
+        
+        self.reset_view()
+        
+    def reset_view(self):
+        def remove(item):
+            if not item in self.labels: self.matrix.remove(item)
+        self.matrix.foreach(remove)
+        self.matrix.resize(2,2)
+        
         self.phase_inputs = []
         self.fraction_inputs = []
         self.specimen_combos = []

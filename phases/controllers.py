@@ -19,6 +19,7 @@ from generic.controllers import DialogController, ChildController, ObjectListSto
 
 from atoms.models import Atom
 
+from probabilities.models import get_Gbounds_for_R, get_Rbounds_for_G
 from probabilities.controllers import EditProbabilitiesController
 from probabilities.views import EditProbabilitiesView
 
@@ -470,14 +471,35 @@ class AddPhaseController(DialogController):
         DialogController.__init__(self, model, view, spurious=spurious, auto_adapt=auto_adapt)    
         self.callback = callback
     
+    def register_view(self, view):
+        self.update_bounds()
+    
+    def update_bounds(self):
+        if self.view != None:
+            min_R, max_R = get_Rbounds_for_G(self.view.get_G())
+            self.view["adj_R"].set_upper(max_R)
+            self.view["adj_R"].set_lower(min_R)
+        
+    
+    # ------------------------------------------------------------
+    #      GTK Signal handlers
+    # ------------------------------------------------------------
     def on_btn_ok_clicked(self, event):
         self.view.hide()
         self.callback(self.view.get_G(), self.view.get_R())
         return True
         
+    def on_g_value_changed(self, adj):
+        self.update_bounds()      
+        return True
+        
     def on_keypress(self, widget, event) :
 		if event.keyval == gtk.keysyms.Escape :
 			self.view.hide()
+			return True
+		if event.keyval == gtk.keysyms.Return :
+			self.view.hide()
+            self.callback(self.view.get_G(), self.view.get_R())			
 			return True
         
     def on_window_edit_dialog_delete_event(self, event, args=None):

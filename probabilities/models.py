@@ -17,6 +17,41 @@ from generic.io import Storable
 from generic.models import ChildModel
 from generic.utils import delayed, indexproperty
 
+
+# Overview of what is:
+#   x   = currently implemented
+#   np  = not possible
+#   -   = not yet implemented
+#
+#       G1  G2  G3  G4  G5  G6
+#   R0  x   x   x   x   x   x
+#   R1  np  x   x   -   -   -
+#   R2  np  x   -   -   -   -
+#   R3  np  np  -   -   -   -
+
+
+def get_Gbounds_for_R(R):
+    if R==0:
+        return (1,6)
+    elif R==1:
+        return (2,3)
+    elif R==2:
+        return (2,2)
+    else:
+        raise ValueError, "Cannot yet handle R%d" % R
+
+def get_Rbounds_for_G(G):
+    if G==1:
+        return (0,0)
+    elif G==2:
+        return (0,2)
+    elif G==3:
+        return (0,1)
+    elif G>=4 and G<=6:
+        return (0,0)
+    else:
+        raise ValueError, "Cannot yet handle G%d" % G
+
 def get_correct_probability_model(phase):
     if phase!=None:
         G = phase.data_G
@@ -48,7 +83,6 @@ def get_correct_probability_model(phase):
                     raise ValueError, "Cannot yet handle R3 G4"
             else:
                 raise ValueError, "Cannot (yet) handle Reichweite's other then 0, 1, 2 or 3"
-
 
 class _AbstractProbability(ChildModel, Storable):
 

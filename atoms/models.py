@@ -227,7 +227,8 @@ class Atom(ChildModel, ObjectListStoreChildMixin, Storable):
 
     def json_properties(self):
         retval = Storable.json_properties(self)
-        retval["atom_type_index"] = self.parent.data_atom_types.index(self.data_atom_type) if self.data_atom_type != None else -1
+        index = self.parent.data_atom_types.index(self.data_atom_type) if self.data_atom_type != None else -1
+        retval["atom_type_index"] = index
         return retval 
    
     @staticmethod

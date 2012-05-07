@@ -17,19 +17,18 @@ def get_correct_probability_views(probability, parent_view):
         R = probability.R
         labels = probability.get_independent_label_map()
         if R == 0 or G == 1:
-            print "returning R0 view %d %d" % (R, G)
-            return R0R1IndependentsView(labels=labels, parent=parent_view), R0R1MatrixView(N=G, parent=parent_view)
+            return R0R1R2IndependentsView(labels=labels, parent=parent_view), R0R1MatrixView(N=G, parent=parent_view)
         elif G > 1:
             if R == 1: #------------------------- R1:
                 if G == 2:
-                    return R0R1IndependentsView(labels=labels, parent=parent_view), R0R1MatrixView(N=G, parent=parent_view)
+                    return R0R1R2IndependentsView(labels=labels, parent=parent_view), R0R1MatrixView(N=G, parent=parent_view)
                 elif G == 3:
-                    return R0R1IndependentsView(labels=labels, parent=parent_view), R0R1MatrixView(N=G, parent=parent_view)
+                    return R0R1R2IndependentsView(labels=labels, parent=parent_view), R0R1MatrixView(N=G, parent=parent_view)
                 elif G == 4:
                     raise ValueError, "Cannot yet handle R1 g=4" # ,R0R1MatrixView(N=G, parent=parent_view)
             elif R == 2: #----------------------- R2:
                 if G == 2:
-                    raise ValueError, "Cannot yet handle R2 g=2"
+                    return R0R1R2IndependentsView(labels=labels, parent=parent_view), R2MatrixView(N=G, parent=parent_view) #raise ValueError, "Cannot yet handle R2 g=2"
                 elif G == 3:
                     raise ValueError, "Cannot yet handle R2 g=3"
                 elif G == 4:
@@ -65,7 +64,7 @@ class AbstractProbabilityView():
     def update_matrices(self, W, P):
         raise NotImplementedError
     
-class R0R1IndependentsView(BaseView, HasChildView, AbstractProbabilityView):
+class R0R1R2IndependentsView(BaseView, HasChildView, AbstractProbabilityView):
     builder = "probabilities/glade/R0_independents.glade"
     top = "R0independents_box"
     #generated table of weight fractions! (split in two columns)
@@ -117,6 +116,8 @@ class R0R1IndependentsView(BaseView, HasChildView, AbstractProbabilityView):
         for i, inp in enumerate(self.i_inputs):
             prop, lbl = self.labels[i]
             inp.set_text("%.3f" % getattr(model, prop))
+            
+    pass #end of class
 
 class R1G2IndependentsView(BaseView, AbstractProbabilityView): #TODO
     builder = "probabilities/glade/R0_independents.glade"
@@ -125,6 +126,8 @@ class R1G2IndependentsView(BaseView, AbstractProbabilityView): #TODO
     def __init__(self, **kwargs):
         BaseView.__init__(self, **kwargs)
         pass
+        
+    pass #end of class
 
 class R1G3IndependentsView(BaseView, AbstractProbabilityView): #TODO
     builder = "probabilities/glade/R1G3_independents.glade"
@@ -133,40 +136,25 @@ class R1G3IndependentsView(BaseView, AbstractProbabilityView): #TODO
     def __init__(self, **kwargs):
         BaseView.__init__(self, **kwargs)
         pass
-             
-class R0R1MatrixView(BaseView, HasChildView, AbstractProbabilityView):
+        
+    pass #end of class
+            
+class BaseMatrixView(BaseView, HasChildView, AbstractProbabilityView):
     builder = "probabilities/glade/base_matrix.glade"
     top = "base_matrix_table"
-    
-    def __init__(self, N = 1, **kwargs):
-        BaseView.__init__(self, **kwargs)
-        
-        def create_labels(num, table, tooltip=lambda i,j: ""):
-            labels = [[None]*N for _ in range(N)]
-            for i in range(N):
-                for j in range(N):
-                    new_lbl = gtk.Label("")
-                    new_lbl.set_tooltip_markup(tooltip(i,j))
-                    table.attach(new_lbl, j, j+1, i, i+1) #, xpadding=2, ypadding=2)
-                    labels[i][j] = new_lbl
-                    del new_lbl
-            return labels
-
-        self.w_box = self['w_box']        
-        self.w_table = gtk.Table(N,N, True)
-        def wtooltip(i,j):
-            if i==j:return "W<sub>%(i)d</sub>" % { "i": i, "j": j }
-            else: return "-"
-        self.w_labels = create_labels(N, self.w_table, wtooltip)
-        self._add_child_view(self.w_table, self.w_box)
-        
-        self.p_box = self['p_box']
-        self.p_table = gtk.Table(N,N, True)
-        self.p_labels = create_labels(N, self.p_table, lambda i,j: "P<sub>%(i)d%(j)d</sub>" % { "i": i, "j": j })
-        self._add_child_view(self.p_table, self.p_box)
-        
-        self.show_all()
-                
+         
+    @staticmethod
+    def create_labels(num, table, tooltip=lambda i,j: ""):
+        labels = [[None]*num for _ in range(num)]
+        for i in range(num):
+            for j in range(num):
+                new_lbl = gtk.Label("")
+                new_lbl.set_tooltip_markup(tooltip(i,j))
+                table.attach(new_lbl, j, j+1, i, i+1, xpadding=5, ypadding=5)
+                labels[i][j] = new_lbl
+                del new_lbl
+        return labels
+         
     def update_matrices(self, W, P):
         def update_matrix(matrix, labels):
             shape = matrix.shape
@@ -176,5 +164,54 @@ class R0R1MatrixView(BaseView, HasChildView, AbstractProbabilityView):
         update_matrix(W, self.w_labels)
         update_matrix(P, self.p_labels)
         
+    pass #end of class        
+             
+class R0R1MatrixView(BaseMatrixView):   
+    def __init__(self, N = 1, **kwargs):
+        BaseMatrixView.__init__(self, **kwargs)
+
+        self.w_box = self['w_box']        
+        self.w_table = gtk.Table(N,N, True)
+        def wtooltip(i,j):
+            if i==j:return "W<sub>%(i)d</sub>" % { "i": i+1, "j": j+1 }
+            else: return "-"
+        self.w_labels = BaseMatrixView.create_labels(N, self.w_table, wtooltip)
+        self._add_child_view(self.w_table, self.w_box)
         
+        self.p_box = self['p_box']
+        self.p_table = gtk.Table(N,N, True)
+        self.p_labels = BaseMatrixView.create_labels(N, self.p_table, lambda i,j: "P<sub>%(i)d%(j)d</sub>" % { "i": i+1, "j": j+1 })
+        self._add_child_view(self.p_table, self.p_box)
+        
+        self.show_all()
+        
+    pass #end of class
+        
+class R2MatrixView(BaseMatrixView):    
+    def __init__(self, N = 1, **kwargs):
+        BaseMatrixView.__init__(self, **kwargs)
+
+        self.w_box = self['w_box']
+        self.w_table = gtk.Table(N**2,N**2, True)
+        def wtooltip(i,j):
+            if i==j: return "W<sub>%(i)d%(j)d</sub>" % { "i": int(i/2)+1, "j": int(j % 2)+1 }
+            else:return "-"
+        self.w_labels = BaseMatrixView.create_labels(N**2, self.w_table, wtooltip)
+        self._add_child_view(self.w_table, self.w_box)
+        
+        self.p_box = self['p_box']
+        self.p_table = gtk.Table(N**2,N**2, True)
+        def ptooltip(i,j):
+            l = (i % N) + 1
+            k = (j % N) + 1
+            i = int(i/N) + 1
+            j = int(j/N) + 1
+            if l==j: return "P<sub>%(i)d%(j)d%(k)d</sub>" % { "i": i, "j": j, "k": k}
+            else: return "-"
+        self.p_labels = BaseMatrixView.create_labels(N**2, self.p_table, ptooltip)
+        self._add_child_view(self.p_table, self.p_box)
+        
+        self.show_all()
+        
+    pass #end of class
         

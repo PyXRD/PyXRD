@@ -241,7 +241,7 @@ class Project(Model, Observable, Storable):
         
         #Create temporary ObjectListStore to transfer atom types to project
         if sargs["data_atom_types"] != None:
-            atom_types = ObjectListStore.from_json(parent=project, **sargs["data_atom_types"]['properties'])
+            atom_types = IndexListStore.from_json(parent=project, **sargs["data_atom_types"]['properties'])
             for atom_type in atom_types._model_data:
                 project.data_atom_types.append(atom_type)
             del atom_types

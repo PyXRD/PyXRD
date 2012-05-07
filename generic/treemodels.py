@@ -261,7 +261,7 @@ class IndexListStore(ObjectListStore):
     
     def __init__(self, class_type):
         if not hasattr(class_type, '__index_column__'):
-            raise TypeError, "class_type should have an __index_column__ attribute, but %s has not" % (type(Model), class_type)
+            raise TypeError, "class_type should have an __index_column__ attribute, but %s has not" % class_type
         if not (class_type.__index_column__, str) in class_type.__columns__:
             raise AttributeError, "The index column '%s' should be a member of the __columns__" % class_type.__index_column__
         if not class_type.__index_column__ in class_type.__observables__:

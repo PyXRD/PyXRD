@@ -19,6 +19,8 @@ from generic.controllers import DialogController, DialogMixin, ChildController, 
 from generic.validators import FloatEntryValidator
 from generic.utils import get_case_insensitive_glob
 
+from phases.models import Phase, Component
+
 from mixture.models import Mixture
 from mixture.views import EditMixtureView, RefinementView, BusyView
 
@@ -30,40 +32,52 @@ class RefinementController(DialogController):
             tv.set_model(tv_model)
             #tv.connect('cursor_changed', self.on_exp_data_tv_cursor_changed)
 
-            def add_column(title):
-                rend = gtk.CellRendererText()
-                col = gtk.TreeViewColumn(title, rend)
-                def get_name(column, cell, model, itr, user_data=None):
-                    obj = model.get_value(itr, 0)
-                    prop = model.get_value(itr, 1)
-                    enabled = model.get_value(itr, 3)
-                    cell.set_sensitive(enabled)
-                    cell.set_property("text", prop if prop else obj.data_name)
-                    return
-                col.set_cell_data_func(rend, get_name, data=None)
-                col.set_expand(True)                
-                tv.append_column(col)
-            add_column('Name/Prop')
+            rend = gtk.CellRendererText()
+            col = gtk.TreeViewColumn('Name/Prop', rend)
+            def get_name(column, cell, model, itr, user_data=None):
+                ref_prop = model.get_user_data(itr)
+                cell.set_property("markup", ref_prop.title)
+                return
+            col.set_cell_data_func(rend, get_name, data=None)
+            col.set_expand(True)                
+            tv.append_column(col)
             
-            def add_column(title):
-                rend = gtk.CellRendererText()
-                col = gtk.TreeViewColumn(title, rend, text=2)
+            def get_name(column, cell, model, itr, user_data=None):
+                ref_prop = model.get_user_data(itr)
+                refineable = ref_prop.refineable
+                cell.set_sensitive(refineable)
+                cell.set_property("markup", ("%.5f" % ref_prop.sensitivity) if refineable else "")
+                return            
+            rend = gtk.CellRendererText()
+            col = gtk.TreeViewColumn("Sensitivity [%]", rend, text=3)
+            col.set_cell_data_func(rend, get_name, data=None)              
+            tv.append_column(col)
+            
+            def add_editable_float(title, prop_name, callback):                
                 def get_name(column, cell, model, itr, user_data=None):
-                    sens = model.get_value(itr, 2)
-                    enabled = model.get_value(itr, 3)
-                    cell.set_sensitive(enabled)
-                    cell.set_property("text", "%.5f" % sens)
+                    ref_prop = model.get_user_data(itr)
+                    refineable = ref_prop.refineable
+                    cell.set_property("editable", refineable)        
+                    cell.set_sensitive(refineable)
+                    cell.set_property("markup", ("%.5f" % getattr(ref_prop, prop_name)) if refineable else "")
                     return
+                rend = gtk.CellRendererText()
+                rend.connect("edited", callback, prop_name)
+                col = gtk.TreeViewColumn(title, rend, text=3)
                 col.set_cell_data_func(rend, get_name, data=None)              
                 tv.append_column(col)
-            add_column('Sensitivity [%]')
+            def on_value_minmax_edited(rend, path, new_text, prop_name):
+                ref_prop = self.model.data_refineables.get_user_data_from_path((int(path),))
+                setattr(ref_prop, prop_name, float(new_text))
+            add_editable_float("Min", "value_min", on_value_minmax_edited)
+            add_editable_float("Max", "value_max", on_value_minmax_edited)      
             
             def get_refine(column, cell, model, itr, user_data=None):
-                enabled = model.get_value(itr, 3)
-                refine = model.get_value(itr, 4)
-                cell.set_sensitive(enabled)
-                cell.set_property("activatable", enabled)
-                cell.set_property("active", enabled and refine)
+                ref_prop = model.get_user_data(itr)
+                cell.set_sensitive(ref_prop.refineable)
+                cell.set_property("activatable", ref_prop.refineable)
+                cell.set_property("visible", ref_prop.refineable) 
+                cell.set_property("active", ref_prop.refineable and ref_prop.refine)
                 return
             rend = gtk.CellRendererToggle()
             rend.connect('toggled', self.refine_toggled, tv_model)
@@ -101,9 +115,7 @@ class RefinementController(DialogController):
         #TODO display progress window...
         busy = BusyView(parent=self.view)
         busy.present()
-        while gtk.events_pending():
-            gtk.main_iteration(False)
-        self.model.refine()
+        self.model.refine(busy.set_R)
         busy.hide()
         pass
         
@@ -115,6 +127,7 @@ class RefinementController(DialogController):
 class EditMixtureController(ChildController):
 
     chicken_egg = False
+    ref_view = None
 
     def register_adapters(self):
         if self.model is not None:
@@ -199,9 +212,11 @@ class EditMixtureController(ChildController):
     
     def on_refine_clicked(self, widget, *args):
         self.model.update_refinement_treestore()
-        view = RefinementView()
-        ctrl = RefinementController(self.model, view)
-        view.present()
+        if self.ref_view!=None: 
+            self.ref_view.hide()
+        self.ref_view = RefinementView()
+        self.ref_ctrl = RefinementController(self.model, self.ref_view)
+        self.ref_view.present()
     
     pass #end of class
 

@@ -15,6 +15,10 @@ from generic.validators import FloatEntryValidator
 class BusyView(BaseView):
     builder = "mixture/glade/busy.glade"
     top = "busy_window"
+    
+    def set_R(self, value):
+        self["lbl_R"].set_text("%.2f" % value)
+        
 
 class RefinementView(DialogView):
     title = "Refine Phase Parameters"

@@ -15,7 +15,7 @@ import numpy as np
 
 from generic.io import Storable
 from generic.models import ChildModel
-from generic.utils import delayed
+from generic.utils import delayed, indexproperty
 
 def get_correct_probability_model(phase):
     if phase!=None:
@@ -34,7 +34,7 @@ def get_correct_probability_model(phase):
                     raise ValueError, "Cannot yet handle R1 G4"
             elif R == 2: #----------------------- R2:
                 if G == 2:
-                    raise ValueError, "Cannot yet handle R2 G2"
+                    return R2G2Model(parent=phase)
                 elif G == 3:
                     raise ValueError, "Cannot yet handle R2 G3"
                 elif G == 4:
@@ -157,7 +157,7 @@ class R0Model(_AbstractR0R1Model):
     ]
     @property
     def __refineables__(self):
-        return [ "W%d" % i for i in range(self.G-1) ]
+        return [ "W%d" % (i+1) for i in range(self.G-1) ]
     __observables__ = [ prop for prop, lbl in  __independent_label_map__ ]
     __storables__ = [ val for val in __observables__ if not val in ('parent', "added", "removed")]
 
@@ -181,6 +181,7 @@ class R0Model(_AbstractR0R1Model):
         loc = locals()
         for i in range(self.G):
             self._W[i] = loc["W%d"%(i+1)]
+            setattr(self, "W%d_range"%(i+1), [0, 1.0])
         self._P = np.repeat(self._W[np.newaxis,:], self.G, 0)
 
     # ------------------------------------------------------------
@@ -229,22 +230,19 @@ class R1G2Model(_AbstractR0R1Model):
     __storables__ = [ val for val in __observables__ if not val in ('parent', "added", "removed")]
 
     #PROPERTIES:
-    @Model.getter("W1")
-    def get_W(self, prop_name):
-        return self._W[0]
-    @Model.setter("W1")
-    def set_W(self, prop_name, value):
+    W1_range = [0,1.0]
+    def get_W1_value(self): return self._W[0]
+    def set_W1_value(self, value):
         self._W[0] = min(max(value, 0.0), 1.0)
         self.update()
                     
-    @Model.getter("P11_or_P22")
-    def get_P_val(self, prop_name):
+    P11_or_P22_range = [0,1.0]
+    def get_P11_or_P22_value(self):
         if self._W[0] <= 0.5:
             return self._P[0,0]
         else:
             return self._P[1,1]
-    @Model.setter("P11_or_P22") 
-    def set_P_val(self, prop_name, value):       
+    def set_P11_or_P22_value(self, value):       
         if self._W[0] <= 0.5:
             self._P[0,0] = min(max(value, 0.0), 1.0)
         else:
@@ -282,7 +280,7 @@ class R1G2Model(_AbstractR0R1Model):
         
 class R1G3Model(_AbstractR0R1Model):
 	"""
-	Reichweite = 1 / Components = 2
+	Reichweite = 1 / Components = 3
 	g*(g-1) independent variables = 6
 	W0 & P00 (W0<0,5) of P11 (W0>0,5)
 	W1/(W2+W1) = G1
@@ -340,28 +338,29 @@ class R1G3Model(_AbstractR0R1Model):
     __storables__ = [ val for val in __observables__ if not val in ('parent', "added", "removed")]
 
     #PROPERTIES
-    @Model.getter("W1")
-    def get_W(self, prop_name):
-        return self._W[0]
-    @Model.setter("W1")
-    def set_W(self, prop_name, value):
-        self._W[0] = min(max(value, 0), 1)
+    W1_range = [0,1.0]
+    def get_W1_value(self): return self._W[0]
+    def set_W1_value(self, value):
+        self._W[0] = min(max(value, 0.0), 1.0)
         self.update()
             
-    @Model.getter("P11_or_P22")
-    def get_P(self, prop_name):
+    P11_or_P22_range = [0,1.0]
+    def get_P11_or_P22_value(self):
         if self._W[0] <= 0.5:
             return self._P[0,0]
         else:
             return self._P[1,1]
-    @Model.setter("P11_or_P22")
-    def set_P(self, prop_name, value):
+    def set_P11_or_P22_value(self, value):
         if self._W[0] <= 0.5:
             self._P[0,0] = min(max(value, 0.0), 1.0)
         else:
             self._P[1,1] = min(max(value, 0.0), 1.0)
         self.update()
 
+    G1_range = [0,1.0]
+    G2_range = [0,1.0]
+    G3_range = [0,1.0]
+    G4_range = [0,1.0]
     _G1 = 0
     _G2 = 0
     _G3 = 0
@@ -376,11 +375,13 @@ class R1G3Model(_AbstractR0R1Model):
 
     # ------------------------------------------------------------
     #      Initialisation and other internals
-    # ------------------------------------------------------------
-    def setup(self):
+    # ------------------------------------------------------------       
+    def setup(self, W1=0.25, P11_or_P22=0.5):
         self._R = 0
         self._W = np.zeros(shape=(3), dtype=float)
         self._P = np.zeros(shape=(3, 3), dtype=float)
+        self.W1 = W1
+        self.P11_or_P22 = P11_or_P22
 
     # ------------------------------------------------------------
     #      Methods & Functions
@@ -424,3 +425,154 @@ class R1G3Model(_AbstractR0R1Model):
     
     pass #end of class
         
+        
+class R2G2Model(_AbstractR0R1Model): #TODO new abstract class needed?
+	"""
+	Reichweite = 2 / Components = 2
+	g^2 independent variables = 4
+	W0 
+	P001 (W0<2/3) of P100 (W0>2/3)
+	P10
+	P011 (P10<1/2) of P110 (P10>1/2)
+	
+	W1 = 1 – W0
+	P11 = 1-P10
+	
+	W10 = W1*P10
+	W01 = W10 
+	W00 = W0 - W10
+	W11 = W1*P11
+    
+    P001 given:                 or      P100 given:
+      P100 = (W00 / W10) * P001 or        P001 = (W10 / W00) * P100
+    P101 = 1 - P100
+    P000 = 1 - P001
+
+    P011 given:                 or      P110 given:
+      P110 = (W01 / W11) * P011 or        P001 = (W11 / W01) * P110
+    P010 = 1 - P011
+    P111 = 1 - P110
+	
+	indexes are NOT zero-based in external property names!
+	"""
+
+    #MODEL INTEL:
+    __independent_label_map__ = [
+        ("W1", "W<sub>1</sub>"),
+        ("P112_or_P211", "P<sub>112</sub> or P<sub>211</sub>"),
+        ("P21", "P<sub>21</sub>"),
+        ("P122_or_P221", "P<sub>122</sub> or P<sub>221</sub>"),
+    ]
+    __refineables__ = [ prop for prop, lbl in  __independent_label_map__ ]
+    __observables__ = __refineables__
+    __storables__ = [ val for val in __observables__ if not val in ('parent', "added", "removed")]
+
+    #PROPERTIES:
+    twothirds = 2.0/3.0
+    
+    _W0 = 0.0
+    def get_W1_value(self): return self._W0
+    def set_W1_value(self, value):
+        self._W0 = min(max(value, 0.5), 1.0)
+        self.update()
+          
+    def get_P112_or_P211_value(self):
+        if self._W0 <= self.twothirds:
+            return self.mP[0,0,1]
+        else:
+            return self.mP[1,0,0]
+    def set_P112_or_P211_value(self, value):
+        if self._W0 <= self.twothirds:
+            self.mP[0,0,1] = value
+        else:
+            self.mP[1,0,0] = value
+        self.update()
+          
+    _P10 = 0.0
+    def get_P21_value(self): return self._P10
+    def set_P21_value(self, value):
+        self._P10 = min(max(value, 0.0), 1.0)
+        self.update()
+
+    def get_P122_or_P221_value(self):
+        if self._P10 <= 0.5:
+            return self.mP[0,1,1]
+        else:
+            return self.mP[1,1,0]
+        self.update() 
+    def set_P122_or_P221_value(self, value):
+        if self._P10 <= 0.5:
+            self.mP[0,1,1] = value
+        else:
+            self.mP[1,1,0] = value
+        self.update()        
+    
+
+    # ------------------------------------------------------------
+    #      Initialisation and other internals
+    # ------------------------------------------------------------
+    def setup(self, W1=0.75, P112_or_P211=0.75, P21=0.75, P122_or_P221=0.75):
+        self._R = 2
+        self._W = np.zeros(shape=(self.G**2, self.G**2), dtype=float)
+        self._P = np.zeros(shape=(self.G**2, self.G**2), dtype=float)
+        self.W1 = W1
+        self.P112_or_P211 = P112_or_P211
+        self.P21 = P21
+        self.P122_or_P221
+
+    # ------------------------------------------------------------
+    #      Methods & Functions
+    # ------------------------------------------------------------ 
+    
+    @indexproperty
+    def mP(self, indeces):
+        i, j, k = indeces
+        return self._P[self.G * i + j, self.G * j + k]
+    @mP.setter
+    def mP(self, indeces, value):
+        i, j, k = indeces    
+        self._P[self.G * i + j, self.G * j + k] = min(max(value, 0.0), 1.0)
+    
+    @indexproperty
+    def mW(self, indeces):
+        i, j = indeces
+        return self._W[self.G * i + j, self.G * i + j]
+    @mW.setter
+    def mW(self, indeces, value):
+        i, j = indeces
+        self._W[self.G * i + j, self.G * i + j] = min(max(value, 0.0), 1.0)
+    
+    def get_distribution_matrix(self): return self._W
+        
+    def get_distribution_array(self): return np.diag(self._W)
+    
+    #@delayed()
+    def update(self):
+        W0 = self._W0
+        W1 = 1.0 - W0
+        
+        P10 = self._P10
+        P11 = 1 - P10
+        
+        self.mW[1,0] = W1 * P10
+        self.mW[1,1] = W1 * P11
+        self.mW[0,1] = self.mW[1,0]
+        self.mW[0,0] = W0 - self.mW[1,0]
+        
+        if W0 <= self.twothirds:
+            self.mP[1,0,0] = self.mP[0,0,1] * self.mW[0,0] / self.mW[1,0]
+        else:
+            self.mP[0,0,1] = self.mP[1,0,0] * self.mW[1,0] / self.mW[0,0]
+        self.mP[1,0,1] = 1.0 - self.mP[1,0,0]
+        self.mP[0,0,0] = 1.0 - self.mP[0,0,1]
+            
+        if P10 <= 0.5:
+            self.mP[1,1,0] = self.mP[0,1,1] * self.mW[0,1] / self.mW[1,1]
+        else:
+            self.mP[0,1,1] = self.mP[1,1,0] * self.mW[1,1] / self.mW[0,1]
+        self.mP[0,1,0] = 1.0 - self.mP[0,1,1]
+        self.mP[1,1,1] = 1.0 - self.mP[1,1,0]
+            
+        self.updated.emit()
+    
+    pass #end of class

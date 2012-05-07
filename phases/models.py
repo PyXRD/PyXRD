@@ -83,8 +83,11 @@ class Component(ChildModel, ObjectListStoreChildMixin, Storable):
             
     #INHERITABLE PROPERTIES:
     _data_cell_a = 1.0
+    data_cell_a_range = [0,2.0]
     _data_cell_b = 1.0
+    data_cell_b_range = [0,2.0]
     _data_d001 = 1.0
+    data_d001_range = [0,2.0]
     _data_layer_atoms = None
     _data_interlayer_atoms = None
     @Model.setter(*__inheritables__)
@@ -298,9 +301,11 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
     
     #INHERITABLE PROPERTIES:
     _data_mean_CSDS = 10.0
+    data_mean_CSDS_range = [0,500]
     _data_min_CSDS = 1.0
     _data_max_CSDS = 50.0
     _data_sigma_star = 3.0
+    data_sigma_star_range = [0,90]
     _data_probabilities = None
     @Model.getter(*__inheritables__)
     def get_inheritable(self, prop_name):
@@ -454,31 +459,31 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
         Tmax = self.data_max_CSDS
         Tmin = self.data_min_CSDS
 
-        #if self.__last_Tmean != Tmean and self.__last_Tmax != Tmax and self.__last_Tmin != Tmin:
-        a = 0.9485 * log(Tmean) - 0.017
-        b = sqrt(0.1032*log(Tmean) + 0.0034)
-        
-        steps = int(Tmax - Tmin) + 1
-        
-        smq = 0
-        q_log_distr = []
-        TQDistr = dict()
-        for i in range(steps):
-            T = max(Tmin + i, 1e-50)
-            q = lognormal(T, a, b)
-            smq += q
+        if self.__last_Tmean != Tmean or self.__last_Tmax != Tmax or self.__last_Tmin != Tmin:
+            a = 0.9485 * log(Tmean) - 0.017
+            b = sqrt(0.1032*log(Tmean) + 0.0034)
             
-            TQDistr[int(T)] = q
+            steps = int(Tmax - Tmin) + 1
             
-        Rmean = 0
-        for T,q in TQDistr.iteritems():
-            TQDistr[T] = q / smq
-            Rmean += T*q
-        Rmean /= smq
-        self.__last_Tmean = Tmean
-        self.__last_Tmax = Tmax
-        self.__last_Tmin = Tmin
-        self.__last_Trest = (TQDistr.items(), TQDistr, Rmean)
+            smq = 0
+            q_log_distr = []
+            TQDistr = dict()
+            for i in range(steps):
+                T = max(Tmin + i, 1e-50)
+                q = lognormal(T, a, b)
+                smq += q
+                
+                TQDistr[int(T)] = q
+                
+            Rmean = 0
+            for T,q in TQDistr.iteritems():
+                TQDistr[T] = q / smq
+                Rmean += T*q
+            Rmean /= smq
+            self.__last_Tmean = Tmean
+            self.__last_Tmax = Tmax
+            self.__last_Tmin = Tmin
+            self.__last_Trest = (TQDistr.items(), TQDistr, Rmean)
             
         return self.__last_Trest
     
@@ -574,29 +579,19 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
             intensity = np.zeros(range_stl.size, dtype=np.complex_)
             first = True
 
-            rank = P.shape[1] #TODO: repeat elements when needed!! assumes P is in the correct format (expanded with zero's (=TODO) and repeated to fit the range_stl shape)
-            reps = rank
-                    
-            #Create Phi matrices:        
+            rank = P.shape[1]
+            reps = rank / G
+             
+            #Create Phi & F matrices:        
             SFa = np.repeat(SF[...,np.newaxis,:], SF.shape[1], axis=1)
             SFb = np.transpose(np.conjugate(SFa), axes=(0,2,1)) #np.conjugate(np.repeat(SF[...,np.newaxis], SF.shape[1], axis=2)) 
                    
-            freps = rank / G
-            F = np.repeat(np.repeat(np.multiply(SFb, SFa), freps, axis=2), freps, axis=1)
+            F = np.repeat(np.repeat(np.multiply(SFb, SFa), reps, axis=2), reps, axis=1)
 
             #Create Q matrices:
-            Q = np.multiply(np.repeat(PF[...,np.newaxis,:], rank, axis=1), P)
-            
-            
-            #for i in range(shape[0]):
-            #    for r in range(rank):
-            #        for c in range(rank):
-            #            Q[i,r,c] = P[i,r,c] * PF[i,r]
-            #Qn = np.copy(Q)
-                
-            #print W
-            #print P
-                   
+            PF = np.repeat(PF[...,np.newaxis,:], reps, axis=1)
+            Q = np.multiply(np.repeat(np.repeat(PF, reps, axis=2), reps, axis=1), P)
+                              
             #Calculate the intensity:
             method = 0
                 
@@ -619,7 +614,7 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
                 SubTotal = mmult(mmult(F, W), SubTotal)
                 intensity = np.real(np.trace(SubTotal,  axis1=2, axis2=1))
             elif method == 1:
-                ################### SCND WAY ###################
+                ################### SCND WAY ################### #FIXME doesn't work for now
                 SubTotal = np.zeros(Q.shape, dtype=np.complex_)
                 I = repeat_to_stl(np.identity(rank))
                 CSDS_I = repeat_to_stl(np.identity(rank, dtype=np.complex_) * real_mean)

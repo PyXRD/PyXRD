@@ -55,6 +55,6 @@ def apply_runtime_settings():
         matplotlib.rc('font', **font)
         mathtext = {'default': 'regular'}
         matplotlib.rc('mathtext', **mathtext)
-        
+                
         print "Runtime settings applied"
     SETTINGS_APPLIED = True

@@ -826,7 +826,7 @@ class Statistics(Model, Observable):
         
     """def on_data_update(self, model, name, info):
         self.update_statistics()"""
-        
+      
     def update_statistics(self):
         self.data_chi2 = 0        
         self.data_Rp = 0
@@ -854,7 +854,7 @@ class Statistics(Model, Observable):
             self.data_Rp, self.data_R2 = self._calc_RpR2(e_ey, e_cy)
            
     @staticmethod
-    def _calc_RpR2(o, e): 
+    def _calc_RpR2(o, e):
         avg = sum(o)/o.size
         sserr = np.sum((o - e)**2)
         sstot = np.sum((o - avg)**2)

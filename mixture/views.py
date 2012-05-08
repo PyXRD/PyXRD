@@ -48,7 +48,7 @@ class EditMixtureView(BaseView): #TODO add delete buttons as well!
         def remove(item):
             if not item in self.labels: self.matrix.remove(item)
         self.matrix.foreach(remove)
-        self.matrix.resize(2,2)
+        self.matrix.resize(3,3)
         
         self.phase_inputs = []
         self.fraction_inputs = []
@@ -62,41 +62,57 @@ class EditMixtureView(BaseView): #TODO add delete buttons as well!
         for i, scale in enumerate(scales):
             self.scale_inputs[i].set_text(str(scale))
         
-    def add_column(self, phase_store, label_callback, fraction_callback, combo_callback, label, fraction, phases):
+    def add_column(self, phase_store, del_phase_callback, label_callback, fraction_callback, combo_callback, label, fraction, phases):
         r,c = self.matrix.get_property('n_rows'), self.matrix.get_property('n_columns')
         self.matrix.resize(r, c+1)
         
+        del_icon = gtk.Image()
+        del_icon.set_from_stock (gtk.STOCK_REMOVE, gtk.ICON_SIZE_BUTTON)  
+        new_phase_del_btn = gtk.Button()
+        new_phase_del_btn.set_image(del_icon)
+        rid = new_phase_del_btn.connect("clicked", del_phase_callback)
+        new_phase_del_btn.set_data("deleventid", rid)
+        self.matrix.attach(new_phase_del_btn, c, c+1, 0, 1, gtk.EXPAND|gtk.FILL, 0)
+        
         new_phase_input = self.__get_new_input__(label, callback=label_callback)
         self.phase_inputs.append(new_phase_input)
-        self.matrix.attach(new_phase_input, c, c+1, 0, 1, gtk.EXPAND|gtk.FILL, 0)
+        self.matrix.attach(new_phase_input, c, c+1, 1, 2, gtk.EXPAND|gtk.FILL, 0)
 
         new_fraction_input = self.__get_new_input__(str(fraction), callback=fraction_callback)
         FloatEntryValidator(new_fraction_input)
         self.fraction_inputs.append(new_fraction_input)
-        self.matrix.attach(new_fraction_input, c, c+1, 1, 2, gtk.EXPAND|gtk.FILL, 0)
+        self.matrix.attach(new_fraction_input, c, c+1, 2, 3, gtk.EXPAND|gtk.FILL, 0)
         
-        self.phase_combos.resize((r-2,c-1))
-        for row in range(r-2):
-            self.__add_new_phase_combo__(phase_store, phase_store.c_data_name, phases[row, c-2], row, c-2, combo_callback)
+        self.phase_combos.resize((r-3,c-2))
+        for row in range(r-3):
+            self.__add_new_phase_combo__(phase_store, phase_store.c_data_name, phases[row, c-3], row, c-3, combo_callback)
         
         self.wrapper.show_all()
     
-    def add_row(self, phase_store, specimen_store, scale_callback, specimen_callback, combo_callback, scale, specimen, phases):
+    def add_row(self, phase_store, specimen_store, del_specimen_callback, scale_callback, specimen_callback, combo_callback, scale, specimen, phases):
         r,c = self.matrix.get_property('n_rows'), self.matrix.get_property('n_columns')
         self.matrix.resize(r+1, c)
+
+        del_icon = gtk.Image()
+        del_icon.set_from_stock (gtk.STOCK_REMOVE, gtk.ICON_SIZE_BUTTON)        
+        new_specimen_del_btn = gtk.Button()
+        new_specimen_del_btn.set_image(del_icon)
+        rid = new_specimen_del_btn.connect("clicked", del_specimen_callback)
+        new_specimen_del_btn.set_data("deleventid", rid)
+        self.matrix.attach(new_specimen_del_btn, 0, 1, r, r+1, gtk.EXPAND|gtk.FILL, 0)        
         
         new_scale_input = self.__get_new_input__(str(scale), callback=scale_callback)
         FloatEntryValidator(new_scale_input)
         self.scale_inputs.append(new_scale_input)
-        self.matrix.attach(new_scale_input, 0, 1, r, r+1, gtk.EXPAND|gtk.FILL, 0)
+        self.matrix.attach(new_scale_input, 1, 2, r, r+1, gtk.EXPAND|gtk.FILL, 0)
 
         new_specimen_combo = self.__get_new_combo__(specimen_store, specimen_store.c_data_name, default=specimen, callback=specimen_callback)
         self.specimen_combos.append(new_specimen_combo)
-        self.matrix.attach(new_specimen_combo, 1, 2, r, r+1, gtk.EXPAND|gtk.FILL, 0)
+        self.matrix.attach(new_specimen_combo, 2, 3, r, r+1, gtk.EXPAND|gtk.FILL, 0)
         
-        self.phase_combos.resize((r-1,c-2))
-        for col in range(c-2):
-            self.__add_new_phase_combo__(phase_store, phase_store.c_data_name, phases[r-2, col], r-2, col, combo_callback)
+        self.phase_combos.resize((r-2,c-3))
+        for col in range(c-3):
+            self.__add_new_phase_combo__(phase_store, phase_store.c_data_name, phases[r-3, col], r-3, col, combo_callback)
             
         self.wrapper.show_all()
 
@@ -111,7 +127,7 @@ class EditMixtureView(BaseView): #TODO add delete buttons as well!
     def __add_new_phase_combo__(self, model, text_column, default, r, c, callback):
         new_phase_combo = self.__get_new_combo__(model, text_column, default, callback, r, c)        
         self.phase_combos[r, c] = new_phase_combo
-        self.matrix.attach(new_phase_combo, c+2, c+3, r+2, r+3, gtk.EXPAND|gtk.FILL, 0)
+        self.matrix.attach(new_phase_combo, c+3, c+4, r+3, r+4, gtk.EXPAND|gtk.FILL, 0)
         
     def __get_new_combo__(self, model, column, default, callback, *args):
         combobox = gtk.ComboBox(model)

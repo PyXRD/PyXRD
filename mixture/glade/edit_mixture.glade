@@ -1,6 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
-  <requires lib="gtk+" version="2.24"/>
+  <!-- interface-requires gtk+ 3.0 -->
+  <object class="GtkImage" id="img_button_add_both">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">gtk-add</property>
+  </object>
+  <object class="GtkImage" id="img_button_add_phase">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">gtk-goto-last</property>
+  </object>
+  <object class="GtkImage" id="img_button_add_specimen">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">gtk-goto-bottom</property>
+  </object>
+  <object class="GtkImage" id="img_optimize">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">gtk-find</property>
+  </object>
+  <object class="GtkImage" id="img_refine">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">gtk-find-and-replace</property>
+  </object>
   <object class="GtkVBox" id="edit_mixture">
     <property name="width_request">600</property>
     <property name="visible">True</property>
@@ -57,6 +82,7 @@
             <property name="n_columns">2</property>
             <child>
               <object class="GtkButton" id="btn_add_phase">
+                <property name="use_action_appearance">False</property>
                 <property name="width_request">24</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
@@ -77,6 +103,7 @@
             </child>
             <child>
               <object class="GtkButton" id="btn_add_specimen">
+                <property name="use_action_appearance">False</property>
                 <property name="height_request">24</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
@@ -110,8 +137,8 @@
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="border_width">5</property>
-                        <property name="n_rows">2</property>
-                        <property name="n_columns">2</property>
+                        <property name="n_rows">3</property>
+                        <property name="n_columns">3</property>
                         <property name="column_spacing">5</property>
                         <property name="row_spacing">5</property>
                         <child>
@@ -122,10 +149,10 @@
                             <property name="label" translatable="yes">Fractions:</property>
                           </object>
                           <packing>
-                            <property name="left_attach">1</property>
-                            <property name="right_attach">2</property>
-                            <property name="top_attach">1</property>
-                            <property name="bottom_attach">2</property>
+                            <property name="left_attach">2</property>
+                            <property name="right_attach">3</property>
+                            <property name="top_attach">2</property>
+                            <property name="bottom_attach">3</property>
                             <property name="x_options">GTK_FILL</property>
                             <property name="y_options"></property>
                           </packing>
@@ -138,8 +165,10 @@
                             <property name="label" translatable="yes">Mixture phase names:</property>
                           </object>
                           <packing>
-                            <property name="left_attach">1</property>
-                            <property name="right_attach">2</property>
+                            <property name="left_attach">2</property>
+                            <property name="right_attach">3</property>
+                            <property name="top_attach">1</property>
+                            <property name="bottom_attach">2</property>
                             <property name="x_options">GTK_FILL</property>
                             <property name="y_options"></property>
                           </packing>
@@ -152,10 +181,28 @@
                             <property name="angle">90</property>
                           </object>
                           <packing>
-                            <property name="bottom_attach">2</property>
+                            <property name="left_attach">1</property>
+                            <property name="right_attach">2</property>
+                            <property name="top_attach">1</property>
+                            <property name="bottom_attach">3</property>
                             <property name="x_options"></property>
                             <property name="y_options">GTK_FILL</property>
                           </packing>
+                        </child>
+                        <child>
+                          <placeholder/>
+                        </child>
+                        <child>
+                          <placeholder/>
+                        </child>
+                        <child>
+                          <placeholder/>
+                        </child>
+                        <child>
+                          <placeholder/>
+                        </child>
+                        <child>
+                          <placeholder/>
                         </child>
                       </object>
                     </child>
@@ -165,6 +212,7 @@
             </child>
             <child>
               <object class="GtkButton" id="btn_add_both">
+                <property name="use_action_appearance">False</property>
                 <property name="width_request">24</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
@@ -210,6 +258,7 @@
         <child>
           <object class="GtkCheckButton" id="mixture_auto_run">
             <property name="label" translatable="yes">Run automatically</property>
+            <property name="use_action_appearance">False</property>
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="receives_default">False</property>
@@ -226,6 +275,7 @@
         <child>
           <object class="GtkButton" id="btn_apply_result">
             <property name="label">gtk-apply</property>
+            <property name="use_action_appearance">False</property>
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="receives_default">True</property>
@@ -243,6 +293,7 @@
         <child>
           <object class="GtkButton" id="btn_optimize">
             <property name="label" translatable="yes">Optimize</property>
+            <property name="use_action_appearance">False</property>
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="receives_default">True</property>
@@ -260,6 +311,7 @@
         <child>
           <object class="GtkButton" id="btn_refine">
             <property name="label" translatable="yes">Refine</property>
+            <property name="use_action_appearance">False</property>
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="receives_default">True</property>
@@ -280,30 +332,5 @@
         <property name="position">2</property>
       </packing>
     </child>
-  </object>
-  <object class="GtkImage" id="img_button_add_both">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="stock">gtk-add</property>
-  </object>
-  <object class="GtkImage" id="img_button_add_phase">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="stock">gtk-goto-last</property>
-  </object>
-  <object class="GtkImage" id="img_button_add_specimen">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="stock">gtk-goto-bottom</property>
-  </object>
-  <object class="GtkImage" id="img_optimize">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="stock">gtk-find</property>
-  </object>
-  <object class="GtkImage" id="img_refine">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="stock">gtk-find-and-replace</property>
   </object>
 </interface>

@@ -75,9 +75,12 @@ class Component(ChildModel, ObjectListStoreChildMixin, Storable):
     def get_data_linked_with_value(self): return self._data_linked_with
     def set_data_linked_with_value(self, value):
         if value != self._data_linked_with:
+            if self._data_linked_with != None:
+                self.relieve_model(self._data_linked_with)
             self._data_linked_with = value
             self.dirty = True
             if self._data_linked_with==None:
+                self.observe_model(self._data_linked_with)
                 for prop in self.__inheritables__:
                     setattr(self, prop.replace("data_", "inherit_", 1), False)
             
@@ -148,6 +151,10 @@ class Component(ChildModel, ObjectListStoreChildMixin, Storable):
     # ------------------------------------------------------------
     #      Notifications of observable properties
     # ------------------------------------------------------------
+    @Observer.observe("dirty", assign=True)
+    def notify_dirty_changed(self, model, prop_name, info):
+        if model.dirty: self.dirty = True
+        pass
     
     # ------------------------------------------------------------
     #      Input/Output stuff
@@ -259,7 +266,7 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
         self.needs_update.emit()
     
     based_on_observer = None
-    class BasedOnObserver(Observer): #FIXME MOVE THIS DOWN!
+    """class BasedOnObserver(Observer): #FIXME MOVE THIS DOWN!
         phase = None
         
         def __init__(self, phase, *args, **kwargs):
@@ -273,16 +280,14 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
             if model == self.phase.data_based_on: #this check is not 100% neccesary, but it can't hurt either
                 self.phase.data_based_on = None
                 for component in self.phase.data_components:
-                    component.data_linked_with = None
+                    component.data_linked_with = None"""
                 
     _based_on_index = None #temporary property
     _data_based_on = None
     def get_data_based_on_value(self): return self._data_based_on
     def set_data_based_on_value(self, value):
-        if self.based_on_observer == None:
-            self.based_on_observer = Phase.BasedOnObserver(self)
-        elif self._data_based_on is not None:
-            self.based_on_observer.relieve_model(self._data_based_on)
+        if self._data_based_on is not None:
+            self.relieve_model(self._data_based_on)
         if value == None or value.get_based_on_root() == self or value.parent != self.parent:
             value = None
         if value != self._data_based_on:
@@ -290,7 +295,7 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
             for component in self.data_components._model_data:
                 component.data_linked_with = None
         if self._data_based_on is not None:
-            self.based_on_observer.observe_model(self._data_based_on)
+            self.observe_model(self._data_based_on)
         self.dirty = True
         self.needs_update.emit()
     def get_based_on_root(self):

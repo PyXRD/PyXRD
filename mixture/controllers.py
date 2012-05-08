@@ -157,7 +157,11 @@ class EditMixtureController(ChildController):
             try: self.model.data_fractions[index] = float(editable.get_text())
             except ValueError: pass #ignore ValueErrors
         
-        self.view.add_column(self.model.parent.data_phases, on_label_changed, on_fraction_changed, self.on_combo_changed, label=self.model.data_phases[index], fraction=self.model.data_fractions[index], phases=self.model.data_phase_matrix)
+        def on_phase_delete(widget):
+            self.model._del_phase_by_index(index)
+            widget.disconnect(widget.get_data("deleventid"))
+        
+        self.view.add_column(self.model.parent.data_phases, on_phase_delete, on_label_changed, on_fraction_changed, self.on_combo_changed, label=self.model.data_phases[index], fraction=self.model.data_fractions[index], phases=self.model.data_phase_matrix)
     
     def add_specimen_view(self, index):
         def on_scale_changed(editable):
@@ -169,7 +173,11 @@ class EditMixtureController(ChildController):
             specimen = self.model.parent.data_specimens.get_user_data(itr) if itr!=None else None
             self.model.data_specimens[index] = specimen
         
-        self.view.add_row(self.model.parent.data_phases, self.model.parent.data_specimens, on_scale_changed, on_specimen_changed, self.on_combo_changed, scale=self.model.data_scales[index], specimen=self.model.data_specimens[index], phases=self.model.data_phase_matrix)
+        def on_specimen_delete(widget):
+            self.model._del_specimen_by_index(index)
+            widget.disconnect(widget.get_data("deleventid"))
+        
+        self.view.add_row(self.model.parent.data_phases, self.model.parent.data_specimens, on_specimen_delete, on_scale_changed, on_specimen_changed, self.on_combo_changed, scale=self.model.data_scales[index], specimen=self.model.data_specimens[index], phases=self.model.data_phase_matrix)
     
     # ------------------------------------------------------------
     #      Notifications of observable properties

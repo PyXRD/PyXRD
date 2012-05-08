@@ -155,13 +155,15 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         self.has_changed.emit()
         return m
 
-    def del_phase(self, phase_name):
-        index = self.data_phases.index(phase_name)
+    def _del_phase_by_index(self, index):
         del self.data_phases[index]
         del self.data_fractions[index]
         self.data_phase_matrix = np.delete(self.data_phase_matrix, index, axis=1)
         self.update_refinement_treestore()
-        self.has_changed.emit()
+        self.needs_reset.emit()
+
+    def del_phase(self, phase_name):
+        self._del_phase_by_index(self.data_phases.index(phase_name))
     
     def add_specimen(self, specimen, scale):
         index = len(self.data_specimens)
@@ -173,12 +175,14 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         self.has_changed.emit()
         return n
 
-    def del_specimen(self, specimen):
-        index = self.data_specimens.index(specimen)
+    def _del_specimen_by_index(self, index):
         del self.data_specimens[index]
         del self.data_scales[index]
         self.data_phase_matrix = np.delete(self.data_phase_matrix, index, axis=0)
         self.needs_reset.emit()
+
+    def del_specimen(self, specimen):
+        self._del_specimen_by_index(self.data_specimens.index(specimen))
     
     #@print_timing
     def optimize(self, silent=False):
@@ -193,7 +197,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         calculated = [None]*n
         experimental = [None]*n
         selectors = [None]*n
-        todeg = 180.0 / pi
+        todeg = 360.0 / pi
         for i in range(n):
             phases = self.data_phase_matrix[i]
             specimen = self.data_specimens[i]
@@ -218,9 +222,8 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
                 calc = scales[i] * np.sum(calculated[i]*fractions, axis=0)
                 exp = experimental[i][selectors[i]]
                 cal = calc[selectors[i]]
-                #print cal.shape
-                Rp = Statistics._calc_Rp(exp, cal)
-                tot_Rp += Rp
+                Rp,R2 = Statistics._calc_RpR2(exp, cal)
+                tot_Rp += abs(R2) + Rp
             return tot_Rp
         
         x0 = np.array(self.data_fractions + self.data_scales)
@@ -239,6 +242,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         #rescale them so they fit into [0-1] range:
         fractions = np.array(lastx[:m])
         scales = np.array(lastx[-n:])
+                
         sum_frac = np.sum(fractions)
         fractions /= sum_frac
         scales *= sum_frac

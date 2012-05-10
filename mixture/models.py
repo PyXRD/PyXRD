@@ -75,7 +75,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         
         #2D matrix, rows match specimens, columns match mixture 'phases'; contains the actual phase objects
         if phase_indeces and self.parent != None:
-            self.data_phase_matrix = np.array([[self.parent.data_phases.get_user_data_from_index(index) if index!=-1 else None for index in row] for row in phase_indeces])
+            self.data_phase_matrix = np.array([[self.parent.data_phases.get_user_data_from_index(index) if index!=-1 else None for index in row] for row in phase_indeces], dtype=np.object_)
         else:
             self.data_phase_matrix = np.empty(shape=(0,0), dtype=np.object_)
             
@@ -102,6 +102,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
     #      Input/Output stuff
     # ------------------------------------------------------------   
     def json_properties(self):
+        self.update_refinement_treestore()
         retval = Storable.json_properties(self)
         
         if self.parent==None:
@@ -149,8 +150,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         self.data_phases.append(phase_name)
         self.data_fractions.append(fraction)
         n, m = self.data_phase_matrix.shape
-        self.data_phase_matrix.resize((n,m+1))
-        self.data_phase_matrix[:,m] = None
+        self.data_phase_matrix = np.concatenate([self.data_phase_matrix.copy(), [[None,] for n in range(n)]], axis=1)        
         self.update_refinement_treestore()
         self.has_changed.emit()
         return m
@@ -170,7 +170,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         self.data_specimens.append(specimen)
         self.data_scales.append(scale)
         n, m = self.data_phase_matrix.shape
-        self.data_phase_matrix.resize((n+1,m))
+        self.data_phase_matrix = np.concatenate([self.data_phase_matrix.copy(), [[None]*m] ], axis=0)
         self.data_phase_matrix[n,:] = None
         self.has_changed.emit()
         return n

@@ -212,7 +212,6 @@ class EditComponentController(ChildController, HasObjectTreeview):
                 combo.add_attribute(cell, 'text', tv_model.c_data_name)
                 for row in tv_model:
                     if tv_model.get_user_data(row.iter) == self.model.data_linked_with:
-                        print "Found linked with: %s" % row
                         combo.set_active_iter (row.iter)
                         break
             else:
@@ -226,13 +225,12 @@ class EditComponentController(ChildController, HasObjectTreeview):
                 elif name == "data_linked_with":
                     self.reset_combo_box()
                 elif name.find("inherit") is not -1:
-                    print name
                     self.adapt(name)
                 elif name in ("data_layer_atoms", "data_interlayer_atoms"):
                     self.view.set_layer_view(self.layer_view.get_top_widget())
                     self.view.set_interlayer_view(self.interlayer_view.get_top_widget())
                     pass
-                elif not name in ("data_all_atoms", "parent", "added", "removed", "needs_update", "dirty"):
+                elif not name in ("data_all_atoms", "parent", "added", "removed", "needs_update", "dirty", "P_dirty", "F_dirty"):
                     FloatEntryValidator(self.view["component_%s" % name])
                     self.adapt(name)
             self.update_sensitivities()

@@ -170,17 +170,22 @@ class ObjectListStore(_BaseObjectListStore, Storable):
     def remove(self, itr):
         self.remove_item(self.get_user_data(itr))
     def remove_item(self, item):
-        path = (self._model_data.index(item),)
-        self._model_data.remove(item)
+        self.__remove_item_index(item, self._model_data.index(item))
+    def __remove_item_index(self, item, index):
+        del self._model_data[index]
         if hasattr(item, "__list_store__"):
             item.__list_store__ = None
         self.emit('item-removed', item)
-        self.row_deleted(path)
+        self.row_deleted((index,))
 
-    def clear(self):
+    def clear(self, callback=None):
         data = list(self._model_data) #make a copy
-        for item in data:
-            self.remove_item(item)
+        def reverse_enum(L):
+           for index in reversed(xrange(len(L))):
+              yield index, L[index]
+        for i, item in reverse_enum(data):
+            self.__remove_item_index(item, i)
+            if callable(callback): callback(item)
 
     def on_item_changed(self, item):
         itr = self.create_tree_iter(item)
@@ -290,10 +295,8 @@ class IndexListStore(ObjectListStore):
         ObjectListStore.remove_item(self, item)
 
     def clear(self):
-        for item in self._model_data:
-            self._item_observer.relieve_model(item)
         self._index.clear()
-        ObjectListStore.clear(self)
+        ObjectListStore.clear(self, self._item_observer.relieve_model)
        
     def item_in_model(self, item):
         return (getattr(item, self._index_column_name) in self._index)
@@ -438,32 +441,36 @@ class XYListStore(_BaseObjectListStore, Storable):
         itr = self.get_iter(path)
         self.row_inserted(path, itr)
 
-    def remove_from_path(self, *paths):
-        paths = np.sort(paths)[::-1]
-        for path in paths:
-            index = int(path)
-            self.emit('item-removed', (self._model_data_x[index], self._model_data_y[index]))
-            self._model_data_x = np.delete(self._model_data_x, index)
-            self._model_data_y = np.delete(self._model_data_y, index)
-            self.row_deleted((index,))
+    def remove_from_index(self, *indeces):
+        if indeces != []:
+            indeces = np.sort(indeces)[::-1]
+            for index in indeces:
+                self.emit('item-removed', (self._model_data_x[index], self._model_data_y[index]))
+                self._model_data_x = np.delete(self._model_data_x, index)
+                self._model_data_y = np.delete(self._model_data_y, index)
+                self.row_deleted((index,))
 
     def remove(self, itr):
         path = self.get_path(itr)
-        self.remove_from_path(path)
+        self.remove_from_index(path[0])
 
     def clear(self):
-        self.remove_from_path(*map(lambda i: (i,), range(self._model_data_x.shape[0])))
-        #self._model_data_x = np.array([])
-        #self._model_data_y = np.array([])
-        #self.invalidate_iters()
+        if self._model_data_x.shape[0] > 0:
+            self.remove_from_index(*range(self._model_data_x.shape[0]))              
         
     def set_from_data(self, data_x, data_y):
-        self.remove_from_path(*map(lambda i: (i,), range(self._model_data_x.shape[0])))
+        self.clear()
         self._model_data_x = np.array(data_x)
         self._model_data_y = np.array(data_y)
         for pos in range(self._model_data_x.shape[0]):
             self._emit_added((pos,))
-        #self.invalidate_iters()
+        
+    def update_from_data(self, data_x, data_y):
+        if data_x.shape == self._model_data_x.shape and data_y.shape == self._model_data_y.shape:
+            self._model_data_x = data_x
+            self._model_data_y = data_y
+        else:
+            self.set_from_data(data_x, data_y)
         
     def get_raw_model_data(self):
         return self._model_data_x, self._model_data_y

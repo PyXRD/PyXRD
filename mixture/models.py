@@ -193,7 +193,6 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         #         t the number of data points for that specimen
         n, m = self.data_phase_matrix.shape
                 
-        #t1 = time.time()
         calculated = [None]*n
         experimental = [None]*n
         selectors = [None]*n
@@ -205,30 +204,24 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
             calculated[i] = calc.copy()
             experimental[i] = specimen.data_experimental_pattern.xy_data._model_data_y.copy()
             selectors[i] = specimen.get_exclusion_selector(theta_range*todeg)
-        #t2 = time.time()
-        #print '%s took %0.3f ms' % ("Getting phase intensities", (t2-t1)*1000.0)
                 
                 
         #2 optimize the fractions
-        def calculate_total_R2(fractions_and_scales):
+        def calculate_total_R2(fractions_and_scales, *args):
             tot_Rp = 0.0
-            tot_R2 = 0.0
-            
-            fractions = fractions_and_scales.copy()[:m] #first m numbers are the fractions
-            scales = fractions_and_scales.copy()[-n:] #last n numbers are the scales
-            fractions = fractions[:,np.newaxis]
+            scales = fractions_and_scales[-n:] #last n numbers are the scales
+            fractions = fractions_and_scales[:m][:,np.newaxis]
                        
             for i in range(n):
                 calc = scales[i] * np.sum(calculated[i]*fractions, axis=0)
                 exp = experimental[i][selectors[i]]
                 cal = calc[selectors[i]]
-                Rp,R2 = Statistics._calc_RpR2(exp, cal)
-                tot_Rp += abs(R2) + Rp
+                tot_Rp += Statistics._calc_Rp(exp, cal)
             return tot_Rp
         
         x0 = np.array(self.data_fractions + self.data_scales)
         bounds = [(0,None) for el in x0]
-        method = 0
+        method = 2
         lastx, lastR2 = None, None
         if method == 0: #L BFGS B
             iprint = -1 # if not settings.DEBUG else 0
@@ -236,6 +229,8 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         elif method == 1: #SIMPLEX
             disp = 0
             lastx = scipy.optimize.fmin(calculate_total_R2, x0, disp=disp)
+        elif method == 2: #L BFGS B: FAST WIDE + SLOW NARROW
+            lastx, lastR2 = Mixture.mod_l_bfgs_b(calculate_total_R2, x0, bounds)
         
         #print info
        
@@ -254,6 +249,22 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         if not silent: self.has_changed.emit()
         
         return lastR2   
+       
+    @staticmethod
+    def mod_l_bfgs_b(func, x0, init_bounds, args=[], f1=1e12, f2=10):
+        iprint = -1
+        lastx, lastR2, info = scipy.optimize.fmin_l_bfgs_b(func, x0, approx_grad=True, factr=f1, bounds=init_bounds, args=args, iprint=iprint)
+        lastx = np.array(lastx)        
+        lowerx = lastx*0.95
+        upperx = lastx*1.05
+        bounds = np.zeros(shape=lowerx.shape + (2,))
+        for i, (minx, maxx) in enumerate(init_bounds):
+            maxx = maxx if maxx!=None else upperx[i]
+            minx = minx if minx!=None else lowerx[i]
+            bounds[i, 0] = max(lowerx[i], minx)
+            bounds[i, 1] = min(upperx[i], maxx)
+        lastx, lastR2, info = scipy.optimize.fmin_l_bfgs_b(func, lastx, approx_grad=True, factr=f2, args=args, bounds=bounds, iprint=iprint)
+        return lastx, lastR2
        
     def update_refinement_treestore(self): #TODO add different CSDS distributions!
         unique_phases = np.unique(self.data_phase_matrix.flatten())
@@ -314,47 +325,49 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
                     while gtk.events_pending():
                         gtk.main_iteration(False)
     
+    refine_lock = False
     def refine(self, gui_callback):
-        ref_props = []
-        values = []
-        ranges = tuple()
-    
-        for ref_prop in self.data_refineables._model_data:
-            if ref_prop.refine and ref_prop.refineable:
-                ref_props.append(ref_prop)
-                values.append(ref_prop.value)
-                ranges = ranges + ((ref_prop.value_min, ref_prop.value_max),)
-               
-        original_vals = values
-        x0 = np.array(values, dtype=float)
+        if not self.refine_lock:
+            self.refine_lock = True            
+            ref_props = []
+            values = []
+            ranges = tuple()
         
-        global count
-        count = 0        
-        def refine_func(new_values, gui_callback):
-            for i, ref_prop in enumerate(ref_props):
-                if not (new_values.shape==()):
-                    ref_prop.value = new_values[i]
-                else:
-                    ref_prop.value = new_values[()]
-            R = self.optimize(silent=True)
-              
-            global count
-            count = count + 1
-            if count>=5:
-                count = 0
-                if gui_callback!=None: gui_callback(R)
-                while gtk.events_pending():
-                    gtk.main_iteration(False)
-            return R
+            self.parent.freeze_updates()
+        
+            for ref_prop in self.data_refineables._model_data:
+                if ref_prop.refine and ref_prop.refineable:
+                    ref_props.append(ref_prop)
+                    values.append(ref_prop.value)
+                    ranges = ranges + ((ref_prop.value_min, ref_prop.value_max),)
+                   
+            original_vals = values
+            x0 = np.array(values, dtype=float)
             
-        #1. First brute-force solve the problem:
-        #x0, fval, grid, Jout = scipy.optimize.brute(refine_func, ranges, args=[None,], Ns=5, full_output=True)
-        #print "Brute Force Solution:"
-        #print x0
-        
-        #2. Then really refine this brute force solution using l_bfgs_b algorithm:
-        iprint = -1 # if not settings.DEBUG else 0
-        lastx, lastR2, info = scipy.optimize.fmin_l_bfgs_b(refine_func, x0, args=[gui_callback,], approx_grad=True, factr=1e12, bounds=ranges, iprint=iprint)
+            global count
+            count = 0        
+            def refine_func(new_values, gui_callback):
+                for i, ref_prop in enumerate(ref_props):
+                    if not (new_values.shape==()):
+                        ref_prop.value = new_values[i]
+                    else:
+                        ref_prop.value = new_values[()]
+                R = self.optimize(silent=True)
+                  
+                global count
+                count = count + 1
+                if count>=5:
+                    count = 0
+                    if gui_callback!=None: gui_callback(R)
+                    while gtk.events_pending():
+                        gtk.main_iteration(False)
+                return R
+                
+            lastx, lastR2 = Mixture.mod_l_bfgs_b(refine_func, x0, ranges, args=[gui_callback,], f2=1e6)
+            
+            self.refine_lock = False
+            self.parent.thaw_updates()
+            
         
                     
     def apply_result(self):

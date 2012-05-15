@@ -295,6 +295,10 @@ class XYData(ChildModel, Storable, Observable):
         else:
             return 0
     
+    def update_from_data(self, data_x, data_y):
+        self.xy_data.update_from_data(data_x, data_y)
+        self.update_data()
+    
     def update_data(self, silent=False):
         if len(self.xy_data._model_data_x) > 1:
             
@@ -315,7 +319,7 @@ class XYData(ChildModel, Storable, Observable):
             #    offset *= self.parent.parent.get_max_intensity()
             
             trans = transforms.Affine2D().translate(0, offset)
-            data = trans.transform(np.array(zip(data_x, data_y)))
+            data = trans.transform(np.array([data_x, data_y]).transpose())
             self.line.set_data(np.transpose(data))
             self.line.set_visible(True)
         else:

@@ -23,6 +23,32 @@ from generic.treemodels import ObjectListStore
 from atoms.models import Atom
 from probabilities.models import get_correct_probability_model
 
+
+
+# TODO MOVE THIS SOMEWHERE ELSE
+from numpy.core.umath_tests import matrix_multiply as mmultr
+def mmult(A, B):
+    return np.sum(np.transpose(A,(0,2,1))[:,:,:,np.newaxis]*B[:,:,np.newaxis,:],-3)
+def mdot(A,B):
+    C = np.zeros(shape=A.shape, dtype=np.complex)
+    for i in range(A.shape[0]):
+        C[i] = np.dot(A[i], B[i])
+    return C
+def mtim(A,B):
+    C = np.zeros(shape=A.shape, dtype=np.complex)
+    for i in range(A.shape[0]):
+        C[i] = np.multiply(A[i], B[i])
+    return C
+        
+    
+def solve_division(A,B):
+    bt = np.transpose(B, axes=(0,2,1))
+    at = np.transpose(A, axes=(0,2,1))
+    return np.array([np.transpose(np.linalg.lstsq(bt[i], at[i])[0]) for i in range(bt.shape[0])])
+#END TODO
+
+
+
 class Component(ChildModel, ObjectListStoreChildMixin, Storable):
 
     #MODEL INTEL:
@@ -53,9 +79,12 @@ class Component(ChildModel, ObjectListStoreChildMixin, Storable):
     data_name = "Name of this component"
     
     _dirty = True
-    def get_dirty_value(self): return self._dirty
+    def get_dirty_value(self): return (self._dirty)
     def set_dirty_value(self, value):
-        if value!=self._dirty: self._dirty = value
+        if value!=self._dirty: 
+            self._dirty = value
+            if self._dirty:
+                self._cached_factors = dict()        
     
     _inherit_cell_a = False
     _inherit_cell_b = False
@@ -117,8 +146,9 @@ class Component(ChildModel, ObjectListStoreChildMixin, Storable):
         ChildModel.__init__(self, parent=parent)
         Storable.__init__(self)
         self.needs_update = Signal()
-        self._dirty = True
-        
+        self.dirty = True
+        self._cached_factors = dict()
+                
         self.data_name = data_name or self.data_name
     
         self._data_d001 = data_d001 or self.data_d001
@@ -155,6 +185,7 @@ class Component(ChildModel, ObjectListStoreChildMixin, Storable):
     def notify_dirty_changed(self, model, prop_name, info):
         if model.dirty: self.dirty = True
         pass
+
     
     # ------------------------------------------------------------
     #      Input/Output stuff
@@ -183,16 +214,18 @@ class Component(ChildModel, ObjectListStoreChildMixin, Storable):
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------  
-    def get_structure_factors(self, range_stl):
-        sf_tot = np.zeros(range_stl.shape, dtype=np.complex_)
-        atoms = (self.data_layer_atoms._model_data + self.data_interlayer_atoms._model_data)
-        for atom in atoms:
-            sf_tot += atom.get_structure_factors(range_stl)
-        return sf_tot
-
-    def get_phase_factors(self, range_stl):
-        return np.exp(2*pi*self.data_d001*range_stl*1j)
-
+    def get_factors(self, range_stl):
+        hsh = get_md5_hash(range_stl)
+        if self.dirty or not hsh in self._cached_factors:
+            sf_tot = np.zeros(range_stl.shape, dtype=np.complex_)
+            for atom in self.data_layer_atoms._model_data:
+                sf_tot += atom.get_structure_factors(range_stl)
+            for atom in self.data_interlayer_atoms._model_data:
+                sf_tot += atom.get_structure_factors(range_stl)
+            self._cached_factors[hsh] = sf_tot, np.exp(2*pi*self.data_d001*range_stl*1j)
+            self.dirty = False
+        return self._cached_factors[hsh]
+        
     def get_cell_a(self):
         return self.data_cell_a
         
@@ -249,9 +282,8 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
     def set_dirty_value(self, value):
         if value!=self._dirty:
             self._dirty = value
-            self._cached_diffracted_intensities = dict()
-
-    
+            if self._dirty: self._cached_diffracted_intensities = dict()
+   
     _inherit_mean_CSDS = False
     _inherit_min_CSDS = False
     _inherit_max_CSDS = False
@@ -264,23 +296,6 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
         setattr(self, "_%s" % prop_name, value)
         self.dirty = True
         self.needs_update.emit()
-    
-    based_on_observer = None
-    """class BasedOnObserver(Observer): #FIXME MOVE THIS DOWN!
-        phase = None
-        
-        def __init__(self, phase, *args, **kwargs):
-            self.phase = phase
-            Observer.__init__(self, *args, **kwargs)
-        
-        @Observer.observe("removed", signal=True)
-        def notification(self, model, prop_name, info):
-            #model      = phase that we're observing
-            #self.phase = phase that is observing the model
-            if model == self.phase.data_based_on: #this check is not 100% neccesary, but it can't hurt either
-                self.phase.data_based_on = None
-                for component in self.phase.data_components:
-                    component.data_linked_with = None"""
                 
     _based_on_index = None #temporary property
     _data_based_on = None
@@ -358,7 +373,7 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
         ChildModel.__init__(self, parent=parent)
         Storable.__init__(self)
         self._dirty = True
-        self._cached_diffracted_intensities = dict()
+        self._cached_diffracted_intensities = dict()  
         
         self.needs_update = Signal()
         
@@ -527,36 +542,24 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
             
         return ifs"""
        
-    #@print_timing
+    _cached_CSDS_matrices = None
+    def get_CSDS_matrices(self, Q):
+        Qn = np.empty((self.data_max_CSDS+1,), dtype=object)
+        Qn[1] = np.copy(Q)
+        for n in range(2, int(self.data_max_CSDS+1)):
+            Qn[n] = mmult(Qn[n-1], Q)
+        return Qn
+
+       
     _cached_diffracted_intensities = None
-    def get_diffracted_intensity (self, range_theta, range_stl, lpf_callback, quantity, correction_range):
+    def get_diffracted_intensity (self, range_theta, range_stl, lpf_callback, quantity, correction_range): #TODO CACHE CACHE
         hsh = get_md5_hash(range_theta)
         if self.dirty or not hsh in self._cached_diffracted_intensities:
             #print "for specimen %s" % self
-            from numpy.core.umath_tests import matrix_multiply as mmultr
-            def mmult(A, B):
-                return np.sum(np.transpose(A,(0,2,1))[:,:,:,np.newaxis]*B[:,:,np.newaxis,:],-3)
-            def mdot(A,B):
-                C = np.zeros(shape=A.shape, dtype=np.complex)
-                for i in range(A.shape[0]):
-                    C[i] = np.dot(A[i], B[i])
-                return C
-            def mtim(A,B):
-                C = np.zeros(shape=A.shape, dtype=np.complex)
-                for i in range(A.shape[0]):
-                    C[i] = np.multiply(A[i], B[i])
-                return C
-                    
-                
-            def solve_division(A,B):
-                bt = np.transpose(B, axes=(0,2,1))
-                at = np.transpose(A, axes=(0,2,1))
-                return np.array([np.transpose(np.linalg.lstsq(bt[i], at[i])[0]) for i in range(bt.shape[0])])
-
+            
             stl_dim = range_stl.shape[0]
-            def repeat_to_stl(arr):
-                return np.repeat(arr[np.newaxis,...], stl_dim, axis=0)
-           
+            repeat_to_stl = lambda arr: np.repeat(arr[np.newaxis,...], stl_dim, axis=0)
+            
             #Get interference (log-normal) distribution:
             distr, ddict, real_mean = self._update_interference_distributions()
             
@@ -566,7 +569,7 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
             W = repeat_to_stl(W).astype(np.complex_)
             P = repeat_to_stl(P).astype(np.complex_)
             G = self.data_G
-            
+
             #get structure factors and phase factors for individual components:
             #        components
             #       .  .  .  .  .  .
@@ -576,17 +579,16 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
             shape = range_stl.shape + (G,)
             SF = np.zeros(shape, dtype=np.complex_)
             PF = np.zeros(shape, dtype=np.complex_)
+            t1 = time.time() #FIXME
             for i, component in enumerate(self.data_components._model_data):
-                SF[:,i] = component.get_structure_factors(range_stl)
-                PF[:,i] = component.get_phase_factors(range_stl)
-                component.dirty = False
-            
+                SF[:,i], PF[:,i] = component.get_factors(range_stl)
+            t2 = time.time() #FIXME
             intensity = np.zeros(range_stl.size, dtype=np.complex_)
             first = True
 
             rank = P.shape[1]
             reps = rank / G
-             
+                        
             #Create Phi & F matrices:        
             SFa = np.repeat(SF[...,np.newaxis,:], SF.shape[1], axis=1)
             SFb = np.transpose(np.conjugate(SFa), axes=(0,2,1)) #np.conjugate(np.repeat(SF[...,np.newaxis], SF.shape[1], axis=2)) 
@@ -599,15 +601,13 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
                               
             #Calculate the intensity:
             method = 0
+
+            t3 = time.time() #FIXME
+            Qn = self.get_CSDS_matrices(Q)
+            t4 = time.time() #FIXME
                 
             if method == 0:
                 ################### FIRST WAY ###################                 
-                
-                Qn = np.empty((self.data_max_CSDS+1,), dtype=object)
-                Qn[1] = np.copy(Q)
-                for n in range(2, int(self.data_max_CSDS+1)):
-                    Qn[n] = mmult(Qn[n-1], Q)
-                      
                 SubTotal = np.zeros(Q.shape, dtype=np.complex)
                 CSDS_I = repeat_to_stl(np.identity(rank, dtype=np.complex) * real_mean)
                 for n in range(1, int(self.data_max_CSDS)+1):
@@ -624,11 +624,6 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
                 I = repeat_to_stl(np.identity(rank))
                 CSDS_I = repeat_to_stl(np.identity(rank, dtype=np.complex_) * real_mean)
                       
-                Qn = np.empty((self.data_max_CSDS+1,), dtype=object)
-                Qn[1] = np.copy(Q)
-                for n in range(2, int(self.data_max_CSDS+1)):
-                    Qn[n] = mmult(Qn[n-1], Q)
-                      
                 IQ = (I-Q)
                 IIQ = solve_division(I, IQ)
                 IIQ2 = solve_division(I, mmult(IQ,IQ))
@@ -637,10 +632,17 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
                     R = (I + 2*Q*IIQ + (2 / n) * (Qn[n+1]-Q) * IIQ2) * ddict[n]
                     intensity += np.real(np.trace(mmult(mmult(F, W), R), axis1=2, axis2=1))
                 
+            t5 = time.time() #FIXME    
             lpf = lpf_callback(range_theta, self.data_sigma_star)
+            t6 = time.time() #FIXME
+            
             scale = self.get_absolute_scale() * quantity
             self.dirty = False
             self._cached_diffracted_intensities[hsh] = intensity * correction_range * scale * lpf
+            
+            t7 = time.time()
+            #print '%s took %0.3f ; %0.3f ; %0.3f ; %0.3f ; %0.3f ; %0.3f' % ("get_phase_intensities", (t2-t1)*1000.0, (t3-t2)*1000.0, (t4-t3)*1000.0, (t5-t4)*1000.0, (t6-t5)*1000.0, (t7-t6)*1000.0)
+
         return self._cached_diffracted_intensities[hsh]
 
     def get_absolute_scale(self):

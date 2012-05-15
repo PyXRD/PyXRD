@@ -216,12 +216,11 @@ class Project(Model, Observable, Storable):
                 if mixture.auto_run: 
                     mixture.optimize()
                     mixture.apply_result()
+            t2 = time.time()
+            print '%s took %0.3f ms' % ("before_needs_update", (t2-t1)*1000.0)            
             for specimen in self.data_specimens._model_data:
                 specimen.calculate_pattern(self.data_goniometer.get_lorentz_polarisation_factor)
-                specimen.statistics.update_statistics()
             after()
-            t2 = time.time()
-            print '%s took %0.3f ms' % ("before_needs_update", (t2-t1)*1000.0)
             self.before_needs_update_lock = False
 
     # ------------------------------------------------------------
@@ -279,6 +278,12 @@ class Project(Model, Observable, Storable):
     #      Methods & Functions
     # ------------------------------------------------------------ 
    
+    def freeze_updates(self):
+        self.before_needs_update_lock = True
+
+    def thaw_updates(self):
+        self.before_needs_update_lock = False
+           
     def get_max_intensity(self):
         max_intensity = 0
         for specimen in self.data_specimens._model_data:

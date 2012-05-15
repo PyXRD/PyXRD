@@ -351,45 +351,40 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
 
     def get_phase_intensities(self, phases, lpf_callback, steps=2500):
         if phases!=None:
-            #todo part of these things should be calculated in the Goniometer and only changed when needed (e.g. the normal range)
+        
             l = self.parent.data_goniometer.data_lambda
             L_Rta =  self.data_sample_length / (self.parent.data_goniometer.data_radius * tan(radians(self.parent.data_goniometer.data_divergence)))
             min_theta = radians(self.parent.data_goniometer.data_min_2theta*0.5)
             max_theta = radians(self.parent.data_goniometer.data_max_2theta*0.5)
             delta_theta = float(max_theta - min_theta) / float(steps-1)
-            
             theta_range = None
             torad = pi / 180.0
             if self.data_experimental_pattern.xy_data._model_data_x.size <= 1:
                 theta_range = min_theta + delta_theta * np.array(range(0,steps-1), dtype=float)
             else:
-                theta_range =  self.data_experimental_pattern.xy_data._model_data_x * torad / 2
+                theta_range =  self.data_experimental_pattern.xy_data._model_data_x * torad * 0.5
             stl_range = 2 * np.sin(theta_range) / l
             
-            #sample length correction array:
-            correction_range =  np.minimum(np.sin(theta_range) * L_Rta, 1)
-            
+            correction_range = np.minimum(np.sin(theta_range) * L_Rta, 1)
+
             return theta_range, np.array([phase.get_diffracted_intensity(theta_range, stl_range, lpf_callback, 1.0, correction_range) if phase else np.zeros(shape=theta_range.shape) for phase in phases], dtype=np.float_)
 
 
-    # declare the @ decorator just before the function, invokes print_timing()
     #@print_timing
     def calculate_pattern(self, lpf_callback, steps=2500):
         if len(self._data_phases) == 0:
             self.data_calculated_pattern.xy_data.clear()
             return None
-        else:           
+        else:     
+                    
             theta_range, intensities = self.get_phase_intensities(self._data_phases.keys(), lpf_callback, steps=steps)
             intensity_range = np.zeros(len(intensities[0]))
             
             fractions = np.array(self._data_phases.values())[:,np.newaxis]
             intensity_range = np.sum(intensities*fractions, axis=0) * self.data_abs_scale
+            theta_range = theta_range * 360.0 / pi 
             
-            self.data_calculated_pattern.clear(update=False) #FIXME this should be done in ONE single call instead of 3 (see further)
-            
-            theta_range = theta_range * 2 * 180.0 / pi 
-            self.data_calculated_pattern.xy_data.set_from_data(theta_range, intensity_range)
-            self.data_calculated_pattern.update_data()
+            self.data_calculated_pattern.update_from_data(theta_range, intensity_range)
 
             return (theta_range, intensity_range)
         

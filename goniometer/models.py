@@ -94,11 +94,14 @@ class Goniometer(Model, Observable, Storable):
         return self._S, self._S1S2
        
     def get_lorentz_polarisation_factor(self, range_theta, ss):
+        t1 = time.time()
         ss = max(ss, 0.0000000000001)
         S, S1S2 = self.get_S()
 
         Q = S / (sqrt8 * np.sin(range_theta) * ss)
         T = erf(Q) * sqrt2pi / (2.0*ss * S) - 2.0*np.sin(range_theta) * (1.0- np.exp(-(Q**2.0))) / (S**2.0)
+        t2 = time.time()
+        #print '%s took %0.3f ms' % ("get_lorentz_polarisation_factor", (t2-t1)*1000.0)
         return (1.0 + np.cos(2.0*range_theta)**2) * T / np.sin(range_theta)
        
     def get_nm_from_t(self, theta):

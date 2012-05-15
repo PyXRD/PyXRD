@@ -87,6 +87,7 @@ class R0R1R2IndependentsView(BaseView, HasChildView, AbstractProbabilityView):
                 
                 new_lbl = gtk.Label(lbl % { "i": i })
                 new_lbl.set_use_markup(True)
+                new_lbl.set_property('justify', gtk.JUSTIFY_CENTER)
                 label_widgets[i] = new_lbl
                 
                 new_inp = gtk.Entry()
@@ -150,6 +151,7 @@ class BaseMatrixView(BaseView, HasChildView, AbstractProbabilityView):
             for j in range(num):
                 new_lbl = gtk.Label("")
                 new_lbl.set_tooltip_markup(tooltip(i,j))
+                new_lbl.set_property('justify', gtk.JUSTIFY_CENTER)
                 table.attach(new_lbl, j, j+1, i, i+1, xpadding=5, ypadding=5)
                 labels[i][j] = new_lbl
                 del new_lbl

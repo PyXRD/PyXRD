@@ -316,44 +316,13 @@ class R1G3Model(_AbstractR0R1Model):
 	"""
 	Reichweite = 1 / Components = 3
 	g*(g-1) independent variables = 6
-	W0 & P00 (W0<0,5) of P11 (W0>0,5)
-	W1/(W2+W1) = G1
-	
-	(W11+W12) / (W11+W12+W21+W22) = G2
+    W0 & P00 (W0<0,5) of P11 (W0>0,5)
+    W1/(W2+W1) = G1
+    
+    (W11+W12) / (W11+W12+W21+W22) = G2
 
-	W11/(W11+W12) = G3
-	W21/(W21+W22) = G4
-	
-	W1 = (1 – W0) * W1 / (W1+W2) = (1 – W0) * G1
-	W2 = 1 – W0 – W1
-	
-	Als W0 < 0,5 (P00 gegeven):
-		W00 = P00*W0
-		
-		W11 = (W0-W1-W2-W00) * G3 * G2
-		P11 = W11 / W1
-		
-	Als W0 > 0,5 (P11 gegeven):
-		W11 = P11*W1
-
-	W12 = W11 * (1-G3)
-	P12 = W12/W1 (= P11 * (1–G3))
-	
-	W10 = W1 – W12 – W11 (= W1 – W11/G3)
-	P10 = W10/W1
-	
-	W21 = G4 * (1-G2)*(W11+W12)
-	P21 = W21/W2
-
-	W22 = (1 – G4) * W21
-	P22 = W22/W2
-	
-	W20 = W2 – W21 - W22
-	P20 = W20/W2
-	
-	P00 = 1 – P10 – P20
-	P01 = 1 – P11 – P21
-	P02 = 1 – P21 – P22
+    W11/(W11+W12) = G3
+    W21/(W21+W22) = G4
 		
 	indexes are NOT zero-based in external property names!
 	"""
@@ -362,10 +331,10 @@ class R1G3Model(_AbstractR0R1Model):
     __independent_label_map__ = [
         ("W1", "W<sub>1</sub>"),
         ("P11_or_P22", "P<sub>11</sub> or P<sub>22</sub>"),
-        ("G1", "W<sub>2</sub> / (W<sub>3</sub> + W<sub>2</sub>)"),
-        ("G2", "(W<sub>22</sub> + W<sub>23</sub>) / (W<sub>22</sub> + W<sub>23</sub> + W<sub>32</sub> + W<sub>33</sub>)"),
-        ("G3", "W<sub>22</sub> / (W<sub>22</sub> + W<sub>23</sub>)"),
-        ("G4", "W<sub>32</sub> / (W<sub>32</sub> + W<sub>33</sub>)"),
+        ("G1", "W<sub>2</sub>\n<s>             </s>\n(W<sub>3</sub> + W<sub>2</sub>)"),
+        ("G2", "(W<sub>22</sub>+W<sub>23</sub>)\n<s>                       </s>\n(W<sub>22</sub>+W<sub>23</sub>+W<sub>32</sub>+W<sub>33</sub>)"),
+        ("G3", "W<sub>22</sub>\n<s>               </s>\n(W<sub>22</sub> + W<sub>23</sub>)"),
+        ("G4", "W<sub>32</sub>\n<s>               </s>\n(W<sub>32</sub> + W<sub>33</sub>)"),  
     ]
     __refineables__ = [ prop for prop, lbl in  __independent_label_map__ ]
     __observables__ = __refineables__
@@ -410,12 +379,16 @@ class R1G3Model(_AbstractR0R1Model):
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------       
-    def setup(self, W1=0.25, P11_or_P22=0.5):
+    def setup(self, W1=0.6, P11_or_P22=0.3, G1=0.5, G2=0.2, G3=0.5, G4=0.2):
         self._R = 0
         self._W = np.zeros(shape=(3), dtype=float)
         self._P = np.zeros(shape=(3, 3), dtype=float)
         self.W1 = W1
         self.P11_or_P22 = P11_or_P22
+        self.G1 = G1
+        self.G2 = G2
+        self.G3 = G3
+        self.G4 = G4                
 
     # ------------------------------------------------------------
     #      Methods & Functions
@@ -424,37 +397,39 @@ class R1G3Model(_AbstractR0R1Model):
     def update(self):    
         #temporary storage:
         WW = np.matrix(np.zeros(shape=(3,3), dtype=float))
+        
+        G2inv =  ( 1.0 / self._G2) - 1.0 if self._G2 > 0 else 0.0
+        G3inv =  ( 1.0 / self._G3) - 1.0 if self._G3 > 0 else 0.0
+        G4inv =  ( 1.0 / self._G4) - 1.0 if self._G4 > 0 else 0.0
+        
              
-        self._W[1]   = (1.0 - self._W[0]) * self._G1
+        self._W[1] = (1-self._W[0]) * self._G1
     	self._W[2]   = 1.0 - self._W[0] - self._W[1]
-	
-	    if self._W[0] <= 0.5:
-	        WW[0,0]         = self._P[0,0]*self._W[0]
-	        
-	        WW[1,1]         = (self._W[0] - self._W[1] - self._W[2] - WW[0,0]) * self._G3 * self._G2
-	        self._P[1,1]    = WW[1,1] / self._W[1]
-	    else:
-	        WW[1,1]         = self._P[1,1]*self._W[1]
-	        
-        WW[1,2]         = WW[1,1] * (1.0-self._G3)
-        self._P[1,2]    = WW[1,2] / self._W[1]
+    	
+    	if self._W[0] < 0.5:
+    	    self._P[1,1] =  self._G2 * self._G3 * (self._W[0]*(self._P[0,0]-1) + self._W[1] + self._W[2]) / self._W[1]
+    	
+    	WW[1,1] = self._P[1,1] * self._W[1]
+    	WW[1,2] = WW[1,1] * G3inv
+    	WW[2,1] = self._G4 * G2inv * (WW[1,1] + WW[2,1])
+    	WW[2,2] = G4inv * WW[2,1]
+    	
+    	self._P[1,2] = WW[1,2] / self._W[1]
+    	self._P[1,0] = 1 - self._P[1,1] - self._P[1,2]
+    	
+    	self._P[2,1] = WW[2,1] / self._W[2]
+    	self._P[2,2] = WW[2,2] / self._W[2]
+    	self._P[2,0] = 1 - self._P[2,1] - self._P[2,2]
 
-        WW[1,0]         = self._W[1] - WW[1,2] - WW[1,1]
-        self._P[1,0]    = WW[1,0] / self._W[1]        
-		
-		WW[2,1]         = self._G4 * (1.0 - self._G2) * (WW[1,1] + WW[1,2])
-		self._P[2,1]    = WW[2,1] / self._W[2]
-
-		WW[2,2]         = (1.0 - self._G4) * WW[2,1]
-		self._P[2,2]    = WW[2,2]/self._W[2]
-		
-		WW[2,0]         = self._W[2] - WW[2,1] - WW[2,2]
-		self._P[2,0]    = WW[2,0]/self._W[2]
-		
-		self._P[0,0]    = 1.0 - self._P[1,0] - self._P[2,0]
-		self._P[0,1]    = 1.0 - self._P[1,1] - self._P[2,1]
-		self._P[0,2]    = 1.0 - self._P[2,1] - self._P[2,2]
-    
+    	self._P[0,1] = (self._W[1] - WW[1,1] - WW[2,1]) / self._W[0]
+    	self._P[0,2] = (self._W[2] - WW[1,2] - WW[2,2]) / self._W[0]
+    	if self._W[0] >= 0.5:
+        	self._P[0,0] = 1 - self._P[0,1] - self._P[0,2]
+        
+        for i in range(3):
+            for j in range(3):
+                WW[i,j] = self._W[i] * self._P[i,j]
+                
         self.updated.emit()
     
     pass #end of class

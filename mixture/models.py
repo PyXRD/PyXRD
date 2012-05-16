@@ -29,6 +29,8 @@ from generic.utils import print_timing, delayed
 from generic.models import ChildModel, ObjectListStoreChildMixin, Storable
 from generic.treemodels import IndexListStore
 
+from mixture.genetics import run_genetic_algorithm
+
 class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
     #MODEL INTEL:
     __observables__ = ["has_changed", "needs_reset", "data_name", "data_refineables", "auto_run"]
@@ -334,7 +336,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
             ranges = tuple()
         
             self.parent.freeze_updates()
-        
+            
             for ref_prop in self.data_refineables._model_data:
                 if ref_prop.refine and ref_prop.refineable:
                     ref_props.append(ref_prop)
@@ -344,27 +346,37 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
             original_vals = values
             x0 = np.array(values, dtype=float)
             
-            global count
-            count = 0        
-            def refine_func(new_values, gui_callback):
+            def fitness_func(new_values):
                 for i, ref_prop in enumerate(ref_props):
                     if not (new_values.shape==()):
                         ref_prop.value = new_values[i]
                     else:
                         ref_prop.value = new_values[()]
-                R = self.optimize(silent=True)
-                  
-                global count
-                count = count + 1
-                if count>=5:
-                    count = 0
-                    if gui_callback!=None: gui_callback(R)
-                    while gtk.events_pending():
-                        gtk.main_iteration(False)
-                return R
-                
-            lastx, lastR2 = Mixture.mod_l_bfgs_b(refine_func, x0, ranges, args=[gui_callback,], f2=1e6)
+                return self.optimize(silent=True)
             
+            method = 1
+            if method==0: #L BFGS B
+            
+                global count
+                count = 0        
+                def gui_refine_func(new_values, gui_callback):
+                    R = fitness_func(new_values)
+                    global count
+                    count = count + 1
+                    if count>=5:
+                        count = 0
+                        if gui_callback!=None: gui_callback(R)
+                        while gtk.events_pending():
+                            gtk.main_iteration(False)
+                    return R
+                    
+                lastx, lastR2 = Mixture.mod_l_bfgs_b(gui_refine_func, x0, ranges, args=[gui_callback,], f2=1e6)
+                fitness_func(lastx) #apply last one                
+        
+            elif method==1: #GENETIC ALGORITHM
+                lastx = run_genetic_algorithm(ref_prop, x0, ranges, fitness_func, gui_callback)
+                fitness_func(lastx) #apply last one
+                    
             self.refine_lock = False
             self.parent.thaw_updates()
             

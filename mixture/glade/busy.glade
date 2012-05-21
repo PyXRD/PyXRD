@@ -8,7 +8,6 @@
     <property name="window_position">center-on-parent</property>
     <property name="destroy_with_parent">True</property>
     <property name="deletable">False</property>
-    <property name="has_resize_grip">False</property>
     <child>
       <object class="GtkTable" id="table1">
         <property name="visible">True</property>

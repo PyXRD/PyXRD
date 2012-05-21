@@ -90,7 +90,12 @@ class RefinementController(DialogController):
             
             
             for name in self.model.get_properties():
-                pass#TODO
+                if name == "data_refine_method":
+                    ctrl_setup_combo_with_list(self, 
+                        self.view["cmb_data_refine_method"],
+                        "data_refine_method", "_data_refine_methods")
+                else:
+                    pass#TODO
             return
 
     # ------------------------------------------------------------
@@ -134,7 +139,7 @@ class EditMixtureController(ChildController):
             for name in self.model.get_properties():
                 if name == "data_name":
                     self.adapt(name, "mixture_data_name")
-                elif not name in self.model.__have_no_widget__+  ["data_refineables"]:
+                elif not name in self.model.__have_no_widget__+  ["data_refineables", "data_refine_method"]:
                     self.adapt(name)
             self.create_ui()
             return
@@ -168,6 +173,10 @@ class EditMixtureController(ChildController):
             try: self.model.data_scales[index] = float(editable.get_text())
             except ValueError: pass #ignore ValueErrors
 
+        def on_bgs_changed(editable):
+            try: self.model.data_bgshifts[index] = float(editable.get_text())
+            except ValueError: pass #ignore ValueErrors
+
         def on_specimen_changed(combobox):
             itr = combobox.get_active_iter()
             specimen = self.model.parent.data_specimens.get_user_data(itr) if itr!=None else None
@@ -177,7 +186,7 @@ class EditMixtureController(ChildController):
             self.model._del_specimen_by_index(index)
             widget.disconnect(widget.get_data("deleventid"))
         
-        self.view.add_row(self.model.parent.data_phases, self.model.parent.data_specimens, on_specimen_delete, on_scale_changed, on_specimen_changed, self.on_combo_changed, scale=self.model.data_scales[index], specimen=self.model.data_specimens[index], phases=self.model.data_phase_matrix)
+        self.view.add_row(self.model.parent.data_phases, self.model.parent.data_specimens, on_specimen_delete, on_scale_changed, on_bgs_changed, on_specimen_changed, self.on_combo_changed, scale=self.model.data_scales[index], bgs=self.model.data_bgshifts[index], specimen=self.model.data_specimens[index], phases=self.model.data_phase_matrix)
     
     # ------------------------------------------------------------
     #      Notifications of observable properties
@@ -185,7 +194,7 @@ class EditMixtureController(ChildController):
     @Controller.observe("has_changed", signal=True)
     def notif_has_changed(self, model, prop_name, info):
         if not self.chicken_egg:
-            self.view.update_all(self.model.data_fractions, self.model.data_scales)
+            self.view.update_all(self.model.data_fractions, self.model.data_scales, self.model.data_bgshifts)
         
     @Controller.observe("needs_reset", signal=True)
     def notif_needs_reset(self, model, prop_name, info):

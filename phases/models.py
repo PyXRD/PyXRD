@@ -15,7 +15,7 @@ from math import sin, cos, pi, sqrt, exp, radians, log
 
 from scipy.special import erf
 
-from generic.utils import lognormal, sqrt2pi, sqrt8, print_timing, get_md5_hash
+from generic.utils import lognormal, sqrt2pi, sqrt8, print_timing, get_md5_hash, recgetattr, recsetattr
 
 from generic.io import Storable, PyXRDDecoder
 from generic.models import ChildModel, ObjectListStoreChildMixin
@@ -47,21 +47,160 @@ def solve_division(A,B):
     return np.array([np.transpose(np.linalg.lstsq(bt[i], at[i])[0]) for i in range(bt.shape[0])])
 #END TODO
 
+class ComponentRatioFunction(ChildModel, Storable):
+    
+    #MODEL INTEL:
+    __refineables__ = ("data_ratio", )
+    __observables__ = __storables__ = __refineables__ + ("data_sum", "data_prop1", "data_prop2")
+    __parent_alias__ = "component"
+    
+    #SIGNALS:
+    
+    #PROPERTIES:
+    _data_sum = 1.0
+    def get_data_sum_value(self): return self._data_sum
+    def set_data_sum_value(self, value):
+        self._data_sum = float(value)
+        self.update_values()
+    
+    _data_ratio = 0.0
+    def get_data_ratio_value(self): return self._data_ratio
+    def set_data_ratio_value(self, value):
+        self._data_ratio = float(value)
+        self.update_values()
+    
+    _data_prop1 = ""
+    def get_data_prop1_value(self): return self._data_prop1
+    def set_data_prop1_value(self, value):
+        if self._data_prop1:
+            self.remove_observing_method((self._data_prop1,), self.on_prop1_changed)
+        self._data_prop1 = value
+        if self._data_prop1:
+            self.relieve_model(self.parent)
+            self.observe(self.on_prop1_changed, self._data_prop1)
+            self.observe_model(self.parent)    
+    
+    _data_prop2 = ""
+    def get_data_prop2_value(self): return self._data_prop2    
+    def set_data_prop2_value(self, value):
+        if self._data_prop2:
+            self.remove_observing_method((self._data_prop2,), self.on_prop2_changed)
+        self._data_prop2 = value
+        if self._data_prop2:
+            self.relieve_model(self.parent)
+            self.observe(self.on_prop2_changed, self._data_prop2)
+            self.observe_model(self.parent)
+    
+    # ------------------------------------------------------------
+    #      Initialisation and other internals
+    # ------------------------------------------------------------
+    def __init__(self, parent=None):
+        ChildModel.__init__(self, parent=parent)
+        Storable.__init__(self)
+        
+    # ------------------------------------------------------------
+    #      Notifications of observable properties
+    # ------------------------------------------------------------
+    def on_prop1_changed(self, model, prop_name, info):
+        self.update_values()
+    def on_prop2_changed(self, model, prop_name, info):
+        self.update_values()
+        
+    # ------------------------------------------------------------
+    #      Methods & Functions
+    # ------------------------------------------------------------
+    def update_values(self):
+        b = self.data_sum / (1.0 + self.data_ratio)
+        recsetattr(self.component, self._data_prop1, self.data_ratio*b)
+        recsetattr(self.component, self._data_prop2, b)
+        
+    def _set_attr(self, attr, value):
+        attrs = attr.split(".")
+        fa = attrs[0]
+        if fa == "data_layer_atoms":
+            self.component.data_layer_atoms.get_item_by_index(fa[1]).
+                
+        
+        
+    pass #end of class
+
+"""class UnitCellProperty(ChildModel, Storable):
+    
+    #MODEL INTEL:
+    __refineables__ = ("data_ratio", )
+    __observables__ = __storables__ = __refineables__ + ("data_sum", "data_prop", "data_prop2")
+    __parent_alias__ = "component"
+    
+    #SIGNALS:
+    
+    #PROPERTIES:
+    _data_enabled = False
+    
+    _data_value = 1.0
+    
+    _data_factor = 1.0
+    def get_data_sum_value(self): return self._data_sum
+    def set_data_sum_value(self, value):
+        self._data_sum = float(value)
+        self.update_values()
+    
+    _data_constant = 0.0
+    def get_data_ratio_value(self): return self._data_ratio
+    def set_data_ratio_value(self, value):
+        self._data_ratio = float(value)
+        self.update_values()
+    
+    _data_prop = ""
+    def get_data_prop_value(self): return self._data_prop
+    def set_data_prop_value(self, value):
+        if self._data_prop:
+            self.remove_observing_method((self._data_prop,), self.on_prop_changed)
+        self._data_prop = value
+        if self._data_prop:
+            self.relieve_model(self.parent)
+            self.observe(self.on_prop_changed, self._data_prop)
+            self.observe_model(self.parent)
+    
+    # ------------------------------------------------------------
+    #      Initialisation and other internals
+    # ------------------------------------------------------------
+    def __init__(self, parent=None):
+        ChildModel.__init__(self, parent=parent)
+        Storable.__init__(self)
+        
+    # ------------------------------------------------------------
+    #      Notifications of observable properties
+    # ------------------------------------------------------------
+    def on_prop_changed(self, model, prop_name, info):
+        self.update_values()
+        
+    # ------------------------------------------------------------
+    #      Methods & Functions
+    # ------------------------------------------------------------
+    def update_values(self):
+        b = self.data_sum / (1.0 + self.data_ratio)
+        recsetattr(self._data_prop1, self.data_ratio*b)
+        recsetattr(self._data_prop2, b)
+        
+    pass #end of class"""
 
 
 class Component(ChildModel, ObjectListStoreChildMixin, Storable):
 
     #MODEL INTEL:
-    __refineables__ = ("data_d001", "data_cell_a", "data_cell_b",)
+    __refineables__ = ("data_d001", "data_cell_a", "data_cell_b",) #TODO: check for a and b if they are a function!
     __inheritables__ = __refineables__ + ("data_layer_atoms", "data_interlayer_atoms")
     __parent_alias__ = "phase"
     __columns__ = [
         ('data_name', str),
         ('data_linked_with', object),
+        
         ('data_cell_a', float),
         ('inherit_cell_a', bool),
+        
         ('data_cell_b', float),
         ('inherit_cell_b', bool),
+        
         ('data_d001', float),
         ('inherit_d001', bool),
         ('data_layer_atoms', float),
@@ -86,7 +225,7 @@ class Component(ChildModel, ObjectListStoreChildMixin, Storable):
             if self._dirty:
                 self._cached_factors = dict()        
     
-    _inherit_cell_a = False
+    _inherit_cell_a = False 
     _inherit_cell_b = False
     _inherit_d001 = False
     _inherit_layer_atoms = False
@@ -185,7 +324,6 @@ class Component(ChildModel, ObjectListStoreChildMixin, Storable):
     def notify_dirty_changed(self, model, prop_name, info):
         if model.dirty: self.dirty = True
         pass
-
     
     # ------------------------------------------------------------
     #      Input/Output stuff

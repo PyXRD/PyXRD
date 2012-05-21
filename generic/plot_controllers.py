@@ -333,7 +333,6 @@ class DraggableVLine():
         contains, attrd = self.line.contains(event)
         if not contains: return
         x0 = self.line.get_xdata()[0]
-        print 'event contains', x0
         self.press = x0, event.xdata
         DraggableVLine.lock = self
 

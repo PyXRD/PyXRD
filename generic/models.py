@@ -201,6 +201,7 @@ class XYData(ChildModel, Storable, Observable):
     _bg_pattern = None
     def get_bg_pattern_value(self): return self._bg_pattern
     def set_bg_pattern_value(self, value):
+        print "BG PATTERN SET!!"
         self._bg_pattern = value
         self.needs_update.emit()
 
@@ -361,7 +362,7 @@ class XYData(ChildModel, Storable, Observable):
             bg = ((self.bg_pattern * self.bg_scale) + self.bg_position) * yfactor
             self.bg_line = matplotlib.lines.Line2D(xdata=self.xy_data._model_data_x, ydata=bg, c="#660099")
             axes.add_line(self.bg_line)            
-            #print "ADDING BG LINE!!"
+            print "ADDING BG LINE!!"
         else:
             self.bg_line = None
             
@@ -436,7 +437,6 @@ class XYData(ChildModel, Storable, Observable):
     # ------------------------------------------------------------
     def shift_data(self):
         x_data = self.xy_data._model_data_x
-        print self.shift_value
         if self.shift_value != 0.0:
             x_data = x_data - self.shift_value
             self.xy_data._model_data_x = x_data

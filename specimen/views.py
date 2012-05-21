@@ -58,7 +58,7 @@ class BackgroundView(DialogView):
             bg_view = "bg_%s" % bg_view
         else:
             bg_view = self.def_bg_view
-        print self[bg_view], self[self.bg_view_cont]
+        #print self[bg_view], self[self.bg_view_cont]
         self._add_child_view(self[bg_view], self[self.bg_view_cont])
       
 class SmoothDataView(DialogView):

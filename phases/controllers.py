@@ -182,6 +182,8 @@ class EditLayerController(ChildController, HasObjectTreeview):
             self.new_atom_type = None
             return True
         return False
+        
+    pass #end of class
 
 class EditComponentController(ChildController, HasObjectTreeview):
 
@@ -343,6 +345,10 @@ class EditPhaseController(ChildController):
                     cell = gtk.CellRendererText()
                     combo.pack_start(cell, True)
                     combo.add_attribute(cell, 'text', tv_model.c_data_name)
+                    def phase_renderer(celllayout, cell, model, itr, user_data=None):
+                        phase = model.get_user_data(itr)
+                        cell.set_sensitive(phase.data_R == self.model.data_R and phase.data_G == self.model.data_G and phase.get_based_on_root() != self.model)
+                    combo.set_cell_data_func(cell, phase_renderer, None)
 
                     for row in tv_model:
                         if tv_model.get_user_data(row.iter) == self.model.data_based_on:

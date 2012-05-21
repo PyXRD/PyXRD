@@ -102,9 +102,14 @@ class R0R1R2IndependentsView(BaseView, HasChildView, AbstractProbabilityView):
                 
                 del new_inp, new_lbl
             return input_widgets
-        self.i_box = self['i_box']        
-        self.i_table = gtk.Table((N+1)/2,4, True)
-        self.i_inputs = create_inputs(self.i_table)
+        self.i_box = self['i_box']
+        
+        num_rows = (N+1)/2
+        if not num_rows == 0:
+            self.i_table = gtk.Table((N+1)/2,4, True)
+            self.i_inputs = create_inputs(self.i_table)
+        else:
+            self.i_inputs = []
         if len(self.i_inputs)==0:
             self[self.lbl_widget].set_no_show_all(True)
             self[self.sep_widget].set_no_show_all(True)

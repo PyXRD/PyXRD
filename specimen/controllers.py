@@ -131,7 +131,7 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
                     ad = Adapter(self.model, name)
                     ad.connect_widget(self.view["specimen_%s" % name], getter=get_color_val)
                     self.adapt(ad)
-                elif name in ("data_sample_length", "data_abs_scale"):
+                elif name in ("data_sample_length", "data_abs_scale", "data_bg_shift"):
                     FloatEntryValidator(self.view["specimen_%s" % name])
                     self.adapt(name)
                 elif not name in self.model.__have_no_widget__:
@@ -227,14 +227,14 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
         paths = self.get_selected_paths(self.view["experimental_data_tv"])
         if paths != None:
             model = self.model.data_experimental_pattern.xy_data
-            model.remove_from_path(*paths)
+            model.remove_from_index(*paths)
         return True
         
     def on_del_exclusion_ranges_clicked(self, widget):
         paths = self.get_selected_paths(self.view["exclusion_ranges_tv"])
         if paths != None:
             model = self.model.data_exclusion_ranges
-            model.remove_from_path(*paths)
+            model.remove_from_index(*paths)
         return True        
 
     def on_xy_data_cell_edited(self, cell, path, new_text, user_data):
@@ -330,12 +330,9 @@ class BackgroundController(DialogController):
         filename = dialog.get_filename()
         xydata_bg = XYData("Background Profile", color="#660099", parent=self.model.parent)
         if filename[-3:].lower() == "dat":
-            print "Opening file %s for import using ASCII DAT format" % filename
-            data, size, entity = dialog.get_file().load_contents()
-            xydata_bg.load_data(data, format="DAT", silent=True)
+             xydata_bg.load_data(filename, format="DAT", silent=True)
         if filename[-2:].lower() == "rd":
-            print "Opening file %s for import using BINARY RD format" % filename
-            xydata_bg.load_data(filename, format="BIN", silent=True)
+             xydata_bg.load_data(filename, format="BIN", silent=True)
         bg_pattern_x = xydata_bg.xy_data._model_data_x
         bg_pattern_y = xydata_bg.xy_data._model_data_y
         our_x = self.model.xy_data._model_data_x

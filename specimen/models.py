@@ -48,6 +48,7 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
         ('data_sample', str),
         ('data_sample_length', float),
         ('data_abs_scale', float),
+        ('data_bg_shift', float),
         ('display_calculated', bool),
         ('display_experimental', bool),
         ('display_phases', bool),
@@ -113,10 +114,11 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
     
     _data_sample_length = 3.0
     _data_abs_scale = 1.0
-    @Model.getter("data_sample_length", "data_abs_scale")
+    _data_bg_shift = 0.0
+    @Model.getter("data_sample_length", "data_abs_scale", "data_bg_shift")
     def get_data_sample_length_value(self, prop_name):
         return getattr(self, "_%s" % prop_name)
-    @Model.setter("data_sample_length", "data_abs_scale")
+    @Model.setter("data_sample_length", "data_abs_scale", "data_bg_shift")
     def set_data_sample_length_value(self, prop_name, value):
         setattr(self, "_%s" % prop_name, value)
         self.needs_update.emit()
@@ -175,7 +177,7 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def __init__(self, data_name="", data_sample="", data_sample_length=3.0, data_abs_scale=1.0,
+    def __init__(self, data_name="", data_sample="", data_sample_length=3.0, data_abs_scale=1.0, data_bg_shift=0.0,
                  display_calculated=True, display_experimental=True, display_phases=False,
                  data_experimental_pattern = None, data_calculated_pattern = None, data_exclusion_ranges = None, data_markers = None,
                  phase_indeces=None, calc_color=None, exp_color=None, 
@@ -190,6 +192,7 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
         self.data_sample = data_sample
         self.data_sample_length = data_sample_length
         self.data_abs_scale  = data_abs_scale
+        self.data_bg_shift = data_bg_shift
 
         self._calc_color = calc_color or self.calc_color
         self._exp_color = exp_color or self.exp_color
@@ -381,7 +384,7 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
             intensity_range = np.zeros(len(intensities[0]))
             
             fractions = np.array(self._data_phases.values())[:,np.newaxis]
-            intensity_range = np.sum(intensities*fractions, axis=0) * self.data_abs_scale
+            intensity_range = np.sum(intensities*fractions, axis=0) * self.data_abs_scale + self.data_bg_shift
             theta_range = theta_range * 360.0 / pi 
             
             self.data_calculated_pattern.update_from_data(theta_range, intensity_range)

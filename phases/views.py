@@ -46,6 +46,10 @@ class EditComponentView(BaseView, HasChildView):
     interlayer_view = None
     interlayer_view_container = "interlayer_atoms_container"
         
+    def __init__(self, *args, **kwargs):
+        BaseView.__init__(self, *args, **kwargs)
+        
+        
     def set_layer_view(self, view):
         self.layer_view = view
         return self._add_child_view(view, self[self.layer_view_container])

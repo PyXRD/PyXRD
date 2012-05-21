@@ -17,6 +17,13 @@ sqrtpi = sqrt(pi)
 sqrt2pi = sqrt(2*pi)
 sqrt8 = sqrt(8) 
     
+def recgetattr(obj, attr):
+    return reduce(getattr, attr.split("."), obj)
+
+def recsetattr(obj, attr, value):
+    attrs = attr.split(".")
+    setattr(reduce(getattr, attrs[:-1], obj), attrs[-1], value)
+    
 def get_md5_hash(obj):
     hsh = hashlib.md5()
     hsh.update(obj)

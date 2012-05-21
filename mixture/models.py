@@ -26,14 +26,14 @@ from probabilities.models import _AbstractProbability
 from specimen.models import Statistics
 from generic.io import Storable
 from generic.utils import print_timing, delayed
-from generic.models import ChildModel, ObjectListStoreChildMixin, Storable
+from generic.models import ChildModel, ObjectListStoreChildMixin, Storable, add_cbb_props
 from generic.treemodels import IndexListStore
 
 from mixture.genetics import run_genetic_algorithm
 
 class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
     #MODEL INTEL:
-    __observables__ = ["has_changed", "needs_reset", "data_name", "data_refineables", "auto_run"]
+    __observables__ = ["has_changed", "needs_reset", "data_name", "data_refineables", "auto_run", "data_refine_method"]
     __have_no_widget__ = ChildModel.__have_no_widget__ + ["has_changed", "needs_reset"]
     __storables__ = [prop for prop in __observables__ if not prop in ["parent", "has_changed", "needs_reset"] ]
     __columns__ = [
@@ -59,16 +59,21 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
     
     data_specimens = None
     data_scales = None
+    data_bgshifts = None
     
     data_phases = None
     data_fractions = None
 
     data_refineables = None
 
+    _data_refine_method = 0
+    _data_refine_methods = { 0: "L BFGS B algorithm", 1: "Genetic algorithm" }
+    add_cbb_props(("data_refine_method", int, None))
+
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def __init__(self, data_name="New Mixture", auto_run=False, phase_indeces=None, specimen_indeces=None, data_phases=None, data_scales=None, data_fractions=None, data_refineables=None, parent=None):
+    def __init__(self, data_name="New Mixture", auto_run=False, phase_indeces=None, specimen_indeces=None, data_phases=None, data_scales=None, data_bgshifts=None, data_fractions=None, data_refineables=None, data_refine_method=None, parent=None):
         ChildModel.__init__(self, parent=parent)
         self.has_changed = Signal()
         self.needs_reset = Signal()
@@ -87,16 +92,18 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         else:
             self.data_specimens = list()
         
-        self.data_scales = data_scales or list()         #list with scale values, indexes match with rows in phase_matrix 
+        self.data_scales = data_scales or list()         #list with scale values, indexes match with rows in phase_matrix
+        self.data_bgshifts = data_bgshifts or [0.0]*len(self.data_scales)    #list with specimen background shift values, indexes match with rows in phase_matrix        
         self.data_phases = data_phases or list()        #list with mixture phase names, indexes match with cols in phase_matrix
-        self.data_fractions = data_fractions or list()  #list with phase fractions, indexes match with cols in phase_matrix
+        self.data_fractions = data_fractions or [0.0]*len(self.data_phases)  #list with phase fractions, indexes match with cols in phase_matrix
         
         self.data_refineables = data_refineables or IndexListStore(RefineableProperty) 
+        self.data_refine_method = data_refine_method or self.data_refine_method
         
         #sanity check:
         n, m = self.data_phase_matrix.shape
-        if len(self.data_scales) != n or len(self.data_specimens) != n:
-            raise IndexError, "Shape mismatch: scales or specimens lists do not match with row count of phase matrix"
+        if len(self.data_scales) != n or len(self.data_specimens) != n or len(self.data_bgshifts) != n:
+            raise IndexError, "Shape mismatch: scales, background shifts or specimens lists do not match with row count of phase matrix"
         if len(self.data_phases) != m or len(self.data_fractions) != m:
             raise IndexError, "Shape mismatch: fractions or phases lists do not match with column count of phase matrix"
     
@@ -113,8 +120,9 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         retval["phase_indeces"] = [[self.parent.data_phases.index(item) if item else -1 for item in row] for row in map(list, self.data_phase_matrix)]
         retval["specimen_indeces"] = [self.parent.data_specimens.index(specimen) if specimen else -1 for specimen in self.data_specimens]
         retval["data_phases"] = self.data_phases
-        retval["data_scales"] = self.data_scales
         retval["data_fractions"] = self.data_fractions
+        retval["data_bgshifts"] = self.data_bgshifts
+        retval["data_scales"] = self.data_scales
         
         return retval
     
@@ -167,10 +175,11 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
     def del_phase(self, phase_name):
         self._del_phase_by_index(self.data_phases.index(phase_name))
     
-    def add_specimen(self, specimen, scale):
+    def add_specimen(self, specimen, scale, bgs):
         index = len(self.data_specimens)
         self.data_specimens.append(specimen)
         self.data_scales.append(scale)
+        self.data_bgshifts.append(bgs)
         n, m = self.data_phase_matrix.shape
         self.data_phase_matrix = np.concatenate([self.data_phase_matrix.copy(), [[None]*m] ], axis=0)
         self.data_phase_matrix[n,:] = None
@@ -180,11 +189,18 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
     def _del_specimen_by_index(self, index):
         del self.data_specimens[index]
         del self.data_scales[index]
+        del self.data_bgshifts[index]
         self.data_phase_matrix = np.delete(self.data_phase_matrix, index, axis=0)
         self.needs_reset.emit()
 
     def del_specimen(self, specimen):
         self._del_specimen_by_index(self.data_specimens.index(specimen))
+    
+    def _get_x0(self):
+        return np.array(self.data_fractions + self.data_scales + self.data_bgshifts)
+    
+    def _parse_x(self, x, n, m): #returns: fractions | scales | bgshifts
+        return x[:m][:,np.newaxis], x[m:m+n], x[-n:]
     
     #@print_timing
     def optimize(self, silent=False):
@@ -209,19 +225,17 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
                 
                 
         #2 optimize the fractions
-        def calculate_total_R2(fractions_and_scales, *args):
+        def calculate_total_R2(x, *args):
             tot_Rp = 0.0
-            scales = fractions_and_scales[-n:] #last n numbers are the scales
-            fractions = fractions_and_scales[:m][:,np.newaxis]
-                       
+            fractions, scales, bgshifts = self._parse_x(x, n, m)
             for i in range(n):
-                calc = scales[i] * np.sum(calculated[i]*fractions, axis=0)
+                calc = (scales[i] * np.sum(calculated[i]*fractions, axis=0)) + bgshifts[i]
                 exp = experimental[i][selectors[i]]
                 cal = calc[selectors[i]]
                 tot_Rp += Statistics._calc_Rp(exp, cal)
             return tot_Rp
         
-        x0 = np.array(self.data_fractions + self.data_scales)
+        x0 = self._get_x0()
         bounds = [(0,None) for el in x0]
         method = 2
         lastx, lastR2 = None, None
@@ -233,13 +247,13 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
             lastx = scipy.optimize.fmin(calculate_total_R2, x0, disp=disp)
         elif method == 2: #L BFGS B: FAST WIDE + SLOW NARROW
             lastx, lastR2 = Mixture.mod_l_bfgs_b(calculate_total_R2, x0, bounds)
-        
-        #print info
        
-        #rescale them so they fit into [0-1] range:
-        fractions = np.array(lastx[:m])
-        scales = np.array(lastx[-n:])
-                
+        #rescale scales and fractions so they fit into [0-1] range, and round them to have 6 digits max:
+        fractions, scales, bgshifts = self._parse_x(lastx, n, m)
+        fractions = fractions.flatten().round(6).tolist()
+        scales = scales.round(6)
+        bgshifts = bgshifts.round(6)
+        
         sum_frac = np.sum(fractions)
         fractions /= sum_frac
         scales *= sum_frac
@@ -247,6 +261,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         #set model properties:
         self.data_fractions = list(fractions)
         self.data_scales = list(scales)
+        self.data_bgshifts = list(bgshifts)
         
         if not silent: self.has_changed.emit()
         
@@ -354,8 +369,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
                         ref_prop.value = new_values[()]
                 return self.optimize(silent=True)
             
-            method = 1
-            if method==0: #L BFGS B
+            if self.data_refine_method==0: #L BFGS B
             
                 global count
                 count = 0        
@@ -373,8 +387,8 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
                 lastx, lastR2 = Mixture.mod_l_bfgs_b(gui_refine_func, x0, ranges, args=[gui_callback,], f2=1e6)
                 fitness_func(lastx) #apply last one                
         
-            elif method==1: #GENETIC ALGORITHM
-                lastx = run_genetic_algorithm(ref_prop, x0, ranges, fitness_func, gui_callback)
+            elif self.data_refine_method==1: #GENETIC ALGORITHM
+                lastx = run_genetic_algorithm(ref_props, x0, ranges, fitness_func, gui_callback)
                 fitness_func(lastx) #apply last one
                     
             self.refine_lock = False
@@ -386,6 +400,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         for i, specimen in enumerate(self.data_specimens):
             specimen.data_phases.clear()
             specimen.data_abs_scale = self.data_scales[i]
+            specimen.data_bg_shift = self.data_bgshifts[i]
             for j, phase in enumerate(self.data_phases):
                 phase_obj = self.data_phase_matrix[i,j]
                 if phase_obj: specimen.data_phases[phase_obj] = self.data_fractions[j]

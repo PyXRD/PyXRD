@@ -6,42 +6,30 @@
 # To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/3.0/ or send
 # a letter to Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
 
-import gtk
-import gobject
-
 import numpy as np
 
-from collections import deque
-
-from gtkmvc import Observable
-from gtkmvc.model import ListStoreModel, Model, Signal, Observer
-
-import matplotlib  
-from matplotlib.figure import Figure   
-#from matplotlib.axes import Subplot   
-from matplotlib.backends.backend_gtk import FigureCanvasGTK
-
-import json
+from gtkmvc.model import Model
 
 import time
 from scipy.special import erf
 from math import sin, cos, pi, sqrt, radians, degrees, asin
-from generic.utils import lognormal, sqrt2pi, sqrt8
 
-from generic.treemodels import ObjectListStore, XYListStore, Point
+from generic.models import ChildModel, PropIntel
+from generic.utils import sqrt2pi, sqrt8
 from generic.io import Storable
        
-class Goniometer(Model, Observable, Storable):
+class Goniometer(ChildModel, Storable):
     #MODEL INTEL:
-    __observables__ = ( "data_radius",
-                        "data_divergence",
-                        "data_soller1",
-                        "data_soller2",
-                        "data_min_2theta",
-                        "data_max_2theta",
-                        "data_lambda" )
-    __storables__ = __observables__  
     __parent_alias__ = 'project'
+    __model_intel__ = [ #TODO add labels
+        PropIntel(name="data_radius",       inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True, ctype=float,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_divergence",   inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True, ctype=float,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_soller1",      inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True, ctype=float,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_soller2",      inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True, ctype=float,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_min_2theta",   inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True, ctype=float,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_max_2theta",   inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True, ctype=float,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_lambda",       inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True, ctype=float,    refinable=False, storable=True,  observable=True,  has_widget=True),
+    ]
         
     #PROPERTIES:
     data_radius = float(24)
@@ -71,9 +59,8 @@ class Goniometer(Model, Observable, Storable):
     # ------------------------------------------------------------
     def __init__(self, data_radius = None, data_divergence = None, 
                  data_soller1 = None, data_soller2 = None,
-                 data_min_2theta = None, data_max_2theta = None, data_lambda = None):
-        Model.__init__(self)
-        Observable.__init__(self)
+                 data_min_2theta = None, data_max_2theta = None, data_lambda = None, parent=None):
+        ChildModel.__init__(self, parent=parent)
         Storable.__init__(self)
         self.data_radius = data_radius or self.data_radius
         self.data_divergence = data_divergence or self.data_divergence

@@ -1,7 +1,7 @@
 - MLM support
-    - when user selects components, change range of the R spinner so it can be larger then 0 if #comp > 1
-    - add R2
-    - add triple and quadruple layer support
+    - add R3
+    - add triple and quadruple layer support for R1 & R2
 - change goniometer into a ObjectListStore so we can create a list of predefined 'machines' and add or delete custom ones
 - move statistics to project level so multi-specimen statistics can be shown (no residual plot, but R2 for both data sets etc.)
 - add custom CSDS distributions
+- add some sort of UUID's to each object, and store it in a global dict, maybe use PyXRDModel for this purpose.

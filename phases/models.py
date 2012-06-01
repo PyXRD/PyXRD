@@ -16,200 +16,235 @@ from math import sin, cos, pi, sqrt, exp, radians, log
 from scipy.special import erf
 
 from generic.utils import lognormal, sqrt2pi, sqrt8, print_timing, get_md5_hash, recgetattr, recsetattr
-
+from generic.custom_math import mmult, mdot, mtim, solve_division
 from generic.io import Storable, PyXRDDecoder
-from generic.models import ChildModel, ObjectListStoreChildMixin
+from generic.models import ChildModel, ObjectListStoreChildMixin, PropIntel
 from generic.treemodels import ObjectListStore
 from atoms.models import Atom
 from probabilities.models import get_correct_probability_model
 
+class ComponentPropMixin():
 
+    #
+    # _data_prop contains a string (e.g. data_cell_a or data_layer_atoms.2) which can be parsed
+    # into an object and a property to be used for the calculation & observed for changes
+    #
 
-# TODO MOVE THIS SOMEWHERE ELSE
-from numpy.core.umath_tests import matrix_multiply as mmultr
-def mmult(A, B):
-    return np.sum(np.transpose(A,(0,2,1))[:,:,:,np.newaxis]*B[:,:,np.newaxis,:],-3)
-def mdot(A,B):
-    C = np.zeros(shape=A.shape, dtype=np.complex)
-    for i in range(A.shape[0]):
-        C[i] = np.dot(A[i], B[i])
-    return C
-def mtim(A,B):
-    C = np.zeros(shape=A.shape, dtype=np.complex)
-    for i in range(A.shape[0]):
-        C[i] = np.multiply(A[i], B[i])
-    return C
-        
-    
-def solve_division(A,B):
-    bt = np.transpose(B, axes=(0,2,1))
-    at = np.transpose(A, axes=(0,2,1))
-    return np.array([np.transpose(np.linalg.lstsq(bt[i], at[i])[0]) for i in range(bt.shape[0])])
-#END TODO
+    def _parseattr(self, attr):
+        attrs = attr.split(".")
+        if attrs[0] == "data_layer_atoms":
+            return self.component._data_layer_atoms._model_data[int(attrs[1])], "data_pn"
+        elif attrs[0] == "data_interlayer_atoms":
+            return self.component._data_interlayer_atoms._model_data[int(attrs[1])], "data_pn"
+        else:
+            return self.component, attr
 
-class ComponentRatioFunction(ChildModel, Storable):
+    def _getattr(self, attr):
+        return recgetattr(*self._parseattr(attr))
+
+    def _setattr(self, attr, value):
+        return recsetattr(*(self._parseattr(attr) + (value,)))
+
+class ComponentRatioFunction(ChildModel, Storable, ComponentPropMixin, ObjectListStoreChildMixin):
     
     #MODEL INTEL:
-    __refineables__ = ("data_ratio", )
-    __observables__ = __storables__ = __refineables__ + ("data_sum", "data_prop1", "data_prop2")
     __parent_alias__ = "component"
+    __model_intel__ = [
+        PropIntel(name="data_name",         inh_name=None,         label="Name",                    minimum=None,  maximum=None,  is_column=True,  ctype=str,   refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_sum",          inh_name=None,         label="Sum",                     minimum=0.0,   maximum=None,  is_column=True,  ctype=float, refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_ratio",        inh_name=None,         label=lambda p,s: s.data_name,   minimum=0.0,   maximum=1.0,   is_column=True,  ctype=float, refinable=True,  storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_prop1",        inh_name=None,         label="Property 1",              minimum=None,  maximum=None,  is_column=True,  ctype=str,   refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_prop2",        inh_name=None,         label="Property 2",              minimum=None,  maximum=None,  is_column=True,  ctype=str,   refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_enabled",      inh_name=None,         label="Enabled",                 minimum=None,  maximum=None,  is_column=True,  ctype=bool,  refinable=False, storable=False,  observable=True,  has_widget=True)
+    ]
     
     #SIGNALS:
     
     #PROPERTIES:
+    data_name = ""
+    
+    def get_data_enabled_value(self):
+        return (not self.parent.inherit_atom_ratios)
+    
     _data_sum = 1.0
     def get_data_sum_value(self): return self._data_sum
     def set_data_sum_value(self, value):
         self._data_sum = float(value)
-        self.update_values()
+        self.update_value()
     
     _data_ratio = 0.0
     def get_data_ratio_value(self): return self._data_ratio
     def set_data_ratio_value(self, value):
         self._data_ratio = float(value)
-        self.update_values()
+        self.update_value()
     
     _data_prop1 = ""
     def get_data_prop1_value(self): return self._data_prop1
     def set_data_prop1_value(self, value):
         if self._data_prop1:
-            self.remove_observing_method((self._data_prop1,), self.on_prop1_changed)
-        self._data_prop1 = value
+            obj, prop = self._parseattr(self._data_prop1)
+            self.remove_observing_method((prop,), self.on_prop1_changed)
+            self.relieve_model(obj)
+        self._data_prop1 = str(value)
         if self._data_prop1:
-            self.relieve_model(self.parent)
-            self.observe(self.on_prop1_changed, self._data_prop1)
-            self.observe_model(self.parent)    
+            obj, prop = self._parseattr(self._data_prop1)
+            self.observe(self.on_prop1_changed, str(prop), assign=True)
+            self.observe_model(obj)
+        self.update_value()
     
     _data_prop2 = ""
     def get_data_prop2_value(self): return self._data_prop2    
     def set_data_prop2_value(self, value):
         if self._data_prop2:
-            self.remove_observing_method((self._data_prop2,), self.on_prop2_changed)
-        self._data_prop2 = value
+            obj, prop = self._parseattr(self._data_prop2)
+            self.remove_observing_method((prop,), self.on_prop2_changed)
+            self.relieve_model(obj)
+        self._data_prop2 = str(value)
         if self._data_prop2:
-            self.relieve_model(self.parent)
-            self.observe(self.on_prop2_changed, self._data_prop2)
-            self.observe_model(self.parent)
+            obj, prop = self._parseattr(self._data_prop2)
+            self.observe(self.on_prop2_changed, str(prop), assign=True)
+            self.observe_model(obj)
+        self.update_value()
     
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def __init__(self, parent=None):
+    def __init__(self, data_name="", data_sum=0.0, data_ratio=0.0, data_prop1="", data_prop2="", parent=None):
         ChildModel.__init__(self, parent=parent)
         Storable.__init__(self)
+        
+        self.data_name = data_name or self.data_name
+        self.data_sum = data_sum or self._data_sum
+        self.data_ratio = data_ratio or self._data_ratio
+        self.data_prop1 = data_prop1 or self._data_prop1
+        self.data_prop2 = data_prop2 or self._data_prop2
         
     # ------------------------------------------------------------
     #      Notifications of observable properties
     # ------------------------------------------------------------
     def on_prop1_changed(self, model, prop_name, info):
-        self.update_values()
+        self.update_value()
     def on_prop2_changed(self, model, prop_name, info):
-        self.update_values()
+        self.update_value()
         
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------
-    def update_values(self):
-        b = self.data_sum / (1.0 + self.data_ratio)
-        recsetattr(self.component, self._data_prop1, self.data_ratio*b)
-        recsetattr(self.component, self._data_prop2, b)
-        
-    def _set_attr(self, attr, value):
-        attrs = attr.split(".")
-        fa = attrs[0]
-        if fa == "data_layer_atoms":
-            self.component.data_layer_atoms.get_item_by_index(fa[1]).
-                
-        
+    def update_value(self):
+        if self.data_enabled:
+            self._setattr(self.data_prop1, self.data_ratio*self.data_sum)
+            self._setattr(self.data_prop2, (1-self.data_ratio)*self.data_sum)
         
     pass #end of class
 
-"""class UnitCellProperty(ChildModel, Storable):
+class UnitCellProperty(ChildModel, Storable, ComponentPropMixin):
     
     #MODEL INTEL:
-    __refineables__ = ("data_ratio", )
-    __observables__ = __storables__ = __refineables__ + ("data_sum", "data_prop", "data_prop2")
     __parent_alias__ = "component"
+    __model_intel__ = [
+        PropIntel(name="value",             inh_name=None,         label="Value",              minimum=None,  maximum=None,  is_column=False, ctype=float, refinable=True,  storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_factor",       inh_name=None,         label="Factor",             minimum=None,  maximum=None,  is_column=False, ctype=float, refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_constant",     inh_name=None,         label="Constant",           minimum=None,  maximum=None,  is_column=False, ctype=float, refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_prop",         inh_name=None,         label="Property",           minimum=None,  maximum=None,  is_column=False, ctype=str,   refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_enabled",      inh_name=None,         label="Enabled",            minimum=None,  maximum=None,  is_column=False, ctype=bool,  refinable=False, storable=True,  observable=True,  has_widget=True)
+    ]
     
     #SIGNALS:
     
     #PROPERTIES:
-    _data_enabled = False
     
-    _data_value = 1.0
+    data_enabled = False
+    
+    _value = 1.0
+    value_range = [0,2.0]
+    def get_value_value(self): return self._value
+    def set_value_value(self, value):
+        self._value = float(value)
     
     _data_factor = 1.0
-    def get_data_sum_value(self): return self._data_sum
-    def set_data_sum_value(self, value):
-        self._data_sum = float(value)
-        self.update_values()
+    def get_data_factor_value(self): return self._data_factor
+    def set_data_factor_value(self, value):
+        self._data_factor = float(value)
+        self.update_value()
     
     _data_constant = 0.0
-    def get_data_ratio_value(self): return self._data_ratio
-    def set_data_ratio_value(self, value):
-        self._data_ratio = float(value)
-        self.update_values()
+    def get_data_constant_value(self): return self._data_constant
+    def set_data_constant_value(self, value):
+        self._data_constant = float(value)
+        self.update_value()
     
     _data_prop = ""
     def get_data_prop_value(self): return self._data_prop
     def set_data_prop_value(self, value):
         if self._data_prop:
-            self.remove_observing_method((self._data_prop,), self.on_prop_changed)
-        self._data_prop = value
+            obj, prop = self._parseattr(self._data_prop)
+            self.remove_observing_method((prop,), self.on_prop_changed)
+            self.relieve_model(obj)
+        self._data_prop = str(value)
         if self._data_prop:
-            self.relieve_model(self.parent)
-            self.observe(self.on_prop_changed, self._data_prop)
-            self.observe_model(self.parent)
+            obj, prop = self._parseattr(self._data_prop)
+            self.observe(self.on_prop_changed, str(prop), assign=True)
+            self.observe_model(obj)
+        self.update_value()
     
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def __init__(self, parent=None):
+    def __init__(self, value=0.0, data_enabled=False, data_factor=0.0, data_constant=0.0, data_prop="", parent=None, **kwargs):
         ChildModel.__init__(self, parent=parent)
         Storable.__init__(self)
+        
+        self.value = value or self._value
+        self.data_factor = data_factor or self._data_factor
+        self.data_constant = data_constant or self._data_constant
+        self.data_enabled = data_enabled or self.data_enabled
+        self.data_prop = data_prop or self._data_prop # last one needs observer so we don't set the private prop
         
     # ------------------------------------------------------------
     #      Notifications of observable properties
     # ------------------------------------------------------------
     def on_prop_changed(self, model, prop_name, info):
-        self.update_values()
+        self.update_value()
         
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------
-    def update_values(self):
-        b = self.data_sum / (1.0 + self.data_ratio)
-        recsetattr(self._data_prop1, self.data_ratio*b)
-        recsetattr(self._data_prop2, b)
+    
+    def get_prop_value(self):
+        if self.data_prop:
+            return self._getattr(self.data_prop)
+        else:
+            return 0.0
+            
+    def update_value(self):
+        if self.data_enabled:
+            self.value = float(self.data_factor * self.get_prop_value() + self.data_constant)
         
-    pass #end of class"""
+    pass #end of class
 
 
-class Component(ChildModel, ObjectListStoreChildMixin, Storable):
+class Component(ChildModel, Storable, ObjectListStoreChildMixin):
 
     #MODEL INTEL:
-    __refineables__ = ("data_d001", "data_cell_a", "data_cell_b",) #TODO: check for a and b if they are a function!
-    __inheritables__ = __refineables__ + ("data_layer_atoms", "data_interlayer_atoms")
     __parent_alias__ = "phase"
-    __columns__ = [
-        ('data_name', str),
-        ('data_linked_with', object),
-        
-        ('data_cell_a', float),
-        ('inherit_cell_a', bool),
-        
-        ('data_cell_b', float),
-        ('inherit_cell_b', bool),
-        
-        ('data_d001', float),
-        ('inherit_d001', bool),
-        ('data_layer_atoms', float),
-        ('inherit_layer_atoms', bool),
-        ('data_interlayer_atoms', float),
-        ('inherit_interlayer_atoms', bool),
+    __model_intel__ = [
+        PropIntel(name="data_name",                 inh_name=None,                          label="Name",                   minimum=None,  maximum=None,  is_column=True,  ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_linked_with",          inh_name=None,                          label="Linked with",            minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=False, storable=False, observable=True,  has_widget=True),
+        PropIntel(name="data_ucp_a",                inh_name="inherit_ucp_a",               label="Cell length a [nm]",     minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=True,  storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="inherit_ucp_a",             inh_name=None,                          label="Inh. cell length a",     minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_ucp_b",                inh_name="inherit_ucp_b",               label="Cell length b [nm]",     minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=True,  storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="inherit_ucp_b",             inh_name=None,                          label="Inh. cell length b",     minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_d001",                 inh_name="inherit_d001",                label="Cell length c [nm]",     minimum=0.0,   maximum=None,  is_column=True,  ctype=float,  refinable=True,  storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="inherit_d001",              inh_name=None,                          label="Inh. cell length c",     minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_atom_ratios",          inh_name="inherit_atom_ratios",         label="Atom ratios",            minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=True,  storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="inherit_atom_ratios",       inh_name=None,                          label="Inh. atom ratios",       minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_layer_atoms",          inh_name="inherit_layer_atoms",         label="Layer atoms",            minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="inherit_layer_atoms",       inh_name=None,                          label="Inh. layer atoms",       minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_interlayer_atoms",     inh_name="inherit_interlayer_atoms",    label="Interlayer atoms",       minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="inherit_interlayer_atoms",  inh_name=None,                          label="Inh. interlayer atoms",  minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="needs_update",              inh_name=None,                          label="",                       minimum=None,  maximum=None,  is_column=False, ctype=object, refinable=False, storable=False, observable=True,  has_widget=False),
+        PropIntel(name="dirty",                     inh_name=None,                          label="",                       minimum=None,  maximum=None,  is_column=False, ctype=bool,   refinable=False, storable=False, observable=True,  has_widget=False),        
     ]
-    __observables__ = [ key for key, val in __columns__] + ["needs_update", "dirty"]
-    __storables__ = [ val for val in __observables__ if not val in ("data_linked_with", "parent", "needs_update", "dirty")]
 
     #SIGNALS:
     needs_update = None
@@ -225,14 +260,15 @@ class Component(ChildModel, ObjectListStoreChildMixin, Storable):
             if self._dirty:
                 self._cached_factors = dict()        
     
-    _inherit_cell_a = False 
-    _inherit_cell_b = False
+    _inherit_ucp_a = False 
+    _inherit_ucp_b = False
     _inherit_d001 = False
     _inherit_layer_atoms = False
     _inherit_interlayer_atoms = False
-    @Model.getter(*[prop.replace("data_", "inherit_", 1) for prop in __inheritables__])
+    _inherit_atom_ratios = False
+    @Model.getter(*[prop.inh_name for prop in __model_intel__ if prop.inh_name])
     def get_inherit_prop(self, prop_name): return getattr(self, "_%s" % prop_name)
-    @Model.setter(*[prop.replace("data_", "inherit_", 1) for prop in __inheritables__])
+    @Model.setter(*[prop.inh_name for prop in __model_intel__ if prop.inh_name])
     def set_inherit_prop(self, prop_name, value):
         setattr(self, "_%s" % prop_name, value)
         self.dirty = True
@@ -253,20 +289,49 @@ class Component(ChildModel, ObjectListStoreChildMixin, Storable):
                     setattr(self, prop.replace("data_", "inherit_", 1), False)
             
     #INHERITABLE PROPERTIES:
-    _data_cell_a = 1.0
-    data_cell_a_range = [0,2.0]
-    _data_cell_b = 1.0
-    data_cell_b_range = [0,2.0]
+    
+    def unload_ucp_observer(self):
+        if self.__data_ucp_a!=None or self.__data_ucp_b!=None:
+            self.remove_observing_method(("value",), self.notify_ucp_value_changed)
+            if self.__data_ucp_a!=None: self.relieve_model(self.__data_ucp_a)
+            if self.__data_ucp_b!=None: self.relieve_model(self.__data_ucp_b)
+    def load_ucp_observer(self):
+        if self.__data_ucp_a!=None or self.__data_ucp_b!=None:
+            self.observe(self.notify_ucp_value_changed, "value", assign=True)
+            if self.__data_ucp_a!=None: self.observe_model(self.__data_ucp_a)
+            if self.__data_ucp_b!=None: self.observe_model(self.__data_ucp_b)
+    
+    __data_ucp_a = None
+    @property
+    def _data_ucp_a(self):
+        return self.__data_ucp_a
+    @_data_ucp_a.setter
+    def _data_ucp_a(self, value):
+        self.unload_ucp_observer()
+        self.__data_ucp_a = value
+        self.load_ucp_observer()
+                    
+    __data_ucp_b = None
+    @property
+    def _data_ucp_b(self):
+        return self.__data_ucp_b
+    @_data_ucp_b.setter
+    def _data_ucp_b(self, value):
+        self.unload_ucp_observer()
+        self.__data_ucp_b = value
+        self.load_ucp_observer()
+     
     _data_d001 = 1.0
-    data_d001_range = [0,2.0]
+    data_d001_range = [0,2.0]    
     _data_layer_atoms = None
     _data_interlayer_atoms = None
-    @Model.setter(*__inheritables__)
+    _data_atom_ratios = None
+    @Model.setter(*[prop.name for prop in __model_intel__ if prop.inh_name])
     def set_inheritable(self, prop_name, value):
         setattr(self, "_%s" % prop_name, value)
         self.dirty = True
         self.needs_update.emit()
-    @Model.getter(*__inheritables__)
+    @Model.getter(*[prop.name for prop in __model_intel__ if prop.inh_name])
     def get_inheritable(self, prop_name):
         inh_name = prop_name.replace("data_", "inherit_", 1)
         if self.data_linked_with != None and getattr(self, inh_name):
@@ -277,10 +342,10 @@ class Component(ChildModel, ObjectListStoreChildMixin, Storable):
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def __init__(self, data_name=None, data_cell_a=1.0, data_cell_b=1.0, data_d001=None,
-                 data_layer_atoms=None, data_interlayer_atoms=None,
-                 inherit_cell_a=False, inherit_cell_b=False, inherit_d001=False, inherit_proportion=False, 
-                 inherit_layer_atoms=False, inherit_interlayer_atoms=False,
+    def __init__(self, data_name=None, data_ucp_a=None, data_ucp_b=None, data_d001=None,
+                 data_layer_atoms=None, data_interlayer_atoms=None, data_atom_ratios=None,
+                 inherit_ucp_a=False, inherit_ucp_b=False, inherit_d001=False, inherit_proportion=False, 
+                 inherit_layer_atoms=False, inherit_interlayer_atoms=False, inherit_atom_ratios=False,
                  linked_with_index = None, parent=None):
         ChildModel.__init__(self, parent=parent)
         Storable.__init__(self)
@@ -291,11 +356,12 @@ class Component(ChildModel, ObjectListStoreChildMixin, Storable):
         self.data_name = data_name or self.data_name
     
         self._data_d001 = data_d001 or self.data_d001
-        self._data_cell_a = data_cell_a or self.data_cell_a
-        self._data_cell_b = data_cell_b or self.data_cell_b
+        self._data_ucp_a = data_ucp_a or UnitCellProperty(parent=self)
+        self._data_ucp_b = data_ucp_b or UnitCellProperty(parent=self)
         
         self._data_layer_atoms = data_layer_atoms or ObjectListStore(Atom)
         self._data_interlayer_atoms = data_interlayer_atoms or ObjectListStore(Atom)
+        self._data_atom_ratios = data_atom_ratios or ObjectListStore(ComponentRatioFunction)
         
         def on_item_changed(*args):
             self.dirty = True
@@ -303,18 +369,24 @@ class Component(ChildModel, ObjectListStoreChildMixin, Storable):
         
         self._data_layer_atoms.connect("item-removed", on_item_changed)
         self._data_interlayer_atoms.connect("item-removed", on_item_changed)        
+        self._data_atom_ratios.connect("item-removed", on_item_changed)
+        
         self._data_layer_atoms.connect("item-inserted", on_item_changed)
         self._data_interlayer_atoms.connect("item-inserted", on_item_changed)
+        self._data_atom_ratios.connect("item-inserted", on_item_changed)
+        
         self._data_layer_atoms.connect("row-changed", on_item_changed)
         self._data_interlayer_atoms.connect("row-changed", on_item_changed)        
+        self._data_atom_ratios.connect("row-changed", on_item_changed)
 
         self._linked_with_index = linked_with_index if linked_with_index > -1 else None
         
         self._inherit_d001 = inherit_d001
-        self._inherit_cell_a = inherit_cell_a
-        self._inherit_cell_b = inherit_cell_b        
+        self._inherit_ucp_a = inherit_ucp_a
+        self._inherit_ucp_b = inherit_ucp_b        
         self._inherit_layer_atoms = inherit_layer_atoms          
         self._inherit_interlayer_atoms = inherit_interlayer_atoms
+        self._inherit_atom_ratios = inherit_atom_ratios
 
 
     # ------------------------------------------------------------
@@ -323,6 +395,10 @@ class Component(ChildModel, ObjectListStoreChildMixin, Storable):
     @Observer.observe("dirty", assign=True)
     def notify_dirty_changed(self, model, prop_name, info):
         if model.dirty: self.dirty = True
+        pass
+        
+    def notify_ucp_value_changed(self, model, prop_name, info):
+        self.dirty = True
         pass
     
     # ------------------------------------------------------------
@@ -345,9 +421,36 @@ class Component(ChildModel, ObjectListStoreChildMixin, Storable):
     @classmethod          
     def from_json(type, **kwargs):
         project = kwargs['parent'].parent
-        kwargs['data_layer_atoms'] = ObjectListStore.from_json(parent=project, **kwargs['data_layer_atoms']['properties'])
-        kwargs['data_interlayer_atoms'] = ObjectListStore.from_json(parent=project, **kwargs['data_interlayer_atoms']['properties'])
-        return type(**kwargs)
+        
+        skw = dict()
+        for key in ['data_ucp_a', 'data_ucp_b', 'data_cell_a', 'data_cell_b', 
+                    'data_atom_ratios', 'data_layer_atoms', 'data_interlayer_atoms', 
+                    'inherit_cell_a', 'inherit_cell_b']:
+            if key in kwargs:
+                skw[key] = kwargs[key]
+                del kwargs[key]
+        comp = type(**kwargs)       
+        
+        for ols in ['data_layer_atoms', 'data_interlayer_atoms', 'data_atom_ratios']:
+            if ols in skw:
+                objstore = ObjectListStore.from_json(parent=comp, **skw[ols]['properties'])
+                real_store = getattr(comp, ols)
+                for item in objstore._model_data:
+                    real_store.append(item)
+
+        if "data_cell_a" in skw and not "data_ucp_a" in skw:
+            comp._data_ucp_a = UnitCellProperty(data_name="cell length a", value=skw["data_cell_a"], parent=comp)
+            comp.inherit_ucp_a = skw.get("inherit_cell_a", False)
+        elif "data_ucp_b" in skw:
+            comp._data_ucp_a = UnitCellProperty.from_json(parent=comp, **skw['data_ucp_a']['properties'])
+            
+        if "data_cell_b" in skw and not "data_ucp_b" in skw:
+            comp._data_ucp_b = UnitCellProperty(data_name="cell length b", value=skw["data_cell_b"], parent=comp)
+            comp.inherit_ucp_b = skw.get("inherit_cell_b", False)
+        elif "data_ucp_b" in skw:
+            comp._data_ucp_b = UnitCellProperty.from_json(parent=comp, **skw['data_ucp_b']['properties'])
+                    
+        return comp
 
     # ------------------------------------------------------------
     #      Methods & Functions
@@ -363,18 +466,19 @@ class Component(ChildModel, ObjectListStoreChildMixin, Storable):
             self._cached_factors[hsh] = sf_tot, np.exp(2*pi*self.data_d001*range_stl*1j)
             self.dirty = False
         return self._cached_factors[hsh]
-        
-    def get_cell_a(self):
-        return self.data_cell_a
-        
-    def get_cell_b(self):
-        return self.data_cell_b
-        
-    def get_cell_c(self):
+
+    @property
+    def data_cell_a(self):
+        return self._data_ucp_a.value
+    @property
+    def data_cell_b(self):
+        return self._data_ucp_b.value
+    @property
+    def data_cell_c(self):
         return self.data_d001
 
     def get_volume(self):
-        return self.get_cell_a() * self.get_cell_b() * self.get_cell_c()
+        return self.data_cell_a * self.data_cell_b * self.data_cell_c
 
     def get_weight(self):
         weight = 0
@@ -386,28 +490,26 @@ class Component(ChildModel, ObjectListStoreChildMixin, Storable):
 class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
 
     #MODEL INTEL:
-    __refineables__ = ("data_mean_CSDS", "data_sigma_star")
-    __inheritables__ = __refineables__ + ("data_min_CSDS", "data_max_CSDS", "data_probabilities")
     __parent_alias__ = 'project'
-    __columns__ = [
-        ('data_name', str),
-        ('data_based_on', object),
-        ('inherit_mean_CSDS', bool),
-        ('data_mean_CSDS', float),
-        ('inherit_min_CSDS', bool),
-        ('data_min_CSDS', float),
-        ('inherit_max_CSDS', bool),
-        ('data_max_CSDS', float),
-        ('inherit_sigma_star', bool),
-        ('data_sigma_star', float),
-        ('data_probabilities', object),
-        ('inherit_probabilities', bool),
-        ('data_G', int),
-        ('data_R', int),
-        ('data_components', object),
+    __model_intel__ = [
+        PropIntel(name="data_name",             inh_name=None,                      label="Name",                               minimum=None,  maximum=None,  is_column=True,  ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_based_on",         inh_name=None,                      label="Based on phase",                     minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=False, storable=False, observable=True,  has_widget=True),
+        PropIntel(name="data_mean_CSDS",        inh_name="inherit_mean_CSDS",       label="Mean CSDS",                          minimum=1.0,   maximum=None,  is_column=True,  ctype=float,  refinable=True,  storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="inherit_mean_CSDS",     inh_name=None,                      label="Inh. mean CSDS",                     minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_min_CSDS",         inh_name="inherit_min_CSDS",        label="Minimum CSDS",                       minimum=1.0,   maximum=None,  is_column=True,  ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="inherit_min_CSDS",      inh_name=None,                      label="Inh. min CSDS",                      minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_max_CSDS",         inh_name="inherit_max_CSDS",        label="Maximum CSDS",                       minimum=1.0,   maximum=None,  is_column=True,  ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="inherit_max_CSDS",      inh_name=None,                      label="Inh. max CSDS",                      minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_sigma_star",       inh_name="inherit_sigma_star",      label="σ<sup>*</sup> [°]",                  minimum=0.0,   maximum=90.0,  is_column=True,  ctype=float,  refinable=True,  storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="inherit_sigma_star",    inh_name=None,                      label="Inh. sigma star",                    minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_probabilities",    inh_name="inherit_probabilities",   label="Probabilities",                      minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=True,  storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="inherit_probabilities", inh_name=None,                      label="Inh. probabilities",                 minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_G",                inh_name=None,                      label="# of components",                    minimum=None,  maximum=None,  is_column=True,  ctype=int,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_R",                inh_name=None,                      label="Reichweite",                         minimum=None,  maximum=None,  is_column=True,  ctype=int,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_components",       inh_name=None,                      label="Components",                         minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=True,  storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="needs_update",          inh_name=None,                      label="",                                   minimum=None,  maximum=None,  is_column=False, ctype=object, refinable=False, storable=False, observable=True,  has_widget=False),
+        PropIntel(name="dirty",                 inh_name=None,                      label="",                                   minimum=None,  maximum=None,  is_column=False, ctype=bool,   refinable=False, storable=False, observable=True,  has_widget=False),
     ]
-    __observables__ = [ key for key, val in __columns__] + ["needs_update", "dirty"]
-    __storables__ = [ val for val in __observables__ if not val in ("data_based_on", "parent", "needs_update", "dirty")]
     
     #SIGNALS:
     needs_update = None
@@ -427,9 +529,9 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
     _inherit_max_CSDS = False
     _inherit_sigma_star = False
     _inherit_probabilities = False
-    @Model.getter(*[prop.replace("data_", "inherit_", 1) for prop in __inheritables__])
+    @Model.getter(*[prop.inh_name for prop in __model_intel__ if prop.inh_name])
     def get_inherit_prop(self, prop_name): return getattr(self, "_%s" % prop_name)
-    @Model.setter(*[prop.replace("data_", "inherit_", 1) for prop in __inheritables__])    
+    @Model.setter(*[prop.inh_name for prop in __model_intel__ if prop.inh_name])
     def set_inherit_prop(self, prop_name, value):
         setattr(self, "_%s" % prop_name, value)
         self.dirty = True
@@ -465,14 +567,14 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
     _data_sigma_star = 3.0
     data_sigma_star_range = [0,90]
     _data_probabilities = None
-    @Model.getter(*__inheritables__)
+    @Model.getter(*[prop.name for prop in __model_intel__ if prop.inh_name])
     def get_inheritable(self, prop_name):
         inh_name = "inherit_" + prop_name.replace("data_", "", 1)
         if self.data_based_on is not None and getattr(self, inh_name):
             return getattr(self.data_based_on, prop_name)
         else:
             return getattr(self, "_%s" % prop_name)
-    @Model.setter(*__inheritables__)
+    @Model.setter(*[prop.name for prop in __model_intel__ if prop.inh_name])
     def set_inheritable(self, prop_name, value):
         prob = (prop_name == "data_probabilities")
         if prob and self._data_probabilities:
@@ -793,12 +895,10 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
             volume = component.get_volume()
             mean_volume += (volume * wtfraction)
             mean_density +=  (component.get_weight() * wtfraction / volume)
-        
         if self.__last_Tmean == None or self.__last_Tmean != self.data_mean_CSDS:
             distr, ddict, real_mean = self._update_interference_distributions()
         else:
             distr, ddict, real_mean = self.__last_Trest
-        
-        return mean_d001 / (real_mean *  mean_volume**2 * mean_density);
+        return mean_d001 / (real_mean *  mean_volume**2 * mean_density)
 
     pass #end of class

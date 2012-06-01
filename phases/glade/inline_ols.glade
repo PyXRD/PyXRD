@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
   <requires lib="gtk+" version="2.24"/>
-  <!-- interface-naming-policy toplevel-contextual -->
-  <object class="GtkTable" id="edit_layer">
+  <!-- interface-naming-policy project-wide -->
+  <object class="GtkTable" id="edit_item">
     <property name="width_request">350</property>
     <property name="visible">True</property>
     <property name="can_focus">False</property>
@@ -16,14 +16,14 @@
         <property name="spacing">12</property>
         <property name="layout_style">end</property>
         <child>
-          <object class="GtkButton" id="btn_add_atom">
+          <object class="GtkButton" id="btn_add_item">
             <property name="label">gtk-add</property>
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="receives_default">True</property>
             <property name="use_action_appearance">False</property>
             <property name="use_stock">True</property>
-            <signal name="clicked" handler="on_add_atom" swapped="no"/>
+            <signal name="clicked" handler="on_add_item" swapped="no"/>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -32,7 +32,7 @@
           </packing>
         </child>
         <child>
-          <object class="GtkButton" id="btn_del_atom">
+          <object class="GtkButton" id="btn_del_item">
             <property name="label">gtk-remove</property>
             <property name="visible">True</property>
             <property name="sensitive">False</property>
@@ -40,7 +40,7 @@
             <property name="receives_default">True</property>
             <property name="use_action_appearance">False</property>
             <property name="use_stock">True</property>
-            <signal name="clicked" handler="on_del_atom" swapped="no"/>
+            <signal name="clicked" handler="on_del_item" swapped="no"/>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -56,13 +56,13 @@
       </packing>
     </child>
     <child>
-      <object class="GtkScrolledWindow" id="scroll_atoms">
+      <object class="GtkScrolledWindow" id="scroll_items">
         <property name="visible">True</property>
         <property name="can_focus">True</property>
         <property name="hscrollbar_policy">never</property>
         <property name="shadow_type">in</property>
         <child>
-          <object class="GtkTreeView" id="tvw_atoms">
+          <object class="GtkTreeView" id="tvw_items">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="rules_hint">True</property>
@@ -72,21 +72,21 @@
     </child>
     <child>
       <object class="GtkToolbar" id="bar_ex_im_port">
-        <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="orientation">vertical</property>
         <property name="toolbar_style">icons</property>
         <property name="show_arrow">False</property>
         <property name="icon_size">1</property>
+        <property name="icon_size_set">True</property>
         <child>
-          <object class="GtkToolButton" id="btn_import_layer">
+          <object class="GtkToolButton" id="btn_import_item">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="use_action_appearance">False</property>
-            <property name="label" translatable="yes">Import layer</property>
+            <property name="label" translatable="yes">Import items</property>
             <property name="use_underline">True</property>
             <property name="stock_id">gtk-go-back</property>
-            <signal name="clicked" handler="on_import_layer" swapped="no"/>
+            <signal name="clicked" handler="on_import_item" swapped="no"/>
           </object>
           <packing>
             <property name="expand">True</property>
@@ -94,15 +94,15 @@
           </packing>
         </child>
         <child>
-          <object class="GtkToolButton" id="btn_export_layer">
+          <object class="GtkToolButton" id="btn_export_item">
             <property name="visible">True</property>
             <property name="sensitive">False</property>
             <property name="can_focus">False</property>
             <property name="use_action_appearance">False</property>
-            <property name="label" translatable="yes">Export layer</property>
+            <property name="label" translatable="yes">Export items</property>
             <property name="use_underline">True</property>
             <property name="stock_id">gtk-go-forward</property>
-            <signal name="clicked" handler="on_export_layer" swapped="no"/>
+            <signal name="clicked" handler="on_export_item" swapped="no"/>
           </object>
           <packing>
             <property name="expand">True</property>

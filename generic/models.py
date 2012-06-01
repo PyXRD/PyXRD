@@ -6,6 +6,8 @@
 # To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/3.0/ or send
 # a letter to Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
 
+from collections import namedtuple
+
 import matplotlib
 import matplotlib.transforms as transforms
 
@@ -15,6 +17,7 @@ from gtkmvc import Observable
 from gtkmvc.model import Model, Signal, ListStoreModel
 from gtkmvc.support.metaclasses import ObservablePropertyMeta
 
+from generic.metaclasses import PyXRDMeta
 from generic.treemodels import XYListStore
 from generic.io import Storable, PyXRDDecoder
 from generic.utils import smooth, delayed
@@ -100,12 +103,53 @@ class ObjectListStoreChildMixin():
             
     pass #end of class
 
-class ChildModel(Model):
+#PropIntel = namedtuple('PropIntel', ["name", "inh_name", "label", "minimum", "maximum", "is_column", "ctype", "refinable", "storable", "observable", "has_widget"])
+
+class PropIntel(object):
+    
+    def __init__(self, **kwargs):
+        object.__init__(self)
+        for k, v in kwargs.iteritems():
+            setattr(self, k, v)
+    
+    _container = None
+    @property
+    def container(self):
+        return self._container
+    @container.setter
+    def container(self, value):
+        self._container = value
+
+    _label = ""
+    @property
+    def label(self):
+        if callable(self._label):
+            return self._label(self, self.container)
+        else:
+            return self._label
+    @label.setter
+    def label(self, value):
+        self._label = value
+
+
+
+class PyXRDModel(Model):
+    __metaclass__ = PyXRDMeta
+    
+    def get_prop_intel_by_name(self, name):
+        for prop in self.__model_intel__:
+            if prop.name == name:
+                return prop
+
+class ChildModel(PyXRDModel):
 
     #MODEL INTEL:
-    __have_no_widget__ = ["parent", "removed", "added"]
-    __observables__ = __have_no_widget__
     __parent_alias__ = None
+    __model_intel__ = [
+        PropIntel(name="parent",    inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=object, refinable=False, storable=False, observable=True,  has_widget=False),
+        PropIntel(name="removed",   inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=object, refinable=False, storable=False, observable=True,  has_widget=False),
+        PropIntel(name="added",     inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=object, refinable=False, storable=False, observable=True,  has_widget=False),
+    ]
 
     #SIGNALS:
     removed = None
@@ -141,23 +185,26 @@ class ChildModel(Model):
             
     pass #end of class
 
-class XYData(ChildModel, Storable, Observable):
+class XYData(ChildModel, Storable):
 
     #MODEL INTEL:
-    __temporarals__ = [
-        "needs_update",
-        "display_offset", 
-        "bg_position", "bg_scale", "bg_pattern", "bg_type", 
-        "sd_degree", "sd_type", 
-        "shift_value", "shift_position"
-    ]
-    
-    __observables__ = __temporarals__ + [
-        "data_name", "data_label", 
-        "xy_data"
-    ]
     __parent_alias__ = 'specimen'
-    __storables__ = [val for val in __observables__ if not val in __temporarals__ ] + ["color",]
+    __model_intel__ = [ #TODO add labels
+        PropIntel(name="data_name",         inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=False),
+        PropIntel(name="data_label",        inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=False),
+        PropIntel(name="xy_data",           inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=object, refinable=False, storable=True,  observable=True,  has_widget=False),
+        PropIntel(name="needs_update",      inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=object, refinable=False, storable=False, observable=True,  has_widget=False),
+        PropIntel(name="display_offset",    inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=float,  refinable=False, storable=False, observable=True,  has_widget=False),
+        PropIntel(name="bg_position",       inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=float,  refinable=False, storable=False, observable=True,  has_widget=False),
+        PropIntel(name="bg_scale",          inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=float,  refinable=False, storable=False, observable=True,  has_widget=False),
+        PropIntel(name="bg_pattern",        inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=object, refinable=False, storable=False, observable=True,  has_widget=False),
+        PropIntel(name="bg_type",           inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=int,    refinable=False, storable=False, observable=True,  has_widget=False),
+        PropIntel(name="sd_degree",         inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=int,    refinable=False, storable=False, observable=True,  has_widget=False),
+        PropIntel(name="sd_type",           inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=int,    refinable=False, storable=False, observable=True,  has_widget=False),
+        PropIntel(name="shift_value",       inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=float,  refinable=False, storable=False, observable=True,  has_widget=False),
+        PropIntel(name="shift_position",    inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=float,  refinable=False, storable=False, observable=True,  has_widget=False),
+        PropIntel(name="color",             inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=str,    refinable=False, storable=True,  observable=False, has_widget=False),
+    ]
 
     #SIGNALS:
     needs_update = None
@@ -260,7 +307,6 @@ class XYData(ChildModel, Storable, Observable):
     def __init__(self, data_name=None, data_label=None, xy_data=None, color="#0000FF", parent=None, **kwargs):
         ChildModel.__init__(self, parent=parent)
         Storable.__init__(self)
-        Observable.__init__(self)
         
         self.needs_update = Signal()
         

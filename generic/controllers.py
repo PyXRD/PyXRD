@@ -275,9 +275,13 @@ class ObjectListStoreMixin(HasObjectTreeview):
             for col in tv.get_columns():
                 tv.remove_column(col)
 
-            for name, col in self.columns:
+            for name, colnr in self.columns:
                 rend = gtk.CellRendererText()
-                col = gtk.TreeViewColumn(name, rend, text=col)
+                try:
+                    colnr = int(colnr)
+                except:
+                    colnr = getattr(self.liststore, str(colnr), colnr)
+                col = gtk.TreeViewColumn(name, rend, text=colnr)
                 col.set_resizable(False)
                 col.set_expand(False)
                 tv.append_column(col)

@@ -31,7 +31,7 @@ import settings
 
 from generic.utils import interpolate, print_timing, u
 from generic.io import Storable, PyXRDDecoder
-from generic.models import XYData, ChildModel, CSVMixin, ObjectListStoreChildMixin, add_cbb_props
+from generic.models import XYData, ChildModel, CSVMixin, ObjectListStoreChildMixin, add_cbb_props, PropIntel
 from generic.treemodels import ObjectListStore, XYListStore, Point
 from generic.peak_detection import multi_peakdetect, peakdetect, smooth
 
@@ -40,33 +40,30 @@ from phases.models import Phase
 class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
 
     #MODEL INTEL:
-    __have_no_widget__ = ChildModel.__have_no_widget__ + [
-        "statistics", "data_markers", "needs_update"
-    ]
-    __columns__ = [
-        ('data_name', str),
-        ('data_sample', str),
-        ('data_sample_length', float),
-        ('data_abs_scale', float),
-        ('data_bg_shift', float),
-        ('display_calculated', bool),
-        ('display_experimental', bool),
-        ('display_phases', bool),
-        ('data_phases', object),
-        ('data_calculated_pattern', object),
-        ('data_experimental_pattern', object),
-        ('data_exclusion_ranges', object),
-        ('data_markers', object),
-        ('inherit_calc_color', bool),
-        ('calc_color', str),
-        ('inherit_exp_color', bool),
-        ('exp_color', str),
-        ('statistics', object),
-    ]
-    __observables__ = [ key for key, val in __columns__] + ["needs_update"]
-    __storables__ = [ val for val in __observables__ if not val in ("parent", "data_phases", "statistics", "needs_update") ]
-
     __parent_alias__ = 'project'
+    __model_intel__ = [
+        PropIntel(name="data_name",                 inh_name=None,  label="Name",                               minimum=None,  maximum=None,  is_column=True,  ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_sample",               inh_name=None,  label="Sample",                             minimum=None,  maximum=None,  is_column=True,  ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_sample_length",        inh_name=None,  label="Sample length [cm]",                 minimum=0.0,   maximum=None,  is_column=True,  ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_abs_scale",            inh_name=None,  label="Absolute scale [counts]",            minimum=0.0,   maximum=None,  is_column=True,  ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_bg_shift",             inh_name=None,  label="Background shift [counts]",          minimum=0.0,   maximum=None,  is_column=True,  ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="display_calculated",        inh_name=None,  label="Display calculated diffractogram",   minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="display_experimental",      inh_name=None,  label="Display experimental diffractogram", minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="display_phases",            inh_name=None,  label="Display phases diffractogram",       minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_calculated_pattern",   inh_name=None,  label="Calculated diffractogram",           minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_experimental_pattern", inh_name=None,  label="Experimental diffractogram",         minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_exclusion_ranges",     inh_name=None,  label="Excluded ranges",                    minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_phases",               inh_name=None,  label="Markers",                            minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=False, storable=False, observable=True,  has_widget=True),
+        PropIntel(name="data_markers",              inh_name=None,  label="Markers",                            minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=False, storable=True,  observable=True,  has_widget=False),
+        PropIntel(name="statistics",                inh_name=None,  label="Statistics",                         minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=False, storable=False, observable=True,  has_widget=False),
+        PropIntel(name="calc_color",                inh_name=None,  label="Calculated colour",                  minimum=None,  maximum=None,  is_column=True,  ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="inherit_calc_color",        inh_name=None,  label="Use default colour",                 minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="exp_color",                 inh_name=None,  label="Experimental colour",                minimum=None,  maximum=None,  is_column=True,  ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="inherit_exp_color",         inh_name=None,  label="Use default colour",                 minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
+        
+        PropIntel(name="needs_update",              inh_name=None,  label="",                                   minimum=None,  maximum=None,  is_column=False, ctype=object, refinable=False, storable=False, observable=True,  has_widget=False),
+    ]
+    #__observables__, __storables__, __columns__, __inheritables__, __refinables__, __have_no_widget__ = ModelIntelMixin.parse_model_intel(__model_intel__, [], [], [], [], [], list(ChildModel.__have_no_widget__))
 
     __pctrl__ = None
 
@@ -432,9 +429,15 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
 class ThresholdSelector(ChildModel, Observable):
     
     #MODEL INTEL:
-    __have_no_widget__ = ChildModel.__have_no_widget__ + ["threshold_plot_data"]
-    __observables__ = [ "pattern", "max_threshold", "steps", "sel_threshold", "threshold_plot_data", "sel_num_peaks" ]
     __parent_alias__ = 'specimen'
+    __model_intel__ = [ #TODO add labels
+        PropIntel(name="pattern",               inh_name=None,  label="",   minimum=None,  maximum=None,  is_column=False,  ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="max_threshold",         inh_name=None,  label="",   minimum=None,  maximum=None,  is_column=False,  ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="steps",                 inh_name=None,  label="",   minimum=None,  maximum=None,  is_column=False,  ctype=int,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="sel_threshold",         inh_name=None,  label="",   minimum=None,  maximum=None,  is_column=False,  ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="sel_num_peaks",         inh_name=None,  label="",   minimum=None,  maximum=None,  is_column=False,  ctype=int,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="threshold_plot_data",   inh_name=None,  label="",   minimum=None,  maximum=None,  is_column=False,  ctype=object, refinable=False, storable=True,  observable=True,  has_widget=False),
+    ]
     
     #PROPERTIES:
     _pattern = "exp"
@@ -551,23 +554,21 @@ class ThresholdSelector(ChildModel, Observable):
 class Marker(ChildModel, Observable, Storable, ObjectListStoreChildMixin, CSVMixin):
     
     #MODEL INTEL:
-    __have_no_widget__ = ChildModel.__have_no_widget__ + ["needs_update"]
-    __columns__ = [
-        ('data_label', str),
-        ('data_visible', bool),
-        ('data_position', float),
-        ('data_x_offset', float),
-        ('data_y_offset', float),
-        ('data_color', str),
-        ('data_base', bool),
-        ('data_angle', float),
-        ('inherit_angle', bool),
-        ('data_style', str)
-    ]
-    __storables__ = [ key for key, val in __columns__]
-    __observables__ = __storables__ + ["needs_update"]
-    __csv_storables__ = zip(__storables__, __storables__)
     __parent_alias__ = 'specimen'
+    __model_intel__ = [ #TODO add labels
+        PropIntel(name="data_label",            inh_name=None,              label="",   minimum=None,  maximum=None,  is_column=True,  ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_visible",          inh_name=None,              label="",   minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_position",         inh_name=None,              label="",   minimum=None,  maximum=None,  is_column=True,  ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_x_offset",         inh_name=None,              label="",   minimum=None,  maximum=None,  is_column=True,  ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_y_offset",         inh_name=None,              label="",   minimum=None,  maximum=None,  is_column=True,  ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_color",            inh_name=None,              label="",   minimum=None,  maximum=None,  is_column=True,  ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_base",             inh_name=None,              label="",   minimum=None,  maximum=None,  is_column=True,  ctype=int,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_angle",            inh_name="inherit_angle",   label="",   minimum=None,  maximum=None,  is_column=True,  ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="inherit_angle",         inh_name=None,              label="",   minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_style",            inh_name=None,              label="",   minimum=None,  maximum=None,  is_column=True,  ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="needs_update",          inh_name=None,              label="",   minimum=None,  maximum=None,  is_column=False, ctype=object, refinable=False, storable=False, observable=True,  has_widget=False),
+    ]
+    __csv_storables__ = [ (prop.name, prop.name) for prop in __model_intel__ ]
 
     #SIGNALS:
     needs_update = None

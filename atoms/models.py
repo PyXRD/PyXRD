@@ -18,11 +18,12 @@ from math import sin, cos, pi, sqrt, exp
 from gtkmvc.model import Signal, Observer
 
 from generic.io import Storable, PyXRDDecoder
-from generic.models import XYData, ChildModel, CSVMixin, ObjectListStoreChildMixin
+from generic.models import XYData, ChildModel, CSVMixin, ObjectListStoreChildMixin, PropIntel
 from generic.treemodels import XYListStore
 
 #TODO:
 #  - cache calculated values
+#  - add 'dirty' signal or something instead of parameters_changed for consistency with the rest of the code
 
 class AtomType(ChildModel, ObjectListStoreChildMixin, Storable, CSVMixin):
     """
@@ -33,20 +34,20 @@ class AtomType(ChildModel, ObjectListStoreChildMixin, Storable, CSVMixin):
     #MODEL INTEL:
     __index_column__ = 'data_name'
     __parent_alias__ = 'project'
-
-    __columns__ = [
-        ('data_atom_nr', int),
-        ('data_name', str),
-        ('data_weight', float),
-        ('data_debye', float),
-        ('data_par_c', float),
+    __model_intel__ = [ #TODO add labels
+        PropIntel(name="data_name",         inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True, ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_atom_nr",      inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True, ctype=int,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_weight",       inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True, ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_debye",        inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True, ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_par_c",        inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True, ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="parameters_changed",inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True, ctype=float,  refinable=False, storable=False, observable=True,  has_widget=False),
+    ] + [
+        PropIntel(name="data_par_a%d" % i,  inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True, ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True) for i in [1,2,3,4,5]
+    ] + [
+        PropIntel(name="data_par_b%d" % i,  inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True, ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True) for i in [1,2,3,4,5]
     ]
-    __columns__ += [ ('data_par_a%d' % i, float) for i in [1,2,3,4,5] ] + [ ('data_par_b%d' % i, float) for i in [1,2,3,4,5] ]
+    __csv_storables__ = [(prop.name, prop.name) for prop in __model_intel__ if prop.storable]
 
-    __storables__ = [ key for key, val in __columns__]
-    __csv_storables__ = zip(__storables__, __storables__)
-    
-    __observables__ = ["parameters_changed"] + __storables__
     
     #SIGNALS:
     parameters_changed = None
@@ -137,15 +138,13 @@ class Atom(ChildModel, ObjectListStoreChildMixin, Storable):
         Atoms have an atom type plus structural parameters (position and proportion)
     """
     #MODEL INTEL:
-    __observables__ = ( "data_name", "data_z", "data_pn", "data_atom_type" )
-    __columns__ = [
-        ('data_name', str),
-        ('data_z', float),
-        ('data_pn', float),
-        ('data_atom_type', AtomType)
-    ]
-    __storables__ = [key for key, val in __columns__ if key is not "data_atom_type"]
     __parent_alias__ = 'component'
+    __model_intel__ = [ #TODO add labels
+        PropIntel(name="data_name",         inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True, ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_z",            inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True, ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_pn",           inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True, ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_atom_type",    inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True, ctype=object, refinable=False, storable=False, observable=True,  has_widget=True),
+    ]    
     
     #PROPERTIES:
     data_name = ""
@@ -223,11 +222,11 @@ class Atom(ChildModel, ObjectListStoreChildMixin, Storable):
 
     def resolve_json_references(self):
         if self._atom_type_index is not None:
-            self.data_atom_type = self.parent.data_atom_types.get_user_data_from_index(self._atom_type_index)
+            self.data_atom_type = self.component.phase.project.data_atom_types.get_user_data_from_index(self._atom_type_index)
 
     def json_properties(self):
         retval = Storable.json_properties(self)
-        index = self.parent.data_atom_types.index(self.data_atom_type) if self.data_atom_type != None else -1
+        index = self.component.phase.project.data_atom_types.index(self.data_atom_type) if self.data_atom_type != None else -1
         retval["atom_type_index"] = index
         return retval 
    
@@ -240,7 +239,7 @@ class Atom(ChildModel, ObjectListStoreChildMixin, Storable):
         
         types = dict()
         if parent != None:
-            for atom_type in parent.data_atom_types._model_data:
+            for atom_type in parent.phase.project.data_atom_types._model_data:
                 if not atom_type.data_name in types:
                     types[atom_type.data_name] = atom_type
         

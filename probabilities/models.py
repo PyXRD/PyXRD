@@ -14,7 +14,7 @@ from gtkmvc.model import Model, Observer, Signal
 import numpy as np
 
 from generic.io import Storable
-from generic.models import ChildModel
+from generic.models import ChildModel, PropIntel
 from generic.utils import delayed, indexproperty
 
 
@@ -58,7 +58,18 @@ def get_correct_probability_model(phase):
         R = phase.data_R
         #print "get_correct_probability_model %d %d" % (G, R)
         if R == 0 or G == 1:
-            return R0Model(parent=phase)
+            if G == 1:
+                return R0G1Model(parent=phase)
+            elif G == 2:
+                return R0G2Model(parent=phase)
+            elif G == 3:
+                return R0G3Model(parent=phase)
+            elif G == 4:
+                return R0G4Model(parent=phase)
+            elif G == 5:
+                return R0G5Model(parent=phase)
+            elif G == 6:
+                return R0G6Model(parent=phase)
         elif G > 1:
             if R == 1: #------------------------- R1:
                 if G == 2:
@@ -89,7 +100,12 @@ class _AbstractProbability(ChildModel, Storable):
     #MODEL INTEL:
     __observables__ = ['updated']
     __storables__ = []
+    
+    
     __parent_alias__ = 'phase'
+    __model_intel__ = [ #TODO add labels
+        PropIntel(name="updated", inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=object, refinable=False, storable=False,  observable=True,  has_widget=False),          
+    ]
     
     #SIGNALS:
     updated = None
@@ -168,75 +184,82 @@ class _AbstractR0R1Model(_AbstractProbability):
     
     pass #end of class
 
-class R0Model(_AbstractR0R1Model):
-    """
-    Reichweite = 0
-	(g-1) independent variables: W0, W1, ... W(g-2)
+def R0_model_generator(pasG):
+   
+    class R0Model(_AbstractR0R1Model):
+        """
+        Reichweite = 0
+	    (g-1) independent variables: W0, W1, ... W(g-2)
 
-	Pij = Wj
-	∑W = 1
-	∑P = 1
+	    Pij = Wj
+	    ∑W = 1
+	    ∑P = 1
 	
-	indexes are NOT zero-based in external property names!
-	"""
-	
-    #MODEL INTEL:
-    __independent_label_map__ = [
-        ("W1", "W<sub>1</sub>"),
-        ("W2", "W<sub>2</sub>"),
-        ("W3", "W<sub>3</sub>"),
-        ("W4", "W<sub>4</sub>"),
-        ("W5", "W<sub>5</sub>"),
-        ("W6", "W<sub>6</sub>"),
-    ]
-    @property
-    def __refineables__(self):
-        return [ "W%d" % (i+1) for i in range(self.G-1) ]
-    __observables__ = [ prop for prop, lbl in  __independent_label_map__ ]
-    __storables__ = [ val for val in __observables__ if not val in ('parent', "added", "removed")]
+	    indexes are NOT zero-based in external property names!
+	    """
+	    
+        #MODEL INTEL:
+        __independent_label_map__ = [ ("W%d" % (g+1), "W<sub>%d</sub>" % (g+1)) for g in range(pasG-1) ]
+        __model_intel__ = [
+            PropIntel(name=prop, inh_name=None, label=label, minimum=0.0, maximum=1.0, is_column=False, ctype=float, refinable=True, storable=True, observable=True, has_widget=True) \
+                for prop, label in __independent_label_map__
+        ]
 
-    #PROPERTIES:
-    @Model.getter("W[1-6]")
-    def get_W(self, prop_name):
-        index = int(prop_name[1:])-1
-        return self._W[index] if index < self.G else None
-    @Model.setter("W[1-6]")
-    def set_W(self, prop_name, value):
-        index = int(prop_name[1:])-1
-        self._W[index] = min(max(float(value), 0.0), 1.0)
-        self.update()
+        @property
+        def G(self):
+            #if self.parent!=None:
+            #    return self.parent.data_G
+            #else:
+            return pasG
 
-    # ------------------------------------------------------------
-    #      Initialisation and other internals
-    # ------------------------------------------------------------
-    def setup(self, W1=1.0, W2=0.0, W3=0.0, W4=0.0, **kwargs):
-        self._R = 0
-        self._W = np.zeros(shape=(self.G), dtype=float)
-        loc = locals()
-        for i in range(self.G):
-            self._W[i] = loc["W%d"%(i+1)]
-            setattr(self, "W%d_range"%(i+1), [0, 1.0])
-        self._P = np.repeat(self._W[np.newaxis,:], self.G, 0)
+        #PROPERTIES:
+        @Model.getter("W[1-%d]" % (pasG+1))
+        def get_W(self, prop_name):
+            index = int(prop_name[1:])-1
+            return self._W[index] if index < self.G else None
+        @Model.setter("W[1-%d]" % (pasG+1))
+        def set_W(self, prop_name, value):
+            index = int(prop_name[1:])-1
+            self._W[index] = min(max(float(value), 0.0), 1.0)
+            self.update()
 
-    # ------------------------------------------------------------
-    #      Methods & Functions
-    # ------------------------------------------------------------ 
-    @delayed()
-    def update(self):
-        if self.G == 1:
-            self._W[0] = 1.0
-        elif self.G > 1:
-            partial_sum = np.sum(self._W[:-1])
-            self._W[-1] = max(1.0 - partial_sum, 0)
-            if partial_sum > 1.0:
-                self._W *= 1.0 / partial_sum
-        self._P = np.repeat(self._W[np.newaxis,:], self.G, 0)
-        self.updated.emit()
-    
-    def get_independent_label_map(self):
-        return self.__independent_label_map__[:(self.G-1)]
-    
-    pass #end of class
+        # ------------------------------------------------------------
+        #      Initialisation and other internals
+        # ------------------------------------------------------------
+        def setup(self, **kwargs):
+            self._R = 0
+            self._W = np.zeros(shape=(self.G), dtype=float)
+            for i in range(self.G):
+                self._W[i] = kwargs.get("W%d"%(i+1), 0.0 if i > 0 else 1.0)
+            self._P = np.repeat(self._W[np.newaxis,:], self.G, 0)
+
+        # ------------------------------------------------------------
+        #      Methods & Functions
+        # ------------------------------------------------------------ 
+        @delayed()
+        def update(self):
+            if self.G == 1:
+                self._W[0] = 1.0
+            elif self.G > 1:
+                partial_sum = np.sum(self._W[:-1])
+                self._W[-1] = max(1.0 - partial_sum, 0)
+                if partial_sum > 1.0:
+                    self._W *= 1.0 / partial_sum
+            self._P = np.repeat(self._W[np.newaxis,:], self.G, 0)
+            self.updated.emit()
+        
+        def get_independent_label_map(self):
+            return self.__independent_label_map__[:(self.G-1)]
+        
+        pass #end of class
+    return type("R0G%dModel" % pasG, (R0Model,), dict())
+
+R0G1Model = R0_model_generator(1)
+R0G2Model = R0_model_generator(2)
+R0G3Model = R0_model_generator(3)
+R0G4Model = R0_model_generator(4)
+R0G5Model = R0_model_generator(5)
+R0G6Model = R0_model_generator(6)
 
 class R1G2Model(_AbstractR0R1Model):
 	"""
@@ -257,20 +280,19 @@ class R1G2Model(_AbstractR0R1Model):
     #MODEL INTEL:
     __independent_label_map__ = [
         ("W1", "W<sub>1</sub>"),
-        ("P11_or_P22", "P<sub>11</sub> or P<sub>22</sub>"),
+        ("P11_or_P22", "P<sub>11</sub> or P<sub>22</sub>"),        
     ]
-    __refineables__ = [ prop for prop, lbl in  __independent_label_map__ ]
-    __observables__ = __refineables__
-    __storables__ = [ val for val in __observables__ if not val in ('parent', "added", "removed")]
+    __model_intel__ = [
+        PropIntel(name=prop, inh_name=None, label=label, minimum=0.0, maximum=1.0, is_column=False, ctype=float, refinable=True, storable=True, observable=True, has_widget=True) \
+            for prop, label in __independent_label_map__
+    ]
 
     #PROPERTIES:
-    W1_range = [0,1.0]
     def get_W1_value(self): return self._W[0]
     def set_W1_value(self, value):
         self._W[0] = min(max(value, 0.0), 1.0)
         self.update()
                     
-    P11_or_P22_range = [0,1.0]
     def get_P11_or_P22_value(self):
         if self._W[0] <= 0.5:
             return self._P[0,0]
@@ -336,18 +358,17 @@ class R1G3Model(_AbstractR0R1Model):
         ("G3", "W<sub>22</sub>\n<s>               </s>\n(W<sub>22</sub> + W<sub>23</sub>)"),
         ("G4", "W<sub>32</sub>\n<s>               </s>\n(W<sub>32</sub> + W<sub>33</sub>)"),  
     ]
-    __refineables__ = [ prop for prop, lbl in  __independent_label_map__ ]
-    __observables__ = __refineables__
-    __storables__ = [ val for val in __observables__ if not val in ('parent', "added", "removed")]
+    __model_intel__ = [
+        PropIntel(name=prop, inh_name=None, label=label, minimum=0.0, maximum=1.0, is_column=False, ctype=float, refinable=True, storable=True, observable=True, has_widget=True) \
+            for prop, label in __independent_label_map__
+    ]
 
     #PROPERTIES
-    W1_range = [0,1.0]
     def get_W1_value(self): return self._W[0]
     def set_W1_value(self, value):
         self._W[0] = min(max(value, 0.0), 1.0)
         self.update()
             
-    P11_or_P22_range = [0,1.0]
     def get_P11_or_P22_value(self):
         if self._W[0] <= 0.5:
             return self._P[0,0]
@@ -360,10 +381,6 @@ class R1G3Model(_AbstractR0R1Model):
             self._P[1,1] = min(max(value, 0.0), 1.0)
         self.update()
 
-    G1_range = [0,1.0]
-    G2_range = [0,1.0]
-    G3_range = [0,1.0]
-    G4_range = [0,1.0]
     _G1 = 0
     _G2 = 0
     _G3 = 0
@@ -472,9 +489,10 @@ class R2G2Model(_AbstractR0R1Model): #TODO new abstract class needed?
         ("P21", "P<sub>21</sub>"),
         ("P122_or_P221", "P<sub>122</sub> or P<sub>221</sub>"),
     ]
-    __refineables__ = [ prop for prop, lbl in  __independent_label_map__ ]
-    __observables__ = __refineables__
-    __storables__ = [ val for val in __observables__ if not val in ('parent', "added", "removed")]
+    __model_intel__ = [
+        PropIntel(name=prop, inh_name=None, label=label, minimum=0.0, maximum=1.0, is_column=False, ctype=float, refinable=True, storable=True, observable=True, has_widget=True) \
+            for prop, label in __independent_label_map__
+    ]
 
     #PROPERTIES:
     twothirds = 2.0/3.0

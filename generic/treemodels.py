@@ -267,7 +267,7 @@ class IndexListStore(ObjectListStore):
     def __init__(self, class_type):
         if not hasattr(class_type, '__index_column__'):
             raise TypeError, "class_type should have an __index_column__ attribute, but %s has not" % class_type
-        if not (class_type.__index_column__, str) in class_type.__columns__:
+        if not class_type.__index_column__ in zip(*class_type.__columns__)[0]:
             raise AttributeError, "The index column '%s' should be a member of the __columns__" % class_type.__index_column__
         if not class_type.__index_column__ in class_type.__observables__:
             raise AttributeError, "The index column '%s' should be a member of the __observables__" % class_type.__index_column__
@@ -299,7 +299,10 @@ class IndexListStore(ObjectListStore):
         ObjectListStore.clear(self, self._item_observer.relieve_model)
        
     def item_in_model(self, item):
-        return (getattr(item, self._index_column_name) in self._index)
+        index = getattr(item, self._index_column_name)
+        if index in self._index:
+            print index
+        return index in self._index
 
     def index_in_model(self, index):
         return (index in self._index)
@@ -350,6 +353,7 @@ class XYListStore(_BaseObjectListStore, Storable):
     @staticmethod
     def from_json(data=None, **kwargs):
         xy = XYListStore()
+        data = data.replace("nan", "0.0")
         data = zip(*json.JSONDecoder().decode(data))
         if data != []:
             xy.set_from_data(*data)

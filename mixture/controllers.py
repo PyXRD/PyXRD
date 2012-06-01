@@ -28,7 +28,7 @@ class RefinementController(DialogController):
     def register_adapters(self):
         if self.model is not None:
             tv = self.view['tv_param_selection']
-            tv_model = self.model.data_refineables
+            tv_model = self.model.data_refinables
             tv.set_model(tv_model)
             #tv.connect('cursor_changed', self.on_exp_data_tv_cursor_changed)
 
@@ -44,9 +44,9 @@ class RefinementController(DialogController):
             
             def get_name(column, cell, model, itr, user_data=None):
                 ref_prop = model.get_user_data(itr)
-                refineable = ref_prop.refineable
-                cell.set_sensitive(refineable)
-                cell.set_property("markup", ("%.5f" % ref_prop.sensitivity) if refineable else "")
+                refinable = ref_prop.refinable
+                cell.set_sensitive(refinable)
+                cell.set_property("markup", ("%.5f" % ref_prop.sensitivity) if refinable else "")
                 return            
             rend = gtk.CellRendererText()
             col = gtk.TreeViewColumn("Sensitivity [%]", rend, text=3)
@@ -56,10 +56,10 @@ class RefinementController(DialogController):
             def add_editable_float(title, prop_name, callback):                
                 def get_name(column, cell, model, itr, user_data=None):
                     ref_prop = model.get_user_data(itr)
-                    refineable = ref_prop.refineable
-                    cell.set_property("editable", refineable)        
-                    cell.set_sensitive(refineable)
-                    cell.set_property("markup", ("%.5f" % getattr(ref_prop, prop_name)) if refineable else "")
+                    refinable = ref_prop.refinable
+                    cell.set_property("editable", refinable)
+                    cell.set_sensitive(refinable)
+                    cell.set_property("markup", ("%.5f" % getattr(ref_prop, prop_name)) if refinable else "")
                     return
                 rend = gtk.CellRendererText()
                 rend.connect("edited", callback, prop_name)
@@ -67,17 +67,17 @@ class RefinementController(DialogController):
                 col.set_cell_data_func(rend, get_name, data=None)              
                 tv.append_column(col)
             def on_value_minmax_edited(rend, path, new_text, prop_name):
-                ref_prop = self.model.data_refineables.get_user_data_from_path((int(path),))
+                ref_prop = self.model.data_refinables.get_user_data_from_path((int(path),))
                 setattr(ref_prop, prop_name, float(new_text))
             add_editable_float("Min", "value_min", on_value_minmax_edited)
             add_editable_float("Max", "value_max", on_value_minmax_edited)      
             
             def get_refine(column, cell, model, itr, user_data=None):
                 ref_prop = model.get_user_data(itr)
-                cell.set_sensitive(ref_prop.refineable)
-                cell.set_property("activatable", ref_prop.refineable)
-                cell.set_property("visible", ref_prop.refineable) 
-                cell.set_property("active", ref_prop.refineable and ref_prop.refine)
+                cell.set_sensitive(ref_prop.refinable)
+                cell.set_property("activatable", ref_prop.refinable)
+                cell.set_property("visible", ref_prop.refinable) 
+                cell.set_property("active", ref_prop.refinable and ref_prop.refine)
                 return
             rend = gtk.CellRendererToggle()
             rend.connect('toggled', self.refine_toggled, tv_model)
@@ -139,7 +139,7 @@ class EditMixtureController(ChildController):
             for name in self.model.get_properties():
                 if name == "data_name":
                     self.adapt(name, "mixture_data_name")
-                elif not name in self.model.__have_no_widget__+  ["data_refineables", "data_refine_method"]:
+                elif not name in self.model.__have_no_widget__+  ["data_refinables", "data_refine_method"]:
                     self.adapt(name)
             self.create_ui()
             return
@@ -211,12 +211,13 @@ class EditMixtureController(ChildController):
     def on_add_phase(self, widget, *args):
         self.chicken_egg = True
         index = self.model.add_phase("New Phase", 1.0)
-        self.add_phase_view(index)
+        if index != -1:
+            self.add_phase_view(index)
         self.chicken_egg = False
         
     def on_add_specimen(self, widget, *args):
         self.chicken_egg = True
-        index = self.model.add_specimen(None, 1.0)
+        index = self.model.add_specimen(None, 1.0, 0.0)
         self.add_specimen_view(index)
         self.chicken_egg = False
     
@@ -247,7 +248,7 @@ class EditMixtureController(ChildController):
 class MixturesController(ObjectListStoreController):
 
     model_property_name = "data_mixtures"
-    columns = [ ("Mixture name", 0) ]
+    columns = [ ("Mixture name", "c_data_name") ]
     delete_msg = "Deleting a mixture is irreverisble!\nAre You sure you want to continue?"
 
     def get_new_edit_view(self, obj):

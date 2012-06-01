@@ -23,24 +23,186 @@ from probabilities.models import get_Gbounds_for_R, get_Rbounds_for_G
 from probabilities.controllers import EditProbabilitiesController
 from probabilities.views import EditProbabilitiesView
 
-from phases.views import EditPhaseView, EditLayerView, EditComponentView, AddPhaseView
-from phases.models import Phase, Component
+from phases.views import EditPhaseView, InlineObjectListStoreView, EditComponentView, AddPhaseView, EditUnitCellPropertyView
+from phases.models import Phase, Component, ComponentRatioFunction
 
+class EditUnitCellPropertyController(ChildController):
 
-class EditLayerController(ChildController, HasObjectTreeview):
-    file_filters = ("Layer file", "*.lyr"),
+    def reset_prop_store(self):
+        name = "data_prop"
+        combo = self.view["data_prop"]
+        store = gtk.ListStore(str, object)        
+        for i, atom in enumerate(self.model.parent.data_layer_atoms._model_data):
+            store.append(["data_layer_atoms.%d" % i, atom])
+        for i, atom in enumerate(self.model.parent.data_interlayer_atoms._model_data):
+            store.append(["data_interlayer_atoms.%d" % i, atom])
+        for prop in self.extra_props:
+            store.append(prop)
+        combo.set_model(store)
+
+        for row in store:
+            if store.get_value(row.iter, 0) == str(getattr(self.model, name)):
+                combo.set_active_iter(row.iter)
+                break
+        return store
+
+    def __init__(self, extra_props, **kwargs):
+        ChildController.__init__(self, **kwargs)
+        self.extra_props = extra_props
+
+    def register_adapters(self):
+        if self.model is not None:
+            for name in self.model.get_properties():
+                if name == "data_prop":
+                    combo = self.view["data_prop"]
+                    store = self.reset_prop_store()
+                    
+                    def on_changed(combo, user_data=None):
+                        itr = combo.get_active_iter()
+                        if itr != None:
+                            val = combo.get_model().get_value(itr, 0)
+                            setattr(self.model, "data_prop", val)
+                    combo.connect('changed', on_changed)
+                    
+                    cell = gtk.CellRendererText()
+                    combo.pack_start(cell, True)
+                    def get_name(celllayout, cell, model, itr, data=None):
+                        obj = model.get_value(itr, 1)
+                        if hasattr(obj, "data_name"):
+                            cell.set_property("markup", obj.data_name)
+                        else:
+                            cell.set_property("markup", obj)
+                    combo.set_cell_data_func(cell, get_name, None)
+                    
+                    def on_item_changed(*args):
+                        self.reset_prop_store()
+                    
+                    self.model.parent._data_layer_atoms.connect("item-removed", on_item_changed)
+                    self.model.parent._data_interlayer_atoms.connect("item-removed", on_item_changed)
+                    self.model.parent._data_layer_atoms.connect("item-inserted", on_item_changed)
+                    self.model.parent._data_interlayer_atoms.connect("item-inserted", on_item_changed)
+                    
+                elif name == "data_enabled":
+                    self.adapt(name, "opt_enabled")
+                    self.view["opt_disabled"].set_active(not self.model.data_enabled)
+                    self.view["opt_enabled"].set_active(self.model.data_enabled)
+                elif not name in ("data_name", "parent", "added", "removed"):
+                    FloatEntryValidator(self.view[name])
+                    self.adapt(name)
+            self.update_sensitivities()
+            return
+
+    def update_sensitivities(self):
+        if self.model.data_enabled:
+            self.view['value'].set_sensitive(False)
+            self.view['box_enabled'].set_sensitive(True)
+        else:        
+            self.view['value'].set_sensitive(True)
+            self.view['box_enabled'].set_sensitive(False)        
+       
+    # ------------------------------------------------------------
+    #      Notifications of observable properties
+    # ------------------------------------------------------------
+    @Controller.observe("data_enabled", assign=True)
+    def notif_enabled_changed(self, model, prop_name, info):
+        self.update_sensitivities()
+        return
+        
+    # ------------------------------------------------------------
+    #      GTK Signal handlers
+    # ------------------------------------------------------------
+    def on_opt_enabled_group_changed(self, widget, *args):
+        self.update_sensitivities()
+    
+    pass #end of class
+
+class InlineObjectListStoreController(ChildController, HasObjectTreeview):
     treeview = None
-    new_atom_type = None
     
     model_property_name = ""
     @property
     def liststore(self):
         return getattr(self.model, self.model_property_name)
 
-    def _setup_atom_treeview(self, tv, model):
+    def _setup_treeview(self, tv, model):
+        raise NotImplementedError
+
+    def __init__(self, model_property_name, *args, **kwargs):
+        ChildController.__init__(self, *args, **kwargs)
+        self.model_property_name = model_property_name
+
+    def register_adapters(self):
+        if self.liststore is not None:
+            self.treeview = self.view.treeview_widget
+            self.treeview.connect('cursor-changed', self.on_treeview_cursor_changed, self.liststore)
+            self._setup_treeview(self.treeview, self.liststore)
+        self.update_sensitivities()
+        return
+
+    def update_sensitivities(self):
+        self.view.del_item_widget.set_sensitive((self.treeview.get_cursor() != (None, None)))
+        self.view.add_item_widget.set_sensitive((self.liststore is not None))
+        self.view.export_items_widget.set_sensitive(len(self.liststore._model_data) > 0)
+
+    def get_selected_object(self):
+        return HasObjectTreeview.get_selected_object(self, self.treeview)
+        
+    def get_selected_objects(self):
+        return HasObjectTreeview.get_selected_objects(self, self.treeview)
+        
+    def get_all_objects(self):
+        return HasObjectTreeview.get_all_objects(self, self.treeview)
+    
+    def select_object(self, obj, unselect_all=True):
+        selection = self.treeview.get_selection()
+        if unselect_all: selection.unselect_all()
+        selection.select_path(self.liststore.on_get_path(obj))
+    
+    def create_new_object_proxy(self):
+        raise NotImplementedError
+        
+    # ------------------------------------------------------------
+    #      GTK Signal handlers
+    # ------------------------------------------------------------
+    def on_treeview_cursor_changed(self, widget, model):
+        self.update_sensitivities()
+
+    def on_add_item(self, widget, user_data=None):
+        new_object = self.create_new_object_proxy()
+        if new_object != None:
+            self.liststore.append(new_object)
+            self.select_object(new_object)
+        self.update_sensitivities()
+
+    def on_del_item(self, widget, user_data=None):
+        path, col = self.treeview.get_cursor()
+        if path != None:
+            itr = self.liststore.get_iter(path)
+            self.liststore.remove(itr)
+            self.update_sensitivities()
+            return True
+        return False
+
+    def on_export_item(self, widget, user_data=None):
+        raise NotImplementedError
+        
+    def on_import_item(self, widget, user_data=None):        
+        raise NotImplementedError
+
+    def on_item_cell_edited(self, cell, path, new_text, user_data):
+        model, col = user_data
+        model.set_value(model.get_iter(path), col, model.convert(col, new_text))
+        pass
+        
+    pass #end of class
+
+class EditLayerController(InlineObjectListStoreController):
+    file_filters = ("Layer file", "*.lyr"),
+    new_atom_type = None
+    
+    def _setup_treeview(self, tv, model):
         tv.set_model(None)
         tv.set_model(model)
-        tv.connect ('cursor-changed', self.on_tvatoms_cursor_changed, model)
 
         #reset:
         for col in tv.get_columns():
@@ -56,7 +218,7 @@ class EditLayerController(ChildController, HasObjectTreeview):
         def add_text_col(title, colnr, renderer=None):
             rend = gtk.CellRendererText()
             rend.set_property("editable", True)
-            rend.connect('edited', self.on_atom_cell_edited, (model, colnr))
+            rend.connect('edited', self.on_item_cell_edited, (model, colnr))
             col = gtk.TreeViewColumn(title, rend, text=colnr)
             col.set_resizable(False)
             col.set_expand(True)
@@ -94,52 +256,16 @@ class EditLayerController(ChildController, HasObjectTreeview):
         rend.connect('editing-started', adjust_combo, None)
 
     def __init__(self, model_property_name, *args, **kwargs):
-        ChildController.__init__(self, *args, **kwargs)
+        InlineObjectListStoreController.__init__(self, model_property_name, *args, **kwargs)
         self.new_atom_type = None
-        self.model_property_name = model_property_name
-
-    def register_adapters(self):
-        if self.liststore is not None:
-            self.treeview = self.view['tvw_atoms']
-            self._setup_atom_treeview(self.treeview, self.liststore)
-        self.update_sensitivities()
-        return
-
-    def update_sensitivities(self):
-        sensitive = (self.treeview.get_cursor() != (None, None))
-        self.view["btn_del_atom"].set_sensitive(sensitive)
-        sensitive = bool(self.liststore is not None and len(self.liststore._model_data)>0)
-        self.view["btn_export_layer"].set_sensitive(sensitive)
-
-    def get_selected_object(self):
-        return HasObjectTreeview.get_selected_object(self, self.treeview)
         
-    def get_selected_objects(self):
-        return HasObjectTreeview.get_selected_objects(self, self.treeview)
-        
-    def get_all_objects(self):
-        return HasObjectTreeview.get_all_objects(self, self.treeview)
+    def create_new_object_proxy(self):
+        return Atom("New Atom", parent=self.model)
         
     # ------------------------------------------------------------
     #      GTK Signal handlers
     # ------------------------------------------------------------
-    def on_tvatoms_cursor_changed(self, widget, model):
-        self.update_sensitivities()
-
-    def on_add_atom(self, widget, user_data=None):
-        self.liststore.append(Atom("New Atom", parent = self.model.parent.parent))
-        self.update_sensitivities()
-
-    def on_del_atom(self, widget, user_data=None):
-        path, col = self.treeview.get_cursor()
-        if path != None:
-            itr = self.liststore.get_iter(path)
-            self.liststore.remove(itr)
-            self.update_sensitivities()
-            return True
-        return False
-
-    def on_export_layer(self, widget, user_data=None):
+    def on_export_item(self, widget, user_data=None):
         def on_accept(save_dialog):
             fltr = save_dialog.get_filter()
             filename = save_dialog.get_filename()
@@ -149,31 +275,25 @@ class EditLayerController(ChildController, HasObjectTreeview):
                 Atom.save_as_csv(filename, self.get_all_objects())
         self.run_save_dialog("Export atoms", on_accept, parent=self.view.get_toplevel(), suggest_name="%s%s" % (self.model.data_name.lower(), self.model_property_name.replace("data", "").lower()) )
         
-    def on_import_layer(self, widget, user_data=None):        
+    def on_import_item(self, widget, user_data=None):        
         def import_layer(dialog):
             def on_accept(open_dialog):
                 fltr = open_dialog.get_filter()
                 if fltr.get_name() == self.file_filters[0][0]:
                     self.liststore.clear()
-                    Atom.get_from_csv(open_dialog.get_filename(), self.liststore.append, self.model.parent.parent)
+                    Atom.get_from_csv(open_dialog.get_filename(), self.liststore.append, self.model)
             self.run_load_dialog("Import atoms", on_accept, parent=self.view.get_toplevel())            
         self.run_confirmation_dialog(message="Are you sure?\nImporting a layer file will clear the current list of atoms!", on_accept_callback=import_layer, parent=self.view.get_toplevel())
         
-
-    def on_atom_cell_edited(self, cell, path, new_text, user_data):
-        model, col = user_data
-        model.set_value(model.get_iter(path), col, model.convert(col, new_text))
-        pass
-
     def on_atom_type_changed(self, combo, path, new_iter, user_data=None):
-        self.new_atom_type = self.model.parent.parent.data_atom_types.get_user_data(new_iter)
+        self.new_atom_type = self.model.phase.project.data_atom_types.get_user_data(new_iter)
         return True
 
     def on_atom_type_edited(self, combo, path, new_text, atom_model):
         atom = atom_model.get_user_data_from_path((int(path),))
         if self.new_atom_type == None and not new_text in (None, "" ):
             try:
-                self.new_atom_type = self.model.parent.parent.data_atom_types.get_item_by_index(new_text)
+                self.new_atom_type = self.model.phase.project.data_atom_types.get_item_by_index(new_text)
             except:
                 pass
         
@@ -185,6 +305,119 @@ class EditLayerController(ChildController, HasObjectTreeview):
         
     pass #end of class
 
+class EditAtomRatioController(InlineObjectListStoreController):
+    file_filters = ("Atom ratio file", "*.rat"),
+    
+    
+    def create_prop_store(self):
+        store = gtk.ListStore(str, object)        
+        for i, atom in enumerate(self.model._data_layer_atoms._model_data):
+            store.append(["data_layer_atoms.%d" % i, atom])
+        for i, atom in enumerate(self.model._data_interlayer_atoms._model_data):
+            store.append(["data_interlayer_atoms.%d" % i, atom])
+
+        return store
+    
+    def _reset_treeview(self, tv, model):
+        tv.set_model(None)
+        tv.set_model(model)
+
+        #reset:
+        for col in tv.get_columns():
+            tv.remove_column(col)
+
+        def add_text_col(title, colnr, renderer=None):
+            rend = gtk.CellRendererText()
+            rend.set_property("editable", True)
+            rend.connect('edited', self.on_item_cell_edited, (model, colnr))
+            col = gtk.TreeViewColumn(title, rend, text=colnr)
+            col.set_resizable(False)
+            col.set_expand(True)
+            if renderer is not None:
+                col.set_cell_data_func(rend, renderer, colnr)
+            tv.append_column(col)
+        add_text_col('Ratio name', model.c_data_name)
+
+        def add_prop_col(title, colnr):
+        
+            atomstore = self.create_prop_store()
+        
+            def atom_renderer(column, cell, model, itr, colnr):
+                atom_ratio = model.get_user_data(itr)
+                prop = model.get_value(itr, colnr)
+                atom, attr = atom_ratio._parseattr(prop)
+                if attr == prop:
+                    cell.set_property("markup", "NaN")
+                else:
+                    cell.set_property("markup", atom.data_name)
+            
+            def combo_cell_renderer(column, cell, model, itr, data=None):
+                atom = model.get_value(itr, 1)
+                cell.set_property("markup", atom.data_name)
+            
+            def adjust_combo(combo, cell, editable, path, data=None):
+                text_cell = cell.get_cells()[0]
+                cell.set_cell_data_func(text_cell, combo_cell_renderer, None)
+        
+            rend = gtk.CellRendererCombo()
+            rend.set_property("model", atomstore)
+            rend.set_property("text_column", 0)
+            rend.set_property("editable", True)
+            rend.set_property("has-entry", False)
+            rend.connect('edited', self.on_item_cell_edited, (model, colnr))
+            rend.connect('editing-started', adjust_combo, None)
+            col = gtk.TreeViewColumn(title, rend)
+            col.set_resizable(True)
+            col.set_expand(True)
+            col.set_cell_data_func(rend, atom_renderer, colnr)
+            tv.append_column(col)
+            
+        add_prop_col('Atom #1', model.c_data_prop1)
+        add_prop_col('Atom #2', model.c_data_prop2)
+
+        def float_renderer(column, cell, model, itr, col=None):
+            nr = model.get_value(itr, col)
+            if nr is not None:
+                cell.set_property('text', "%.5f" % nr)
+            else:
+                cell.set_property('text', '#NA#')
+
+        def add_text_col(title, colnr, renderer=None):
+            rend = gtk.CellRendererText()
+            rend.set_property("editable", True)
+            rend.connect('edited', self.on_item_cell_edited, (model, colnr))
+            col = gtk.TreeViewColumn(title, rend, text=colnr)
+            col.set_resizable(False)
+            col.set_expand(True)
+            if renderer is not None:
+                col.set_cell_data_func(rend, renderer, colnr)
+            tv.append_column(col)
+        add_text_col('Sum', model.c_data_sum, float_renderer)
+        add_text_col('Ratio', model.c_data_ratio, float_renderer)
+    
+    def _setup_treeview(self, tv, model):
+    
+        def on_item_changed(*args):
+            self._reset_treeview(tv, model)
+                    
+        self.model._data_layer_atoms.connect("item-removed", on_item_changed)
+        self.model._data_interlayer_atoms.connect("item-removed", on_item_changed)
+        self.model._data_layer_atoms.connect("item-inserted", on_item_changed)
+        self.model._data_interlayer_atoms.connect("item-inserted", on_item_changed)
+        
+        self._reset_treeview(tv, model)
+
+
+    def __init__(self, model_property_name, *args, **kwargs):
+        InlineObjectListStoreController.__init__(self, model_property_name, *args, **kwargs)
+        self.new_atom_type = None
+        
+    def create_new_object_proxy(self):
+        return ComponentRatioFunction(data_name="New Ratio", parent=self.model)
+        
+    pass #end of class
+
+
 class EditComponentController(ChildController, HasObjectTreeview):
 
     layer_view = None
@@ -192,15 +425,33 @@ class EditComponentController(ChildController, HasObjectTreeview):
     
     interlayer_view = None
     interlayer_controller = None
+    
+    atom_ratios_view = None
+    atom_ratios_controller = None
+    
+    ucpa_view = None
+    ucpa_controller = None
+    
+    ucpb_view = None
+    ucpb_controller = None
 
     def __init__(self, *args, **kwargs):
         ChildController.__init__(self, *args, **kwargs)
         
-        self.layer_view = EditLayerView(parent=self.view)
-        self.layer_controller = EditLayerController("data_layer_atoms", model=self.model, view=self.layer_view, parent=self)
+        self.layer_view = InlineObjectListStoreView(parent=self.view)
+        self.layer_controller = EditLayerController("_data_layer_atoms", model=self.model, view=self.layer_view, parent=self)
         
-        self.interlayer_view = EditLayerView(parent=self.view)
-        self.interlayer_controller = EditLayerController("data_interlayer_atoms", model=self.model, view=self.interlayer_view, parent=self)
+        self.interlayer_view = InlineObjectListStoreView(parent=self.view)
+        self.interlayer_controller = EditLayerController("_data_interlayer_atoms", model=self.model, view=self.interlayer_view, parent=self)
+        
+        self.atom_ratios_view = InlineObjectListStoreView(parent=self.view)
+        self.atom_ratios_controller = EditAtomRatioController("_data_atom_ratios", model=self.model, view=self.atom_ratios_view, parent=self)       
+        
+        self.ucpa_view = EditUnitCellPropertyView(parent=self.view)
+        self.ucpa_controller = EditUnitCellPropertyController(extra_props=[("data_cell_b", "B cell length"),], model=self.model.data_ucp_a, view=self.ucpa_view, parent=self)
+        
+        self.ucpb_view = EditUnitCellPropertyView(parent=self.view)
+        self.ucpb_controller = EditUnitCellPropertyController(extra_props=[("data_cell_a", "A cell length"),], model=self.model.data_ucp_b, view=self.ucpb_view, parent=self)
 
     def reset_combo_box(self):
         if self.model is not None and self.model.parent is not None:
@@ -228,10 +479,15 @@ class EditComponentController(ChildController, HasObjectTreeview):
                     self.reset_combo_box()
                 elif name.find("inherit") is not -1:
                     self.adapt(name)
-                elif name in ("data_layer_atoms", "data_interlayer_atoms"):
+                elif name == "data_layer_atoms":
                     self.view.set_layer_view(self.layer_view.get_top_widget())
+                elif name == "data_interlayer_atoms":
                     self.view.set_interlayer_view(self.interlayer_view.get_top_widget())
-                    pass
+                elif name ==  "data_atom_ratios":
+                    self.view.set_atom_ratios_view(self.atom_ratios_view.get_top_widget())
+                elif name in ("data_ucp_a", "data_ucp_b"):
+                    self.view.set_ucpa_view(self.ucpa_view.get_top_widget())
+                    self.view.set_ucpb_view(self.ucpb_view.get_top_widget())
                 elif not name in ("data_all_atoms", "parent", "added", "removed", "needs_update", "dirty", "P_dirty", "F_dirty"):
                     FloatEntryValidator(self.view["component_%s" % name])
                     self.adapt(name)
@@ -240,32 +496,35 @@ class EditComponentController(ChildController, HasObjectTreeview):
 
     def update_sensitivities(self):
         can_inherit = (self.model.data_linked_with != None)
-        
-        for name in ("d001", "cell_a", "cell_b"):
-            widget_name = "component_data_%s" % name
-            self.view[widget_name].set_sensitive(not (can_inherit and getattr(self.model, "inherit_%s" % name)))
+
+        def update(widget, name):
+            self.view[widget].set_sensitive(not (can_inherit and getattr(self.model, "inherit_%s" % name)))
+            self.view[widget].set_visible(not (can_inherit and getattr(self.model, "inherit_%s" % name)))
             self.view["component_inherit_%s" % name].set_sensitive(can_inherit)
-        for name in ("interlayer_atoms",
-                     "layer_atoms"):
-            widget_name = "%s_container" % name
-            self.view[widget_name].set_sensitive(not (can_inherit and getattr(self.model, "inherit_%s" % name)))
-            self.view["component_inherit_%s" % name].set_sensitive(can_inherit)
+        for name in ("d001", ):
+            update("component_data_%s" % name, name)
+        for name in ("interlayer_atoms", "layer_atoms", "atom_ratios", "ucp_a", "ucp_b"):
+            update("%s_container" % name, name)
+
 
     # ------------------------------------------------------------
     #      Notifications of observable properties
     # ------------------------------------------------------------
     @Controller.observe("inherit_layer_atoms", assign=True)
     @Controller.observe("inherit_interlayer_atoms", assign=True)
-    @Controller.observe("inherit_cell_a", assign=True)
-    @Controller.observe("inherit_cell_b", assign=True)
+    @Controller.observe("inherit_atom_ratios", assign=True)
+    @Controller.observe("inherit_ucp_a", assign=True)
+    @Controller.observe("inherit_ucp_b", assign=True)
     @Controller.observe("inherit_d001", assign=True)
     def notif_change_data_inherit(self, model, prop_name, info):
-        can_inherit = (self.model.data_linked_with != None)
-        if not (prop_name in ("inherit_layer_atoms", "inherit_interlayer_atoms")):
+        self.update_sensitivities()
+        """can_inherit = (self.model.data_linked_with != None)
+        if prop_name in ("inherit_d001",):
             widget_name = prop_name.replace("inherit_", "component_data_")
         else:
             widget_name = "%s_container" % prop_name.replace("inherit_", "")
-        self.view[widget_name].set_sensitive(can_inherit and not info.new)
+            self.view[widget_name].set_visible(can_inherit and not info.new)
+        self.view[widget_name].set_sensitive(can_inherit and not info.new)"""
         return
     
     @Controller.observe("data_name", assign=True)
@@ -296,7 +555,7 @@ class EditComponentController(ChildController, HasObjectTreeview):
 class ComponentsController(ChildObjectListStoreController): #limit # of components!
 
     model_property_name = "data_components"
-    columns = [ ("Component name", 0) ]
+    columns = [ ("Component name", "c_data_name") ]
     delete_msg = "Deleting a component is irreverisble!\nAre You sure you want to continue?"
 
     def get_new_edit_view(self, obj):
@@ -371,7 +630,13 @@ class EditPhaseController(ChildController):
         for name in ("min_CSDS", "max_CSDS", "mean_CSDS", "sigma_star"):
             widget_name = "phase_data_%s" % name
             self.view[widget_name].set_sensitive(not (can_inherit and getattr(self.model, "inherit_%s" % name)))
+            self.view[widget_name].set_visible(not (can_inherit and getattr(self.model, "inherit_%s" % name)))
             self.view["phase_inherit_%s" % name].set_sensitive(can_inherit)
+
+        sensitive = not (can_inherit and getattr(self.model, "inherit_probabilities"))            
+        self.view["phase_data_probabilities"].set_sensitive(sensitive)
+        if not sensitive: self.view["phase_data_probabilities"].set_expanded(sensitive)
+        self.view["phase_inherit_probabilities"].set_sensitive(can_inherit)
 
     # ------------------------------------------------------------
     #      Notifications of observable properties
@@ -380,10 +645,12 @@ class EditPhaseController(ChildController):
     @Controller.observe("inherit_min_CSDS", assign=True)    
     @Controller.observe("inherit_max_CSDS", assign=True)    
     @Controller.observe("inherit_mean_CSDS", assign=True)
+    @Controller.observe("inherit_probabilities", assign=True)
     def notif_change_data_inherit(self, model, prop_name, info):
-        can_inherit = (self.model.data_based_on != None)
+        self.update_sensitivities()
+        """can_inherit = (self.model.data_based_on != None)
         widget_name = prop_name.replace("inherit_", "phase_data_")
-        self.view[widget_name].set_sensitive(can_inherit and not info.new)
+        self.view[widget_name].set_sensitive(can_inherit and not info.new)"""
         return
     
     @Controller.observe("data_name", assign=True)
@@ -412,7 +679,7 @@ class PhasesController(ObjectListStoreController):
     file_filters = ("Phase file", "*.phs"),
     model_property_name = "data_phases"
     multi_selection = False
-    columns = [ ("Phase name", 0) ]
+    columns = [ ("Phase name", "c_data_name") ]
     delete_msg = "Deleting a phase is irreverisble!\nAre You sure you want to continue?"
     title="Edit Phases"
 

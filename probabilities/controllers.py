@@ -88,13 +88,13 @@ class R0R1R2IndependentsController(ChildController):
     def register_adapters(self):
         if self.model is not None:
             for name in self.model.get_properties():
-                if name in ["parent", "added", "removed", "updated"]:
+                if name in self.model.__have_no_widget__:
                     pass
-                elif name in self.model.__refineables__:
+                elif name in self.model.__refinables__:
                     FloatEntryValidator(self.view["prob_%s" % name])
                     self.adapt(name)
                 else:
-                    print name
+                    pass
                     #FloatEntryValidator(self.view["prob_%s" % name])
                     #self.adapt(name)
             return

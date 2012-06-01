@@ -24,7 +24,7 @@ class GoniometerController (DialogController):
                 if name in ("data_radius", "data_divergence", "data_soller1", "data_soller2", "data_min_2theta", "data_max_2theta", "data_lambda"):
                     FloatEntryValidator(self.view["gonio_%s" % name])
                     self.adapt(name)
-                else:
+                elif not name in self.model.__have_no_widget__:
                     self.adapt(name)
 
     # ------------------------------------------------------------

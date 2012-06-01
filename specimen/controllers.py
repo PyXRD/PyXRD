@@ -511,7 +511,7 @@ class MarkersController(ObjectListStoreController):
 
     file_filters = ("Marker file", get_case_insensitive_glob("*.MRK")),
     model_property_name = "data_markers"
-    columns = [ ("Marker label", 0) ]
+    columns = [ ("Marker label", "c_data_label") ]
     delete_msg = "Deleting a marker is irreverisble!\nAre You sure you want to continue?"
     title="Edit Markers"
 

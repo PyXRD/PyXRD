@@ -17,7 +17,7 @@ from math import sin, cos, pi, sqrt
 import settings
 
 from generic.utils import interpolate, delayed
-from generic.models import add_cbb_props, DefaultSignal
+from generic.models import PyXRDModel, PropIntel, add_cbb_props, DefaultSignal
 from generic.treemodels import ObjectListStore, IndexListStore
 from generic.io import Storable
 
@@ -27,19 +27,33 @@ from mixture.models import Mixture
 from phases.models import Phase
 from atoms.models import Atom, AtomType
 
-class Project(Model, Observable, Storable):
+class Project(PyXRDModel, Storable):
+
 
     #MODEL INTEL:
-    __have_no_widget__ = ("data_phases", "data_mixtures", "data_atom_types", "data_goniometer", "needs_update")
-    __observables__ = ( "data_name", "data_date", "data_description", "data_author", 
-                        "data_specimens",
-                        "display_marker_angle",
-                        "display_calc_color", "display_exp_color",
-                        "display_plot_offset",
-                        "display_label_pos",
-                        "axes_xscale", "axes_xmin", "axes_xmax", "axes_xstretch",
-                        "axes_yscale", "axes_yvisible") + __have_no_widget__
-    __storables__ = [prop for prop in __observables__ if prop not in ["needs_update"]]
+    __model_intel__ = [ #TODO add labels
+        PropIntel(name="data_name",             inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_date",             inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_description",      inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_author",           inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="display_marker_angle",  inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="display_calc_color",    inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="display_exp_color",     inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="display_plot_offset",   inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="display_label_pos",     inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="axes_xscale",           inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=int,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="axes_xmin",             inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="axes_xmax",             inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="axes_xstretch",         inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="axes_yscale",           inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=int,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="axes_yvisible",         inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_specimens",        inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_phases",           inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=object, refinable=False, storable=True,  observable=True,  has_widget=False),
+        PropIntel(name="data_mixtures",         inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=object, refinable=False, storable=True,  observable=True,  has_widget=False),
+        PropIntel(name="data_atom_types",       inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=object, refinable=False, storable=True,  observable=True,  has_widget=False),
+        PropIntel(name="data_goniometer",       inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=object, refinable=False, storable=True,  observable=True,  has_widget=False),
+        PropIntel(name="needs_update",          inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=object, refinable=False, storable=False, observable=True,  has_widget=False),           
+    ]
     
     #SIGNALS:
     needs_update = None
@@ -120,8 +134,7 @@ class Project(Model, Observable, Storable):
                  display_marker_angle=None, display_calc_color=None, display_exp_color=None, display_plot_offset=None, display_label_pos=None,
                  axes_xscale=None, axes_xmin=None, axes_xmax=None, axes_xstretch=None, axes_yscale=None, axes_yvisible=None,
                  load_default_data=True):
-        Model.__init__(self)
-        Observable.__init__(self)
+        PyXRDModel.__init__(self)
         Storable.__init__(self)
         
         self.before_needs_update_lock = False
@@ -149,7 +162,7 @@ class Project(Model, Observable, Storable):
         self.data_description.set_text(data_description)
         self.data_author = data_author
         
-        self.data_goniometer = data_goniometer or Goniometer()
+        self.data_goniometer = data_goniometer or Goniometer(parent=self)
         
         self.display_marker_angle = display_marker_angle or self.display_marker_angle
         self.display_calc_color = display_calc_color or self.display_calc_color
@@ -236,11 +249,10 @@ class Project(Model, Observable, Storable):
                 del kwargs[key]
             else:
                 sargs[key] = None
-             
-        data_goniometer = Goniometer.from_json(**sargs["data_goniometer"]['properties'])
 
         #Setup project   
         project = Project(load_default_data=False, **kwargs)
+        project.data_goniometer = Goniometer.from_json(parent=project, **sargs["data_goniometer"]['properties'])
         
         #Create temporary ObjectListStore to transfer atom types to project
         if sargs["data_atom_types"] != None:

@@ -282,11 +282,11 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin):
             if self._data_linked_with != None:
                 self.relieve_model(self._data_linked_with)
             self._data_linked_with = value
-            self.dirty = True
-            if self._data_linked_with==None:
+            for prop in self.__inheritables__:
+                setattr(self, prop.replace("data_", "inherit_", 1), False)
+            if self._data_linked_with!=None:
                 self.observe_model(self._data_linked_with)
-                for prop in self.__inheritables__:
-                    setattr(self, prop.replace("data_", "inherit_", 1), False)
+            self.dirty = True
             
     #INHERITABLE PROPERTIES:
     
@@ -541,15 +541,17 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
     _data_based_on = None
     def get_data_based_on_value(self): return self._data_based_on
     def set_data_based_on_value(self, value):
-        if self._data_based_on is not None:
+        if self._data_based_on!=None:
             self.relieve_model(self._data_based_on)
         if value == None or value.get_based_on_root() == self or value.parent != self.parent:
             value = None
         if value != self._data_based_on:
             self._data_based_on = value
+            for prop in self.__inheritables__:
+                setattr(self, prop.replace("data_", "inherit_", 1), False)
             for component in self.data_components._model_data:
                 component.data_linked_with = None
-        if self._data_based_on is not None:
+        if self._data_based_on!=None:
             self.observe_model(self._data_based_on)
         self.dirty = True
         self.needs_update.emit()

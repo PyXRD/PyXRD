@@ -21,13 +21,14 @@ from generic.utils import delayed, indexproperty
 # Overview of what is:
 #   x   = currently implemented
 #   np  = not possible
-#   -   = not yet implemented
+#   -/o = not yet implemented
+#   o   = priority
 #
 #       G1  G2  G3  G4  G5  G6
 #   R0  x   x   x   x   x   x
-#   R1  np  x   x   -   -   -
-#   R2  np  x   -   -   -   -
-#   R3  np  np  -   -   -   -
+#   R1  np  x   x   o   -   -
+#   R2  np  x   o   -   -   -
+#   R3  np  o   o   -   -   -
 
 
 def get_Gbounds_for_R(R):
@@ -452,7 +453,7 @@ class R1G3Model(_AbstractR0R1Model):
     pass #end of class
         
         
-class R2G2Model(_AbstractR0R1Model): #TODO new abstract class needed?
+class R2G2Model(_AbstractR0R1Model):
 	"""
 	Reichweite = 2 / Components = 2
 	g^2 independent variables = 4

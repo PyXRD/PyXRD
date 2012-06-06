@@ -229,19 +229,19 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin):
     __parent_alias__ = "phase"
     __model_intel__ = [
         PropIntel(name="data_name",                 inh_name=None,                          label="Name",                   minimum=None,  maximum=None,  is_column=True,  ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="data_linked_with",          inh_name=None,                          label="Linked with",            minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=False, storable=False, observable=True,  has_widget=True),
-        PropIntel(name="data_ucp_a",                inh_name="inherit_ucp_a",               label="Cell length a [nm]",     minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=True,  storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="inherit_ucp_a",             inh_name=None,                          label="Inh. cell length a",     minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="data_ucp_b",                inh_name="inherit_ucp_b",               label="Cell length b [nm]",     minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=True,  storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="inherit_ucp_b",             inh_name=None,                          label="Inh. cell length b",     minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
         PropIntel(name="data_d001",                 inh_name="inherit_d001",                label="Cell length c [nm]",     minimum=0.0,   maximum=None,  is_column=True,  ctype=float,  refinable=True,  storable=True,  observable=True,  has_widget=True),
         PropIntel(name="inherit_d001",              inh_name=None,                          label="Inh. cell length c",     minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="data_atom_ratios",          inh_name="inherit_atom_ratios",         label="Atom ratios",            minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=True,  storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="inherit_atom_ratios",       inh_name=None,                          label="Inh. atom ratios",       minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="data_layer_atoms",          inh_name="inherit_layer_atoms",         label="Layer atoms",            minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=False, storable=True,  observable=True,  has_widget=True),
         PropIntel(name="inherit_layer_atoms",       inh_name=None,                          label="Inh. layer atoms",       minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="data_interlayer_atoms",     inh_name="inherit_interlayer_atoms",    label="Interlayer atoms",       minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=False, storable=True,  observable=True,  has_widget=True),
         PropIntel(name="inherit_interlayer_atoms",  inh_name=None,                          label="Inh. interlayer atoms",  minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="inherit_atom_ratios",       inh_name=None,                          label="Inh. atom ratios",       minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="inherit_ucp_b",             inh_name=None,                          label="Inh. cell length b",     minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="inherit_ucp_a",             inh_name=None,                          label="Inh. cell length a",     minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_linked_with",          inh_name=None,                          label="Linked with",            minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=False, storable=False, observable=True,  has_widget=True),
+        PropIntel(name="data_ucp_a",                inh_name="inherit_ucp_a",               label="Cell length a [nm]",     minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=True,  storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_ucp_b",                inh_name="inherit_ucp_b",               label="Cell length b [nm]",     minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=True,  storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_atom_ratios",          inh_name="inherit_atom_ratios",         label="Atom ratios",            minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=True,  storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_layer_atoms",          inh_name="inherit_layer_atoms",         label="Layer atoms",            minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_interlayer_atoms",     inh_name="inherit_interlayer_atoms",    label="Interlayer atoms",       minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=False, storable=True,  observable=True,  has_widget=True),
         PropIntel(name="needs_update",              inh_name=None,                          label="",                       minimum=None,  maximum=None,  is_column=False, ctype=object, refinable=False, storable=False, observable=True,  has_widget=False),
         PropIntel(name="dirty",                     inh_name=None,                          label="",                       minimum=None,  maximum=None,  is_column=False, ctype=bool,   refinable=False, storable=False, observable=True,  has_widget=False),        
     ]
@@ -282,10 +282,11 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin):
             if self._data_linked_with != None:
                 self.relieve_model(self._data_linked_with)
             self._data_linked_with = value
-            for prop in self.__inheritables__:
-                setattr(self, prop.replace("data_", "inherit_", 1), False)
             if self._data_linked_with!=None:
                 self.observe_model(self._data_linked_with)
+            else:
+                for prop in self.__inheritables__:
+                    setattr(self, prop.replace("data_", "inherit_", 1), False)
             self.dirty = True
             
     #INHERITABLE PROPERTIES:
@@ -494,18 +495,18 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
     __model_intel__ = [
         PropIntel(name="data_name",             inh_name=None,                      label="Name",                               minimum=None,  maximum=None,  is_column=True,  ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
         PropIntel(name="data_based_on",         inh_name=None,                      label="Based on phase",                     minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=False, storable=False, observable=True,  has_widget=True),
-        PropIntel(name="data_mean_CSDS",        inh_name="inherit_mean_CSDS",       label="Mean CSDS",                          minimum=1.0,   maximum=None,  is_column=True,  ctype=float,  refinable=True,  storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="inherit_mean_CSDS",     inh_name=None,                      label="Inh. mean CSDS",                     minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="data_min_CSDS",         inh_name="inherit_min_CSDS",        label="Minimum CSDS",                       minimum=1.0,   maximum=None,  is_column=True,  ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="inherit_min_CSDS",      inh_name=None,                      label="Inh. min CSDS",                      minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="data_max_CSDS",         inh_name="inherit_max_CSDS",        label="Maximum CSDS",                       minimum=1.0,   maximum=None,  is_column=True,  ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="inherit_max_CSDS",      inh_name=None,                      label="Inh. max CSDS",                      minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="data_sigma_star",       inh_name="inherit_sigma_star",      label="σ<sup>*</sup> [°]",                  minimum=0.0,   maximum=90.0,  is_column=True,  ctype=float,  refinable=True,  storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="inherit_sigma_star",    inh_name=None,                      label="Inh. sigma star",                    minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="data_probabilities",    inh_name="inherit_probabilities",   label="Probabilities",                      minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=True,  storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="inherit_probabilities", inh_name=None,                      label="Inh. probabilities",                 minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
         PropIntel(name="data_G",                inh_name=None,                      label="# of components",                    minimum=None,  maximum=None,  is_column=True,  ctype=int,    refinable=False, storable=True,  observable=True,  has_widget=True),
         PropIntel(name="data_R",                inh_name=None,                      label="Reichweite",                         minimum=None,  maximum=None,  is_column=True,  ctype=int,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_mean_CSDS",        inh_name="inherit_mean_CSDS",       label="Mean CSDS",                          minimum=1.0,   maximum=None,  is_column=True,  ctype=float,  refinable=True,  storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_min_CSDS",         inh_name="inherit_min_CSDS",        label="Minimum CSDS",                       minimum=1.0,   maximum=None,  is_column=True,  ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_max_CSDS",         inh_name="inherit_max_CSDS",        label="Maximum CSDS",                       minimum=1.0,   maximum=None,  is_column=True,  ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_sigma_star",       inh_name="inherit_sigma_star",      label="σ<sup>*</sup> [°]",                  minimum=0.0,   maximum=90.0,  is_column=True,  ctype=float,  refinable=True,  storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="inherit_mean_CSDS",     inh_name=None,                      label="Inh. mean CSDS",                     minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="inherit_min_CSDS",      inh_name=None,                      label="Inh. min CSDS",                      minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="inherit_max_CSDS",      inh_name=None,                      label="Inh. max CSDS",                      minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="inherit_sigma_star",    inh_name=None,                      label="Inh. sigma star",                    minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="inherit_probabilities", inh_name=None,                      label="Inh. probabilities",                 minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_probabilities",    inh_name="inherit_probabilities",   label="Probabilities",                      minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=True,  storable=True,  observable=True,  has_widget=True),
         PropIntel(name="data_components",       inh_name=None,                      label="Components",                         minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=True,  storable=True,  observable=True,  has_widget=True),
         PropIntel(name="needs_update",          inh_name=None,                      label="",                                   minimum=None,  maximum=None,  is_column=False, ctype=object, refinable=False, storable=False, observable=True,  has_widget=False),
         PropIntel(name="dirty",                 inh_name=None,                      label="",                                   minimum=None,  maximum=None,  is_column=False, ctype=bool,   refinable=False, storable=False, observable=True,  has_widget=False),
@@ -547,12 +548,13 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
             value = None
         if value != self._data_based_on:
             self._data_based_on = value
-            for prop in self.__inheritables__:
-                setattr(self, prop.replace("data_", "inherit_", 1), False)
             for component in self.data_components._model_data:
                 component.data_linked_with = None
         if self._data_based_on!=None:
             self.observe_model(self._data_based_on)
+        else:
+            for prop in self.__inheritables__:
+                setattr(self, prop.replace("data_", "inherit_", 1), False)
         self.dirty = True
         self.needs_update.emit()
     def get_based_on_root(self):
@@ -679,12 +681,23 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
     #      Input/Output stuff
     # ------------------------------------------------------------  
     def resolve_json_references(self):
+        """#Store inherit_XXX booleans:
+        stored_inh = dict()
+        for prop_intel in self.__model_intel__:
+            if prop_intel.inh_name!="":
+                stored_inh[prop_intel.inh_name] = getattr(self, prop_intel.inh_name)"""
+        #Set the based on and linked with variables, this will reset the inherit_XXX booleans:
         if self._based_on_index != None and self._based_on_index != -1:
             self.data_based_on = self.parent.data_phases.get_user_data_from_index(self._based_on_index)
         for component in self.data_components._model_data:
             component.resolve_json_references()
+        """#Restore the original inherit_XXX values:
+        for prop in stored_inh:
+            setattr(self, stored_inh[prop])"""
+
     
     def json_properties(self):
+        print self.__storables__
         retval = Storable.json_properties(self)
         retval["based_on_index"] = self.parent.data_phases.index(self.data_based_on) if self.data_based_on != None else -1
         return retval

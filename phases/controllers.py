@@ -13,6 +13,8 @@ import gtk
 from gtkmvc import Model, Controller
 from gtkmvc.adapters import Adapter
 
+import settings
+
 from generic.validators import FloatEntryValidator 
 from generic.views import ChildObjectListStoreView
 from generic.controllers import DialogController, ChildController, ObjectListStoreController, ChildObjectListStoreController, HasObjectTreeview
@@ -695,17 +697,28 @@ class PhasesController(ObjectListStoreController):
         else:
             return ObjectListStoreController.get_new_edit_controller(self, obj, view, parent=parent)
 
+    def load_phase(self, filename):
+        print "Importing phase..."
+        new_phase = Phase.load_object(filename, parent=self.model)
+        new_phase.resolve_json_references()
+        self.model.data_phases.append(new_phase)
+        self.select_object(new_phase)
+        return new_phase
+
     # ------------------------------------------------------------
     #      GTK Signal handlers
     # ------------------------------------------------------------
     def on_add_object_clicked(self, event):
-        def on_accept(G, R):
-            G = int(G)
-            R = int(R)
-            if G != None and G > 0 and R != None and R >= 0 and R <= 4:
-                new_phase = Phase("New Phase",  data_G=G, data_R=R, parent=self.model)
-                self.model.data_phases.append(new_phase)
-                self.select_object(new_phase)
+        def on_accept(phase, G, R):
+            if not phase:
+                G = int(G)
+                R = int(R)
+                if G != None and G > 0 and R != None and R >= 0 and R <= 4:
+                    new_phase = Phase("New Phase",  data_G=G, data_R=R, parent=self.model)
+                    self.model.data_phases.append(new_phase)
+                    self.select_object(new_phase)
+            else:
+                self.load_phase("%s/%s/%s" % (settings.BASE_DIR, settings.DEFAULT_PHASES_DIR, phase))
                 
         add_model = Model()
         add_view = AddPhaseView(parent=self.view)
@@ -728,11 +741,7 @@ class PhasesController(ObjectListStoreController):
         
     def on_load_object_clicked(self, event):
         def on_accept(dialog):
-            print "Importing phase..."
-            new_phase = Phase.load_object(dialog.get_filename(), parent=self.model)
-            #new_phase.parent = self.model
-            new_phase.resolve_json_references()
-            self.model.data_phases.append(new_phase)
+            self.load_phase(dialog.get_filename())
         self.run_load_dialog("Import phase", on_accept, parent=self.view.get_top_widget())
         return True
         
@@ -744,6 +753,7 @@ class AddPhaseController(DialogController):
     
     def register_view(self, view):
         self.update_bounds()
+        self.generate_combo()
     
     def update_bounds(self):
         if self.view != None:
@@ -751,26 +761,40 @@ class AddPhaseController(DialogController):
             self.view["adj_R"].set_upper(max_R)
             self.view["adj_R"].set_lower(min_R)
         
+    def generate_combo(self):
+        
+        cmb_model = gtk.ListStore(str,str)
+        cmb_model.append(("", ""))
+        
+        import os
+        for files in os.listdir("%s/%s" % (settings.BASE_DIR, settings.DEFAULT_PHASES_DIR)):
+            if files.endswith(".phs"):
+                cmb_model.append((files, files))
+        self.view.phase_combo_box.set_model(cmb_model)
+         
+        cell = gtk.CellRendererText()
+        self.view.phase_combo_box.pack_start(cell, True)
+        self.view.phase_combo_box.add_attribute(cell, 'text', 0)
     
     # ------------------------------------------------------------
     #      GTK Signal handlers
     # ------------------------------------------------------------
     def on_btn_ok_clicked(self, event):
         self.view.hide()
-        self.callback(self.view.get_G(), self.view.get_R())
+        self.callback(self.view.get_phase(), self.view.get_G(), self.view.get_R())
         return True
         
     def on_g_value_changed(self, adj):
         self.update_bounds()      
         return True
         
-    def on_keypress(self, widget, event) :
-		if event.keyval == gtk.keysyms.Escape :
+    def on_keypress(self, widget, event):
+		if event.keyval == gtk.keysyms.Escape:
 			self.view.hide()
 			return True
-		if event.keyval == gtk.keysyms.Return :
+		if event.keyval == gtk.keysyms.Return:
 			self.view.hide()
-            self.callback(self.view.get_G(), self.view.get_R())			
+            self.callback(self.view.get_phase(), self.view.get_G(), self.view.get_R())
 			return True
         
     def on_window_edit_dialog_delete_event(self, event, args=None):

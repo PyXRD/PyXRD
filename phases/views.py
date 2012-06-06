@@ -113,3 +113,17 @@ class AddPhaseView(DialogView):
         
     def get_R(self):
         return int(self["data_R"].get_value_as_int())
+        
+    def get_phase(self):
+        itr = self["cmb_default_phases"].get_active_iter()
+        if itr:
+            val = self["cmb_default_phases"].get_model().get_value(itr, 1)
+            return val if val else None 
+        else:
+            return None
+            
+    @property
+    def phase_combo_box(self):
+        return self["cmb_default_phases"]
+        
+    pass #end of class

@@ -35,8 +35,8 @@ class AtomType(ChildModel, ObjectListStoreChildMixin, Storable, CSVMixin):
     __index_column__ = 'data_name'
     __parent_alias__ = 'project'
     __model_intel__ = [ #TODO add labels
-        PropIntel(name="data_name",         inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True, ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
         PropIntel(name="data_atom_nr",      inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True, ctype=int,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_name",         inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True, ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
         PropIntel(name="data_weight",       inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True, ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
         PropIntel(name="data_debye",        inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True, ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
         PropIntel(name="data_par_c",        inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True, ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),

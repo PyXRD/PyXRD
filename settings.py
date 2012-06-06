@@ -7,6 +7,8 @@ LOG_FILENAME = 'errors.log'
 
 UPDATE_URL = 'http://users.ugent.be/~madumon/pyxrd/'
 
+DEFAULT_PHASES_DIR = 'data/default phases/'
+
 PLOT_STATS_OFFSET = 0.15
 
 PLOT_TOP = 0.85
@@ -46,8 +48,10 @@ PRINT_MARGIN_HEIGHT = PRINT_BASE_HEIGHT*(1.0-PLOT_HEIGHT)
 PRINT_SINGLE_HEIGHT = PRINT_BASE_HEIGHT*PLOT_HEIGHT
 
 SETTINGS_APPLIED = False
+BASE_DIR = ""
 def apply_runtime_settings():
     global SETTINGS_APPLIED
+    global BASE_DIR
     if not SETTINGS_APPLIED:
         import matplotlib
 
@@ -55,6 +59,9 @@ def apply_runtime_settings():
         matplotlib.rc('font', **font)
         mathtext = {'default': 'regular'}
         matplotlib.rc('mathtext', **mathtext)
-                
+        
+        import sys, os
+        BASE_DIR = os.path.abspath(os.path.dirname(sys.argv[0]))
+        
         print "Runtime settings applied"
     SETTINGS_APPLIED = True

@@ -8,37 +8,44 @@
 
 from gtkmvc.support.metaclasses import ObservablePropertyMeta
 
+def get_unique_list(seq):
+    seen = set()
+    seen_add = seen.add
+    return [ x for x in seq if x not in seen and not seen_add(x)]
+
 class PyXRDMeta(ObservablePropertyMeta):
 
     def __init__(cls, name, bases, d):        
 
         #get the model intel for this class type (excluding bases for now):        
-        __model_intel__ = set(d.get("__model_intel__", list()))
+        __model_intel__ = get_unique_list(d.get("__model_intel__", list()))
 
         #properties to be generated base on model intel named tuples:
         keys = ["__observables__", "__storables__", "__columns__", "__inheritables__", "__refinables__", "__have_no_widget__"]
     
         #loop over the variables and fetch any custom values for this class (if present):
         for key in keys:
-            val = []
-            d[key] = set(d[key]) if key in d else set()
+            d[key] = get_unique_list(d[key]) if key in d else list()
         
         #loop over the model intel and generate observables list:
         for prop in __model_intel__:
-            if prop.observable: d["__observables__"].add(prop.name)
+            if prop.observable: d["__observables__"].append(prop.name)
             
         #add model intel from the base classes to generate the remaining properties, 
-        #and replace the variable by a frozenset including the complete model intel for eventual later use:
-        for base in bases: __model_intel__ |= getattr(base, "__model_intel__", set())
-        setattr(cls, "__model_intel__", frozenset(__model_intel__))            
+        #and replace the variable by a set including the complete model intel for eventual later use:
+        for base in bases: 
+            base_intel = getattr(base, "__model_intel__", list())
+            for prop in base_intel: __model_intel__.append(prop)
+        setattr(cls, "__model_intel__", get_unique_list(__model_intel__))            
             
         #generate remaining properties based on model intel (including bases):
         for prop in __model_intel__:
-            if prop.storable:   d["__storables__"].add(prop.name)
-            if prop.is_column:  d["__columns__"].add((prop.name, prop.ctype))
-            if prop.inh_name:   d["__inheritables__"].add(prop.name)
-            if prop.refinable:  d["__refinables__"].add(prop.name)
-            if not prop.has_widget: d["__have_no_widget__"].add(prop.name)                
+            if prop.storable:   
+                d["__storables__"].append(prop.name)
+            if prop.is_column:  d["__columns__"].append((prop.name, prop.ctype))
+            if prop.inh_name:   d["__inheritables__"].append(prop.name)
+            if prop.refinable:  d["__refinables__"].append(prop.name)
+            if not prop.has_widget: d["__have_no_widget__"].append(prop.name)                
                 
         #apply properties:
         for key in keys:

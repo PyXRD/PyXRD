@@ -74,7 +74,9 @@ class Storable():
 
     def json_properties(self):
         retval = {}
+        if hasattr(self, "data_components"): print self.__storables__
         for name in self.__storables__:
+           
             retval[name] = getattr(self, name)
         return retval
     

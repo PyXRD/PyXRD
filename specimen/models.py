@@ -280,23 +280,25 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
         return specimen
               
     @staticmethod
-    def from_experimental_data(parent, data, format="DAT", filename=""):
+    def from_experimental_data(parent, format="DAT", filename=""):
         specimen = Specimen(parent=parent)
         
         if format=="DAT":        
-            header, data = data.split("\n", 1)
+        
+            with open(filename, 'r') as f:
+                header = f.readline().replace("\n", "")
+                specimen.data_experimental_pattern.load_data(data=f, format=format, has_header=False)
             
-            specimen.data_experimental_pattern.load_data(data, format=format, has_header=False)
             specimen.data_name = u(os.path.basename(filename))
             specimen.data_sample = u(header)
             
         elif format=="BIN":
             import struct
             
-            f = open(data, 'rb')
+            f = open(filename, 'rb')
             f.seek(146)
             specimen.data_sample = u(str(f.read(16)).replace("\0", ""))
-            specimen.data_name = u(os.path.basename(data))
+            specimen.data_name = u(os.path.basename(filename))
             specimen.data_experimental_pattern.load_data(data=f, format=format)
             f.close()
         

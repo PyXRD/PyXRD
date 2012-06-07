@@ -122,11 +122,10 @@ class ProjectController (DialogController, HasObjectTreeview, DialogMixin):
                 specimen = None
                 if filename[-3:].lower() == "dat":
                     print "Opening file %s for import using ASCII DAT format" % filename
-                    data, size, entity = gio.File(path=filename).load_contents()
-                    specimen = Specimen.from_experimental_data(parent=self.model, data=data, filename=filename, format="DAT")
+                    specimen = Specimen.from_experimental_data(parent=self.model, filename=filename, format="DAT")
                 if filename[-2:].lower() == "rd":
                     print "Opening file %s for import using BINARY RD format" % filename
-                    specimen = Specimen.from_experimental_data(parent=self.model, data=filename, filename=filename, format="BIN")
+                    specimen = Specimen.from_experimental_data(parent=self.model, filename=filename, format="BIN")
                 last_iter = self.model.data_specimens.append(specimen)
             if last_iter != None:
                 self.parent.view["specimens_treeview"].set_cursor(last_iter)

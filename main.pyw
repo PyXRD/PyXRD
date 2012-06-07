@@ -26,8 +26,18 @@ if __name__ == "__main__":
     
     gtk.gdk.threads_init()
 
-    m = AppModel()
+    import sys
+    project = None
+    if (len(sys.argv) > 1):
+        from project.models import Project
+        filename = sys.argv[1]
+        print "Opening: %s" % filename
+        project = Project.load_object(filename)
+
+    m = AppModel(project=project)
     v = AppView()
     c = AppController(m, v)
+    
+        
     gtk.main()
     PyXRDLogger.stop_logging()

@@ -319,9 +319,8 @@ class R1G2Model(_AbstractR0R1Model):
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------ 
-    #@delayed()
+    @delayed()
     def update(self):
-        #print "%s %s Case 1" % (self._P, self._W)
         self._W[1] = 1.0 - self._W[0]
         if self._W[0] <= 0.5:
             self._P[0,1] = 1.0 - self._P[0,0]
@@ -411,8 +410,8 @@ class R1G3Model(_AbstractR0R1Model):
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------ 
-    @delayed()    
-    def update(self):    
+    @delayed()
+    def update(self):   
         #temporary storage:
         WW = np.matrix(np.zeros(shape=(3,3), dtype=float))
         
@@ -574,7 +573,7 @@ class R2G2Model(_AbstractR0R1Model):
         
     def get_distribution_array(self): return np.diag(self._W)
     
-    #@delayed()
+    @delayed()
     def update(self):
         W0 = self._W0
         W1 = 1.0 - W0

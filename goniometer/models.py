@@ -82,9 +82,8 @@ class Goniometer(ChildModel, Storable):
        
     def get_lorentz_polarisation_factor(self, range_theta, ss):
         t1 = time.time()
-        ss = max(ss, 0.0000000000001)
+        ss = float(max(ss, 0.0000000000001))
         S, S1S2 = self.get_S()
-
         Q = S / (sqrt8 * np.sin(range_theta) * ss)
         T = erf(Q) * sqrt2pi / (2.0*ss * S) - 2.0*np.sin(range_theta) * (1.0- np.exp(-(Q**2.0))) / (S**2.0)
         t2 = time.time()

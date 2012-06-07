@@ -507,12 +507,16 @@ class XYListStore(_BaseObjectListStore, Storable):
             raise TypeError, "Wrong data type supplied for binary format, must be either file or string, but %s was given" % type(data)
 
         if format=="DAT":
-            for line in f:
+            while True:
+                line = f.readline()
+                #for line in f:
                 if has_header:
                     has_header=False #skip header
                 elif line != "":
                     x, y = map(float, line.split())
                     self.append(x,y)
+                else:
+                    break
         if format=="BIN":
             if f != None:
                 import struct

@@ -17,7 +17,7 @@ import settings
 
 from generic.validators import FloatEntryValidator 
 from generic.views import ChildObjectListStoreView
-from generic.controllers import DialogController, ChildController, ObjectListStoreController, ChildObjectListStoreController, HasObjectTreeview
+from generic.controllers import DialogController, ChildController, ObjectListStoreController, ChildObjectListStoreController, InlineObjectListStoreController
 
 from atoms.models import Atom
 
@@ -116,86 +116,6 @@ class EditUnitCellPropertyController(ChildController):
     def on_opt_enabled_group_changed(self, widget, *args):
         self.update_sensitivities()
     
-    pass #end of class
-
-class InlineObjectListStoreController(ChildController, HasObjectTreeview):
-    treeview = None
-    
-    model_property_name = ""
-    @property
-    def liststore(self):
-        return getattr(self.model, self.model_property_name)
-
-    def _setup_treeview(self, tv, model):
-        raise NotImplementedError
-
-    def __init__(self, model_property_name, *args, **kwargs):
-        ChildController.__init__(self, *args, **kwargs)
-        self.model_property_name = model_property_name
-
-    def register_adapters(self):
-        if self.liststore is not None:
-            self.treeview = self.view.treeview_widget
-            self.treeview.connect('cursor-changed', self.on_treeview_cursor_changed, self.liststore)
-            self._setup_treeview(self.treeview, self.liststore)
-        self.update_sensitivities()
-        return
-
-    def update_sensitivities(self):
-        self.view.del_item_widget.set_sensitive((self.treeview.get_cursor() != (None, None)))
-        self.view.add_item_widget.set_sensitive((self.liststore is not None))
-        self.view.export_items_widget.set_sensitive(len(self.liststore._model_data) > 0)
-
-    def get_selected_object(self):
-        return HasObjectTreeview.get_selected_object(self, self.treeview)
-        
-    def get_selected_objects(self):
-        return HasObjectTreeview.get_selected_objects(self, self.treeview)
-        
-    def get_all_objects(self):
-        return HasObjectTreeview.get_all_objects(self, self.treeview)
-    
-    def select_object(self, obj, unselect_all=True):
-        selection = self.treeview.get_selection()
-        if unselect_all: selection.unselect_all()
-        selection.select_path(self.liststore.on_get_path(obj))
-    
-    def create_new_object_proxy(self):
-        raise NotImplementedError
-        
-    # ------------------------------------------------------------
-    #      GTK Signal handlers
-    # ------------------------------------------------------------
-    def on_treeview_cursor_changed(self, widget, model):
-        self.update_sensitivities()
-
-    def on_add_item(self, widget, user_data=None):
-        new_object = self.create_new_object_proxy()
-        if new_object != None:
-            self.liststore.append(new_object)
-            self.select_object(new_object)
-        self.update_sensitivities()
-
-    def on_del_item(self, widget, user_data=None):
-        path, col = self.treeview.get_cursor()
-        if path != None:
-            itr = self.liststore.get_iter(path)
-            self.liststore.remove(itr)
-            self.update_sensitivities()
-            return True
-        return False
-
-    def on_export_item(self, widget, user_data=None):
-        raise NotImplementedError
-        
-    def on_import_item(self, widget, user_data=None):        
-        raise NotImplementedError
-
-    def on_item_cell_edited(self, cell, path, new_text, user_data):
-        model, col = user_data
-        model.set_value(model.get_iter(path), col, model.convert(col, new_text))
-        pass
-        
     pass #end of class
 
 class EditLayerController(InlineObjectListStoreController):
@@ -420,7 +340,7 @@ class EditAtomRatioController(InlineObjectListStoreController):
     pass #end of class
 
 
-class EditComponentController(ChildController, HasObjectTreeview):
+class EditComponentController(ChildController):
 
     layer_view = None
     layer_controller = None
@@ -734,7 +654,7 @@ class PhasesController(ObjectListStoreController):
             filename = self.extract_filename(dialog)
             phase = self.get_selected_object()
             if phase is not None:
-                phase.save_object(filename=filename)
+                phase.save_object(filename=filename) #FIXME BREAK LINKS & SET INHERIT_... to False!!
         self.run_save_dialog("Export phase", on_accept, parent=self.view.get_top_widget())
         return True
         

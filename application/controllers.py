@@ -54,6 +54,9 @@ class AppController (BaseController, DialogMixin):
 
     def register_view(self, view):
         self.view['statistics_expander'].connect("notify::expanded", self.on_statistics_expand)
+        if self.model.current_project != None:
+            self.reset_project_controller ()
+            self.update_project_sensitivities ()
 
     def set_model(self, model):
         BaseController.set_model(self, model)

@@ -39,6 +39,11 @@ def ctrl_setup_combo_with_list(ctrl, combo, prop_name, list_prop_name):
 
 
 class DialogMixin():
+    """
+        Generic mixin that provides some functions and methods for handling dialogs;
+        e.g. information, warnings, opening & saving files, ...
+    """
+    
     def extract_filename(self, dialog, filters=None):
         filename = self._adjust_filename(dialog.get_filename(), self.get_selected_glob(dialog.get_filter(), filters=filters))
         dialog.set_filename(filename)
@@ -156,6 +161,9 @@ class BaseController (Controller, DialogMixin):
             return None
 
 class DialogController(BaseController):
+    """
+        Simple controller which is the child of a dialog.
+    """
     
     # ------------------------------------------------------------
     #      GTK Signal handlers
@@ -177,7 +185,10 @@ class DialogController(BaseController):
         self.view.hide()
 
 class ChildController(BaseController):
-
+    """
+        Simple controller which is the child of another.
+    """
+    
     def __init__(self, *args, **kwargs):
         #strip parent from args:
         if "parent" in kwargs:
@@ -186,7 +197,10 @@ class ChildController(BaseController):
         BaseController.__init__(self, *args, **kwargs)
         
 class HasObjectTreeview():
-
+    """
+        Mixin that provides some generic methods to acces or set the objects selected in a treeview.
+    """
+    
     def get_selected_object(self, tv):
         objects = HasObjectTreeview.get_selected_objects(self, tv)
         if objects is not None and len(objects) == 1:
@@ -217,7 +231,10 @@ class HasObjectTreeview():
             selection.select_path(path)
 
 class ObjectListStoreMixin(HasObjectTreeview):
-
+    """
+        Mixin that can be used for regular ObjectListStoreControllers (two-pane view).
+    """
+    
     model_property_name = ""
     multi_selection = True
     edit_controller = None
@@ -363,6 +380,9 @@ class ObjectListStoreMixin(HasObjectTreeview):
 
         
 class ObjectListStoreController(DialogController, ObjectListStoreMixin):
+    """
+        A stand-alone, regular ObjectListStore controller (left pane with objects and right pane with object properties)
+    """
     title="Edit Dialog"
   
     def __init__(self, model, view,
@@ -377,7 +397,9 @@ class ObjectListStoreController(DialogController, ObjectListStoreMixin):
         ObjectListStoreMixin.register_adapters(self)
             
 class ChildObjectListStoreController(ChildController, ObjectListStoreMixin):
-  
+    """
+        A embedable, regular ObjectListStore controller (left pane with objects and right pane with object properties)
+    """
     def __init__(self, model, view,
                  spurious=False, auto_adapt=False, parent=None,
                  model_property_name="", columns=[], delete_msg=""):
@@ -386,6 +408,90 @@ class ChildObjectListStoreController(ChildController, ObjectListStoreMixin):
         
     def register_adapters(self):
         ObjectListStoreMixin.register_adapters(self)
+
+class InlineObjectListStoreController(ChildController, HasObjectTreeview):
+    """
+        ObjectListStore controller that consists of a single listview, with import & export and add & delete buttons
+        Subclasses should override the _setup_treeview method to setup their columns and edit support.
+    """
+    treeview = None
+    
+    model_property_name = ""
+    @property
+    def liststore(self):
+        return getattr(self.model, self.model_property_name)
+
+    def _setup_treeview(self, tv, model):
+        raise NotImplementedError
+
+    def __init__(self, model_property_name, *args, **kwargs):
+        ChildController.__init__(self, *args, **kwargs)
+        self.model_property_name = model_property_name
+
+    def register_adapters(self):
+        if self.liststore is not None:
+            self.treeview = self.view.treeview_widget
+            self.treeview.connect('cursor-changed', self.on_treeview_cursor_changed, self.liststore)
+            self._setup_treeview(self.treeview, self.liststore)
+        self.update_sensitivities()
+        return
+
+    def update_sensitivities(self):
+        self.view.del_item_widget.set_sensitive((self.treeview.get_cursor() != (None, None)))
+        self.view.add_item_widget.set_sensitive((self.liststore is not None))
+        self.view.export_items_widget.set_sensitive(len(self.liststore._model_data) > 0)
+
+    def get_selected_object(self):
+        return HasObjectTreeview.get_selected_object(self, self.treeview)
+        
+    def get_selected_objects(self):
+        return HasObjectTreeview.get_selected_objects(self, self.treeview)
+        
+    def get_all_objects(self):
+        return HasObjectTreeview.get_all_objects(self, self.treeview)
+    
+    def select_object(self, obj, unselect_all=True):
+        selection = self.treeview.get_selection()
+        if unselect_all: selection.unselect_all()
+        selection.select_path(self.liststore.on_get_path(obj))
+    
+    def create_new_object_proxy(self):
+        raise NotImplementedError
+        
+    # ------------------------------------------------------------
+    #      GTK Signal handlers
+    # ------------------------------------------------------------
+    def on_treeview_cursor_changed(self, widget, model):
+        self.update_sensitivities()
+
+    def on_add_item(self, widget, user_data=None):
+        new_object = self.create_new_object_proxy()
+        if new_object != None:
+            self.liststore.append(new_object)
+            self.select_object(new_object)
+        self.update_sensitivities()
+
+    def on_del_item(self, widget, user_data=None):
+        path, col = self.treeview.get_cursor()
+        if path != None:
+            itr = self.liststore.get_iter(path)
+            self.liststore.remove(itr)
+            self.update_sensitivities()
+            return True
+        return False
+
+    def on_export_item(self, widget, user_data=None):
+        raise NotImplementedError
+        
+    def on_import_item(self, widget, user_data=None):        
+        raise NotImplementedError
+
+    def on_item_cell_edited(self, cell, path, new_text, user_data):
+        model, col = user_data
+        model.set_value(model.get_iter(path), col, model.convert(col, new_text))
+        pass
+        
+    pass #end of class
 
 def get_color_val(widget):
     c = widget.get_color()

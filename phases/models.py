@@ -585,6 +585,7 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
             self.relieve_model(self._data_probabilities)
         setattr(self, "_%s" % prop_name, value)
         if prob and self._data_probabilities:
+            self._data_probabilities.update()
             self.observe_model(self._data_probabilities)
         self.dirty = True
         self.needs_update.emit()
@@ -641,8 +642,7 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
                 self.observe_model(new_comp)
         self._data_R = data_R
         
-        self._data_probabilities = data_probabilities or get_correct_probability_model(self)
-        self.observe_model(self._data_probabilities)
+        self.data_probabilities = data_probabilities or get_correct_probability_model(self)
         self.inherit_probabilities = inherit_probabilities or self.inherit_probabilities
 
         self._based_on_index = based_on_index if based_on_index > -1 else None
@@ -697,7 +697,6 @@ class Phase(ChildModel, ObjectListStoreChildMixin, Storable):
 
     
     def json_properties(self):
-        print self.__storables__
         retval = Storable.json_properties(self)
         retval["based_on_index"] = self.parent.data_phases.index(self.data_based_on) if self.data_based_on != None else -1
         return retval

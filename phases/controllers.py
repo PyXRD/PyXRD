@@ -17,7 +17,7 @@ import settings
 
 from generic.validators import FloatEntryValidator 
 from generic.views import ChildObjectListStoreView
-from generic.controllers import DialogController, ChildController, ObjectListStoreController, ChildObjectListStoreController, InlineObjectListStoreController
+from generic.controllers import DialogController, ChildController, ObjectListStoreController, ChildObjectListStoreController, get_color_val, InlineObjectListStoreController
 
 from atoms.models import Atom
 
@@ -499,14 +499,14 @@ class EditPhaseController(ChildController):
     components_view = None
     components_controller = None
 
-    def __init__(self, *args, **kwargs):
-        ChildController.__init__(self, *args, **kwargs)
-
+    def register_view(self, view):
+        ChildController.register_view(self, view)
+        
         self.probabilities_view = EditProbabilitiesView(parent=self.view)
-        self.probabilities_controller = EditProbabilitiesController(model=self.model.data_probabilities, view=self.probabilities_view, parent=self)
+        self.view.set_probabilities_view(self.probabilities_view)
         
         self.components_view = ChildObjectListStoreView(display_buttons=False, parent=self.view)
-        self.components_controller = ComponentsController(model=self.model, view=self.components_view, parent=self)
+        self.view.set_components_view(self.components_view)
 
     def register_adapters(self):
         if self.model is not None:
@@ -535,9 +535,14 @@ class EditPhaseController(ChildController):
                         if tv_model.get_user_data(row.iter) == self.model.data_based_on:
                             combo.set_active_iter (row.iter)
                             break
-                elif name in ("data_probabilities", "data_components"):
-                    self.view.set_probabilities_view(self.probabilities_view)
-                    self.view.set_components_view(self.components_view)
+                elif name == "display_color":
+                    ad = Adapter(self.model, name)
+                    ad.connect_widget(self.view["phase_data_%s" % name], getter=get_color_val)
+                    self.adapt(ad)
+                elif name == "data_components":
+                    self.components_controller = ComponentsController(model=self.model, view=self.components_view, parent=self)
+                elif name == "data_probabilities":
+                    self.probabilities_controller = EditProbabilitiesController(model=self.model.data_probabilities, view=self.probabilities_view, parent=self)
                 elif name.find("inherit") is not -1 or name == "data_numcomp":
                     self.adapt(name)
                 else:
@@ -549,7 +554,7 @@ class EditPhaseController(ChildController):
     def update_sensitivities(self):
         can_inherit = (self.model.data_based_on != None)
         
-        for name in ("min_CSDS", "max_CSDS", "mean_CSDS", "sigma_star"):
+        for name in ("min_CSDS", "max_CSDS", "mean_CSDS", "sigma_star", "display_color"):
             widget_name = "phase_data_%s" % name
             self.view[widget_name].set_sensitive(not (can_inherit and getattr(self.model, "inherit_%s" % name)))
             self.view[widget_name].set_visible(not (can_inherit and getattr(self.model, "inherit_%s" % name)))
@@ -563,6 +568,7 @@ class EditPhaseController(ChildController):
     # ------------------------------------------------------------
     #      Notifications of observable properties
     # ------------------------------------------------------------
+    @Controller.observe("inherit_display_color", assign=True)    
     @Controller.observe("inherit_sigma_star", assign=True)
     @Controller.observe("inherit_min_CSDS", assign=True)    
     @Controller.observe("inherit_max_CSDS", assign=True)    
@@ -570,9 +576,13 @@ class EditPhaseController(ChildController):
     @Controller.observe("inherit_probabilities", assign=True)
     def notif_change_data_inherit(self, model, prop_name, info):
         self.update_sensitivities()
-        """can_inherit = (self.model.data_based_on != None)
-        widget_name = prop_name.replace("inherit_", "phase_data_")
-        self.view[widget_name].set_sensitive(can_inherit and not info.new)"""
+        return
+    
+    @Controller.observe("data_probabilities", assign=True)
+    def notif_change_data_probabilities(self, model, prop_name, info):
+        self.probabilities_controller.relieve_model(self.probabilities_controller.model)
+        del self.probabilities_controller
+        self.probabilities_controller = EditProbabilitiesController(model=self.model.data_probabilities, view=self.probabilities_view, parent=self)
         return
     
     @Controller.observe("data_name", assign=True)
@@ -638,7 +648,7 @@ class PhasesController(ObjectListStoreController):
                     self.model.data_phases.append(new_phase)
                     self.select_object(new_phase)
             else:
-                self.load_phase("%s/%s/%s" % (settings.BASE_DIR, settings.DEFAULT_PHASES_DIR, phase))
+                self.load_phase(phase)
                 
         add_model = Model()
         add_view = AddPhaseView(parent=self.view)
@@ -654,7 +664,7 @@ class PhasesController(ObjectListStoreController):
             filename = self.extract_filename(dialog)
             phase = self.get_selected_object()
             if phase is not None:
-                phase.save_object(filename=filename) #FIXME BREAK LINKS & SET INHERIT_... to False!!
+                phase.save_object(filename=filename, export=True)
         self.run_save_dialog("Export phase", on_accept, parent=self.view.get_top_widget())
         return True
         
@@ -683,18 +693,39 @@ class AddPhaseController(DialogController):
         
     def generate_combo(self):
         
-        cmb_model = gtk.ListStore(str,str)
-        cmb_model.append(("", ""))
+        cmb_model = gtk.TreeStore(str,str, bool)
+        cmb_model.append(None, ("", "", True))
         
         import os
-        for files in os.listdir("%s/%s" % (settings.BASE_DIR, settings.DEFAULT_PHASES_DIR)):
+        itrs = list()
+        def walk_dir(dirname, root_itr):
+            itrs.append(root_itr)
+            for dirname, dirnames, filenames in os.walk(dirname):
+                print dirname
+                for filename in filenames:
+                    if filename.endswith(".phs"):
+                        cmb_model.append(itrs[-1], (filename[:-4], "%s/%s" % (dirname, filename), True))
+                for subdirname in dirnames:
+                    tmp_itr = cmb_model.append(itrs[-1], (subdirname, "", False))
+                    walk_dir(subdirname, tmp_itr)
+        walk_dir("%s/%s" % (settings.BASE_DIR, settings.DEFAULT_PHASES_DIR), None)
+        
+        """for files in os.listdir("%s/%s" % (settings.BASE_DIR, settings.DEFAULT_PHASES_DIR)):
             if files.endswith(".phs"):
-                cmb_model.append((files, files))
+                cmb_model.append((files, files))"""
         self.view.phase_combo_box.set_model(cmb_model)
+         
+        #def cell_func(celllayout, cell, model, itr, user_data=None):
+        #    children = model.iter_n_children(itr) > 0
+        #    empty = model.get_value(itr, 1) == ""
+        #    cell.set_sensitive(not (children or empty))
          
         cell = gtk.CellRendererText()
         self.view.phase_combo_box.pack_start(cell, True)
         self.view.phase_combo_box.add_attribute(cell, 'text', 0)
+        self.view.phase_combo_box.add_attribute(cell, 'sensitive', 2)        
+        #self.view.phase_combo_box.set_cell_data_func(cell, cell_func)
+
     
     # ------------------------------------------------------------
     #      GTK Signal handlers

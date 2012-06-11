@@ -6,29 +6,28 @@
 # To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/3.0/ or send
 # a letter to Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
 
-import gtk
-import gobject
+from warnings import warn
 import time
-
 from math import pi
 
-#from pygtkhelpers.ui.objectlist import ObjectTree, Column
-
+import gtk
+import gobject
 from gtkmvc.model import Model, Signal
 import numpy as np
 import scipy
-#from scipy.optimize import minimize
 
 import settings
+
+from generic.metaclasses import pyxrd_object_pool
+from generic.io import Storable
+from generic.utils import print_timing, delayed
+from generic.model_mixins import ObjectListStoreChildMixin
+from generic.models import ChildModel, Storable, PropIntel, MultiProperty
+from generic.treemodels import IndexListStore, _BaseObjectListStore
 
 from phases.models import Phase, Component, UnitCellProperty, ComponentRatioFunction
 from probabilities.models import _AbstractProbability
 from specimen.models import Statistics
-from generic.io import Storable
-from generic.utils import print_timing, delayed
-from generic.models import ChildModel, ObjectListStoreChildMixin, Storable, PropIntel, add_cbb_props
-from generic.treemodels import IndexListStore, _BaseObjectListStore
-
 from mixture.genetics import run_genetic_algorithm
 
 class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
@@ -36,7 +35,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
     __parent_alias__ = "project"
     __model_intel__ = [ #TODO add labels
         PropIntel(name="data_name",             inh_name=None,         label="", minimum=None,  maximum=None,  is_column=True,  ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="data_refinables",      inh_name=None,         label="", minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_refinables",      inh_name=None,         label="", minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=False, storable=False,  observable=True,  has_widget=True), #FIXME
         PropIntel(name="auto_run",              inh_name=None,         label="", minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
         PropIntel(name="data_refine_method",    inh_name=None,         label="", minimum=None,  maximum=None,  is_column=False, ctype=int,    refinable=False, storable=True,  observable=True,  has_widget=True),
         PropIntel(name="has_changed",           inh_name=None,         label="", minimum=None,  maximum=None,  is_column=False, ctype=object, refinable=False, storable=False, observable=True,  has_widget=False),
@@ -68,14 +67,17 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
 
     data_refinables = None
 
-    _data_refine_method = 0
-    _data_refine_methods = { 0: "L BFGS B algorithm", 1: "Genetic algorithm" }
-    add_cbb_props(("data_refine_method", int, None))
+    data_refine_method = MultiProperty(0, int, None, 
+        { 0: "L BFGS B algorithm", 1: "Genetic algorithm" })
 
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def __init__(self, data_name="New Mixture", auto_run=False, phase_indeces=None, specimen_indeces=None, data_phases=None, data_scales=None, data_bgshifts=None, data_fractions=None, data_refinables=None, data_refine_method=None, parent=None):
+    def __init__(self, data_name="New Mixture", auto_run=False, 
+            phase_indeces=None, phase_uuids=None, 
+            specimen_indeces=None, specimen_uuids=None, data_phases=None,
+            data_scales=None, data_bgshifts=None, data_fractions=None, 
+            data_refinables=None, data_refine_method=None, parent=None):
         ChildModel.__init__(self, parent=parent)
         self.has_changed = Signal()
         self.needs_reset = Signal()
@@ -83,13 +85,19 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         self.auto_run = auto_run or self.auto_run
         
         #2D matrix, rows match specimens, columns match mixture 'phases'; contains the actual phase objects
-        if phase_indeces and self.parent != None:
+        if phase_uuids:
+            self.data_phase_matrix = np.array([[pyxrd_object_pool.get_object(uuid) if uuid else None for uuid in row] for row in phase_uuids], dtype=np.object_)
+        elif phase_indeces and self.parent != None:
+            warn("The use of object indeces is deprected since version 0.4. Please switch to using object UUIDs.", DeprecationWarning)
             self.data_phase_matrix = np.array([[self.parent.data_phases.get_user_data_from_index(index) if index!=-1 else None for index in row] for row in phase_indeces], dtype=np.object_)
         else:
             self.data_phase_matrix = np.empty(shape=(0,0), dtype=np.object_)
             
         #list with actual specimens, indexes match with rows in phase_matrix
-        if specimen_indeces != None and self.parent != None:
+        if phase_uuids:
+            self.data_specimens = [pyxrd_object_pool.get_object(uuid) if uuid else None for uuid in specimen_uuids]            
+        elif specimen_indeces != None and self.parent != None:
+            warn("The use of object indeces is deprected since version 0.4. Please switch to using object UUIDs.", DeprecationWarning)
             self.data_specimens = [self.parent.data_specimens.get_user_data_from_index(index) if index!=-1 else None for index in specimen_indeces]
         else:
             self.data_specimens = list()
@@ -115,12 +123,9 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
     def json_properties(self):
         self.update_refinement_treestore()
         retval = Storable.json_properties(self)
-        
-        if self.parent==None:
-            raise ValueError, "Cannot get JSON properties of a mixture with no parent!"
 
-        retval["phase_indeces"] = [[self.parent.data_phases.index(item) if item else -1 for item in row] for row in map(list, self.data_phase_matrix)]
-        retval["specimen_indeces"] = [self.parent.data_specimens.index(specimen) if specimen else -1 for specimen in self.data_specimens]
+        retval["phase_uuids"] = [[item.uuid if item else "" for item in row] for row in map(list, self.data_phase_matrix)]            
+        retval["specimen_uuids"] = [specimen.uuid if specimen else "" for specimen in self.data_specimens]
         retval["data_phases"] = self.data_phases
         retval["data_fractions"] = self.data_fractions
         retval["data_bgshifts"] = self.data_bgshifts
@@ -139,10 +144,11 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
                 sargs[key] = None
              
         mixture = Mixture(**kwargs)
-        data_refinables = IndexListStore.from_json(parent=mixture, **sargs["data_refinables"]['properties'])
-        for refinable in data_refinables._model_data:
-            mixture.data_refinables.append(refinable)
-        del data_refinables
+        #data_refinables = IndexListStore.from_json(parent=mixture, **sargs["data_refinables"]['properties'])
+        #for refinable in data_refinables._model_data:
+        #    print refinable.obj, refinable.prop
+        #    mixture.data_refinables.append(refinable)
+        #del data_refinables #FIXME
                 
         return mixture
     
@@ -322,7 +328,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
                     elif isinstance(phase_prop_val, _AbstractProbability):
                         if phase.data_G > 1:
                             prob = getattr(phase, "_%s" % phase_prop) #get real prob object
-                            prob_itr = add_property(phase_itr, phase, "data_probabilities", level=1)
+                            prob_itr = add_property(phase_itr, prob, "data_name", level=1)
                             for prop in prob.__refinables__:
                                 add_property(prob_itr, prob, prop, level=2)
                     else:
@@ -406,17 +412,13 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
                     
             self.refine_lock = False
             self.parent.thaw_updates()
-            
-        
                     
     def apply_result(self):
+        if self.auto_run: self.optimize()
         for i, specimen in enumerate(self.data_specimens):
-            specimen.data_phases.clear()
             specimen.data_abs_scale = self.data_scales[i]
             specimen.data_bg_shift = self.data_bgshifts[i]
-            for j, phase in enumerate(self.data_phases):
-                phase_obj = self.data_phase_matrix[i,j]
-                if phase_obj: specimen.data_phases[phase_obj] = self.data_fractions[j]
+            specimen.update_pattern(self.data_phase_matrix[i,:], self.data_fractions, self.project.data_goniometer.get_lorentz_polarisation_factor)
                 
     pass #end of class
     
@@ -534,28 +536,33 @@ class RefinableProperty(ChildModel, ObjectListStoreChildMixin, Storable):
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def __init__(self, obj=None, prop=None, sensitivity=None, refine=None, obj_index=None, level=0, parent=None, **kwargs):
+    def __init__(self, obj=None, prop=None, sensitivity=None, refine=None, obj_index=None, obj_uuid=None, level=0, parent=None, **kwargs):
         ChildModel.__init__(self, parent=parent)
         Storable.__init__(self)
 
         self.level = level# or self.level
 
-        if obj==None and obj_index!=None:
-            tp, index = obj_index.split("-", 1)
-            project = self.parent.parent
-            if tp=="phase": 
-                obj = project.data_phases.get_user_data_from_index(int(index))
-            elif tp=="comp":
-                index1, index2 = map(int, index.split("-"))
-                phase = project.data_phases.get_user_data_from_index(index1)
-                obj = phase.data_components.get_user_data_from_index(index2)
-            elif tp=="prob":
-                obj = project.data_phases.get_user_data_from_index(int(index))._data_probabilities
-            elif tp=="ratio":
-                index1, index2, index3 = map(int, index.split("-"))
-                phase = project.data_phases.get_user_data_from_index(index1)
-                comp = phase.data_components.get_user_data_from_index(index2)
-                obj = comp.data_atom_ratios.get_user_data_from_index(index3)
+        if obj==None:
+            if obj_uuid:
+                obj = pyxrd_object_pool.get_object(obj_uuid)
+            elif obj_index!=None:
+                warn("The use of object indeces is deprected since version 0.4. Please switch to using object UUIDs.", DeprecationWarning)
+                tp, index = obj_index.split("-", 1)
+                project = self.parent.parent
+                if tp=="phase": 
+                    obj = project.data_phases.get_user_data_from_index(int(index))
+                elif tp=="comp":
+                    index1, index2 = map(int, index.split("-"))
+                    phase = project.data_phases.get_user_data_from_index(index1)
+                    obj = phase.data_components.get_user_data_from_index(index2)
+                elif tp=="prob":
+                    obj = project.data_phases.get_user_data_from_index(int(index))._data_probabilities
+                elif tp=="ratio":
+                    index1, index2, index3 = map(int, index.split("-"))
+                    phase = project.data_phases.get_user_data_from_index(index1)
+                    comp = phase.data_components.get_user_data_from_index(index2)
+                    obj = comp.data_atom_ratios.get_user_data_from_index(index3)
+                
         self.obj = obj
         self.prop = prop
         
@@ -576,7 +583,7 @@ class RefinableProperty(ChildModel, ObjectListStoreChildMixin, Storable):
        
         project = self.parent.parent
        
-        def get_index(obj):
+        """def get_index(obj):
             if isinstance(obj, Phase):
                 return "phase-%d" % project.data_phases.index(obj)
             elif isinstance(obj, Component):
@@ -584,9 +591,8 @@ class RefinableProperty(ChildModel, ObjectListStoreChildMixin, Storable):
             elif isinstance(obj, ComponentRatioFunction):
                 return "ratio-%d-%d-%d" % (project.data_phases.index(obj.parent.parent), obj.parent.parent.data_components.index(obj.parent), obj.parent.data_atom_ratios.index(obj))
             else:
-                return "prob-%d" % project.data_phases.index(obj.parent)
-            
-        retval["obj_index"] = get_index(self.obj)
+                return "prob-%d" % project.data_phases.index(obj.parent)"""
+        retval["obj_uuid"] = self.obj.uuid #get_index(self.obj)
         
         return retval
         

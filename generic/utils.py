@@ -42,36 +42,33 @@ def print_timing(func):
     return wrapper
 
 
-class _Delayed():
-    def __init__(self, f, lock=None, delay=500):
+class delayed(object):
+    def __init__(self, lock=None, delay=500):
         self.__lock = lock
         self.__delay = delay
-        self.__f = f
-        self.__tmrid = None
-
-    def __call__(self):
+        self.__tmrid = dict()
+        
+    def __call__(self, func):
         def wrapper(*args, **kwargs):
-            if self.__lock != None and getattr(args[0], self.__lock):
-                return #if the function is locked, do not qeue this call
-            if self.__tmrid != None:
-                gobject.source_remove(self.__tmrid)   
+            instance = args[0] if len(args)>0 else None
+            key = instance or func
+            if self.__lock != None and getattr(instance, self.__lock):
+                return #if the function is locked, do not push back the call
+            if key in self.__tmrid:
+                gobject.source_remove(self.__tmrid[key])
+                del self.__tmrid[key]
             delay = 0
             try:
                 delay = int(self.__delay)
             except:
-                delay = getattr(args[0], self.__delay)
-            self.__tmrid = gobject.timeout_add(delay, self.__timeout_handler__, *args)
+                delay = getattr(instance, self.__delay)
+            self.__tmrid[key] = gobject.timeout_add(delay, self.__timeout_handler__, func, key, *args, **kwargs)
         return wrapper
       
-    def __timeout_handler__(self, *args, **kwargs):
-        self.__f(*args, **kwargs)
-        self._upt_id = None
+    def __timeout_handler__(self, func, key, *args, **kwargs):
+        func(*args, **kwargs)
+        if key in self.__tmrid: del self.__tmrid[key]
         return False
-
-def delayed(lock=None, delay=500, *args, **kwargs):
-    def dec(f):
-        return _Delayed(f, lock=lock, delay=delay).__call__()
-    return dec
 
 def get_case_insensitive_glob(*strings):
     '''Ex: '*.ora' => '*.[oO][rR][aA]' '''

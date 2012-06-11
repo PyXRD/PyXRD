@@ -6,7 +6,14 @@
 # To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/3.0/ or send
 # a letter to Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
 
+from uuid import uuid1 as get_uuid
+
+from weakref import WeakValueDictionary
+
 from gtkmvc.support.metaclasses import ObservablePropertyMeta
+
+def get_new_uuid():
+    return get_uuid().hex
 
 def get_unique_list(seq):
     seen = set()
@@ -29,7 +36,30 @@ class PyXRDMeta(ObservablePropertyMeta):
         
         #loop over the model intel and generate observables list:
         for prop in __model_intel__:
-            if prop.observable: d["__observables__"].append(prop.name)
+            if prop.observable: 
+                d["__observables__"].append(prop.name)
+            if hasattr(cls, prop.name):
+                from models import MultiProperty
+                attr = getattr(cls, prop.name)
+                if isinstance(attr, MultiProperty):
+                    def set_attribute(name, value):
+                        d[name] = value
+                        setattr(cls, name, value)
+                    def del_attribute(name):
+                        del d[name]
+                        delattr(cls, name)
+                        
+                    pr_prop = "_%s" % prop.name
+                    pr_optn = "_%ss" % prop.name
+                    getter_name = "get_%s_value" % prop.name
+                    setter_name = "set_%s_value" % prop.name
+                
+                    set_attribute(pr_prop, attr.value)
+                    set_attribute(pr_optn, attr.options)
+                    getter, setter = attr.create_accesors(pr_prop)
+                    set_attribute(getter_name, getter)
+                    set_attribute(setter_name, setter)
+                    del_attribute(prop.name)
             
         #add model intel from the base classes to generate the remaining properties, 
         #and replace the variable by a set including the complete model intel for eventual later use:
@@ -52,9 +82,49 @@ class PyXRDMeta(ObservablePropertyMeta):
             setattr(cls, key, list(d[key]))
             
         return ObservablePropertyMeta.__init__(cls, name, bases, d)
-        
+                
     def __call__(cls, *args, **kwargs):
+    
+
+    
+        #Check if uuid has been passed (e.g. when restored from disk)
+        # if not generate a new one and set it on the instance
+        uuid = kwargs.get("uuid", None)
+        if uuid!=None: 
+            del kwargs["uuid"]
+        else:
+            uuid = get_new_uuid()
+        
+        #Create instance & set the uuid:
         instance = ObservablePropertyMeta.__call__(cls, *args, **kwargs)
+        instance.__uuid__ = uuid
+        #Add a reference to the instance for each model intel, 
+        # so function calls (e.g. labels) work as expected,
+        # and parse MultiProperties:
         for prop_intel in instance.__model_intel__:
             prop_intel.container = instance
+        
+        #Add object to the object pool so other objects can 
+        # retrieve it when restored from disk:
+        pyxrd_object_pool.add_object(instance)
         return instance
+        
+class ObjectPool(object):
+    
+    def __init__(self, *args, **kwargs):
+        object.__init__(self)
+        self._objects = WeakValueDictionary()
+    
+    def add_object(self, obj, force=False, silent=True):
+        if not obj.uuid in self._objects or force:
+            self._objects[obj.uuid] = obj
+        elif not silent:
+            raise KeyError, "UUID %s is already taken by another object %s, cannot add object %s" % (obj.uuid, self._objects[obj.uuid], obj)
+    
+    def get_object(self, uuid):
+        return self._objects.get(uuid, None)
+        
+    def clear(self):
+        self._objects.clear()
+    
+pyxrd_object_pool = ObjectPool()

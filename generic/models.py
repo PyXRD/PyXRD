@@ -13,32 +13,14 @@ import matplotlib.transforms as transforms
 
 import numpy as np
 
-from gtkmvc import Observable
-from gtkmvc.model import Model, Signal, ListStoreModel
-from gtkmvc.support.metaclasses import ObservablePropertyMeta
+from gtkmvc.model import Model, Signal
 
 from generic.metaclasses import PyXRDMeta
 from generic.treemodels import XYListStore
 from generic.io import Storable, PyXRDDecoder
 from generic.utils import smooth, delayed
 
-class DefaultSignal (Signal):
-    def __init__(self, before=None, after=None):
-        Signal.__init__(self)
-        self.before = before
-        self.after = after
-        return
-
-    def emit(self):
-        def after():
-            Signal.emit(self)
-            if callable(self.after): self.after()
-        if callable(self.before): self.before(after)
-        else: after()
-            
-    pass # end of class
-
-def add_cbb_props(*props):
+"""def add_cbb_props(*props): #TODO get this into the metaclass
     props, mappers, callbacks = zip(*props)
     prop_dict = dict(zip(props, zip(mappers, callbacks)))
 
@@ -54,64 +36,30 @@ def add_cbb_props(*props):
             if callable(callback):
                 prop_dict[prop_name][1](self, prop_name, value)
         else:
-            raise ValueError, "'%s' is not a valid value for %s!" % (value, prop_name)
+            raise ValueError, "'%s' is not a valid value for %s!" % (value, prop_name)"""
 
-class CSVMixin():
-    
-    __csv_storables__ = [] #list of tuples "label", "property_name"
-
-    @classmethod
-    def save_as_csv(type, filename, items):
-        import csv
-        atl_writer = csv.writer(open(filename, 'wb'), delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)      
-        labels, props = zip(*type.__csv_storables__)
-        atl_writer.writerow(labels)
-        for item in items:
-            prop_row = []
-            for prop in props:
-                prop_row.append(getattr(item, prop))
-            atl_writer.writerow(prop_row)
-           
-    @classmethod 
-    def get_from_csv(type, filename, callback = None):
-        import csv
-        atl_reader = csv.reader(open(filename, 'rb'), delimiter=',', quotechar='"')
-        labels, props = zip(*type.__csv_storables__)
-        header = True
-        items = []
-        for row in atl_reader:
-            if not header:
-                kwargs = dict()
-                for i, prop in enumerate(props):
-                    kwargs[prop] = row[i]
-                new_item = type(**kwargs)
-                if callback is not None and callable(callback):
-                    callback(new_item)
-                items.append(new_item)
-            header = False
-        return items
-    
-    pass #end of class
-
-class ObjectListStoreChildMixin():
-    
-    __list_store__ = None
+class MultiProperty(object):
+    def __init__(self, value, mapper, callback, options):
+        object.__init__(self)
+        self.value = value
+        self.mapper = mapper
+        self.callback = callback
+        self.options = options
         
-    def liststore_item_changed(self):
-        if self.__list_store__ != None:
-            self.__list_store__.on_item_changed(self)
-            
-    pass #end of class
-
-#PropIntel = namedtuple('PropIntel', ["name", "inh_name", "label", "minimum", "maximum", "is_column", "ctype", "refinable", "storable", "observable", "has_widget"])
+    def create_accesors(self, prop):
+        def getter(model):
+            return getattr(model, prop)
+        def setter(model, value):
+            value = self.mapper(value)
+            if value in self.options:
+                setattr(model, prop, value)
+                if callable(self.callback):
+                    self.callback(model, prop, value)
+            else:
+                raise ValueError, "'%s' is not a valid value for %s!" % (value, prop)
+        return getter, setter
 
 class PropIntel(object):
-    
-    def __init__(self, **kwargs):
-        object.__init__(self)
-        for k, v in kwargs.iteritems():
-            setattr(self, k, v)
-    
     _container = None
     @property
     def container(self):
@@ -130,16 +78,45 @@ class PropIntel(object):
     @label.setter
     def label(self, value):
         self._label = value
+        
+    def __init__(self, **kwargs):
+        object.__init__(self)
+        for k, v in kwargs.iteritems():
+            setattr(self, k, v)
+    pass #end of class
 
+class DefaultSignal (Signal):
 
+    def __init__(self, before=None, after=None):
+        Signal.__init__(self)
+        self.before = before
+        self.after = after
+        return
+
+    def emit(self):
+        def after():
+            Signal.emit(self)
+            if callable(self.after): self.after()
+        if callable(self.before): self.before(after)
+        else: after()
+            
+    pass # end of class
 
 class PyXRDModel(Model):
     __metaclass__ = PyXRDMeta
+    __model_intel__ = [
+        PropIntel(name="uuid",    inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=str, refinable=False, storable=True, observable=False,  has_widget=False),
+    ]
+    
+    @property
+    def uuid(self): return self.__uuid__
     
     def get_prop_intel_by_name(self, name):
         for prop in self.__model_intel__:
             if prop.name == name:
                 return prop
+                
+    pass # end of class
 
 class ChildModel(PyXRDModel):
 
@@ -248,7 +225,6 @@ class XYData(ChildModel, Storable):
     _bg_pattern = None
     def get_bg_pattern_value(self): return self._bg_pattern
     def set_bg_pattern_value(self, value):
-        print "BG PATTERN SET!!"
         self._bg_pattern = value
         self.needs_update.emit()
 
@@ -268,28 +244,22 @@ class XYData(ChildModel, Storable):
     def set_shift_value_value(self, value):
         self._shift_value = float(value)
         self.needs_update.emit()
-
-    _shift_position = 0.42574
-    _shift_positions = { 
-        0.42574: "Quartz\t(SiO2)",
-        0.3134: "Silicon\t(Si)",
-        0.2476: "Zincite\t(ZnO)",
-        0.2085: "Corundum\t(Al2O3)"
-    }    
+  
     def on_shift(self, prop_name, value):
         self.find_shift_value()
-
-    _sd_type = 0
-    _sd_types = { 0: "Moving Triangle" } #TODO add more types  
-
-    _bg_type = 0
-    _bg_types = { 0: "Linear", 1: "Pattern" } #TODO add more types
     def get_bg_type_lbl(self):
         return self._bg_types[self._bg_type]    
     def on_bgtype(self, prop_name, value):
         self.find_bg()
-           
-    add_cbb_props(("shift_position", float, on_shift), ("sd_type", int, None), ("bg_type", int, on_bgtype))
+    
+    shift_position = MultiProperty(0.42574, float, on_shift, { 
+        0.42574: "Quartz\t(SiO2)",
+        0.3134: "Silicon\t(Si)",
+        0.2476: "Zincite\t(ZnO)",
+        0.2085: "Corundum\t(Al2O3)"
+    })
+    sd_type = MultiProperty(0, int, None, { 0: "Moving Triangle" })
+    bg_type = MultiProperty(0, int, on_bgtype, { 0: "Linear", 1: "Pattern" })
                
     @property
     def color(self):
@@ -312,7 +282,7 @@ class XYData(ChildModel, Storable):
         
         self._data_name = data_name or self._data_name
         self._data_label = data_label or self._data_label
-        self.line = matplotlib.lines.Line2D(*self.xy_empty_data, label=self.data_label, color=color, aa=True)
+        self.line = matplotlib.lines.Line2D(*self.xy_empty_data, label=self.data_label, color=color, aa=True, lw=2)
         self.xy_data = xy_data or XYListStore()
         
         self.update_data()
@@ -346,25 +316,21 @@ class XYData(ChildModel, Storable):
         self.xy_data.update_from_data(data_x, data_y)
         self.update_data()
     
+    @property
+    def scale_factor_y(self):
+        if self.parent:
+            return self.parent.scale_factor_y(self._display_offset)
+        else:
+            return 1.0, self._display_offset
+    
     def update_data(self, silent=False):
         if len(self.xy_data._model_data_x) > 1:
             
             data_x = self.xy_data._model_data_x
             data_y = self.xy_data._model_data_y
-            
-            offset = self._display_offset
-            
-            yscale = self.parent.parent.axes_yscale if (self.parent!=None and self.parent.parent != None) else 1            
-            if yscale == 0:
-                data_y = data_y / self.parent.parent.get_max_intensity()
-            elif yscale == 1:
-                data_y = data_y / self.max_intensity
-            elif yscale == 2:
-                offset *= self.parent.parent.get_max_intensity()
-            #elif yscale == 3:
-            #    data_y = data_y * self.display_scale
-            #    offset *= self.parent.parent.get_max_intensity()
-            
+                        
+            yscale, offset = self.scale_factor_y
+            data_y = data_y * yscale
             trans = transforms.Affine2D().translate(0, offset)
             data = trans.transform(np.array([data_x, data_y]).transpose())
             self.line.set_data(np.transpose(data))
@@ -379,8 +345,21 @@ class XYData(ChildModel, Storable):
             self.xy_data.clear()
             if update: self.update_data()
     
+    def remove_from_plot(self, figure, axes, pctrl):
+        try: self.line.remove()
+        except: pass   
+        try: self.bg_line.remove()
+        except: pass   
+        try: self.sd_line.remove()
+        except: pass  
+        try: self.shifted_line.remove()
+        except: pass
+    
     def on_update_plot(self, figure, axes, pctrl):
         self.update_data(silent=True)
+        
+        if self.data_name == "Calculated Profile":
+            print "ON UPDATE PLOT"
         
         #Add pattern
         lines = axes.get_lines()
@@ -391,14 +370,7 @@ class XYData(ChildModel, Storable):
             try: line.remove()
             except: pass            
         
-        yscale = self.parent.parent.axes_yscale if (self.parent!=None and self.parent.parent != None) else 1
-        yfactor = 1.0
-        if yscale == 0:
-            yfactor = 1.0 / (self.parent.parent.get_max_intensity() or 1.0)
-        elif yscale == 1:
-            yfactor = 1.0 / (self.max_intensity or 1.0)
-        elif yscale == 2:
-            yfactor = 1.0
+        yfactor, offset = self.scale_factor_y
         
         #Add bg line (if present)
         try_or_die(self.bg_line)
@@ -407,8 +379,7 @@ class XYData(ChildModel, Storable):
         elif self.bg_type == 1 and self.bg_pattern != None:
             bg = ((self.bg_pattern * self.bg_scale) + self.bg_position) * yfactor
             self.bg_line = matplotlib.lines.Line2D(xdata=self.xy_data._model_data_x, ydata=bg, c="#660099")
-            axes.add_line(self.bg_line)            
-            print "ADDING BG LINE!!"
+            axes.add_line(self.bg_line)
         else:
             self.bg_line = None
             

@@ -21,9 +21,18 @@ import gobject
 import json
 
 class _BaseObjectListStore(gtk.GenericTreeModel):
+    """
+        Base class for creating GenericTreeModel implementations for lists of
+        objects. It maps the columns of the store with properties of the object.
+    """
+    
+    #PROPERTIES
     _columns = None #list of tuples (name, type)
     _class_type = None
 
+    # ------------------------------------------------------------
+    #      Initialisation and other internals
+    # ------------------------------------------------------------
     def __init__(self, class_type):
         gtk.GenericTreeModel.__init__(self)
         self.set_property("leak-references", False)
@@ -42,6 +51,9 @@ class _BaseObjectListStore(gtk.GenericTreeModel):
             setattr(self, "c_%s" % col[0], i)
             i += 1
 
+    # ------------------------------------------------------------
+    #      Methods & Functions
+    # ------------------------------------------------------------
     def on_get_flags(self):
         return gtk.TREE_MODEL_LIST_ONLY | gtk.TREE_MODEL_ITERS_PERSIST
 
@@ -57,37 +69,56 @@ class _BaseObjectListStore(gtk.GenericTreeModel):
     def convert(self, col, new_val):
         return self._columns[col][1](new_val)
         
-    def get_raw_model_data(self):
+    def get_objects(self):
+        raise NotImplementedError
+        
+    def iter_objects(self):
         raise NotImplementedError
 
 class ObjectListStore(_BaseObjectListStore, Storable):
-    _model_data = None #list of objects of class_type
+    """
+        GenericTreeModel implementation that holds a list with objects.
+        Has support for some extra signals (pass the actual object instead of
+        an iter). This ListStore does not require the objects to be unique.
+    """
 
+    #MODEL INTEL:
+    
+
+    #SIGNALS:
     __gsignals__ = { 
         'item-removed' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
         'item-inserted' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,))
     }
 
-    def __init__(self, class_type):
+    #PROPERTIES:
+    _model_data = None #list with class_type instances
+
+    # ------------------------------------------------------------
+    #      Initialisation and other internals
+    # ------------------------------------------------------------
+    def __init__(self, class_type, model_data=None, parent=None):
+        if isinstance(class_type, basestring):
+            class_type = get_json_type(class_type)
         _BaseObjectListStore.__init__(self, class_type)
         Storable.__init__(self)
         self._model_data = list()
+        if model_data!=None:
+            decoder = PyXRDDecoder(parent=parent)
+            for obj in model_data:
+                item = decoder.__pyxrd_decode__(obj, parent=parent)
+                self._model_data.append(item)
 
+    # ------------------------------------------------------------
+    #      Input/Output stuff
+    # ------------------------------------------------------------
     def json_properties(self):
         return { 'class_type': json_type(self._class_type),
                  'model_data': self._model_data }
-        
-    @classmethod
-    def from_json(type, parent=None, class_type=None, model_data=None, **kwargs):
-        class_type = get_json_type(class_type)
-        store = type(class_type)
-        decoder = PyXRDDecoder(parent=parent)
-        for obj in model_data:
-            item = decoder.__pyxrd_decode__(obj, parent=parent)
-            store._model_data.append(item)
-        store.invalidate_iters()
-        return store
 
+    # ------------------------------------------------------------
+    #      Methods & Functions
+    # ------------------------------------------------------------
     def on_get_iter(self, path):
         try:
             return self._model_data[path[0]]
@@ -228,13 +259,22 @@ class ObjectListStore(_BaseObjectListStore, Storable):
                 
     def get_raw_model_data(self):
         return self._model_data
+        
+    def iter_objects(self):
+        for item in self._model_data:
+            yield item
 
     pass #end of class
 
 gobject.type_register(ObjectListStore)
 
 class IndexListStore(ObjectListStore):
-    
+    """
+        GenericTreeModel implementation that holds a list with objects.
+        Has support for some extra signals (pass the actual object instead of
+        an iter). This ListStore requires the objects to be unique, based on
+        their '__index_column__' value.
+    """
     _index_column_name = None
     _index = None
     
@@ -264,18 +304,29 @@ class IndexListStore(ObjectListStore):
                     del self.liststore._index[info["old"]]
             self.ignore_next_notification = False
     
-    def __init__(self, class_type):
+    # ------------------------------------------------------------
+    #      Initialisation and other internals
+    # ------------------------------------------------------------
+    def __init__(self, class_type, **kwargs):
+        if isinstance(class_type, basestring):
+            class_type = get_json_type(class_type)
         if not hasattr(class_type, '__index_column__'):
-            raise TypeError, "class_type should have an __index_column__ attribute, but %s has not" % class_type
+            raise TypeError, "class_type should have an __index_column__ \
+                attribute, but %s has not" % class_type
         if not class_type.__index_column__ in zip(*class_type.__columns__)[0]:
-            raise AttributeError, "The index column '%s' should be a member of the __columns__" % class_type.__index_column__
+            raise AttributeError, "The index column '%s' should be a member of \
+                the __columns__" % class_type.__index_column__
         if not class_type.__index_column__ in class_type.__observables__:
-            raise AttributeError, "The index column '%s' should be a member of the __observables__" % class_type.__index_column__
-        ObjectListStore.__init__(self, class_type)
+            raise AttributeError, "The index column '%s' should be a member of \
+                the __observables__" % class_type.__index_column__
         self._index = dict()
         self._index_column_name = class_type.__index_column__
         self._item_observer = IndexListStore.ItemObserver(liststore=self)
+        ObjectListStore.__init__(self, class_type, **kwargs)
        
+    # ------------------------------------------------------------
+    #      Methods & Functions
+    # ------------------------------------------------------------ 
     def append(self, item):
         assert not self.item_in_model(item)
         return ObjectListStore.append(self, item)
@@ -326,10 +377,15 @@ Point.__columns__ = [
     ('y', float)
 ]
 
-#TODO: make use of numpy array for XYListStore
-
 class XYListStore(_BaseObjectListStore, Storable):
-
+    """
+        GenericTreeModel implementation that holds a list with X,Y values.
+        Is specialized for handling large lists, and uses Numpy arrays 
+        internally instead of a regular list. Has two columns X and Y.
+        Also implements some additional signals, passing an (X,Y) tuple instead
+        of an iter.
+    """
+    
     __gsignals__ = { 
         'item-removed' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
         'item-inserted' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,))
@@ -338,27 +394,89 @@ class XYListStore(_BaseObjectListStore, Storable):
     _model_data_x = None
     _model_data_y = None
 
-    def __init__(self):
+    # ------------------------------------------------------------
+    #      Initialisation and other internals
+    # ------------------------------------------------------------
+    def __init__(self, data=None):
         _BaseObjectListStore.__init__(self, Point)
         Storable.__init__(self)
         self.set_property("leak-references", True)
         self._model_data_x = np.array([], dtype=float)
         self._model_data_y = np.array([], dtype=float)
         
+        if data!=None:
+            data = data.replace("nan", "0.0")
+            data = zip(*json.JSONDecoder().decode(data))
+            if data != []:
+                self.set_from_data(*data)
+        
+    # ------------------------------------------------------------
+    #      Input/Output stuff
+    # ------------------------------------------------------------
     def json_properties(self):
         return {
-            "data": "[%s]" % ",".join(["[%f,%f]"%(x,y) for x,y in zip(self._model_data_x,self._model_data_y)])
+            "data": "[%s]" % ",".join(
+                ["[%f,%f]"%(x,y) for x,y in
+                zip(self._model_data_x,self._model_data_y)]
+            )
         }
-        
-    @staticmethod
-    def from_json(data=None, **kwargs):
-        xy = XYListStore()
-        data = data.replace("nan", "0.0")
-        data = zip(*json.JSONDecoder().decode(data))
-        if data != []:
-            xy.set_from_data(*data)
-        return xy
 
+    def save_data(self, header, filename):
+        f = open(filename, 'w')
+        f.write("%s\n" % header)
+        np.savetxt(f, zip(self._model_data_x, self._model_data_y), fmt="%.8f")
+        f.close()
+        
+    def load_data(self, data, format="DAT", has_header=True, clear=True):
+        if clear:
+            self.clear()
+
+        f = None
+        close = False
+        if type(data) is file:
+            f = data
+        elif type(data) is str:
+            if format=="BIN":
+                f = open(data, 'rb')
+            else:
+                f = open(data, 'r')
+            close = True
+        else:
+            raise TypeError, "Wrong data type supplied for binary format, \
+                must be either file or string, but %s was given" % type(data)
+
+        if format=="DAT":
+            while True:
+                line = f.readline()
+                #for line in f:
+                if has_header:
+                    has_header=False #skip header
+                elif line != "":
+                    x, y = map(float, line.split())
+                    self.append(x,y)
+                else:
+                    break
+        if format=="BIN":
+            if f != None:
+                import struct
+                #seek data limits
+                f.seek(214)
+                stepx, minx, maxx = struct.unpack("ddd", f.read(24))
+                nx = int((maxx-minx)/stepx)
+                #read values                          
+                f.seek(250)
+                n = 0
+                while n < nx:
+                    y, = struct.unpack("H", f.read(2))
+                    self.append(minx + stepx*n, float(y))
+                    n += 1
+                    
+        #close file
+        if close: f.close()
+
+    # ------------------------------------------------------------
+    #      Methods & Functions
+    # ------------------------------------------------------------
     def on_get_iter(self, path): #returns a rowref
         try:
             path = path[0]
@@ -482,58 +600,6 @@ class XYListStore(_BaseObjectListStore, Storable):
     def interpolate(self, *x_vals):
         f = interp1d(self._model_data_x, self._model_data_y)
         return zip(x_vals, f(x_vals))
-        
-    def save_data(self, header, filename):
-        f = open(filename, 'w')
-        f.write("%s\n" % header)
-        np.savetxt(f, zip(self._model_data_x, self._model_data_y), fmt="%.8f")
-        f.close()
-        
-    def load_data(self, data, format="DAT", has_header=True, clear=True):
-        if clear:
-            self.clear()
-
-        f = None
-        close = False
-        if type(data) is file:
-            f = data
-        elif type(data) is str:
-            if format=="BIN":
-                f = open(data, 'rb')
-            else:
-                f = open(data, 'r')
-            close = True
-        else:
-            raise TypeError, "Wrong data type supplied for binary format, must be either file or string, but %s was given" % type(data)
-
-        if format=="DAT":
-            while True:
-                line = f.readline()
-                #for line in f:
-                if has_header:
-                    has_header=False #skip header
-                elif line != "":
-                    x, y = map(float, line.split())
-                    self.append(x,y)
-                else:
-                    break
-        if format=="BIN":
-            if f != None:
-                import struct
-                #seek data limits
-                f.seek(214)
-                stepx, minx, maxx = struct.unpack("ddd", f.read(24))
-                nx = int((maxx-minx)/stepx)
-                #read values                          
-                f.seek(250)
-                n = 0
-                while n < nx:
-                    y, = struct.unpack("H", f.read(2))
-                    self.append(minx + stepx*n, float(y))
-                    n += 1
-                    
-        #close file
-        if close: f.close()
         
     pass #end of class
     

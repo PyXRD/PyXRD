@@ -6,19 +6,21 @@
 # To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/3.0/ or send
 # a letter to Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
 
-import gtk
+import time
+from warnings import warn
 
+from math import sin, cos, pi, sqrt, exp
+
+import gtk
 from gtkmvc.model import Model
+from gtkmvc.model import Signal, Observer
 
 import numpy as np
 
-import time
-from math import sin, cos, pi, sqrt, exp
-
-from gtkmvc.model import Signal, Observer
-
+from generic.metaclasses import pyxrd_object_pool
 from generic.io import Storable, PyXRDDecoder
-from generic.models import XYData, ChildModel, CSVMixin, ObjectListStoreChildMixin, PropIntel
+from generic.model_mixins import CSVMixin, ObjectListStoreChildMixin
+from generic.models import XYData, ChildModel, PropIntel
 from generic.treemodels import XYListStore
 
 #TODO:
@@ -162,7 +164,9 @@ class Atom(ChildModel, ObjectListStoreChildMixin, Storable):
             self._data_pn = value
     
     _atom_type_index = None
+    _atom_type_uuid = None
     _data_atom_type = None
+    _atom_type_name = None
     def get_data_atom_type_value(self): return self._data_atom_type
     def set_data_atom_type_value(self, value):
         if self._data_atom_type is not None:
@@ -174,7 +178,7 @@ class Atom(ChildModel, ObjectListStoreChildMixin, Storable):
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def __init__(self, data_name=None, data_z=None, data_pn=None, data_atom_type=None, atom_type_index=None, parent=None):
+    def __init__(self, data_name=None, data_z=None, data_pn=None, data_atom_type=None, atom_type_index=None, atom_type_uuid=None, atom_type_name=None, parent=None):
         ChildModel.__init__(self, parent=parent)
         Storable.__init__(self)
         
@@ -184,6 +188,8 @@ class Atom(ChildModel, ObjectListStoreChildMixin, Storable):
         self.data_pn = data_pn or self._data_pn
         self.data_atom_type = data_atom_type
         
+        self._atom_type_uuid = atom_type_uuid or ""
+        self._atom_type_name = atom_type_name or ""
         self._atom_type_index = atom_type_index if atom_type_index > -1 else None
          
     def __str__(self):
@@ -215,19 +221,27 @@ class Atom(ChildModel, ObjectListStoreChildMixin, Storable):
     
     # ------------------------------------------------------------
     #      Input/Output stuff
-    # ------------------------------------------------------------        
-    @staticmethod
-    def from_json(**kwargs):
-        return Atom(**kwargs)
-
+    # ------------------------------------------------------------
     def resolve_json_references(self):
-        if self._atom_type_index is not None:
+        if self._atom_type_uuid:
+            self.data_atom_type = pyxrd_object_pool.get_object(self._atom_type_uuid)
+        elif self._atom_type_name:
+            for atom_type in self.component.phase.project.data_atom_types.iter_objects():
+                if atom_type.data_name == self._atom_type_name:
+                    self.data_atom_type = atom_type
+        elif self._atom_type_index is not None:
+            warn("The use of object indeces is deprected since version 0.4. Please switch to using object UUIDs.", DeprecationWarning)        
             self.data_atom_type = self.component.phase.project.data_atom_types.get_user_data_from_index(self._atom_type_index)
+        del self._atom_type_name
+        del self._atom_type_uuid
+        del self._atom_type_index        
 
     def json_properties(self):
         retval = Storable.json_properties(self)
-        index = self.component.phase.project.data_atom_types.index(self.data_atom_type) if self.data_atom_type != None else -1
-        retval["atom_type_index"] = index
+        if self.component.phase.export_mode:
+            retval["atom_type_name"] = self.data_atom_type.data_name if self.data_atom_type else ""
+        else:
+            retval["atom_type_uuid"] = self.data_atom_type.uuid if self.data_atom_type else ""
         return retval 
    
     @staticmethod

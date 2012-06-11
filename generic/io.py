@@ -48,11 +48,8 @@ class PyXRDDecoder(json.JSONDecoder):
         raise Warning, "__pyxrd_decode__ will return None for %s!" % obj
         return None
         
-class Storable():
+class Storable(object):
     __storables__ = []
-
-    def __init__(self):
-        pass #nothind todo atm
 
     def dump_object(self):
         return json.dumps(self, indent = 4, cls=PyXRDEncoder)
@@ -85,6 +82,22 @@ class Storable():
             "properties": self.json_properties()
         }
     
+    def parse_init_arg(self, arg, default, child=False):
+        if arg==None:
+            return default
+        elif isinstance(arg, dict) and "type" in arg and "properties" in arg:
+            arg = PyXRDDecoder(parent=self if child else None).__pyxrd_decode__(arg)
+            return arg
+        else:
+            return arg
+    
     @classmethod
     def from_json(type, **kwargs):
+        """
+            Method transforming JSON kw-args into __init__ kwargs.
+            Ideally this is a 1-in-1 mapping and no transformation is needed,
+            q.e. the __init__ function can handle JSON kw-args.
+        """
         return type(**kwargs)
+
+    pass #end of class

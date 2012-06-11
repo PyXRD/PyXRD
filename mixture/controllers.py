@@ -49,7 +49,7 @@ class RefinementController(DialogController):
                 cell.set_property("markup", ("%.5f" % ref_prop.sensitivity) if refinable else "")
                 return            
             rend = gtk.CellRendererText()
-            col = gtk.TreeViewColumn("Sensitivity [%]", rend, text=3)
+            col = gtk.TreeViewColumn("Sensitivity [%]", rend, text=tv_model.c_sensitivity)
             col.set_cell_data_func(rend, get_name, data=None)              
             tv.append_column(col)
             
@@ -63,7 +63,7 @@ class RefinementController(DialogController):
                     return
                 rend = gtk.CellRendererText()
                 rend.connect("edited", callback, prop_name)
-                col = gtk.TreeViewColumn(title, rend, text=3)
+                col = gtk.TreeViewColumn(title, rend, text=tv_model.c_title)
                 col.set_cell_data_func(rend, get_name, data=None)              
                 tv.append_column(col)
             def on_value_minmax_edited(rend, path, new_text, prop_name):
@@ -80,8 +80,8 @@ class RefinementController(DialogController):
                 cell.set_property("active", ref_prop.refinable and ref_prop.refine)
                 return
             rend = gtk.CellRendererToggle()
-            rend.connect('toggled', self.refine_toggled, tv_model)
-            col = gtk.TreeViewColumn("Refine", rend, active=4)
+            rend.connect('toggled', self.refine_toggled, tv_model, tv_model.c_refine)
+            col = gtk.TreeViewColumn("Refine", rend, active=tv_model.c_refine)
             col.set_cell_data_func(rend, get_refine)
             col.activatable = True
             col.set_resizable(False)
@@ -109,7 +109,7 @@ class RefinementController(DialogController):
     # ------------------------------------------------------------
     #      GTK Signal handlers
     # ------------------------------------------------------------
-    def refine_toggled(self, cell, path, model=None, col=4):
+    def refine_toggled(self, cell, path, model, col):
         if model is not None:
             itr = model.get_iter(path)
             refine = cell.get_active()

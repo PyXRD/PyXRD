@@ -8,6 +8,8 @@
 
 import settings
 from gtkmvc.model import Model, Observer, Signal
+
+from generic.metaclasses import pyxrd_object_pool
     
 class AppModel(Model):
 
@@ -24,6 +26,7 @@ class AppModel(Model):
     def set_current_project_value(self, value):
         if self._current_project != None: self.relieve_model(self._current_project)
         self._current_project = value
+        pyxrd_object_pool.clear()
         if self._current_project != None: self.observe_model(self._current_project)
     current_filename = None
     

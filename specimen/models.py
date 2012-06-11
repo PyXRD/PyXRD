@@ -7,37 +7,33 @@
 # a letter to Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
 
 import os
-
+#import time
+from math import tan, sin, pi, radians, log
+from warnings import warn
 
 import gtk
 import gobject
-
-from gtkmvc import Observable
 from gtkmvc.model import Model, Signal, Observer
 
 import matplotlib
 import matplotlib.transforms as transforms
-from matplotlib.transforms import offset_copy
+#from matplotlib.transforms import offset_copy
 from matplotlib.text import Text
-
-import time
 
 import numpy as np
 from scipy import stats
 
-from math import tan, asin, sin, cos, pi, sqrt, radians, degrees, exp, log
-
 import settings
 
+from generic.metaclasses import pyxrd_object_pool
 from generic.utils import interpolate, print_timing, u
-from generic.io import Storable, PyXRDDecoder
-from generic.models import XYData, ChildModel, CSVMixin, ObjectListStoreChildMixin, add_cbb_props, PropIntel
-from generic.treemodels import ObjectListStore, XYListStore, Point
-from generic.peak_detection import multi_peakdetect, peakdetect, smooth
+from generic.io import Storable
+from generic.model_mixins import CSVMixin, ObjectListStoreChildMixin, ObjectListStoreParentMixin
+from generic.models import XYData, ChildModel, PropIntel, MultiProperty
+from generic.treemodels import ObjectListStore, XYListStore
+from generic.peak_detection import multi_peakdetect, peakdetect
 
-from phases.models import Phase
-
-class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
+class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStoreChildMixin):
 
     #MODEL INTEL:
     __parent_alias__ = 'project'
@@ -49,21 +45,20 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
         PropIntel(name="data_bg_shift",             inh_name=None,  label="Background shift [counts]",          minimum=0.0,   maximum=None,  is_column=True,  ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
         PropIntel(name="display_calculated",        inh_name=None,  label="Display calculated diffractogram",   minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
         PropIntel(name="display_experimental",      inh_name=None,  label="Display experimental diffractogram", minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="display_phases",            inh_name=None,  label="Display phases diffractogram",       minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="display_phases",            inh_name=None,  label="Display phases seperately",          minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
         PropIntel(name="data_calculated_pattern",   inh_name=None,  label="Calculated diffractogram",           minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=False, storable=True,  observable=True,  has_widget=True),
         PropIntel(name="data_experimental_pattern", inh_name=None,  label="Experimental diffractogram",         minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=False, storable=True,  observable=True,  has_widget=True),
         PropIntel(name="data_exclusion_ranges",     inh_name=None,  label="Excluded ranges",                    minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="data_phases",               inh_name=None,  label="Markers",                            minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=False, storable=False, observable=True,  has_widget=True),
+        #PropIntel(name="data_phases",               inh_name=None,  label="Markers",                            minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=False, storable=False, observable=True,  has_widget=True),
         PropIntel(name="data_markers",              inh_name=None,  label="Markers",                            minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=False, storable=True,  observable=True,  has_widget=False),
         PropIntel(name="statistics",                inh_name=None,  label="Statistics",                         minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=False, storable=False, observable=True,  has_widget=False),
-        PropIntel(name="calc_color",                inh_name=None,  label="Calculated colour",                  minimum=None,  maximum=None,  is_column=True,  ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="inherit_calc_color",        inh_name=None,  label="Use default colour",                 minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="exp_color",                 inh_name=None,  label="Experimental colour",                minimum=None,  maximum=None,  is_column=True,  ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="inherit_exp_color",         inh_name=None,  label="Use default colour",                 minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="calc_color",                inh_name=None,  label="Calculated color",                   minimum=None,  maximum=None,  is_column=True,  ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="inherit_calc_color",        inh_name=None,  label="Use default color",                  minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="exp_color",                 inh_name=None,  label="Experimental color",                 minimum=None,  maximum=None,  is_column=True,  ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="inherit_exp_color",         inh_name=None,  label="Use default color",                  minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
         
         PropIntel(name="needs_update",              inh_name=None,  label="",                                   minimum=None,  maximum=None,  is_column=False, ctype=object, refinable=False, storable=False, observable=True,  has_widget=False),
     ]
-    #__observables__, __storables__, __columns__, __inheritables__, __refinables__, __have_no_widget__ = ModelIntelMixin.parse_model_intel(__model_intel__, [], [], [], [], [], list(ChildModel.__have_no_widget__))
 
     __pctrl__ = None
 
@@ -165,8 +160,8 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
         self.data_experimental_pattern.display_offset = new_offset
         self.data_calculated_pattern.display_offset = new_offset
     
-    _data_phases = None
-    def get_data_phases_value(self): return self._data_phases
+    #_data_phases = None
+    #def get_data_phases_value(self): return self._data_phases
         
     _data_markers = None
     def get_data_markers_value(self): return self._data_markers
@@ -177,10 +172,9 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
     def __init__(self, data_name="", data_sample="", data_sample_length=3.0, data_abs_scale=1.0, data_bg_shift=0.0,
                  display_calculated=True, display_experimental=True, display_phases=False,
                  data_experimental_pattern = None, data_calculated_pattern = None, data_exclusion_ranges = None, data_markers = None,
-                 phase_indeces=None, calc_color=None, exp_color=None, 
+                 phase_indeces=None, phase_uuids=None, calc_color=None, exp_color=None, 
                  inherit_calc_color=True, inherit_exp_color=True, parent=None):
         ChildModel.__init__(self, parent=parent)
-        Observable.__init__(self)
         Storable.__init__(self)
                
         self.needs_update = Signal()
@@ -197,14 +191,29 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
         self.inherit_calc_color = inherit_calc_color
         self.inherit_exp_color = inherit_exp_color
         
-        self.data_calculated_pattern = data_calculated_pattern or XYData("Calculated Profile", color=self.calc_color, parent=self)
-        self.data_experimental_pattern = data_experimental_pattern or XYData("Experimental Profile", color=self.exp_color, parent=self)
-        self.data_exclusion_ranges = data_exclusion_ranges or XYListStore()
+        #TODO remove the view stuff, use pure XYListStores here
+        
+        default = XYData("Calculated Profile", color=self.calc_color, parent=self)
+        self.data_calculated_pattern = self.parse_init_arg(
+            data_calculated_pattern, 
+            default, 
+            child=True)
+        self.data_calculated_pattern.parent = self
+        
+            
+        self.data_experimental_pattern = self.parse_init_arg(
+            data_experimental_pattern, 
+            XYData("Experimental Profile", color=self.exp_color, parent=self), 
+            child=True)
+        self.data_experimental_pattern.parent = self
+        self.data_exclusion_ranges = self.parse_init_arg(
+            data_exclusion_ranges, XYListStore())
         self.data_exclusion_ranges.connect("item-removed", self.on_exclusion_range_changed)
         self.data_exclusion_ranges.connect("item-inserted", self.on_exclusion_range_changed)
         self.data_exclusion_ranges.connect("row-changed", self.on_exclusion_range_changed)
         
-        self._data_markers = data_markers or ObjectListStore(Marker)
+        
+        self._data_markers = self.parse_liststore_arg(data_markers, ObjectListStore, Marker)
         for marker in self._data_markers._model_data:
             self.observe_model(marker)
         self.data_markers.connect("item-removed", self.on_marker_removed)
@@ -216,15 +225,23 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
         
         self.statistics = Statistics(data_specimen=self)
         
-        #Resolve JSON indeces:
+        """#Resolve JSON indeces:
         self._data_phases = dict()
-        if phase_indeces is not None and self.parent is not None:
+        if phase_uuids is not None:
+            if hasattr(phase_uuids, "iteritems"):
+                for uuid, quantity in phase_uuids.iteritems():
+                    self.add_phase(pyxrd_object_pool.get_object(uuid), float(quantity))
+            else:
+                for uuid in phase_uuids:
+                    self.add_phase(pyxrd_object_pool.get_object(uuid), 0.0)
+        elif phase_indeces is not None and self.parent is not None:
+            warn("The use of object indeces is deprected since version 0.4. Please switch to using object UUIDs.", DeprecationWarning)
             if hasattr(phase_indeces, "iteritems"):
                 for index, quantity in phase_indeces.iteritems():
                     self.add_phase(self.parent.data_phases.get_user_data_from_index(int(index)), float(quantity))
             else:
                 for index in phase_indeces:
-                    self.add_phase(self.parent.data_phases.get_user_data_from_index(int(index)), 0.0)
+                    self.add_phase(self.parent.data_phases.get_user_data_from_index(int(index)), 0.0)"""
     
     def __str__(self):
         return "<Specimen %s(%s)>" % (self.data_name, repr(self))
@@ -256,28 +273,10 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
     # ------------------------------------------------------------   
     def json_properties(self):
         retval = Storable.json_properties(self)
-        retval["phase_indeces"] = { self.parent.data_phases.index(phase): quantity for phase, quantity in self.data_phases.iteritems() if phase }
+        #retval["phase_uuids"] = { phase.uuid: quantity for phase, quantity in self.data_phases.iteritems() if phase }
         retval["calc_color"] = self._calc_color
         retval["exp_color"] = self._exp_color
         return retval
-    
-    @staticmethod          
-    def from_json(**kwargs):
-        decoder = PyXRDDecoder()
-        if "data_calculated_pattern" in kwargs:
-            kwargs["data_calculated_pattern"] = decoder.__pyxrd_decode__(kwargs["data_calculated_pattern"])
-        if "data_experimental_pattern" in kwargs:
-            kwargs["data_experimental_pattern"] = decoder.__pyxrd_decode__(kwargs["data_experimental_pattern"])
-        if "data_exclusion_ranges" in kwargs:
-            kwargs["data_exclusion_ranges"] = decoder.__pyxrd_decode__(kwargs["data_exclusion_ranges"])
-        if "data_markers" in kwargs:
-            kwargs["data_markers"] = decoder.__pyxrd_decode__(kwargs["data_markers"])
-        specimen = Specimen(**kwargs)
-        for marker in specimen.data_markers._model_data:
-            marker.parent = specimen
-        specimen.data_calculated_pattern.parent = specimen
-        specimen.data_experimental_pattern.parent = specimen
-        return specimen
               
     @staticmethod
     def from_experimental_data(parent, format="DAT", filename=""):
@@ -306,26 +305,30 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
         
     # ------------------------------------------------------------
     #      Methods & Functions
-    # ------------------------------------------------------------ 
-    def add_phase(self, phase, quantity=0.0):
-        if not phase in self._data_phases:
-            self.observe_model(phase)
-            self._data_phases.update({phase: quantity})
-
-    def del_phase(self, phase):
-        if phase in self._data_phases:
-            self.relieve_model(phase)
-            del self._data_phases[phase]
+    # ------------------------------------------------------------
+    data_phase_xydatas = None
         
-    def on_update_plot(self, figure, axes, pctrl):       
+    def on_update_plot(self, figure, axes, pctrl): #TODO move this to the controller/view level
         if self.display_experimental:
             self.data_experimental_pattern.on_update_plot(figure, axes, pctrl)
         if self.display_calculated:
             self.data_calculated_pattern.on_update_plot(figure, axes, pctrl)
+        xdata = self.data_experimental_pattern.xy_data._model_data_x
+        if self.data_phase_xydatas:
+            for xydata in self.data_phase_xydatas:
+                xydata.remove_from_plot(figure, axes, pctrl)
+        if self.display_phases and self.data_phase_intensities!=None:
+            self.data_phase_xydatas = []
+            for i in range(self.data_phase_intensities.shape[0]):
+                xydata = XYData("", color=self.data_phases[i].display_color, parent=self)
+                xydata.update_from_data(xdata, self.data_phase_intensities[i,:])
+                xydata.display_offset = self.data_experimental_pattern.display_offset
+                xydata.on_update_plot(figure, axes, pctrl)
+                self.data_phase_xydatas.append(xydata)
         pctrl.update_lim()
 
     _hatches = None        
-    def on_update_hatches(self, figure, axes, pctrl):
+    def on_update_hatches(self, figure, axes, pctrl): #TODO move this to the controller/view level
         if self._hatches:
             for leftborder, hatch, rightborder in self._hatches:
                 try:
@@ -334,22 +337,60 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
                     rightborder.remove()
                 except: pass
         self._hatches = list()
-        
-        xmin, xmax = axes.get_xbound()
+                
+        scale, offset = self.scale_factor_y(self.data_experimental_pattern.display_offset)
         ymin, ymax = axes.get_ybound()
-        y0 = (self.data_experimental_pattern.display_offset - ymin) / (ymax - ymin)
-        y1 = y0 + (1.0 - ymin) / (ymax - ymin)
+        scaler = max(self.max_intensity * scale, 1.0)
+        y0 = (offset - ymin) / (ymax - ymin)
+        y1 = (offset + scaler - ymin) / (ymax - ymin)
         
-        for i, (x0, x1) in enumerate(zip(*self.data_exclusion_ranges.get_raw_model_data())):        
-            leftborder = axes.axvline(x0, y0, y1, c="#000000", alpha=0.5)
-            hatch = axes.axvspan(x0, x1, y0, y1, fill=True, hatch="/", facecolor='none', edgecolor="#000000", linewidth=0, alpha=0.5)
-            rightborder = axes.axvline(x1, y0, y1, c="#000000", alpha=0.5)
+        for i, (x0, x1) in enumerate(zip(*self.data_exclusion_ranges.get_raw_model_data())):
+            leftborder = axes.axvline(x0, y0, y1, c="#333333")
+            hatch = axes.axvspan(x0, x1, y0, y1, fill=True, hatch="/", facecolor='#999999', edgecolor="#333333", linewidth=0)
+            rightborder = axes.axvline(x1, y0, y1, c="#333333")
             
             self._hatches.append((leftborder, hatch, rightborder))        
         
     @property
     def max_intensity(self):
         return max(np.max(self.data_experimental_pattern.max_intensity), np.max(self.data_calculated_pattern.max_intensity))
+
+    def scale_factor_y(self, offset):
+        yscale = self.parent.axes_yscale if self.parent!=None else 1
+        if yscale == 0:
+            return (1.0 / (self.parent.get_max_intensity() or 1.0), offset)
+        elif yscale == 1:
+            return (1.0 / (self.max_intensity or 1.0), offset)
+        elif yscale == 2:
+            return (1.0, offset * self.parent.get_max_intensity())
+        else:
+            raise ValueError, "%d" % yscale
+
+    @print_timing
+    def update_pattern(self, phases, fractions, lpf_callback, steps=2500):
+        num_phases = len(phases)
+        if num_phases == 0:
+            self.data_calculated_pattern.xy_data.clear()
+            return None
+        else:
+            #Get 2-theta values and phase intensities
+            theta_range, intensities = self.get_phase_intensities(phases, lpf_callback, steps=steps)
+            theta_range = theta_range * 360.0 / pi
+            
+            #Apply fractions and absolute scale
+            fractions = np.array(fractions)[:,np.newaxis]
+            self.data_phases = phases
+            self.data_phase_intensities = fractions*intensities*self.data_abs_scale
+            
+            #Sum the phase intensities and apply the background shift
+            total_intensity = np.sum(self.data_phase_intensities, axis=0) + self.data_bg_shift
+
+            #Update the pattern data:            
+            self.data_calculated_pattern.update_from_data(theta_range, total_intensity)
+
+            #Return what we just calculated for anyone interested
+            return (theta_range, self.data_phase_intensities, total_intensity)
+        
 
     def get_phase_intensities(self, phases, lpf_callback, steps=2500):
         if phases!=None:
@@ -368,27 +409,30 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
             stl_range = 2 * np.sin(theta_range) / l
             
             correction_range = np.minimum(np.sin(theta_range) * L_Rta, 1)
+            
+            intensities = np.array([phase.get_diffracted_intensity(theta_range, stl_range, lpf_callback, 1.0, correction_range) if phase else np.zeros(shape=theta_range.shape) for phase in phases], dtype=np.float_)
+            
+            return (theta_range, intensities)
 
-            return theta_range, np.array([phase.get_diffracted_intensity(theta_range, stl_range, lpf_callback, 1.0, correction_range) if phase else np.zeros(shape=theta_range.shape) for phase in phases], dtype=np.float_)
+    data_phase_intensities = None #list with 2D numpy arrays
 
-
-    #@print_timing
+    """@print_timing
     def calculate_pattern(self, lpf_callback, steps=2500):
         if len(self._data_phases) == 0:
             self.data_calculated_pattern.xy_data.clear()
             return None
-        else:     
-                    
+        else:   
             theta_range, intensities = self.get_phase_intensities(self._data_phases.keys(), lpf_callback, steps=steps)
             intensity_range = np.zeros(len(intensities[0]))
             
             fractions = np.array(self._data_phases.values())[:,np.newaxis]
-            intensity_range = np.sum(intensities*fractions, axis=0) * self.data_abs_scale + self.data_bg_shift
+            
+            intensity_range = np.sum(intensities*fractions*self.data_abs_scale, axis=0) + self.data_bg_shift
             theta_range = theta_range * 360.0 / pi 
             
             self.data_calculated_pattern.update_from_data(theta_range, intensity_range)
 
-            return (theta_range, intensity_range)
+            return (theta_range, intensity_range)"""
         
     def auto_add_peaks(self, tmodel):
     
@@ -428,7 +472,7 @@ class Specimen(ChildModel, ObjectListStoreChildMixin, Observable, Storable):
     
     pass #end of class
     
-class ThresholdSelector(ChildModel, Observable):
+class ThresholdSelector(ChildModel):
     
     #MODEL INTEL:
     __parent_alias__ = 'specimen'
@@ -442,21 +486,13 @@ class ThresholdSelector(ChildModel, Observable):
     ]
     
     #PROPERTIES:
-    _pattern = "exp"
-    _patterns = { "exp": "Experimental Pattern", "calc": "Calculated Pattern" } #FIXME!
-    """@Model.getter("pattern")
-    def get_pattern(self, prop_name):
-        return self._pattern
-    @Model.setter("pattern")
-    def set_pattern(self, prop_name, value):
-        if value in self._patterns: 
-            self._pattern = value      
-        else:
-            raise ValueError, "'%s' is not a valid value for pattern!" % value
-            self.update_threshold_plot_data()"""
-        
-    add_cbb_props(("pattern", lambda i: i, lambda self,p,v: self.update_threshold_plot_data()))
     
+    pattern = MultiProperty(
+        "exp", 
+        lambda i: i, 
+        lambda self,p,v: self.update_threshold_plot_data(), 
+        { "exp": "Experimental Pattern", "calc": "Calculated Pattern" }
+    )    
     
     _max_threshold = 0.32
     def get_max_threshold_value(self): return self._max_threshold
@@ -490,7 +526,6 @@ class ThresholdSelector(ChildModel, Observable):
     # ------------------------------------------------------------ 
     def __init__(self, max_threshold=None, steps=None, sel_threshold=None, parent=None):
         ChildModel.__init__(self, parent=parent)
-        Observable.__init__(self)
         
         self.max_threshold = max_threshold or self.max_threshold
         self.steps = steps or self.steps
@@ -553,7 +588,7 @@ class ThresholdSelector(ChildModel, Observable):
                 self.sel_threshold = peak_x
     pass #end of class
             
-class Marker(ChildModel, Observable, Storable, ObjectListStoreChildMixin, CSVMixin):
+class Marker(ChildModel, Storable, ObjectListStoreChildMixin, CSVMixin):
     
     #MODEL INTEL:
     __parent_alias__ = 'specimen'
@@ -621,12 +656,20 @@ class Marker(ChildModel, Observable, Storable, ObjectListStoreChildMixin, CSVMix
     if not settings.VIEW_MODE:
         _data_bases.update({ 2: "Calculated profile", 3: "Lowest of both", 4: "Highest of both" })
 
-    _data_style = "none"
-    _data_styles = { "none": "Display at base", "solid": "Solid", "dashed": "Dash", "dotted": "Dotted", "dashdot": "Dash-Dotted", "offset": "Display at Y-offset" }
+    #_data_style = "none"
+    #_data_styles = { "none": "Display at base", "solid": "Solid", "dashed": "Dash", "dotted": "Dotted", "dashdot": "Dash-Dotted", "offset": "Display at Y-offset" }
         
     def cbb_callback(self, prop_name, value):
-        self.needs_update.emit()
-    add_cbb_props(("data_base", int, cbb_callback), ("data_style", lambda i: i, cbb_callback))
+        self.needs_update.emit()  
+    data_style = MultiProperty("none", lambda i: i, cbb_callback, { 
+        "none": "Display at base", "solid": "Solid", 
+        "dashed": "Dash", "dotted": "Dotted", 
+        "dashdot": "Dash-Dotted", "offset": "Display at Y-offset" 
+    })    
+    _data_bases = { 0: "X-axis", 1: "Experimental profile" }
+    if not settings.VIEW_MODE:
+        _data_bases.update({ 2: "Calculated profile", 3: "Lowest of both", 4: "Highest of both" })
+    data_base = MultiProperty(1, int, cbb_callback, _data_bases)
     
     _vline = None
     _text = None
@@ -637,7 +680,6 @@ class Marker(ChildModel, Observable, Storable, ObjectListStoreChildMixin, CSVMix
     def __init__(self, data_label="", data_visible=True, data_position=0.0, data_x_offset=0.0, data_y_offset=0.05, 
                  data_color="#000000", data_base=1, data_angle=0.0, inherit_angle=True, data_style="none", parent=None):
         ChildModel.__init__(self, parent=parent)
-        Observable.__init__(self)
         Storable.__init__(self)
         
         self.needs_update = Signal()
@@ -770,7 +812,7 @@ class Marker(ChildModel, Observable, Storable, ObjectListStoreChildMixin, CSVMix
         
     pass #end of class
         
-class Statistics(Model, Observable):
+class Statistics(Model):
 
     #MODEL INTEL:
     __have_no_widget__ = ["data_specimen", "data_residual_pattern"]
@@ -806,7 +848,6 @@ class Statistics(Model, Observable):
     # ------------------------------------------------------------
     def __init__(self, data_specimen=None):
         Model.__init__(self)
-        Observable.__init__(self)
         
         self.data_specimen = data_specimen or self.data_specimen        
         self.update_statistics()

@@ -1,15 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
   <requires lib="gtk+" version="2.20"/>
+  <!-- interface-naming-policy toplevel-contextual -->
   <object class="GtkActionGroup" id="persistent_actions">
     <child>
-      <object class="GtkAction" id="exit_action">
-        <property name="label" translatable="yes">Exit</property>
-        <property name="short_label" translatable="yes">Exit</property>
-        <property name="tooltip" translatable="yes">Quits this program</property>
-        <property name="stock_id">gtk-quit</property>
+      <object class="GtkAction" id="new_project_action">
+        <property name="label" translatable="yes">New Project</property>
+        <property name="short_label" translatable="yes">New</property>
+        <property name="tooltip" translatable="yes">Create a new project</property>
+        <property name="stock_id">gtk-new</property>
         <property name="always_show_image">True</property>
+        <signal name="activate" handler="on_new_project_activate" swapped="no"/>
       </object>
+      <accelerator key="n" modifiers="GDK_CONTROL_MASK"/>
     </child>
     <child>
       <object class="GtkAction" id="open_project_action">
@@ -20,83 +23,48 @@
         <property name="always_show_image">True</property>
         <signal name="activate" handler="on_open_project_activate" swapped="no"/>
       </object>
+      <accelerator key="o" modifiers="GDK_CONTROL_MASK"/>
     </child>
     <child>
-      <object class="GtkAction" id="new_project_action">
-        <property name="label" translatable="yes">New Project</property>
-        <property name="short_label" translatable="yes">New</property>
-        <property name="tooltip" translatable="yes">Create a new project</property>
-        <property name="stock_id">gtk-new</property>
+      <object class="GtkAction" id="exit_action">
+        <property name="label" translatable="yes">Exit</property>
+        <property name="short_label" translatable="yes">Exit</property>
+        <property name="tooltip" translatable="yes">Quits this program</property>
+        <property name="stock_id">gtk-quit</property>
         <property name="always_show_image">True</property>
-        <signal name="activate" handler="on_new_project_activate" swapped="no"/>
       </object>
     </child>
   </object>
   <object class="GtkActionGroup" id="project_actions">
     <property name="sensitive">False</property>
     <child>
-      <object class="GtkAction" id="edit_phases_action">
-        <property name="label" translatable="yes">Edit Phases</property>
-        <property name="short_label" translatable="yes">Phases</property>
-        <property name="tooltip" translatable="yes">Edit the phases in this project</property>
+      <object class="GtkAction" id="edit_mixtures">
+        <property name="label" translatable="yes">Edit Mixtures</property>
+        <property name="short_label" translatable="yes">Mixtures</property>
+        <property name="tooltip" translatable="yes">Edit the mixtures and find optimal solutions using the multi-specimen method</property>
         <property name="stock_id">gtk-edit</property>
         <property name="always_show_image">True</property>
-        <signal name="activate" handler="on_edit_phases_activate" swapped="no"/>
+        <signal name="activate" handler="on_edit_mixtures" swapped="no"/>
       </object>
     </child>
     <child>
-      <object class="GtkAction" id="del_specimen_action">
-        <property name="label" translatable="yes">Remove Specimen</property>
-        <property name="short_label" translatable="yes">Remove Specimen</property>
-        <property name="tooltip" translatable="yes">Remove a specimen from this project</property>
-        <property name="stock_id">gtk-remove</property>
-        <property name="always_show_image">True</property>
-        <signal name="activate" handler="on_del_specimen_activate" swapped="no"/>
-      </object>
-    </child>
-    <child>
-      <object class="GtkAction" id="edit_project_action">
-        <property name="label" translatable="yes">Edit Project</property>
-        <property name="short_label" translatable="yes">Edit Project</property>
-        <property name="tooltip" translatable="yes">Edit the properties of this project</property>
-        <property name="stock_id">gtk-edit</property>
-        <property name="always_show_image">True</property>
-        <signal name="activate" handler="on_edit_project_activate" swapped="no"/>
-      </object>
-    </child>
-    <child>
-      <object class="GtkAction" id="save_project_as_action">
-        <property name="label" translatable="yes">Save Project as</property>
-        <property name="short_label" translatable="yes">Save as</property>
-        <property name="tooltip" translatable="yes">Save this project using another filename</property>
-        <property name="stock_id">gtk-save-as</property>
-        <signal name="activate" handler="on_save_project_as_activate" swapped="no"/>
-      </object>
-    </child>
-    <child>
-      <object class="GtkAction" id="save_project_action">
-        <property name="label" translatable="yes">Save Project</property>
-        <property name="short_label" translatable="yes">Save</property>
-        <property name="tooltip" translatable="yes">Save this project</property>
-        <property name="stock_id">gtk-save</property>
-        <property name="always_show_image">True</property>
-        <signal name="activate" handler="on_save_project_activate" swapped="no"/>
-      </object>
-    </child>
-    <child>
-      <object class="GtkToggleAction" id="toggle_action_auto_update">
-        <property name="label">Auto-update calculated patterns</property>
-        <property name="short_label" translatable="yes">Auto-update calculated patterns</property>
-      </object>
-    </child>
-    <child>
-      <object class="GtkAction" id="add_specimen_action">
-        <property name="label">Add Specimen</property>
-        <property name="short_label" translatable="yes">Add Specimen</property>
-        <property name="tooltip" translatable="yes">Add a new specimen to this project</property>
+      <object class="GtkAction" id="import_specimens_action">
+        <property name="label" translatable="yes">Import specimens</property>
+        <property name="short_label" translatable="yes">Import specimens</property>
+        <property name="tooltip" translatable="yes">Import multiple specimens using multiple experimental data files</property>
         <property name="stock_id">gtk-add</property>
+        <signal name="activate" handler="on_add_multiple_specimens" swapped="no"/>
+      </object>
+      <accelerator key="i" modifiers="GDK_CONTROL_MASK"/>
+    </child>
+    <child>
+      <object class="GtkAction" id="edit_gonio">
+        <property name="label" translatable="yes">Edit Goniometer</property>
+        <property name="short_label" translatable="yes">Goniometer</property>
+        <property name="tooltip" translatable="yes">Edit the goniometer properties used to calculate XRD-profiles</property>
+        <property name="stock_id">gtk-edit</property>
         <property name="always_show_image">True</property>
-        <signal name="activate" handler="on_add_specimen_activate" swapped="no"/>
+        <signal name="activate" handler="on_edit_gonio_activate" swapped="no"/>
       </object>
     </child>
     <child>
@@ -110,92 +78,83 @@
       </object>
     </child>
     <child>
-      <object class="GtkAction" id="edit_gonio">
-        <property name="label" translatable="yes">Edit Goniometer</property>
-        <property name="short_label" translatable="yes">Goniometer</property>
-        <property name="tooltip" translatable="yes">Edit the goniometer properties used to calculate XRD-profiles</property>
-        <property name="stock_id">gtk-edit</property>
-        <property name="always_show_image">True</property>
-        <signal name="activate" handler="on_edit_gonio_activate" swapped="no"/>
-      </object>
-    </child>
-    <child>
-      <object class="GtkAction" id="import_specimens_action">
-        <property name="label" translatable="yes">Import specimens</property>
-        <property name="short_label" translatable="yes">Import specimens</property>
-        <property name="tooltip" translatable="yes">Import multiple specimens using multiple experimental data files</property>
+      <object class="GtkAction" id="add_specimen_action">
+        <property name="label">Add Specimen</property>
+        <property name="short_label" translatable="yes">Add Specimen</property>
+        <property name="tooltip" translatable="yes">Add a new specimen to this project</property>
         <property name="stock_id">gtk-add</property>
-        <signal name="activate" handler="on_add_multiple_specimens" swapped="no"/>
+        <property name="always_show_image">True</property>
+        <signal name="activate" handler="on_add_specimen_activate" swapped="no"/>
       </object>
     </child>
     <child>
-      <object class="GtkAction" id="edit_mixtures">
-        <property name="label" translatable="yes">Edit Mixtures</property>
-        <property name="short_label" translatable="yes">Mixtures</property>
-        <property name="tooltip" translatable="yes">Edit the mixtures and find optimal solutions using the multi-specimen method</property>
+      <object class="GtkToggleAction" id="toggle_action_auto_update">
+        <property name="label">Auto-update calculated patterns</property>
+        <property name="short_label" translatable="yes">Auto-update calculated patterns</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkAction" id="save_project_action">
+        <property name="label" translatable="yes">Save Project</property>
+        <property name="short_label" translatable="yes">Save</property>
+        <property name="tooltip" translatable="yes">Save this project</property>
+        <property name="stock_id">gtk-save</property>
+        <property name="always_show_image">True</property>
+        <signal name="activate" handler="on_save_project_activate" swapped="no"/>
+      </object>
+      <accelerator key="s" modifiers="GDK_CONTROL_MASK"/>
+    </child>
+    <child>
+      <object class="GtkAction" id="save_project_as_action">
+        <property name="label" translatable="yes">Save Project as</property>
+        <property name="short_label" translatable="yes">Save as</property>
+        <property name="tooltip" translatable="yes">Save this project using another filename</property>
+        <property name="stock_id">gtk-save-as</property>
+        <signal name="activate" handler="on_save_project_as_activate" swapped="no"/>
+      </object>
+      <accelerator key="s" modifiers="GDK_SHIFT_MASK | GDK_CONTROL_MASK"/>
+    </child>
+    <child>
+      <object class="GtkAction" id="edit_project_action">
+        <property name="label" translatable="yes">Edit Project</property>
+        <property name="short_label" translatable="yes">Edit Project</property>
+        <property name="tooltip" translatable="yes">Edit the properties of this project</property>
         <property name="stock_id">gtk-edit</property>
         <property name="always_show_image">True</property>
-        <signal name="activate" handler="on_edit_mixtures" swapped="no"/>
+        <signal name="activate" handler="on_edit_project_activate" swapped="no"/>
+      </object>
+    </child>
+    <child>
+      <object class="GtkAction" id="del_specimen_action">
+        <property name="label" translatable="yes">Remove Specimen</property>
+        <property name="short_label" translatable="yes">Remove Specimen</property>
+        <property name="tooltip" translatable="yes">Remove a specimen from this project</property>
+        <property name="stock_id">gtk-remove</property>
+        <property name="always_show_image">True</property>
+        <signal name="activate" handler="on_del_specimen_activate" swapped="no"/>
+      </object>
+    </child>
+    <child>
+      <object class="GtkAction" id="edit_phases_action">
+        <property name="label" translatable="yes">Edit Phases</property>
+        <property name="short_label" translatable="yes">Phases</property>
+        <property name="tooltip" translatable="yes">Edit the phases in this project</property>
+        <property name="stock_id">gtk-edit</property>
+        <property name="always_show_image">True</property>
+        <signal name="activate" handler="on_edit_phases_activate" swapped="no"/>
       </object>
     </child>
   </object>
   <object class="GtkActionGroup" id="specimen_actions">
     <property name="sensitive">False</property>
     <child>
-      <object class="GtkAction" id="view_statistics">
-        <property name="label" translatable="yes">View Statistics</property>
-        <property name="short_label" translatable="yes">Statistics</property>
-        <property name="tooltip" translatable="yes">View Statistics</property>
-        <property name="stock_id">gtk-about</property>
-        <property name="is_important">True</property>
-        <property name="sensitive">False</property>
-      </object>
-    </child>
-    <child>
-      <object class="GtkAction" id="sample_point">
-        <property name="label" translatable="yes">Sample Point</property>
-        <property name="short_label" translatable="yes">Sample Point</property>
-        <property name="tooltip" translatable="yes">Sample Point</property>
-        <property name="stock_id">gtk-color-picker</property>
-        <property name="always_show_image">True</property>
-        <signal name="activate" handler="on_sample_point" swapped="no"/>
-      </object>
-    </child>
-    <child>
-      <object class="GtkAction" id="edit_markers">
-        <property name="label" translatable="yes">Edit Markers</property>
-        <property name="short_label" translatable="yes">Edit Markers</property>
-        <property name="tooltip" translatable="yes">Edit Markers</property>
+      <object class="GtkAction" id="shift_data">
+        <property name="label" translatable="yes">Shift pattern</property>
+        <property name="short_label" translatable="yes">Shift</property>
+        <property name="tooltip" translatable="yes">Shift pattern using a reference peak</property>
         <property name="stock_id">gtk-edit</property>
         <property name="always_show_image">True</property>
-        <signal name="activate" handler="on_edit_markers_activate" swapped="no"/>
-      </object>
-    </child>
-    <child>
-      <object class="GtkAction" id="add_marker">
-        <property name="label" translatable="yes">Add Marker</property>
-        <property name="short_label" translatable="yes">Add Marker</property>
-        <property name="tooltip" translatable="yes">Add Marker</property>
-        <property name="stock_id">gtk-add</property>
-        <property name="always_show_image">True</property>
-      </object>
-    </child>
-    <child>
-      <object class="GtkAction" id="edit_specimen">
-        <property name="label" translatable="yes">Edit specimen</property>
-        <property name="short_label" translatable="yes">Edit specimen</property>
-        <property name="stock_id">gtk-edit</property>
-        <signal name="activate" handler="on_edit_specimen_activate" swapped="no"/>
-      </object>
-    </child>
-    <child>
-      <object class="GtkAction" id="remove_bg">
-        <property name="label" translatable="yes">Remove Background</property>
-        <property name="short_label" translatable="yes">Background</property>
-        <property name="tooltip" translatable="yes">Remove the background</property>
-        <property name="stock_id">gtk-edit</property>
-        <property name="always_show_image">True</property>
-        <signal name="activate" handler="on_remove_background" swapped="no"/>
+        <signal name="activate" handler="on_shift_data" swapped="no"/>
       </object>
     </child>
     <child>
@@ -209,18 +168,74 @@
       </object>
     </child>
     <child>
-      <object class="GtkAction" id="shift_data">
-        <property name="label" translatable="yes">Shift pattern</property>
-        <property name="short_label" translatable="yes">Shift</property>
-        <property name="tooltip" translatable="yes">Shift pattern using a reference peak</property>
+      <object class="GtkAction" id="remove_bg">
+        <property name="label" translatable="yes">Remove Background</property>
+        <property name="short_label" translatable="yes">Background</property>
+        <property name="tooltip" translatable="yes">Remove the background</property>
         <property name="stock_id">gtk-edit</property>
         <property name="always_show_image">True</property>
-        <signal name="activate" handler="on_shift_data" swapped="no"/>
+        <signal name="activate" handler="on_remove_background" swapped="no"/>
+      </object>
+    </child>
+    <child>
+      <object class="GtkAction" id="edit_specimen">
+        <property name="label" translatable="yes">Edit specimen</property>
+        <property name="short_label" translatable="yes">Edit specimen</property>
+        <property name="stock_id">gtk-edit</property>
+        <signal name="activate" handler="on_edit_specimen_activate" swapped="no"/>
+      </object>
+    </child>
+    <child>
+      <object class="GtkAction" id="add_marker">
+        <property name="label" translatable="yes">Add Marker</property>
+        <property name="short_label" translatable="yes">Add Marker</property>
+        <property name="tooltip" translatable="yes">Add Marker</property>
+        <property name="stock_id">gtk-add</property>
+        <property name="always_show_image">True</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkAction" id="edit_markers">
+        <property name="label" translatable="yes">Edit Markers</property>
+        <property name="short_label" translatable="yes">Edit Markers</property>
+        <property name="tooltip" translatable="yes">Edit Markers</property>
+        <property name="stock_id">gtk-edit</property>
+        <property name="always_show_image">True</property>
+        <signal name="activate" handler="on_edit_markers_activate" swapped="no"/>
+      </object>
+    </child>
+    <child>
+      <object class="GtkAction" id="sample_point">
+        <property name="label" translatable="yes">Sample Point</property>
+        <property name="short_label" translatable="yes">Sample Point</property>
+        <property name="tooltip" translatable="yes">Sample Point</property>
+        <property name="stock_id">gtk-color-picker</property>
+        <property name="always_show_image">True</property>
+        <signal name="activate" handler="on_sample_point" swapped="no"/>
+      </object>
+    </child>
+    <child>
+      <object class="GtkAction" id="view_statistics">
+        <property name="label" translatable="yes">View Statistics</property>
+        <property name="short_label" translatable="yes">Statistics</property>
+        <property name="tooltip" translatable="yes">View Statistics</property>
+        <property name="stock_id">gtk-about</property>
+        <property name="is_important">True</property>
+        <property name="sensitive">False</property>
       </object>
     </child>
   </object>
   <object class="GtkActionGroup" id="specimens_actions">
     <property name="sensitive">False</property>
+    <child>
+      <object class="GtkAction" id="save_graph">
+        <property name="label" translatable="yes">Save Graph</property>
+        <property name="short_label" translatable="yes">Save Graph</property>
+        <property name="tooltip" translatable="yes">Save Graph</property>
+        <property name="stock_id">gtk-save</property>
+        <signal name="activate" handler="on_save_graph" swapped="no"/>
+      </object>
+    </child>
     <child>
       <object class="GtkAction" id="refresh_graph">
         <property name="label" translatable="yes">Refresh Graph</property>
@@ -231,15 +246,6 @@
         <signal name="activate" handler="on_refresh_graph" swapped="no"/>
       </object>
       <accelerator key="F5"/>
-    </child>
-    <child>
-      <object class="GtkAction" id="save_graph">
-        <property name="label" translatable="yes">Save Graph</property>
-        <property name="short_label" translatable="yes">Save Graph</property>
-        <property name="tooltip" translatable="yes">Save Graph</property>
-        <property name="stock_id">gtk-save</property>
-        <signal name="activate" handler="on_save_graph" swapped="no"/>
-      </object>
     </child>
   </object>
   <object class="GtkWindow" id="main_window">
@@ -733,9 +739,6 @@
                             <property name="rules_hint">True</property>
                             <property name="enable_grid_lines">both</property>
                             <signal name="popup-menu" handler="on_specimens_treeview_popup_menu" swapped="no"/>
-                            <child internal-child="selection">
-                              <object class="GtkTreeSelection" id="treeview-selection1"/>
-                            </child>
                           </object>
                         </child>
                       </object>

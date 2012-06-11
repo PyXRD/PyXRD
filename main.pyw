@@ -28,11 +28,14 @@ if __name__ == "__main__":
 
     import sys
     project = None
-    if (len(sys.argv) > 1):
+    if (len(sys.argv) > 1) and sys.argv[1]!="":
         from project.models import Project
         filename = sys.argv[1]
-        print "Opening: %s" % filename
-        project = Project.load_object(filename)
+        try:
+            print "Opening: %s" % filename
+            project = Project.load_object(filename)
+        except IOError as e:
+            print 'Could not load file: IOError'
 
     m = AppModel(project=project)
     v = AppView()

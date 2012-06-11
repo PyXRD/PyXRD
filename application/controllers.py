@@ -203,8 +203,9 @@ class AppController (BaseController, DialogMixin):
     # ------------------------------------------------------------
     #      Notifications of observable properties
     # ------------------------------------------------------------
-    @Controller.observe("needs_plot_update", signal=True)
-    def notif_plot_update(self, model, prop_name, info):
+    @Controller.observe("needs_plot_update", signal=True)        
+    @Controller.observe("needs_update", signal=True)
+    def notif_needs_update(self, model, prop_name, info):
         self.redraw_plot()
         return
         

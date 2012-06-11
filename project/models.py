@@ -5,19 +5,17 @@
 # This work is licensed under the Creative Commons Attribution-ShareAlike 3.0 Unported License. 
 # To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/3.0/ or send
 # a letter to Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
-import gtk
 
-from gtkmvc import Observable
-from gtkmvc.model import ListStoreModel, Model, Signal, Observer
-
-import json
 import time
-from math import sin, cos, pi, sqrt
+
+import gtk
+from gtkmvc.model import Model, Signal, Observer
 
 import settings
 
-from generic.utils import interpolate, delayed
-from generic.models import PyXRDModel, PropIntel, add_cbb_props, DefaultSignal
+from generic.utils import delayed
+from generic.model_mixins import ObjectListStoreParentMixin
+from generic.models import PyXRDModel, DefaultSignal, PropIntel, MultiProperty
 from generic.treemodels import ObjectListStore, IndexListStore
 from generic.io import Storable
 
@@ -27,7 +25,7 @@ from mixture.models import Mixture
 from phases.models import Phase
 from atoms.models import Atom, AtomType
 
-class Project(PyXRDModel, Storable):
+class Project(PyXRDModel, Storable, ObjectListStoreParentMixin):
 
 
     #MODEL INTEL:
@@ -80,15 +78,15 @@ class Project(PyXRDModel, Storable):
         setattr(self, "_%s" % prop_name, value)
         self.needs_update.emit()
 
-    _axes_xscale = 0
-    _axes_xscales = { 0: "Auto", 1: "Manual" }
-    
-    _axes_yscale = 0
-    _axes_yscales = { 0: "Multi normalised", 1: "Single normalised", 2: "Unchanged raw counts"} #, 4: "Custom (per specimen)" }
-    
     def cbb_callback(self, prop_name, value):
         self.needs_update.emit()
-    add_cbb_props(("axes_xscale", int, cbb_callback), ("axes_yscale", int, cbb_callback))
+    axes_xscale = MultiProperty(0, int, cbb_callback, { 0: "Auto", 1: "Manual" })
+    axes_yscale = MultiProperty(0, int, cbb_callback, { 
+        0: "Multi normalised",
+        1: "Single normalised",
+        2: "Unchanged raw counts"
+    })
+  
     
     _display_calc_color = "#666666"
     _display_exp_color = "#000000"    
@@ -124,36 +122,43 @@ class Project(PyXRDModel, Storable):
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def __init__(self, 
-                 data_name = "Project name",
-                 data_date = time.strftime("%d/%m/%Y"),
-                 data_description = "Project description",
-                 data_author = "Project author",
-                 data_goniometer = None,
-                 data_atom_types = None, data_phases = None, data_specimens = None, data_mixtures = None,
-                 display_marker_angle=None, display_calc_color=None, display_exp_color=None, display_plot_offset=None, display_label_pos=None,
-                 axes_xscale=None, axes_xmin=None, axes_xmax=None, axes_xstretch=None, axes_yscale=None, axes_yvisible=None,
-                 load_default_data=True):
+    def __init__(self, data_name = "Project name",
+            data_date = time.strftime("%d/%m/%Y"),
+            data_description = "Project description",
+            data_author = "Project author",
+            data_goniometer = None, data_atom_types = None, data_phases = None,
+            data_specimens = None, data_mixtures = None,
+            display_marker_angle=None, display_plot_offset=None, 
+            display_calc_color=None, display_exp_color=None, display_label_pos=None,
+            axes_xscale=None, axes_xmin=None, axes_xmax=None, 
+            axes_xstretch=None, axes_yscale=None, axes_yvisible=None,
+            load_default_data=True):
         PyXRDModel.__init__(self)
         Storable.__init__(self)
         
         self.before_needs_update_lock = False
         self.needs_update = DefaultSignal(before=self.before_needs_update)
-        
-        self._data_specimens = data_specimens or ObjectListStore(Specimen)
-        self._data_phases = data_phases or ObjectListStore(Phase)
-        self._data_atom_types = data_atom_types or IndexListStore(AtomType)
-        self._data_mixtures = data_mixtures or ObjectListStore(Mixture)
-        
+
+        self._data_atom_types = self.parse_liststore_arg(data_atom_types, IndexListStore, AtomType)        
+        self._data_phases = self.parse_liststore_arg(data_phases, ObjectListStore, Phase)
+        self._data_specimens = self.parse_liststore_arg(data_specimens, ObjectListStore, Specimen)
+        self._data_mixtures = self.parse_liststore_arg(data_mixtures, ObjectListStore, Mixture)
+
+        for phase in self._data_phases._model_data:
+            phase.resolve_json_references()
+            self.observe_model(phase)            
+        for specimen in self._data_specimens.iter_objects():
+            self.observe_model(specimen)
+
+        self._data_atom_types.connect("item-removed", self.on_atom_type_item_removed)        
+        self._data_phases.connect("item-removed", self.on_phase_item_removed)
         self._data_specimens.connect("item-removed", self.on_specimen_item_removed)
         self._data_mixtures.connect("item-removed", self.on_mixture_item_removed)
-        self._data_phases.connect("item-removed", self.on_phase_item_removed)
-        self._data_atom_types.connect("item-removed", self.on_atom_type_item_removed)
         
+        self._data_atom_types.connect("item-inserted", self.on_atom_type_item_inserted)
+        self._data_phases.connect("item-inserted", self.on_phase_item_inserted)
         self._data_specimens.connect("item-inserted", self.on_specimen_item_inserted)
         self._data_mixtures.connect("item-inserted", self.on_mixture_item_inserted)
-        self._data_phases.connect("item-inserted", self.on_phase_item_inserted)
-        self._data_atom_types.connect("item-inserted", self.on_atom_type_item_inserted)
         
         self.data_description = gtk.TextBuffer()
         
@@ -162,7 +167,7 @@ class Project(PyXRDModel, Storable):
         self.data_description.set_text(data_description)
         self.data_author = data_author
         
-        self.data_goniometer = data_goniometer or Goniometer(parent=self)
+        self.data_goniometer = self.parse_init_arg(data_goniometer, Goniometer(parent=self), child=True)
         
         self.display_marker_angle = display_marker_angle or self.display_marker_angle
         self.display_calc_color = display_calc_color or self.display_calc_color
@@ -177,7 +182,8 @@ class Project(PyXRDModel, Storable):
         self.axes_yscale = axes_yscale or self.axes_yscale
         self.axes_yvisible = axes_yvisible or self.axes_yvisible
 
-        if load_default_data and not settings.VIEW_MODE: self.load_default_data()
+        if load_default_data and not settings.VIEW_MODE and \
+            len(self._data_atom_types._model_data)==0: self.load_default_data()
         
     def load_default_data(self):
         import os
@@ -188,6 +194,7 @@ class Project(PyXRDModel, Storable):
     # ------------------------------------------------------------
     def on_phase_item_inserted(self, model, item, *data):
         if item.parent != self: item.parent = self
+        self.observe_model(item)
     def on_atom_type_item_inserted(self, model, item, *data):
         if item.parent != self: item.parent = self
     def on_specimen_item_inserted(self, model, item, *data):
@@ -226,65 +233,18 @@ class Project(PyXRDModel, Storable):
             self.before_needs_update_lock = True
             t1 = time.time()
             for mixture in self.data_mixtures._model_data:
-                if mixture.auto_run: 
-                    mixture.optimize()
-                    mixture.apply_result()
+                mixture.apply_result()
             t2 = time.time()
             print '%s took %0.3f ms' % ("before_needs_update", (t2-t1)*1000.0)            
-            for specimen in self.data_specimens._model_data:
-                specimen.calculate_pattern(self.data_goniometer.get_lorentz_polarisation_factor)
+            #for specimen in self.data_specimens._model_data:
+            #    specimen.calculate_pattern(self.data_goniometer.get_lorentz_polarisation_factor)
             after()
             self.before_needs_update_lock = False
 
     # ------------------------------------------------------------
     #      Input/Output stuff
     # ------------------------------------------------------------
-    @staticmethod          
-    def from_json(**kwargs): #TODO wraps this in kwargs!!
-        
-        sargs = dict()
-        for key in ("data_atom_types", "data_goniometer", "data_phases", "data_specimens", "data_mixtures"):
-            if key in kwargs:
-                sargs[key] = kwargs[key]
-                del kwargs[key]
-            else:
-                sargs[key] = None
 
-        #Setup project   
-        project = Project(load_default_data=False, **kwargs)
-        project.data_goniometer = Goniometer.from_json(parent=project, **sargs["data_goniometer"]['properties'])
-        
-        #Create temporary ObjectListStore to transfer atom types to project
-        if sargs["data_atom_types"] != None:
-            atom_types = IndexListStore.from_json(parent=project, **sargs["data_atom_types"]['properties'])
-            for atom_type in atom_types._model_data:
-                project.data_atom_types.append(atom_type)
-            del atom_types
-        
-        #Create temporary ObjectListStore to transfer phases to project & resolve references
-        if sargs["data_phases"] != None:
-            data_phases = ObjectListStore.from_json(parent=project, **sargs["data_phases"]['properties'])
-            for phase in data_phases._model_data:
-                project.data_phases.append(phase) #add_phase(phase, silent=True)
-            del data_phases
-            for phase in project._data_phases._model_data: #FIXME we could solve this by making this sorted before export (place referenced specimens first)
-                phase.resolve_json_references()
-            
-        #Create temporary ObjectListStore to transfer specimens to project, references to phases can be resolved immediately
-        if sargs["data_specimens"] != None:
-            data_specimens = ObjectListStore.from_json(parent=project, **sargs["data_specimens"]['properties'])
-            for specimen in data_specimens._model_data:
-                project.data_specimens.append(specimen)
-            del data_specimens
-        
-        #Create temporary ObjectListStore to transfer mixtures to project, references to phases & specimens can be resolved immediately
-        if sargs["data_mixtures"] != None:
-            data_mixtures = ObjectListStore.from_json(parent=project, **sargs["data_mixtures"]['properties'])
-            for mixture in data_mixtures._model_data:
-                project.data_mixtures.append(mixture)
-            del data_mixtures
-        
-        return project
     
     # ------------------------------------------------------------
     #      Methods & Functions

@@ -57,7 +57,6 @@ def get_correct_probability_model(phase):
     if phase!=None:
         G = phase.data_G
         R = phase.data_R
-        #print "get_correct_probability_model %d %d" % (G, R)
         if R == 0 or G == 1:
             if G == 1:
                 return R0G1Model(parent=phase)
@@ -411,7 +410,7 @@ class R1G3Model(_AbstractR0R1Model):
     #      Methods & Functions
     # ------------------------------------------------------------ 
     @delayed()
-    def update(self):   
+    def update(self):
         #temporary storage:
         WW = np.matrix(np.zeros(shape=(3,3), dtype=float))
         

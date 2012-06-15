@@ -184,6 +184,8 @@ class MainPlotController (PlotController):
         self.stats_plot.relim()
         self.stats_plot.autoscale_view()
                
+        self.plot.set_ylim(bottom=0, auto=True)
+               
         xaxis = self.plot.get_xaxis()
         xmin,xmax = 0.0,20.0
         if project==None or project.axes_xscale == 0:
@@ -193,20 +195,18 @@ class MainPlotController (PlotController):
             xmin, xmax = max(project.axes_xmin, 0.0), project.axes_xmax
         self.plot.set_xlim(left=xmin, right=xmax, auto=False)
         self.stats_plot.set_xlim(left=xmin, right=xmax, auto=False)
-
-        self.plot.set_ylim(bottom=0, auto=True)
         
-        lines = self.plot.get_lines()
-        ymax = 0.0
-        for line in lines:
-            x, y = map(np.array, line.get_data())
-            if x.size > 2: #only diff data
-                mask = y[(x < xmax) & (x > xmin)]
-                if mask.size > 0:
-                    ymax = max(np.amax(mask), ymax)
-        print self.plot.get_ybound(), self.plot.get_ylim(), ymax
-                    
-        self.plot.set_ylim(bottom=0, top=ymax)
+        #lines = self.plot.get_lines()
+        #ymax = 0.0
+        #for line in lines:
+        #    x, y = map(np.array, line.get_data())
+        #    if x.size > 2: #only diff data
+        #        mask = y[(x < xmax) & (x > xmin)]
+        #        if mask.size > 0:
+        #            ymax = max(np.amax(mask), ymax)
+        #print self.plot.get_ybound(), self.plot.get_ylim(), ymax
+        #            
+        #self.plot.set_ylim(bottom=0, top=ymax)
                     
         self.stats_plot.set_ylim(auto=True)
         self.stats_plot.get_yaxis().get_major_locator().set_params(symmetric=True, nbins=2, integer=False)

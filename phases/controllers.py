@@ -138,10 +138,11 @@ class EditLayerController(InlineObjectListStoreController):
             else:
                 cell.set_property('text', '#NA#')
 
-        def add_text_col(title, colnr, renderer=None):
+        def add_text_col(title, colnr, renderer=None, editable=True):
             rend = gtk.CellRendererText()
-            rend.set_property("editable", True)
-            rend.connect('edited', self.on_item_cell_edited, (model, colnr))
+            rend.set_property("editable", editable)
+            if editable:
+                rend.connect('edited', self.on_item_cell_edited, (model, colnr))
             col = gtk.TreeViewColumn(title, rend, text=colnr)
             col.set_resizable(False)
             col.set_expand(True)
@@ -149,7 +150,8 @@ class EditLayerController(InlineObjectListStoreController):
                 col.set_cell_data_func(rend, renderer, colnr)
             tv.append_column(col)
         add_text_col('Atom name', model.c_data_name)
-        add_text_col('Z (nm)', model.c_data_z, float_renderer)
+        add_text_col('Def. Z (nm)', model.c_default_z, float_renderer)
+        add_text_col('Calc. Z (nm)', model.c_data_z, float_renderer, editable=False)
         add_text_col('#', model.c_data_pn, float_renderer)
 
         def atom_type_renderer(column, cell, model, itr, col=None):
@@ -178,12 +180,13 @@ class EditLayerController(InlineObjectListStoreController):
         tv.append_column(col)
         rend.connect('editing-started', adjust_combo, None)
 
-    def __init__(self, model_property_name, *args, **kwargs):
+    def __init__(self, model_property_name, stretch_values=False, *args, **kwargs):
         InlineObjectListStoreController.__init__(self, model_property_name, *args, **kwargs)
         self.new_atom_type = None
+        self.stretch_values = stretch_values
         
     def create_new_object_proxy(self):
-        return Atom("New Atom", parent=self.model)
+        return Atom("New Atom", parent=self.model, stretch_values=self.stretch_values)
         
     # ------------------------------------------------------------
     #      GTK Signal handlers
@@ -411,7 +414,9 @@ class EditComponentController(ChildController):
                 elif name in ("data_ucp_a", "data_ucp_b"):
                     self.view.set_ucpa_view(self.ucpa_view.get_top_widget())
                     self.view.set_ucpb_view(self.ucpb_view.get_top_widget())
-                elif not name in ("data_all_atoms", "parent", "added", "removed", "needs_update", "dirty", "P_dirty", "F_dirty"):
+                elif name == "default_c":
+                    self.adapt(name, "component_default_c")
+                elif not name in self.model.__have_no_widget__:
                     FloatEntryValidator(self.view["component_%s" % name])
                     self.adapt(name)
             self.update_sensitivities()
@@ -424,8 +429,8 @@ class EditComponentController(ChildController):
             self.view[widget].set_sensitive(not (can_inherit and getattr(self.model, "inherit_%s" % name)))
             self.view[widget].set_visible(not (can_inherit and getattr(self.model, "inherit_%s" % name)))
             self.view["component_inherit_%s" % name].set_sensitive(can_inherit)
-        for name in ("d001", ):
-            update("component_data_%s" % name, name)
+        for name in ("data_d001", "default_c"):
+            update("component_%s" % name, name.replace("data_", "", 1))
         for name in ("interlayer_atoms", "layer_atoms", "atom_ratios", "ucp_a", "ucp_b"):
             update("%s_container" % name, name)
 

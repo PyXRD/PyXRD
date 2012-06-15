@@ -242,16 +242,18 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin, ObjectListStore
     __parent_alias__ = "phase"
     __model_intel__ = [
         PropIntel(name="data_name",                 inh_name=None,                          label="Name",                   minimum=None,  maximum=None,  is_column=True,  ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_linked_with",          inh_name=None,                          label="Linked with",            minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=False, storable=False, observable=True,  has_widget=True),
         PropIntel(name="data_d001",                 inh_name="inherit_d001",                label="Cell length c [nm]",     minimum=0.0,   maximum=None,  is_column=True,  ctype=float,  refinable=True,  storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="default_c",                 inh_name="inherit_default_c",           label="Default c length [nm]",  minimum=0.0,   maximum=None,  is_column=True,  ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_ucp_a",                inh_name="inherit_ucp_a",               label="Cell length a [nm]",     minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=True,  storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_ucp_b",                inh_name="inherit_ucp_b",               label="Cell length b [nm]",     minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=True,  storable=True,  observable=True,  has_widget=True),      
         PropIntel(name="inherit_d001",              inh_name=None,                          label="Inh. cell length c",     minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="inherit_ucp_b",             inh_name=None,                          label="Inh. cell length b",     minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="inherit_ucp_a",             inh_name=None,                          label="Inh. cell length a",     minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="inherit_default_c",         inh_name=None,                          label="Inh. default length c",  minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
         PropIntel(name="inherit_layer_atoms",       inh_name=None,                          label="Inh. layer atoms",       minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
         PropIntel(name="inherit_interlayer_atoms",  inh_name=None,                          label="Inh. interlayer atoms",  minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
         PropIntel(name="inherit_atom_ratios",       inh_name=None,                          label="Inh. atom ratios",       minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="inherit_ucp_b",             inh_name=None,                          label="Inh. cell length b",     minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="inherit_ucp_a",             inh_name=None,                          label="Inh. cell length a",     minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="data_linked_with",          inh_name=None,                          label="Linked with",            minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=False, storable=False, observable=True,  has_widget=True),
-        PropIntel(name="data_ucp_a",                inh_name="inherit_ucp_a",               label="Cell length a [nm]",     minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=True,  storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="data_ucp_b",                inh_name="inherit_ucp_b",               label="Cell length b [nm]",     minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=True,  storable=True,  observable=True,  has_widget=True),
         PropIntel(name="data_atom_ratios",          inh_name="inherit_atom_ratios",         label="Atom ratios",            minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=True,  storable=True,  observable=True,  has_widget=True),
         PropIntel(name="data_layer_atoms",          inh_name="inherit_layer_atoms",         label="Layer atoms",            minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=False, storable=True,  observable=True,  has_widget=True),
         PropIntel(name="data_interlayer_atoms",     inh_name="inherit_interlayer_atoms",    label="Interlayer atoms",       minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=False, storable=True,  observable=True,  has_widget=True),
@@ -264,18 +266,19 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin, ObjectListStore
 
     #PROPERTIES:
     data_name = "Name of this component"
-    
+       
     _dirty = True
     def get_dirty_value(self): return (self._dirty)
     def set_dirty_value(self, value):
         if value!=self._dirty: 
             self._dirty = value
             if self._dirty:
-                self._cached_factors = dict()        
+                self._cached_factors = dict()
     
     _inherit_ucp_a = False 
     _inherit_ucp_b = False
     _inherit_d001 = False
+    _inherit_default_c = False
     _inherit_layer_atoms = False
     _inherit_interlayer_atoms = False
     _inherit_atom_ratios = False
@@ -308,13 +311,14 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin, ObjectListStore
     #INHERITABLE PROPERTIES:   
     _data_ucp_a = None
     _data_ucp_b = None
-    _data_d001 = 1.0   
+    _data_d001 = 1.0
+    _default_c = 1.0
     _data_layer_atoms = None
     _data_interlayer_atoms = None
     _data_atom_ratios = None
     @Model.getter(*[prop.name for prop in __model_intel__ if prop.inh_name])
-    def get_inheritable(self, prop_name):
-        inh_name = prop_name.replace("data_", "inherit_", 1)
+    def get_inheritable(self, prop_name): #TODO remove the data prefixes!
+        inh_name = "inherit_%s" % prop_name.replace("data_", "", 1)
         if self.data_linked_with != None and getattr(self, inh_name):
             return getattr(self.data_linked_with, prop_name)
         else:
@@ -322,6 +326,9 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin, ObjectListStore
     @Model.setter(*[prop.name for prop in __model_intel__ if prop.inh_name])
     def set_inheritable(self, prop_name, value):
         setattr(self, "_%s" % prop_name, value)
+        if prop_name=="default_d":
+            for atom in self.data_interlayer_atoms.iter_objects():
+                atom.liststore_item_changed()
         self.dirty = True
         self.liststore_item_changed()
         self.needs_update.emit()
@@ -329,10 +336,10 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin, ObjectListStore
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def __init__(self, data_name=None, data_ucp_a=None, data_ucp_b=None, data_d001=None,
+    def __init__(self, data_name=None, data_ucp_a=None, data_ucp_b=None, data_d001=None, default_c=None,
                  data_layer_atoms=None, data_interlayer_atoms=None, data_atom_ratios=None,
-                 inherit_ucp_a=False, inherit_ucp_b=False, inherit_d001=False, inherit_proportion=False, 
-                 inherit_layer_atoms=False, inherit_interlayer_atoms=False, inherit_atom_ratios=False,
+                 inherit_ucp_a=False, inherit_ucp_b=False, inherit_d001=False, inherit_default_c=False,
+                 inherit_layer_atoms=False, inherit_interlayer_atoms=False, inherit_atom_ratios=False, 
                  linked_with_index = None, linked_with_uuid = None, parent=None, **kwargs):
         ChildModel.__init__(self, parent=parent)
         Storable.__init__(self)
@@ -347,22 +354,37 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin, ObjectListStore
         self._data_interlayer_atoms = self.parse_liststore_arg(data_interlayer_atoms, ObjectListStore, Atom)
         self._data_atom_ratios = self.parse_liststore_arg(data_atom_ratios, ObjectListStore, ComponentRatioFunction)
         
+        for atom in self._data_interlayer_atoms._model_data:
+            atom.stretch_values = True
+
+        def on_interlayer_atom_inserted(atom):
+            atom.stretch_values = True
+            self.dirty = True
+            self.needs_update.emit()
+
         def on_item_changed(*args):
             self.dirty = True
             self.needs_update.emit()
+                
+        def on_layer_item_changed(*args):
+            self.dirty = True
+            self._update_lattice_d()
+            self.needs_update.emit()
         
-        self._data_layer_atoms.connect("item-removed", on_item_changed)
-        self._data_interlayer_atoms.connect("item-removed", on_item_changed)        
+        self._data_layer_atoms.connect("item-inserted", on_layer_item_changed)
+        self._data_layer_atoms.connect("item-removed", on_layer_item_changed)
+        self._data_layer_atoms.connect("row-changed", on_layer_item_changed)
+                        
+        self._data_interlayer_atoms.connect("item-inserted", on_interlayer_atom_inserted)
+        self._data_interlayer_atoms.connect("item-removed", on_item_changed)
         self._data_atom_ratios.connect("item-removed", on_item_changed)
-        
-        self._data_layer_atoms.connect("item-inserted", on_item_changed)
-        self._data_interlayer_atoms.connect("item-inserted", on_item_changed)
-        self._data_atom_ratios.connect("item-inserted", on_item_changed)
-        
-        self._data_layer_atoms.connect("row-changed", on_item_changed)
+        self._data_atom_ratios.connect("item-inserted", on_item_changed)        
         self._data_interlayer_atoms.connect("row-changed", on_item_changed)
     
         self._data_d001 = data_d001 or self.data_d001
+        
+        self._default_c = default_c or data_d001 or self._default_c
+        self._update_lattice_d()        
         
         if data_ucp_a==None and "data_cell_a" in kwargs and not "data_ucp_a" in kwargs:
             data_ucp_a = UnitCellProperty(data_name="cell length a", value=kwargs.pop("data_cell_a"), parent=self)
@@ -381,7 +403,8 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin, ObjectListStore
         
         self._inherit_d001 = inherit_d001
         self._inherit_ucp_a = inherit_ucp_a
-        self._inherit_ucp_b = inherit_ucp_b        
+        self._inherit_ucp_b = inherit_ucp_b
+        self._inherit_default_c = inherit_default_c
         self._inherit_layer_atoms = inherit_layer_atoms          
         self._inherit_interlayer_atoms = inherit_interlayer_atoms
         self._inherit_atom_ratios = inherit_atom_ratios
@@ -437,6 +460,18 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin, ObjectListStore
             self._cached_factors[hsh] = sf_tot, np.exp(2*pi*self.data_d001*range_stl*1j)
             self.dirty = False
         return self._cached_factors[hsh]
+
+    def _update_lattice_d(self):
+        self._lattice_d = 0.0
+        for atom in self.data_layer_atoms.iter_objects():
+            self._lattice_d = max(self._lattice_d, atom.default_z)
+
+    def get_interlayer_stretch_factors(self):
+        try:
+            return self._lattice_d, (self.data_cell_c - self._lattice_d) / (self.default_c - self._lattice_d)
+        except:
+            raise
+            return None
 
     @property
     def data_cell_a(self):

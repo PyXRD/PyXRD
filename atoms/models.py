@@ -146,26 +146,47 @@ class Atom(ChildModel, ObjectListStoreChildMixin, Storable):
     #MODEL INTEL:
     __parent_alias__ = 'component'
     __model_intel__ = [ #TODO add labels
-        PropIntel(name="data_name",         inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True, ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="data_z",            inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True, ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="data_pn",           inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True, ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="data_atom_type",    inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True, ctype=object, refinable=False, storable=False, observable=True,  has_widget=True),
+        PropIntel(name="data_name",         inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True,  ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="default_z",         inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True,  ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_z",            inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True,  ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_pn",           inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True,  ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_atom_type",    inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=False, storable=False, observable=True,  has_widget=True),
+        PropIntel(name="stretch_values",    inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=bool,   refinable=False, storable=False, observable=True,  has_widget=False),
     ]    
     
     #PROPERTIES:
     data_name = ""
     
-    _data_z = 0
-    def get_data_z_value(self): return self._data_z
+    _default_z = 0
+    def get_default_z_value(self): return self._default_z
+    def set_default_z_value(self, value):
+        if value != self._default_z:
+            self._default_z = value
+            self.liststore_item_changed()
+
+    _stretch_values = False
+    def get_stretch_values_value(self): return self._stretch_values
+    def set_stretch_values_value(self, value):
+        if value != self._stretch_values:
+            self._stretch_values = value
+            self.liststore_item_changed()
+    
+    def get_data_z_value(self):
+        if self._stretch_values:
+            sfactors = self.component.get_interlayer_stretch_factors()
+            if sfactors:
+                lattice_d, factor = sfactors
+                return lattice_d + (self.default_z - lattice_d) * factor
+        return self.default_z
     def set_data_z_value(self, value):
-        if value != self._data_z:
-            self._data_z = value
+        self.default_z = value
     
     _data_pn = 0
     def get_data_pn_value(self): return self._data_pn
     def set_data_pn_value(self, value):
         if value != self._data_pn:
             self._data_pn = value
+            self.liststore_item_changed()
     
     _atom_type_index = None
     _atom_type_uuid = None
@@ -178,17 +199,19 @@ class Atom(ChildModel, ObjectListStoreChildMixin, Storable):
         self._data_atom_type = value
         if self._data_atom_type is not None:
             self.observe_model(self._data_atom_type)
+        self.liststore_item_changed()
          
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def __init__(self, data_name=None, data_z=None, data_pn=None, data_atom_type=None, atom_type_index=None, atom_type_uuid=None, atom_type_name=None, parent=None):
+    def __init__(self, data_name=None, data_z=None, default_z=None, data_pn=None, data_atom_type=None, atom_type_index=None, atom_type_uuid=None, atom_type_name=None, stretch_values=False, parent=None):
         ChildModel.__init__(self, parent=parent)
         Storable.__init__(self)
         
         self.data_name = data_name or self.data_name
         
-        self.data_z = data_z or self._data_z
+        self.stretch_values = stretch_values
+        self.default_z = default_z or data_z
         self.data_pn = data_pn or self._data_pn
         self.data_atom_type = data_atom_type
         
@@ -263,17 +286,19 @@ class Atom(ChildModel, ObjectListStoreChildMixin, Storable):
                     types[atom_type.data_name] = atom_type
         
         for row in atl_reader:
-            if not header and len(row)==4:
-                name = row[0]
-                z = float(row[1])
-                pn = float(row[2])
-                atom_type = types[row[3]] if parent is not None else None
+            if not header and len(row)>=4:
+                if len(row)==5:
+                    name, z, def_z, pn, atom_type = row[0], float(row[1]), float(row[2]), float(row[3]), types[row[4]] if parent is not None else None
+                else:
+                    name, z, pn, atom_type = row[0], float(row[1]), float(row[2]), types[row[3]] if parent is not None else None
+                    def_z = z
                 
-                new_atom = Atom(data_name=name, data_z=z, data_pn=pn, data_atom_type=atom_type, parent=parent)
+                new_atom = Atom(data_name=name, data_z=z, default_z=def_z, data_pn=pn, data_atom_type=atom_type, parent=parent)
                 atoms.append(new_atom)
                 if callback is not None and callable(callback):
                     callback(new_atom)
                 del new_atom
+                
             header = False
         return atoms
         
@@ -281,9 +306,9 @@ class Atom(ChildModel, ObjectListStoreChildMixin, Storable):
     def save_as_csv(filename, atoms):
         import csv
         atl_writer = csv.writer(open(filename, 'wb'), delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-        atl_writer.writerow(["Atom","z","pn","Element"])
+        atl_writer.writerow(["Atom","z", "def_z", "pn","Element"])
         for item in atoms:
-            atl_writer.writerow([item.data_name, item.data_z, item.data_pn, item.data_atom_type.data_name])
+            atl_writer.writerow([item.data_name, item.data_z, item.default_z, item.data_pn, item.data_atom_type.data_name])
             
     pass #end of class
         

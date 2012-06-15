@@ -7,7 +7,7 @@
 # a letter to Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
 
 from random import choice
-
+import zipfile
 import time
 from warnings import warn
 from math import sin, cos, pi, sqrt, exp, radians, log
@@ -285,6 +285,7 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin, ObjectListStore
     def set_inherit_prop(self, prop_name, value):
         setattr(self, "_%s" % prop_name, value)
         self.dirty = True
+        self.liststore_item_changed()
         self.needs_update.emit()
 
     _data_linked_with = None
@@ -301,6 +302,7 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin, ObjectListStore
             else:
                 for prop in self.__inheritables__:
                     setattr(self, prop.replace("data_", "inherit_", 1), False)
+            self.liststore_item_changed()
             self.dirty = True
             
     #INHERITABLE PROPERTIES:   
@@ -310,11 +312,6 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin, ObjectListStore
     _data_layer_atoms = None
     _data_interlayer_atoms = None
     _data_atom_ratios = None
-    @Model.setter(*[prop.name for prop in __model_intel__ if prop.inh_name])
-    def set_inheritable(self, prop_name, value):
-        setattr(self, "_%s" % prop_name, value)
-        self.dirty = True
-        self.needs_update.emit()
     @Model.getter(*[prop.name for prop in __model_intel__ if prop.inh_name])
     def get_inheritable(self, prop_name):
         inh_name = prop_name.replace("data_", "inherit_", 1)
@@ -322,7 +319,13 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin, ObjectListStore
             return getattr(self.data_linked_with, prop_name)
         else:
             return getattr(self, "_%s" % prop_name)
-
+    @Model.setter(*[prop.name for prop in __model_intel__ if prop.inh_name])
+    def set_inheritable(self, prop_name, value):
+        setattr(self, "_%s" % prop_name, value)
+        self.dirty = True
+        self.liststore_item_changed()
+        self.needs_update.emit()
+        
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
@@ -411,7 +414,7 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin, ObjectListStore
                         
     def json_properties(self):
         retval = Storable.json_properties(self)    
-        if self.phase.export_mode:
+        if not self.phase.save_links:
             for prop in self.__model_intel__:
                 if prop.inh_name:
                     retval[prop.inh_name] = False
@@ -419,58 +422,6 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin, ObjectListStore
         else:
             retval["linked_with_uuid"] = self.data_linked_with.uuid if self.data_linked_with!=None else ""
         return retval
-        
-    """@classmethod          
-    def from_json(type, **kwargs):
-        ucp_a, inh_ucp_a = None, False
-        if "data_cell_a" in kwargs and not "data_ucp_a" in kwargs:
-            ucp_a = UnitCellProperty(data_name="cell length a", value=kwargs.pop("data_cell_a"), parent=comp)
-            inh_ucp_a = kwargs.pop("inherit_cell_a", False)
-        ucp_b, inh_ucp_b = None, False
-        if "data_cell_b" in kwargs and not "data_ucp_b" in skw:
-            ucp_b = UnitCellProperty(data_name="cell length b", value=kwargs.pop("data_cell_b"), parent=comp)
-            inh_ucp_b = kwargs.pop("inherit_cell_b", False)
-            
-        component = type.__from_json__(type, **kwargs)
-        if ucp_a!=None:
-            component._data_ucp_a = ucp_a
-            component._inherit_ucp_a = inh_ucp_a
-        if ucp_b!=None:
-            component._data_ucp_b = ucp_b
-            component._inherit_ucp_b = inh_ucp_b
-        
-        return component
-        
-        ""skw = dict()
-        for key in ['data_ucp_a', 'data_ucp_b', 'data_cell_a', 'data_cell_b', 
-                    'data_atom_ratios', 'data_layer_atoms', 'data_interlayer_atoms', 
-                    'inherit_cell_a', 'inherit_cell_b']:
-            if key in kwargs:
-                skw[key] = kwargs[key]
-                del kwargs[key]
-                
-        comp = type(**kwargs)       
-        
-        for ols in ['data_layer_atoms', 'data_interlayer_atoms', 'data_atom_ratios']:
-            if ols in skw:
-                objstore = ObjectListStore.from_json(parent=comp, **skw[ols]['properties'])
-                real_store = getattr(comp, ols)
-                for item in objstore._model_data:
-                    real_store.append(item)
-
-        if "data_cell_a" in skw and not "data_ucp_a" in skw:
-            comp._data_ucp_a = UnitCellProperty(data_name="cell length a", value=skw["data_cell_a"], parent=comp)
-            comp.inherit_ucp_a = skw.get("inherit_cell_a", False)
-        elif "data_ucp_b" in skw:
-            comp._data_ucp_a = UnitCellProperty.from_json(parent=comp, **skw['data_ucp_a']['properties'])
-            
-        if "data_cell_b" in skw and not "data_ucp_b" in skw:
-            comp._data_ucp_b = UnitCellProperty(data_name="cell length b", value=skw["data_cell_b"], parent=comp)
-            comp.inherit_ucp_b = skw.get("inherit_cell_b", False)
-        elif "data_ucp_b" in skw:
-            comp._data_ucp_b = UnitCellProperty.from_json(parent=comp, **skw['data_ucp_b']['properties'])""
-                    
-        return comp"""
 
     # ------------------------------------------------------------
     #      Methods & Functions
@@ -558,6 +509,7 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStoreChi
         setattr(self, "_%s" % prop_name, value)
         if not prop_name=="inherit_display_color": self.dirty = True
         self.needs_update.emit()
+        self.liststore_item_changed()
                 
     _based_on_index = None #temporary property
     _based_on_uuid = None #temporary property
@@ -575,10 +527,11 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStoreChi
         if self._data_based_on!=None:
             self.observe_model(self._data_based_on)
         else:
-            for prop in self.__inheritables__:
-                setattr(self, prop.replace("data_", "inherit_", 1), False)
+            for prop in self.__model_intel__:
+                if prop.inh_name: setattr(self, prop.inh_name, False)
         self.dirty = True
         self.needs_update.emit()
+        self.liststore_item_changed()
     def get_based_on_root(self):
         if self.data_based_on != None:
             return self.data_based_on.get_based_on_root()
@@ -613,6 +566,7 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStoreChi
             self.observe_model(self._data_probabilities)
         if not col: self.dirty = True
         self.needs_update.emit()
+        self.liststore_item_changed()
     
     _data_components = None    
     def get_data_components_value(self): return self._data_components
@@ -623,6 +577,7 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStoreChi
         if self._data_components != None:
             for comp in self._data_components._model_data: self.observe_model(comp)
         self.dirty = True
+        self.liststore_item_changed()
     def get_data_G_value(self):
         if self.data_components != None:
             return len(self.data_components._model_data)
@@ -633,7 +588,12 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStoreChi
     def get_data_R_value(self):
         return self._data_R
     
-    export_mode = False #export phase instead of regular save flag
+    #Flag indicating wether or not the links (based_on and linked_with) should
+    #be saved as well.
+    save_links = True
+    #Flag indicating wether or not atom types in the components should be
+    #exported using their name rather then their project-uuid.
+    export_atom_types = False
     
     line_colors = [
         "#004488",
@@ -729,18 +689,51 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStoreChi
         for component in self.data_components._model_data:
             component.resolve_json_references()
 
+    @classmethod
+    def save_phases(cls, phases, filename):
+        """
+            Saves multiple phases to a single file.
+        """
+        pyxrd_object_pool.stack_uuids()
+        for phase in phases:
+            phase.export_atom_types = True
+            if phase.data_based_on!="" and not phase.data_based_on in phases:
+                phase.save_links = False        
+        with zipfile.ZipFile(filename, 'w') as zfile:
+            for phase in phases:
+                zfile.writestr(phase.uuid, phase.dump_object())
+        for phase in phases:
+            phase.save_links = True
+            phase.export_atom_types = False
+        pyxrd_object_pool.restore_uuids()
+        
+    @classmethod
+    def load_phases(cls, filename, parent=None):
+        """
+            Returns multiple phases loaded from a single file.
+        """
+        if zipfile.is_zipfile(filename):
+            with zipfile.ZipFile(filename, 'r') as zfile:
+                for uuid in zfile.namelist():
+                    yield cls.load_object(zfile.open(uuid), parent=parent)
+        else:
+            yield cls.load_object(filename, parent=parent)
+
     def save_object(self, export=False, **kwargs):
-        self.export_mode = export
+        self.export_atom_types = export    
+        self.save_links = not export
         retval = Storable.save_object(self, **kwargs)
-        self.export_mode = False
+        self.save_links = True
+        self.export_atom_types = False
         return retval
     
     def json_properties(self):
         retval = Storable.json_properties(self)
-        if self.export_mode:
+        if not self.save_links:
             for prop in self.__model_intel__:
                 if prop.inh_name:
                     retval[prop.inh_name] = False
+            retval["based_on_uuid"] = ""
         else:
             retval["based_on_uuid"] = self.data_based_on.uuid if self.data_based_on else ""
         return retval

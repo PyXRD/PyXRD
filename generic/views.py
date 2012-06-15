@@ -17,6 +17,7 @@ import settings
 class BaseView(View):
     builder = ""
     modal = False
+    resizable = True
     
     __widgets_to_hide__ = ()
     
@@ -47,9 +48,11 @@ class BaseView(View):
         self.show(*args, **kwargs)
         
     def present(self):
-        self.get_toplevel().set_modal(self.modal)
-        self.get_toplevel().show_all()
-        self.get_toplevel().present()
+        toplevel = self.get_toplevel()
+        toplevel.set_resizable(self.resizable)
+        toplevel.set_modal(self.modal)
+        toplevel.show_all()
+        toplevel.present()
         
     def get_toplevel(self):
         for w in self:

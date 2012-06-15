@@ -6,16 +6,32 @@
 # To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/3.0/ or send
 # a letter to Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
 
+import os
 from math import exp, sqrt, log, pi
-import numpy as np
 import inspect
 import time
-import gobject
 import hashlib
+
+import gobject
+import gtk
+import numpy as np
 
 sqrtpi = sqrt(pi)
 sqrt2pi = sqrt(2*pi)
 sqrt8 = sqrt(8) 
+    
+def create_treestore_from_directory(directory, extension):
+    treestore = gtk.TreeStore(str,str, bool)
+    treestore.append(None, ("", "", True))
+    ext_len = len(extension)
+    parents = {}
+    for root, dirnames, filenames in os.walk(directory):
+        for dirname in dirnames:
+            parents[os.path.join(root, dirname)] = treestore.append(parents.get(root, None), (dirname, "", False))
+        for filename in filenames:
+            treestore.append(parents.get(root, None), (filename[:-ext_len], "%s/%s" % (root, filename), True))   
+    return treestore
+    
     
 def recgetattr(obj, attr):
     return reduce(getattr, attr.split("."), obj)

@@ -121,6 +121,10 @@ class AtomType(ChildModel, ObjectListStoreChildMixin, Storable, CSVMixin):
     #      Methods & Functions
     # ------------------------------------------------------------
     def get_atomic_scattering_factors(self, stl_range): 
+        """
+            Calculates the atomic scatter factor for a given range of 
+            2*sin(θ) / λ values.
+        """
         f = np.zeros(stl_range.shape)
         #if self.cache and self.cache.has_key(stl): #TODO: check if this would be an improvement or not
         #    return self.cache[stl]
@@ -237,8 +241,9 @@ class Atom(ChildModel, ObjectListStoreChildMixin, Storable):
         del self._atom_type_index        
 
     def json_properties(self):
+        from phases.models import Phase
         retval = Storable.json_properties(self)
-        if self.component.phase.export_mode:
+        if self.component.phase.export_atom_types:
             retval["atom_type_name"] = self.data_atom_type.data_name if self.data_atom_type else ""
         else:
             retval["atom_type_uuid"] = self.data_atom_type.uuid if self.data_atom_type else ""

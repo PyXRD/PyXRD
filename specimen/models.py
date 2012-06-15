@@ -397,12 +397,12 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
         
             l = self.parent.data_goniometer.data_lambda
             L_Rta =  self.data_sample_length / (self.parent.data_goniometer.data_radius * tan(radians(self.parent.data_goniometer.data_divergence)))
-            min_theta = radians(self.parent.data_goniometer.data_min_2theta*0.5)
-            max_theta = radians(self.parent.data_goniometer.data_max_2theta*0.5)
-            delta_theta = float(max_theta - min_theta) / float(steps-1)
             theta_range = None
             torad = pi / 180.0
             if self.data_experimental_pattern.xy_data._model_data_x.size <= 1:
+                delta_theta = float(max_theta - min_theta) / float(steps-1)
+                min_theta = radians(self.parent.data_goniometer.data_min_2theta*0.5)
+                max_theta = radians(self.parent.data_goniometer.data_max_2theta*0.5)
                 theta_range = min_theta + delta_theta * np.array(range(0,steps-1), dtype=float)
             else:
                 theta_range =  self.data_experimental_pattern.xy_data._model_data_x * torad * 0.5
@@ -734,8 +734,9 @@ class Marker(ChildModel, Storable, ObjectListStoreChildMixin, CSVMixin):
                     y = self.get_ymax()
                     
                 ymin, ymax = axes.get_ybound()
-                trans = transforms.blended_transform_factory(axes.transData, axes.transAxes)
-                y = (y - ymin) / (ymax - ymin) + self.data_y_offset
+                trans = axes.transData #transforms.blended_transform_factory(axes.transData, axes.transAxes)
+                #y = (y - ymin) / (ymax - ymin) + self.data_y_offset
+                y += (self.data_y_offset - ymin) / (ymax - ymin)
                 
                 kws.update(dict(
                     y=y,

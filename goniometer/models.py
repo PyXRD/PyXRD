@@ -15,6 +15,7 @@ from scipy.special import erf
 from math import sin, cos, pi, sqrt, radians, degrees, asin
 
 from generic.models import ChildModel, PropIntel
+from generic.model_mixins import CSVMixin
 from generic.utils import sqrt2pi, sqrt8
 from generic.io import Storable
        
@@ -73,6 +74,12 @@ class Goniometer(ChildModel, Storable):
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------    
+    def reset_from_file(self, path):
+        new_gonio = Goniometer.load_object(path, parent=None)
+        for prop in self.__model_intel__:
+            if prop.storable and prop.name!="uuid":
+                setattr(self, prop.name, getattr(new_gonio, prop.name))
+    
     def get_S(self):
         if self._dirty_cache:
             self._S = sqrt((self.data_soller1 * 0.5)**2 + (self.data_soller2 * 0.5)**2)

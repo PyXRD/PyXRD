@@ -13,3 +13,9 @@ class GoniometerView (DialogView):
     title = "Edit Goniometer"
     subview_builder = "goniometer/glade/goniometer.glade"
     subview_toplevel = "edit_goniometer"
+    resizable = False
+    model = True    
+    
+    @property
+    def import_combo_box(self):
+        return self["cmb_import_gonio"]

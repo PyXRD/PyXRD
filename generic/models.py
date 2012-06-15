@@ -102,6 +102,8 @@ class DefaultSignal (Signal):
             
     pass # end of class
 
+from generic.metaclasses import get_new_uuid, pyxrd_object_pool
+
 class PyXRDModel(Model):
     __metaclass__ = PyXRDMeta
     __model_intel__ = [
@@ -111,6 +113,21 @@ class PyXRDModel(Model):
     @property
     def uuid(self): return self.__uuid__
     
+    def __init__(self, *args, **kwargs):
+        Model.__init__(self, *args, **kwargs)
+        self.__stored_uuids__ = list()
+    
+    def stack_uuid(self):
+        self.__stored_uuids__.append(self.__uuid__)
+        pyxrd_object_pool.remove_object(self)
+        self.__uuid__ = get_new_uuid()
+        pyxrd_object_pool.add_object(self)
+        
+    def restore_uuid(self):
+        pyxrd_object_pool.remove_object(self)
+        self.__uuid__ = self.__stored_uuids__.pop()
+        pyxrd_object_pool.add_object(self)
+        
     def get_prop_intel_by_name(self, name):
         for prop in self.__model_intel__:
             if prop.name == name:
@@ -141,7 +158,7 @@ class ChildModel(PyXRDModel):
         self._attach_parent()
 
     def __init__(self, parent=None):
-        Model.__init__(self)
+        PyXRDModel.__init__(self)
         self.removed = Signal()
         self.added = Signal()
         

@@ -54,7 +54,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         self._data_name = value
         self.liststore_item_changed()
     
-    auto_run = False
+    auto_run = False #TODO listen for changes!!
     
     data_phase_matrix = None
     

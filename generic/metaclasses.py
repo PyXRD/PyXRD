@@ -114,12 +114,29 @@ class ObjectPool(object):
     def __init__(self, *args, **kwargs):
         object.__init__(self)
         self._objects = WeakValueDictionary()
+        self.__stored_dicts__ = list()
     
     def add_object(self, obj, force=False, silent=True):
         if not obj.uuid in self._objects or force:
             self._objects[obj.uuid] = obj
         elif not silent:
             raise KeyError, "UUID %s is already taken by another object %s, cannot add object %s" % (obj.uuid, self._objects[obj.uuid], obj)
+    
+    def stack_uuids(self):
+        #first get all values & uuids:
+        items = self._objects.items()
+        for key, value in items:
+            value.stack_uuid()
+            
+    def restore_uuids(self):
+        #first get all values & uuids:
+        items = self._objects.items()
+        for key, value in items:
+            value.restore_uuid()
+    
+    def remove_object(self, obj):
+        if obj.uuid in self._objects and self._objects[obj.uuid]==obj:
+            del self._objects[obj.uuid]
     
     def get_object(self, uuid):
         return self._objects.get(uuid, None)

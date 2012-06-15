@@ -19,6 +19,7 @@ class SpecimenView(DialogView):
     title = "Edit Specimen"
     subview_builder = "specimen/glade/specimen.glade"
     subview_toplevel = "edit_specimen"
+    resizable = False
     
     __widgets_to_hide__ = (
         "entry_align_sample_length",
@@ -49,6 +50,7 @@ class BackgroundView(DialogView):
     subview_builder = "specimen/glade/background.glade"
     subview_toplevel = "edit_background"
     modal = True
+    resizable = False
       
     def_bg_view = "bg_linear"
     bg_view_cont = "bg_view_container"
@@ -66,16 +68,19 @@ class SmoothDataView(DialogView):
     subview_builder = "specimen/glade/smoothing.glade"
     subview_toplevel = "smooth_data"
     modal = True
+    resizable = False
      
 class ShiftDataView(DialogView):
     title = "Shift Pattern"
     subview_builder = "specimen/glade/shifting.glade"
     subview_toplevel = "shift_pattern"
     modal = True
+    resizable = False
       
 class EditMarkersView(ObjectListStoreView):
     extra_widget_builder = "specimen/glade/find_peaks.glade"
     extra_widget_toplevel = "vbox_find_peaks"
+    resizable = False
     
     def __init__(self, *args, **kwargs):
         ObjectListStoreView.__init__(self, *args, **kwargs)
@@ -86,6 +91,7 @@ class DetectPeaksView(DialogView):
     title = "Auto detect peaks"
     subview_builder = "specimen/glade/find_peaks_dialog.glade"
     subview_toplevel = "tbl_find_peaks"
+    resizable = False
     
     __widgets_to_hide__ = (
         "pattern",

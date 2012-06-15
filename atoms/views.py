@@ -42,7 +42,7 @@ class EditAtomTypeView(BaseView):
         self.plot.cla()
         self.plot.plot(x, y, 'k-', aa=True)
         self.plot.set_ylabel('Scattering factor', size=14, weight="heavy")
-        self.plot.set_xlabel('sin(θ)/λ', size=14, weight="heavy")
+        self.plot.set_xlabel('2θ', size=14, weight="heavy")
         self.plot.autoscale_view()
         if self.matlib_canvas != None:
             self.matlib_canvas.draw()

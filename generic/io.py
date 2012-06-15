@@ -64,10 +64,11 @@ class Storable(object):
         
     @staticmethod
     def load_object(filename, parent=None):
-        f = open(filename, 'r')
-        ret = json.load(f, cls=PyXRDDecoder, parent=parent)
-        f.close()
-        return ret
+        try:
+            with open(filename, 'r') as f:
+                return json.load(f, cls=PyXRDDecoder, parent=parent)
+        except TypeError:
+            return json.load(filename, cls=PyXRDDecoder, parent=parent)
 
     def json_properties(self):
         retval = {}

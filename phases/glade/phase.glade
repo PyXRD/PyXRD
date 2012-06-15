@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
-  <requires lib="gtk+" version="2.20"/>
+  <!-- interface-requires gtk+ 3.0 -->
   <!-- interface-naming-policy toplevel-contextual -->
   <object class="GtkTable" id="edit_phase">
     <property name="visible">True</property>
@@ -617,7 +617,7 @@
                 <property name="color">#ffffb6f20000</property>
               </object>
               <packing>
-                <property name="expand">True</property>
+                <property name="expand">False</property>
                 <property name="fill">True</property>
                 <property name="position">1</property>
               </packing>
@@ -628,6 +628,7 @@
       <packing>
         <property name="left_attach">2</property>
         <property name="right_attach">3</property>
+        <property name="y_options">GTK_FILL</property>
       </packing>
     </child>
   </object>

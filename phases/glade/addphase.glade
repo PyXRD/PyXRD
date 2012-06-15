@@ -114,6 +114,7 @@
                     <property name="adjustment">adj_R</property>
                     <property name="snap_to_ticks">True</property>
                     <property name="numeric">True</property>
+                    <signal name="change-value" handler="on_r_value_changed" swapped="no"/>
                   </object>
                 </child>
               </object>

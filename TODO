@@ -1,8 +1,18 @@
 - MLM support
     - add R3
     - add triple and quadruple layer support for R1 & R2
-- change goniometer into a ObjectListStore so we can create a list of predefined 'machines' and add or delete custom ones
-- move statistics to project level so multi-specimen statistics can be shown (no residual plot, but R2 for both data sets etc.)
-- add custom CSDS distributions
-- allow multiple phases to be exported together, as so to maintain their relatons (e.g. WAT & GLY phases)
+    - reapply limits when creating a phase and changing R or G
 - add more 'default' phases
+- default directory when Open File dialog is opened
+- add custom CSDS distributions
+- update the hide list in the widget for VIEW MODE
+- add manual Y limit option (in raw counts?)
+- keep track of unsaved changes (flag on the project level using dirty signal?)
+- ask for confirmation when closing current project with unsaved changes
+- add zip project files (*.zpd)
+- split large object stores in project zip file into separate files in the zip file
+- move statistics to project level so multi-specimen statistics can be shown (no residual plot, but R2 for both data sets etc.)
+- most of the default dialog actions (confirmation ,information etc.) could also be usefull as decorators.
+- check most of the TreeView/Combobox creation code for sanity (e.g. register treeview instead of register_adapters)
+- check for file extension registers on windows (using exec assoc & ftype) & linux (pyxdg)
+- cleanse code from TODO & FIXME's

@@ -15,6 +15,7 @@ from gtkmvc.adapters import Adapter
 
 import settings
 
+from generic.utils import create_treestore_from_directory, get_case_insensitive_glob
 from generic.validators import FloatEntryValidator 
 from generic.views import ChildObjectListStoreView
 from generic.controllers import DialogController, ChildController, ObjectListStoreController, ChildObjectListStoreController, get_color_val, InlineObjectListStoreController
@@ -440,24 +441,14 @@ class EditComponentController(ChildController):
     @Controller.observe("inherit_d001", assign=True)
     def notif_change_data_inherit(self, model, prop_name, info):
         self.update_sensitivities()
-        """can_inherit = (self.model.data_linked_with != None)
-        if prop_name in ("inherit_d001",):
-            widget_name = prop_name.replace("inherit_", "component_data_")
-        else:
-            widget_name = "%s_container" % prop_name.replace("inherit_", "")
-            self.view[widget_name].set_visible(can_inherit and not info.new)
-        self.view[widget_name].set_sensitive(can_inherit and not info.new)"""
-        return
     
     @Controller.observe("data_name", assign=True)
     def notif_name_changed(self, model, prop_name, info):
         self.model.parent.data_components.on_item_changed(self.model)
-        return
 
     @Controller.observe("data_linked_with", assign=True)
     def notif_linked_with_changed(self, model, prop_name, info):
         self.reset_combo_box()
-        return
 
 
     # ------------------------------------------------------------
@@ -608,9 +599,10 @@ class EditPhaseController(ChildController):
         self.model.data_based_on = None        
 
 class PhasesController(ObjectListStoreController):
-    file_filters = ("Phase file", "*.phs"),
+
+    file_filters = [("Phase file", get_case_insensitive_glob("*.PHS")),]
     model_property_name = "data_phases"
-    multi_selection = False
+    multi_selection = True
     columns = [ ("Phase name", "c_data_name") ]
     delete_msg = "Deleting a phase is irreverisble!\nAre You sure you want to continue?"
     title="Edit Phases"
@@ -627,13 +619,12 @@ class PhasesController(ObjectListStoreController):
         else:
             return ObjectListStoreController.get_new_edit_controller(self, obj, view, parent=parent)
 
-    def load_phase(self, filename):
+    def load_phases(self, filename):
         print "Importing phase..."
-        new_phase = Phase.load_object(filename, parent=self.model)
-        new_phase.resolve_json_references()
-        self.model.data_phases.append(new_phase)
-        self.select_object(new_phase)
-        return new_phase
+        for phase in Phase.load_phases(filename, parent=self.model):
+            self.model.data_phases.append(phase)
+            phase.resolve_json_references()
+        self.select_object(phase)
 
     # ------------------------------------------------------------
     #      GTK Signal handlers
@@ -648,7 +639,7 @@ class PhasesController(ObjectListStoreController):
                     self.model.data_phases.append(new_phase)
                     self.select_object(new_phase)
             else:
-                self.load_phase(phase)
+                self.load_phases(phase)
                 
         add_model = Model()
         add_view = AddPhaseView(parent=self.view)
@@ -660,18 +651,16 @@ class PhasesController(ObjectListStoreController):
         
     def on_save_object_clicked(self, event):
         def on_accept(dialog):
-            print "Exporting phase..."
+            print "Exporting phases..."
             filename = self.extract_filename(dialog)
-            phase = self.get_selected_object()
-            if phase is not None:
-                phase.save_object(filename=filename, export=True)
+            Phase.save_phases(self.get_selected_objects(), filename=filename)
         self.run_save_dialog("Export phase", on_accept, parent=self.view.get_top_widget())
         return True
         
         
     def on_load_object_clicked(self, event):
         def on_accept(dialog):
-            self.load_phase(dialog.get_filename())
+            self.load_phases(dialog.get_filename())
         self.run_load_dialog("Import phase", on_accept, parent=self.view.get_top_widget())
         return True
         
@@ -691,41 +680,14 @@ class AddPhaseController(DialogController):
             self.view["adj_R"].set_upper(max_R)
             self.view["adj_R"].set_lower(min_R)
         
-    def generate_combo(self):
-        
-        cmb_model = gtk.TreeStore(str,str, bool)
-        cmb_model.append(None, ("", "", True))
-        
-        import os
-        itrs = list()
-        def walk_dir(dirname, root_itr):
-            itrs.append(root_itr)
-            for dirname, dirnames, filenames in os.walk(dirname):
-                print dirname
-                for filename in filenames:
-                    if filename.endswith(".phs"):
-                        cmb_model.append(itrs[-1], (filename[:-4], "%s/%s" % (dirname, filename), True))
-                for subdirname in dirnames:
-                    tmp_itr = cmb_model.append(itrs[-1], (subdirname, "", False))
-                    walk_dir(subdirname, tmp_itr)
-        walk_dir("%s/%s" % (settings.BASE_DIR, settings.DEFAULT_PHASES_DIR), None)
-        
-        """for files in os.listdir("%s/%s" % (settings.BASE_DIR, settings.DEFAULT_PHASES_DIR)):
-            if files.endswith(".phs"):
-                cmb_model.append((files, files))"""
+    def generate_combo(self):        
+        cmb_model = create_treestore_from_directory("%s/%s" % (settings.BASE_DIR, settings.DEFAULT_PHASES_DIR), ".phs")        
         self.view.phase_combo_box.set_model(cmb_model)
-         
-        #def cell_func(celllayout, cell, model, itr, user_data=None):
-        #    children = model.iter_n_children(itr) > 0
-        #    empty = model.get_value(itr, 1) == ""
-        #    cell.set_sensitive(not (children or empty))
          
         cell = gtk.CellRendererText()
         self.view.phase_combo_box.pack_start(cell, True)
         self.view.phase_combo_box.add_attribute(cell, 'text', 0)
-        self.view.phase_combo_box.add_attribute(cell, 'sensitive', 2)        
-        #self.view.phase_combo_box.set_cell_data_func(cell, cell_func)
-
+        self.view.phase_combo_box.add_attribute(cell, 'sensitive', 2)
     
     # ------------------------------------------------------------
     #      GTK Signal handlers
@@ -733,6 +695,10 @@ class AddPhaseController(DialogController):
     def on_btn_ok_clicked(self, event):
         self.view.hide()
         self.callback(self.view.get_phase(), self.view.get_G(), self.view.get_R())
+        return True
+        
+    def on_r_value_changed(self, adj):
+        self.update_bounds()      
         return True
         
     def on_g_value_changed(self, adj):

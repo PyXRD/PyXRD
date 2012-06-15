@@ -10,6 +10,7 @@ import locale
 
 import gtk
 
+from math import pi
 import numpy as np
 
 from gtkmvc import Controller
@@ -42,8 +43,8 @@ class EditAtomTypeController(ChildController):
     def update_plot(self):
         x, y = (),()
         if self.model is not None:
-            x = np.array([ float(x)/100.0 for x in range(0, 100)])
-            y = self.model.get_atomic_scattering_factors(x)
+            x = np.arange(0,90.0,90.0/100.0)
+            y = self.model.get_atomic_scattering_factors(2*np.sin(np.radians(x/2)) / self.model.project.data_goniometer.data_lambda)
         self.view.update_figure(x, y)
 
     # ------------------------------------------------------------

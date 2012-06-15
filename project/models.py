@@ -209,16 +209,19 @@ class Project(PyXRDModel, Storable, ObjectListStoreParentMixin):
         for phase in self._data_phases._model_data:
             if phase.data_based_on == item:
                 phase.data_based_on = None
-        for specimen in self.data_specimens._model_data:
-            specimen.del_phase(item)
         for mixture in self.data_mixtures._model_data:
             mixture.uncheck_phase(item)
+        if not self.before_needs_update_lock:
+            self.needs_update.emit() #propagate signal
     def on_atom_type_item_removed(self, model, item, *data):
-        pass
+        if not self.before_needs_update_lock:
+            self.needs_update.emit() #propagate signal
     def on_specimen_item_removed(self, model, item, *data):
         self.relieve_model(item)
         for mixture in self.data_mixtures._model_data:
             mixture.del_specimen(item)
+        if not self.before_needs_update_lock:
+            self.needs_update.emit() #propagate signal
     def on_mixture_item_removed(self, model, item, *data):
         pass
 

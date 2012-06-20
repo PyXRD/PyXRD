@@ -427,10 +427,8 @@ class XYListStore(_BaseObjectListStore, Storable):
         np.savetxt(f, zip(self._model_data_x, self._model_data_y), fmt="%.8f")
         f.close()
         
-    def load_data(self, data, format="DAT", has_header=True, clear=True):
-        if clear:
-            self.clear()
-
+    @staticmethod
+    def parse_data(data, format="DAT", has_header=True):
         f = None
         close = False
         if type(data) is file:
@@ -452,8 +450,7 @@ class XYListStore(_BaseObjectListStore, Storable):
                 if has_header:
                     has_header=False #skip header
                 elif line != "":
-                    x, y = map(float, line.split())
-                    self.append(x,y)
+                    yield map(float, line.split())
                 else:
                     break
         if format=="BIN":
@@ -468,12 +465,21 @@ class XYListStore(_BaseObjectListStore, Storable):
                 n = 0
                 while n < nx:
                     y, = struct.unpack("H", f.read(2))
-                    self.append(minx + stepx*n, float(y))
+                    yield minx + stepx*n, float(y)
                     n += 1
                     
         #close file
         if close: f.close()
 
+        
+    def load_data(self, *args, **kwargs):
+        if kwargs.get("clear", True):
+            print "CLEAR"
+            self.clear()
+        if "clear" in kwargs: del kwargs["clear"]
+        for x,y in XYListStore.parse_data(*args, **kwargs):
+            self.append(x, y)
+        
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------
@@ -578,16 +584,20 @@ class XYListStore(_BaseObjectListStore, Storable):
 
     def clear(self):
         if self._model_data_x.shape[0] > 0:
-            self.remove_from_index(*range(self._model_data_x.shape[0]))              
+            self.remove_from_index(*range(self._model_data_x.shape[0]))
         
     def set_from_data(self, data_x, data_y):
         self.clear()
         self._model_data_x = np.array(data_x)
         self._model_data_y = np.array(data_y)
+        if self._model_data_x.shape != self._model_data_y.shape:
+            raise ValueError, "Shape mismatch: x and y data need to have the same shape!"
         for pos in range(self._model_data_x.shape[0]):
             self._emit_added((pos,))
         
     def update_from_data(self, data_x, data_y):
+        data_x = np.array(data_x)
+        data_y = np.array(data_y)
         if data_x.shape == self._model_data_x.shape and data_y.shape == self._model_data_y.shape:
             self._model_data_x = data_x
             self._model_data_y = data_y

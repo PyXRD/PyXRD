@@ -14,7 +14,6 @@ from gtkmvc import Controller, Observer
 from gtkmvc.adapters import Adapter
 
 from generic.plot_controllers import DraggableVLine, EyedropperCursorPlot
-from generic.models import XYData
 from generic.controllers import DialogController, DialogMixin, ChildController, ObjectListStoreController, HasObjectTreeview, get_color_val, ctrl_setup_combo_with_list
 from generic.validators import FloatEntryValidator
 from generic.utils import get_case_insensitive_glob
@@ -42,7 +41,7 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
                 elif name in ["data_calculated_pattern", "data_experimental_pattern"]:
                     if name == "data_experimental_pattern":
                         tv = self.view['experimental_data_tv']
-                        model = self.model.data_experimental_pattern.xy_data
+                        model = self.model.data_experimental_pattern.xy_store
                         tv.set_model(model)
                         tv.connect('cursor_changed', self.on_exp_data_tv_cursor_changed)
 
@@ -212,7 +211,7 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
         return True
 
     def on_add_experimental_data_clicked(self, widget):
-        model = self.model.data_experimental_pattern.xy_data
+        model = self.model.data_experimental_pattern.xy_store
         path = model.append(0,0)
         self.set_selected_paths(self.view["experimental_data_tv"], (path,))
         return True
@@ -226,7 +225,7 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
     def on_del_experimental_data_clicked(self, widget):
         paths = self.get_selected_paths(self.view["experimental_data_tv"])
         if paths != None:
-            model = self.model.data_experimental_pattern.xy_data
+            model = self.model.data_experimental_pattern.xy_store
             model.remove_from_index(*paths)
         return True
         
@@ -271,9 +270,9 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
             def on_accept(dialog):
                 filename = dialog.get_filename()
                 if filename[-3:].lower() == "dat":
-                    self.model.data_experimental_pattern.load_data(filename, format="DAT", silent=True)
+                    self.model.data_experimental_pattern.load_data(filename, format="DAT", clear=True)
                 if filename[-2:].lower() == "rd":
-                    self.model.data_experimental_pattern.load_data(filename, format="BIN", silent=True)
+                    self.model.data_experimental_pattern.load_data(filename, format="BIN", clear=True)
             self.run_load_dialog(title="Open XRD file for import",
                                  on_accept_callback=on_accept, 
                                  parent=self.view.get_top_widget())
@@ -329,17 +328,23 @@ class BackgroundController(DialogController):
     def on_pattern_file_set(self, dialog):
         filename = dialog.get_filename()
         xydata_bg = XYData("Background Profile", color="#660099", parent=self.model.parent)
+        
+        generator = None
+        
         if filename[-3:].lower() == "dat":
-             xydata_bg.load_data(filename, format="DAT", silent=True)
+             generator = XYListStore.load_data(filename, format="DAT", silent=True)
         if filename[-2:].lower() == "rd":
-             xydata_bg.load_data(filename, format="BIN", silent=True)
-        bg_pattern_x = xydata_bg.xy_data._model_data_x
-        bg_pattern_y = xydata_bg.xy_data._model_data_y
-        our_x = self.model.xy_data._model_data_x
-        if bg_pattern_x.shape != our_x.shape or bg_pattern_x[0] != our_x[0] or bg_pattern_x[-1] != our_x[-1]:
-            print "WRONG SHAPE, BG PATTERN NOT LOADED!!"
+             generator = XYListStore.load_data(filename, format="BIN", silent=True)
+        bg_pattern_x = np.array([])
+        bg_pattern_y = np.array([])
+        for x,y in generator:
+            bg_pattern_x.append(x)
+            bg_pattern_y.append(y)            
+        
+        if bg_pattern_x.shape != self.model.xy_store._model_data_x.shape:
+            raise ValueError, "Shape mismatch: background patterns and experimental data need to have the same shape!"
             dialog.unselect_filename(filename)
-        else:        
+        else:
             self.model.bg_pattern = bg_pattern_y
 
     def on_btn_ok_clicked(self, event):

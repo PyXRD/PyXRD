@@ -140,7 +140,7 @@ class AppController (BaseController, DialogMixin):
         
             stats = (False, None)
             if single and self.model.statistics_visible:
-                stats = (True, self.model.current_specimen.statistics.data_residual_pattern.line)
+                stats = (True, self.model.current_specimen.statistics.data_residual_pattern)
       
             self.plot_controller.update(
                 clear=True,

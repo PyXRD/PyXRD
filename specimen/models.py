@@ -29,7 +29,7 @@ from generic.metaclasses import pyxrd_object_pool
 from generic.utils import interpolate, print_timing, u
 from generic.io import Storable
 from generic.model_mixins import CSVMixin, ObjectListStoreChildMixin, ObjectListStoreParentMixin
-from generic.models import XYData, ChildModel, PropIntel, MultiProperty
+from generic.models import PyXRDLine, ExperimentalLine, CalculatedLine, ChildModel, PropIntel, MultiProperty
 from generic.treemodels import ObjectListStore, XYListStore
 from generic.peak_detection import multi_peakdetect, peakdetect
 
@@ -157,8 +157,8 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
             self.data_experimental_pattern.color = value
     
     def set_display_offset(self, new_offset):
-        self.data_experimental_pattern.display_offset = new_offset
-        self.data_calculated_pattern.display_offset = new_offset
+        self.data_experimental_pattern.offset = new_offset
+        self.data_calculated_pattern.offset = new_offset
     
     #_data_phases = None
     #def get_data_phases_value(self): return self._data_phases
@@ -193,19 +193,24 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
         
         #TODO remove the view stuff, use pure XYListStores here
         
-        default = XYData("Calculated Profile", color=self.calc_color, parent=self)
-        self.data_calculated_pattern = self.parse_init_arg(
-            data_calculated_pattern, 
-            default, 
-            child=True)
-        self.data_calculated_pattern.parent = self
+        self.data_phases = []
+
+        if isinstance(data_calculated_pattern, dict) and "type" in data_calculated_pattern and data_calculated_pattern["type"]=="generic.models/XYData":
+            self.data_calculated_pattern = CalculatedLine.from_json(parent=self, **data_calculated_pattern["properties"])
+        else:
+            self.data_calculated_pattern = self.parse_init_arg(
+                data_calculated_pattern,
+                CalculatedLine(label="Calculated Profile", color=self.calc_color, parent=self),
+                child=True)
+
+        if isinstance(data_experimental_pattern, dict) and "type" in data_experimental_pattern and data_experimental_pattern["type"]=="generic.models/XYData":
+            self.data_experimental_pattern = ExperimentalLine.from_json(parent=self, **data_experimental_pattern["properties"])
+        else:            
+            self.data_experimental_pattern = self.parse_init_arg(
+                data_experimental_pattern, 
+                ExperimentalLine(label="Experimental Profile", color=self.exp_color, parent=self), 
+                child=True)
         
-            
-        self.data_experimental_pattern = self.parse_init_arg(
-            data_experimental_pattern, 
-            XYData("Experimental Profile", color=self.exp_color, parent=self), 
-            child=True)
-        self.data_experimental_pattern.parent = self
         self.data_exclusion_ranges = self.parse_init_arg(
             data_exclusion_ranges, XYListStore())
         self.data_exclusion_ranges.connect("item-removed", self.on_exclusion_range_changed)
@@ -286,7 +291,7 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
         
             with open(filename, 'r') as f:
                 header = f.readline().replace("\n", "")
-                specimen.data_experimental_pattern.load_data(data=f, format=format, has_header=False)
+                specimen.data_experimental_pattern.load_data(data=f, format=format, has_header=False, clear=True)
             
             specimen.data_name = u(os.path.basename(filename))
             specimen.data_sample = u(header)
@@ -298,7 +303,7 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
             f.seek(146)
             specimen.data_sample = u(str(f.read(16)).replace("\0", ""))
             specimen.data_name = u(os.path.basename(filename))
-            specimen.data_experimental_pattern.load_data(data=f, format=format)
+            specimen.data_experimental_pattern.load_data(data=f, format=format, clear=True)
             f.close()
         
         return specimen
@@ -306,25 +311,15 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------
-    data_phase_xydatas = None
+    #data_phase_xydatas = None
         
-    def on_update_plot(self, figure, axes, pctrl): #TODO move this to the controller/view level
-        if self.display_experimental:
-            self.data_experimental_pattern.on_update_plot(figure, axes, pctrl)
-        if self.display_calculated:
-            self.data_calculated_pattern.on_update_plot(figure, axes, pctrl)
-        xdata = self.data_experimental_pattern.xy_data._model_data_x
-        if self.data_phase_xydatas:
-            for xydata in self.data_phase_xydatas:
-                xydata.remove_from_plot(figure, axes, pctrl)
-        if self.display_phases and self.data_phase_intensities!=None:
-            self.data_phase_xydatas = []
-            for i in range(self.data_phase_intensities.shape[0]):
-                xydata = XYData("", color=self.data_phases[i].display_color, parent=self)
-                xydata.update_from_data(xdata, self.data_phase_intensities[i,:])
-                xydata.display_offset = self.data_experimental_pattern.display_offset
-                xydata.on_update_plot(figure, axes, pctrl)
-                self.data_phase_xydatas.append(xydata)
+    def on_update_plot(self, figure, axes, pctrl):
+        axes.add_line(self.data_experimental_pattern)
+        axes.add_line(self.data_calculated_pattern)
+
+        #self.data_experimental_pattern.set_visible(self.display_experimental)
+        #self.data_calculated_pattern.set_visible(self.display_calculated)
+        #self.data_calculated_pattern.set_childs_visible(self.display_phases)
         pctrl.update_lim()
 
     _hatches = None        
@@ -338,7 +333,7 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
                 except: pass
         self._hatches = list()
                 
-        scale, offset = self.scale_factor_y(self.data_experimental_pattern.display_offset)
+        scale, offset = self.scale_factor_y(self.data_experimental_pattern.offset)
         ymin, ymax = axes.get_ybound()
         scaler = max(self.max_intensity * scale, 1.0)
         y0 = (offset - ymin) / (ymax - ymin)
@@ -370,7 +365,7 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
     def update_pattern(self, phases, fractions, lpf_callback, steps=2500):
         num_phases = len(phases)
         if num_phases == 0:
-            self.data_calculated_pattern.xy_data.clear()
+            self.data_calculated_pattern.clear()
             return None
         else:
             #Get 2-theta values and phase intensities
@@ -379,14 +374,15 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
             
             #Apply fractions and absolute scale
             fractions = np.array(fractions)[:,np.newaxis]
-            self.data_phases = phases
             self.data_phase_intensities = fractions*intensities*self.data_abs_scale
+            
+            self.data_calculated_pattern.update_child_lines(zip(map(lambda p: p.display_color, phases), self.data_phase_intensities))
             
             #Sum the phase intensities and apply the background shift
             total_intensity = np.sum(self.data_phase_intensities, axis=0) + self.data_bg_shift
 
             #Update the pattern data:            
-            self.data_calculated_pattern.update_from_data(theta_range, total_intensity)
+            self.data_calculated_pattern.set_data(theta_range, total_intensity)
 
             #Return what we just calculated for anyone interested
             return (theta_range, self.data_phase_intensities, total_intensity)
@@ -399,13 +395,13 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
             L_Rta =  self.data_sample_length / (self.parent.data_goniometer.data_radius * tan(radians(self.parent.data_goniometer.data_divergence)))
             theta_range = None
             torad = pi / 180.0
-            if self.data_experimental_pattern.xy_data._model_data_x.size <= 1:
+            if self.data_experimental_pattern.xy_store._model_data_x.size <= 1:
                 delta_theta = float(max_theta - min_theta) / float(steps-1)
                 min_theta = radians(self.parent.data_goniometer.data_min_2theta*0.5)
                 max_theta = radians(self.parent.data_goniometer.data_max_2theta*0.5)
                 theta_range = min_theta + delta_theta * np.array(range(0,steps-1), dtype=float)
             else:
-                theta_range =  self.data_experimental_pattern.xy_data._model_data_x * torad * 0.5
+                theta_range =  self.data_experimental_pattern.xy_store._model_data_x * torad * 0.5
             stl_range = 2 * np.sin(theta_range) / l
             
             correction_range = np.minimum(np.sin(theta_range) * L_Rta, 1)
@@ -419,7 +415,7 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
     """@print_timing
     def calculate_pattern(self, lpf_callback, steps=2500):
         if len(self._data_phases) == 0:
-            self.data_calculated_pattern.xy_data.clear()
+            self.data_calculated_pattern.xy_store.clear()
             return None
         else:   
             theta_range, intensities = self.get_phase_intensities(self._data_phases.keys(), lpf_callback, steps=steps)
@@ -430,7 +426,7 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
             intensity_range = np.sum(intensities*fractions*self.data_abs_scale, axis=0) + self.data_bg_shift
             theta_range = theta_range * 360.0 / pi 
             
-            self.data_calculated_pattern.update_from_data(theta_range, intensity_range)
+            self.data_calculated_pattern.set_data(theta_range, intensity_range)
 
             return (theta_range, intensity_range)"""
         
@@ -465,8 +461,8 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
         return None
         
     def get_exclusion_xy(self):
-        ex, ey = self.data_experimental_pattern.xy_data.get_raw_model_data()
-        cx, cy = self.data_calculated_pattern.xy_data.get_raw_model_data()
+        ex, ey = self.data_experimental_pattern.xy_store.get_raw_model_data()
+        cx, cy = self.data_calculated_pattern.xy_store.get_raw_model_data()
         selector = self.get_exclusion_selector(ex)
         return ex[selector], ey[selector], cx[selector], cy[selector]
     
@@ -538,13 +534,13 @@ class ThresholdSelector(ChildModel):
     # ------------------------------------------------------------
     def get_xy(self):
         if self._pattern == "exp":
-            data_y = self.parent.data_experimental_pattern.xy_data._model_data_y
+            data_y = self.parent.data_experimental_pattern.xy_store._model_data_y
             data_y = data_y / np.max(data_y)
-            return self.parent.data_experimental_pattern.xy_data._model_data_x, data_y
+            return self.parent.data_experimental_pattern.xy_store._model_data_x, data_y
         elif self._pattern == "calc":
-            data_y = self.parent.data_calculated_pattern.xy_data._model_data_y
+            data_y = self.parent.data_calculated_pattern.xy_store._model_data_y
             data_y = data_y / np.max(data_y)
-            return self.parent.data_calculated_pattern.xy_data._model_data_x, data_y
+            return self.parent.data_calculated_pattern.xy_store._model_data_x, data_y
     
     def update_threshold_plot_data(self):
         if self.parent != None:
@@ -775,7 +771,7 @@ class Marker(ChildModel, Storable, ObjectListStoreChildMixin, CSVMixin):
         data = [y,1]
         if data_style == "offset":
             data_style = "solid"
-            y = (self.parent.data_experimental_pattern.display_offset - ymin) / (ymax - ymin)
+            y = (self.parent.data_experimental_pattern.offset - ymin) / (ymax - ymin)
             offset = y + (self.data_y_offset - ymin) / (ymax - ymin)
             
             data = [y,offset]
@@ -858,12 +854,12 @@ class Statistics(Model):
     # ------------------------------------------------------------ 
     def _get_experimental(self):
         if self._data_specimen != None:
-            return self._data_specimen.data_experimental_pattern.xy_data.get_raw_model_data()
+            return self._data_specimen.data_experimental_pattern.xy_store.get_raw_model_data()
         else:
             return None, None
     def _get_calculated(self):
         if self._data_specimen != None:
-            return self._data_specimen.data_calculated_pattern.xy_data.get_raw_model_data()
+            return self._data_specimen.data_calculated_pattern.xy_store.get_raw_model_data()
         else:
             return None, None 
         
@@ -875,7 +871,7 @@ class Statistics(Model):
         self.data_Rp = 0
         self.data_R2 = 0
         if self.data_residual_pattern == None:
-            self.data_residual_pattern = XYData(data_name="Residual Data", color="#000000")
+            self.data_residual_pattern = PyXRDLine(label="Residual Data", color="#000000")
         
         self.data_residual_pattern.clear()
         
@@ -886,22 +882,25 @@ class Statistics(Model):
         #    return
 
         if cal_y != None and exp_y != None and cal_y.size > 0 and exp_y.size > 0:
-            residual_pattern = XYListStore()
-            residual_pattern.set_from_data(exp_x, exp_y - cal_y)
-            self.data_residual_pattern.xy_data = residual_pattern
-            self.data_residual_pattern.update_data()
+            try: 
+                self.data_residual_pattern.set_data(exp_x, exp_y - cal_y)
 
-            e_ex, e_ey, e_cx, e_cy = self.data_specimen.get_exclusion_xy()
+                e_ex, e_ey, e_cx, e_cy = self.data_specimen.get_exclusion_xy()
 
-            self.data_chi2 = stats.chisquare(e_ey, e_cy)[0]
-            self.data_Rp, self.data_R2 = self._calc_RpR2(e_ey, e_cy)
+                self.data_chi2 = stats.chisquare(e_ey, e_cy)[0]
+                self.data_Rp, self.data_R2 = self._calc_RpR2(e_ey, e_cy)
+            except ValueError, ZeroDivisionError:
+                print "Error occured when trying to calculate statistics, aborting calculation!"
            
     @staticmethod
     def _calc_RpR2(o, e):
-        avg = sum(o)/o.size
-        sserr = np.sum((o - e)**2)
-        sstot = np.sum((o - avg)**2)
-        return Statistics._calc_Rp(o, e), 1 - (sserr / sstot)
+        if o.size > 0:
+            avg = sum(o)/o.size
+            sserr = np.sum((o - e)**2)
+            sstot = np.sum((o - avg)**2)
+            return Statistics._calc_Rp(o, e), 1 - (sserr / sstot)
+        else:
+            return 0, 0   
         
     @staticmethod
     def _calc_Rp(o, e):

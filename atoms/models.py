@@ -20,7 +20,7 @@ import numpy as np
 from generic.metaclasses import pyxrd_object_pool
 from generic.io import Storable, PyXRDDecoder
 from generic.model_mixins import CSVMixin, ObjectListStoreChildMixin
-from generic.models import XYData, ChildModel, PropIntel
+from generic.models import ChildModel, PropIntel
 from generic.treemodels import XYListStore
 
 #TODO:

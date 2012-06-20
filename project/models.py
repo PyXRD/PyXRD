@@ -88,7 +88,7 @@ class Project(PyXRDModel, Storable, ObjectListStoreParentMixin):
     })
   
     
-    _display_calc_color = "#666666"
+    _display_calc_color = "#FF0000"
     _display_exp_color = "#000000"    
     @Model.getter("display_calc_color", "display_exp_color")
     def get_color(self, prop_name):
@@ -253,17 +253,19 @@ class Project(PyXRDModel, Storable, ObjectListStoreParentMixin):
     #      Methods & Functions
     # ------------------------------------------------------------ 
    
+    def get_max_intensity(self):
+        max_intensity = 0
+        if self.data_specimens:
+            for specimen in self.data_specimens._model_data:
+                max_intensity = max(specimen.max_intensity, max_intensity)
+        return max_intensity
+   
     def freeze_updates(self):
         self.before_needs_update_lock = True
 
     def thaw_updates(self):
         self.before_needs_update_lock = False
-           
-    def get_max_intensity(self):
-        max_intensity = 0
-        for specimen in self.data_specimens._model_data:
-            max_intensity = max(specimen.max_intensity, max_intensity)
-        return max_intensity
+
     
     pass #TODO: calculate all patterns
     

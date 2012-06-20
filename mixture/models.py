@@ -231,7 +231,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
             specimen = self.data_specimens[i]
             theta_range, calc = specimen.get_phase_intensities(phases, self.parent.data_goniometer.get_lorentz_polarisation_factor)
             calculated[i] = calc.copy()
-            experimental[i] = specimen.data_experimental_pattern.xy_data._model_data_y.copy()
+            experimental[i] = specimen.data_experimental_pattern.xy_store._model_data_y.copy()
             selectors[i] = specimen.get_exclusion_selector(theta_range*todeg)
                 
                 
@@ -401,6 +401,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
                         if gui_callback!=None: gui_callback(R)
                         while gtk.events_pending():
                             gtk.main_iteration(False)
+                    print R
                     return R
                     
                 lastx, lastR2 = Mixture.mod_l_bfgs_b(gui_refine_func, x0, ranges, args=[gui_callback,], f2=1e6)

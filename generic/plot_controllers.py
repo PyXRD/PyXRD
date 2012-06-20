@@ -15,7 +15,6 @@ import matplotlib
 import matplotlib.transforms as transforms
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanvasGTK
-from matplotlib.ticker import FuncFormatter, IndexLocator
 from matplotlib.font_manager import FontProperties
 
 #from mpl_toolkits.axes_grid1.axislines import Subplot
@@ -125,10 +124,12 @@ class PlotController (DialogMixin):
             self.figure.set_size_inches((original_width, original_height))
         
         self.run_save_dialog("Save Graph", on_accept, None, parent=parent, suggest_name=suggest_name, extra_widget=size_expander)
-        
+   
+          
 class MainPlotController (PlotController):
 
     def __init__(self, app_controller, *args, **kwargs):
+        self.scale = 1.0
         self.app_controller = app_controller
         PlotController.__init__(self, *args, **kwargs)
         
@@ -207,7 +208,8 @@ class MainPlotController (PlotController):
         #print self.plot.get_ybound(), self.plot.get_ylim(), ymax
         #            
         #self.plot.set_ylim(bottom=0, top=ymax)
-                    
+                 
+        self.stats_plot.relim()   
         self.stats_plot.set_ylim(auto=True)
         self.stats_plot.get_yaxis().get_major_locator().set_params(symmetric=True, nbins=2, integer=False)
 

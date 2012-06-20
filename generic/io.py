@@ -14,8 +14,12 @@ from gtk import TextBuffer
 def get_json_type(strtype):
     parts = strtype.split('/')
     t = parts[-1]
-    m = __import__("".join(parts[:-1]), fromlist=[""])
-    return getattr(m, t)
+    m = "".join(parts[:-1])
+    if m == "generic.models" and t=="XYData":
+        return None
+    else:
+        m = __import__(m, fromlist=[""])
+        return getattr(m, t)
 
 def json_type(type):
     return type.__module__ + "/" + type.__name__
@@ -45,7 +49,7 @@ class PyXRDDecoder(json.JSONDecoder):
                 if self.parent!=None and not "parent" in kwargs:
                     kwargs["parent"] = self.parent
                 return objtype.from_json(**dict(obj["properties"], **kwargs))
-        raise Warning, "__pyxrd_decode__ will return None for %s!" % obj
+        raise Warning, "__pyxrd_decode__ will return None for %s!" % str(obj)[:30]+"..."+str(obj)[:-30]
         return None
         
 class Storable(object):
@@ -68,6 +72,7 @@ class Storable(object):
             with open(filename, 'r') as f:
                 return json.load(f, cls=PyXRDDecoder, parent=parent)
         except TypeError:
+            raise
             return json.load(filename, cls=PyXRDDecoder, parent=parent)
 
     def json_properties(self):

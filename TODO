@@ -2,6 +2,7 @@
     - add R3
     - add triple and quadruple layer support for R1 & R2
     - reapply limits when creating a phase and changing R or G
+- fix statistics plot
 - add more 'default' phases
 - default directory when Open File dialog is opened
 - add custom CSDS distributions

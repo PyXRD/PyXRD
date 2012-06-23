@@ -444,6 +444,7 @@ class EditComponentController(ChildController):
     @Controller.observe("inherit_ucp_a", assign=True)
     @Controller.observe("inherit_ucp_b", assign=True)
     @Controller.observe("inherit_d001", assign=True)
+    @Controller.observe("inherit_default_c", assign=True)
     def notif_change_data_inherit(self, model, prop_name, info):
         self.update_sensitivities()
     
@@ -678,15 +679,27 @@ class AddPhaseController(DialogController):
     def register_view(self, view):
         self.update_bounds()
         self.generate_combo()
-    
-    def update_bounds(self):
+
+    def update_R_bounds(self):
         if self.view != None:
-            min_R, max_R = get_Rbounds_for_G(self.view.get_G())
+            min_R, max_R, R = get_Rbounds_for_G(self.view.get_G(), self.view.get_R())
             self.view["adj_R"].set_upper(max_R)
             self.view["adj_R"].set_lower(min_R)
+            self.view["data_R"].set_value(R)
+            
+    def update_G_bounds(self):
+        if self.view != None:
+            min_G, max_G, G = get_Gbounds_for_R(self.view.get_R(), self.view.get_G())
+            self.view["adj_G"].set_upper(max_G)
+            self.view["adj_G"].set_lower(min_G)
+            self.view["data_G"].set_value(G)
+            
+    def update_bounds(self):
+        self.update_G_bounds()
+        self.update_R_bounds()
         
     def generate_combo(self):        
-        cmb_model = create_treestore_from_directory("%s/%s" % (settings.BASE_DIR, settings.DEFAULT_PHASES_DIR), ".phs")        
+        cmb_model = create_treestore_from_directory(settings.get_def_dir("DEFAULT_PHASES"), ".phs")        
         self.view.phase_combo_box.set_model(cmb_model)
          
         cell = gtk.CellRendererText()
@@ -703,11 +716,11 @@ class AddPhaseController(DialogController):
         return True
         
     def on_r_value_changed(self, adj):
-        self.update_bounds()      
+        self.update_G_bounds()
         return True
         
     def on_g_value_changed(self, adj):
-        self.update_bounds()      
+        self.update_R_bounds()
         return True
         
     def on_keypress(self, widget, event):

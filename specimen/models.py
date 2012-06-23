@@ -228,7 +228,7 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
         self.display_experimental = display_experimental
         self.display_phases = display_phases
         
-        self.statistics = Statistics(data_specimen=self)
+        self.statistics = Statistics(parent=self)
         
         """#Resolve JSON indeces:
         self._data_phases = dict()
@@ -316,10 +316,6 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
     def on_update_plot(self, figure, axes, pctrl):
         axes.add_line(self.data_experimental_pattern)
         axes.add_line(self.data_calculated_pattern)
-
-        #self.data_experimental_pattern.set_visible(self.display_experimental)
-        #self.data_calculated_pattern.set_visible(self.display_calculated)
-        #self.data_calculated_pattern.set_childs_visible(self.display_phases)
         pctrl.update_lim()
 
     _hatches = None        
@@ -809,28 +805,26 @@ class Marker(ChildModel, Storable, ObjectListStoreChildMixin, CSVMixin):
         
     pass #end of class
         
-class Statistics(Model):
+class Statistics(ChildModel):
 
     #MODEL INTEL:
-    __have_no_widget__ = ["data_specimen", "data_residual_pattern"]
-    __observables__ = [ 
-        "data_specimen", 
-        "data_points", 
-        "data_residual_pattern",
-         "data_chi2", "data_Rp", "data_R2" 
+    __parent_alias__ = 'specimen'
+    __model_intel__ = [ #TODO add labels
+        PropIntel(name="data_points",           inh_name=None, label="", minimum=None,  maximum=None,  is_column=True,  ctype=int,    refinable=False, storable=False, observable=True,  has_widget=True),
+        PropIntel(name="data_residual_pattern", inh_name=None, label="", minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=False, storable=False, observable=True,  has_widget=False),
+        PropIntel(name="data_chi2",             inh_name=None, label="", minimum=None,  maximum=None,  is_column=True,  ctype=float,  refinable=False, storable=False, observable=True,  has_widget=True),
+        PropIntel(name="data_Rp",               inh_name=None, label="", minimum=None,  maximum=None,  is_column=True,  ctype=float,  refinable=False, storable=False, observable=True,  has_widget=True),
+        PropIntel(name="data_R2",               inh_name=None, label="", minimum=None,  maximum=None,  is_column=True,  ctype=float,  refinable=False, storable=False, observable=True,  has_widget=True),
     ]
     
     #PROPERTIES:
-    _data_specimen = None
-    def get_data_specimen_value(self): return self._data_specimen
-    def set_data_specimen_value(self, value):
-        if value != self._data_specimen:
-            self._data_specimen = value
-            self.update_statistics()
+    def set_parent_value(self, value):
+        ChildModel.set_parent_value(self, value)
+        self.update_statistics()
        
     def get_data_points_value(self):
         try:
-            e_ex, e_ey, e_cx, e_cy = self.data_specimen.get_exclusion_xy()
+            e_ex, e_ey, e_cx, e_cy = self.specimen.get_exclusion_xy()
             return e_ex.size
         except: pass
         return 0
@@ -839,39 +833,33 @@ class Statistics(Model):
     data_R2 = None
     data_Rp = None
     data_residual_pattern = None
-  
-    # ------------------------------------------------------------
-    #      Initialisation and other internals
-    # ------------------------------------------------------------
-    def __init__(self, data_specimen=None):
-        Model.__init__(self)
-        
-        self.data_specimen = data_specimen or self.data_specimen        
-        self.update_statistics()
-        
+         
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------ 
     def _get_experimental(self):
-        if self._data_specimen != None:
-            return self._data_specimen.data_experimental_pattern.xy_store.get_raw_model_data()
+        if self.specimen != None:
+            return self.specimen.data_experimental_pattern.xy_store.get_raw_model_data()
         else:
             return None, None
     def _get_calculated(self):
-        if self._data_specimen != None:
-            return self._data_specimen.data_calculated_pattern.xy_store.get_raw_model_data()
+        if self.specimen != None:
+            return self.specimen.data_calculated_pattern.xy_store.get_raw_model_data()
         else:
             return None, None 
         
     """def on_data_update(self, model, name, info):
         self.update_statistics()"""
       
+    def scale_factor_y(self, offset):
+        return self.specimen.scale_factor_y(offset) if self.specimen else (1.0, offset)
+      
     def update_statistics(self):
         self.data_chi2 = 0        
         self.data_Rp = 0
         self.data_R2 = 0
         if self.data_residual_pattern == None:
-            self.data_residual_pattern = PyXRDLine(label="Residual Data", color="#000000")
+            self.data_residual_pattern = PyXRDLine(label="Residual Data", color="#000000", parent=self)
         
         self.data_residual_pattern.clear()
         
@@ -885,7 +873,7 @@ class Statistics(Model):
             try: 
                 self.data_residual_pattern.set_data(exp_x, exp_y - cal_y)
 
-                e_ex, e_ey, e_cx, e_cy = self.data_specimen.get_exclusion_xy()
+                e_ex, e_ey, e_cx, e_cy = self.specimen.get_exclusion_xy()
 
                 self.data_chi2 = stats.chisquare(e_ey, e_cy)[0]
                 self.data_Rp, self.data_R2 = self._calc_RpR2(e_ey, e_cy)

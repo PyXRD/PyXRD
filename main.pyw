@@ -41,6 +41,5 @@ if __name__ == "__main__":
     v = AppView()
     c = AppController(m, v)
     
-        
     gtk.main()
     PyXRDLogger.stop_logging()

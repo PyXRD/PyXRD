@@ -16,6 +16,8 @@ import gtk
 from gtkmvc import Controller
 from gtkmvc.adapters import Adapter
 
+import settings
+
 from generic.utils import get_case_insensitive_glob, delayed
 from generic.controllers import BaseController, DialogMixin
 from generic.plot_controllers import MainPlotController, EyedropperCursorPlot
@@ -134,7 +136,10 @@ class AppController (BaseController, DialogMixin):
                     self.plot_controller.register(specimen, "on_update_hatches", last=True)
                     for marker in specimen.data_markers._model_data:
                         self.plot_controller.register(marker, "on_update_plot", last=True)
-                    labels.append((specimen.data_sample, self.model.current_project.display_label_pos + offset))
+                    if settings.VIEW_MODE:
+                        labels.append((specimen.data_sample, self.model.current_project.display_label_pos + offset))
+                    else:
+                        labels.append((specimen.data_sample + "\nRp = %.1f%%" % specimen.statistics.data_Rp, self.model.current_project.display_label_pos + offset))
                     offset += offset_increment
                     i += 1
         

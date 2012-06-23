@@ -41,7 +41,7 @@ class GoniometerController(DialogController, DialogMixin):
 
     def generate_combo(self):
         self.view.import_combo_box.clear()
-        cmb_model = create_treestore_from_directory("%s/%s" % (settings.BASE_DIR, settings.DEFAULT_GONIOS_DIR), ".gon")
+        cmb_model = create_treestore_from_directory(settings.get_def_dir("DEFAULT_GONIOS"), ".gon")
         self.view.import_combo_box.set_model(cmb_model)
         cell = gtk.CellRendererText()
         self.view.import_combo_box.pack_start(cell, True)

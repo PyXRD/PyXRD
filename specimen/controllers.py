@@ -364,12 +364,12 @@ class SmoothDataController(DialogController):
         if self.model is not None:
             self.model.sd_degree = 5
             for name in self.model.get_properties():
-                if name == "sd_type":
+                if name == "smooth_type":
                     ctrl_setup_combo_with_list(self, 
-                        self.view["cmb_sd_type"],
-                        "sd_type", "_sd_types")
-                elif name == "sd_degree":
-                    #FloatEntryValidator(self.view["sd_degree"])
+                        self.view["cmb_smooth_type"],
+                        "smooth_type", "_smooth_types")
+                elif name == "smooth_degree":
+                    #FloatEntryValidator(self.view["smooth_degree"])
                     self.adapt(name)
             return
             

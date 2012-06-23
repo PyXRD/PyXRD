@@ -3,7 +3,7 @@
   <!-- interface-requires gtk+ 3.0 -->
   <object class="GtkAdjustment" id="adj_degree">
     <property name="lower">1</property>
-    <property name="upper">20</property>
+    <property name="upper">600</property>
     <property name="value">3</property>
     <property name="step_increment">1</property>
     <property name="page_increment">10</property>
@@ -44,7 +44,7 @@
       </packing>
     </child>
     <child>
-      <object class="GtkComboBox" id="cmb_sd_type">
+      <object class="GtkComboBox" id="cmb_smooth_type">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
       </object>
@@ -67,7 +67,7 @@
       </packing>
     </child>
     <child>
-      <object class="GtkSpinButton" id="sd_degree">
+      <object class="GtkSpinButton" id="smooth_degree">
         <property name="visible">True</property>
         <property name="can_focus">True</property>
         <property name="invisible_char">•</property>

@@ -24,6 +24,8 @@ def ctrl_setup_combo_with_list(ctrl, combo, prop_name, list_prop_name):
     cell = gtk.CellRendererText()
     combo.pack_start(cell, True)
     combo.add_attribute(cell, 'text', 1)
+    cell.set_property('family', 'Monospace')
+    cell.set_property('size-points', 10)
     
     def on_changed(combo, user_data=None):
         itr = combo.get_active_iter()

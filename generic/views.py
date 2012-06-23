@@ -11,10 +11,10 @@ from gtkmvc.view import View
 
 import settings
 
-"""
-    Basic view providing some common code
-"""
 class BaseView(View):
+    """
+        Basic view providing some common code
+    """
     builder = ""
     modal = False
     resizable = True
@@ -22,12 +22,13 @@ class BaseView(View):
     __widgets_to_hide__ = ()
     
     def __init__(self, *args, **kwargs):
-        #strip parent from args:
-        if "parent" in kwargs:
-            self.parent = kwargs["parent"]
-            if not hasattr(self, "set_transient_for"): del kwargs["parent"]
         View.__init__(self, *args, **kwargs)
+        self.parent = kwargs.get("parent", None)
         self._hide_widgets()
+        top = self.get_toplevel()
+        if isinstance(top, gtk.Window):
+            top.set_resizable(self.resizable)
+            top.set_modal(self.modal)
         
     
     def _hide_widgets(self):
@@ -39,10 +40,6 @@ class BaseView(View):
          
     def _before_hide_widgets(self):
         pass #can be overriden by subclasses
-         
-    """def show(self, *args, **kwargs): 
-        if title != None: self.set_title(title)
-        View.show(self)"""
         
     def show_all(self, *args, **kwargs):
         self.show(*args, **kwargs)
@@ -59,10 +56,10 @@ class BaseView(View):
             return self[w].get_toplevel()
             break #just for ref
        
-"""
-    Mixin that provides title support for views
-"""
 class TitleView():
+    """
+        Mixin that provides title support for views
+    """
     title = None
 
     def __init__(self):
@@ -72,10 +69,10 @@ class TitleView():
         self.title = title
         self.get_toplevel().set_title(title)
 
-"""
-    Mixin that provides a function to add childviews to containers
-"""
 class HasChildView():
+    """
+        Mixin that provides a function to add childviews to containers
+    """
     def _add_child_view(self, new_child, container):
         child = container.get_child()
         if child is not None:
@@ -87,10 +84,10 @@ class HasChildView():
         new_child.show_all()
         return new_child
 
-"""
-    Generalised view for editing stuff with an OK button
-"""
 class DialogView(BaseView, TitleView, HasChildView):
+    """
+        Generalised view for editing stuff with an OK button
+    """
     builder = "generic/glade/edit_dialog.glade"
     top = "window_edit_dialog"
     container_widget = "edit_child_box"
@@ -175,11 +172,11 @@ class ObjectListStoreViewMixin(HasChildView):
             self[self.edit_view_container].set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
         return self.edit_view
         
-"""
-    Generalised view for editing objects inside an ObjectListStore (using a customisable child view)
-     - Standalone version (inside a DialogView)
-"""
 class ObjectListStoreView(DialogView, ObjectListStoreViewMixin):
+    """
+        Generalised view for editing objects inside an ObjectListStore (using a customisable child view)
+         - Standalone version (inside a DialogView)
+    """
     subview_builder = "generic/glade/object_store.glade"
     subview_toplevel = "edit_object_store"
 
@@ -187,11 +184,11 @@ class ObjectListStoreView(DialogView, ObjectListStoreViewMixin):
         DialogView.__init__(self, **kwargs)
         ObjectListStoreViewMixin.__init__(self, edit_view_container=edit_view_container, display_buttons=display_buttons, load_label=load_label, save_label=save_label, **kwargs)
         
-"""
-    Generalised view for editing objects inside an ObjectListStore (using a customisable child view)
-     - Child version (to be embedded by a controller)
-"""
 class ChildObjectListStoreView(BaseView, ObjectListStoreViewMixin):
+    """
+        Generalised view for editing objects inside an ObjectListStore (using a customisable child view)
+         - Child version (to be embedded by a controller)
+    """
     edit_view_container = "frame_object_param"
     
     builder = "generic/glade/object_store.glade"

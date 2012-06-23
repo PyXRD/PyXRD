@@ -30,6 +30,8 @@ from probabilities.models import _AbstractProbability
 from specimen.models import Statistics
 from mixture.genetics import run_genetic_algorithm
 
+
+
 class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
     #MODEL INTEL:
     __parent_alias__ = "project"
@@ -461,7 +463,8 @@ class RefinableProperty(ChildModel, ObjectListStoreChildMixin, Storable):
         return self.prop_intel.inh_name if self.prop_intel else None
     
     level = 0
-    
+    last_lbl=None
+    last_pb=None
     def get_title_value(self):
         fmt = "  "*self.level + "%s"
         
@@ -471,7 +474,7 @@ class RefinableProperty(ChildModel, ObjectListStoreChildMixin, Storable):
         if not self.prop_intel.refinable: #if never refinable, use the value of the property as the title
             return fmt % getattr(self.obj, self.prop)
         else:
-            return fmt % self.prop_intel.label
+            return self.prop_intel.label
 
     def get_value_value(self):
         value = getattr(self.obj, self.prop)
@@ -511,7 +514,7 @@ class RefinableProperty(ChildModel, ObjectListStoreChildMixin, Storable):
             else:
                 return not self.inherited
         elif isinstance(self.obj, _AbstractProbability):
-            if self.prop=="" or self.prop==None:
+            if self.prop=="data_name" or self.prop==None:
                 return False
             else:
                 return not getattr(self.obj.parent, "inherit_probabilities")

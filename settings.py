@@ -1,15 +1,13 @@
+### General Information ###
 VERSION = "0.4.0"
 
 DEBUG = True
 VIEW_MODE = False
 
 LOG_FILENAME = 'errors.log'
-
 UPDATE_URL = 'http://users.ugent.be/~madumon/pyxrd/'
 
-DEFAULT_PHASES_DIR = 'data/default phases/'
-DEFAULT_GONIOS_DIR = 'data/default goniometers/'
-
+### Plot Information ###
 PLOT_STATS_OFFSET = 0.15
 
 PLOT_TOP = 0.85
@@ -48,8 +46,27 @@ PRINT_BASE_HEIGHT = 1200
 PRINT_MARGIN_HEIGHT = PRINT_BASE_HEIGHT*(1.0-PLOT_HEIGHT)
 PRINT_SINGLE_HEIGHT = PRINT_BASE_HEIGHT*PLOT_HEIGHT
 
-SETTINGS_APPLIED = False
+### Default Directories ###
 BASE_DIR = ""
+DEFAULT_PHASES_DIR = 'data/default phases/'
+DEFAULT_GONIOS_DIR = 'data/default goniometers/'
+
+def get_def_dir(name):
+    global DEFAULT_PHASES_DIR
+    global DEFAULT_GONIOS_DIR
+    if name=="DEFAULT_PHASES":
+        return get_abs_dir(DEFAULT_PHASES_DIR)
+    elif name=="DEFAULT_GONIOS":
+        return get_abs_dir(DEFAULT_GONIOS_DIR)
+    else:
+        return get_abs_dir("")
+    
+def get_abs_dir(rel_dir):
+    global BASE_DIR
+    return "%s/%s" % (BASE_DIR, rel_dir)
+
+### Runtime Settings Retrieval ###
+SETTINGS_APPLIED = False
 def apply_runtime_settings():
     global SETTINGS_APPLIED
     global BASE_DIR
@@ -58,11 +75,14 @@ def apply_runtime_settings():
 
         font = {'weight' : 'heavy', 'size': 14}
         matplotlib.rc('font', **font)
-        mathtext = {'default': 'regular'}
+        mathtext = {'default': 'regular', 'fontset': 'stixsans'}
         matplotlib.rc('mathtext', **mathtext)
+        #matplotlib.rc('text', **{'usetex':True})
         
         import sys, os
         BASE_DIR = os.path.abspath(os.path.dirname(sys.argv[0]))
         
         print "Runtime settings applied"
     SETTINGS_APPLIED = True
+    
+### end of settings

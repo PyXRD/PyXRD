@@ -13,6 +13,7 @@ import gtk
 from gtkmvc import Controller, Observer
 from gtkmvc.adapters import Adapter
 
+from generic.mathtext_support import create_pb_from_mathtext
 from generic.controllers import DialogController, DialogMixin, ChildController, ObjectListStoreController, HasObjectTreeview, get_color_val, ctrl_setup_combo_with_list
 from generic.validators import FloatEntryValidator
 from generic.utils import get_case_insensitive_glob
@@ -30,16 +31,27 @@ class RefinementController(DialogController):
             tv.set_model(tv_model)
             #tv.connect('cursor_changed', self.on_exp_data_tv_cursor_changed)
 
-            rend = gtk.CellRendererText()
+            #rend = gtk.CellRendererText()
+            #col = gtk.TreeViewColumn('Name/Prop', rend)
+            #def get_name(column, cell, model, itr, user_data=None):
+            #    ref_prop = model.get_user_data(itr)
+            #    cell.set_property("markup", ref_prop.title[0])
+            #    return
+            #col.set_cell_data_func(rend, get_name, data=None)
+           
+            rend = gtk.CellRendererPixbuf()
             col = gtk.TreeViewColumn('Name/Prop', rend)
-            def get_name(column, cell, model, itr, user_data=None):
-                ref_prop = model.get_user_data(itr)
-                cell.set_property("markup", ref_prop.title)
+            def get_pb(column, cell, model, itr, user_data=None):
+                ref_prop = model.get_user_data(itr)            
+                if not hasattr(ref_prop, "pb") or not ref_prop.pb:
+                    ref_prop.pb = create_pb_from_mathml(ref_prop.title)
+                cell.set_property("pixbuf", ref_prop.pb)
                 return
-            col.set_cell_data_func(rend, get_name, data=None)
-            col.set_expand(True)                
+            col.set_cell_data_func(rend, get_pb, data=None)
+            col.set_expand(True)
             tv.append_column(col)
             
+          
             def get_name(column, cell, model, itr, user_data=None):
                 ref_prop = model.get_user_data(itr)
                 refinable = ref_prop.refinable

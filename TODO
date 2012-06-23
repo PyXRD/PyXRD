@@ -1,19 +1,18 @@
 - MLM support
     - add R3
     - add triple and quadruple layer support for R1 & R2
-    - reapply limits when creating a phase and changing R or G
-- fix statistics plot
 - add more 'default' phases
 - default directory when Open File dialog is opened
 - add custom CSDS distributions
-- update the hide list in the widget for VIEW MODE
 - add manual Y limit option (in raw counts?)
 - keep track of unsaved changes (flag on the project level using dirty signal?)
 - ask for confirmation when closing current project with unsaved changes
 - add zip project files (*.zpd)
 - split large object stores in project zip file into separate files in the zip file
+- export of separate phase patterns. Requires the XYListStore to be expanded so it can contain multiple y values (one for each phase, and an extra for the sum)
 - move statistics to project level so multi-specimen statistics can be shown (no residual plot, but R2 for both data sets etc.)
 - most of the default dialog actions (confirmation ,information etc.) could also be usefull as decorators.
 - check most of the TreeView/Combobox creation code for sanity (e.g. register treeview instead of register_adapters)
 - check for file extension registers on windows (using exec assoc & ftype) & linux (pyxdg)
 - cleanse code from TODO & FIXME's
+- ability to hide listview in objectliststore edit dialogs (slicker windows)

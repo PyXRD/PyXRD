@@ -8,42 +8,27 @@
 
 import gtk
 
+from generic.mathtext_support import create_image_from_mathtext
+
 from generic.views import BaseView, HasChildView
 
 
 def get_correct_probability_views(probability, parent_view):
+    """
+        Convenience function that creates both an `IndependentsView` and 
+        `MatrixView` based on the probability model passed.
+    """
     if probability!=None:
         G = probability.G
         R = probability.R
+        rank = probability.rank
         labels = probability.get_independent_label_map()
-        if R == 0 or G == 1:
-            return R0R1R2IndependentsView(labels=labels, parent=parent_view), R0R1MatrixView(N=G, parent=parent_view)
-        elif G > 1:
-            if R == 1: #------------------------- R1:
-                if G == 2:
-                    return R0R1R2IndependentsView(labels=labels, parent=parent_view), R0R1MatrixView(N=G, parent=parent_view)
-                elif G == 3:
-                    return R0R1R2IndependentsView(labels=labels, parent=parent_view), R0R1MatrixView(N=G, parent=parent_view)
-                elif G == 4:
-                    raise ValueError, "Cannot yet handle R1 g=4" # ,R0R1MatrixView(N=G, parent=parent_view)
-            elif R == 2: #----------------------- R2:
-                if G == 2:
-                    return R0R1R2IndependentsView(labels=labels, parent=parent_view), R2MatrixView(N=G, parent=parent_view) #raise ValueError, "Cannot yet handle R2 g=2"
-                elif G == 3:
-                    raise ValueError, "Cannot yet handle R2 g=3"
-                elif G == 4:
-                    raise ValueError, "Cannot yet handle R2 g=4"            
-            elif R == 3: #----------------------- R3:
-                if G == 2:
-                    raise ValueError, "Cannot yet handle R3 g=2"
-                elif G == 3:
-                    raise ValueError, "Cannot yet handle R3 g=3"
-                elif G == 4:
-                    raise ValueError, "Cannot yet handle R3 g=4"
-            else:
-                raise ValueError, "Cannot (yet) handle Reichweite's other then 0, 1, 2 or 3"
+        return IndependentsView(labels=labels, parent=parent_view), MatrixView(R=R, G=G, rank=rank, parent=parent_view)
 
 class EditProbabilitiesView(BaseView, HasChildView):
+    """
+        Container view containing one `MatrixView` and one `IndependentsView`
+    """
     builder = "probabilities/glade/probabilities.glade"
     top = "edit_probabilities"
     
@@ -60,11 +45,23 @@ class EditProbabilitiesView(BaseView, HasChildView):
         self.show_all()
         return self.independents_view, self.dependents_view
     
-class AbstractProbabilityView():
+class ProbabilityViewMixin():
+    """
+        Mixin class providing interface code for controllers
+        of both `MatrixView` and `IndependentsView`
+    """
     def update_matrices(self, W, P):
         raise NotImplementedError
     
-class R0R1R2IndependentsView(BaseView, HasChildView, AbstractProbabilityView):
+class IndependentsView(BaseView, HasChildView, ProbabilityViewMixin):
+    """
+        Generic view that is able to generate an two-column list of inputs and 
+        labels using the 'labels' argument passed upon creation.
+        'labels' should be a list of tuples holding the attribute name and the
+        label. This label is parsed using a mathtext parser, if this causes an 
+        error the raw label is displayed. The __independent_label_map__ of the
+        model this view is representing should normally be passed as 'labels'.
+    """
     builder = "probabilities/glade/R0_independents.glade"
     top = "R0independents_box"
     #generated table of weight fractions! (split in two columns)
@@ -80,15 +77,17 @@ class R0R1R2IndependentsView(BaseView, HasChildView, AbstractProbabilityView):
         N = len(labels)
         
         def create_inputs(table):
-            label_widgets = [None]*N
             input_widgets = [None]*N
             for i, (prop, lbl) in enumerate(labels):
                 prop, lbl = labels[i]
                 
-                new_lbl = gtk.Label(lbl % { "i": i })
-                new_lbl.set_use_markup(True)
-                new_lbl.set_property('justify', gtk.JUSTIFY_CENTER)
-                label_widgets[i] = new_lbl
+                try:
+                    new_lbl = create_image_from_mathtext(lbl)
+                except:
+                    new_lbl = gtk.Label(lbl % { "i": i })
+                    new_lbl.set_use_markup(True)
+                    new_lbl.set_property('justify', gtk.JUSTIFY_CENTER)
+                    raise
                 
                 new_inp = gtk.Entry()
                 new_inp.set_tooltip_text(lbl % { "i": i })
@@ -124,44 +123,93 @@ class R0R1R2IndependentsView(BaseView, HasChildView, AbstractProbabilityView):
             inp.set_text("%.3f" % getattr(model, prop))
             
     pass #end of class
-
-class R1G2IndependentsView(BaseView, AbstractProbabilityView): #TODO
-    builder = "probabilities/glade/R0_independents.glade"
-    top = "R0independents_box"
-
-    def __init__(self, **kwargs):
-        BaseView.__init__(self, **kwargs)
-        pass
-        
-    pass #end of class
-
-class R1G3IndependentsView(BaseView, AbstractProbabilityView): #TODO
-    builder = "probabilities/glade/R1G3_independents.glade"
-    top = ""
-
-    def __init__(self, **kwargs):
-        BaseView.__init__(self, **kwargs)
-        pass
-        
-    pass #end of class
             
-class BaseMatrixView(BaseView, HasChildView, AbstractProbabilityView):
-    builder = "probabilities/glade/base_matrix.glade"
+class MatrixView(BaseView, HasChildView, ProbabilityViewMixin):
+    """
+        Generic view that is able to generate and update a P and W 'matrix'
+        table with labels having correct tooltips (e.g. P110). Can be used for
+        any combination of R, G and rank.
+    """
+    builder = "probabilities/glade/matrix.glade"
     top = "base_matrix_table"
          
-    @staticmethod
-    def create_labels(num, table, tooltip=lambda i,j: ""):
-        labels = [[None]*num for _ in range(num)]
-        for i in range(num):
-            for j in range(num):
-                new_lbl = gtk.Label("")
-                new_lbl.set_tooltip_markup(tooltip(i,j))
-                new_lbl.set_property('justify', gtk.JUSTIFY_CENTER)
-                table.attach(new_lbl, j, j+1, i, i+1, xpadding=5, ypadding=5)
-                labels[i][j] = new_lbl
-                del new_lbl
-        return labels
-         
+    def __init__(self, R, G, rank, **kwargs):
+        """
+            Eventhough only two of R,G and rank are required theoretically, 
+            they are still required by the __init__ function as a validity
+            check.
+        """
+        BaseView.__init__(self, **kwargs)
+
+        #R0 is treated no different in terms of naming and matrices then R1
+        lR = max(R,1)
+
+        #make sure valid params are passed:
+        assert(rank==(G**lR))
+
+        #create or get widgets:
+        self.w_box = self['w_box']
+        self.w_table = gtk.Table(rank, rank, True)
+        self.p_box = self['p_box']
+        self.p_table = gtk.Table(rank, rank, True)
+
+        def create_labels(num, table, tooltip=lambda i,j: ""):
+            """
+                Generic function for both the W and P matrix setup
+            """
+            labels = [[None]*num for _ in range(num)]
+            for i in range(num):
+                for j in range(num):
+                    new_lbl = gtk.Label("")
+                    new_lbl.set_tooltip_markup(tooltip(i,j))
+                    new_lbl.set_property('justify', gtk.JUSTIFY_CENTER)
+                    table.attach(new_lbl, j, j+1, i, i+1, xpadding=5, ypadding=5)
+                    labels[i][j] = new_lbl
+                    del new_lbl
+            return labels
+
+        #calculate moduli for parameter index calculation:
+        mod = [0]*lR
+        for i in range(lR):
+             mod[i] = rank / (G**(i+1))
+
+        #create label formats:        
+        w_lbl = "W<sub>" + "%d"*lR + "</sub>"
+        p_lbl = "P<sub>" + "%d"*(lR+1) + "</sub>"
+        
+        # W label creation:
+        def wtooltip(x,y):
+            if x==y:
+                indeces = [0]*lR
+                for i in range(lR):
+                     indeces[i] = (int(x / mod[i]) % G) + 1
+                return w_lbl % tuple(indeces)
+            else:
+                return "-"
+        self.w_labels = create_labels(rank, self.w_table, wtooltip)
+        self._add_child_view(self.w_table, self.w_box)
+        
+        # P label creation:
+        def ptooltip(x,y):           
+            rowsuf = [0]*lR # e.g. i,j,k
+            colsuf = [0]*lR # e.g. l,m,n
+            for i in range(lR):
+                rowsuf[i] = (int(x / mod[i]) % G) +1
+                colsuf[i] = (int(y / mod[i]) % G) +1
+            
+            #check if last n-1 and first n-1 of the suffices equal each other:
+            visible = True
+            for i in range(lR-1):
+                if rowsuf[i+1] != colsuf[i]: visible = False
+            if visible:
+                return p_lbl % (tuple(rowsuf) + (colsuf[-1],))
+            else:
+                return "-"
+        self.p_labels = create_labels(rank, self.p_table, ptooltip)
+        self._add_child_view(self.p_table, self.p_box)
+        
+        self.show_all()
+                 
     def update_matrices(self, W, P):
         def update_matrix(matrix, labels):
             shape = matrix.shape
@@ -170,55 +218,6 @@ class BaseMatrixView(BaseView, HasChildView, AbstractProbabilityView):
                     labels[i][j].set_text("%.3f" % matrix[i,j])
         update_matrix(W, self.w_labels)
         update_matrix(P, self.p_labels)
-        
-    pass #end of class        
-             
-class R0R1MatrixView(BaseMatrixView):   
-    def __init__(self, N = 1, **kwargs):
-        BaseMatrixView.__init__(self, **kwargs)
-
-        self.w_box = self['w_box']        
-        self.w_table = gtk.Table(N,N, True)
-        def wtooltip(i,j):
-            if i==j:return "W<sub>%(i)d</sub>" % { "i": i+1, "j": j+1 }
-            else: return "-"
-        self.w_labels = BaseMatrixView.create_labels(N, self.w_table, wtooltip)
-        self._add_child_view(self.w_table, self.w_box)
-        
-        self.p_box = self['p_box']
-        self.p_table = gtk.Table(N,N, True)
-        self.p_labels = BaseMatrixView.create_labels(N, self.p_table, lambda i,j: "P<sub>%(i)d%(j)d</sub>" % { "i": i+1, "j": j+1 })
-        self._add_child_view(self.p_table, self.p_box)
-        
-        self.show_all()
-        
-    pass #end of class
-        
-class R2MatrixView(BaseMatrixView):    
-    def __init__(self, N = 1, **kwargs):
-        BaseMatrixView.__init__(self, **kwargs)
-
-        self.w_box = self['w_box']
-        self.w_table = gtk.Table(N**2,N**2, True)
-        def wtooltip(i,j):
-            if i==j: return "W<sub>%(i)d%(j)d</sub>" % { "i": int(i/2)+1, "j": int(j % 2)+1 }
-            else:return "-"
-        self.w_labels = BaseMatrixView.create_labels(N**2, self.w_table, wtooltip)
-        self._add_child_view(self.w_table, self.w_box)
-        
-        self.p_box = self['p_box']
-        self.p_table = gtk.Table(N**2,N**2, True)
-        def ptooltip(i,j):
-            l = (i % N) + 1
-            k = (j % N) + 1
-            i = int(i/N) + 1
-            j = int(j/N) + 1
-            if l==j: return "P<sub>%(i)d%(j)d%(k)d</sub>" % { "i": i, "j": j, "k": k}
-            else: return "-"
-        self.p_labels = BaseMatrixView.create_labels(N**2, self.p_table, ptooltip)
-        self._add_child_view(self.p_table, self.p_box)
-        
-        self.show_all()
         
     pass #end of class
         

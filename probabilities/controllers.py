@@ -24,27 +24,29 @@ def get_correct_probability_controllers(probability, parent_controller, independ
     if probability!=None:
         G = probability.G
         R = probability.R
+        rank = probability.rank
         if R == 0 or G == 1:
             return R0R1R2IndependentsController(model=probability, parent=parent_controller, view=independents_view), \
-                   R0R1R2MatrixController(N=G, model=probability, parent=parent_controller, view=dependents_view)
+                   R0R1R2MatrixController(N=rank, model=probability, parent=parent_controller, view=dependents_view)
         elif G > 1:
             if R == 1: #------------------------- R1:
                 if G == 2 or G==3:
                     return R0R1R2IndependentsController(model=probability, parent=parent_controller, view=independents_view), \
-                           R0R1R2MatrixController(N=G, model=probability, parent=parent_controller, view=dependents_view)
+                           R0R1R2MatrixController(N=rank, model=probability, parent=parent_controller, view=dependents_view)
                 elif G == 4:
-                    raise ValueError, "Cannot yet handle R1 g=4" # ,R0R1MatrixView(N=G, parent=parent_view)
+                    raise ValueError, "Cannot yet handle R1 g=4" # ,R0R1MatrixView(N=rank, parent=parent_view)
             elif R == 2: #----------------------- R2:
                 if G == 2:
                     return R0R1R2IndependentsController(model=probability, parent=parent_controller, view=independents_view), \
-                           R0R1R2MatrixController(N=G, model=probability, parent=parent_controller, view=dependents_view)
+                           R0R1R2MatrixController(N=rank, model=probability, parent=parent_controller, view=dependents_view)
                 elif G == 3:
                     raise ValueError, "Cannot yet handle R2 g=3"
                 elif G == 4:
                     raise ValueError, "Cannot yet handle R2 g=4"            
             elif R == 3: #----------------------- R3:
                 if G == 2:
-                    raise ValueError, "Cannot yet handle R3 g=2"
+                    return R0R1R2IndependentsController(model=probability, parent=parent_controller, view=independents_view), \
+                           R0R1R2MatrixController(N=rank, model=probability, parent=parent_controller, view=dependents_view)
                 elif G == 3:
                     raise ValueError, "Cannot yet handle R3 g=3"
                 elif G == 4:

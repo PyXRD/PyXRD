@@ -72,7 +72,7 @@ class Storable(object):
             with open(filename, 'r') as f:
                 return json.load(f, cls=PyXRDDecoder, parent=parent)
         except TypeError:
-            raise
+            #raise
             return json.load(filename, cls=PyXRDDecoder, parent=parent)
 
     def json_properties(self):

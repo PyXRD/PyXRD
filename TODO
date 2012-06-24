@@ -12,3 +12,20 @@
 - check for file extension registers on windows (using exec assoc & ftype) & linux (pyxdg)
 - cleanse code from TODO & FIXME's
 - ability to hide listview in objectliststore edit dialogs (slicker windows)
+
+
+
+
+def my_task(data):
+        ...some work...
+        while heavy_work_needed:
+            ...do heavy work here...
+            progress_label.set_text(data) # here we update parts of UI
+            # there's more work, return True
+            yield True
+        # no more work, return False
+        yield False
+
+   def on_start_my_task_button_click(data):
+        task = my_task(data)
+        gobject.idle_add(task.next)

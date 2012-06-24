@@ -450,7 +450,7 @@ class XYListStore(_BaseObjectListStore, Storable):
                 if has_header:
                     has_header=False #skip header
                 elif line != "":
-                    yield map(float, line.split())
+                    yield map(float, line.replace(",",".").split())
                 else:
                     break
         if format=="BIN":
@@ -474,7 +474,6 @@ class XYListStore(_BaseObjectListStore, Storable):
         
     def load_data(self, *args, **kwargs):
         if kwargs.get("clear", True):
-            print "CLEAR"
             self.clear()
         if "clear" in kwargs: del kwargs["clear"]
         for x,y in XYListStore.parse_data(*args, **kwargs):

@@ -628,22 +628,21 @@ class PhasesController(ObjectListStoreController):
     def load_phases(self, filename):
         print "Importing phase..."
         for phase in Phase.load_phases(filename, parent=self.model):
-            self.model.data_phases.append(phase)
+            self.add_object(phase)
             phase.resolve_json_references()
         self.select_object(phase)
 
     # ------------------------------------------------------------
     #      GTK Signal handlers
     # ------------------------------------------------------------
-    def on_add_object_clicked(self, event):
+    def create_new_object_proxy(self):
         def on_accept(phase, G, R):
             if not phase:
                 G = int(G)
                 R = int(R)
                 if G != None and G > 0 and R != None and R >= 0 and R <= 4:
-                    new_phase = Phase("New Phase",  data_G=G, data_R=R, parent=self.model)
-                    self.model.data_phases.append(new_phase)
-                    self.select_object(new_phase)
+                    self.add_object(Phase("New Phase",  data_G=G, data_R=R, parent=self.model))
+                    self.select_object(phase)
             else:
                 self.load_phases(phase)
                 
@@ -652,8 +651,7 @@ class PhasesController(ObjectListStoreController):
         add_ctrl = AddPhaseController(add_model, add_view, parent=self.parent, callback=on_accept)
         
         add_view.present()
-
-        return True
+        return None
         
     def on_save_object_clicked(self, event):
         def on_accept(dialog):
@@ -715,11 +713,11 @@ class AddPhaseController(DialogController):
         self.callback(self.view.get_phase(), self.view.get_G(), self.view.get_R())
         return True
         
-    def on_r_value_changed(self, adj):
+    def on_r_value_changed(self, *args):
         self.update_G_bounds()
         return True
         
-    def on_g_value_changed(self, adj):
+    def on_g_value_changed(self, *args):
         self.update_R_bounds()
         return True
         

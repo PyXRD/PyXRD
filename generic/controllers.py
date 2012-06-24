@@ -154,6 +154,7 @@ class DialogMixin():
                     message_format=message)
         return self._run_dialog(dialog, None, None)
 
+
 class BaseController (Controller, DialogMixin):
 
     file_filters = ("All Files", "*.*")
@@ -170,6 +171,17 @@ class BaseController (Controller, DialogMixin):
         if self.statusbar is not None:
             self.status_cid = self.statusbar.get_context_id(self.__class__.__name__)
 
+    @staticmethod
+    def status_message(message, cid=None):
+        def decorator(func):
+            def wrapper(self, *args, **kwargs):
+                self.push_status_msg(message, cid)
+                res = func(self, *args, **kwargs)
+                self.pop_status_msg(cid)
+                return res
+            return wrapper
+        return decorator
+
     def push_status_msg(self, msg, cid=None):
         if cid is not None:
             cid = self.statusbar.get_context_id(cid)
@@ -177,6 +189,7 @@ class BaseController (Controller, DialogMixin):
             cid = self.status_cid
         if cid is not None:
             self.statusbar.push(cid, msg)
+            
     def pop_status_msg(self, cid=None):
         if cid is not None:
             cid = self.statusbar.get_context_id(cid)
@@ -312,7 +325,6 @@ class ObjectListStoreMixin(HasObjectTreeview):
             # connects the treeview to the liststore
             tv = self.view['edit_objects_treeview']
             tv.set_model(self.liststore)
-            #tv.connect('button-press-event', self.phases_tv_button_press)
 
             sel = tv.get_selection()
             if self.multi_selection:
@@ -334,7 +346,7 @@ class ObjectListStoreMixin(HasObjectTreeview):
                 col.set_expand(False)
                 tv.append_column(col)
             
-            self.set_object_sensitivities(False) #FIXME
+            self.set_object_sensitivities(False)
         # we can now edit 'nothing':
         self.edit_object(None)
 
@@ -356,10 +368,21 @@ class ObjectListStoreMixin(HasObjectTreeview):
     def select_object(self, obj, unselect_all=True):
         selection = self.view['edit_objects_treeview'].get_selection()
         if unselect_all: selection.unselect_all()
-        selection.select_path(self.liststore.on_get_path(obj))
+        if obj:
+            path = self.liststore.on_get_path(obj)
+            selection.select_path(path)
         
     def select_objects(self, objs):
         for obj in objs: self.select_object(obj, False)
+        
+    def add_object(self, new_object):
+        if new_object:
+            cur_obj = self.get_selected_object()
+            if cur_obj:
+                index = self.liststore.index(cur_obj)
+                self.liststore.insert(index+1, new_object)
+            else:
+                self.liststore.append(new_object)
         
     # ------------------------------------------------------------
     #      GTK Signal handlers
@@ -387,10 +410,10 @@ class ObjectListStoreMixin(HasObjectTreeview):
     def create_new_object_proxy(self):
         raise NotImplementedError
 
-    def on_add_object_clicked(self, event): #TODO insert item after currently selected item
+    def on_add_object_clicked(self, event):
         new_object = self.create_new_object_proxy()
-        if new_object != None:
-            self.liststore.append(new_object)
+        if new_object:
+            self.add_object(new_object)
             self.select_object(new_object)
         return True
 

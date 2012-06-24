@@ -18,7 +18,7 @@ from gtkmvc.adapters import Adapter
 import settings
 
 from generic.validators import FloatEntryValidator 
-from generic.controllers import DialogController, HasObjectTreeview, DialogMixin, get_color_val, ctrl_setup_combo_with_list
+from generic.controllers import BaseController, DialogController, HasObjectTreeview, DialogMixin, get_color_val, ctrl_setup_combo_with_list
 from project.models import Project
 from specimen.models import Specimen
 from specimen.controllers import SpecimenController
@@ -114,6 +114,7 @@ class ProjectController (DialogController, HasObjectTreeview, DialogMixin):
                     self.adapt(name)
             return
 
+    @BaseController.status_message("Importing multiple specimens...", "add_specimen")
     def import_multiple_specimen(self):
         def on_accept(dialog):
             filenames = dialog.get_filenames()

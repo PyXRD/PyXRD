@@ -71,7 +71,6 @@ class AppController (BaseController, DialogMixin):
         self.phases = PhasesController(self.model.current_project, self.view.phases, parent=self)
         self.atom_types = AtomTypesController(self.model.current_project, self.view.atom_types, parent=self)
         self.mixtures = MixturesController(self.model.current_project, self.view.mixtures, parent=self)
-        #self.goniometer = GoniometerController(self.model.current_project.data_goniometer, self.view.goniometer, parent=self) FIXME?
         
     def reset_specimen_controller(self):
         self.specimen = SpecimenController(self.model.current_specimen, self.view.reset_specimen_view(), parent=self)
@@ -82,8 +81,8 @@ class AppController (BaseController, DialogMixin):
             self.markers = None
             self.statistics = None
     
+    @BaseController.status_message("Displaying specimen...", "edit_specimen")
     def edit_specimen(self, specimen, title="Edit Specimen"):
-        #self.push_status_msg("Editing specimen...", 'edit_specimen')
         self.view.specimen.set_title(title)
         self.view.specimen.present()
         return True
@@ -91,22 +90,26 @@ class AppController (BaseController, DialogMixin):
     def set_active_phases(self, project_model):
         self.phases = PhasesController(project_model, self.view.reset_phases_view(), parent=self)
 
+    @BaseController.status_message("Displaying phases...", "edit_phases")
     def edit_phases(self):
         if self.model.current_project is not None:
             self.set_active_phases(self.model.current_project)
         self.view.phases.present()
         return True
 
+    @BaseController.status_message("Displaying atom types...", "edit_atom_types")
     def edit_atom_types(self):
         if self.model.current_project is not None:
             self.view.atom_types.present()
         return True
 
+    @BaseController.status_message("Displaying mixtures...", "edit_mixtures")
     def edit_mixtures(self):
         if self.model.current_project is not None:
             self.view.mixtures.present()
         return True
 
+    @BaseController.status_message("Displaying markers...", "edit_markers")
     def edit_markers(self):
         if self.model.current_specimen is not None:
             self.view.markers.present()
@@ -115,10 +118,10 @@ class AppController (BaseController, DialogMixin):
 
     in_update_cycle = False
     @delayed(lock="in_update_cycle")
+    @BaseController.status_message("Updating display...")
     def redraw_plot(self):
         if not self.in_update_cycle:
             self.in_update_cycle = True
-            self.push_status_msg("Updating display...")       
             
             single = self.model.single_specimen_selected
             labels = []
@@ -154,7 +157,6 @@ class AppController (BaseController, DialogMixin):
                 stats=stats,
                 project=self.model.current_project)
             
-            self.pop_status_msg()
             self.in_update_cycle = False
         
     def update_title(self):
@@ -200,7 +202,6 @@ class AppController (BaseController, DialogMixin):
         finally:
             if backupfile: os.remove(backupfile) #remove backup file
             
-        
     def open_project(self, filename):
         try:
             self.model.current_project = Project.load_object(filename)
@@ -258,6 +259,7 @@ class AppController (BaseController, DialogMixin):
         else:
             return on_accept(None)
 
+    @BaseController.status_message("Creating new project...", "new_project")
     def on_new_project_activate(self, widget, data=None):
         def on_accept(dialog):
             self.model.current_project = Project()
@@ -272,10 +274,11 @@ class AppController (BaseController, DialogMixin):
         else:
             on_accept(None)
 
+    @BaseController.status_message("Displaying project data...", "edit_project")
     def on_edit_project_activate(self, widget, data=None):
-        #self.push_status_msg("Editing project...", 'edit_project')
         self.view.project.present()
 
+    @BaseController.status_message("Open project...", "open_project")
     def on_open_project_activate(self, widget, data=None):
         def on_open_project(dialog):
             def on_accept(dialog):
@@ -294,6 +297,13 @@ class AppController (BaseController, DialogMixin):
         else:
             on_open_project(None)
 
+    @BaseController.status_message("Save project...", "save_project")
+    def on_save_project_activate(self, widget, data=None):
+        if self.model.current_filename is None:
+            self.on_save_project_as_activate(widget, data=data, title="Save project")
+        else:
+            self.save_project()
+
     def on_save_project_as_activate(self, widget, data=None, title="Save project as"):
         def on_accept(dialog):
             print "Saving project..."
@@ -307,18 +317,12 @@ class AppController (BaseController, DialogMixin):
                              on_accept_callback=on_accept,
                              parent=self.view.get_top_widget())
 
-    def on_save_project_activate(self, widget, data=None):
-        if self.model.current_filename is None:
-            self.on_save_project_as_activate(widget, data=data, title="Save project")
-        else:
-            self.save_project()
-
     def on_edit_mixtures(self, widget, data=None):
         self.edit_mixtures()
         pass
 
+    @BaseController.status_message("Displaying goniometer data...", "edit_gonio")
     def on_edit_gonio_activate(self, widget, data=None):
-        #FIXME self.push_status_msg("Editing project...", 'edit_project')
         self.goniometer = GoniometerController(self.model.current_project.data_goniometer, self.view.goniometer, parent=self)
         self.view.goniometer.present()
 
@@ -326,12 +330,11 @@ class AppController (BaseController, DialogMixin):
         self.view["specimen_popup"].popup(None, None, None, 0, 0)
         return True
 
+    @BaseController.status_message("Creating new specimen...", "add_specimen")
     def on_add_specimen_activate(self, event):
-        #self.push_status_msg("Adding new specimen...", 'add_specimen')
         specimen = Specimen(parent=self.model.current_project)
         self.view["specimens_treeview"].set_cursor(self.model.current_project.data_specimens.append(specimen))
         self.edit_specimen(specimen, title="Create New Specimen")
-        self.pop_status_msg('add_specimen')
         return True
 
     def on_add_multiple_specimens(self, event):        
@@ -342,8 +345,8 @@ class AppController (BaseController, DialogMixin):
         self.edit_specimen(self.project.get_selected_object())
         return True
 
+    @BaseController.status_message("Deleting specimen...", "del_specimen")
     def on_del_specimen_activate(self, event):
-        #self.push_status_msg("Deleting specimen...", 'del_specimen')
         tv = self.view["specimens_treeview"]
         path, col = tv.get_cursor()
         if path is not None:
@@ -356,7 +359,6 @@ class AppController (BaseController, DialogMixin):
                 return
             msg.destroy()
             self.model.current_project.data_specimens.remove_item(obj)
-        self.pop_status_msg('del_specimen')
         return True
 
     def on_remove_background(self, event):
@@ -386,17 +388,13 @@ class AppController (BaseController, DialogMixin):
         self.edit_markers()
         return True
 
-    def on_update_graph_activated(self, event):
-        self.update_plot()
-
     def on_menu_item_quit_activate (self, widget, data=None):
-        #FIXME unsaved data
         self.view.get_toplevel().destroy()
-        #gtk.main_quit()
-        return False
+        return True
 
     def on_refresh_graph(self, event):
-        self.redraw_plot()
+        if self.model.current_project:
+            self.model.current_project.needs_update.emit()
 
     def on_save_graph(self, event):
         filename = None

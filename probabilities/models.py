@@ -28,8 +28,8 @@ from generic.utils import delayed, indexproperty
 #       G1  G2  G3  G4  G5  G6
 #   R0  x   x   x   x   x   x
 #   R1  np  x   x   o   -   -
-#   R2  np  x   x   -   -   -
-#   R3  np  o   o   -   -   -
+#   R2  np  x   o   -   -   -
+#   R3  np  x   o   -   -   -
 
 
 def get_Gbounds_for_R(R, G):

@@ -179,18 +179,22 @@ class AppController (BaseController, DialogMixin):
         
     def save_project(self, filename=None):
         filename = filename or self.model.current_filename
+        
+        #create backup in case something goes wrong:
         try:
             backupfile = sys.path[0] + "/data/temp_backup.pyxrd"
-            copy(filename, backupfile) #create backup in case something goes wrong
+            copy(filename, backupfile)
         except IOError:
             backupfile = None
+            
+        #try to save the project, if this fails, put the backup back
         try:
             self.model.current_project.save_object(filename)
             self.model.current_filename = filename
         except:
             if backupfile: 
                 move(backupfile, self.model.current_filename) #move original file back
-                backupfile = None
+                del backupfile
             self.run_information_dialog("An error has occured.\n Your project was not saved!", parent=self.view.get_top_widget())
             raise
         finally:
@@ -240,8 +244,19 @@ class AppController (BaseController, DialogMixin):
         self.view['statistics_expander'].set_expanded(self.model.statistics_visible)
     
     def on_main_window_delete_event(self, widget, event):
-        gtk.main_quit()
-        return False
+        def on_accept(dialog):
+            gtk.main_quit()
+            return False
+        def on_reject(dialog):
+            return True
+        if self.model.current_project and self.model.current_project.needs_saving:
+            return self.run_confirmation_dialog(
+                "The current project has unsaved changes,\n"
+                "are you sure you want to quit?",
+                on_accept, on_reject,
+                parent=self.view.get_top_widget())
+        else:
+            return on_accept(None)
 
     def on_new_project_activate(self, widget, data=None):
         def on_accept(dialog):
@@ -249,9 +264,11 @@ class AppController (BaseController, DialogMixin):
             self.model.current_filename = None
             self.update_title()
             self.view.project.present()
-        if self.model.current_project != None:
-            self.run_confirmation_dialog("Creating a new project will erase all data in the current project!\nAre You sure you want to continue?",
-                                         on_accept, parent=self.view.get_top_widget())
+        if self.model.current_project and self.model.current_project.needs_saving:
+            self.run_confirmation_dialog(
+                "The current project has unsaved changes,\n"
+                "are you sure you want to create a new project?",
+                on_accept, parent=self.view.get_top_widget())
         else:
             on_accept(None)
 
@@ -260,12 +277,22 @@ class AppController (BaseController, DialogMixin):
         self.view.project.present()
 
     def on_open_project_activate(self, widget, data=None):
-        def on_accept(dialog):
-            print "Opening project..."
-            self.open_project(dialog.get_filename())
-        self.run_load_dialog(title="Open project",
-                             on_accept_callback=on_accept,
-                             parent=self.view.get_top_widget())
+        def on_open_project(dialog):
+            def on_accept(dialog):
+                print "Opening project..."
+                self.open_project(dialog.get_filename())
+            self.run_load_dialog(
+                title="Open project",
+                on_accept_callback=on_accept,
+                parent=self.view.get_top_widget())
+        if self.model.current_project and self.model.current_project.needs_saving:
+            self.run_confirmation_dialog(
+                "The current project has unsaved changes,\n"
+                "are you sure you want to load another project?",
+                on_open_project, 
+                parent=self.view.get_top_widget())
+        else:
+            on_open_project(None)
 
     def on_save_project_as_activate(self, widget, data=None, title="Save project as"):
         def on_accept(dialog):
@@ -337,7 +364,7 @@ class AppController (BaseController, DialogMixin):
             self.specimen.remove_background()
         return True
 
-    def on_smooth_data(self, event): #TODO LOCK SPECIMENS WHEN THESE WINDOWS ARE DISPLAYED!!
+    def on_smooth_data(self, event):
         if self.model.current_specimen != None:
             self.specimen.smooth_data()
         return True
@@ -364,7 +391,8 @@ class AppController (BaseController, DialogMixin):
 
     def on_menu_item_quit_activate (self, widget, data=None):
         #FIXME unsaved data
-        gtk.main_quit()
+        self.view.get_toplevel().destroy()
+        #gtk.main_quit()
         return False
 
     def on_refresh_graph(self, event):

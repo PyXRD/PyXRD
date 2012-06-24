@@ -14,7 +14,13 @@ from generic.metaclasses import pyxrd_object_pool
 class AppModel(Model):
 
     #MODEL INTEL:
-    __observables__ = ( "current_project", "current_specimen", "current_specimens", "statistics_visible", "needs_plot_update")
+    __observables__ = ( 
+        "current_project",
+        "current_specimen",
+        "current_specimens",
+        "statistics_visible",
+        "needs_plot_update",
+    )
 
     #SIGNALS:
     needs_plot_update = None

@@ -51,6 +51,8 @@ class Project(PyXRDModel, Storable, ObjectListStoreParentMixin):
         PropIntel(name="data_atom_types",       inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=object, refinable=False, storable=True,  observable=True,  has_widget=False),
         PropIntel(name="data_goniometer",       inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=object, refinable=False, storable=True,  observable=True,  has_widget=False),
         PropIntel(name="needs_update",          inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=object, refinable=False, storable=False, observable=True,  has_widget=False),           
+        
+        PropIntel(name="needs_saving",          inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=bool,   refinable=False, storable=False, observable=True,  has_widget=False),           
     ]
     
     #SIGNALS:
@@ -61,6 +63,8 @@ class Project(PyXRDModel, Storable, ObjectListStoreParentMixin):
     data_date = ""
     data_description = None
     data_author = ""
+    
+    needs_saving = True
     
     _axes_xmin = 0.0
     _axes_xmax = 70.0
@@ -184,6 +188,8 @@ class Project(PyXRDModel, Storable, ObjectListStoreParentMixin):
 
         if load_default_data and not settings.VIEW_MODE and \
             len(self._data_atom_types._model_data)==0: self.load_default_data()
+            
+        self.needs_saving = True
         
     def load_default_data(self):
         import os
@@ -227,6 +233,7 @@ class Project(PyXRDModel, Storable, ObjectListStoreParentMixin):
 
     @Observer.observe("needs_update", signal=True)
     def notify_needs_update(self, model, prop_name, info):
+        self.needs_saving = True
         if not self.before_needs_update_lock:
             self.needs_update.emit() #propagate signal
 
@@ -247,7 +254,15 @@ class Project(PyXRDModel, Storable, ObjectListStoreParentMixin):
     # ------------------------------------------------------------
     #      Input/Output stuff
     # ------------------------------------------------------------
-
+    @classmethod
+    def from_json(type, **kwargs):
+        project = type(**kwargs)
+        project.needs_saving = False #don't mark this when just loaded
+        return project
+        
+    def save_object(self, filename):
+        Storable.save_object(self, filename)
+        self.needs_saving = False
     
     # ------------------------------------------------------------
     #      Methods & Functions

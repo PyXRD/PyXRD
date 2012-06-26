@@ -33,7 +33,8 @@ class SpecimenView(DialogView):
         "vbox_exclusion_ranges_tv",
         "lbl_tabexclusions",
         "lbl_spec_scale",
-        "specimen_data_abs_scale")
+        "specimen_data_abs_scale",
+        "specimen_display_stats_in_lbl")
 
 class EditMarkerView(BaseView):
     builder = "specimen/glade/edit_marker.glade"

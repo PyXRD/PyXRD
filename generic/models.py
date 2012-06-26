@@ -13,6 +13,7 @@ from matplotlib.lines import Line2D
 import matplotlib.transforms as transforms
 
 import numpy as np
+import scipy
 
 from gtkmvc.model import Model, Signal
 
@@ -207,7 +208,7 @@ class PyXRDLine(ChildModel, Storable, Line2D):
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def __init__(self, xy_store=None, parent=None, **kwargs):
+    def __init__(self, xy_store=None, parent=None, color=None, **kwargs):
         ChildModel.__init__(self, parent=parent)
         Storable.__init__(self)
         
@@ -218,7 +219,7 @@ class PyXRDLine(ChildModel, Storable, Line2D):
         self.xy_store.connect('row-inserted', self.on_treestore_changed)
         self.xy_store.connect('row-changed', self.on_treestore_changed)
 
-        Line2D.__init__(self, *self.xy_store.get_raw_model_data(), **kwargs)
+        Line2D.__init__(self, *self.xy_store.get_raw_model_data(), color=color, **kwargs)
                 
         self._inhibit_updates = False
         self.update_line()
@@ -274,12 +275,12 @@ class PyXRDLine(ChildModel, Storable, Line2D):
     def set_xdata(self, x):
         Line2D.set_xdata(self, x)
         if not self._inhibit_updates:
-            self.xy_store.update_from_data(x, self.get_ydata())
+            self.xy_store.update_from_data(x, self.xy_store._model_data_y)
         
     def set_ydata(self, y):
         Line2D.set_ydata(self, self._transform_y(y))
         if not self._inhibit_updates:
-            self.xy_store.update_from_data(self.get_xdata(), y)
+            self.xy_store.update_from_data(self.xy_store._model_data_x, y)
             
     def clear(self):
         if len(self.xy_store._model_data_x) > 1:
@@ -308,7 +309,8 @@ class ScaledLine(Line2D):
     def draw(self, renderer, scale, offset):
         temp_y = np.array(self._yorig)
         self._yorig = temp_y * scale + offset
-        self.recache(always=True)
+        try: self.recache(always=True)
+        except:return #exit gracefully if this fails
         self._yorig = temp_y
         Line2D.draw(self, renderer)
         
@@ -432,7 +434,6 @@ class ExperimentalLine(PyXRDLine):
         return self._bg_types[self._bg_type]    
     def on_bgtype(self, prop_name, value):
         self.find_bg_position()
-        self.find_bg_scale()
 
     _smooth_degree = 0
     smooth_pattern = None
@@ -507,28 +508,29 @@ class ExperimentalLine(PyXRDLine):
     # ------------------------------------------------------------
     def remove_background(self):
         y_data = self.xy_store._model_data_y
-        bg = 0
+        bg = None
         if self.bg_type == 0:
             bg = self.bg_position
         elif self.bg_type == 1 and self.bg_pattern != None and not (self.bg_position == 0 and self.bg_scale == 0):
             bg = self.bg_pattern * self.bg_scale + self.bg_position
-        if bg!=0:
+        if bg!=None:
             y_data -= bg
             self.set_data(self.xy_store._model_data_x, y_data)
+        self.clear_bg_variables()
+        
+    def find_bg_position(self):
+        self.bg_position = np.min(self.xy_store._model_data_y)
+            
+    def clear_bg_variables(self):
         self.bg_pattern = None
         self.bg_scale = 0.0
         self.bg_position = 0.0
         self.needs_update.emit()
         
-    def find_bg_position(self):
-        self.bg_position = np.min(self.xy_store._model_data_y)
-        
-    def find_bg_scale(self):
-        pass #TODO
-        
     def update_bg_line(self):
+        self.recache()
         if self.bg_type == 0 and self._bg_position != 0.0:
-            xmin, xmax = np.min(self._x), np.max(self._x)
+            xmin, xmax = np.min(self.xy_store._model_data_x), np.max(self.xy_store._model_data_x)
             self.bg_line.set_data((xmin, xmax), (self.bg_position, self.bg_position))
             self.bg_line.set_visible(True)            
         elif self.bg_type == 1 and self.bg_pattern != None:
@@ -584,7 +586,7 @@ class ExperimentalLine(PyXRDLine):
     def update_shifted_line(self):
         yfactor, offset = self.get_transform_factors()              
         if self.shift_value!=0.0:
-            self.shifted_line.set_data(self.xy_store._model_data_x-self._shift_value, self.xy_store._model_data_y)
+            self.shifted_line.set_data(self.xy_store._model_data_x-self._shift_value, self.xy_store._model_data_y.copy())
             self.shifted_line.set_visible(True)
             position = self.parent.parent.data_goniometer.get_2t_from_nm(self.shift_position)
             ymax = np.max(self.xy_store._model_data_y)
@@ -602,8 +604,8 @@ class ExperimentalLine(PyXRDLine):
     def find_shift_value(self):
         position = self.parent.parent.data_goniometer.get_2t_from_nm(self.shift_position)
         if position > 0.1:
-            x_data = self.xy_store._model_data_x
-            y_data = self.xy_store._model_data_y
+            x_data = self.xy_store._model_data_x.copy()
+            y_data = self.xy_store._model_data_y.copy()
             max_x = position + 0.5
             min_x = position - 0.5
             condition = (x_data>=min_x) & (x_data<=max_x)

@@ -34,7 +34,7 @@ from atoms.controllers import AtomTypesController
 
 class AppController (BaseController, DialogMixin):
 
-    file_filters = [("PyXRD Project files", get_case_insensitive_glob("*.pyxrd")),
+    file_filters = [("PyXRD Project files", get_case_insensitive_glob("*.pyxrd", "*.zpd")),
                     ("All Files", "*.*")]
 
     def __init__(self, model, view, spurious=False, auto_adapt=False, parent=None):
@@ -139,10 +139,7 @@ class AppController (BaseController, DialogMixin):
                     self.plot_controller.register(specimen, "on_update_hatches", last=True)
                     for marker in specimen.data_markers._model_data:
                         self.plot_controller.register(marker, "on_update_plot", last=True)
-                    if settings.VIEW_MODE:
-                        labels.append((specimen.data_sample, self.model.current_project.display_label_pos + offset))
-                    else:
-                        labels.append((specimen.data_sample + "\nRp = %.1f%%" % specimen.statistics.data_Rp, self.model.current_project.display_label_pos + offset))
+                    labels.append((specimen.data_label, self.model.current_project.display_label_pos + offset))
                     offset += offset_increment
                     i += 1
         

@@ -9,11 +9,13 @@
 import locale
 
 import gtk
+import numpy as np
 
 from gtkmvc import Controller, Observer
 from gtkmvc.adapters import Adapter
 
 from generic.plot_controllers import DraggableVLine, EyedropperCursorPlot
+from generic.treemodels import XYListStore
 from generic.controllers import DialogController, DialogMixin, ChildController, ObjectListStoreController, HasObjectTreeview, get_color_val, ctrl_setup_combo_with_list
 from generic.validators import FloatEntryValidator
 from generic.utils import get_case_insensitive_glob
@@ -327,22 +329,22 @@ class BackgroundController(DialogController):
     # ------------------------------------------------------------
     def on_pattern_file_set(self, dialog):
         filename = dialog.get_filename()
-        xydata_bg = XYData("Background Profile", color="#660099", parent=self.model.parent)
         
         generator = None
-        
         if filename[-3:].lower() == "dat":
-             generator = XYListStore.load_data(filename, format="DAT", silent=True)
+             generator = XYListStore.parse_data(filename, format="DAT")
         if filename[-2:].lower() == "rd":
-             generator = XYListStore.load_data(filename, format="BIN", silent=True)
-        bg_pattern_x = np.array([])
-        bg_pattern_y = np.array([])
-        for x,y in generator:
-            bg_pattern_x.append(x)
-            bg_pattern_y.append(y)            
+             generator = XYListStore.parse_data(filename, format="BIN")
+             
+        pattern = np.array([(x, y) for x, y in generator])
+        bg_pattern_x = pattern[:,0].copy()
+        bg_pattern_y = pattern[:,1].copy()
+        del pattern
+        
+        print bg_pattern_x.shape
         
         if bg_pattern_x.shape != self.model.xy_store._model_data_x.shape:
-            raise ValueError, "Shape mismatch: background patterns and experimental data need to have the same shape!"
+            raise ValueError, "Shape mismatch: background pattern (shape = %s) and experimental data (shape = %s) need to have the same length!" % (bg_pattern_x.shape, self.model.xy_store._model_data_x.shape)
             dialog.unselect_filename(filename)
         else:
             self.model.bg_pattern = bg_pattern_y
@@ -353,7 +355,7 @@ class BackgroundController(DialogController):
         return True
             
     def on_cancel(self):
-        self.model.bg_position = 0.0
+        self.model.clear_bg_variables()
         DialogController.on_cancel(self)
             
     pass #end of class
@@ -406,7 +408,6 @@ class ShiftDataController(DialogController):
     #      GTK Signal handlers
     # ------------------------------------------------------------
     def on_btn_ok_clicked(self, event):
-        print "SHIFT!!"
         self.model.shift_data()
         self.view.hide()
         return True

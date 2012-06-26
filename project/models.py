@@ -260,8 +260,17 @@ class Project(PyXRDModel, Storable, ObjectListStoreParentMixin):
         project.needs_saving = False #don't mark this when just loaded
         return project
         
+    """def to_json(self):
+        return { 
+            "type": json_type(type(self)),
+            "properties": self.json_properties()
+        }"""
+        
     def save_object(self, filename):
+        #if filename.endswith(".pyxrd"):
         Storable.save_object(self, filename)
+        #elif filename.endswith(".zpd"):
+        #TODO
         self.needs_saving = False
     
     # ------------------------------------------------------------

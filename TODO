@@ -6,7 +6,6 @@
 - add manual Y limit option (in raw counts?)
 - add zip project files (*.zpd)
 - split large object stores in project zip file into separate files in the zip file
-- export of separate phase patterns. Requires the XYListStore to be expanded so it can contain multiple y values (one for each phase, and an extra for the sum)
 - most of the default dialog actions (confirmation ,information etc.) could also be usefull as decorators.
 - check most of the TreeView/Combobox creation code for sanity (e.g. register treeview instead of register_adapters)
 - check for file extension registers on windows (using exec assoc & ftype) & linux (pyxdg)

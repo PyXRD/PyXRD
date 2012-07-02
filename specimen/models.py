@@ -365,14 +365,16 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
             #Apply fractions and absolute scale
             fractions = np.array(fractions)[:,np.newaxis]
             self.data_phase_intensities = fractions*intensities*self.data_abs_scale
-            
-            self.data_calculated_pattern.update_child_lines(zip(map(lambda p: p.display_color, phases), self.data_phase_intensities))
-            
+                        
             #Sum the phase intensities and apply the background shift
             total_intensity = np.sum(self.data_phase_intensities, axis=0) + self.data_bg_shift
 
             #Update the pattern data:            
-            self.data_calculated_pattern.set_data(theta_range, total_intensity)
+            self.data_calculated_pattern.set_data(
+                theta_range,
+                total_intensity,
+                self.data_phase_intensities, 
+                *zip(*[ (phase.display_color, phase.data_name) for phase in phases]))
             
             #update stats:
             self.statistics.update_statistics()
@@ -863,7 +865,7 @@ class Statistics(ChildModel):
         cal_x, cal_y = self._get_calculated()
 
         if cal_y != None and exp_y != None and cal_y.size > 0 and exp_y.size > 0:
-            try: 
+            try:
                 self.data_residual_pattern.set_data(exp_x, exp_y - cal_y)
 
                 e_ex, e_ey, e_cx, e_cy = self.specimen.get_exclusion_xy()

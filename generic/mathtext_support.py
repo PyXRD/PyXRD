@@ -91,12 +91,12 @@ def create_image_from_mathtext(text):
 def mt_frac(val):
     val = Fraction(val).limit_denominator()
     if val.denominator > 1:
-        return r"\frac{%d}{%d}" % (val.denominator, val.numerator)
+        return r"\frac{%d}{%d}" % (val.numerator, val.denominator)
     else:
         return r"%d" % val.numerator
 
-def mt_range(val1, name ,val2):
-    return r"\left({ %s \leq %s \leq %s }\right)" % (mt_frac(val1), name, mt_frac(val2))
+def mt_range(lower, name, upper):
+    return r"\left({ %s \leq %s \leq %s }\right)" % (mt_frac(lower), name, mt_frac(upper))
     
 
 

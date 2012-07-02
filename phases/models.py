@@ -70,7 +70,7 @@ class ComponentRatioFunction(ChildModel, Storable, ComponentPropMixin, ObjectLis
     
     ready = False
     def get_data_enabled_value(self):
-        return (not self.parent.inherit_atom_ratios)
+        return (self.parent!=None and not self.parent.inherit_atom_ratios)
     
     _data_sum = 1.0
     def get_data_sum_value(self): return self._data_sum
@@ -87,29 +87,17 @@ class ComponentRatioFunction(ChildModel, Storable, ComponentPropMixin, ObjectLis
     _data_prop1 = ""
     def get_data_prop1_value(self): return self._data_prop1
     def set_data_prop1_value(self, value):
-        if self._data_prop1:
-            obj, prop = self._parseattr(self._data_prop1)
-            self.remove_observing_method((prop,), self.on_prop1_changed)
-            self.relieve_model(obj)
+        self._unattach_obs_prop1()
         self._data_prop1 = str(value)
-        if self._data_prop1:
-            obj, prop = self._parseattr(self._data_prop1)
-            self.observe(self.on_prop1_changed, str(prop), assign=True)
-            self.observe_model(obj)
+        self._attach_obs_prop1()
         self.update_value()
     
     _data_prop2 = ""
     def get_data_prop2_value(self): return self._data_prop2    
     def set_data_prop2_value(self, value):
-        if self._data_prop2:
-            obj, prop = self._parseattr(self._data_prop2)
-            self.remove_observing_method((prop,), self.on_prop2_changed)
-            self.relieve_model(obj)
+        self._unattach_obs_prop2()
         self._data_prop2 = str(value)
-        if self._data_prop2:
-            obj, prop = self._parseattr(self._data_prop2)
-            self.observe(self.on_prop2_changed, str(prop), assign=True)
-            self.observe_model(obj)
+        self._attach_obs_prop2()
         self.update_value()
     
     # ------------------------------------------------------------
@@ -143,6 +131,38 @@ class ComponentRatioFunction(ChildModel, Storable, ComponentPropMixin, ObjectLis
             self._setattr(self.data_prop1, self.data_ratio*self.data_sum)
             self._setattr(self.data_prop2, (1-self.data_ratio)*self.data_sum)
             self.component.dirty = True
+        
+    def _unattach_obs_prop1(self):
+        if self._data_prop1 and self.component:
+            obj, prop = self._parseattr(self._data_prop1)
+            self.remove_observing_method((prop,), self.on_prop1_changed)
+            self.relieve_model(obj)
+    def _attach_obs_prop1(self):
+        if self._data_prop1 and self.component:
+            obj, prop = self._parseattr(self._data_prop1)
+            self.observe(self.on_prop1_changed, str(prop), assign=True)
+            self.observe_model(obj)
+            
+    def _unattach_obs_prop2(self):
+        if self._data_prop2 and self.component:
+            obj, prop = self._parseattr(self._data_prop2)
+            self.remove_observing_method((prop,), self.on_prop2_changed)
+            self.relieve_model(obj)
+    def _attach_obs_prop2(self):
+        if self._data_prop2 and self.component:
+            obj, prop = self._parseattr(self._data_prop2)
+            self.observe(self.on_prop2_changed, str(prop), assign=True)
+            self.observe_model(obj)
+        
+    def _unattach_parent(self):
+        self._unattach_obs_prop1()
+        self._unattach_obs_prop2()
+        ChildModel._unattach_parent(self)
+    
+    def _attach_parent(self):
+        ChildModel._attach_parent(self)
+        self._attach_obs_prop1()
+        self._attach_obs_prop2()
         
     pass #end of class
 
@@ -357,29 +377,17 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin, ObjectListStore
         for atom in self._data_interlayer_atoms._model_data:
             atom.stretch_values = True
 
-        def on_interlayer_atom_inserted(atom):
-            atom.stretch_values = True
-            self.dirty = True
-            self.needs_update.emit()
-
-        def on_item_changed(*args):
-            self.dirty = True
-            self.needs_update.emit()
-                
-        def on_layer_item_changed(*args):
-            self.dirty = True
-            self._update_lattice_d()
-            self.needs_update.emit()
+        self._data_layer_atoms.connect("item-inserted", self.on_layer_atom_inserted)
+        self._data_layer_atoms.connect("item-removed", self.on_layer_atom_removed)
+        self._data_layer_atoms.connect("row-changed", self.on_layer_atom_changed)
         
-        self._data_layer_atoms.connect("item-inserted", on_layer_item_changed)
-        self._data_layer_atoms.connect("item-removed", on_layer_item_changed)
-        self._data_layer_atoms.connect("row-changed", on_layer_item_changed)
-                        
-        self._data_interlayer_atoms.connect("item-inserted", on_interlayer_atom_inserted)
-        self._data_interlayer_atoms.connect("item-removed", on_item_changed)
-        self._data_atom_ratios.connect("item-removed", on_item_changed)
-        self._data_atom_ratios.connect("item-inserted", on_item_changed)        
-        self._data_interlayer_atoms.connect("row-changed", on_item_changed)
+        self._data_interlayer_atoms.connect("item-inserted", self.on_interlayer_atom_inserted)
+        self._data_interlayer_atoms.connect("item-removed", self.on_child_item_removed)
+        self._data_interlayer_atoms.connect("row-changed", self.on_item_changed)
+                
+        self._data_atom_ratios.connect("item-removed", self.on_child_item_removed)
+        self._data_atom_ratios.connect("item-inserted", self.on_child_item_inserted)
+        self._data_atom_ratios.connect("row-changed", self.on_item_changed)
     
         self._data_d001 = data_d001 or self.data_d001
         
@@ -417,6 +425,32 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin, ObjectListStore
     def notify_dirty_changed(self, model, prop_name, info):
         if model.dirty: self.dirty = True
         pass
+    
+    def on_item_changed(self, *args):
+        self.dirty = True
+        self.needs_update.emit()
+    
+    def on_layer_atom_changed(self, *args):
+        self._update_lattice_d()
+        self.on_item_changed(*args)
+    def on_layer_atom_inserted(self, model, atom):
+        atom.parent = self
+        self.on_layer_atom_changed(model, atom)
+    def on_layer_atom_removed(self, model, atom):
+        atom.parent = None
+        self.on_layer_atom_changed(model, atom)
+    
+    def on_interlayer_atom_inserted(self, model, atom):
+        atom.stretch_values = True
+        atom.parent = self
+        self.on_item_changed(model, atom)
+    
+    def on_child_item_inserted(self, model, item):
+        item.parent = self
+        self.on_item_changed(model, item)
+    def on_child_item_removed(self, model, item):
+        item.parent = None
+        self.on_item_changed(model, item)
     
     # ------------------------------------------------------------
     #      Input/Output stuff
@@ -489,7 +523,7 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin, ObjectListStore
     def get_weight(self):
         weight = 0
         for atom in (self.data_layer_atoms._model_data + self.data_interlayer_atoms._model_data):
-            weight += atom.data_pn * atom.data_atom_type.data_weight
+            weight += atom.weight
         return weight
 
 
@@ -834,84 +868,86 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStoreChi
         if self._dirty:
             self._cached_diffracted_intensities = dict()
         if self.dirty or not hsh in self._cached_diffracted_intensities:
-            #print "for specimen %s" % self
-            
-            stl_dim = range_stl.shape[0]
-            repeat_to_stl = lambda arr: np.repeat(arr[np.newaxis,...], stl_dim, axis=0)
-            
-            #Get interference (log-normal) distribution:
-            distr, ddict, real_mean = self._update_interference_distributions()
-            
-            #Get junction probabilities & weight fractions
-            W, P = self.data_probabilities.get_distribution_matrix(), self.data_probabilities.get_probability_matrix()
-            
-            W = repeat_to_stl(W).astype(np.complex_)
-            P = repeat_to_stl(P).astype(np.complex_)
-            G = self.data_G
-
-            #get structure factors and phase factors for individual components:
-            #        components
-            #       .  .  .  .  .  .
-            #  stl  .  .  .  .  .  .
-            #       .  .  .  .  .  .
-            #
-            shape = range_stl.shape + (G,)
-            SF = np.zeros(shape, dtype=np.complex_)
-            PF = np.zeros(shape, dtype=np.complex_)
-            for i, component in enumerate(self.data_components._model_data):
-                SF[:,i], PF[:,i] = component.get_factors(range_stl)
-            intensity = np.zeros(range_stl.size, dtype=np.complex_)
-            first = True
-
-            rank = P.shape[1]
-            reps = rank / G
-                        
-            #Create Phi & F matrices:        
-            SFa = np.repeat(SF[...,np.newaxis,:], SF.shape[1], axis=1)
-            SFb = np.transpose(np.conjugate(SFa), axes=(0,2,1)) #np.conjugate(np.repeat(SF[...,np.newaxis], SF.shape[1], axis=2)) 
-                   
-            F = np.repeat(np.repeat(np.multiply(SFb, SFa), reps, axis=2), reps, axis=1)
-
-            #Create Q matrices:
-            PF = np.repeat(PF[...,np.newaxis,:], reps, axis=1)
-            Q = np.multiply(np.repeat(np.repeat(PF, reps, axis=2), reps, axis=1), P)
-                              
-            #Calculate the intensity:
-            method = 0
-
-            Qn = self.get_CSDS_matrices(Q)
+            #Check probability model:
+            if not (self.data_probabilities.P_valid and self.data_probabilities.W_valid):
+                self._cached_diffracted_intensities[hsh] = np.zeros_like(range_theta)
+            else:
+                stl_dim = range_stl.shape[0]
+                repeat_to_stl = lambda arr: np.repeat(arr[np.newaxis,...], stl_dim, axis=0)
                 
-            if method == 0:
-                ################### FIRST WAY ###################                 
-                SubTotal = np.zeros(Q.shape, dtype=np.complex)
-                CSDS_I = repeat_to_stl(np.identity(rank, dtype=np.complex) * real_mean)
-                for n in range(1, int(self.data_max_CSDS)+1):
-                    factor = 0
-                    for m in range(n+1, int(self.data_max_CSDS)+1):
-                        factor += (m-n) * ddict[m]
-                    SubTotal += 2 * factor * Qn[n]
-                SubTotal = (CSDS_I + SubTotal)
-                SubTotal = mmult(mmult(F, W), SubTotal)
-                intensity = np.real(np.trace(SubTotal,  axis1=2, axis2=1))
-            elif method == 1:
-                ################### SCND WAY ################### #FIXME doesn't work for now
-                SubTotal = np.zeros(Q.shape, dtype=np.complex_)
-                I = repeat_to_stl(np.identity(rank))
-                CSDS_I = repeat_to_stl(np.identity(rank, dtype=np.complex_) * real_mean)
-                      
-                IQ = (I-Q)
-                IIQ = solve_division(I, IQ)
-                IIQ2 = solve_division(I, mmult(IQ,IQ))
-                R = np.zeros(Q.shape, dtype=np.complex_)
-                for n in range(1, int(self.data_max_CSDS)):
-                    R = (I + 2*Q*IIQ + (2 / n) * (Qn[n+1]-Q) * IIQ2) * ddict[n]
-                    intensity += np.real(np.trace(mmult(mmult(F, W), R), axis1=2, axis2=1))
+                #Get interference (log-normal) distribution:
+                distr, ddict, real_mean = self._update_interference_distributions()
                 
-            lpf = lpf_callback(range_theta, self.data_sigma_star)
-            
-            scale = self.get_absolute_scale() * quantity
-            self.dirty = False
-            self._cached_diffracted_intensities[hsh] = intensity * correction_range * scale * lpf
+                #Get junction probabilities & weight fractions
+                W, P = self.data_probabilities.get_distribution_matrix(), self.data_probabilities.get_probability_matrix()
+                
+                W = repeat_to_stl(W).astype(np.complex_)
+                P = repeat_to_stl(P).astype(np.complex_)
+                G = self.data_G
+
+                #get structure factors and phase factors for individual components:
+                #        components
+                #       .  .  .  .  .  .
+                #  stl  .  .  .  .  .  .
+                #       .  .  .  .  .  .
+                #
+                shape = range_stl.shape + (G,)
+                SF = np.zeros(shape, dtype=np.complex_)
+                PF = np.zeros(shape, dtype=np.complex_)
+                for i, component in enumerate(self.data_components._model_data):
+                    SF[:,i], PF[:,i] = component.get_factors(range_stl)
+                intensity = np.zeros(range_stl.size, dtype=np.complex_)
+                first = True
+
+                rank = P.shape[1]
+                reps = rank / G
+                            
+                #Create Phi & F matrices:        
+                SFa = np.repeat(SF[...,np.newaxis,:], SF.shape[1], axis=1)
+                SFb = np.transpose(np.conjugate(SFa), axes=(0,2,1)) #np.conjugate(np.repeat(SF[...,np.newaxis], SF.shape[1], axis=2)) 
+                       
+                F = np.repeat(np.repeat(np.multiply(SFb, SFa), reps, axis=2), reps, axis=1)
+
+                #Create Q matrices:
+                PF = np.repeat(PF[...,np.newaxis,:], reps, axis=1)
+                Q = np.multiply(np.repeat(np.repeat(PF, reps, axis=2), reps, axis=1), P)
+                                  
+                #Calculate the intensity:
+                method = 0
+
+                Qn = self.get_CSDS_matrices(Q)
+                    
+                if method == 0:
+                    ################### FIRST WAY ###################                 
+                    SubTotal = np.zeros(Q.shape, dtype=np.complex)
+                    CSDS_I = repeat_to_stl(np.identity(rank, dtype=np.complex) * real_mean)
+                    for n in range(1, int(self.data_max_CSDS)+1):
+                        factor = 0
+                        for m in range(n+1, int(self.data_max_CSDS)+1):
+                            factor += (m-n) * ddict[m]
+                        SubTotal += 2 * factor * Qn[n]
+                    SubTotal = (CSDS_I + SubTotal)
+                    SubTotal = mmult(mmult(F, W), SubTotal)
+                    intensity = np.real(np.trace(SubTotal,  axis1=2, axis2=1))
+                elif method == 1:
+                    ################### SCND WAY ################### #FIXME doesn't work for now
+                    SubTotal = np.zeros(Q.shape, dtype=np.complex_)
+                    I = repeat_to_stl(np.identity(rank))
+                    CSDS_I = repeat_to_stl(np.identity(rank, dtype=np.complex_) * real_mean)
+                          
+                    IQ = (I-Q)
+                    IIQ = solve_division(I, IQ)
+                    IIQ2 = solve_division(I, mmult(IQ,IQ))
+                    R = np.zeros(Q.shape, dtype=np.complex_)
+                    for n in range(1, int(self.data_max_CSDS)):
+                        R = (I + 2*Q*IIQ + (2 / n) * (Qn[n+1]-Q) * IIQ2) * ddict[n]
+                        intensity += np.real(np.trace(mmult(mmult(F, W), R), axis1=2, axis2=1))
+                    
+                lpf = lpf_callback(range_theta, self.data_sigma_star)
+                
+                scale = self.get_absolute_scale() * quantity
+                self.dirty = False
+                self._cached_diffracted_intensities[hsh] = intensity * correction_range * scale * lpf
 
         return self._cached_diffracted_intensities[hsh]
 

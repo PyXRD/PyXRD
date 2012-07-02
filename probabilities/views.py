@@ -11,7 +11,7 @@ import gtk
 from generic.mathtext_support import create_image_from_mathtext
 
 from generic.views import BaseView, HasChildView
-
+from probabilities.models import RGbounds
 
 def get_correct_probability_views(probability, parent_view):
     """
@@ -22,8 +22,11 @@ def get_correct_probability_views(probability, parent_view):
         G = probability.G
         R = probability.R
         rank = probability.rank
-        labels = probability.get_independent_label_map()
-        return IndependentsView(labels=labels, parent=parent_view), MatrixView(R=R, G=G, rank=rank, parent=parent_view)
+        if (RGbounds[R,G-1] > 0):
+            labels = probability.get_independent_label_map()
+            return IndependentsView(labels=labels, parent=parent_view), MatrixView(R=R, G=G, rank=rank, parent=parent_view)
+        else:
+            raise ValueError, "Cannot (yet) handle R%d for %d layer structures!" % (R, G)        
 
 class EditProbabilitiesView(BaseView, HasChildView):
     """
@@ -105,7 +108,7 @@ class IndependentsView(BaseView, HasChildView, ProbabilityViewMixin):
         
         num_rows = (N+1)/2
         if not num_rows == 0:
-            self.i_table = gtk.Table((N+1)/2,4, True)
+            self.i_table = gtk.Table((N+1)/2,4, False)
             self.i_inputs = create_inputs(self.i_table)
         else:
             self.i_inputs = []
@@ -210,14 +213,24 @@ class MatrixView(BaseView, HasChildView, ProbabilityViewMixin):
         
         self.show_all()
                  
-    def update_matrices(self, W, P):
-        def update_matrix(matrix, labels):
+    def update_matrices(self, model):
+        W, P = model.get_distribution_matrix(), model.get_probability_matrix()
+        mW, mP = model.W_valid_mask, model.P_valid_mask
+        def update_matrix(matrix, labels, mask):
             shape = matrix.shape
             for i in range(shape[0]):
                 for j in range(shape[1]):
-                    labels[i][j].set_text("%.3f" % matrix[i,j])
-        update_matrix(W, self.w_labels)
-        update_matrix(P, self.p_labels)
+                    markup = "<small><span foreground=\"%s\">%.3f</span></small>"
+                    fgcol = "#AA0000" if mask[i,j] < 1 else "#00AA00"
+                    labels[i][j].set_markup(markup % (fgcol, matrix[i,j]))
+        
+        update_matrix(W, self.w_labels, mW)
+        update_matrix(P, self.p_labels, mP)
+        fgcol, msg = ("#00AA00", "valid") if model.W_valid else ("#AA0000", "invalid")
+        self["lbl_W_valid"].set_markup("<small><span foreground=\"%s\">%s</span></small>" % (fgcol, msg))
+        fgcol, msg = ("#00AA00", "valid") if model.P_valid else ("#AA0000", "invalid")
+        self["lbl_P_valid"].set_markup("<small><span foreground=\"%s\">%s</span></small>" % (fgcol, msg))
+
         
     pass #end of class
         

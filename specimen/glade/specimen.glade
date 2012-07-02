@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
   <!-- interface-requires gtk+ 3.0 -->
+  <!-- interface-naming-policy toplevel-contextual -->
   <object class="GtkNotebook" id="edit_specimen">
     <property name="visible">True</property>
     <property name="can_focus">True</property>
@@ -50,6 +51,8 @@
             <property name="invisible_char_set">True</property>
             <property name="primary_icon_activatable">False</property>
             <property name="secondary_icon_activatable">False</property>
+            <property name="primary_icon_sensitive">True</property>
+            <property name="secondary_icon_sensitive">True</property>
           </object>
           <packing>
             <property name="left_attach">1</property>
@@ -65,6 +68,8 @@
             <property name="invisible_char_set">True</property>
             <property name="primary_icon_activatable">False</property>
             <property name="secondary_icon_activatable">False</property>
+            <property name="primary_icon_sensitive">True</property>
+            <property name="secondary_icon_sensitive">True</property>
           </object>
           <packing>
             <property name="left_attach">1</property>
@@ -91,7 +96,6 @@
                 <child>
                   <object class="GtkCheckButton" id="specimen_display_experimental">
                     <property name="label" translatable="yes">Display experimental diffractogram</property>
-                    <property name="use_action_appearance">False</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">False</property>
@@ -107,7 +111,6 @@
                 <child>
                   <object class="GtkCheckButton" id="specimen_display_calculated">
                     <property name="label" translatable="yes">Display calculated diffractogram</property>
-                    <property name="use_action_appearance">False</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">False</property>
@@ -125,7 +128,6 @@
                 <child>
                   <object class="GtkCheckButton" id="specimen_display_phases">
                     <property name="label" translatable="yes">Display phases seperately</property>
-                    <property name="use_action_appearance">False</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">False</property>
@@ -143,7 +145,6 @@
                 </child>
                 <child>
                   <object class="GtkColorButton" id="specimen_exp_color">
-                    <property name="use_action_appearance">False</property>
                     <property name="visible">True</property>
                     <property name="sensitive">False</property>
                     <property name="can_focus">True</property>
@@ -161,7 +162,6 @@
                 </child>
                 <child>
                   <object class="GtkColorButton" id="specimen_calc_color">
-                    <property name="use_action_appearance">False</property>
                     <property name="visible">True</property>
                     <property name="sensitive">False</property>
                     <property name="can_focus">True</property>
@@ -182,12 +182,10 @@
                 <child>
                   <object class="GtkCheckButton" id="specimen_inherit_exp_color">
                     <property name="label" translatable="yes">Use default colour</property>
-                    <property name="use_action_appearance">False</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">False</property>
                     <property name="use_action_appearance">False</property>
-                    <property name="xalign">0.5</property>
                     <property name="draw_indicator">True</property>
                   </object>
                   <packing>
@@ -200,12 +198,10 @@
                 <child>
                   <object class="GtkCheckButton" id="specimen_inherit_calc_color">
                     <property name="label" translatable="yes">Use default colour</property>
-                    <property name="use_action_appearance">False</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">False</property>
                     <property name="use_action_appearance">False</property>
-                    <property name="xalign">0.5</property>
                     <property name="draw_indicator">True</property>
                   </object>
                   <packing>
@@ -219,7 +215,6 @@
                 </child>
                 <child>
                   <object class="GtkCheckButton" id="specimen_display_stats_in_lbl">
-                    <property name="use_action_appearance">False</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="receives_default">False</property>
@@ -292,6 +287,8 @@
                 <property name="invisible_char">•</property>
                 <property name="primary_icon_activatable">False</property>
                 <property name="secondary_icon_activatable">False</property>
+                <property name="primary_icon_sensitive">True</property>
+                <property name="secondary_icon_sensitive">True</property>
               </object>
             </child>
           </object>
@@ -336,6 +333,8 @@
                 <property name="invisible_char_set">True</property>
                 <property name="primary_icon_activatable">False</property>
                 <property name="secondary_icon_activatable">False</property>
+                <property name="primary_icon_sensitive">True</property>
+                <property name="secondary_icon_sensitive">True</property>
               </object>
             </child>
           </object>
@@ -379,6 +378,8 @@
                 <property name="invisible_char_set">True</property>
                 <property name="primary_icon_activatable">False</property>
                 <property name="secondary_icon_activatable">False</property>
+                <property name="primary_icon_sensitive">True</property>
+                <property name="secondary_icon_sensitive">True</property>
               </object>
             </child>
           </object>
@@ -419,9 +420,6 @@
               <object class="GtkTreeView" id="experimental_data_tv">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <child internal-child="selection">
-                  <object class="GtkTreeSelection" id="treeview-selection1"/>
-                </child>
               </object>
             </child>
           </object>
@@ -438,7 +436,6 @@
             <child>
               <object class="GtkButton" id="btn_add_experimental_data">
                 <property name="label">gtk-add</property>
-                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
@@ -454,7 +451,6 @@
             </child>
             <child>
               <object class="GtkButton" id="btn_export_experimental_data">
-                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
@@ -501,7 +497,6 @@
             <child>
               <object class="GtkButton" id="btn_del_experimental_data">
                 <property name="label">gtk-remove</property>
-                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
@@ -520,7 +515,6 @@
             </child>
             <child>
               <object class="GtkButton" id="btn_import_experimental_data">
-                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
@@ -600,12 +594,9 @@
             <property name="can_focus">True</property>
             <property name="shadow_type">in</property>
             <child>
-              <object class="GtkTreeView" id="experimental_data_tv1">
+              <object class="GtkTreeView" id="calculated_data_tv">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <child internal-child="selection">
-                  <object class="GtkTreeSelection" id="treeview-selection2"/>
-                </child>
               </object>
             </child>
           </object>
@@ -621,11 +612,11 @@
             <property name="can_focus">False</property>
             <child>
               <object class="GtkButton" id="btn_export_calculated_data">
-                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
                 <property name="use_action_appearance">False</property>
+                <signal name="clicked" handler="on_btn_export_calculated_data_clicked" swapped="no"/>
                 <child>
                   <object class="GtkHBox" id="hbox_btn_export_exp_data2">
                     <property name="visible">True</property>
@@ -704,9 +695,6 @@
               <object class="GtkTreeView" id="exclusion_ranges_tv">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <child internal-child="selection">
-                  <object class="GtkTreeSelection" id="treeview-selection3"/>
-                </child>
               </object>
             </child>
           </object>
@@ -723,7 +711,6 @@
             <child>
               <object class="GtkButton" id="btn_add_exclusion_range">
                 <property name="label">gtk-add</property>
-                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
@@ -739,7 +726,6 @@
             </child>
             <child>
               <object class="GtkButton" id="btn_export_exclusion_ranges">
-                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
@@ -786,7 +772,6 @@
             <child>
               <object class="GtkButton" id="btn_del_exclusion_ranges">
                 <property name="label">gtk-remove</property>
-                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
@@ -805,7 +790,6 @@
             </child>
             <child>
               <object class="GtkButton" id="btn_import_exclusion_ranges">
-                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>

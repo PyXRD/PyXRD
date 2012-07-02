@@ -18,41 +18,18 @@ from generic.views import ChildObjectListStoreView
 from generic.controllers import ChildController
 
 from probabilities.views import EditProbabilitiesView, get_correct_probability_views
-
+from probabilities.models import RGbounds
 
 def get_correct_probability_controllers(probability, parent_controller, independents_view, dependents_view):
     if probability!=None:
         G = probability.G
         R = probability.R
         rank = probability.rank
-        if R == 0 or G == 1:
-            return R0R1R2IndependentsController(model=probability, parent=parent_controller, view=independents_view), \
-                   R0R1R2MatrixController(N=rank, model=probability, parent=parent_controller, view=dependents_view)
-        elif G > 1:
-            if R == 1: #------------------------- R1:
-                if G == 2 or G==3:
-                    return R0R1R2IndependentsController(model=probability, parent=parent_controller, view=independents_view), \
-                           R0R1R2MatrixController(N=rank, model=probability, parent=parent_controller, view=dependents_view)
-                elif G == 4:
-                    raise ValueError, "Cannot yet handle R1 g=4" # ,R0R1MatrixView(N=rank, parent=parent_view)
-            elif R == 2: #----------------------- R2:
-                if G == 2:
-                    return R0R1R2IndependentsController(model=probability, parent=parent_controller, view=independents_view), \
-                           R0R1R2MatrixController(N=rank, model=probability, parent=parent_controller, view=dependents_view)
-                elif G == 3:
-                    raise ValueError, "Cannot yet handle R2 g=3"
-                elif G == 4:
-                    raise ValueError, "Cannot yet handle R2 g=4"            
-            elif R == 3: #----------------------- R3:
-                if G == 2:
-                    return R0R1R2IndependentsController(model=probability, parent=parent_controller, view=independents_view), \
-                           R0R1R2MatrixController(N=rank, model=probability, parent=parent_controller, view=dependents_view)
-                elif G == 3:
-                    raise ValueError, "Cannot yet handle R3 g=3"
-                elif G == 4:
-                    raise ValueError, "Cannot yet handle R3 g=4"
-            else:
-                raise ValueError, "Cannot (yet) handle Reichweite's other then 0, 1, 2 or 3"
+        if (RGbounds[R,G-1] > 0):
+            return IndependentsController(model=probability, parent=parent_controller, view=independents_view), \
+                   MatrixController(N=rank, model=probability, parent=parent_controller, view=dependents_view)
+        else:
+            raise ValueError, "Cannot (yet) handle R%d for %d layer structures!" % (R, G)
 
 class EditProbabilitiesController(ChildController):
 
@@ -70,7 +47,7 @@ class EditProbabilitiesController(ChildController):
         view.set_views(self.independents_view, self.dependents_view)
 
     def update_views(self): #needs to be called whenever an independent value changes
-        self.dependents_view.update_matrices(self.model.get_distribution_matrix(), self.model.get_probability_matrix())
+        self.dependents_view.update_matrices(self.model)
         self.independents_view.update_matrices(self.model)
         
     # ------------------------------------------------------------
@@ -80,13 +57,10 @@ class EditProbabilitiesController(ChildController):
     def notif_updated(self, model, prop_name, info):
         self.update_views()
         return
-        
-        
-        
+
     pass #end of class
     
-class R0R1R2IndependentsController(ChildController):
-
+class IndependentsController(ChildController):
     def register_adapters(self):
         if self.model is not None:
             for name in self.model.get_properties():
@@ -97,38 +71,11 @@ class R0R1R2IndependentsController(ChildController):
                     self.adapt(name)
                 else:
                     pass
-                    #FloatEntryValidator(self.view["prob_%s" % name])
-                    #self.adapt(name)
             return
-
-    pass #TODO
-    
-"""class R1G2IndependentsController(ChildController):
-
-    def register_adapters(self):
-        print "R1G2IndependentsController.register_adapters()"
-        if self.model is not None:
-            for name in self.model.get_properties():
-                if name in ["parent", "added", "removed", "updated"]:
-                    pass
-                else:
-                    print name
-                    FloatEntryValidator(self.view["prob_%s" % name])
-                    self.adapt(name)
-            return
-
-    pass #TODO
-    
-class R1G3IndependentsController(ChildController):
-
-    def __init__(self, *args, **kwargs):
-        ChildController.__init__(self, *args, **kwargs)
-
-    pass #TODO"""
-    
-class R0R1R2MatrixController(ChildController):
-
+    pass #end of class
+  
+class MatrixController(ChildController):
     def __init__(self,  N=1, *args, **kwargs):
         ChildController.__init__(self, *args, **kwargs)
 
-    pass #TODO
+    pass #end of class

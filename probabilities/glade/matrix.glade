@@ -1,11 +1,12 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
   <!-- interface-requires gtk+ 3.0 -->
+  <!-- interface-naming-policy toplevel-contextual -->
   <object class="GtkTable" id="base_matrix_table">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="border_width">5</property>
-    <property name="n_rows">5</property>
+    <property name="n_rows">6</property>
     <property name="n_columns">2</property>
     <property name="column_spacing">5</property>
     <property name="row_spacing">5</property>
@@ -72,8 +73,8 @@
       </object>
       <packing>
         <property name="right_attach">2</property>
-        <property name="top_attach">4</property>
-        <property name="bottom_attach">5</property>
+        <property name="top_attach">5</property>
+        <property name="bottom_attach">6</property>
         <property name="y_options"></property>
       </packing>
     </child>
@@ -136,6 +137,32 @@
         <property name="x_options">GTK_FILL</property>
         <property name="y_options">GTK_FILL</property>
         <property name="x_padding">5</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkLabel" id="lbl_W_valid">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">valid</property>
+      </object>
+      <packing>
+        <property name="top_attach">4</property>
+        <property name="bottom_attach">5</property>
+        <property name="y_options"></property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkLabel" id="lbl_P_valid">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">valid</property>
+      </object>
+      <packing>
+        <property name="left_attach">1</property>
+        <property name="right_attach">2</property>
+        <property name="top_attach">4</property>
+        <property name="bottom_attach">5</property>
+        <property name="y_options"></property>
       </packing>
     </child>
   </object>

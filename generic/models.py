@@ -5,7 +5,7 @@
 # This work is licensed under the Creative Commons Attribution-ShareAlike 3.0 Unported License. 
 # To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/3.0/ or send
 # a letter to Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
-
+from itertools import izip, count
 from collections import namedtuple
 
 import matplotlib
@@ -176,7 +176,8 @@ class PyXRDLine(ChildModel, Storable, Line2D):
 
     #PROPERTIES:
     xy_empty_data = ([],[])
-    xy_store = None
+    _xy_store = None
+    def get_xy_store_value(self): return self._xy_store
     needs_update = None
 
     _offset = 0
@@ -213,8 +214,7 @@ class PyXRDLine(ChildModel, Storable, Line2D):
         Storable.__init__(self)
         
         self.needs_update = Signal()
-        
-        self.xy_store = xy_store or XYListStore()
+        self.init_xy_store(xy_store=xy_store)
         self.xy_store.connect('row-deleted', self.on_treestore_changed)
         self.xy_store.connect('row-inserted', self.on_treestore_changed)
         self.xy_store.connect('row-changed', self.on_treestore_changed)
@@ -224,6 +224,8 @@ class PyXRDLine(ChildModel, Storable, Line2D):
         self._inhibit_updates = False
         self.update_line()
 
+    def init_xy_store(self, xy_store=None):
+        self._xy_store = xy_store or XYListStore()
     
     # ------------------------------------------------------------
     #      Input/Output stuff
@@ -241,8 +243,8 @@ class PyXRDLine(ChildModel, Storable, Line2D):
         return type(**kwargs)
             
     def save_data(self, filename):
-        self.xy_store.save_data(self, "%s %s" % (self.parent.data_name, self.parent.data_sample), filename)
-         
+        self.xy_store.save_data("%s %s" % (self.parent.data_name, self.parent.data_sample), filename)
+        
     def load_data(self, *args, **kwargs):    
         self._inhibit_updates = True
         self.xy_store.load_data(*args, **kwargs)
@@ -367,8 +369,20 @@ class CalculatedLine(PyXRDLine):
         for child in self.child_lines:
             if child: child.set_visible(visible)
 
-    def update_child_lines(self, child_data):
-        clen = len(child_data)
+    def set_data(self, x, y, phases_y=None, phases_colors=None, phases_names=None):
+        self._inhibit_updates = True
+        #total line:
+        if phases_y!=None and phases_colors:
+            self.xy_store.update_from_data(x, y, *phases_y, names=phases_names)
+            #phase lines:
+            self._update_child_lines(phases_colors, phases_y)
+        else:
+            self.xy_store.update_from_data(x, y)
+        Line2D.set_data(self, x, y)
+        self._inhibit_updates = False
+
+    def _update_child_lines(self, colors, ydata):
+        clen = len(colors)
         mlen = len(self.child_lines)
         diff = mlen-clen
         if diff>0: #too many child line instances
@@ -377,13 +391,13 @@ class CalculatedLine(PyXRDLine):
             self._child_lines.extend([None]*-diff)
         axes = self.get_axes()
         figure = self.get_figure()
-        for i, (color, ydata) in enumerate(child_data):
+        for i, color, y in izip(count(), colors, ydata):
             line = self._child_lines[i]
             if not line:
                 line = ScaledLine([],[])
                 self._child_lines[i] = line
             line.set_linewidth(self.get_linewidth())
-            line.set_data(self.get_xdata(), ydata)
+            line.set_data(self.get_xdata(), y)
             line.set_color(color)
             if axes: line.set_axes(axes)
             if figure: line.set_figure(figure)

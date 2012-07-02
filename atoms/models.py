@@ -188,6 +188,13 @@ class Atom(ChildModel, ObjectListStoreChildMixin, Storable):
             self._data_pn = value
             self.liststore_item_changed()
     
+    @property
+    def weight(self):
+        if self.data_atom_type!=None:
+            return self.data_pn * self.data_atom_type.data_weight
+        else:
+            return 0.0
+    
     _atom_type_index = None
     _atom_type_uuid = None
     _data_atom_type = None
@@ -204,7 +211,7 @@ class Atom(ChildModel, ObjectListStoreChildMixin, Storable):
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def __init__(self, data_name=None, data_z=None, default_z=None, data_pn=None, data_atom_type=None, atom_type_index=None, atom_type_uuid=None, atom_type_name=None, stretch_values=False, parent=None):
+    def __init__(self, data_name=None, data_z=0, default_z=0, data_pn=None, data_atom_type=None, atom_type_index=None, atom_type_uuid=None, atom_type_name=None, stretch_values=False, parent=None):
         ChildModel.__init__(self, parent=parent)
         Storable.__init__(self)
         
@@ -243,7 +250,10 @@ class Atom(ChildModel, ObjectListStoreChildMixin, Storable):
     #      Methods & Functions
     # ------------------------------------------------------------    
     def get_structure_factors(self, stl_range):
-        asf = self.data_atom_type.get_atomic_scattering_factors(stl_range)
+        if self.data_atom_type!=None:
+            asf = self.data_atom_type.get_atomic_scattering_factors(stl_range)
+        else:
+            asf = 0.0
         return asf * self.data_pn * np.exp(2 * pi * self.data_z * stl_range * 1j)
     
     # ------------------------------------------------------------

@@ -193,7 +193,7 @@ class AppController (BaseController, DialogMixin):
         except:
             if backupfile: 
                 move(backupfile, self.model.current_filename) #move original file back
-                del backupfile
+                backupfile = None
             self.run_information_dialog("An error has occured.\n Your project was not saved!", parent=self.view.get_top_widget())
             raise
         finally:

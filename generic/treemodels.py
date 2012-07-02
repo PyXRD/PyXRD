@@ -351,8 +351,6 @@ class IndexListStore(ObjectListStore):
        
     def item_in_model(self, item):
         index = getattr(item, self._index_column_name)
-        if index in self._index:
-            print index
         return index in self._index
 
     def index_in_model(self, index):
@@ -388,11 +386,13 @@ class XYListStore(_BaseObjectListStore, Storable):
     
     __gsignals__ = { 
         'item-removed' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
-        'item-inserted' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,))
+        'item-inserted' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
+        'columns-changed' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, ())
     }
 
     _model_data_x = None
     _model_data_y = None
+    _y_names = None
 
     # ------------------------------------------------------------
     #      Initialisation and other internals
@@ -402,29 +402,39 @@ class XYListStore(_BaseObjectListStore, Storable):
         Storable.__init__(self)
         self.set_property("leak-references", True)
         self._model_data_x = np.array([], dtype=float)
-        self._model_data_y = np.array([], dtype=float)
+        self._model_data_y = np.zeros(shape=(0,0), dtype=float)
+        self._y_names = []
         
         if data!=None:
-            data = data.replace("nan", "0.0")
-            data = zip(*json.JSONDecoder().decode(data))
-            if data != []:
-                self.set_from_data(*data)
-        
+            self._load_data(data)
+        else:
+            self.set_from_data(np.array([], dtype=float), np.array([], dtype=float))
+       
+    def _load_data(self, data):
+        #data should be in this format:
+        #  [  (x1, y1, y2, ..., yn), (x2, y1, y2, ..., yn), ... ]
+        data = data.replace("nan", "0.0")
+        data = zip(*json.JSONDecoder().decode(data))
+        if data != []:
+            self.set_from_data(*data)
+                
     # ------------------------------------------------------------
     #      Input/Output stuff
     # ------------------------------------------------------------
     def json_properties(self):
+        conc = np.insert(self._model_data_y, 0, self._model_data_x, axis=0).transpose()
         return {
-            "data": "[%s]" % ",".join(
-                ["[%f,%f]"%(x,y) for x,y in
-                zip(self._model_data_x,self._model_data_y)]
-            )
+            "data": "[" + ",".join(
+                ["[" + ",".join(["%f" % val for val in row]) + "]" for row in conc]
+            ) + "]",
         }
 
     def save_data(self, header, filename):
         f = open(filename, 'w')
+        if self._model_data_y.shape[0] > 1:
+            header = "%s - columns: %s" % (header, "2θ, Int., " + ", ".join(self._y_names))
         f.write("%s\n" % header)
-        np.savetxt(f, zip(self._model_data_x, self._model_data_y), fmt="%.8f")
+        np.savetxt(f, np.insert(self._model_data_y, 0, self._model_data_x, axis=0).transpose(), fmt="%.8f")
         f.close()
         
     @staticmethod
@@ -482,26 +492,37 @@ class XYListStore(_BaseObjectListStore, Storable):
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------
+    _y_from_user = lambda self, y_value: np.array(y_value, ndmin=2)
+    def _y_to_user(self, y_value):
+        try:
+            return tuple(y_value)
+        except TypeError:
+            return (y_value,)
+    def _get_subitr(self, index):
+        x = self._model_data_x[index]
+        try:
+            y = tuple(self._y_to_user(self._model_data_y[:,index]))
+        except:
+            raise
+        return (x,) + y
+    
     def on_get_iter(self, path): #returns a rowref
         try:
             path = path[0]
             if path < self._model_data_x.size:
-                return (path, self._model_data_x[path], self._model_data_y[path])
+                return (path,) + self._get_subitr(path)
             else:
                 return None
         except IndexError, msg:
             return None
             
-    def on_get_path(self, rowref):
-        return (rowref[0],)
-
     def set_value(self, itr, column, value):
         i = self.get_user_data(itr)[0]
         if i < self._model_data_x.size:
             if column == self.c_x:
                 self._model_data_x[i] = value
-            elif column == self.c_y:
-                self._model_data_y[i] = value
+            elif column >= self.c_y:
+                self._model_data_y[column-1, i] = np.array(value)
             else:
                 raise AttributeError
         else:
@@ -512,10 +533,13 @@ class XYListStore(_BaseObjectListStore, Storable):
         i = rowref[0]
         if column == self.c_x:
             return self._model_data_x[i]
-        elif column == self.c_y:
-           return self._model_data_y[i]
+        elif column >= self.c_y:
+            return self._model_data_y[column-1, i]
         else:
             raise AttributeError
+                       
+    def on_get_path(self, rowref):
+        return (rowref[0],)
 
     def on_iter_next(self, rowref):
         i = rowref[0]
@@ -550,21 +574,21 @@ class XYListStore(_BaseObjectListStore, Storable):
     def on_iter_parent(self, rowref):
         return None
         
-    def append(self, x, y, silent=False):
+    def append(self, x, *y):
         self._model_data_x = np.append(self._model_data_x, x)
-        self._model_data_y = np.append(self._model_data_y, y)
+        self._model_data_y = np.append(self._model_data_y, self._y_from_user(y), axis=1)
         path = (self._model_data_x.size-1,)
         self._emit_added(path)
         return path
     
-    def insert(self, pos, x, y):
+    def insert(self, pos, x, *y):
         self._model_data_x = np.insert(self._model_data_x, pos, x)
-        self._model_data_y = np.insert(self._model_data_y, pos, y)
+        self._model_data_y = np.insert(self._model_data_y, pos, self._y_from_user(y), axis=1)
         self._emit_added((pos,))
       
     def _emit_added(self, path):
         index = int(path[0])
-        self.emit('item-inserted', (self._model_data_x[index], self._model_data_y[index]))
+        self.emit('item-inserted', self._get_subitr(index))
         itr = self.get_iter(path)
         self.row_inserted(path, itr)
 
@@ -572,9 +596,9 @@ class XYListStore(_BaseObjectListStore, Storable):
         if indeces != []:
             indeces = np.sort(indeces)[::-1]
             for index in indeces:
-                self.emit('item-removed', (self._model_data_x[index], self._model_data_y[index]))
+                self.emit('item-removed', self._get_subitr(index))
                 self._model_data_x = np.delete(self._model_data_x, index)
-                self._model_data_y = np.delete(self._model_data_y, index)
+                self._model_data_y = np.delete(self._model_data_y, index, axis=1)
                 self.row_deleted((index,))
 
     def remove(self, itr):
@@ -584,32 +608,55 @@ class XYListStore(_BaseObjectListStore, Storable):
     def clear(self):
         if self._model_data_x.shape[0] > 0:
             self.remove_from_index(*range(self._model_data_x.shape[0]))
-        
-    def set_from_data(self, data_x, data_y):
+
+    def set_from_data(self, data_x, *data_y, **kwargs):
+        names = kwargs.get("names", None)
+        tempx = np.array(data_x)
+        tempy = np.array(data_y, ndmin=2)
+        if tempx.shape[0] != tempy.shape[-1]:
+            raise ValueError, "Shape mismatch: x and y data need to have compatible shapes!"
         self.clear()
-        self._model_data_x = np.array(data_x)
-        self._model_data_y = np.array(data_y)
-        if self._model_data_x.shape != self._model_data_y.shape:
-            raise ValueError, "Shape mismatch: x and y data need to have the same shape!"
-        for pos in range(self._model_data_x.shape[0]):
-            self._emit_added((pos,))
+        self._model_data_x = tempx
+        self._model_data_y = tempy
+        self._y_names = names
+        for index in range(self._model_data_x.shape[0]):
+            self._emit_added((index,))
+        self.emit('columns-changed')
         
-    def update_from_data(self, data_x, data_y):
-        data_x = np.array(data_x)
-        data_y = np.array(data_y)
-        if data_x.shape == self._model_data_x.shape and data_y.shape == self._model_data_y.shape:
-            self._model_data_x = data_x
-            self._model_data_y = data_y
+    def update_from_data(self, data_x, *data_y, **kwargs):
+        names = kwargs.get("names", None)
+        tempx = np.array(data_x)
+        tempy = np.array(data_y, ndmin=2)
+        if tempx.shape == self._model_data_x.shape and tempy.shape[1] == self._model_data_y.shape[1]:
+            self._model_data_x = tempx
+            if tempy.shape[0] == 1:
+                self._model_data_y[0] = tempy[0]
+                if names!=None: self._y_names = names
+            else:
+                self._model_data_y = tempy
+                self._y_names = names
+            self.emit('columns-changed')
         else:
-            self.set_from_data(data_x, data_y)
+            self.set_from_data(data_x, *data_y, **kwargs)
         
     def get_raw_model_data(self):
-        return self._model_data_x, self._model_data_y
-        
+        if self._model_data_x.size:
+            return self._model_data_x, self._model_data_y[0]
+        else:
+            return np.array([], dtype=float), np.array([], dtype=float)
+                
+    def on_get_n_columns(self):
+        return 1 + self._model_data_y.shape[0]
+
+    def on_get_column_type(self, index):
+        return float
+                        
     def interpolate(self, *x_vals):
-        f = interp1d(self._model_data_x, self._model_data_y)
+        column = kwargs.get("column", 0)
+        f = interp1d(self._model_data_x, self._model_data_y.transpose()[column])
         return zip(x_vals, f(x_vals))
         
     pass #end of class
-    
+   
 gobject.type_register(XYListStore)
+

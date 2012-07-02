@@ -26,7 +26,7 @@ from generic.models import ChildModel, Storable, PropIntel, MultiProperty
 from generic.treemodels import IndexListStore, _BaseObjectListStore
 
 from phases.models import Phase, Component, UnitCellProperty, ComponentRatioFunction
-from probabilities.models import _AbstractProbability
+from probabilities.base_models import _AbstractProbability
 from specimen.models import Statistics
 from mixture.genetics import run_genetic_algorithm
 
@@ -233,7 +233,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
             specimen = self.data_specimens[i]
             theta_range, calc = specimen.get_phase_intensities(phases, self.parent.data_goniometer.get_lorentz_polarisation_factor)
             calculated[i] = calc.copy()
-            experimental[i] = specimen.data_experimental_pattern.xy_store._model_data_y.copy()
+            experimental[i] = specimen.data_experimental_pattern.xy_store.get_raw_model_data()[1].copy()
             selectors[i] = specimen.get_exclusion_selector(theta_range*todeg)
                 
                 

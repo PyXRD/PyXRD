@@ -33,6 +33,31 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
     excl_filters = [("Exclusion range file", get_case_insensitive_glob("*.EXC")),
                     ("All Files", "*.*")]
     
+    def update_calc_treeview(self):
+        tv = self.view['calculated_data_tv']
+        model = self.model.data_calculated_pattern.xy_store
+        
+        for column in tv.get_columns():
+            tv.remove_column(column)
+        
+        def add_column(title, colnr):
+            rend = gtk.CellRendererText()
+            rend.set_property("editable", False)
+            rend.set_property("xalign", 0.5)
+            col = gtk.TreeViewColumn(title, rend, text=colnr)
+            def get_num(column, cell, model, itr):
+                cell.set_property('text', '%.3f' % model.get_value(itr, colnr))
+            col.set_cell_data_func(rend, get_num)            
+            col.set_resizable(True)
+            col.set_expand(True)
+            col.set_alignment(0.5)
+            tv.append_column(col)
+        add_column('2θ', model.c_x)
+        add_column('Calculated', model.c_y)
+        
+        for i in range(model.get_n_columns()-2):
+            add_column(model._y_names[i], i+2)
+    
     def register_adapters(self):
         if self.model is not None:
             for name in self.model.get_properties():
@@ -40,27 +65,38 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
                     ad = Adapter(self.model, "data_name")
                     ad.connect_widget(self.view["specimen_data_name"])
                     self.adapt(ad)
-                elif name in ["data_calculated_pattern", "data_experimental_pattern"]:
-                    if name == "data_experimental_pattern":
-                        tv = self.view['experimental_data_tv']
-                        model = self.model.data_experimental_pattern.xy_store
-                        tv.set_model(model)
-                        tv.connect('cursor_changed', self.on_exp_data_tv_cursor_changed)
+                elif name == "data_experimental_pattern":
+                    tv = self.view['experimental_data_tv']
+                    model = self.model.data_experimental_pattern.xy_store
+                    tv.set_model(model)
+                    tv.connect('cursor_changed', self.on_exp_data_tv_cursor_changed)
 
-                        #allow multiple selection:
-                        sel = tv.get_selection()
-                        sel.set_mode(gtk.SELECTION_MULTIPLE)
+                    #allow multiple selection:
+                    sel = tv.get_selection()
+                    sel.set_mode(gtk.SELECTION_MULTIPLE)
 
-                        def add_column(title, colnr):
-                            rend = gtk.CellRendererText()
-                            rend.set_property("editable", True)
-                            rend.connect('edited', self.on_xy_data_cell_edited, (model, colnr))
-                            col = gtk.TreeViewColumn(title, rend, text=colnr)
-                            col.set_resizable(True)
-                            col.set_expand(True)
-                            tv.append_column(col)
-                        add_column('2θ', model.c_x)
-                        add_column('Intensity', model.c_y)
+                    def add_column(title, colnr):
+                        rend = gtk.CellRendererText()
+                        rend.set_property("editable", True)
+                        rend.connect('edited', self.on_xy_data_cell_edited, (model, colnr))
+                        col = gtk.TreeViewColumn(title, rend, text=colnr)
+                        col.set_resizable(True)
+                        col.set_expand(True)
+                        tv.append_column(col)
+                    add_column('2θ', model.c_x)
+                    add_column('Intensity', model.c_y)
+                elif name == "data_calculated_pattern":
+                    tv = self.view['calculated_data_tv']
+                    model = self.model.data_calculated_pattern.xy_store
+                    
+                    model.connect("columns-changed", self.on_calc_treestore_changed)
+                    
+                    tv.set_model(model)
+                    #do not allow selection:
+                    sel = tv.get_selection()
+                    sel.set_mode(gtk.SELECTION_NONE)
+                    self.update_calc_treeview()
+                    
                 elif name == "data_exclusion_ranges":
                     tv = self.view['exclusion_ranges_tv']
                     model = self.model.data_exclusion_ranges
@@ -180,6 +216,9 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
     # ------------------------------------------------------------
     #      GTK Signal handlers
     # ------------------------------------------------------------
+    def on_calc_treestore_changed(self, *args, **kwargs):
+        self.update_calc_treeview()    
+    
     def phase_tv_toggled(self, cell, path, model=None, col=1):
         if model is not None:
             phase = model.get_user_data_from_path((int(path),))
@@ -289,10 +328,22 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
                 self.model.data_experimental_pattern.save_data(filename)
             if filename[-2:].lower() == "rd":
                 self.run_information_dialog("RD file format not supported (yet)!", parent=self.view.get_top_widget())
-        self.run_save_dialog(title="Select file for XRD export",
+        self.run_save_dialog(title="Select file for export",
                              on_accept_callback=on_accept, 
                              parent=self.view.get_top_widget())
         return True
+        
+    def on_btn_export_calculated_data_clicked(self, widget, data=None):
+        def on_accept(dialog):
+            filename = self.extract_filename(dialog)
+            if filename[-3:].lower() == "dat":
+                self.model.data_calculated_pattern.save_data(filename)
+            if filename[-2:].lower() == "rd":
+                self.run_information_dialog("RD file format not supported (yet)!", parent=self.view.get_top_widget())
+        self.run_save_dialog(title="Select file for export",
+                             on_accept_callback=on_accept, 
+                             parent=self.view.get_top_widget())
+        return True        
 
     pass #end of class
 

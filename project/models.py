@@ -245,9 +245,7 @@ class Project(PyXRDModel, Storable, ObjectListStoreParentMixin):
             for mixture in self.data_mixtures._model_data:
                 mixture.apply_result()
             t2 = time.time()
-            print '%s took %0.3f ms' % ("before_needs_update", (t2-t1)*1000.0)            
-            #for specimen in self.data_specimens._model_data:
-            #    specimen.calculate_pattern(self.data_goniometer.get_lorentz_polarisation_factor)
+            print '%s took %0.3f ms' % ("before_needs_update", (t2-t1)*1000.0)
             after()
             self.before_needs_update_lock = False
 

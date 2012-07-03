@@ -36,8 +36,11 @@ def run_genetic_algorithm(ref_props, x0, ranges, fitness_func, gui_callback=None
     # create an empty population
     print "Creating the first generation..."
     pop = Population(species=generate_organism(ref_props, ranges, fitness_func), init=300)
-    pop.childCount = 60
-    pop.incest=30
+    pop.childCount = 50
+    pop.incest = 2
+    pop.mutants = 0.3
+    pop.mutateAfterMating = False
+    
 
     ngens = 0
     last_fitness = None

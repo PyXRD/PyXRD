@@ -10,6 +10,8 @@ import gtk
 from gtkmvc.view import View
 
 import settings
+from generic.widgets import ScaleEntry
+from generic.mathtext_support import create_image_from_mathtext
 
 class BaseView(View):
     """
@@ -29,7 +31,27 @@ class BaseView(View):
         if isinstance(top, gtk.Window):
             top.set_resizable(self.resizable)
             top.set_modal(self.modal)
-        
+    
+    def create_mathtext_widget(self, text):
+        try:
+            widget = create_image_from_mathtext(text)
+        except:
+            widget = gtk.Label(text)
+            widget.set_use_markup(True)
+            widget.set_property('justify', gtk.JUSTIFY_CENTER)
+        return widget
+    
+    def add_scale_widget(self, container, intel, name, enforce_range=False):
+        if not isinstance(container, gtk.Widget):
+            container = self[container]
+        child = container.get_child()
+        if child is not None:
+            container.remove(child)
+        inp = ScaleEntry(intel.minimum, intel.maximum, enforce_range=enforce_range)
+        self[name] = inp
+        container.add(inp)
+        inp.show_all()
+        return inp
     
     def _hide_widgets(self):
         self._before_hide_widgets()

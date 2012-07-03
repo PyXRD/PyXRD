@@ -14,7 +14,9 @@ from generic.io import Storable
 from generic.models import ChildModel, PropIntel
 from generic.utils import indexproperty
 
-class _AbstractProbability(ChildModel, Storable):
+from mixture.refinement import RefinementGroup
+
+class _AbstractProbability(ChildModel, Storable, RefinementGroup):
 
     #MODEL INTEL:     
     __parent_alias__ = 'phase'
@@ -71,6 +73,11 @@ class _AbstractProbability(ChildModel, Storable):
     @mW.setter
     def mW(self, indeces, value):
         self._W[self._get_Wxy_from_indeces(indeces)] = min(max(value, 0.0), 1.0)    
+    
+    #REFINEMENT GROUP IMPLEMENTATION:
+    @property
+    def refine_title(self):
+        return self.data_name
     
     # ------------------------------------------------------------
     #      Initialisation and other internals

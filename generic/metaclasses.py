@@ -61,11 +61,15 @@ class PyXRDMeta(ObservablePropertyMeta):
                     set_attribute(setter_name, setter)
                     del_attribute(prop.name)
             
-        #add model intel from the base classes to generate the remaining properties, 
-        #and replace the variable by a set including the complete model intel for eventual later use:
+        # Add model intel from the base classes to generate the remaining 
+        # properties, without overriding intels already present,
+        # replace the variable by a set including the complete model intel for eventual later use:
+        #
         for base in bases: 
             base_intel = getattr(base, "__model_intel__", list())
-            for prop in base_intel: __model_intel__.append(prop)
+            for prop in base_intel: 
+                if not prop in __model_intel__:
+                    __model_intel__.append(prop)
         setattr(cls, "__model_intel__", get_unique_list(__model_intel__))            
             
         #generate remaining properties based on model intel (including bases):

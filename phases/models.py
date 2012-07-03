@@ -26,6 +26,8 @@ from generic.models import ChildModel, PropIntel
 from generic.treemodels import ObjectListStore
 
 from atoms.models import Atom
+from mixture.refinement import RefinementGroup, RefinementValue
+from phases.CSDS_models import DritsCSDSDistribution
 from probabilities.models import get_correct_probability_model
 
 class ComponentPropMixin():
@@ -50,7 +52,7 @@ class ComponentPropMixin():
     def _setattr(self, attr, value):
         return recsetattr(*(self._parseattr(attr) + (value,)))
 
-class ComponentRatioFunction(ChildModel, Storable, ComponentPropMixin, ObjectListStoreChildMixin):
+class ComponentRatioFunction(ChildModel, Storable, ComponentPropMixin, ObjectListStoreChildMixin, RefinementValue):
     
     #MODEL INTEL:
     __parent_alias__ = "component"
@@ -100,6 +102,22 @@ class ComponentRatioFunction(ChildModel, Storable, ComponentPropMixin, ObjectLis
         self._attach_obs_prop2()
         self.update_value()
     
+    #REFINEMENT VALUE IMPLEMENTATION:
+    @property
+    def refine_title(self):
+        return self.data_name
+
+    @property
+    def refine_value(self):
+        return self.data_ratio
+    @refine_value.setter
+    def refine_value(self, value):
+        self.data_ratio = value
+        
+    @property 
+    def is_refinable(self):
+        return self.data_enabled
+
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
@@ -166,23 +184,26 @@ class ComponentRatioFunction(ChildModel, Storable, ComponentPropMixin, ObjectLis
         
     pass #end of class
 
-class UnitCellProperty(ChildModel, Storable, ComponentPropMixin):
+class UnitCellProperty(ChildModel, Storable, ComponentPropMixin, RefinementValue):
     
     #MODEL INTEL:
     __parent_alias__ = "component"
     __model_intel__ = [
-        PropIntel(name="value",             inh_name=None,         label="Value",              minimum=None,  maximum=None,  is_column=False, ctype=float, refinable=True,  storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="data_factor",       inh_name=None,         label="Factor",             minimum=None,  maximum=None,  is_column=False, ctype=float, refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="data_constant",     inh_name=None,         label="Constant",           minimum=None,  maximum=None,  is_column=False, ctype=float, refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="data_prop",         inh_name=None,         label="Property",           minimum=None,  maximum=None,  is_column=False, ctype=str,   refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="data_enabled",      inh_name=None,         label="Enabled",            minimum=None,  maximum=None,  is_column=False, ctype=bool,  refinable=False, storable=True,  observable=True,  has_widget=True)
+        PropIntel(name="data_name",         inh_name=None,  label="Name",        minimum=None,  maximum=None,  is_column=True,  ctype=str,   refinable=False, storable=False,  observable=True,  has_widget=False),
+        PropIntel(name="value",             inh_name=None,  label="Value",       minimum=None,  maximum=None,  is_column=False, ctype=float, refinable=True,  storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_factor",       inh_name=None,  label="Factor",      minimum=None,  maximum=None,  is_column=False, ctype=float, refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_constant",     inh_name=None,  label="Constant",    minimum=None,  maximum=None,  is_column=False, ctype=float, refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_prop",         inh_name=None,  label="Property",    minimum=None,  maximum=None,  is_column=False, ctype=str,   refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_enabled",      inh_name=None,  label="Enabled",     minimum=None,  maximum=None,  is_column=False, ctype=bool,  refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_inherited",    inh_name=None,  label="Inherited",   minimum=None,  maximum=None,  is_column=False, ctype=bool,  refinable=False, storable=False, observable=True,  has_widget=False)
     ]
     
     #SIGNALS:
     
     #PROPERTIES:
-    
+    data_name = ""
     data_enabled = False
+    data_inherited = False
     ready = False
     
     _value = 1.0
@@ -217,13 +238,30 @@ class UnitCellProperty(ChildModel, Storable, ComponentPropMixin):
             self.observe_model(obj)
         self.update_value()
     
+    #REFINEMENT VALUE IMPLEMENTATION:
+    @property
+    def refine_title(self):
+        return self.data_name
+
+    @property
+    def refine_value(self):
+        return self.value
+    @refine_value.setter
+    def refine_value(self, value):
+        self.value = value
+        
+    @property 
+    def is_refinable(self):
+        return not (self.data_enabled or self.data_inherited)
+    
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def __init__(self, value=0.0, data_enabled=False, data_factor=0.0, data_constant=0.0, data_prop="", parent=None, **kwargs):
+    def __init__(self, data_name="", value=0.0, data_enabled=False, data_factor=0.0, data_constant=0.0, data_prop="", parent=None, **kwargs):
         ChildModel.__init__(self, parent=parent)
         Storable.__init__(self)
                
+        self.data_name = data_name or self.data_name
         self.value = value or self._value
         self.data_factor = data_factor or self._data_factor
         self.data_constant = data_constant or self._data_constant
@@ -256,7 +294,7 @@ class UnitCellProperty(ChildModel, Storable, ComponentPropMixin):
     pass #end of class
 
 
-class Component(ChildModel, Storable, ObjectListStoreChildMixin, ObjectListStoreParentMixin):
+class Component(ChildModel, Storable, ObjectListStoreChildMixin, ObjectListStoreParentMixin, RefinementGroup):
 
     #MODEL INTEL:
     __parent_alias__ = "phase"
@@ -295,8 +333,20 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin, ObjectListStore
             if self._dirty:
                 self._cached_factors = dict()
     
-    _inherit_ucp_a = False 
-    _inherit_ucp_b = False
+    
+    @property
+    def _inherit_ucp_a(self):
+        return self._data_ucp_a.data_inherited
+    @_inherit_ucp_a.setter
+    def _inherit_ucp_a(self, value):
+        self._data_ucp_a.data_inherited = value
+    @property
+    def _inherit_ucp_b(self):
+        return self._data_ucp_b.data_inherited
+    @_inherit_ucp_b.setter
+    def _inherit_ucp_b(self, value):
+        self._data_ucp_b.data_inherited = value
+
     _inherit_d001 = False
     _inherit_default_c = False
     _inherit_layer_atoms = False
@@ -352,6 +402,11 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin, ObjectListStore
         self.dirty = True
         self.liststore_item_changed()
         self.needs_update.emit()
+    
+    #REFINEMENT GROUP IMPLEMENTATION:
+    @property
+    def refine_title(self):
+        return self.data_name
         
     # ------------------------------------------------------------
     #      Initialisation and other internals
@@ -394,15 +449,15 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin, ObjectListStore
         self._default_c = default_c or data_d001 or self._default_c
         self._update_lattice_d()        
         
-        if data_ucp_a==None and "data_cell_a" in kwargs and not "data_ucp_a" in kwargs:
+        if data_ucp_a==None and "data_cell_a" in kwargs:
             data_ucp_a = UnitCellProperty(data_name="cell length a", value=kwargs.pop("data_cell_a"), parent=self)
             inherit_ucp_a = kwargs.pop("inherit_cell_a", inherit_ucp_a)
-        if data_ucp_b==None and "data_cell_b" in kwargs and not "data_ucp_b" in kwargs:
+        if data_ucp_b==None and "data_cell_b" in kwargs:
             data_ucp_b = UnitCellProperty(data_name="cell length b", value=kwargs.pop("data_cell_b"), parent=self)
             inherit_ucp_b = kwargs.pop("inherit_cell_b", inherit_ucp_b)
         
-        self._data_ucp_a = self.parse_init_arg(data_ucp_a, UnitCellProperty(parent=self), child=True)
-        self._data_ucp_b = self.parse_init_arg(data_ucp_b, UnitCellProperty(parent=self), child=True)
+        self._data_ucp_a = self.parse_init_arg(data_ucp_a, UnitCellProperty(parent=self, data_name="Cell length a [nm]"), child=True, data_name="Cell length a [nm]")
+        self._data_ucp_b = self.parse_init_arg(data_ucp_b, UnitCellProperty(parent=self, data_name="Cell length b [nm]"), child=True, data_name="Cell length b [nm]")
         self._data_ucp_a.update_value()
         self._data_ucp_b.update_value()
         
@@ -527,30 +582,26 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin, ObjectListStore
         return weight
 
 
-class Phase(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStoreChildMixin):
+class Phase(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStoreChildMixin, RefinementGroup):
 
     #MODEL INTEL:
     __parent_alias__ = 'project'
     __model_intel__ = [
-        PropIntel(name="data_name",             inh_name=None,                      label="Name",                               minimum=None,  maximum=None,  is_column=True,  ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="display_color",         inh_name="inherit_display_color",   label="Display color",                      minimum=None,  maximum=None,  is_column=True,  ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="data_based_on",         inh_name=None,                      label="Based on phase",                     minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=False, storable=False, observable=True,  has_widget=True),
-        PropIntel(name="data_G",                inh_name=None,                      label="# of components",                    minimum=None,  maximum=None,  is_column=True,  ctype=int,    refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="data_R",                inh_name=None,                      label="Reichweite",                         minimum=None,  maximum=None,  is_column=True,  ctype=int,    refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="data_mean_CSDS",        inh_name="inherit_mean_CSDS",       label="Mean CSDS",                          minimum=1.0,   maximum=None,  is_column=True,  ctype=float,  refinable=True,  storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="data_min_CSDS",         inh_name="inherit_min_CSDS",        label="Minimum CSDS",                       minimum=1.0,   maximum=None,  is_column=True,  ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="data_max_CSDS",         inh_name="inherit_max_CSDS",        label="Maximum CSDS",                       minimum=1.0,   maximum=None,  is_column=True,  ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="data_sigma_star",       inh_name="inherit_sigma_star",      label="$\sigma^*$ [°]",                  minimum=0.0,   maximum=90.0,  is_column=True,  ctype=float,  refinable=True,  storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="inherit_display_color", inh_name=None,                      label="Inh. display color",                 minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="inherit_mean_CSDS",     inh_name=None,                      label="Inh. mean CSDS",                     minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="inherit_min_CSDS",      inh_name=None,                      label="Inh. min CSDS",                      minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="inherit_max_CSDS",      inh_name=None,                      label="Inh. max CSDS",                      minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="inherit_sigma_star",    inh_name=None,                      label="Inh. sigma star",                    minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="inherit_probabilities", inh_name=None,                      label="Inh. probabilities",                 minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="data_probabilities",    inh_name="inherit_probabilities",   label="Probabilities",                      minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=True,  storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="data_components",       inh_name=None,                      label="Components",                         minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=True,  storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="needs_update",          inh_name=None,                      label="",                                   minimum=None,  maximum=None,  is_column=False, ctype=object, refinable=False, storable=False, observable=True,  has_widget=False),
-        PropIntel(name="dirty",                 inh_name=None,                      label="",                                   minimum=None,  maximum=None,  is_column=False, ctype=bool,   refinable=False, storable=False, observable=True,  has_widget=False),
+        PropIntel(name="data_name",                 inh_name=None,                          label="Name",                               minimum=None,  maximum=None,  is_column=True,  ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="display_color",             inh_name="inherit_display_color",       label="Display color",                      minimum=None,  maximum=None,  is_column=True,  ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_based_on",             inh_name=None,                          label="Based on phase",                     minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=False, storable=False, observable=True,  has_widget=True),
+        PropIntel(name="data_G",                    inh_name=None,                          label="# of components",                    minimum=None,  maximum=None,  is_column=True,  ctype=int,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_R",                    inh_name=None,                          label="Reichweite",                         minimum=None,  maximum=None,  is_column=True,  ctype=int,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_CSDS_distribution",    inh_name="inherit_CSDS_distribution",   label="CSDS Distribution",                  minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=True,  storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_sigma_star",           inh_name="inherit_sigma_star",          label="$\sigma^*$ [°]",                     minimum=0.0,   maximum=90.0,  is_column=True,  ctype=float,  refinable=True,  storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="inherit_display_color",     inh_name=None,                          label="Inh. display color",                 minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="inherit_CSDS_distribution", inh_name=None,                          label="Inh. mean CSDS",                     minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="inherit_sigma_star",        inh_name=None,                          label="Inh. sigma star",                    minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="inherit_probabilities",     inh_name=None,                          label="Inh. probabilities",                 minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_probabilities",        inh_name="inherit_probabilities",       label="Probabilities",                      minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=True,  storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_components",           inh_name=None,                          label="Components",                         minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=True,  storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="needs_update",              inh_name=None,                          label="",                                   minimum=None,  maximum=None,  is_column=False, ctype=object, refinable=False, storable=False, observable=True,  has_widget=False),
+        PropIntel(name="dirty",                     inh_name=None,                          label="",                                   minimum=None,  maximum=None,  is_column=False, ctype=bool,   refinable=False, storable=False, observable=True,  has_widget=False),
     ]
     
     #SIGNALS:
@@ -565,10 +616,13 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStoreChi
         if value!=self._dirty:
             self._dirty = value
 
-    _inherit_display_color = False   
-    _inherit_mean_CSDS = False
-    _inherit_min_CSDS = False
-    _inherit_max_CSDS = False
+    @property
+    def _inherit_CSDS_distribution(self):
+        return self._data_CSDS_distribution.data_inherited
+    @_inherit_CSDS_distribution.setter
+    def _inherit_CSDS_distribution(self, value):
+        self._data_CSDS_distribution.data_inherited = value
+    _inherit_display_color = False
     _inherit_sigma_star = False
     _inherit_probabilities = False
     @Model.getter(*[prop.inh_name for prop in __model_intel__ if prop.inh_name])
@@ -606,16 +660,13 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStoreChi
             return self.data_based_on.get_based_on_root()
         else:
             return self
-    
+                
     #INHERITABLE PROPERTIES:
-    _display_color = "#FFB600"
-    _data_mean_CSDS = 10.0
-    data_mean_CSDS_range = [0,500]
-    _data_min_CSDS = 1.0
-    _data_max_CSDS = 50.0
     _data_sigma_star = 3.0
     data_sigma_star_range = [0,90]
+    _data_CSDS_distribution = None
     _data_probabilities = None
+    _display_color = "#FFB600"
     @Model.getter(*[prop.name for prop in __model_intel__ if prop.inh_name])
     def get_inheritable(self, prop_name):
         inh_name = "inherit_" + prop_name.replace("data_", "", 1)
@@ -626,13 +677,22 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStoreChi
     @Model.setter(*[prop.name for prop in __model_intel__ if prop.inh_name])
     def set_inheritable(self, prop_name, value):
         prob = (prop_name == "data_probabilities")
+        csds = (prop_name == "data_CSDS_distribution")
         col = (prop_name == "display_color")
         if prob and self._data_probabilities:
             self.relieve_model(self._data_probabilities)
+            self._data_probabilities.parent = None
+        if csds and self._data_CSDS_distribution:
+            self.relieve_model(self._data_CSDS_distribution)
+            self._data_CSDS_distribution.parent = None
         setattr(self, "_%s" % prop_name, value)
         if prob and self._data_probabilities:
             self._data_probabilities.update()
+            self._data_probabilities.parent = self
             self.observe_model(self._data_probabilities)
+        if csds and self._data_CSDS_distribution:
+            self._data_CSDS_distribution.parent = self
+            self.observe_model(self._data_CSDS_distribution)
         if not col: self.dirty = True
         self.needs_update.emit()
         self.liststore_item_changed()
@@ -673,17 +733,21 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStoreChi
         "#441177",
     ]
     
+    #REFINEMENT GROUP IMPLEMENTATION:
+    @property
+    def refine_title(self):
+        return self.data_name
+    
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
     def __init__(self, data_name=None, display_color=None, data_sigma_star=None, 
                  data_G=None, data_R=0, based_on_index = None, based_on_uuid = None,
-                 data_mean_CSDS=None, data_max_CSDS=None, data_min_CSDS=None, 
+                 data_CSDS_distribution=None, data_mean_CSDS=None,
                  data_probabilities=None, data_components=None,
                  inherit_display_color=False, inherit_sigma_star=False,
-                 inherit_mean_CSDS=False, inherit_min_CSDS=False, inherit_max_CSDS=False, 
-                 inherit_probabilities=False, inherit_wtfractions=False,
-                 parent=None):
+                 inherit_CSDS_distribution=False, inherit_probabilities=False, 
+                 inherit_wtfractions=False, parent=None, **kwargs):
         ChildModel.__init__(self, parent=parent)
         Storable.__init__(self)
         self._dirty = True
@@ -693,16 +757,15 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStoreChi
         
         self.data_name = data_name or self.data_name
         
+        data_mean_CSDS = data_mean_CSDS or 10
+        self.data_CSDS_distribution = self.parse_init_arg(
+            data_CSDS_distribution, DritsCSDSDistribution(parent=self, average=data_mean_CSDS), child=True)
+        self.inherit_CSDS_distribution = inherit_CSDS_distribution
+            
         self._display_color = display_color or choice(self.line_colors)
-        self._data_mean_CSDS = data_mean_CSDS or self.data_mean_CSDS
-        self._data_min_CSDS = data_min_CSDS or self.data_min_CSDS
-        self._data_max_CSDS = data_max_CSDS or self.data_max_CSDS
         self._data_sigma_star = data_sigma_star or self.data_sigma_star 
         
         self.inherit_display_color = inherit_display_color       
-        self.inherit_mean_CSDS = inherit_mean_CSDS
-        self.inherit_min_CSDS = inherit_min_CSDS
-        self.inherit_max_CSDS = inherit_max_CSDS
         self.inherit_sigma_star = inherit_sigma_star
 
 
@@ -810,57 +873,15 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStoreChi
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------  
-    """def get_lorentz_polarisation_factor(self, range_theta, S, S1S2):
-        ss = max(self.data_sigma_star, 0.0000000000001)
-        Q = S / (sqrt8 * np.sin(range_theta) * ss)
-        T = erf(Q) * sqrt2pi / (2.0*ss * S) - 2.0*np.sin(range_theta) * (1.0- np.exp(-(Q**2.0))) / (S**2.0)
-        return (1.0 + np.cos(2.0*range_theta)**2) * T / np.sin(range_theta)"""    
-    
-    __last_Tmean = None
-    __last_Tmax = None
-    __last_Tmin = None
-    __last_Tdistr = None
-    __last_Qdistr = None
     def _update_interference_distributions(self):
-        Tmean = max(self.data_mean_CSDS, 1)
-        Tmax = self.data_max_CSDS
-        Tmin = self.data_min_CSDS
-
-        if self.__last_Tmean != Tmean or self.__last_Tmax != Tmax or self.__last_Tmin != Tmin:
-            a = 0.9485 * log(Tmean) - 0.017
-            b = sqrt(0.1032*log(Tmean) + 0.0034)
-            
-            steps = int(Tmax - Tmin) + 1
-            
-            smq = 0
-            q_log_distr = []
-            TQDistr = dict()
-            for i in range(steps):
-                T = max(Tmin + i, 1e-50)
-                q = lognormal(T, a, b)
-                smq += q
-                
-                TQDistr[int(T)] = q
-                
-            Rmean = 0
-            for T,q in TQDistr.iteritems():
-                TQDistr[T] = q / smq
-                Rmean += T*q
-            Rmean /= smq
-            self.__last_Tmean = Tmean
-            self.__last_Tmax = Tmax
-            self.__last_Tmin = Tmin
-            self.__last_Trest = (TQDistr.items(), TQDistr, Rmean)
-            
-        return self.__last_Trest
+        return self.data_CSDS_distribution.distrib
        
     def get_CSDS_matrices(self, Q):
-        Qn = np.empty((self.data_max_CSDS+1,), dtype=object)
+        Qn = np.empty((self.data_CSDS_distribution.maximum+1,), dtype=object)
         Qn[1] = np.copy(Q)
-        for n in range(2, int(self.data_max_CSDS+1)):
+        for n in range(2, int(self.data_CSDS_distribution.maximum+1)):
             Qn[n] = mmult(Qn[n-1], Q)
         return Qn
-
        
     _cached_diffracted_intensities = None
     def get_diffracted_intensity (self, range_theta, range_stl, lpf_callback, quantity, correction_range):
@@ -921,9 +942,9 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStoreChi
                     ################### FIRST WAY ###################                 
                     SubTotal = np.zeros(Q.shape, dtype=np.complex)
                     CSDS_I = repeat_to_stl(np.identity(rank, dtype=np.complex) * real_mean)
-                    for n in range(1, int(self.data_max_CSDS)+1):
+                    for n in range(self.data_CSDS_distribution.minimum, int(self.data_CSDS_distribution.maximum)+1):
                         factor = 0
-                        for m in range(n+1, int(self.data_max_CSDS)+1):
+                        for m in range(n+1, int(self.data_CSDS_distribution.maximum)+1):
                             factor += (m-n) * ddict[m]
                         SubTotal += 2 * factor * Qn[n]
                     SubTotal = (CSDS_I + SubTotal)
@@ -961,10 +982,7 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStoreChi
             volume = component.get_volume()
             mean_volume += (volume * wtfraction)
             mean_density +=  (component.get_weight() * wtfraction / volume)
-        if self.__last_Tmean == None or self.__last_Tmean != self.data_mean_CSDS:
-            distr, ddict, real_mean = self._update_interference_distributions()
-        else:
-            distr, ddict, real_mean = self.__last_Trest
+        distr, ddict, real_mean = self._update_interference_distributions()
         return mean_d001 / (real_mean *  mean_volume**2 * mean_density)
 
     pass #end of class

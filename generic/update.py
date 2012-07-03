@@ -120,7 +120,7 @@ class Updater(gtk.Dialog):
 
 def update():
     try:
-        response = urllib2.urlopen(settings.UPDATE_URL+'version')
+        response = urllib2.urlopen(settings.UPDATE_URL+'version', timeout=3)
         html = response.read()
         last_version, filename = html.split("\n")[:2]
         if mycmp(last_version, settings.VERSION) >= 1:

@@ -8,8 +8,6 @@
 
 import gtk
 
-from generic.mathtext_support import create_image_from_mathtext
-
 from generic.views import BaseView, HasChildView
 from probabilities.models import RGbounds
 
@@ -84,16 +82,10 @@ class IndependentsView(BaseView, HasChildView, ProbabilityViewMixin):
             for i, (prop, lbl) in enumerate(labels):
                 prop, lbl = labels[i]
                 
-                try:
-                    new_lbl = create_image_from_mathtext(lbl)
-                except:
-                    new_lbl = gtk.Label(lbl % { "i": i })
-                    new_lbl.set_use_markup(True)
-                    new_lbl.set_property('justify', gtk.JUSTIFY_CENTER)
-                    raise
+                new_lbl = self.create_mathtext_widget(lbl)
                 
                 new_inp = gtk.Entry()
-                new_inp.set_tooltip_text(lbl % { "i": i })
+                new_inp.set_tooltip_text(lbl)
                 new_inp.set_name(prop)                    
                 self["prob_%s" % prop] = new_inp
                 input_widgets[i] = new_inp

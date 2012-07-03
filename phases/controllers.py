@@ -26,8 +26,93 @@ from probabilities.models import get_Gbounds_for_R, get_Rbounds_for_G
 from probabilities.controllers import EditProbabilitiesController
 from probabilities.views import EditProbabilitiesView
 
-from phases.views import EditPhaseView, InlineObjectListStoreView, EditComponentView, AddPhaseView, EditUnitCellPropertyView
+from phases.views import EditPhaseView, InlineObjectListStoreView, EditComponentView, AddPhaseView, EditUnitCellPropertyView, EditCSDSDistributionView
 from phases.models import Phase, Component, ComponentRatioFunction
+
+from phases.CSDS_models import CSDS_distribution_types
+
+class EditCSDSTypeController(ChildController):
+
+    distributions_controller = None
+
+    def reset_type_store(self):
+        combo = self.view["cmb_type"]
+        store = gtk.ListStore(str, object)
+        
+        for cls in CSDS_distribution_types:
+            store.append([cls.__description__, cls])
+        combo.set_model(store)
+
+        for row in store:
+            if type(self.model.data_CSDS_distribution) == store.get_value(row.iter, 1):
+                combo.set_active_iter(row.iter)
+                break
+        return store
+
+    def register_adapters(self):
+        if self.model is not None:
+            combo = self.view["cmb_type"]
+            store = self.reset_type_store()
+            
+            combo.connect('changed', self.on_changed)
+            
+            cell = gtk.CellRendererText()
+            combo.pack_start(cell, True)
+            combo.add_attribute(cell, 'markup', 0)                    
+
+            if self.distributions_controller==None:      
+                self.distributions_controller = EditCSDSDistributionController(
+                    model=self.model.data_CSDS_distribution,
+                    view=self.view,
+                    parent=self)
+            else:
+                self.distributions_controller.reset_model(self.model)
+            
+            return
+       
+    # ------------------------------------------------------------
+    #      GTK Signal handlers
+    # ------------------------------------------------------------
+    def on_changed(self, combo, user_data=None):
+        itr = combo.get_active_iter()
+        if itr != None:
+            cls = combo.get_model().get_value(itr, 1)
+            if not type(self.model.data_CSDS_distribution) == cls:
+                new_csds_model = cls(parent=self.model)
+                self.model.data_CSDS_distribution = new_csds_model
+                self.distributions_controller.reset_model(new_csds_model)
+                    
+    pass #end of class
+
+class EditCSDSDistributionController(ChildController):
+    
+    def reset_model(self, new_model):
+        self.relieve_model(self.model)
+        self.model = new_model
+        self.observe_model(new_model)
+        self.register_adapters()
+            
+    def register_adapters(self):
+        if self.model is not None:
+            self.view.reset_params()
+            for intel in self.model.__model_intel__:
+                if intel.refinable:
+                    widget = self.view.add_param_widget(intel.label, intel.minimum, intel.maximum)
+                    #adapt the widget to the model property:
+                    adapter = Adapter(self.model, intel.name)
+                    adapter.connect_widget(widget)
+                    self.adapt(adapter)
+            self.view.update_figure(self.model.distrib[1])
+    
+    # ------------------------------------------------------------
+    #      Notifications of observable properties
+    # ------------------------------------------------------------
+    @Controller.observe("updated", signal=True)
+    def notif_updated(self, model, prop_name, info):
+        self.view.update_figure(self.model.distrib[1])
+        return
+    
+    pass #end of class    
 
 class EditUnitCellPropertyController(ChildController):
 
@@ -89,7 +174,7 @@ class EditUnitCellPropertyController(ChildController):
                     self.adapt(name, "opt_enabled")
                     self.view["opt_disabled"].set_active(not self.model.data_enabled)
                     self.view["opt_enabled"].set_active(self.model.data_enabled)
-                elif not name in ("data_name", "parent", "added", "removed"):
+                elif not name in self.model.__have_no_widget__:
                     FloatEntryValidator(self.view[name])
                     self.adapt(name)
             self.update_sensitivities()
@@ -498,9 +583,15 @@ class EditPhaseController(ChildController):
 
     def register_view(self, view):
         ChildController.register_view(self, view)
-        
-        self.probabilities_view = EditProbabilitiesView(parent=self.view)
-        self.view.set_probabilities_view(self.probabilities_view)
+
+        self.csds_view = EditCSDSDistributionView(parent=self.view)
+        self.view.set_csds_view(self.csds_view)
+                
+        if self.model.data_G > 1:
+            self.probabilities_view = EditProbabilitiesView(parent=self.view)
+            self.view.set_probabilities_view(self.probabilities_view)
+        else:
+            self.view.remove_probabilities()
         
         self.components_view = ChildObjectListStoreView(display_buttons=False, parent=self.view)
         self.view.set_components_view(self.components_view)
@@ -508,7 +599,7 @@ class EditPhaseController(ChildController):
     def register_adapters(self):
         if self.model is not None:
             for name in self.model.get_properties():
-                if name in ["data_all_atoms", "parent", "added", "removed", "needs_update", "dirty"]:
+                if name in self.model.__have_no_widget__:
                     pass
                 elif name == "data_name":
                     self.adapt(name, "phase_data_name")
@@ -536,12 +627,20 @@ class EditPhaseController(ChildController):
                     ad = Adapter(self.model, name)
                     ad.connect_widget(self.view["phase_data_%s" % name], getter=get_color_val)
                     self.adapt(ad)
+                elif name == "data_CSDS_distribution":
+                    self.csds_controller = EditCSDSTypeController(model=self.model, view=self.csds_view, parent=self)
                 elif name == "data_components":
                     self.components_controller = ComponentsController(model=self.model, view=self.components_view, parent=self)
                 elif name == "data_probabilities":
-                    self.probabilities_controller = EditProbabilitiesController(model=self.model.data_probabilities, view=self.probabilities_view, parent=self)
+                    if self.model.data_G > 1:
+                        self.probabilities_controller = EditProbabilitiesController(model=self.model.data_probabilities, view=self.probabilities_view, parent=self)
                 elif name.find("inherit") is not -1 or name == "data_numcomp":
                     self.adapt(name)
+                elif name == "data_sigma_star":
+                    widget = self.view.add_scale_widget("align_sigma_star", self.model.get_prop_intel_by_name(name), "phase_%s" % name, enforce_range=True)
+                    adapter = Adapter(self.model, name)
+                    adapter.connect_widget(widget)
+                    self.adapt(adapter)
                 else:
                     FloatEntryValidator(self.view["phase_%s" % name])
                     self.adapt(name)
@@ -551,25 +650,24 @@ class EditPhaseController(ChildController):
     def update_sensitivities(self):
         can_inherit = (self.model.data_based_on != None)
         
-        for name in ("min_CSDS", "max_CSDS", "mean_CSDS", "sigma_star", "display_color"):
+        for name in ("sigma_star", "display_color"):
             widget_name = "phase_data_%s" % name
             self.view[widget_name].set_sensitive(not (can_inherit and getattr(self.model, "inherit_%s" % name)))
             self.view[widget_name].set_visible(not (can_inherit and getattr(self.model, "inherit_%s" % name)))
             self.view["phase_inherit_%s" % name].set_sensitive(can_inherit)
 
-        sensitive = not (can_inherit and getattr(self.model, "inherit_probabilities"))            
-        self.view["phase_data_probabilities"].set_sensitive(sensitive)
-        if not sensitive: self.view["phase_data_probabilities"].set_expanded(sensitive)
-        self.view["phase_inherit_probabilities"].set_sensitive(can_inherit)
+        for name in ("CSDS_distribution", "probabilities"):
+            sensitive = not (can_inherit and getattr(self.model, "inherit_%s" % name))            
+            self.view["phase_data_%s" % name].set_sensitive(sensitive)
+            self.view["phase_inherit_%s" % name].set_sensitive(can_inherit)
+            if not sensitive: self.view["phase_data_%s" % name].set_expanded(sensitive)
 
     # ------------------------------------------------------------
     #      Notifications of observable properties
     # ------------------------------------------------------------
     @Controller.observe("inherit_display_color", assign=True)    
     @Controller.observe("inherit_sigma_star", assign=True)
-    @Controller.observe("inherit_min_CSDS", assign=True)    
-    @Controller.observe("inherit_max_CSDS", assign=True)    
-    @Controller.observe("inherit_mean_CSDS", assign=True)
+    @Controller.observe("inherit_CSDS_distribution", assign=True)
     @Controller.observe("inherit_probabilities", assign=True)
     def notif_change_data_inherit(self, model, prop_name, info):
         self.update_sensitivities()
@@ -577,8 +675,9 @@ class EditPhaseController(ChildController):
     
     @Controller.observe("data_probabilities", assign=True)
     def notif_change_data_probabilities(self, model, prop_name, info):
-        self.probabilities_controller.relieve_model(self.probabilities_controller.model)
-        del self.probabilities_controller
+        if hasattr(self, "probabilities_controller"):
+            self.probabilities_controller.relieve_model(self.probabilities_controller.model)
+            del self.probabilities_controller
         self.probabilities_controller = EditProbabilitiesController(model=self.model.data_probabilities, view=self.probabilities_view, parent=self)
         return
     

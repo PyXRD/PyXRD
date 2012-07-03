@@ -40,11 +40,12 @@ class RefinementController(DialogController):
             #col.set_cell_data_func(rend, get_name, data=None)
            
             rend = gtk.CellRendererPixbuf()
+            rend.set_alignment(0.0, 0.5)
             col = gtk.TreeViewColumn('Name/Prop', rend)
             def get_pb(column, cell, model, itr, user_data=None):
                 ref_prop = model.get_user_data(itr)            
                 if not hasattr(ref_prop, "pb") or not ref_prop.pb:
-                    ref_prop.pb = create_pb_from_mathml(ref_prop.title)
+                    ref_prop.pb = create_pb_from_mathtext(ref_prop.title, align='left', weight='medium')
                 cell.set_property("pixbuf", ref_prop.pb)
                 return
             col.set_cell_data_func(rend, get_pb, data=None)

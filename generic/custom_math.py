@@ -8,6 +8,8 @@
 
 #TODO move some more stuff from utils.py here
 
+from math import log10, floor
+
 import numpy as np
 from numpy.core.umath_tests import matrix_multiply as mmultr
 
@@ -31,3 +33,9 @@ def solve_division(A,B):
     bt = np.transpose(B, axes=(0,2,1))
     at = np.transpose(A, axes=(0,2,1))
     return np.array([np.transpose(np.linalg.lstsq(bt[i], at[i])[0]) for i in range(bt.shape[0])])
+    
+def round_sig(x, sig=1):
+    if x == 0:
+        return 0
+    else:
+        return round(x, sig-int(floor(log10(abs(x))))-1)

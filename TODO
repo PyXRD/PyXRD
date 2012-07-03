@@ -1,8 +1,10 @@
-- MLM support
-    - add triple and quadruple layer support for R1 & R2
+- fix refinement
+    - move inheritance of probabilities down to the indepent parameters level
+    - finetune genetic algorithm
+    - maybe add brute force algorithm
+- add triple layer support for R2
 - add more 'default' phases
 - default directory when Open File dialog is opened
-- add custom CSDS distributions
 - add manual Y limit option (in raw counts?)
 - add zip project files (*.zpd)
 - split large object stores in project zip file into separate files in the zip file
@@ -28,3 +30,19 @@ def my_task(data):
    def on_start_my_task_button_click(data):
         task = my_task(data)
         gobject.idle_add(task.next)
+        
+    __explanation__ = r"A log-normal CSDS distribution using the following formulas:$\newline" + \
+        r"\alpha = 0.9485 \cdot ln{\bar T} - 0.017\newline" + \
+        r"\beta^2 = 0.1032 \cdot ln{\bar T} - 0.0034\newline" + \
+        r"f(T) = \frac{1}{\beta T \sqrt{2\pi}} \cdot e^{\left( \frac{(ln{T} - \alpha)^2}{2\beta^2} \right)}\newline$" + \
+        r"reference: Drits V, Srodon J, Eberl DD (1997). XRD measurement$\newline$" + \
+        r"of mean crystallite thickness of illite and illite/smectite: $\newline$" + \
+        r"reappraisal of the Kubler index and the Scherrer equation. $\newline$" + \
+        r"Clays and Clay Minerals, vol. 45, pp. 461-475."
+        
+    __explanation__ = r"$A log-normal CSDS distribution using the following formulas:\newline" + \
+        r"\alpha = \alpha_{scale} \dot \ln{\bar T} - \alpha_{offset}\newline" + \
+        r"\beta^2 = \beta_{scale} \dot \ln{\bar T} - \beta_{offset}\newline" + \
+        r"\mathit{f}(T) = \frac{1}{\beta T \sqrt{2\pi}} \dot e^{\left( frac{(\ln{T} - \alpha)^2}{2\beta^2} \right)}\newline" + \
+        r"reference: Eberl DD, \'Srodo\'n J, Kralik M, Taylor BE, Peterman ZE (1990). Ostwald ripening of clays and metamorphic minerals. Science vol. 248, pp. 474-477.$"
+

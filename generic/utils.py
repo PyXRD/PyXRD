@@ -59,7 +59,7 @@ def print_timing(func):
 
 
 class delayed(object):
-    def __init__(self, lock=None, delay=500):
+    def __init__(self, lock=None, delay=250):
         self.__lock = lock
         self.__delay = delay
         self.__tmrid = dict()

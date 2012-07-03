@@ -6,29 +6,51 @@
 # To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/3.0/ or send
 # a letter to Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
 
+import gtk
+
+import matplotlib
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_gtkcairo import FigureCanvasGTKCairo as FigureCanvasGTK
+
 from generic.views import BaseView, HasChildView, DialogView, NoneView
+from generic.widgets import ScaleEntry
 
 class EditPhaseView(BaseView, HasChildView):
     title = "Edit Phases"
     builder = "phases/glade/phase.glade"
     top = "edit_phase"
 
-    components_view = None    
-    components_view_container = "comp_container"
+    csds_view = None    
+    csds_view_container = "csds_container"
     
     probabilities_view = None    
     probabilities_view_container = "prob_container"
-    
-    def set_components_view(self, view):
-        self.components_view = view
+
+    components_view = None    
+    components_view_container = "comp_container"
+           
+    def set_csds_view(self, view):
+        self.csds_view = view
         if view != None:
-            self._add_child_view(view.get_top_widget(), self[self.components_view_container])
+            self._add_child_view(view.get_top_widget(), self[self.csds_view_container])
         return view
         
     def set_probabilities_view(self, view):
         self.probabilities_view = view
         if view != None:
             self._add_child_view(view.get_top_widget(), self[self.probabilities_view_container])
+        return view
+        
+    def remove_probabilities(self):
+        table =self[self.top]
+        table.remove(self["hbox_prob"])
+        newtop = table.child_get_property(self["hbox_comp"], "top-attach") - 1
+        table.child_set_property(self["hbox_comp"], "top-attach", newtop)
+        
+    def set_components_view(self, view):
+        self.components_view = view
+        if view != None:
+            self._add_child_view(view.get_top_widget(), self[self.components_view_container])
         return view
     
 class InlineObjectListStoreView(BaseView):
@@ -99,6 +121,64 @@ class EditComponentView(BaseView, HasChildView):
 class EditUnitCellPropertyView(BaseView):
     builder = "phases/glade/unit_cell_prop.glade"
     top = "box_ucf"
+    
+class EditCSDSDistributionView(BaseView):
+    builder = "phases/glade/csds.glade"
+    top = "tbl_csds_distr"
+    
+    def __init__(self, *args, **kwargs):
+        BaseView.__init__(self, *args, **kwargs)
+        
+        self.graph_parent = self["distr_plot_box"]
+        self.setup_matplotlib_widget()
+        
+    def setup_matplotlib_widget(self):
+        style = gtk.Style()
+        self.figure = Figure(dpi=72, edgecolor=str(style.bg[2]), facecolor=str(style.bg[2]))
+           
+        self.plot = self.figure.add_subplot(111)       
+        self.figure.subplots_adjust(bottom=0.20)
+        
+        self.matlib_canvas = FigureCanvasGTK(self.figure)
+    
+        self.plot.autoscale_view()
+    
+        self.graph_parent.add(self.matlib_canvas)
+        self.graph_parent.show_all()
+        
+    def update_figure(self, distr_dict):
+        self.plot.cla()
+        keys, vals = distr_dict.keys(), distr_dict.values()
+        #ymax = max(vals)
+        self.plot.hist(keys, len(keys), weights=vals, normed=1, ec='b', histtype='stepfilled')
+        self.plot.set_ylabel('')
+        self.plot.set_xlabel('CSDS', size=14, weight="heavy")
+        self.plot.relim()
+        self.plot.autoscale_view()
+        if self.matlib_canvas != None:
+            self.matlib_canvas.draw()
+    
+    def reset_params(self):
+        tbl = self["tbl_params"]
+        for child in tbl.get_children():
+            tbl.remove(child)
+        tbl.resize(1,2)
+    
+    def add_param_widget(self, label, minimum, maximum):
+        tbl = self["tbl_params"]
+        rows = tbl.get_property("n-rows") + 1
+        tbl.resize(rows, 2)
+        
+        lbl = gtk.Label(label)
+        lbl.set_alignment(1.0,0.5)
+        tbl.attach(lbl, 0, 1, rows-1, rows, gtk.FILL, gtk.FILL)
+                
+        inp = ScaleEntry(minimum, maximum, enforce_range=True)
+        tbl.attach(inp, 1, 2, rows-1, rows, gtk.FILL, gtk.FILL)
+        
+        tbl.show_all()
+        
+        return inp
     
 class AddPhaseView(DialogView):
     title = "Add Phase"

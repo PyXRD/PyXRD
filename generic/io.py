@@ -88,11 +88,11 @@ class Storable(object):
             "properties": self.json_properties()
         }
     
-    def parse_init_arg(self, arg, default, child=False):
+    def parse_init_arg(self, arg, default, child=False, **kwargs):
         if arg==None:
             return default
         elif isinstance(arg, dict) and "type" in arg and "properties" in arg:
-            arg = PyXRDDecoder(parent=self if child else None).__pyxrd_decode__(arg)
+            arg = PyXRDDecoder(parent=self if child else None).__pyxrd_decode__(arg, **kwargs)
             return arg
         else:
             return arg

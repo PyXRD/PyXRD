@@ -67,6 +67,13 @@ class PropIntel(object):
         object.__init__(self)
         for k, v in kwargs.iteritems():
             setattr(self, k, v)
+            
+    def __eq__(self, other):
+        return other!=None and self.name == other.name
+
+    def __neq__(self, other):
+        return other!=None and self.name != other.name
+
     pass #end of class
 
 class DefaultSignal (Signal):

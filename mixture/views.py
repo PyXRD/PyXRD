@@ -10,21 +10,70 @@ import gtk
 import numpy as np
 
 from generic.views import BaseView, DialogView
+from generic.widgets import ThreadedTaskBox
 from generic.validators import FloatEntryValidator
 
-class BusyView(BaseView):
-    builder = "mixture/glade/busy.glade"
-    top = "busy_window"
-    
-    def set_R(self, value):
-        self["lbl_R"].set_text("%.2f" % value)
-        
+#class BusyView(BaseView):
+#    title = "Refinement"
+#    builder = "mixture/glade/busy.glade"
+#    top = "busy_window"
+#    
+#    def set_R(self, value):
+#        self["lbl_R"].set_text("%.2f" % value)
+
 
 class RefinementView(DialogView):
     title = "Refine Phase Parameters"
     subview_builder = "mixture/glade/refinement.glade"
     subview_toplevel = "refine_params"
-    modal = True      
+    modal = True   
+    
+    refine_status_builder = "mixture/glade/refine_status.glade"
+    refine_status_toplevel = "tbl_refine_info"
+    refine_status_container = "refine_status_box"
+    
+    refine_spin_container = "refine_spin_box"
+    
+    def _before_hide_widgets(self):
+        DialogView._before_hide_widgets(self)
+        self._builder.add_from_file(self.refine_status_builder)
+        self._add_child_view(self[self.refine_status_toplevel], self[self.refine_status_container])
+        
+    def show_refinement_info(self, refine_function, gui_callback, complete_callback, initial_rp):
+    
+        self["hbox_actions"].set_sensitive(False)
+        self["lbl_rp_initial"].set_text("%.2f" % initial_rp)
+        
+        #TODO remove/kill/... previous spin box if present
+        
+        self.refine_spin_box = ThreadedTaskBox(refine_function, gui_callback, complete_callback, cancelable=True)
+        self.refine_spin_box.connect("complete", self.complete_function)
+        self.refine_spin_box.connect("cancelrequested", self.canceled_function)
+
+        self._add_child_view(self.refine_spin_box, self[self.refine_spin_container])
+        self.refine_spin_box.set_no_show_all(False)
+        self.refine_spin_box.set_visible(True)
+        self.refine_spin_box.show_all()
+        self[self.refine_status_toplevel].show_all()
+
+        self.refine_spin_box.start("Refining")
+       
+    def hide_refinement_info(self):
+        self[self.refine_status_toplevel].hide()
+        self.refine_spin_box.set_no_show_all(True)
+        self["hbox_actions"].set_sensitive(True)
+       
+    def update_refinement_info(self, current_rp=None):
+        self["lbl_rp_current"].set_text("%.2f" % current_rp)
+        
+    def complete_function(self, widget, data = None):
+        #TODO ask the user if he wishes to keep the current result,
+        # or if he wishes to discard the changes        
+        self.hide_refinement_info()
+ 
+    def canceled_function(self, widget, data=None):
+        self.hide_refinement_info()
+        
 
 class EditMixtureView(BaseView): #TODO add delete buttons as well!
     builder = "mixture/glade/edit_mixture.glade"

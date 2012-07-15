@@ -30,7 +30,7 @@ from mixture.refinement import RefinementGroup, RefinementValue
 from phases.CSDS_models import DritsCSDSDistribution
 from probabilities.models import get_correct_probability_model
 
-class ComponentPropMixin():
+class ComponentPropMixin(object):
 
     #
     # _data_prop contains a string (e.g. data_cell_a or data_layer_atoms.2) which can be parsed
@@ -124,6 +124,8 @@ class ComponentRatioFunction(ChildModel, Storable, ComponentPropMixin, ObjectLis
     def __init__(self, data_name="", data_sum=0.0, data_ratio=0.0, data_prop1="", data_prop2="", parent=None):
         ChildModel.__init__(self, parent=parent)
         Storable.__init__(self)
+        for cls in [ComponentPropMixin, ObjectListStoreChildMixin, RefinementValue]:
+            cls.__init__(self)
         
         self.data_name = data_name or self.data_name
         self.data_sum = data_sum or self._data_sum
@@ -248,7 +250,9 @@ class UnitCellProperty(ChildModel, Storable, ComponentPropMixin, RefinementValue
         return self.value
     @refine_value.setter
     def refine_value(self, value):
-        self.value = value
+        #print "REFINE VALUE SETTER CALLED"
+        if not self.data_enabled:
+            self.value = value
         
     @property 
     def is_refinable(self):
@@ -260,6 +264,8 @@ class UnitCellProperty(ChildModel, Storable, ComponentPropMixin, RefinementValue
     def __init__(self, data_name="", value=0.0, data_enabled=False, data_factor=0.0, data_constant=0.0, data_prop="", parent=None, **kwargs):
         ChildModel.__init__(self, parent=parent)
         Storable.__init__(self)
+        for cls in [ComponentPropMixin, RefinementValue]:
+            cls.__init__(self)
                
         self.data_name = data_name or self.data_name
         self.value = value or self._value
@@ -418,6 +424,9 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin, ObjectListStore
                  linked_with_index = None, linked_with_uuid = None, parent=None, **kwargs):
         ChildModel.__init__(self, parent=parent)
         Storable.__init__(self)
+        for cls in [ObjectListStoreChildMixin, ObjectListStoreParentMixin, RefinementGroup]:
+            cls.__init__(self)
+        
 
         self.data_name = data_name or self.data_name
 
@@ -573,7 +582,7 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin, ObjectListStore
         return self.data_d001
 
     def get_volume(self):
-        return self.data_cell_a * self.data_cell_b * self.data_cell_c
+        return max(self.data_cell_a * self.data_cell_b * self.data_cell_c, 1e-25)
 
     def get_weight(self):
         weight = 0
@@ -674,28 +683,45 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStoreChi
             return getattr(self.data_based_on, prop_name)
         else:
             return getattr(self, "_%s" % prop_name)
-    @Model.setter(*[prop.name for prop in __model_intel__ if prop.inh_name])
-    def set_inheritable(self, prop_name, value):
-        prob = (prop_name == "data_probabilities")
-        csds = (prop_name == "data_CSDS_distribution")
-        col = (prop_name == "display_color")
-        if prob and self._data_probabilities:
+            
+    def set_data_probabilities_value(self, value):
+        if self._data_probabilities:
             self.relieve_model(self._data_probabilities)
             self._data_probabilities.parent = None
-        if csds and self._data_CSDS_distribution:
-            self.relieve_model(self._data_CSDS_distribution)
-            self._data_CSDS_distribution.parent = None
-        setattr(self, "_%s" % prop_name, value)
-        if prob and self._data_probabilities:
+        self._data_probabilities = value
+        if self._data_probabilities:
             self._data_probabilities.update()
             self._data_probabilities.parent = self
             self.observe_model(self._data_probabilities)
-        if csds and self._data_CSDS_distribution:
-            self._data_CSDS_distribution.parent = self
-            self.observe_model(self._data_CSDS_distribution)
-        if not col: self.dirty = True
+        self.dirty = True
         self.needs_update.emit()
         self.liststore_item_changed()
+            
+    def set_data_CSDS_distribution_value(self, value):
+        if self._data_CSDS_distribution:
+            self.relieve_model(self._data_CSDS_distribution)
+            self._data_CSDS_distribution.parent = None
+        self._data_CSDS_distribution = value
+        if self._data_CSDS_distribution:
+            self._data_CSDS_distribution.parent = self
+            self.observe_model(self._data_CSDS_distribution)
+        self.dirty = True
+        self.needs_update.emit()
+        self.liststore_item_changed()
+            
+    def set_display_color_value(self, value):
+        if self._display_color != value:
+            self._display_color = value
+            self.needs_update.emit()
+            self.liststore_item_changed()
+        
+    def set_data_sigma_star_value(self, value):
+        value = float(value)
+        if self._data_sigma_star != value:
+            self._data_sigma_star = value
+            self.dirty = True
+            self.needs_update.emit()
+            self.liststore_item_changed()
     
     _data_components = None    
     def get_data_components_value(self): return self._data_components
@@ -750,6 +776,9 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStoreChi
                  inherit_wtfractions=False, parent=None, **kwargs):
         ChildModel.__init__(self, parent=parent)
         Storable.__init__(self)
+        for cls in [ObjectListStoreParentMixin, ObjectListStoreChildMixin, RefinementGroup]:
+            cls.__init__(self)
+        
         self._dirty = True
         self._cached_diffracted_intensities = dict()  
         

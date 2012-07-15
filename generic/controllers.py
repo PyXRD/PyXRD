@@ -213,7 +213,7 @@ class DialogController(BaseController):
     #      GTK Signal handlers
     # ------------------------------------------------------------
     def on_btn_ok_clicked(self, event):
-        self.view.hide()
+        self.on_cancel()
         return True
         
     def on_keypress(self, widget, event) :

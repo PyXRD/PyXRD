@@ -16,6 +16,8 @@ def generate_gene(minimum, maximum):
     class PyXRDGene(FloatGeneMax):
         randMin = minimum
         randMax = maximum
+        mutProb = 0.75
+        mutAmt = 0.25
         
     return PyXRDGene
 
@@ -24,9 +26,17 @@ def generate_organism(props, ranges, fitness_func):
     str_genome = { prop: generate_gene(*rng) for prop, rng in zip(str_props, ranges) }
     class Converger(Organism): #TODO make RefineableProperty to inherit from Organism
         genome = str_genome
+        mutateOneOnly = True
         
+        _last_fitness = None
+        _last_solution = None
         def fitness(self):
-            return fitness_func(self.get_solution())
+            solution = self.get_solution()
+            if self._last_fitness==None or np.any(self._last_solution!=solution):
+                self._last_fitness = fitness_func(solution)
+            self._last_solution = solution
+            return self._last_fitness
+            
             
         def get_solution(self):
             return np.array([self[prop] for prop in str_props])
@@ -35,10 +45,10 @@ def generate_organism(props, ranges, fitness_func):
 def run_genetic_algorithm(ref_props, x0, ranges, fitness_func, gui_callback=None, stagnation=0.0001, max_generations=100):
     # create an empty population
     print "Creating the first generation..."
-    pop = Population(species=generate_organism(ref_props, ranges, fitness_func), init=300)
-    pop.childCount = 50
+    pop = Population(species=generate_organism(ref_props, ranges, fitness_func), init=30)
+    pop.childCount = 30
     pop.incest = 2
-    pop.mutants = 0.3
+    pop.mutants = 0.8
     pop.mutateAfterMating = False
     
 
@@ -54,20 +64,20 @@ def run_genetic_algorithm(ref_props, x0, ranges, fitness_func, gui_callback=None
         
         #b.dump()
         print "Generation %s: best=%s average=%s" % (ngens, current, pop.fitness())
-        if callable(gui_callback):
-            gui_callback(current)
+        #if callable(gui_callback):
+        #    gui_callback(current)
             
         if last_fitness!=None and (last_fitness-current) / last_fitness <= stagnation:
-            if last_fitness < current:
+            if current < initial:
                 print "Stagnation after %d generations, result has improved, aborting and returning best solution" % ngens
                 print "\t initial fitness = %s" % initial
                 print "\t current fitness = %s" % current
-                return b.get_solution()
+                return b.get_solution(), current
             else:
                 print "Stagnation after %d generations, result has not improved, aborting and returning initial solution" % ngens
                 print "\t initial fitness = %s" % initial
                 print "\t current fitness = %s" % current            
-                return x0
+                return x0, initial
                 
         
         if ngens < max_generations:

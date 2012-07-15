@@ -143,7 +143,7 @@ class R1G3Model(_AbstractProbability):
     _G3 = 0
     _G4 = 0
     @Model.getter("G[1234]")
-    def get_G1(self, prop_name):
+    def get_G(self, prop_name):
         return getattr(self, "_%s"%prop_name)
     @Model.setter("G[1234]")
     def set_G(self, prop_name, value):

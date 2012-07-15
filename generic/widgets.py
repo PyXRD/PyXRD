@@ -2,6 +2,7 @@
 # ex:ts=4:sw=4:et=on
 
 # Author: Mathijs Dumon
+# ThreadedTaskBox based on code from Rick Spencer
 # This work is licensed under the Creative Commons Attribution-ShareAlike 3.0 Unported License. 
 # To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/3.0/ or send
 # a letter to Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
@@ -16,7 +17,7 @@ from gtkmvc.adapters.default import add_adapter
 from generic.validators import FloatEntryValidator
 from generic.custom_math import round_sig
 from generic.utils import delayed
-
+from generic.threads import KillableThread, GUIThread
 
 class ScaleEntry(HBox):
   
@@ -150,3 +151,136 @@ class ScaleEntry(HBox):
         
 gobject.type_register(ScaleEntry)
 add_adapter(ScaleEntry, "changed", ScaleEntry.get_value, ScaleEntry.set_value, types.FloatType)
+
+class ThreadedTaskBox(gtk.Table):
+    """
+        ThreadedTaskBox: encapsulates a spinner, label, cancel button and a long
+        running task. Use an ThreadedTaskBox when you want a window to perform a 
+        long running task in the background without freezing the UI for the user.
+    """
+  
+    __gsignals__ = {
+        'complete' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
+        'cancelrequested' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,))
+    }
+    
+    def __init__(self, run_function, gui_callback, complete_callback, params=None, cancelable=True):
+        """
+            Create an ThreadedTaskBox
+
+            Keyword arguments:
+            run_function -- the function to run in threaded mode
+            params -- optional dictionary of parameters to be pass into run_function
+            cancelable -- optional value to determine whether to show cancel button. Defaults to True.
+            Do not use a value with the key of 'kill' in the params dictionary
+        """
+        self.setup_ui(cancelable=cancelable)
+
+        self.run_function = run_function
+        self.gui_callback = gui_callback
+        self.complete_callback = complete_callback
+        self.pulse_thread = None
+        self.work_thread = None
+        self.params = params
+
+        self.connect("destroy", self.__destroy)
+
+ 
+    def setup_ui(self, cancelable=True):
+        gtk.Table.__init__(self, 2, 3)
+        self.set_row_spacings(10)
+        self.set_col_spacings(10)
+
+        self.descrlbl = gtk.Label("Status:")
+        self.descrlbl.show()
+        self.attach(self.descrlbl, 0, 3, 0, 1, xoptions=gtk.FILL, yoptions=0)
+
+        self.spinner = gtk.Spinner()
+        self.spinner.show()
+        self.attach(self.spinner, 0, 1, 1, 2, xoptions=0, yoptions=0)
+
+        self.label = gtk.Label()
+        self.label.show()
+        self.attach(self.label, 1, 2, 1, 2, xoptions=gtk.FILL, yoptions=0)
+
+        self.cancel_button = gtk.Button(stock=gtk.STOCK_CANCEL)
+        if cancelable:
+            self.cancel_button.show()
+        self.cancel_button.set_sensitive(False)
+        self.cancel_button.connect("clicked",self.__stop_clicked)
+        self.attach(self.cancel_button, 2, 3, 1, 2, xoptions=0, yoptions=0)
+ 
+    def start(self, caption="Working"):
+        """
+            executes run_function asynchronously and starts the spinner
+            Keyword arguments:
+            caption -- optional text to display in the label
+        """
+        #Throw an exception if the user tries to start an operating thread
+        if self.pulse_thread != None:
+            raise RuntimeError("ThreadedTaskBox already started.")
+
+        self.label.set_text(caption)
+        self.spinner.start()
+
+        #Create and start a thread to run the users task
+        #pass in a callback and the user's params
+        self.work_thread = KillableThread(self.run_function, self.__on_complete, self.params)
+        self.work_thread.start()
+  
+        #create a thread to display the user feedback
+        self.pulse_thread = GUIThread(self.gui_function)
+        self.pulse_thread.start()
+
+        #enable the button so the user can try to kill the task
+        self.cancel_button.set_sensitive( True )
+  
+    #call back function for after run_function returns
+    def __on_complete( self, data ):
+        gtk.gdk.threads_enter()
+        if callable(self.complete_callback): self.complete_callback(data)
+        gtk.gdk.threads_leave()
+        self.emit("complete", data)        
+        self.kill()
+
+    #call back function for cancel button
+    def __stop_clicked( self, widget, data = None ):
+        self.cancel()
+
+    def cancel(self):
+        self.kill()
+        self.emit("cancelrequested", self)
+
+    def gui_function(self):
+        if callable(self.gui_callback): self.gui_callback()
+
+    def kill(self, caption="Done"):
+        """
+            Stops spinning the spinner and sets the value of 'kill' to True in
+            the run_function.
+        """
+
+        #stop the pulse_thread and remove a reference to it if there is one
+        if self.pulse_thread != None:
+            self.pulse_thread.kill()
+            self.pulse_thread = None
+
+        #disable the cancel button since the task is about to be told to stop
+        self.cancel_button.set_sensitive( False )
+        #tell the users function tostop if it's thread exists
+        if self.work_thread != None:
+            self.work_thread.kill()
+            
+        self.spinner.stop()
+        self.label.set_text(caption)
+
+    def __destroy(self, widget, data = None):
+        #called when the widget is destroyed, attempts to clean up
+        #the work thread and the pulse thread
+        if self.work_thread != None:
+            self.work_thread.kill()
+        if self.pulse_thread != None:
+            self.pulse_thread.kill()
+            
+gobject.type_register(ThreadedTaskBox)
+

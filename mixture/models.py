@@ -23,7 +23,7 @@ from generic.io import Storable
 from generic.utils import print_timing, delayed
 from generic.model_mixins import ObjectListStoreChildMixin
 from generic.models import ChildModel, Storable, PropIntel, MultiProperty
-from generic.treemodels import IndexListStore, _BaseObjectListStore
+from generic.treemodels import ObjectTreeStore, _BaseObjectListStore
 
 from phases.models import Phase, Component, UnitCellProperty, ComponentRatioFunction
 from probabilities.base_models import _AbstractProbability
@@ -31,8 +31,6 @@ from specimen.models import Statistics
 
 from mixture.genetics import run_genetic_algorithm
 from mixture.refinement import _RefinementBase, RefinementValue, RefinementGroup
-
-
 
 class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
     #MODEL INTEL:
@@ -74,6 +72,10 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
     data_refine_method = MultiProperty(0, int, None, 
         { 0: "L BFGS B algorithm", 1: "Genetic algorithm" })
 
+    @property
+    def current_rp(self):
+        return self._calculate_total_rp(self._get_x0(), *self._get_rp_statics())
+
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
@@ -111,7 +113,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         self.data_phases = data_phases or list()        #list with mixture phase names, indexes match with cols in phase_matrix
         self.data_fractions = data_fractions or [0.0]*len(self.data_phases)  #list with phase fractions, indexes match with cols in phase_matrix
         
-        self.data_refinables = data_refinables or IndexListStore(RefinableProperty) 
+        self.data_refinables = data_refinables or ObjectTreeStore(RefinableProperty) 
         self.data_refine_method = data_refine_method or self.data_refine_method
         
         #sanity check:
@@ -153,7 +155,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         #    print refinable.obj, refinable.prop
         #    mixture.data_refinables.append(refinable)
         #del data_refinables #FIXME
-                
+        
         return mixture
     
     # ------------------------------------------------------------
@@ -211,21 +213,21 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
     def del_specimen(self, specimen):
         self._del_specimen_by_index(self.data_specimens.index(specimen))
     
+    # ------------------------------------------------------------
+    #      Refinement stuff:
+    # ------------------------------------------------------------ 
     def _get_x0(self):
         return np.array(self.data_fractions + self.data_scales + self.data_bgshifts)
     
     def _parse_x(self, x, n, m): #returns: fractions | scales | bgshifts
         return x[:m][:,np.newaxis], x[m:m+n], x[-n:]
-    
-    #@print_timing
-    def optimize(self, silent=False):
-        
+   
+    def _get_rp_statics(self):
         #1 get the different intensities for each phase for each specimen 
         #  -> each specimen gets a 2D np-array of size m,t with:
         #         m the number of phases        
         #         t the number of data points for that specimen
         n, m = self.data_phase_matrix.shape
-               
         calculated = [None]*n
         experimental = [None]*n
         selectors = [None]*n
@@ -237,39 +239,45 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
             calculated[i] = calc.copy()
             experimental[i] = specimen.data_experimental_pattern.xy_store.get_raw_model_data()[1].copy()
             selectors[i] = specimen.get_exclusion_selector(theta_range*todeg)
-                
+        return n, m, calculated, experimental, selectors
+   
+    def _calculate_total_rp(self, x, n, m, calculated, experimental, selectors):
+        tot_rp = 0.0
+        fractions, scales, bgshifts = self._parse_x(x, n, m)
+        for i in range(n):
+            calc = (scales[i] * np.sum(calculated[i]*fractions, axis=0)) + bgshifts[i]
+            exp = experimental[i][selectors[i]]
+            cal = calc[selectors[i]]
+            tot_rp += Statistics._calc_Rp(exp, cal)
+        return tot_rp
+    
+    #@print_timing
+    def optimize(self, silent=False, method=3):
+        """
+            Optimizes the current mixture fractions, scales and bg shifts.
+        """
+        #1. get stuff that doesn't change:
+        n, m, calculated, experimental, selectors = self._get_rp_statics()
 
-        #2 optimize the fractions
+        #2. define the objective function:
         def calculate_total_R2(x, *args):
-            #t1 = time.time()                
-            tot_Rp = 0.0
-            fractions, scales, bgshifts = self._parse_x(x, n, m)
-            for i in range(n):
-                calc = (scales[i] * np.sum(calculated[i]*fractions, axis=0)) + bgshifts[i]
-                exp = experimental[i][selectors[i]]
-                cal = calc[selectors[i]]
-                tot_Rp += Statistics._calc_Rp(exp, cal)
-            #t2 = time.time()         
-            #print '%s took %0.3f ms' % ("getting phase details %s" % i, (t2-t1)*1000.0) 
-            return tot_Rp
-                
+            return self._calculate_total_rp(x, n, m, calculated, experimental, selectors)
+            
+        #3. optimize the fractions:         
         x0 = self._get_x0()
         bounds = [(0,None) for el in x0]
-        method = 3
         lastx, lastR2 = None, None
         if method == 0: #L BFGS B
             iprint = -1 # if not settings.DEBUG else 0
             lastx, lastR2, info = scipy.optimize.fmin_l_bfgs_b(calculate_total_R2, x0, approx_grad=True, factr=1000, bounds=bounds, iprint=iprint)
         elif method == 1: #SIMPLEX
             disp = 0
-            lastx = scipy.optimize.fmin(calculate_total_R2, x0, disp=disp)
+            lastx, lastR2, itr, funcalls, warnflag = scipy.optimize.fmin(calculate_total_R2, x0, disp=disp, full_output=True)
         elif method == 2: #L BFGS B: FAST WIDE + SLOW NARROW
             lastx, lastR2 = Mixture.mod_l_bfgs_b(calculate_total_R2, x0, bounds)
         elif method == 3: #truncated Newton algorithm
              disp = 0
-             lastx, nfeval, rc = scipy.optimize.fmin_tnc(calculate_total_R2, x0, approx_grad=True, epsilon=0.05, bounds=bounds, disp=disp)
-       
-    
+             lastx, nfeval, rc = scipy.optimize.fmin_tnc(calculate_total_R2, x0, approx_grad=True, epsilon=0.05, bounds=bounds, disp=disp)   
        
         #rescale scales and fractions so they fit into [0-1] range, and round them to have 6 digits max:
         fractions, scales, bgshifts = self._parse_x(lastx, n, m)
@@ -288,10 +296,14 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         
         if not silent: self.has_changed.emit()
         
-        return lastR2   
+        return lastR2
        
     @staticmethod
     def mod_l_bfgs_b(func, x0, init_bounds, args=[], f1=1e12, f2=10):
+        """
+            Dual L BFGS B method. First a loose target is set with the bounds given by the user.
+            Then a slower, but more constrained run is made with the previously found solution.
+        """
         iprint = -1
         lastx, lastR2, info = scipy.optimize.fmin_l_bfgs_b(func, x0, approx_grad=True, factr=f1, bounds=init_bounds, args=args, iprint=iprint)
         lastx = np.array(lastx)        
@@ -306,106 +318,51 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         lastx, lastR2, info = scipy.optimize.fmin_l_bfgs_b(func, lastx, approx_grad=True, factr=f2, args=args, bounds=bounds, iprint=iprint)
         return lastx, lastR2
        
-    def update_refinement_treestore(self): #TODO add different CSDS distributions!
+    def update_refinement_treestore(self):
+        """
+            Called whenever the refinement view is opened, this creates a tree
+            store with the refinable properties and their minimum, maximum and
+            current value.
+        """
         unique_phases = np.unique(self.data_phase_matrix.flatten())
         
-        new_store = IndexListStore(RefinableProperty) 
-        def add_property(parent_itr, obj, prop, level):
-                
-            index = (obj, prop)
-            rp = None        
-            if self.data_refinables.index_in_model(index):
-                rp = self.data_refinables.get_item_by_index(index)
-                rp.level = level
-            else:
-                rp = RefinableProperty(obj, prop, sensitivity=0, refine=False, parent=self, level=level)
-            if not new_store.index_in_model(index):
-                return new_store.append(rp)
+        self.data_refinables.clear()
+         
+        def add_property(parent_itr, obj, prop):            
+            rp = RefinableProperty(obj, prop, sensitivity=0, refine=False, parent=self)
+            return self.data_refinables.append(parent_itr, rp)
             
-            
-        def parse_attribute(obj, attr, root_itr, root_level):
+        def parse_attribute(obj, attr, root_itr):
             """
                 obj: the object
                 attr: the attribute of obj or None if obj is the attribute
                 root_itr: the iter new iters should be put under
-                root_level: the current indent level
             """
             value = getattr(obj, attr) if attr!=None else obj
             
             if isinstance(value, RefinementValue): #Atom Ratios and UnitCellProperties
-                new_itr = add_property(root_itr, value, None, level=root_level+1)
+                new_itr = add_property(root_itr, value, None)
             elif hasattr(value, "iter_objects"): #object list store or similar
-                for new_obj in value.iter_objects(): parse_attribute(new_obj, None, root_itr, root_level)
+                for new_obj in value.iter_objects(): parse_attribute(new_obj, None, root_itr)
             elif isinstance(value, RefinementGroup): #Phases, Components, Probabilities
                 if len(value.refinables) > 0:
-                    new_itr = add_property(root_itr, obj, attr, level=root_level+1)
-                    for new_attr in value.refinables: parse_attribute(value, new_attr, new_itr, root_level+1)
+                    new_itr = add_property(root_itr, value, None)
+                    for new_attr in value.refinables: parse_attribute(value, new_attr, new_itr)
             else: #regular values
-                new_itr = add_property(root_itr, obj, attr, level=root_level+1)
-
+                new_itr = add_property(root_itr, obj, attr)
             
         for phase in unique_phases:
-            if phase: parse_attribute(phase, None, None, -1)
-            
-            """
-                phase_itr = add_property(None, phase, "data_name", level=0)
-                for phase_prop in phase.refinables:
-                    value = getattr(phase, phase_prop)
-                    
-                    if hasattr(value, "iter_objects"):
-                        for obj in value.iter_objects():
-                            if isinstance(obj, RefinementGroup):
-                                obj_itr = add_property(phase_itr, obj, level=1)
-                                for 
-                    
-                    if isinstance(phase_prop_val, _BaseObjectListStore): #components
-                        for comp in phase_prop_val.iter_objects():
-                            comp_itr = add_property(phase_itr, comp, "data_name", level=1)
-                            for comp_prop in comp.__refinables__:
-                                comp_prop_val = getattr(comp, comp_prop)
-                                if isinstance(comp_prop_val, _BaseObjectListStore): #ratios
-                                    for ratio in comp_prop_val.iter_objects():
-                                        add_property(comp_itr, ratio, "data_ratio", level=2)
-                                else:
-                                    add_property(comp_itr, comp, comp_prop, level=2)
-                    elif isinstance(phase_prop_val, _AbstractProbability):
-                        if phase.data_G > 1:
-                            prob = getattr(phase, "_%s" % phase_prop) #get real prob object
-                            prob_itr = add_property(phase_itr, prob, "data_name", level=1)
-                            for prop in prob.__refinables__:
-                                add_property(prob_itr, prob, prop, level=2)
-                    else:
-                        add_property(phase_itr, phase, phase_prop, level=1)"""
-        self.data_refinables = new_store
+            if phase: parse_attribute(phase, None, None)
     
-    def update_sensitivities(self):
-        if self.data_refinables!=None:
-            t1 = time.time()
-            for ref_prop in self.data_refinables._model_data:
-                item = ref_prop.obj
-                prop = ref_prop.prop
-                inh_prop = ref_prop.inh_prop
-                if ref_prop.refinable:
-                    original_value = ref_prop.value
-                    #try:
-                    ref_prop.value = original_value*0.95
-                    R1 = self.optimize(silent=True)
-                    ref_prop.value = original_value*1.05
-                    R2 = self.optimize(silent=True)
-                    ref_prop.sensitivity = (R2-R1) / (0.1*original_value)
-                    #except:
-                    #    pass
-                    #finally:
-                    ref_prop.value = original_value
-                    self.optimize(silent=True)
-                t2 = time.time()
-                if (t2-t1) > 0.5:
-                    t1 = time.time()
-                    while gtk.events_pending():
-                        gtk.main_iteration(False)
-    
+    last_refine_rp = 0.0
+        
     refine_lock = False
-    def refine(self, gui_callback):
+    def refine(self, params): #, gui_callback):
+        """
+            This refines the selected properties using the selected algorithm.
+            The method can be passes a callback to periodically update the gui.
+            This should be run asynchronously...
+        """
         if not self.refine_lock:
             self.refine_lock = True            
             ref_props = []
@@ -413,49 +370,63 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
             ranges = tuple()
         
             self.parent.freeze_updates()
-            
-            for ref_prop in self.data_refinables._model_data:
+                       
+            for ref_prop in self.data_refinables.iter_objects():
                 if ref_prop.refine and ref_prop.refinable:
                     ref_props.append(ref_prop)
                     values.append(ref_prop.value)
                     ranges = ranges + ((ref_prop.value_min, ref_prop.value_max),)
-                   
-            original_vals = values
             x0 = np.array(values, dtype=float)
+            initialR2 = self.current_rp
             
-            def fitness_func(new_values):
-                for i, ref_prop in enumerate(ref_props):
-                    if not (new_values.shape==()):
-                        ref_prop.value = new_values[i]
+            lastx = np.array(values, dtype=float)
+            lastR2 = initialR2            
+                        
+            if len(ref_props) > 0:      
+                def apply_solution(new_values):
+                    for i, ref_prop in enumerate(ref_props):
+                        if not (new_values.shape==()):
+                            ref_prop.value = new_values[i]
+                        else:
+                            ref_prop.value = new_values[()]
+                    self.last_refine_rp = self.optimize(silent=True, method=0)
+                
+                def fitness_func(new_values):
+                    if not params["kill"]:
+                        apply_solution(new_values)
+                        time.sleep(0.05)
+                        return self.last_refine_rp
                     else:
-                        ref_prop.value = new_values[()]
-                return self.optimize(silent=True)
+                        raise GeneratorExit
+                
+                try:
+                    if self.data_refine_method==0: #L BFGS B                
+                        global count
+                        count = 0        
+                        def gui_refine_func(new_values): #, gui_callback):
+                            R = fitness_func(new_values)
+                            #global count
+                            #count = count + 1
+                            #if count>=5:
+                            #    count = 0
+                            #    #if gui_callback!=None: gui_callback(R)
+                            #    while gtk.events_pending():
+                            #        gtk.main_iteration(False)
+                            return R
+                            
+                        lastx, lastR2 = Mixture.mod_l_bfgs_b(gui_refine_func, x0, ranges, args=[], f2=1e6) #gui_callback,
+                        #fitness_func(lastx) #apply last one                
+                
+                    elif self.data_refine_method==1: #GENETIC ALGORITHM
+                        lastx, lastR2 = run_genetic_algorithm(ref_props, x0, ranges, fitness_func) #, gui_callback)
+                        #fitness_func(lastx) #apply last one
+                except GeneratorExit:
+                    apply_solution(x0) #place back original result
+                    pass #exit
             
-            if self.data_refine_method==0: #L BFGS B
-            
-                global count
-                count = 0        
-                def gui_refine_func(new_values, gui_callback):
-                    R = fitness_func(new_values)
-                    global count
-                    count = count + 1
-                    if count>=5:
-                        count = 0
-                        if gui_callback!=None: gui_callback(R)
-                        while gtk.events_pending():
-                            gtk.main_iteration(False)
-                    print R
-                    return R
-                    
-                lastx, lastR2 = Mixture.mod_l_bfgs_b(gui_refine_func, x0, ranges, args=[gui_callback,], f2=1e6)
-                fitness_func(lastx) #apply last one                
-        
-            elif self.data_refine_method==1: #GENETIC ALGORITHM
-                lastx = run_genetic_algorithm(ref_props, x0, ranges, fitness_func, gui_callback)
-                fitness_func(lastx) #apply last one
-                    
             self.refine_lock = False
             self.parent.thaw_updates()
+            return x0, initialR2, lastx, lastR2, apply_solution
                     
     def apply_result(self):
         if self.auto_run: self.optimize()
@@ -473,8 +444,8 @@ class RefinableProperty(ChildModel, ObjectListStoreChildMixin, Storable):
     __index_column__ = "index"
     __model_intel__ = [ #TODO add labels
         PropIntel(name="title",             inh_name=None,         label="", minimum=None,  maximum=None,  is_column=True,  ctype=str,    refinable=False, storable=False, observable=True,  has_widget=True),
-        PropIntel(name="sensitivity",       inh_name=None,         label="", minimum=None,  maximum=None,  is_column=True,  ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
         PropIntel(name="refine",            inh_name=None,         label="", minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="refinable",         inh_name=None,         label="", minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=False, observable=True,  has_widget=False),
         PropIntel(name="prop",              inh_name=None,         label="", minimum=None,  maximum=None,  is_column=True,  ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
         PropIntel(name="inh_prop",          inh_name=None,         label="", minimum=None,  maximum=None,  is_column=True,  ctype=str,    refinable=False, storable=False, observable=True,  has_widget=True),        
         PropIntel(name="value",             inh_name=None,         label="", minimum=None,  maximum=None,  is_column=True,  ctype=float,  refinable=False, storable=False, observable=True,  has_widget=False),
@@ -483,7 +454,6 @@ class RefinableProperty(ChildModel, ObjectListStoreChildMixin, Storable):
         PropIntel(name="obj",               inh_name=None,         label="", minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=False, storable=False, observable=True,  has_widget=False),
         PropIntel(name="index",             inh_name=None,         label="", minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=False, storable=False, observable=True,  has_widget=False),
         PropIntel(name="prop_intel",        inh_name=None,         label="", minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=False, storable=False, observable=True,  has_widget=False),
-        PropIntel(name="level",             inh_name=None,         label="", minimum=None,  maximum=None,  is_column=True,  ctype=int,    refinable=False, storable=True,  observable=True,  has_widget=False),
     ]
     
     #PROPERTIES:
@@ -507,33 +477,26 @@ class RefinableProperty(ChildModel, ObjectListStoreChildMixin, Storable):
     def get_inh_prop_value(self):
         return self.prop_intel.inh_name if self.prop_intel else None
     
-    level = 0
     last_lbl=None
     last_pb=None
     def get_title_value(self):
-        fmt = "  "*self.level + "%s"
         if isinstance(self.obj, _RefinementBase) and self.prop_intel==None:
-            return fmt % self.obj.refine_title
+            return self.obj.refine_title
         else:
-            return fmt % self.prop_intel.label
+            return self.prop_intel.label
 
     def get_value_value(self):
-        if isinstance(self.obj, _RefinementBase):
+        if isinstance(self.obj, RefinementValue):
             return self.obj.refine_value
         else:
             return getattr(self.obj, self.prop)
     def set_value_value(self, value):
         value = max(min(value, self.value_max), self.value_min)
-        if isinstance(self.obj, _RefinementBase):
+        if isinstance(self.obj, RefinementValue):
             self.obj.refine_value = value
         else:
             setattr(self.obj, self.prop, value)
     
-    _sensitivity = 0
-    def get_sensitivity_value(self): return self._sensitivity
-    def set_sensitivity_value(self, value):
-        self._sensitivity = value
-        self.liststore_item_changed()
     _refine = False
     def get_refine_value(self): return self._refine
     def set_refine_value(self, value):
@@ -546,7 +509,7 @@ class RefinableProperty(ChildModel, ObjectListStoreChildMixin, Storable):
         
     @property
     def refinable(self):
-        if isinstance(self.value, _RefinementBase) and self.prop_intel==None:
+        if isinstance(self.obj, _RefinementBase) and self.prop_intel==None:
             return self.obj.is_refinable
         else:
             return (not self.inherited)
@@ -568,11 +531,9 @@ class RefinableProperty(ChildModel, ObjectListStoreChildMixin, Storable):
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def __init__(self, obj=None, prop=None, sensitivity=None, refine=None, obj_index=None, obj_uuid=None, level=0, parent=None, **kwargs):
+    def __init__(self, obj=None, prop=None, refine=None, obj_index=None, obj_uuid=None, parent=None, **kwargs):
         ChildModel.__init__(self, parent=parent)
         Storable.__init__(self)
-
-        self.level = level# or self.level
 
         if obj==None:
             if obj_uuid:
@@ -586,7 +547,6 @@ class RefinableProperty(ChildModel, ObjectListStoreChildMixin, Storable):
         self.value_min = kwargs.get("value_min", self.prop_intel.minimum if self.prop_intel else None) or self.value_min
         self.value_max = kwargs.get("value_max", self.prop_intel.maximum if self.prop_intel else None) or self.value_max
         
-        self.sensitivity = sensitivity or self.sensitivity
         self._refine = refine or self._refine
         
     # ------------------------------------------------------------

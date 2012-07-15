@@ -100,25 +100,25 @@ class LogNormalCSDSDistribution(_AbstractCSDSDistribution, RefinementGroup):
     _alpha_scale = 0.9485
     def get_alpha_scale_value(self): return self._alpha_scale
     def set_alpha_scale_value(self, value):
-        self._alpha_scale = value
+        self._alpha_scale = float(value)
         self.update_distribution()
     
     _alpha_offset = -0.017
     def get_alpha_offset_value(self): return self._alpha_offset
     def set_alpha_offset_value(self, value):
-        self._alpha_offset = value
+        self._alpha_offset = float(value)
         self.update_distribution()
         
     _beta_scale = 0.1032
     def get_beta_scale_value(self): return self._beta_scale
     def set_beta_scale_value(self, value):
-        self._beta_scale = value
+        self._beta_scale = float(value)
         self.update_distribution()
         
     _beta_offset = 0.0034
     def get_beta_offset_value(self): return self._beta_offset
     def set_beta_offset_value(self, value):
-        self._beta_offset = value
+        self._beta_offset = float(value)
         self.update_distribution()
     
     #REFINEMENT GROUP IMPLEMENTATION:
@@ -211,7 +211,7 @@ class DritsCSDSDistribution(LogNormalCSDSDistribution, RefinementValue):
         
     @property 
     def is_refinable(self):
-        return not self.inherited
+        return not self.data_inherited
     
     # ------------------------------------------------------------
     #      Initialisation and other internals

@@ -1,7 +1,10 @@
 - fix refinement
     - move inheritance of probabilities down to the indepent parameters level
+    - add async progress indicator
     - finetune genetic algorithm
     - maybe add brute force algorithm
+    - add ability to spawn a second PyXRD from current project (e.g. save to temp location)
+      in a headless mode and refine that refinement setup, allowing for multiple processes to refine different paramaters.
 - add triple layer support for R2
 - add more 'default' phases
 - default directory when Open File dialog is opened

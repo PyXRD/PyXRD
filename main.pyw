@@ -10,6 +10,9 @@
 
 if __name__ == "__main__":
 
+    import os
+    os.environ['LIBOVERLAY_SCROLLBAR'] = '0'
+
     from generic.loggers import PyXRDLogger
     PyXRDLogger.start_logging()
 
@@ -41,5 +44,8 @@ if __name__ == "__main__":
     v = AppView()
     c = AppController(m, v)
     
+    gtk.gdk.threads_init()
+    gtk.gdk.threads_enter()
     gtk.main()
+    gtk.gdk.threads_leave()
     PyXRDLogger.stop_logging()

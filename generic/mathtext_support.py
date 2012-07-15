@@ -26,7 +26,38 @@ def _handle_customs(text):
         fontsize = 15
     else:
         fontsize = 10
-    text = text.replace(r"\larger", r"").replace(r"\large", r"").replace(r"\newline", r"$\newline$")
+        
+    replacers = [ 
+        (r"²", r"$^{2}$"),
+        (r"³", r"$^{3}$"),
+        (r"α", r"$\alpha$"),
+        (r"β", r"$\beta$"),
+        (r"γ", r"$\gamma$"),
+        (r"δ", r"$\delta$"),
+        (r"ϝ", r"$\digamma$"),
+        (r"η", r"$\eta$"),
+        (r"ι", r"$\iota$"),
+        (r"κ", r"$\kappa$"),
+        (r"λ", r"$\lambda$"),
+        (r"μ", r"$\mu$"),
+        (r"ω", r"$\omega$"),
+        (r"φ", r"$\phi$"),
+        (r"π", r"$\pi$"),
+        (r"ψ", r"$\psi$"),
+        (r"ρ", r"$\rho$"),
+        (r"σ", r"$\sigma$"),
+        (r"τ", r"$\tau$"),
+        (r"θ", r"$\theta$"),
+        (r"υ", r"$\upsilon$"),
+        (r"ξ", r"$\xi$"),
+        (r"ζ", r"$\zeta$"),
+        (r"\larger", r""),
+        (r"\large", r""),
+        (r"\newline", r"$\newline$"),
+    ]    
+    for val, rep in replacers:
+        text = text.replace(val, rep)
+        
     parts = text.split(r"\newline")
     while "$$" in parts: parts.remove("$$")    
     return parts, fontsize

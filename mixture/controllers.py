@@ -21,12 +21,13 @@ from generic.utils import get_case_insensitive_glob
 from phases.models import Phase, Component
 
 from mixture.models import Mixture
-from mixture.views import EditMixtureView, RefinementView, BusyView
+from mixture.views import EditMixtureView, RefinementView #, BusyView
 
 class RefinementController(DialogController):
     def register_adapters(self):
         if self.model is not None:
             tv = self.view['tv_param_selection']
+            tv.set_show_expanders(True)
             tv_model = self.model.data_refinables
             tv.set_model(tv_model)
             #tv.connect('cursor_changed', self.on_exp_data_tv_cursor_changed)
@@ -43,27 +44,33 @@ class RefinementController(DialogController):
             rend.set_alignment(0.0, 0.5)
             col = gtk.TreeViewColumn('Name/Prop', rend)
             def get_pb(column, cell, model, itr, user_data=None):
-                ref_prop = model.get_user_data(itr)            
+                ref_prop = model.get_user_data(itr)
+                
                 if not hasattr(ref_prop, "pb") or not ref_prop.pb:
-                    ref_prop.pb = create_pb_from_mathtext(ref_prop.title, align='left', weight='medium')
+                    ref_prop.pb = create_pb_from_mathtext(
+                        ref_prop.title,
+                        align='left', 
+                        weight='medium'
+                    )
                 cell.set_property("pixbuf", ref_prop.pb)
                 return
             col.set_cell_data_func(rend, get_pb, data=None)
             col.set_expand(True)
             tv.append_column(col)
             
-          
-            def get_name(column, cell, model, itr, user_data=None):
-                ref_prop = model.get_user_data(itr)
-                refinable = ref_prop.refinable
-                cell.set_sensitive(refinable)
-                cell.set_property("markup", ("%.5f" % ref_prop.sensitivity) if refinable else "")
-                return            
-            rend = gtk.CellRendererText()
-            col = gtk.TreeViewColumn("Sensitivity [%]", rend, text=tv_model.c_sensitivity)
-            col.set_cell_data_func(rend, get_name, data=None)              
-            tv.append_column(col)
-            
+            def add_float(title, prop_name):
+                def get_name(column, cell, model, itr, user_data=None):
+                    ref_prop = model.get_user_data(itr)
+                    refinable = ref_prop.refinable
+                    cell.set_property("visible", refinable)
+                    cell.set_property("markup", ("%.5f" % getattr(ref_prop, prop_name)) if refinable else "")
+                    return
+                rend = gtk.CellRendererText()
+                col = gtk.TreeViewColumn(title, rend, text=tv_model.c_title)
+                col.set_cell_data_func(rend, get_name, data=None)
+                tv.append_column(col)
+            add_float("Value", "value")
+                     
             def add_editable_float(title, prop_name, callback):                
                 def get_name(column, cell, model, itr, user_data=None):
                     ref_prop = model.get_user_data(itr)
@@ -78,22 +85,27 @@ class RefinementController(DialogController):
                 col.set_cell_data_func(rend, get_name, data=None)              
                 tv.append_column(col)
             def on_value_minmax_edited(rend, path, new_text, prop_name):
-                ref_prop = self.model.data_refinables.get_user_data_from_path((int(path),))
+                ref_prop = self.model.data_refinables.get_user_data_from_path(path)
                 setattr(ref_prop, prop_name, float(new_text))
             add_editable_float("Min", "value_min", on_value_minmax_edited)
             add_editable_float("Max", "value_max", on_value_minmax_edited)      
             
-            def get_refine(column, cell, model, itr, user_data=None):
-                ref_prop = model.get_user_data(itr)
-                cell.set_sensitive(ref_prop.refinable)
-                cell.set_property("activatable", ref_prop.refinable)
-                cell.set_property("visible", ref_prop.refinable) 
-                cell.set_property("active", ref_prop.refinable and ref_prop.refine)
-                return
+            #def get_refine(column, cell, model, itr, user_data=None):
+            #    ref_prop = model.get_user_data(itr)
+            #    cell.set_sensitive(ref_prop.refinable)
+            #    cell.set_property("activatable", ref_prop.refinable)
+            #    cell.set_property("visible", ref_prop.refinable) 
+            #    cell.set_property("active", ref_prop.refinable and ref_prop.refine)
+            #    return
             rend = gtk.CellRendererToggle()
             rend.connect('toggled', self.refine_toggled, tv_model, tv_model.c_refine)
-            col = gtk.TreeViewColumn("Refine", rend, active=tv_model.c_refine)
-            col.set_cell_data_func(rend, get_refine)
+            col = gtk.TreeViewColumn(
+                "Refine", rend, 
+                active=tv_model.c_refine,
+                sensitive=tv_model.c_refinable,
+                activatable=tv_model.c_refinable,
+                visible=tv_model.c_refinable)
+            #col.set_cell_data_func(rend, get_refine)
             col.activatable = True
             col.set_resizable(False)
             col.set_expand(False)
@@ -107,19 +119,23 @@ class RefinementController(DialogController):
                         "data_refine_method", "_data_refine_methods")
                 else:
                     pass#TODO
-            return
+                    
+        return
 
     # ------------------------------------------------------------
     #      Notifications of observable properties
     # ------------------------------------------------------------
-    """@Controller.observe("bg_type", assign=True)
-    def notif_bg_type_changed(self, model, prop_name, info):
-        self.view.select_bg_view(self.model.get_bg_type_lbl().lower())
-        return"""
+
             
     # ------------------------------------------------------------
     #      GTK Signal handlers
     # ------------------------------------------------------------
+    def on_cancel(self):
+        if not self.model.refine_lock:
+            self.view.hide()
+        else:
+            return True #do nothing
+    
     def refine_toggled(self, cell, path, model, col):
         if model is not None:
             itr = model.get_iter(path)
@@ -128,15 +144,22 @@ class RefinementController(DialogController):
         return True
         
     def on_refine_clicked(self,event):
-        #TODO display progress window...
-        busy = BusyView(parent=self.view)
-        busy.present()
-        self.model.refine(busy.set_R)
-        busy.hide()
+        self.view.show_refinement_info(self.model.refine, self.update_last_rp, self.on_complete, self.model.current_rp)
         pass
         
-    def on_sens_clicked(self,event):
-        self.model.update_sensitivities()
+    def on_complete(self, data):
+        x0, initialR2, lastx, lastR2, apply_solution = data
+        def on_accept(dialog):
+            apply_solution(lastx)
+        def on_reject(dialog):
+            apply_solution(x0)
+        self.run_confirmation_dialog(
+            "Do you want to keep the found solution?\n" + \
+            "Initial Rp: %.2f\nFinal Rp: %.2f\n" % (initialR2, lastR2),
+            on_accept, on_reject, parent=self.view.get_toplevel())
+        
+    def update_last_rp(self):
+        self.view.update_refinement_info(self.model.last_refine_rp)
         
     pass #end of class
         
@@ -250,9 +273,10 @@ class EditMixtureController(ChildController):
         self.model.update_refinement_treestore()
         if self.ref_view!=None: 
             self.ref_view.hide()
-        self.ref_view = RefinementView()
-        self.ref_ctrl = RefinementController(self.model, self.ref_view)
-        self.ref_view.present()
+        else:
+            self.ref_view = RefinementView()
+            self.ref_ctrl = RefinementController(self.model, self.ref_view)
+        self.ref_view.present()        
     
     pass #end of class
 

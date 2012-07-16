@@ -125,24 +125,41 @@ class _AbstractProbability(ChildModel, Storable, RefinementGroup):
         self.P_valid = (np.sum(self.P_valid_mask) == self.rank**2)
     
         
-    def _get_Pxy_from_indeces(self, indeces):
+    def _get_Pxy_from_indeces(self, indeces, R=None):
         if not hasattr(indeces, "__iter__"):
             indeces = [indeces]
-        assert(len(indeces)==(self.R+1))
+        R = R or self.R
+        assert(len(indeces)==(R+1))
         x, y = 0, 0
-        for i in range(1,self.R+1):
-            f = self.G ** (self.R-i)
+        for i in range(1,R+1):
+            f = self.G ** (R-i)
             x += indeces[i-1] * f
             y += indeces[i] * f
         return x, y
-    def _get_Wxy_from_indeces(self, indeces):
+    def _get_Wxy_from_indeces(self, indeces, R=None):
         if not hasattr(indeces, "__iter__"):
             indeces = [indeces]
-        assert(len(indeces)==max(self.R, 1))
+        R = R or self.R
+        assert(len(indeces)==max(R, 1))
         x, y = 0, 0
-        for i in range(0,self.R):
-            x += indeces[i] * self.G ** (self.R-(i+1))
+        for i in range(0,R):
+            x += indeces[i] * self.G ** (R-(i+1))
         return x, x
+        
+    #TODO calculate & store lower-R W and P matrixes from high-R W and P matrices
+    #needs a more generic index attribute for mP and mW, requires some code refactoring
+    """def calculate_W_matrix(self, R):
+        assert(R<self.R)
+        w_rank = self.G ** max(R, 1)
+        W = np.zeros(shape=(w_rank, w_rank), dtype=float)
+        for j in range(self.G):
+            for i in range(self.G):
+        
+        pass
+        
+    def calculate_P_matrix(self, R):
+        assert(R<self.R)
+        pass"""
     
     def get_distribution_matrix(self): return self._W
         

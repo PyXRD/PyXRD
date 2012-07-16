@@ -10,7 +10,7 @@ import numpy as np
 
 from probabilities.R0models import R0G1Model, R0G2Model, R0G3Model, R0G4Model, R0G5Model, R0G6Model
 from probabilities.R1models import R1G2Model, R1G3Model, R1G4Model
-from probabilities.R2models import R2G2Model
+from probabilities.R2models import R2G2Model, R2G3Model
 from probabilities.R3models import R3G2Model
 
 # Overview of what is:
@@ -22,13 +22,13 @@ from probabilities.R3models import R3G2Model
 #       G1  G2  G3  G4  G5  G6
 #   R0  x   x   x   x   x   x
 #   R1  np  x   x   x   -   -
-#   R2  np  x   o   -   -   -
+#   R2  np  x   x   -   -   -
 #   R3  np  x   -   -   -   -
 
 RGbounds = np.array([
     [1,  1,  1,  1,  1,  1],
     [-1, 1,  1,  1,  0,  0],
-    [-1, 1,  0,  0,  0,  0],
+    [-1, 1,  1,  0,  0,  0],
     [-1, 1,  0,  0,  0,  0],
 ])
 

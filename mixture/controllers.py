@@ -30,15 +30,6 @@ class RefinementController(DialogController):
             tv.set_show_expanders(True)
             tv_model = self.model.data_refinables
             tv.set_model(tv_model)
-            #tv.connect('cursor_changed', self.on_exp_data_tv_cursor_changed)
-
-            #rend = gtk.CellRendererText()
-            #col = gtk.TreeViewColumn('Name/Prop', rend)
-            #def get_name(column, cell, model, itr, user_data=None):
-            #    ref_prop = model.get_user_data(itr)
-            #    cell.set_property("markup", ref_prop.title[0])
-            #    return
-            #col.set_cell_data_func(rend, get_name, data=None)
            
             rend = gtk.CellRendererPixbuf()
             rend.set_alignment(0.0, 0.5)
@@ -63,7 +54,7 @@ class RefinementController(DialogController):
                     ref_prop = model.get_user_data(itr)
                     refinable = ref_prop.refinable
                     cell.set_property("visible", refinable)
-                    cell.set_property("markup", ("%.5f" % getattr(ref_prop, prop_name)) if refinable else "")
+                    cell.set_property("markup", ("%.5f" % float(getattr(ref_prop, prop_name))) if refinable else 0.0)
                     return
                 rend = gtk.CellRendererText()
                 col = gtk.TreeViewColumn(title, rend, text=tv_model.c_title)
@@ -90,13 +81,6 @@ class RefinementController(DialogController):
             add_editable_float("Min", "value_min", on_value_minmax_edited)
             add_editable_float("Max", "value_max", on_value_minmax_edited)      
             
-            #def get_refine(column, cell, model, itr, user_data=None):
-            #    ref_prop = model.get_user_data(itr)
-            #    cell.set_sensitive(ref_prop.refinable)
-            #    cell.set_property("activatable", ref_prop.refinable)
-            #    cell.set_property("visible", ref_prop.refinable) 
-            #    cell.set_property("active", ref_prop.refinable and ref_prop.refine)
-            #    return
             rend = gtk.CellRendererToggle()
             rend.connect('toggled', self.refine_toggled, tv_model, tv_model.c_refine)
             col = gtk.TreeViewColumn(
@@ -105,7 +89,6 @@ class RefinementController(DialogController):
                 sensitive=tv_model.c_refinable,
                 activatable=tv_model.c_refinable,
                 visible=tv_model.c_refinable)
-            #col.set_cell_data_func(rend, get_refine)
             col.activatable = True
             col.set_resizable(False)
             col.set_expand(False)
@@ -143,9 +126,11 @@ class RefinementController(DialogController):
             model.set_value(itr, col, not refine)
         return True
         
-    def on_refine_clicked(self,event):
+    def on_auto_restrict_clicked(self, event):
+        self.model.auto_restrict()
+        
+    def on_refine_clicked(self, event):
         self.view.show_refinement_info(self.model.refine, self.update_last_rp, self.on_complete, self.model.current_rp)
-        pass
         
     def on_complete(self, data):
         x0, initialR2, lastx, lastR2, apply_solution = data
@@ -184,10 +169,7 @@ class EditMixtureController(ChildController):
             self.add_phase_view(index)
         for index, specimen in enumerate(self.model.data_specimens):
             self.add_specimen_view(index)
-            
-    #def update_sensitivities(self):
-    #    self.view["marker_data_angle"].set_sensitive(not self.model.inherit_angle)
-    
+               
     def add_phase_view(self, index):
         def on_label_changed(editable):
             self.model.data_phases[index] = editable.get_text()
@@ -308,3 +290,5 @@ class MixturesController(ObjectListStoreController):
         
     def create_new_object_proxy(self):
         return Mixture(parent=self.model)
+        
+    pass #end of class

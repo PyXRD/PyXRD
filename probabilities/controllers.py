@@ -27,7 +27,7 @@ def get_correct_probability_controllers(probability, parent_controller, independ
         rank = probability.rank
         if (RGbounds[R,G-1] > 0):
             return IndependentsController(model=probability, parent=parent_controller, view=independents_view), \
-                   MatrixController(N=rank, model=probability, parent=parent_controller, view=dependents_view)
+                   MatrixController(current=R, model=probability, parent=parent_controller, view=dependents_view)
         else:
             raise ValueError, "Cannot (yet) handle R%d for %d layer structures!" % (R, G)
 
@@ -75,7 +75,19 @@ class IndependentsController(ChildController):
     pass #end of class
   
 class MatrixController(ChildController):
-    def __init__(self,  N=1, *args, **kwargs):
+    def __init__(self, current, *args, **kwargs):
         ChildController.__init__(self, *args, **kwargs)
+        self.current_W = current
+        self.current_P = current
+
+    def on_w_prev_clicked(self, widget, *args):
+        self.current_W = self.view.show_w_matrix(self.current_W - 1)
+    def on_w_next_clicked(self, widget, *args):
+        self.current_W = self.view.show_w_matrix(self.current_W + 1)
+
+    def on_p_prev_clicked(self, widget, *args):
+        self.current_P = self.view.show_p_matrix(self.current_P - 1)
+    def on_p_next_clicked(self, widget, *args):
+        self.current_P = self.view.show_p_matrix(self.current_P + 1)
 
     pass #end of class

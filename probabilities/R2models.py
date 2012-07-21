@@ -66,44 +66,41 @@ class R2G2Model(_AbstractProbability):
     #PROPERTIES:
     twothirds = 2.0/3.0
     
-    _W0 = 0.0
-    def get_W1_value(self): return self._W0
+    def get_W1_value(self): return self.mW[0]
     def set_W1_value(self, value):
-        self._W0 = min(max(value, 0.5), 1.0)
+        self.mW[0] = min(max(value, 0.5), 1.0)
         self.update()
           
     def get_P112_or_P211_value(self):
-        if self._W0 <= self.twothirds:
+        if self.mW[0] <= self.twothirds:
             return self.mP[0,0,1]
         else:
             return self.mP[1,0,0]
     def set_P112_or_P211_value(self, value):
-        if self._W0 <= self.twothirds:
+        if self.mW[0] <= self.twothirds:
             self.mP[0,0,1] = value
         else:
             self.mP[1,0,0] = value
         self.update()
           
-    _P10 = 0.0
-    def get_P21_value(self): return self._P10
+    def get_P21_value(self): return self.mP[1,0]
     def set_P21_value(self, value):
-        self._P10 = min(max(value, 0.0), 1.0)
+        self.mP[1,0] = min(max(value, 0.0), 1.0)
         self.update()
 
     def get_P122_or_P221_value(self):
-        if self._P10 <= 0.5:
+        if self.mP[1,0] <= 0.5:
             return self.mP[0,1,1]
         else:
             return self.mP[1,1,0]
         self.update() 
     def set_P122_or_P221_value(self, value):
-        if self._P10 <= 0.5:
+        if self.mP[1,0] <= 0.5:
             self.mP[0,1,1] = value
         else:
             self.mP[1,1,0] = value
         self.update()        
     
-
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
@@ -120,31 +117,30 @@ class R2G2Model(_AbstractProbability):
     
     #@delayed()
     def update(self):
-        W0 = self._W0
-        W1 = 1.0 - W0
+        self.mW[1] = 1.0 - self.mW[0]
         
-        P10 = self._P10
-        P11 = 1 - P10
+        self.mP[1,1] = 1.0 - self.mP[1,0]
         
-        self.mW[1,0] = W1 * P10
-        self.mW[1,1] = W1 * P11
+        self.mW[1,0] = self.mW[1] * self.mP[1,0]
+        self.mW[1,1] = self.mW[1] * self.mP[1,1]
         self.mW[0,1] = self.mW[1,0]
-        self.mW[0,0] = W0 - self.mW[1,0]
+        self.mW[0,0] = self.mW[0] - self.mW[1,0]
         
-        if W0 <= self.twothirds:
+        if self.mW[0] <= self.twothirds:
             self.mP[1,0,0] = self.mP[0,0,1] * self.mW[0,0] / self.mW[1,0]
         else:
             self.mP[0,0,1] = self.mP[1,0,0] * self.mW[1,0] / self.mW[0,0]
         self.mP[1,0,1] = 1.0 - self.mP[1,0,0]
-        self.mP[0,0,0] = 1.0 - self.mP[0,0,1]
+        self.mP[0,0,0] = 1.0 - self.mP[0,0,1]            
             
-        if P10 <= 0.5:
+        if self.mP[1,0] <= 0.5:
             self.mP[1,1,0] = self.mP[0,1,1] * self.mW[0,1] / self.mW[1,1]
         else:
             self.mP[0,1,1] = self.mP[1,1,0] * self.mW[1,1] / self.mW[0,1]
         self.mP[0,1,0] = 1.0 - self.mP[0,1,1]
         self.mP[1,1,1] = 1.0 - self.mP[1,1,0]
             
+        self.solve()
         self.validate()
         self.updated.emit()
     
@@ -331,7 +327,7 @@ class R2G3Model(_AbstractProbability):
                     self.mP[i,j,k] = 0.0 if k > 0 else 1.0
             
         
-            
+        self.solve()
         self.validate()
         self.updated.emit()
     

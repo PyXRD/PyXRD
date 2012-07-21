@@ -33,6 +33,7 @@ class RefinementView(DialogView):
     refine_status_container = "refine_status_box"
     
     refine_spin_container = "refine_spin_box"
+    refine_spin_box = None
     
     def _before_hide_widgets(self):
         DialogView._before_hide_widgets(self)
@@ -40,12 +41,11 @@ class RefinementView(DialogView):
         self._add_child_view(self[self.refine_status_toplevel], self[self.refine_status_container])
         
     def show_refinement_info(self, refine_function, gui_callback, complete_callback, initial_rp):
-    
         self["hbox_actions"].set_sensitive(False)
         self["lbl_rp_initial"].set_text("%.2f" % initial_rp)
-        
-        #TODO remove/kill/... previous spin box if present
-        
+               
+        if self.refine_spin_box != None:
+            self.refine_spin_box.cancel()
         self.refine_spin_box = ThreadedTaskBox(refine_function, gui_callback, complete_callback, cancelable=True)
         self.refine_spin_box.connect("complete", self.complete_function)
         self.refine_spin_box.connect("cancelrequested", self.canceled_function)
@@ -61,14 +61,14 @@ class RefinementView(DialogView):
     def hide_refinement_info(self):
         self[self.refine_status_toplevel].hide()
         self.refine_spin_box.set_no_show_all(True)
+        if self.refine_spin_box != None:
+            self.refine_spin_box.cancel()
         self["hbox_actions"].set_sensitive(True)
        
     def update_refinement_info(self, current_rp=None):
         self["lbl_rp_current"].set_text("%.2f" % current_rp)
         
     def complete_function(self, widget, data = None):
-        #TODO ask the user if he wishes to keep the current result,
-        # or if he wishes to discard the changes        
         self.hide_refinement_info()
  
     def canceled_function(self, widget, data=None):

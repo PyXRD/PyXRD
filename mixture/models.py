@@ -56,7 +56,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         self._data_name = value
         self.liststore_item_changed()
     
-    auto_run = False #TODO listen for changes!!
+    auto_run = False
     
     data_phase_matrix = None
     
@@ -356,6 +356,17 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
     
     last_refine_rp = 0.0
         
+    def auto_restrict(self):
+        """
+            Convenience function that restricts the selected properties 
+            automatically by setting their minimum and maximum values.
+        """
+        for ref_prop in self.data_refinables.iter_objects():
+            if ref_prop.refine and ref_prop.refinable:
+                ref_prop.value_min = ref_prop.value * 0.95
+                ref_prop.value_max = ref_prop.value * 1.05
+        return
+        
     refine_lock = False
     def refine(self, params): #, gui_callback):
         """
@@ -398,28 +409,11 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
                         return self.last_refine_rp
                     else:
                         raise GeneratorExit
-                
                 try:
-                    if self.data_refine_method==0: #L BFGS B                
-                        global count
-                        count = 0        
-                        def gui_refine_func(new_values): #, gui_callback):
-                            R = fitness_func(new_values)
-                            #global count
-                            #count = count + 1
-                            #if count>=5:
-                            #    count = 0
-                            #    #if gui_callback!=None: gui_callback(R)
-                            #    while gtk.events_pending():
-                            #        gtk.main_iteration(False)
-                            return R
-                            
-                        lastx, lastR2 = Mixture.mod_l_bfgs_b(gui_refine_func, x0, ranges, args=[], f2=1e6) #gui_callback,
-                        #fitness_func(lastx) #apply last one                
-                
+                    if self.data_refine_method==0: #L BFGS B                                           
+                        lastx, lastR2 = Mixture.mod_l_bfgs_b(fitness_func, x0, ranges, args=[], f2=1e6)
                     elif self.data_refine_method==1: #GENETIC ALGORITHM
-                        lastx, lastR2 = run_genetic_algorithm(ref_props, x0, ranges, fitness_func) #, gui_callback)
-                        #fitness_func(lastx) #apply last one
+                        lastx, lastR2 = run_genetic_algorithm(ref_props, x0, ranges, fitness_func)
                 except GeneratorExit:
                     apply_solution(x0) #place back original result
                     pass #exit

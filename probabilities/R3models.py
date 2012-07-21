@@ -134,6 +134,7 @@ class R3G2Model(_AbstractProbability):
         self.mW[1,0,0] = self.mW[0,1,0] = self.mW[0,0,1] = 0.5 * (W0 - self.mW[0,0,0])
         self.mW[0,1,1] = W1 - self.mW[0,0,1]
         
+        self.solve()
         self.validate()
         self.updated.emit()
     

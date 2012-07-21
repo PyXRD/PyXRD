@@ -43,21 +43,21 @@ class R1G2Model(_AbstractProbability):
     ]
 
     #PROPERTIES:
-    def get_W1_value(self): return self._W[0,0]
+    def get_W1_value(self): return self.mW[0]
     def set_W1_value(self, value):
-        self._W[0,0] = min(max(value, 0.0), 1.0)
+        self.mW[0] = min(max(value, 0.0), 1.0)
         self.update()
                     
     def get_P11_or_P22_value(self):
-        if self._W[0,0] <= 0.5:
-            return self._P[0,0]
+        if self.mW[0] <= 0.5:
+            return self.mP[0,0]
         else:
-            return self._P[1,1]
+            return self.mP[1,1]
     def set_P11_or_P22_value(self, value):       
-        if self._W[0,0] <= 0.5:
-            self._P[0,0] = min(max(value, 0.0), 1.0)
+        if self.mW[0] <= 0.5:
+            self.mP[0,0] = min(max(value, 0.0), 1.0)
         else:
-            self._P[1,1] = min(max(value, 0.0), 1.0)
+            self.mP[1,1] = min(max(value, 0.0), 1.0)
         self.update()
 
     # ------------------------------------------------------------
@@ -73,16 +73,17 @@ class R1G2Model(_AbstractProbability):
     # ------------------------------------------------------------ 
     #@delayed()
     def update(self):
-        self._W[1,1] = 1.0 - self._W[0,0]
-        if self._W[0,0] <= 0.5:
-            self._P[0,1] = 1.0 - self._P[0,0]
-            self._P[1,0] = self._W[0,0] * self._P[0,1] / self._W[1,1]
-            self._P[1,1] = 1.0 - self._P[1,0]
+        self.mW[1] = 1.0 - self.mW[0]
+        if self.mW[0] <= 0.5:
+            self.mP[0,1] = 1.0 - self.mP[0,0]
+            self.mP[1,0] = self.mW[0] * self.mP[0,1] / self.mW[1]
+            self.mP[1,1] = 1.0 - self.mP[1,0]
         else:
-            self._P[1,0] = 1.0 - self._P[1,1]
-            self._P[0,1] = self._W[1,1] * self._P[1,0] / self._W[0,0]
-            self._P[0,0] = 1.0 - self._P[0,1]
+            self.mP[1,0] = 1.0 - self.mP[1,1]
+            self.mP[0,1] = self.mW[1] * self.mP[1,0] / self.mW[0]
+            self.mP[0,0] = 1.0 - self.mP[0,1]
             
+        self.solve()
         self.validate()
         self.updated.emit()
     
@@ -121,21 +122,21 @@ class R1G3Model(_AbstractProbability):
     ]
 
     #PROPERTIES
-    def get_W1_value(self): return self._W[0,0]
+    def get_W1_value(self): return self.mW[0]
     def set_W1_value(self, value):
-        self._W[0,0] = min(max(value, 0.0), 1.0)
+        self.mW[0] = min(max(value, 0.0), 1.0)
         self.update()
             
     def get_P11_or_P22_value(self):
-        if self._W[0,0] <= 0.5:
-            return self._P[0,0]
+        if self.mW[0] <= 0.5:
+            return self.mP[0,0]
         else:
-            return self._P[1,1]
+            return self.mP[1,1]
     def set_P11_or_P22_value(self, value):
-        if self._W[0,0] <= 0.5:
-            self._P[0,0] = min(max(value, 0.0), 1.0)
+        if self.mW[0] <= 0.5:
+            self.mP[0,0] = min(max(value, 0.0), 1.0)
         else:
-            self._P[1,1] = min(max(value, 0.0), 1.0)
+            self.mP[1,1] = min(max(value, 0.0), 1.0)
         self.update()
 
     _G1 = 0
@@ -168,42 +169,43 @@ class R1G3Model(_AbstractProbability):
     #@delayed()
     def update(self):
         #temporary storage:
-        WW = np.matrix(np.zeros(shape=(3,3), dtype=float))
+        #WW = np.matrix(np.zeros(shape=(3,3), dtype=float))
         
         G2inv =  ( 1.0 / self._G2) - 1.0 if self._G2 > 0 else 0.0
         G3inv =  ( 1.0 / self._G3) - 1.0 if self._G3 > 0 else 0.0
         G4inv =  ( 1.0 / self._G4) - 1.0 if self._G4 > 0 else 0.0
         
-        #self._W = diagonal with W1, W2, W3 etc.
+        #self.mW = diagonal with W1, W2, W3 etc.
         #WW = 3x3 with W11, W12, ... etc.
-             
-        self._W[1,1] = (1-self._W[0,0]) * self._G1
-    	self._W[2,2]   = 1.0 - self._W[0,0] - self._W[1,1]
+        
+        self.mW[1] = (1-self.mW[0]) * self._G1
+    	self.mW[2]   = 1.0 - self.mW[0] - self.mW[1]
     	
-    	if self._W[0,0] < 0.5:
-    	    self._P[1,1] =  self._G2 * self._G3 * (self._W[0,0]*(self._P[0,0]-1) + self._W[1,1] + self._W[2,2]) / self._W[1,1]
+    	if self.mW[0] < 0.5:
+    	    self.mP[1,1] =  self._G2 * self._G3 * (self.mW[0]*(self.mP[0,0]-1) + self.mW[1] + self.mW[2]) / self.mW[1]
     	
-    	WW[1,1] = self._P[1,1] * self._W[1,1]
-    	WW[1,2] = WW[1,1] * G3inv
-    	WW[2,1] = self._G4 * G2inv * (WW[1,1] + WW[2,1])
-    	WW[2,2] = G4inv * WW[2,1]
+    	self.mW[1,1] = self.mP[1,1] * self.mW[1]
+    	self.mW[1,2] = self.mW[1,1] * G3inv
+    	self.mW[2,1] = self._G4 * G2inv * (self.mW[1,1] + self.mW[2,1])
+    	self.mW[2,2] = G4inv * self.mW[2,1]
     	
-    	self._P[1,2] = WW[1,2] / self._W[1,1]
-    	self._P[1,0] = 1 - self._P[1,1] - self._P[1,2]
+    	self.mP[1,2] = self.mW[1,2] / self.mW[1]
+    	self.mP[1,0] = 1 - self.mP[1,1] - self.mP[1,2]
     	
-    	self._P[2,1] = WW[2,1] / self._W[2,2]
-    	self._P[2,2] = WW[2,2] / self._W[2,2]
-    	self._P[2,0] = 1 - self._P[2,1] - self._P[2,2]
+    	self.mP[2,1] = self.mW[2,1] / self.mW[2]
+    	self.mP[2,2] = self.mW[2,2] / self.mW[2]
+    	self.mP[2,0] = 1 - self.mP[2,1] - self.mP[2,2]
 
-    	self._P[0,1] = (self._W[1,1] - WW[1,1] - WW[2,1]) / self._W[0,0]
-    	self._P[0,2] = (self._W[2,2] - WW[1,2] - WW[2,2]) / self._W[0,0]
-    	if self._W[0,0] >= 0.5:
-        	self._P[0,0] = 1 - self._P[0,1] - self._P[0,2]
+    	self.mP[0,1] = (self.mW[1] - self.mW[1,1] - self.mW[2,1]) / self.mW[0]
+    	self.mP[0,2] = (self.mW[2] - self.mW[1,2] - self.mW[2,2]) / self.mW[0]
+    	if self.mW[0] >= 0.5:
+        	self.mP[0,0] = 1 - self.mP[0,1] - self.mP[0,2]
         
         for i in range(3):
             for j in range(3):
-                WW[i,j] = self._W[i,i] * self._P[i,j]
+                self.mW[i,j] = self.mW[i,i] * self.mP[i,j]
                 
+        self.solve()
         self.validate()
         self.updated.emit()
     
@@ -259,21 +261,21 @@ class R1G4Model(_AbstractProbability):
     ]
 
     #PROPERTIES
-    def get_W1_value(self): return self._W[0,0]
+    def get_W1_value(self): return self.mW[0]
     def set_W1_value(self, value):
-        self._W[0,0] = min(max(value, 0.0), 1.0)
+        self.mW[0] = min(max(value, 0.0), 1.0)
         self.update()
             
     def get_P11_or_P22_value(self):
-        if self._W[0,0] <= 0.5:
-            return self._P[0,0]
+        if self.mW[0] <= 0.5:
+            return self.mP[0,0]
         else:
-            return self._P[1,1]
+            return self.mP[1,1]
     def set_P11_or_P22_value(self, value):
-        if self._W[0,0] <= 0.5:
-            self._P[0,0] = min(max(value, 0.0), 1.0)
+        if self.mW[0] <= 0.5:
+            self.mP[0,0] = min(max(value, 0.0), 1.0)
         else:
-            self._P[1,1] = min(max(value, 0.0), 1.0)
+            self.mP[1,1] = min(max(value, 0.0), 1.0)
         self.update()
 
     _R1 = 0
@@ -298,7 +300,7 @@ class R1G4Model(_AbstractProbability):
     #      Initialisation and other internals
     # ------------------------------------------------------------       
     def setup(self, W1=0.6, P11_or_P22=0.3, R1=0.5, R2=0.5, G1=0.5, G2=0.4,
-            G11=0.5, G12=0.2, G21=0.8, G22=0.8, G31=0.7, G32=0.5):
+            G11=0.5, G12=0.2, G21=0.8, G22=0.75, G31=0.7, G32=0.5):
         _AbstractProbability.setup(self, R=1)
         self.W1 = W1
         self.P11_or_P22 = P11_or_P22
@@ -328,7 +330,7 @@ class R1G4Model(_AbstractProbability):
         G31inv = ( 1.0 / self._G31) - 1.0 if self._G31 > 0 else 0.0
         
         
-        #self._W = diagonal with W1, W2, W3 etc.
+        #self.mW = diagonal with W1, W2, W3 etc.
         #WW = 4x4 with W11, W12, ... etc.
              
         self.mW[1] = (1.0 - self.mW[0]) * self._R1
@@ -386,9 +388,8 @@ class R1G4Model(_AbstractProbability):
         for i in range(4):
             for j in range(4):
                 WW[i,j] = self.mW[i] * self.mP[i,j]
-                
-        print WW
         
+        self.solve()
         self.validate()
         self.updated.emit()
     

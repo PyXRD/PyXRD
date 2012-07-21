@@ -20,6 +20,10 @@ from generic.utils import delayed
 from generic.threads import KillableThread, GUIThread
 
 class ScaleEntry(HBox):
+    """
+        The ScaleEntry combines the generic GtkEntry and GtkScale widgets in
+        one widget, with synchronized values and one changed signal.
+    """
   
     __gsignals__ = { 
         'changed' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, []),
@@ -74,7 +78,10 @@ class ScaleEntry(HBox):
         return False
 
     def on_entry_changed(self, *args, **kwargs):
-        self._update_value_and_range(self.get_text())
+        try:
+            self._update_value_and_range(self.get_text())
+        except ValueError:
+            pass #ignore the "can't convert string to float" messages
         return False
 
     def _update_adjustment(self, value, lower, upper):
@@ -147,7 +154,9 @@ class ScaleEntry(HBox):
     def pack_start(self, *args, **kwargs):
         raise NotImplementedError
     def pack_end(self, *args, **kwargs):
-        raise NotImplementedError        
+        raise NotImplementedError    
+        
+    pass #end of class    
         
 gobject.type_register(ScaleEntry)
 add_adapter(ScaleEntry, "changed", ScaleEntry.get_value, ScaleEntry.set_value, types.FloatType)
@@ -166,10 +175,13 @@ class ThreadedTaskBox(gtk.Table):
     
     def __init__(self, run_function, gui_callback, complete_callback, params=None, cancelable=True):
         """
-            Create an ThreadedTaskBox
+            Create a ThreadedTaskBox
 
             Keyword arguments:
             run_function -- the function to run in threaded mode
+            gui_callback -- a callback that handles the GUI updating
+            complete_callback -- callback called when the job is finished, 
+                gets the return value of the run_function as parameter
             params -- optional dictionary of parameters to be pass into run_function
             cancelable -- optional value to determine whether to show cancel button. Defaults to True.
             Do not use a value with the key of 'kill' in the params dictionary
@@ -282,5 +294,6 @@ class ThreadedTaskBox(gtk.Table):
         if self.pulse_thread != None:
             self.pulse_thread.kill()
             
+    pass #end of class
+            
 gobject.type_register(ThreadedTaskBox)
-

@@ -68,23 +68,23 @@ def R0_model_generator(pasG):
             
             if self.G > 1 and "W1" in kwargs: #old-style model
                 for i in range(self.G-1):
-                    self._W[i] = kwargs.get("W%d"%(i+1), 0.0 if i > 0 else 1.0)
-                self._W[-1,-1] = 1 - np.sum(np.diag(self._W)[:-1])
+                    self.mW[i] = kwargs.get("W%d"%(i+1), 0.0 if i > 0 else 1.0)
+                self.mW[self.G-1] = 1 - np.sum(np.diag(self._W)[:-1])
                 for i in range(self.G-1):
-                    self._F[i] = self._W[i,i] / (np.sum(np.diag(self._W)[i:]) or 1.0)
+                    self._F[i] = self.mW[i] / (np.sum(np.diag(self._W)[i:]) or 1.0)
             else:
                 for i in range(self.G-1):
                     self._F[i] = kwargs.get("F%d"%(i+1), 0.0 if i > 0 else 1.0)
                 if self.G > 1:
                     for i in range(self.G-1):
                         if i > 0:
-                            self._W[i,i] = self._F[i] * (1 - np.sum(np.diag(self._W)[0:i]))
+                            self.mW[i] = self._F[i] * (1 - np.sum(np.diag(self._W)[0:i]))
                         else:
-                            self._W[i,i] = self._F[i]
-                    self._W[-1,-1] = 1 - np.sum(np.diag(self._W)[:-1])
+                            self.mW[i] = self._F[i]
+                    self.mW[self.G-1] = 1 - np.sum(np.diag(self._W)[:-1])
                 else:
-                    self._W[0,0] = 1.0
-            self._P = np.repeat(np.diag(self._W)[np.newaxis,:], self.G, 0)
+                    self.mW[0] = 1.0
+            self._P[:] = np.repeat(np.diag(self._W)[np.newaxis,:], self.G, 0)
 
         # ------------------------------------------------------------
         #      Methods & Functions
@@ -92,13 +92,15 @@ def R0_model_generator(pasG):
         #@delayed()
         def update(self):
             if self.G > 1:
-                self._W[0,0] = self._F[0]
+                self.mW[0] = self._F[0]
                 for i in range(1, self.G-1):
-                    self._W[i,i] = self._F[i] * (1.0 - np.sum(np.diag(self._W)[0:i]))
-                self._W[-1,-1] = 1.0 - np.sum(np.diag(self._W)[:-1])
+                    self.mW[i] = self._F[i] * (1.0 - np.sum(np.diag(self._W)[0:i]))
+                self.mW[self.G-1] = 1.0 - np.sum(np.diag(self._W)[:-1])
             else:
-                self._W[0,0] = 1.0
-            self._P = np.repeat(np.diag(self._W)[np.newaxis,:], self.G, 0)
+                self.mW[0] = 1.0
+            self._P[:] = np.repeat(np.diag(self._W)[np.newaxis,:], self.G, 0)
+            
+            self.solve()
             self.validate() 
             self.updated.emit()
         

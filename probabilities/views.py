@@ -136,93 +136,157 @@ class MatrixView(BaseView, HasChildView, ProbabilityViewMixin):
         """
         BaseView.__init__(self, **kwargs)
 
-        #R0 is treated no different in terms of naming and matrices then R1
-        lR = max(R,1)
-
         #make sure valid params are passed:
-        assert(rank==(G**lR))
-
-        #create or get widgets:
-        self.w_box = self['w_box']
-        self.w_table = gtk.Table(rank, rank, True)
-        self.p_box = self['p_box']
-        self.p_table = gtk.Table(rank, rank, True)
-
-        def create_labels(num, table, tooltip=lambda i,j: ""):
-            """
-                Generic function for both the W and P matrix setup
-            """
-            labels = [[None]*num for _ in range(num)]
-            for i in range(num):
-                for j in range(num):
-                    new_lbl = gtk.Label("")
-                    new_lbl.set_tooltip_markup(tooltip(i,j))
-                    new_lbl.set_property('justify', gtk.JUSTIFY_CENTER)
-                    table.attach(new_lbl, j, j+1, i, i+1, xpadding=5, ypadding=5)
-                    labels[i][j] = new_lbl
-                    del new_lbl
-            return labels
-
+        assert(rank==(G**max(R,1)))
+        self.create_matrices(R, G, rank)
+                 
+    def create_matrices(self, R, G, rank, current_w=None, current_p=None):  
         #calculate moduli for parameter index calculation:
+        lR = max(R,1)
         mod = [0]*lR
         for i in range(lR):
              mod[i] = rank / (G**(i+1))
+        title_indeces = "".join([chr(105+i) for i in range(lR+1)])
+      
+      
+        #Generic function for both the W and P matrix labels setup
+        def create_labels(rank, table, current_lR, fmt, tooltip=lambda x,y,current_lR,fmt: ""):
+            labels = [[None]*rank for _ in range(rank)]
+            for x in range(rank):
+                for y in range(rank):
+                    new_lbl = gtk.Label("")
+                    new_lbl.set_tooltip_markup(tooltip(x, y, current_lR, fmt))
+                    new_lbl.set_property('justify', gtk.JUSTIFY_CENTER)
+                    table.attach(new_lbl, y, y+1, x, x+1, xpadding=5, ypadding=5)
+                    labels[x][y] = new_lbl
+                    del new_lbl
+            return labels
 
-        #create label formats:        
-        w_lbl = "W<sub>" + "%d"*lR + "</sub>"
-        p_lbl = "P<sub>" + "%d"*(lR+1) + "</sub>"
-        
-        # W label creation:
-        def wtooltip(x,y):
+        #Generic functions for the tooltips:
+        def diagonal_tooltips(x, y, current_lR, fmt):
             if x==y:
-                indeces = [0]*lR
-                for i in range(lR):
-                     indeces[i] = (int(x / mod[i]) % G) + 1
-                return w_lbl % tuple(indeces)
+                indeces = [0]*current_lR
+                for i in range(current_lR):
+                     indeces[i] = (int(x / mod[i+(lR-current_lR)]) % G) + 1
+                return fmt % tuple(indeces)
             else:
                 return "-"
-        self.w_labels = create_labels(rank, self.w_table, wtooltip)
-        self._add_child_view(self.w_table, self.w_box)
-        
-        # P label creation:
-        def ptooltip(x,y):           
-            rowsuf = [0]*lR # e.g. i,j,k
-            colsuf = [0]*lR # e.g. l,m,n
-            for i in range(lR):
-                rowsuf[i] = (int(x / mod[i]) % G) +1
-                colsuf[i] = (int(y / mod[i]) % G) +1
+                
+        def subdiagonal_tooltips(x, y, current_lR, fmt):
+            rowsuf = [0]*current_lR # e.g. i,j,k
+            colsuf = [0]*current_lR # e.g. l,m,n
+            for i in range(current_lR):
+                rowsuf[i] = (int(x / mod[i+(lR-current_lR)]) % G) +1
+                colsuf[i] = (int(y / mod[i+(lR-current_lR)]) % G) +1
             
             #check if last n-1 and first n-1 of the suffices equal each other:
             visible = True
-            for i in range(lR-1):
+            for i in range(current_lR-1):
                 if rowsuf[i+1] != colsuf[i]: visible = False
             if visible:
-                return p_lbl % (tuple(rowsuf) + (colsuf[-1],))
+                try:
+                    return fmt % (tuple(rowsuf) + (colsuf[-1],))
+                except TypeError:
+                    print current_lR, fmt, tuple(rowsuf) + (colsuf[-1],)
             else:
                 return "-"
-        self.p_labels = create_labels(rank, self.p_table, ptooltip)
-        self._add_child_view(self.p_table, self.p_box)
+
+        #Create the matrices:
         
-        self.show_all()
+        self.w_tables = []
+        self.w_labels = []
+        self.w_titles = []
+        self.w_valids = []
+        
+        self.p_tables = []
+        self.p_labels = []
+        self.p_titles = []
+        self.p_valids = []
+        
+        def setup_everything(tables, titles, valids, labels, title, rank, current_lR, lbl_fmt, tooltips):
+            w_table = gtk.Table(rank, rank, True)
+            tables.append(w_table)
+            titles.append(title)
+            valids.append("")
+            labels.append(create_labels(
+                rank, w_table, 
+                current_lR, lbl_fmt,
+                tooltips
+            ))
+        
+        for current_lR in range(1,lR+1):
+            rank = G ** current_lR
+
+            setup_everything(
+                self.w_tables, self.w_titles, self.w_valids, self.w_labels,
+                "<b>W<sub>" + title_indeces[:current_lR] + "</sub></b>",
+                rank, current_lR,
+                "W<sub>" + "%d"*current_lR + "</sub>",
+                diagonal_tooltips
+            )
+            
+            setup_everything(
+                self.p_tables, self.p_titles, self.p_valids, self.p_labels,
+                "<b>P<sub>" + title_indeces[:current_lR+1] + "</sub></b>",
+                rank, current_lR,
+                "P<sub>" + "%d"*(current_lR+1) + "</sub>",
+                subdiagonal_tooltips
+            )
+
+        #Add one extra W matrix:
+        setup_everything(
+            self.w_tables, self.w_titles, self.w_valids, self.w_labels,
+            "<b>W<sub>" + title_indeces + "</sub></b>",
+            G ** lR, lR,
+            "W<sub>" + "%d"*(lR+1) + "</sub>",
+            subdiagonal_tooltips
+        )
+
+        self.show_w_matrix(-1 or current_w)
+        self.show_p_matrix(-1 or current_p)
+                    
+        return
                  
-    def update_matrices(self, model):
-        W, P = model.get_distribution_matrix(), model.get_probability_matrix()
-        mW, mP = model.W_valid_mask, model.P_valid_mask
-        def update_matrix(matrix, labels, mask):
+    def update_matrices(self, model):       
+        lW, lP = model.get_all_matrices()
+        print len(model.W_valid_mask), len(lW)
+        def update_matrix(matrix, labels, mask=None, valid=False):
             shape = matrix.shape
             for i in range(shape[0]):
                 for j in range(shape[1]):
                     markup = "<small><span foreground=\"%s\">%.3f</span></small>"
-                    fgcol = "#AA0000" if mask[i,j] < 1 else "#00AA00"
+                    if mask!=None:
+                        fgcol = "#AA0000" if mask[i,j] < 1 else "#00AA00"
+                    else:
+                        fgcol = "#000000"
                     labels[i][j].set_markup(markup % (fgcol, matrix[i,j]))
-        
-        update_matrix(W, self.w_labels, mW)
-        update_matrix(P, self.p_labels, mP)
-        fgcol, msg = ("#00AA00", "valid") if model.W_valid else ("#AA0000", "invalid")
-        self["lbl_W_valid"].set_markup("<small><span foreground=\"%s\">%s</span></small>" % (fgcol, msg))
-        fgcol, msg = ("#00AA00", "valid") if model.P_valid else ("#AA0000", "invalid")
-        self["lbl_P_valid"].set_markup("<small><span foreground=\"%s\">%s</span></small>" % (fgcol, msg))
+                    
+        for i, W in enumerate(lW):
+            update_matrix(W, self.w_labels[i], model.W_valid_mask[i])
+            fgcol, msg = ("#00AA00", "valid") if model.W_valid[i] else ("#AA0000", "invalid")
+            self.w_valids[i] = "<small><span foreground=\"%s\">%s</span></small>" % (fgcol, msg)
+            self["lbl_W_valid"].set_markup(self.w_valids[i])
+        for i, P in enumerate(lP):
+            update_matrix(P, self.p_labels[i], model.P_valid_mask[i])
+            fgcol, msg = ("#00AA00", "valid") if model.P_valid[i] else ("#AA0000", "invalid")
+            self.p_valids[i] = "<small><span foreground=\"%s\">%s</span></small>" % (fgcol, msg)
+            self["lbl_P_valid"].set_markup(self.p_valids[i])
 
+    def show_w_matrix(self, index):
+        index = max(min(index, len(self.w_tables)-1),0)
+        self._add_child_view(self.w_tables[index], self['w_box'])
+        self["lbl_W_title"].set_markup(self.w_titles[index])
+        self["lbl_W_valid"].set_markup(self.w_valids[index])
+        self.show_all()
+        return index
+        
+    def show_p_matrix(self, index):
+        index = max(min(index, len(self.p_tables)-1),0)
+        self._add_child_view(self.p_tables[index], self['p_box'])
+        self["lbl_P_title"].set_markup(self.p_titles[index])
+        self["lbl_P_valid"].set_markup(self.w_valids[index])
+        self.show_all()
+        return index
         
     pass #end of class
         

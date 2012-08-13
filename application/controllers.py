@@ -157,7 +157,7 @@ class AppController (BaseController, DialogMixin):
             self.in_update_cycle = False
         
     def update_title(self):
-         self.view.get_top_widget().set_title("PyXRD - %s" % self.model.current_project.data_name)        
+        self.view.get_top_widget().set_title("PyXRD - %s" % self.model.current_project.name)        
         
     def update_sensitivities(self):
         self.update_specimen_sensitivities()
@@ -203,9 +203,9 @@ class AppController (BaseController, DialogMixin):
         try:
             self.model.current_project = Project.load_object(filename)
             self.model.current_filename = filename
-        except:
+        except any as error:
             self.run_information_dialog("An error has occured.\n Your project was not loaded!", parent=self.view.get_top_widget())
-            raise
+            print error
         
     # ------------------------------------------------------------
     #      Notifications of observable properties
@@ -280,7 +280,7 @@ class AppController (BaseController, DialogMixin):
         def on_open_project(dialog):
             def on_accept(dialog):
                 print "Opening project..."
-                self.open_project(dialog.get_filename())
+                self.open_project(dialog.get_filename())                    
             self.run_load_dialog(
                 title="Open project",
                 on_accept_callback=on_accept,
@@ -398,7 +398,7 @@ class AppController (BaseController, DialogMixin):
         if self.model.single_specimen_selected:
             filename = os.path.splitext(self.model.current_specimen.data_name)[0]
         else:
-            filename = self.model.current_project.data_name
+            filename = self.model.current_project.name
         self.plot_controller.save(
             parent=self.view.get_toplevel(), 
             suggest_name=filename, 

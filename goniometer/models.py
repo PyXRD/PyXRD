@@ -71,6 +71,9 @@ class Goniometer(ChildModel, Storable):
         self.data_max_2theta = data_max_2theta or self.data_max_2theta
         self.data_lambda = data_lambda or self.data_lambda
         
+    def __reduce__(self):
+        return (type(self), ((),self.json_properties()))
+        
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------    

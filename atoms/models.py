@@ -99,28 +99,28 @@ class AtomType(ChildModel, ObjectListStoreChildMixin, Storable, CSVMixin):
     #      Initialisation and other internals
     # ------------------------------------------------------------
     
-    def __init__(self, name="", charge=0, debye=0, weight=0, atom_nr=0, par_c=0, 
-            par_a1=0, par_a2=0, par_a3=0, par_a4=0, par_a5=0, 
-            par_b1=0, par_b2=0, par_b3=0, par_b4=0, par_b5=0, 
+    def __init__(self, name="", charge=0.0, debye=0.0, weight=0.0, atom_nr=0.0, par_c=0.0, 
+            par_a1=0.0, par_a2=0.0, par_a3=0.0, par_a4=0.0, par_a5=0.0, 
+            par_b1=0.0, par_b2=0.0, par_b3=0.0, par_b4=0.0, par_b5=0.0, 
             parent=None, **kwargs):
         ChildModel.__init__(self, parent=parent)
         Storable.__init__(self)
         self.parameters_changed = Signal()
                
-        self.name = self.get_depr(("data_name",), kwargs, str(name) or self.name)
-        self.atom_nr = self.get_depr(("data_atom_nr",), kwargs, int(atom_nr) or self.atom_nr)
-        self.weight = self.get_depr(("data_weight",), kwargs, float(weight) or self.weight)
-        self.debye = self.get_depr(("data_debye",), kwargs, float(debye) or self.debye)
-        self.charge = self.get_depr(("data_charge",), kwargs, float(charge) or self.charge)
+        self.name = str(name or self.get_depr(kwargs, "", "data_name"))
+        self.atom_nr = int(atom_nr or self.get_depr(kwargs, 0.0, "data_atom_nr"))
+        self.weight = float(weight or self.get_depr(kwargs, 0.0, "data_weight"))
+        self.debye = float(debye or self.get_depr(kwargs, 0.0, "data_debye"))
+        self.charge = float(charge or self.get_depr(kwargs, 0.0, "data_charge"))
         
-        self._c = self.get_depr(("data_par_c",), kwargs, float(par_c))
+        self._c = float(par_c or self.get_depr(kwargs, 0.0, "data_par_c"))
 
         self._a = []
         self._b = []
         for name in ["par_a1", "par_a2", "par_a3", "par_a4", "par_a5"]:
-            self._a.append(float(self.get_depr(("data_%s" % name,), kwargs, locals()[name])))
+            self._a.append(float(locals()[name] or self.get_depr(kwargs, 0.0, "data_%s" % name)))
         for name in ["par_b1", "par_b2", "par_b3", "par_b4", "par_b5"]:
-            self._b.append(float(self.get_depr(("data_%s" % name,), kwargs, locals()[name])))
+            self._b.append(float(locals()[name] or self.get_depr(kwargs, 0.0, "data_%s" % name)))
         
     def __str__(self):
         return "<AtomType %s (%s)>" % (self.name, id(self))
@@ -219,21 +219,21 @@ class Atom(ChildModel, ObjectListStoreChildMixin, Storable):
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def __init__(self, name=None, z=0, default_z=0, pn=None,
-            atom_type=None, atom_type_index=None, atom_type_uuid=None, 
-            atom_type_name=None, stretch_values=False, parent=None, **kwargs):  
+    def __init__(self, name="", default_z=0.0, pn=0.0,
+            atom_type=None, atom_type_index=-1, atom_type_uuid="", 
+            atom_type_name="", stretch_values=False, parent=None, **kwargs):  
         ChildModel.__init__(self, parent=parent)
         Storable.__init__(self)
                
-        self.name = self.get_depr(("data_name",), kwargs, name or self.name)
+        self.name = str(name or self.get_depr(kwargs, "", "data_name"))
         
         self.stretch_values = stretch_values
-        self.default_z = default_z or self.get_depr(("data_z",), kwargs, z)
-        self.pn = self.get_depr(("data_pn",), kwargs, pn or self._pn)
-        self.atom_type = self.get_depr(("data_atom_type",), kwargs, atom_type)
+        self.default_z = float(default_z or self.get_depr(kwargs, 0.0, "data_z", "z"))
+        self.pn = float(pn or self.get_depr(kwargs, 0.0, "pn"))
+        self.atom_type = atom_type or self.get_depr(kwargs, None, "data_atom_type")
         
-        self._atom_type_uuid = atom_type_uuid or ""
-        self._atom_type_name = atom_type_name or ""
+        self._atom_type_uuid = atom_type_uuid
+        self._atom_type_name = atom_type_name
         self._atom_type_index = atom_type_index if atom_type_index > -1 else None
          
     def __str__(self):
@@ -272,16 +272,21 @@ class Atom(ChildModel, ObjectListStoreChildMixin, Storable):
     def resolve_json_references(self):    
         if self._atom_type_uuid!="":
             self.atom_type = pyxrd_object_pool.get_object(self._atom_type_uuid)
-        elif self._atom_type_name!="":
-            for atom_type in self.component.phase.project.data_atom_types.iter_objects():
-                if atom_type.name == self._atom_type_name:
-                    self.atom_type = atom_type
-        elif self._atom_type_index is not None:
-            warn("The use of object indeces is deprected since version 0.4. Please switch to using object UUIDs.", DeprecationWarning)
-            self.atom_type = self.component.phase.project.data_atom_types.get_user_data_from_path((self._atom_type_index,))
-        del self._atom_type_name
-        del self._atom_type_uuid
-        del self._atom_type_index
+        elif self._atom_type_name!="" or self._atom_type_index is not None:
+            assert(self.component!=None)
+            assert(self.component.phase!=None)
+            assert(self.component.phase.project!=None)
+            if self._atom_type_name!="":
+                for atom_type in self.component.phase.project.data_atom_types.iter_objects():
+                    if atom_type.name == self._atom_type_name:
+                        self.atom_type = atom_type
+            else:
+                warn("The use of object indeces is deprected since version 0.4. \
+                    Please switch to using object UUIDs.", DeprecationWarning)
+                self.atom_type = self.component.phase.project.data_atom_types.get_user_data_from_path((self._atom_type_index,))
+        self._atom_type_name = ""
+        self._atom_type_uuid = ""
+        self._atom_type_index = None
 
     def json_properties(self):
         from phases.models import Phase

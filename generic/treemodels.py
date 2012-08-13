@@ -74,6 +74,9 @@ class _BaseObjectListStore(gtk.GenericTreeModel):
         
     def iter_objects(self):
         raise NotImplementedError
+        
+    def __reduce__(self):
+        raise NotImplementedError
 
 class ObjectListStore(_BaseObjectListStore, Storable):
     """
@@ -115,6 +118,11 @@ class ObjectListStore(_BaseObjectListStore, Storable):
     def json_properties(self):
         return { 'class_type': json_type(self._class_type),
                  'model_data': self._model_data }
+                 
+    def __reduce__(self):
+        return (type(self), ((self._class_type,),{ 
+            "model_data": self._model_data,
+        }))
 
     # ------------------------------------------------------------
     #      Methods & Functions
@@ -407,11 +415,11 @@ class ObjectTreeStore(_BaseObjectListStore, Storable):
         Storable.__init__(self)
         self._model_data = ObjectTreeNode()
         self._object_node_map = dict()
-        #if model_data!=None: FIXME?
+        #if model_data!=None: FIXME!!
         #    decoder = PyXRDDecoder(parent=parent)
         #    for obj in model_data:
         #        item = decoder.__pyxrd_decode__(obj, parent=parent)
-        #        self._model_data.append(item)
+        #        self.append(item)
 
     # ------------------------------------------------------------
     #      Input/Output stuff
@@ -419,6 +427,11 @@ class ObjectTreeStore(_BaseObjectListStore, Storable):
     def json_properties(self):
         return { 'class_type': json_type(self._class_type),
                  'model_data': self._model_data }
+                 
+    def __reduce__(self):
+        return (type(self), ((self._class_type,),{ 
+            "model_data": self._model_data,
+        }))
 
     # ------------------------------------------------------------
     #      Methods & Functions
@@ -600,6 +613,11 @@ class IndexListStore(ObjectListStore):
         self._item_observer = IndexListStore.ItemObserver(liststore=self)
         ObjectListStore.__init__(self, class_type, **kwargs)
        
+    def __reduce__(self):
+        return (type(self), ((self._class_type,),{ 
+            "model_data": self._model_data,
+        }))
+       
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------ 
@@ -704,6 +722,9 @@ class XYListStore(_BaseObjectListStore, Storable):
                 ["[" + ",".join(["%f" % val for val in row]) + "]" for row in conc]
             ) + "]",
         }
+
+    def __reduce__(self):
+        return (type(self), (), self.json_properties())
 
     def save_data(self, header, filename):
         f = open(filename, 'w')
@@ -853,7 +874,10 @@ class XYListStore(_BaseObjectListStore, Storable):
         
     def append(self, x, *y):
         self._model_data_x = np.append(self._model_data_x, x)
-        self._model_data_y = np.append(self._model_data_y, self._y_from_user(y), axis=1)
+        if self._model_data_y.size == 0:
+            self._model_data_y = self._y_from_user(y)
+        else:
+            self._model_data_y = np.append(self._model_data_y, self._y_from_user(y), axis=1)
         path = (self._model_data_x.size-1,)
         self._emit_added(path)
         return path

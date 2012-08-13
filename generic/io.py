@@ -6,6 +6,8 @@
 # To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/3.0/ or send
 # a letter to Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
 
+from traceback import format_exc
+
 import json
 import settings
 
@@ -51,6 +53,10 @@ class PyXRDDecoder(json.JSONDecoder):
                 return objtype.from_json(**dict(obj["properties"], **kwargs))
         raise Warning, "__pyxrd_decode__ will return None for %s!" % str(obj)[:30]+"..."+str(obj)[:-30]
         return None
+    
+def __map_reduce__(json_obj):
+    decoder = PyXRDDecoder()
+    return decoder.decode(json_obj)
         
 class Storable(object):
     __storables__ = []
@@ -67,17 +73,32 @@ class Storable(object):
     
     @staticmethod
     def load_object(filename, parent=None):
+        """
+        Tries to create an object from the file 'filename' (see below).
+        
+        *filename* the actual filename or a file-like object
+        
+        *parent* optional parent to pass to the JSON decoder
+                
+        :rtype: the loaded object instance
+        """
         try:
             with open(filename, 'r') as f:
                 return json.load(f, cls=PyXRDDecoder, parent=parent)
-        except TypeError:
-            raise
-            return json.load(filename, cls=PyXRDDecoder, parent=parent)
+        except TypeError as error:
+            print "Handling run-time error: %s" % error
+            tb = format_exc()
+            try:
+                return json.load(filename, cls=PyXRDDecoder, parent=parent)
+            except:
+                print tb
+                raise #re-raise last error
+                
+            
 
     def json_properties(self):
         retval = {}
         for name in self.__storables__:
-           
             retval[name] = getattr(self, name)
         return retval
     
@@ -104,5 +125,9 @@ class Storable(object):
             q.e. the __init__ function can handle JSON kw-args.
         """
         return type(**kwargs)
+
+    def __reduce__(self):
+        props = self.dump_object()
+        return __map_reduce__, (props,), None
 
     pass #end of class

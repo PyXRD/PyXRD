@@ -103,11 +103,32 @@ class PyXRDModel(Model):
     ]
     
     
-    def get_depr(self, names, kwargs, default=None):
+    def get_depr(self, fun_kwargs, default, *keywords):
+        """
+        Can be used to check if any deprecated keywords are passed to a 
+        function, and if not, return a default value. Additionally warns the 
+        user about the fact that he is using a deprecated keyword.
+        If more then one deprecated keyword argument is present, the value of
+        the last keword as passed to this function is passed.
+        By default, deprecated arguments should be ignored if a non-deprecated
+        one is passed as well.
+        
+        *fun_kwargs* the keyword arguments as passed to the function
+        
+        *default* the default value if no deprecated arguments are present
+        
+        **keywords* the deprecated keywords
+        
+        :rtype: the retrieved value or the default one as explained above
+        """
+        if len(keywords) < 1:
+            raise AttributeError, "get_depr() requires at least one alias (%d given)" % (len(keywords))
+        
         value = default
-        for name in names:
-            value = kwargs.get(name, value)
-            warn("The use of the keyword '%s' is deprecated for %s!" % (name, type(self)), DeprecationWarning)
+        for key in keywords:
+            if key in fun_kwargs:
+                value = fun_kwargs[key]
+                warn("The use of the keyword '%s' is deprecated for %s!" % (key, type(self)), DeprecationWarning)
         return value
     
     @property

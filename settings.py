@@ -95,18 +95,19 @@ def get_abs_dir(rel_dir):
 
 ### Runtime Settings Retrieval ###
 SETTINGS_APPLIED = False
-def apply_runtime_settings():
+def apply_runtime_settings(no_gui=False):
     """Apply runtime settings, can and needs to be called only once"""
     global SETTINGS_APPLIED
     global BASE_DIR
     if not SETTINGS_APPLIED:
-        import matplotlib
+        if not no_gui:
+            import matplotlib
 
-        font = {'weight' : 'heavy', 'size': 14}
-        matplotlib.rc('font', **font)
-        mathtext = {'default': 'regular', 'fontset': 'stixsans'}
-        matplotlib.rc('mathtext', **mathtext)
-        #matplotlib.rc('text', **{'usetex':True})
+            font = {'weight' : 'heavy', 'size': 14}
+            matplotlib.rc('font', **font)
+            mathtext = {'default': 'regular', 'fontset': 'stixsans'}
+            matplotlib.rc('mathtext', **mathtext)
+            #matplotlib.rc('text', **{'usetex':True})
         
         import sys, os
         BASE_DIR = os.path.abspath(os.path.dirname(sys.argv[0]))

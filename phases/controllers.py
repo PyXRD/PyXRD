@@ -307,7 +307,7 @@ class EditLayerController(InlineObjectListStoreController):
                 pass
         
         if atom is not None:
-            atom.data_atom_type = self.new_atom_type
+            atom.atom_type = self.new_atom_type
             self.new_atom_type = None
             return True
         return False

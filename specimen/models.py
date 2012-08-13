@@ -178,7 +178,10 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
     @property
     def max_intensity(self):
         """The maximum intensity of the current profile (both calculated and observed"""
-        return max(np.max(self.data_experimental_pattern.max_intensity), np.max(self.data_calculated_pattern.max_intensity))
+        if self.data_experimental_pattern and self.data_calculated_pattern:
+            return max(np.max(self.data_experimental_pattern.max_intensity), np.max(self.data_calculated_pattern.max_intensity))
+        else:
+            return 0.0
 
     
     #list with 2D numpy arrays containing the calculated intensities:

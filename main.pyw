@@ -10,9 +10,12 @@
 
 if __name__ == "__main__":
 
-    #disable unity overlay scrollbars as they cause bugs with modal windows
-    import sys, os
-    os.environ['LIBOVERLAY_SCROLLBAR'] = '0'
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("filename", nargs="?", default="", help="A PyXRD project filename", )
+    parser.add_argument("-n", "--no-gui", default=False, help="Do not start the GUI", action="store_true")
+    parser.add_argument("-s", "--script", default="", help="Can be used to pass a script containing a run(project) function, implies -n")
+    args = parser.parse_args()
 
     #start our logging service, prints to stdout and errors.log file
     from generic.loggers import PyXRDLogger
@@ -21,38 +24,56 @@ if __name__ == "__main__":
     #check for updates
     from generic.update import update
     update()
-    
-    #after update, load our application modules
-    from application.models import AppModel
-    from application.views import AppView
-    from application.controllers import AppController
+
+    #apply settings
     import settings
-    import gtk
-        
-    #apply settings and init threads
-    settings.apply_runtime_settings()
-    gtk.gdk.threads_init()
+    settings.apply_runtime_settings(args.no_gui)
 
     #check if a filename was passed, if so try to load it
+    from project.models import Project
+    
     project = None
-    if (len(sys.argv) > 1) and sys.argv[1]!="":
-        from project.models import Project
-        filename = sys.argv[1]
+    if args.filename!="":
         try:
-            print "Opening: %s" % filename
-            project = Project.load_object(filename)
-        except IOError as e:
-            print 'Could not load file: IOError'
+            print "Opening: %s" % args.filename
+            project = Project.load_object(args.filename)
+        except IOError:
+            print 'Could not load file %s: IOError' % args.filename
 
-    #setup MVC:
-    m = AppModel(project=project)
-    v = AppView()
-    c = AppController(m, v)
-    
-    #lets get this show on the road:
-    gtk.gdk.threads_enter()
-    gtk.main()
-    gtk.gdk.threads_leave()
-    
+    if args.no_gui or args.script:
+        if project==None:
+            print "No PyXRD project filename passed, exiting..."
+        else:
+            if args.script:
+                try:
+                    import imp
+                    user_script = imp.load_source('user_script', args.script)
+                except:
+                    raise ImportError, "Error when trying to import run() from %s" % args.script
+                user_script.run(project)
+    else:
+        #disable unity overlay scrollbars as they cause bugs with modal windows
+        import sys, os
+        os.environ['LIBOVERLAY_SCROLLBAR'] = '0'
+       
+        #after update, load our application modules
+        from application.models import AppModel
+        from application.views import AppView
+        from application.controllers import AppController
+        import gtk
+            
+        #init threads
+        gtk.gdk.threads_init()
+
+        #setup MVC:
+        m = AppModel(project=project)
+        v = AppView()
+        c = AppController(m, v)
+        
+        #lets get this show on the road:
+        gtk.gdk.threads_enter()
+        gtk.main()
+        gtk.gdk.threads_leave()
+        
     #stop the logger:
     PyXRDLogger.stop_logging()

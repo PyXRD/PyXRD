@@ -41,10 +41,8 @@ class ProjectController (DialogController, HasObjectTreeview, DialogMixin):
         print "ProjectController.register_adapters()"
         if self.model is not None and self.parent is not None:
             for name in self.model.get_properties():
-                if name == "data_name":
-                    ad = Adapter(self.model, "data_name")
-                    ad.connect_widget(self.view["project_data_name"])
-                    self.adapt(ad)
+                if name == "name":
+                    self.adapt(name, "project_%s" % name)
                 elif name == "data_description":
                     pass
                 elif name in ("display_calc_color", "display_exp_color"):
@@ -138,9 +136,8 @@ class ProjectController (DialogController, HasObjectTreeview, DialogMixin):
 
     # ------------------------------------------------------------
     #      Notifications of observable properties
-    # ------------------------------------------------------------
-    
-    @Controller.observe("data_name", assign=True)
+    # ------------------------------------------------------------    
+    @Controller.observe("name", assign=True)
     def notif_change_name(self, model, prop_name, info):
         self.parent.update_title()
         return

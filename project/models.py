@@ -30,7 +30,7 @@ class Project(PyXRDModel, Storable, ObjectListStoreParentMixin):
 
     #MODEL INTEL:
     __model_intel__ = [ #TODO add labels
-        PropIntel(name="data_name",             inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="name",             inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
         PropIntel(name="data_date",             inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
         PropIntel(name="data_description",      inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
         PropIntel(name="data_author",           inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
@@ -59,7 +59,7 @@ class Project(PyXRDModel, Storable, ObjectListStoreParentMixin):
     needs_update = None
 
     #PROPERTIES:
-    data_name = ""
+    name = ""
     data_date = ""
     data_description = None
     data_author = ""
@@ -126,7 +126,7 @@ class Project(PyXRDModel, Storable, ObjectListStoreParentMixin):
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def __init__(self, data_name = "Project name",
+    def __init__(self, name = "Project name",
             data_date = time.strftime("%d/%m/%Y"),
             data_description = "Project description",
             data_author = "Project author",
@@ -136,7 +136,7 @@ class Project(PyXRDModel, Storable, ObjectListStoreParentMixin):
             display_calc_color=None, display_exp_color=None, display_label_pos=None,
             axes_xscale=None, axes_xmin=None, axes_xmax=None, 
             axes_xstretch=None, axes_yscale=None, axes_yvisible=None,
-            load_default_data=True):
+            load_default_data=True, **kwargs):
         PyXRDModel.__init__(self)
         Storable.__init__(self)
         
@@ -166,7 +166,7 @@ class Project(PyXRDModel, Storable, ObjectListStoreParentMixin):
         
         self.data_description = gtk.TextBuffer()
         
-        self.data_name = data_name
+        self.name = str(name or self.get_depr(kwargs, "", "data_name"))
         self.data_date = data_date
         self.data_description.set_text(data_description)
         self.data_author = data_author
@@ -257,13 +257,7 @@ class Project(PyXRDModel, Storable, ObjectListStoreParentMixin):
         project = type(**kwargs)
         project.needs_saving = False #don't mark this when just loaded
         return project
-        
-    """def to_json(self):
-        return { 
-            "type": json_type(type(self)),
-            "properties": self.json_properties()
-        }"""
-        
+                
     def save_object(self, filename):
         #if filename.endswith(".pyxrd"):
         Storable.save_object(self, filename)

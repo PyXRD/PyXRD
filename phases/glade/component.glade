@@ -6,7 +6,7 @@
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="border_width">10</property>
-    <property name="n_rows">10</property>
+    <property name="n_rows">11</property>
     <property name="n_columns">4</property>
     <property name="row_spacing">5</property>
     <child>
@@ -62,8 +62,8 @@
         <property name="label" translatable="yes">Layer atoms</property>
       </object>
       <packing>
-        <property name="top_attach">7</property>
-        <property name="bottom_attach">8</property>
+        <property name="top_attach">8</property>
+        <property name="bottom_attach">9</property>
         <property name="x_options">GTK_FILL</property>
         <property name="y_options">GTK_FILL</property>
         <property name="x_padding">12</property>
@@ -123,38 +123,9 @@
       <packing>
         <property name="left_attach">1</property>
         <property name="right_attach">2</property>
-        <property name="top_attach">7</property>
-        <property name="bottom_attach">8</property>
+        <property name="top_attach">8</property>
+        <property name="bottom_attach">9</property>
         <property name="x_options"></property>
-        <property name="y_options">GTK_FILL</property>
-      </packing>
-    </child>
-    <child>
-      <object class="GtkAlignment" id="spin_align3">
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="xalign">0</property>
-        <property name="xscale">0</property>
-        <property name="left_padding">12</property>
-        <child>
-          <object class="GtkEntry" id="component_data_d001">
-            <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="invisible_char">•</property>
-            <property name="invisible_char_set">True</property>
-            <property name="primary_icon_activatable">False</property>
-            <property name="secondary_icon_activatable">False</property>
-            <property name="primary_icon_sensitive">True</property>
-            <property name="secondary_icon_sensitive">True</property>
-          </object>
-        </child>
-      </object>
-      <packing>
-        <property name="left_attach">2</property>
-        <property name="right_attach">4</property>
-        <property name="top_attach">5</property>
-        <property name="bottom_attach">6</property>
-        <property name="x_options">GTK_FILL</property>
         <property name="y_options">GTK_FILL</property>
       </packing>
     </child>
@@ -218,8 +189,8 @@
         <property name="label" translatable="yes">Interlayer atoms</property>
       </object>
       <packing>
-        <property name="top_attach">8</property>
-        <property name="bottom_attach">9</property>
+        <property name="top_attach">9</property>
+        <property name="bottom_attach">10</property>
         <property name="x_options">GTK_FILL</property>
         <property name="y_options">GTK_FILL</property>
         <property name="x_padding">10</property>
@@ -247,14 +218,32 @@
       <packing>
         <property name="left_attach">1</property>
         <property name="right_attach">2</property>
-        <property name="top_attach">8</property>
-        <property name="bottom_attach">9</property>
+        <property name="top_attach">9</property>
+        <property name="bottom_attach">10</property>
         <property name="x_options"></property>
         <property name="y_options">GTK_FILL</property>
       </packing>
     </child>
     <child>
-      <object class="GtkEventBox" id="interlayer_atoms_container">
+      <object class="GtkEventBox" id="container_interlayer_atoms">
+        <property name="height_request">150</property>
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <child>
+          <placeholder/>
+        </child>
+      </object>
+      <packing>
+        <property name="left_attach">2</property>
+        <property name="right_attach">4</property>
+        <property name="top_attach">9</property>
+        <property name="bottom_attach">10</property>
+        <property name="x_padding">5</property>
+        <property name="y_padding">5</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkEventBox" id="container_layer_atoms">
         <property name="height_request">150</property>
         <property name="visible">True</property>
         <property name="can_focus">False</property>
@@ -267,24 +256,6 @@
         <property name="right_attach">4</property>
         <property name="top_attach">8</property>
         <property name="bottom_attach">9</property>
-        <property name="x_padding">5</property>
-        <property name="y_padding">5</property>
-      </packing>
-    </child>
-    <child>
-      <object class="GtkEventBox" id="layer_atoms_container">
-        <property name="height_request">150</property>
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <child>
-          <placeholder/>
-        </child>
-      </object>
-      <packing>
-        <property name="left_attach">2</property>
-        <property name="right_attach">4</property>
-        <property name="top_attach">7</property>
-        <property name="bottom_attach">8</property>
         <property name="x_padding">5</property>
         <property name="y_padding">5</property>
       </packing>
@@ -360,7 +331,7 @@
       </packing>
     </child>
     <child>
-      <object class="GtkEventBox" id="ucp_a_container">
+      <object class="GtkEventBox" id="container_ucp_a">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <child>
@@ -378,7 +349,7 @@
       </packing>
     </child>
     <child>
-      <object class="GtkEventBox" id="ucp_b_container">
+      <object class="GtkEventBox" id="container_ucp_b">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <child>
@@ -396,7 +367,7 @@
       </packing>
     </child>
     <child>
-      <object class="GtkEventBox" id="atom_ratios_container">
+      <object class="GtkEventBox" id="container_atom_ratios">
         <property name="height_request">150</property>
         <property name="visible">True</property>
         <property name="can_focus">False</property>
@@ -407,8 +378,8 @@
       <packing>
         <property name="left_attach">2</property>
         <property name="right_attach">4</property>
-        <property name="top_attach">9</property>
-        <property name="bottom_attach">10</property>
+        <property name="top_attach">10</property>
+        <property name="bottom_attach">11</property>
         <property name="x_padding">5</property>
         <property name="y_padding">5</property>
       </packing>
@@ -435,8 +406,8 @@
       <packing>
         <property name="left_attach">1</property>
         <property name="right_attach">2</property>
-        <property name="top_attach">9</property>
-        <property name="bottom_attach">10</property>
+        <property name="top_attach">10</property>
+        <property name="bottom_attach">11</property>
         <property name="x_options"></property>
         <property name="y_options">GTK_FILL</property>
       </packing>
@@ -450,40 +421,11 @@
         <property name="label" translatable="yes">Atom ratios</property>
       </object>
       <packing>
-        <property name="top_attach">9</property>
-        <property name="bottom_attach">10</property>
+        <property name="top_attach">10</property>
+        <property name="bottom_attach">11</property>
         <property name="x_options">GTK_FILL</property>
         <property name="y_options">GTK_FILL</property>
         <property name="x_padding">10</property>
-      </packing>
-    </child>
-    <child>
-      <object class="GtkAlignment" id="spin_align1">
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="xalign">0</property>
-        <property name="xscale">0</property>
-        <property name="left_padding">12</property>
-        <child>
-          <object class="GtkEntry" id="component_default_c">
-            <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="invisible_char">•</property>
-            <property name="invisible_char_set">True</property>
-            <property name="primary_icon_activatable">False</property>
-            <property name="secondary_icon_activatable">False</property>
-            <property name="primary_icon_sensitive">True</property>
-            <property name="secondary_icon_sensitive">True</property>
-          </object>
-        </child>
-      </object>
-      <packing>
-        <property name="left_attach">2</property>
-        <property name="right_attach">4</property>
-        <property name="top_attach">6</property>
-        <property name="bottom_attach">7</property>
-        <property name="x_options">GTK_FILL</property>
-        <property name="y_options">GTK_FILL</property>
       </packing>
     </child>
     <child>
@@ -518,6 +460,94 @@
         <property name="x_options">GTK_FILL</property>
         <property name="y_options">GTK_FILL</property>
         <property name="x_padding">12</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkLabel" id="label_component_delta_c">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="xalign">1</property>
+        <property name="label" translatable="yes">Δc spacing &lt;i&gt;[nm]&lt;/i&gt;</property>
+        <property name="use_markup">True</property>
+      </object>
+      <packing>
+        <property name="top_attach">7</property>
+        <property name="bottom_attach">8</property>
+        <property name="x_options">GTK_FILL</property>
+        <property name="y_options">GTK_FILL</property>
+        <property name="x_padding">12</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkCheckButton" id="component_inherit_delta_c">
+        <property name="visible">True</property>
+        <property name="can_focus">True</property>
+        <property name="receives_default">False</property>
+        <property name="use_action_appearance">False</property>
+        <property name="xalign">0</property>
+        <property name="draw_indicator">True</property>
+      </object>
+      <packing>
+        <property name="left_attach">1</property>
+        <property name="right_attach">2</property>
+        <property name="top_attach">7</property>
+        <property name="bottom_attach">8</property>
+        <property name="x_options"></property>
+        <property name="y_options">GTK_FILL</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkEventBox" id="container_delta_c">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <child>
+          <placeholder/>
+        </child>
+      </object>
+      <packing>
+        <property name="left_attach">2</property>
+        <property name="right_attach">4</property>
+        <property name="top_attach">7</property>
+        <property name="bottom_attach">8</property>
+        <property name="y_options">GTK_FILL</property>
+        <property name="x_padding">5</property>
+        <property name="y_padding">5</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkEventBox" id="container_data_d001">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <child>
+          <placeholder/>
+        </child>
+      </object>
+      <packing>
+        <property name="left_attach">2</property>
+        <property name="right_attach">4</property>
+        <property name="top_attach">5</property>
+        <property name="bottom_attach">6</property>
+        <property name="y_options">GTK_FILL</property>
+        <property name="x_padding">5</property>
+        <property name="y_padding">5</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkEventBox" id="container_default_c">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <child>
+          <placeholder/>
+        </child>
+      </object>
+      <packing>
+        <property name="left_attach">2</property>
+        <property name="right_attach">4</property>
+        <property name="top_attach">6</property>
+        <property name="bottom_attach">7</property>
+        <property name="y_options">GTK_FILL</property>
+        <property name="x_padding">5</property>
+        <property name="y_padding">5</property>
       </packing>
     </child>
   </object>

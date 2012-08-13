@@ -140,7 +140,7 @@ class MatrixView(BaseView, HasChildView, ProbabilityViewMixin):
         assert(rank==(G**max(R,1)))
         self.create_matrices(R, G, rank)
                  
-    def create_matrices(self, R, G, rank, current_w=None, current_p=None):  
+    def create_matrices(self, R, G, rank):
         #calculate moduli for parameter index calculation:
         lR = max(R,1)
         mod = [0]*lR
@@ -184,10 +184,7 @@ class MatrixView(BaseView, HasChildView, ProbabilityViewMixin):
             for i in range(current_lR-1):
                 if rowsuf[i+1] != colsuf[i]: visible = False
             if visible:
-                try:
-                    return fmt % (tuple(rowsuf) + (colsuf[-1],))
-                except TypeError:
-                    print current_lR, fmt, tuple(rowsuf) + (colsuf[-1],)
+                return fmt % (tuple(rowsuf) + (colsuf[-1],))
             else:
                 return "-"
 
@@ -242,14 +239,13 @@ class MatrixView(BaseView, HasChildView, ProbabilityViewMixin):
             subdiagonal_tooltips
         )
 
-        self.show_w_matrix(-1 or current_w)
-        self.show_p_matrix(-1 or current_p)
+        self.show_w_matrix(len(self.w_tables)-2)
+        self.show_p_matrix(len(self.w_tables)-1)
                     
         return
                  
     def update_matrices(self, model):       
         lW, lP = model.get_all_matrices()
-        print len(model.W_valid_mask), len(lW)
         def update_matrix(matrix, labels, mask=None, valid=False):
             shape = matrix.shape
             for i in range(shape[0]):

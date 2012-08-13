@@ -7,6 +7,7 @@
 # a letter to Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
 import gtk
 
+from math import isnan
 import numpy as np
 
 from generic.views import BaseView, DialogView
@@ -66,7 +67,8 @@ class RefinementView(DialogView):
         self["hbox_actions"].set_sensitive(True)
        
     def update_refinement_info(self, current_rp=None):
-        self["lbl_rp_current"].set_text("%.2f" % current_rp)
+        if not isnan(current_rp):
+            self["lbl_rp_current"].set_text("%.2f" % current_rp)            
         
     def complete_function(self, widget, data = None):
         self.hide_refinement_info()

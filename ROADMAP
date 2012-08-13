@@ -1,0 +1,17 @@
+Feature-wise:
+0.4 - test probability code (and iron out bugs, clean up code etc.)
+0.4 - add more 'default' phases
+0.5 - fix refinement
+        - move inheritance of probabilities down to the indepent parameters level
+        (- add ability to spawn a second PyXRD from current project (e.g. save to temp location)
+          in a headless mode and refine that refinement setup, allowing for multiple processes to refine different paramaters.)
+0.5 - add manual Y limit option (in raw counts?)
+0.5 - add zip project files (*.zpd)
+        - split large object stores in project zip file into separate files in the zip file
+    
+Code-Wise:
+0.4 - check most of the TreeView/Combobox creation code for sanity (e.g. register treeview instead of register_adapters)
+0.4 - cleanse code from TODO & FIXME's
+0.5 - check for file extension registers on windows (using exec assoc & ftype) & linux (pyxdg)
+0.7 - most of the default dialog actions (confirmation ,information etc.) could also be usefull as decorators.
+0.7 - ability to hide listview in objectliststore edit dialogs (slicker windows)

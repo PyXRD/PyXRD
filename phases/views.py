@@ -80,19 +80,19 @@ class EditComponentView(BaseView, HasChildView):
     top = "edit_component"
 
     layer_view = None    
-    layer_view_container = "layer_atoms_container"
+    layer_view_container = "container_layer_atoms"
 
     interlayer_view = None
-    interlayer_view_container = "interlayer_atoms_container"
+    interlayer_view_container = "container_interlayer_atoms"
     
     atom_ratios_view = None
-    atom_ratios_view_container = "atom_ratios_container"    
+    atom_ratios_view_container = "container_atom_ratios"    
 
     ucpa_view = None    
-    ucpa_view_container = "ucp_a_container"
+    ucpa_view_container = "container_ucp_a"
 
     ucpb_view = None    
-    ucpb_view_container = "ucp_b_container"
+    ucpb_view_container = "container_ucp_b"
 
         
     def __init__(self, *args, **kwargs):

@@ -34,7 +34,6 @@ from generic.treemodels import ObjectListStore, XYListStore
 from generic.peak_detection import multi_peakdetect, peakdetect
 
 class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStoreChildMixin):
-
     #MODEL INTEL:
     __parent_alias__ = 'project'
     __model_intel__ = [
@@ -172,12 +171,18 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
     def set_display_offset(self, new_offset):
         self.data_experimental_pattern.offset = new_offset
         self.data_calculated_pattern.offset = new_offset
-    
-    #_data_phases = None
-    #def get_data_phases_value(self): return self._data_phases
-        
+       
     _data_markers = None
     def get_data_markers_value(self): return self._data_markers
+    
+    @property
+    def max_intensity(self):
+        """The maximum intensity of the current profile (both calculated and observed"""
+        return max(np.max(self.data_experimental_pattern.max_intensity), np.max(self.data_calculated_pattern.max_intensity))
+
+    
+    #list with 2D numpy arrays containing the calculated intensities:
+    data_phase_intensities = None
     
     # ------------------------------------------------------------
     #      Initialisation and other internals
@@ -304,15 +309,23 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------
-    #data_phase_xydatas = None
-        
+    #TODO move this to the controller/view level:
     def on_update_plot(self, figure, axes, pctrl):
+        """Called by a `PlotController` whenever the plot required an update, _
+        updates the actual intensity plots
+        """
         axes.add_line(self.data_experimental_pattern)
         axes.add_line(self.data_calculated_pattern)
         pctrl.update_lim()
 
-    _hatches = None        
-    def on_update_hatches(self, figure, axes, pctrl): #TODO move this to the controller/view level
+    #TODO move this to the controller/view level
+    _hatches = None
+    def on_update_hatches(self, figure, axes, pctrl):
+        """Called by a `PlotController` whenever the plot required an update, _
+        updates exclusion 'hatched' areas on the plot
+        """
+        # try to remove hatches if any are still present
+        # FIXME this is probably unnecesary     
         if self._hatches:
             for leftborder, hatch, rightborder in self._hatches:
                 try:
@@ -321,13 +334,15 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
                     rightborder.remove()
                 except: pass
         self._hatches = list()
-                
+               
+        # calculate the Y limits (depens on data & scaling settings) 
         scale, offset = self.scale_factor_y(self.data_experimental_pattern.offset)
         ymin, ymax = axes.get_ybound()
         scaler = max(self.max_intensity * scale, 1.0)
         y0 = (offset - ymin) / (ymax - ymin)
         y1 = (offset + scaler - ymin) / (ymax - ymin)
         
+        #Create & add new hatches:
         for i, (x0, x1) in enumerate(zip(*self.data_exclusion_ranges.get_raw_model_data())):
             leftborder = axes.axvline(x0, y0, y1, c="#333333")
             hatch = axes.axvspan(x0, x1, y0, y1, fill=True, hatch="/", facecolor='#999999', edgecolor="#333333", linewidth=0)
@@ -335,11 +350,15 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
             
             self._hatches.append((leftborder, hatch, rightborder))        
         
-    @property
-    def max_intensity(self):
-        return max(np.max(self.data_experimental_pattern.max_intensity), np.max(self.data_calculated_pattern.max_intensity))
-
     def scale_factor_y(self, offset):
+        """
+        Get the factor with which to scale raw data and the scaled offset
+        
+        *offset* the unscaled offset value, expressed as a fraction of the
+        plot's height
+        
+        :rtype: tuple containing the scale factor and the (scaled) offset
+        """
         yscale = self.parent.axes_yscale if self.parent!=None else 1
         if yscale == 0:
             return (1.0 / (self.parent.get_max_intensity() or 1.0), offset)
@@ -350,8 +369,77 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
         else:
             raise ValueError, "%d" % yscale
 
+    def auto_add_peaks(self, tmodel):
+        """
+        Automagically add peak markers
+        
+        *tmodel* a :class:`~specimen.models.ThresholdSelector` model
+        """
+        threshold = tmodel.sel_threshold
+        data_base = 1 if (tmodel.pattern == "exp") else 2
+        data_x, data_y = tmodel.get_xy()
+        maxtab, mintab = peakdetect(data_y, data_x, 5, threshold)
+        
+        mpositions = []
+        for marker in self.data_markers._model_data:
+            mpositions.append(marker.data_position)
+
+        i = 1
+        for x, y in maxtab:
+            if not x in mpositions:
+                nm = 0
+                if x != 0:
+                    nm = self.parent.data_goniometer.data_lambda / (2.0*sin(radians(x/2.0)))
+                new_marker = Marker("%%.%df" % (3 + min(int(log(nm, 10)), 0)) % nm, parent=self, data_position=x, data_base=data_base)
+                self.data_markers.append(new_marker)
+            i += 1
+            
+    def get_exclusion_selector(self, x):
+        """
+        Get the numpy selector array for non-excluded data
+        
+        *x* a numpy ndarray containing the 2-theta values
+        
+        :rtype: a numpy ndarray
+        """
+        if x != None:
+            selector = np.ones(x.shape, dtype=bool)
+            for x0,x1 in zip(*np.sort(np.array(self.data_exclusion_ranges.get_raw_model_data()), axis=0)):
+                new_selector = ((x < x0) | (x > x1))
+                selector = selector & new_selector
+            return selector
+        return None
+        
+    def get_exclusion_xy(self):
+        """
+        Get an numpy array containing only non-excluded data X and Y data
+                
+        :rtype: a tuple containing 4 numpy ndarray's: the experimental X and Y
+        data and the calculated X and Y data
+        """
+        ex, ey = self.data_experimental_pattern.xy_store.get_raw_model_data()
+        cx, cy = self.data_calculated_pattern.xy_store.get_raw_model_data()
+        selector = self.get_exclusion_selector(ex)
+        return ex[selector], ey[selector], cx[selector], cy[selector]
+
+    # ------------------------------------------------------------
+    #      Intensity calculations:
+    # ------------------------------------------------------------
     @print_timing
     def update_pattern(self, phases, fractions, lpf_callback, steps=2500):
+        """
+        Recalculate pattern intensities using the provided phases
+        and their relative fractions
+        
+        *phases* a list of phases with length N
+        
+        *fractions* a list with phase fractions, also length N
+        
+        *lpf_callback* a callback providing the Lorentz polarisation factor
+        
+        :rtype: a 3-tuple containing 2-theta values, phase intensities and the
+        total intensity, or None if the length of *phases* is 0
+        """
         num_phases = len(phases)
         if num_phases == 0:
             self.data_calculated_pattern.clear()
@@ -374,7 +462,7 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
                 theta_range,
                 total_intensity,
                 self.data_phase_intensities, 
-                *zip(*[ (phase.display_color, phase.data_name) for phase in phases]))
+                *zip(*[ (phase.display_color, phase.data_name) for phase in phases if phase!=None]))
             
             #update stats:
             self.statistics.update_statistics()
@@ -384,6 +472,20 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
         
 
     def get_phase_intensities(self, phases, lpf_callback, steps=2500):
+        """
+        Gets phase intensities for the provided phases
+        
+        *phases* a list of phases with length N
+        
+        *lpf_callback* a callback providing the Lorentz polarisation factor
+        
+        *steps* the number of data points to calculate in the range specified 
+        in the project's :class:`~goniometer.models.Goniometer` object. This is
+        used only if no experimental data is loaded in the specimen
+        
+        :rtype: a 2-tuple containing 2-theta values and phase intensities or
+        None if the length of *phases* is 0
+        """
         if phases!=None:
         
             l = self.parent.data_goniometer.data_lambda
@@ -391,10 +493,10 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
             theta_range = None
             torad = pi / 180.0
             if self.data_experimental_pattern.xy_store._model_data_x.size <= 1:
-                delta_theta = float(max_theta - min_theta) / float(steps-1)
                 min_theta = radians(self.parent.data_goniometer.data_min_2theta*0.5)
                 max_theta = radians(self.parent.data_goniometer.data_max_2theta*0.5)
-                theta_range = min_theta + delta_theta * np.array(range(0,steps-1), dtype=float)
+                delta_theta = float(max_theta - min_theta) / float(steps-1)
+                theta_range = (min_theta + delta_theta * np.array(range(0,steps-1), dtype=float))
             else:
                 theta_range =  self.data_experimental_pattern.xy_store._model_data_x * torad * 0.5
             stl_range = 2 * np.sin(theta_range) / l
@@ -404,62 +506,6 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
             intensities = np.array([phase.get_diffracted_intensity(theta_range, stl_range, lpf_callback, 1.0, correction_range) if phase else np.zeros(shape=theta_range.shape) for phase in phases], dtype=np.float_)
             
             return (theta_range, intensities)
-
-    data_phase_intensities = None #list with 2D numpy arrays
-
-    """@print_timing
-    def calculate_pattern(self, lpf_callback, steps=2500):
-        if len(self._data_phases) == 0:
-            self.data_calculated_pattern.xy_store.clear()
-            return None
-        else:   
-            theta_range, intensities = self.get_phase_intensities(self._data_phases.keys(), lpf_callback, steps=steps)
-            intensity_range = np.zeros(len(intensities[0]))
-            
-            fractions = np.array(self._data_phases.values())[:,np.newaxis]
-            
-            intensity_range = np.sum(intensities*fractions*self.data_abs_scale, axis=0) + self.data_bg_shift
-            theta_range = theta_range * 360.0 / pi 
-            
-            self.data_calculated_pattern.set_data(theta_range, intensity_range)
-
-            return (theta_range, intensity_range)"""
-        
-    def auto_add_peaks(self, tmodel):
-    
-        threshold = tmodel.sel_threshold
-        data_base = 1 if (tmodel.pattern == "exp") else 2
-        data_x, data_y = tmodel.get_xy()
-        maxtab, mintab = peakdetect(data_y, data_x, 5, threshold)
-        
-        mpositions = []
-        for marker in self.data_markers._model_data:
-            mpositions.append(marker.data_position)
-
-        i = 1
-        for x, y in maxtab:
-            if not x in mpositions:
-                nm = 0
-                if x != 0:
-                    nm = self.parent.data_goniometer.data_lambda / (2.0*sin(radians(x/2.0)))
-                new_marker = Marker("%%.%df" % (3 + min(int(log(nm, 10)), 0)) % nm, parent=self, data_position=x, data_base=data_base)
-                self.data_markers.append(new_marker)
-            i += 1
-            
-    def get_exclusion_selector(self, x):
-        if x != None:
-            selector = np.ones(x.shape, dtype=bool)
-            for x0,x1 in zip(*np.sort(np.array(self.data_exclusion_ranges.get_raw_model_data()), axis=0)):
-                new_selector = ((x < x0) | (x > x1))
-                selector = selector & new_selector
-            return selector
-        return None
-        
-    def get_exclusion_xy(self):
-        ex, ey = self.data_experimental_pattern.xy_store.get_raw_model_data()
-        cx, cy = self.data_calculated_pattern.xy_store.get_raw_model_data()
-        selector = self.get_exclusion_selector(ex)
-        return ex[selector], ey[selector], cx[selector], cy[selector]
     
     pass #end of class
     
@@ -529,13 +575,11 @@ class ThresholdSelector(ChildModel):
     # ------------------------------------------------------------
     def get_xy(self):
         if self._pattern == "exp":
-            data_y = self.parent.data_experimental_pattern.xy_store._model_data_y
-            data_y = data_y / np.max(data_y)
-            return self.parent.data_experimental_pattern.xy_store._model_data_x, data_y
+            data_x, data_y = self.parent.data_experimental_pattern.xy_store.get_raw_model_data()
         elif self._pattern == "calc":
-            data_y = self.parent.data_calculated_pattern.xy_store._model_data_y
-            data_y = data_y / np.max(data_y)
-            return self.parent.data_calculated_pattern.xy_store._model_data_x, data_y
+            data_x, data_y = self.parent.data_calculated_pattern.xy_store.get_raw_model_data()
+        data_y = data_y / np.max(data_y)
+        return data_x, data_y
     
     def update_threshold_plot_data(self):
         if self.parent != None:

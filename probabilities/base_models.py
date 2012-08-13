@@ -58,9 +58,6 @@ class _AbstractProbability(ChildModel, Storable, RefinementGroup):
     
     _W = None
     _P = None
-    @property
-    def parameters(self):
-        return self._parameters
     
     @indexproperty
     def mP(self, indeces):
@@ -69,7 +66,7 @@ class _AbstractProbability(ChildModel, Storable, RefinementGroup):
     @mP.setter
     def mP(self, indeces, value):
         r, ind = self._get_Pxy_from_indeces(indeces)
-        self._lP[r][ind] = min(max(value, 0.0), 1.0)
+        self._lP[r][ind] = value
     
     @indexproperty
     def mW(self, indeces):
@@ -78,12 +75,16 @@ class _AbstractProbability(ChildModel, Storable, RefinementGroup):
     @mW.setter
     def mW(self, indeces, value):
         r, ind = self._get_Wxy_from_indeces(indeces)
-        self._lW[r][ind] = min(max(value, 0.0), 1.0)
+        self._lW[r][ind] = value
     
     #REFINEMENT GROUP IMPLEMENTATION:
     @property
     def refine_title(self):
         return self.data_name
+        
+    @property
+    def children_refinable(self):
+        return (not self.parent.inherit_probabilities) if self.parent else True
     
     # ------------------------------------------------------------
     #      Initialisation and other internals
@@ -165,11 +166,12 @@ class _AbstractProbability(ChildModel, Storable, RefinementGroup):
             
             #sum of the cols (W...x's) need to equal W... 
             for i in range(rank):
-                if np.sum(W[...,i]) != self._W[i,i]:
+                if abs(np.sum(W[...,i]) - self._W[i,i]) > 1e4:
                     W_valid_mask[...,i] -= 1
             
             #sum of the entire matrix must equal one:
-            if np.sum(W) != 1:
+            if abs(np.sum(W) - 1.0) > 1e4:
+                print abs(np.sum(W) - 1.0) 
                 W_valid_mask -= 1
             
             #values need to be between 0 and 1
@@ -190,7 +192,7 @@ class _AbstractProbability(ChildModel, Storable, RefinementGroup):
             rank = self.G ** max(R, 1)
             
             #sum of the diagonal nees to be one
-            if np.sum(W) != 1.0:
+            if abs(np.sum(W) - 1.0) > 1e6:
                 for i in range(rank):
                     W_valid_mask[i,i] -= 1
             
@@ -212,7 +214,7 @@ class _AbstractProbability(ChildModel, Storable, RefinementGroup):
             
             #sum of the rows need to be one
             for i in range(rank):
-                if np.sum(P[i,...]) != 1.0:
+                if abs(np.sum(P[i,...]) - 1.0) > 1e6:
                     P_valid_mask[i,...] -= 1
             
             #values need to be between 0 and 1

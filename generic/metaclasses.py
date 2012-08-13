@@ -84,7 +84,7 @@ class PyXRDMeta(ObservablePropertyMeta):
         #apply properties:
         for key in keys:
             setattr(cls, key, list(d[key]))
-            
+
         return ObservablePropertyMeta.__init__(cls, name, bases, d)
                 
     def __call__(cls, *args, **kwargs):
@@ -102,6 +102,7 @@ class PyXRDMeta(ObservablePropertyMeta):
         #Create instance & set the uuid:
         instance = ObservablePropertyMeta.__call__(cls, *args, **kwargs)
         instance.__uuid__ = uuid
+        
         #Add a reference to the instance for each model intel, 
         # so function calls (e.g. labels) work as expected,
         # and parse MultiProperties:

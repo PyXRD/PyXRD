@@ -10,6 +10,7 @@ import os
 import gtk
  
 from gtkmvc import Controller
+from gtkmvc.adapters import Adapter
 
 from generic.utils import retreive_lowercase_extension
 
@@ -203,6 +204,29 @@ class BaseController (Controller, DialogMixin):
             return Controller.register_view(self, view)
         else:
             return None
+            
+    def register_defaults(self, handler, prefix="default_%s", *exceptions):
+        for intel in self.model.__model_intel__:
+            if intel.name in exceptions:
+                handler(intel)
+            elif intel.has_widget:
+                if intel.ctype == float:                    
+                    widget = self.view.add_scale_widget(intel, prefix=prefix)
+                    #adapt the widget to the model property:
+                    adapter = Adapter(self.model, intel.name)
+                    adapter.connect_widget(widget)
+                    self.adapt(adapter)
+                elif intel.ctype == 'color':
+                    ad = Adapter(self.model, intel.name)
+                    ad.connect_widget(self.view[prefix % intel.name], getter=get_color_val)
+                    self.adapt(ad)
+                elif intel.ctype == 'flag':
+                    self.adapt(intel.name)
+                elif intel.ctype == str:
+                    self.adapt(intel.name, prefix % intel.name)
+                elif not handler(intel):
+                    self.adapt(intel.name)
+                
 
 class DialogController(BaseController):
     """

@@ -148,7 +148,7 @@ class R1G3Model(_AbstractProbability):
         return getattr(self, "_%s"%prop_name)
     @Model.setter("G[1234]")
     def set_G(self, prop_name, value):
-        setattr(self, "_%s"%prop_name, min(max(value, 0), 1))
+        setattr(self, "_%s"%prop_name, min(max(value, 0.0), 1.0))        
         self.update()
 
     # ------------------------------------------------------------
@@ -182,22 +182,25 @@ class R1G3Model(_AbstractProbability):
     	self.mW[2]   = 1.0 - self.mW[0] - self.mW[1]
     	
     	if self.mW[0] < 0.5:
-    	    self.mP[1,1] =  self._G2 * self._G3 * (self.mW[0]*(self.mP[0,0]-1) + self.mW[1] + self.mW[2]) / self.mW[1]
+    	    if self.mW[1] > 0:
+        	    self.mP[1,1] =  self._G2 * self._G3 * (self.mW[0]*(self.mP[0,0]-1) + self.mW[1] + self.mW[2]) / self.mW[1]
+            else:
+                self.mP[1,1] = 0.0
     	
     	self.mW[1,1] = self.mP[1,1] * self.mW[1]
     	self.mW[1,2] = self.mW[1,1] * G3inv
     	self.mW[2,1] = self._G4 * G2inv * (self.mW[1,1] + self.mW[2,1])
     	self.mW[2,2] = G4inv * self.mW[2,1]
     	
-    	self.mP[1,2] = self.mW[1,2] / self.mW[1]
+    	self.mP[1,2] = (self.mW[1,2] / self.mW[1]) if self.mW[1] > 0 else 0.0
     	self.mP[1,0] = 1 - self.mP[1,1] - self.mP[1,2]
     	
-    	self.mP[2,1] = self.mW[2,1] / self.mW[2]
-    	self.mP[2,2] = self.mW[2,2] / self.mW[2]
+    	self.mP[2,1] = (self.mW[2,1] / self.mW[2]) if self.mW[2] > 0 else 0.0
+    	self.mP[2,2] = (self.mW[2,2] / self.mW[2]) if self.mW[2] > 0 else 0.0
     	self.mP[2,0] = 1 - self.mP[2,1] - self.mP[2,2]
 
-    	self.mP[0,1] = (self.mW[1] - self.mW[1,1] - self.mW[2,1]) / self.mW[0]
-    	self.mP[0,2] = (self.mW[2] - self.mW[1,2] - self.mW[2,2]) / self.mW[0]
+    	self.mP[0,1] = ((self.mW[1] - self.mW[1,1] - self.mW[2,1]) / self.mW[0]) if self.mW[0] > 0 else 0.0
+    	self.mP[0,2] = ((self.mW[2] - self.mW[1,2] - self.mW[2,2]) / self.mW[0]) if self.mW[0] > 0 else 0.0
     	if self.mW[0] >= 0.5:
         	self.mP[0,0] = 1 - self.mP[0,1] - self.mP[0,2]
         

@@ -41,16 +41,21 @@ class BaseView(View):
             widget.set_property('justify', gtk.JUSTIFY_CENTER)
         return widget
     
-    def add_scale_widget(self, container, intel, name, enforce_range=False):
+    def add_scale_widget(self, intel, prefix="default_%s", container=None, enforce_range=True):
         if not isinstance(container, gtk.Widget):
-            container = self[container]
-        child = container.get_child()
-        if child is not None:
-            container.remove(child)
-        inp = ScaleEntry(intel.minimum, intel.maximum, enforce_range=enforce_range)
-        self[name] = inp
-        container.add(inp)
-        inp.show_all()
+            container = self[container or "container_%s" % intel.name]
+        name = prefix % intel.name
+        print name
+        try:
+            child = container.get_child()
+            if child is not None:
+                container.remove(child)
+            inp = ScaleEntry(intel.minimum, intel.maximum, enforce_range=enforce_range)
+            self[name] = inp
+            container.add(inp)
+            inp.show_all()
+        except:
+            raise
         return inp
     
     def _hide_widgets(self):

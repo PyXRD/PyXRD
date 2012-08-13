@@ -7,6 +7,7 @@
 # a letter to Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
 from itertools import izip, count
 from collections import namedtuple
+from warnings import warn
 
 import matplotlib
 from matplotlib.lines import Line2D
@@ -62,7 +63,7 @@ class PropIntel(object):
     @label.setter
     def label(self, value):
         self._label = value
-        
+                
     def __init__(self, **kwargs):
         object.__init__(self)
         for k, v in kwargs.iteritems():
@@ -101,6 +102,14 @@ class PyXRDModel(Model):
         PropIntel(name="uuid",    inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=str, refinable=False, storable=True, observable=False,  has_widget=False),
     ]
     
+    
+    def get_depr(self, names, kwargs, default=None):
+        value = default
+        for name in names:
+            value = kwargs.get(name, value)
+            warn("The use of the keyword '%s' is deprecated for %s!" % (name, type(self)), DeprecationWarning)
+        return value
+    
     @property
     def uuid(self): return self.__uuid__
     
@@ -116,13 +125,23 @@ class PyXRDModel(Model):
         
     def restore_uuid(self):
         pyxrd_object_pool.remove_object(self)
-        self.__uuid__ = self.__stored_uuids__.pop()
+        try:
+            self.__uuid__ = self.__stored_uuids__.pop()
+        except IndexError: #nothing to pop: create a new one!
+            self.__uuid__ = get_new_uuid()
         pyxrd_object_pool.add_object(self)
         
     def get_prop_intel_by_name(self, name):
         for prop in self.__model_intel__:
             if prop.name == name:
                 return prop
+                
+    def get_base_value(self, attr):
+        intel = self.get_prop_intel_by_name(attr)
+        if intel.inh_name!=None:
+            return getattr(self, "_%s" % attr)
+        else:
+            return getattr(self, attr)
                 
     pass # end of class
 
@@ -144,9 +163,10 @@ class ChildModel(PyXRDModel):
     _parent = None
     def get_parent_value(self): return self._parent
     def set_parent_value(self, value):
-        self._unattach_parent()
-        self._parent = value
-        self._attach_parent()
+        if value!=self._parent:
+            self._unattach_parent()
+            self._parent = value
+            self._attach_parent()
 
     def __init__(self, parent=None):
         PyXRDModel.__init__(self)
@@ -528,7 +548,7 @@ class ExperimentalLine(PyXRDLine):
     #      Background Removal
     # ------------------------------------------------------------
     def remove_background(self):
-        y_data = self.xy_store._model_data_y
+        x_data, y_data = self.xy_store.get_raw_model_data()
         bg = None
         if self.bg_type == 0:
             bg = self.bg_position
@@ -536,11 +556,11 @@ class ExperimentalLine(PyXRDLine):
             bg = self.bg_pattern * self.bg_scale + self.bg_position
         if bg!=None:
             y_data -= bg
-            self.set_data(self.xy_store._model_data_x, y_data)
+            self.set_data(x_data, y_data)
         self.clear_bg_variables()
         
     def find_bg_position(self):
-        self.bg_position = np.min(self.xy_store._model_data_y)
+        self.bg_position = np.min(self.xy_store.get_raw_model_data()[1])
             
     def clear_bg_variables(self):
         self.bg_pattern = None
@@ -550,13 +570,14 @@ class ExperimentalLine(PyXRDLine):
         
     def update_bg_line(self):
         self.recache()
+        x_data, y_data = self.xy_store.get_raw_model_data()
         if self.bg_type == 0 and self._bg_position != 0.0:
-            xmin, xmax = np.min(self.xy_store._model_data_x), np.max(self.xy_store._model_data_x)
+            xmin, xmax = np.min(x_data), np.max(x_data)
             self.bg_line.set_data((xmin, xmax), (self.bg_position, self.bg_position))
             self.bg_line.set_visible(True)            
         elif self.bg_type == 1 and self.bg_pattern != None:
             bg = ((self.bg_pattern * self.bg_scale) + self.bg_position)
-            self.bg_line.set_data(self.xy_store._model_data_x, bg)
+            self.bg_line.set_data(x_data, bg)
             self.bg_line.set_visible(True)
         else:
             self.bg_line.set_data([],[])
@@ -568,20 +589,19 @@ class ExperimentalLine(PyXRDLine):
     #       Data Smoothing
     # ------------------------------------------------------------
     def smooth_data(self):
-        y_data = self.xy_store._model_data_y
+        x_data, y_data = self.xy_store.get_raw_model_data()
         if self.smooth_degree > 0:
             degree = int(self.smooth_degree)
             smoothed = smooth(y_data, degree)
-            #smoothed = y_data[:degree] + smoothed + y_data[-degree:]
             self.xy_store._model_data_y = smoothed
         self.smooth_degree = 0.0
         self.needs_update.emit()
     
     def update_smooth_pattern(self):
-        y_data = self.xy_store._model_data_y
+        x_data, y_data = self.xy_store.get_raw_model_data()
         degree = int(self.smooth_degree)
         if degree > 1:
-            self.smooth_pattern = self.xy_store._model_data_x, smooth(y_data, degree)
+            self.smooth_pattern = x_data, smooth(y_data, degree)
         else:
             self.smooth_pattern = [],[]
             
@@ -595,7 +615,7 @@ class ExperimentalLine(PyXRDLine):
     #       Data Shifting
     # ------------------------------------------------------------
     def shift_data(self):
-        x_data = self.xy_store._model_data_x
+        x_data, y_data = self.xy_store.get_raw_model_data()
         if self.shift_value != 0.0:
             self.set_xdata(x_data - self.shift_value)
             if self.specimen:
@@ -605,12 +625,13 @@ class ExperimentalLine(PyXRDLine):
         self.needs_update.emit()
             
     def update_shifted_line(self):
-        yfactor, offset = self.get_transform_factors()              
+        yfactor, offset = self.get_transform_factors()
+        x_data, y_data = self.xy_store.get_raw_model_data()
         if self.shift_value!=0.0:
-            self.shifted_line.set_data(self.xy_store._model_data_x-self._shift_value, self.xy_store._model_data_y.copy())
+            self.shifted_line.set_data(x_data-self._shift_value, y_data.copy())
             self.shifted_line.set_visible(True)
             position = self.parent.parent.data_goniometer.get_2t_from_nm(self.shift_position)
-            ymax = np.max(self.xy_store._model_data_y)
+            ymax = np.max(y_data)
             self.reference_line.set_data((position, position), (0, ymax))
             self.reference_line.set_visible(True)            
         else:
@@ -625,8 +646,7 @@ class ExperimentalLine(PyXRDLine):
     def find_shift_value(self):
         position = self.parent.parent.data_goniometer.get_2t_from_nm(self.shift_position)
         if position > 0.1:
-            x_data = self.xy_store._model_data_x.copy()
-            y_data = self.xy_store._model_data_y.copy()
+            x_data, y_data = self.xy_store.get_raw_model_data()
             max_x = position + 0.5
             min_x = position - 0.5
             condition = (x_data>=min_x) & (x_data<=max_x)

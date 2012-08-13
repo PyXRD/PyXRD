@@ -24,13 +24,15 @@ from mixture.models import Mixture
 from mixture.views import EditMixtureView, RefinementView #, BusyView
 
 class RefinementController(DialogController):
+
     def register_adapters(self):
-        if self.model is not None:
+        if self.model is not None:  
+            tv_model = self.model.data_refinables
             tv = self.view['tv_param_selection']
             tv.set_show_expanders(True)
-            tv_model = self.model.data_refinables
             tv.set_model(tv_model)
-           
+                            
+            #Labels are parsed for mathtext markup into pb's:        
             rend = gtk.CellRendererPixbuf()
             rend.set_alignment(0.0, 0.5)
             col = gtk.TreeViewColumn('Name/Prop', rend)
@@ -48,20 +50,7 @@ class RefinementController(DialogController):
             col.set_cell_data_func(rend, get_pb, data=None)
             col.set_expand(True)
             tv.append_column(col)
-            
-            def add_float(title, prop_name):
-                def get_name(column, cell, model, itr, user_data=None):
-                    ref_prop = model.get_user_data(itr)
-                    refinable = ref_prop.refinable
-                    cell.set_property("visible", refinable)
-                    cell.set_property("markup", ("%.5f" % float(getattr(ref_prop, prop_name))) if refinable else 0.0)
-                    return
-                rend = gtk.CellRendererText()
-                col = gtk.TreeViewColumn(title, rend, text=tv_model.c_title)
-                col.set_cell_data_func(rend, get_name, data=None)
-                tv.append_column(col)
-            add_float("Value", "value")
-                     
+             
             def add_editable_float(title, prop_name, callback):                
                 def get_name(column, cell, model, itr, user_data=None):
                     ref_prop = model.get_user_data(itr)
@@ -72,14 +61,15 @@ class RefinementController(DialogController):
                     return
                 rend = gtk.CellRendererText()
                 rend.connect("edited", callback, prop_name)
-                col = gtk.TreeViewColumn(title, rend, text=tv_model.c_title)
+                col = gtk.TreeViewColumn(title, rend, visible=tv_model.c_refinable, sensitive=tv_model.c_refinable)
                 col.set_cell_data_func(rend, get_name, data=None)              
                 tv.append_column(col)
-            def on_value_minmax_edited(rend, path, new_text, prop_name):
+            def on_float_edited(rend, path, new_text, prop_name):
                 ref_prop = self.model.data_refinables.get_user_data_from_path(path)
                 setattr(ref_prop, prop_name, float(new_text))
-            add_editable_float("Min", "value_min", on_value_minmax_edited)
-            add_editable_float("Max", "value_max", on_value_minmax_edited)      
+            add_editable_float("Value", "value", on_float_edited)
+            add_editable_float("Min", "value_min", on_float_edited)
+            add_editable_float("Max", "value_max", on_float_edited)      
             
             rend = gtk.CellRendererToggle()
             rend.connect('toggled', self.refine_toggled, tv_model, tv_model.c_refine)
@@ -94,15 +84,12 @@ class RefinementController(DialogController):
             col.set_expand(False)
             tv.append_column(col)
             
-            
             for name in self.model.get_properties():
                 if name == "data_refine_method":
                     ctrl_setup_combo_with_list(self, 
                         self.view["cmb_data_refine_method"],
                         "data_refine_method", "_data_refine_methods")
-                else:
-                    pass#TODO
-                    
+            
         return
 
     # ------------------------------------------------------------

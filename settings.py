@@ -26,18 +26,46 @@ def _get_ratio(angle, stretch=False):
         return min((angle / 70), 1.0) * MAX_PLOT_WIDTH
 
 def get_plot_position(angle, stretch=False):
+    """Get the position of the main plot
+    
+    Arguments:
+    angle   -- maximum angle of plotted data
+    stretch -- wether or not to stretch the plot to fit the available space  
+               (default False)
+    """
     PLOT_WIDTH = _get_ratio(angle, stretch=stretch)
     return [PLOT_LEFT, PLOT_BOTTOM, PLOT_WIDTH, PLOT_HEIGHT]
 
 def get_plot_stats_position(angle, stretch=False):
+    """Get the position of the plot when the statistics plot is also visible
+    
+    Arguments:
+    angle   -- maximum angle of plotted data
+    stretch -- wether or not to stretch the plot to fit the available space  
+               (default False)
+    """
     PLOT_WIDTH = _get_ratio(angle, stretch=stretch)
     return [PLOT_LEFT, PLOT_BOTTOM+PLOT_STATS_OFFSET, PLOT_WIDTH, PLOT_HEIGHT-PLOT_STATS_OFFSET]
 
 def get_stats_plot_position(angle, stretch=False):
+    """Get the position of the statistics plot
+    
+    Arguments:
+    angle   -- maximum angle of plotted data
+    stretch -- wether or not to stretch the plot to fit the available space  
+               (default False)
+    """
     PLOT_WIDTH = _get_ratio(angle, stretch=stretch)
     return [PLOT_LEFT, STATS_PLOT_BOTTOM, PLOT_WIDTH, PLOT_STATS_OFFSET]
     
 def get_plot_right(angle, stretch=False):
+    """Get the rightmost position of plots
+    
+    Arguments:
+    angle   -- maximum angle of plotted data
+    stretch -- wether or not to stretch the plot to fit the available space  
+               (default False)
+    """
     PLOT_WIDTH = _get_ratio(angle, stretch=stretch)
     return PLOT_LEFT + PLOT_WIDTH
     
@@ -68,6 +96,7 @@ def get_abs_dir(rel_dir):
 ### Runtime Settings Retrieval ###
 SETTINGS_APPLIED = False
 def apply_runtime_settings():
+    """Apply runtime settings, can and needs to be called only once"""
     global SETTINGS_APPLIED
     global BASE_DIR
     if not SETTINGS_APPLIED:

@@ -85,9 +85,9 @@ class ScaleEntry(HBox):
         return False
 
     def _update_adjustment(self, value, lower, upper):
-        step = round_sig(max((upper-lower)/200.0, 0.01))
+        step = round_sig(max((upper-lower)/200.0, 0.0005))
         self.adjustment.configure(value, lower, upper, 
-            step, step, 1.0)
+            step, step, step)
 
     inhibit_updates = False
     def _update_value_and_range(self, value):
@@ -259,9 +259,13 @@ class ThreadedTaskBox(gtk.Table):
     def __stop_clicked( self, widget, data = None ):
         self.cancel()
 
+    cancelling = False
     def cancel(self):
-        self.kill()
-        self.emit("cancelrequested", self)
+        if not self.cancelling: #prevents endless cancel loops
+            self.cancelling = True        
+            self.kill()
+            self.emit("cancelrequested", self)
+            self.cancelling = False
 
     def gui_function(self):
         if callable(self.gui_callback): self.gui_callback()

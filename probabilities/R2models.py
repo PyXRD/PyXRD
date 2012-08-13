@@ -259,7 +259,7 @@ class R2G3Model(_AbstractProbability):
         return getattr(self, "_%s"%prop_name)
     @Model.setter("G[1234]")
     def set_G(self, prop_name, value):
-        setattr(self, "_%s"%prop_name, min(max(value, 0), 1))
+        setattr(self, "_%s"%prop_name, min(max(value, 0.0), 1.0))
         self.update()
 
     # ------------------------------------------------------------
@@ -300,25 +300,22 @@ class R2G3Model(_AbstractProbability):
         self.mP[1,0,2] = (self.mP[1,0,1] * ((1.0 / self._G3) - 1.0)) if self._G3 > 0 else 1.0
         #self.mP[0,0,0] = 1.0 - self.mP[1,0,1] - self.mP[1,0,2]
         
-        WWW = np.zeros(shape=(3,3,3), dtype=float)
-        WWW[1,0,1] = self.mP[1,0,1] * W1
-        WWW[1,0,2] = self.mP[1,0,2] * W1
-        WWW[1,0,0] = self.mW[1,0] - WWW[1,0,1] - WWW[1,0,2]
+        self.mW[1,0,1] = self.mP[1,0,1] * W1
+        self.mW[1,0,2] = self.mP[1,0,2] * W1
+        self.mW[1,0,0] = self.mW[1,0] - self.mW[1,0,1] - self.mW[1,0,2]
 
-        WWW[2,0,1] = (self._G4 * (1.0 - self._G2) / (self._G2 * self._G3) * WWW[1,0,1]) if (self._G2 * self._G3) > 0 else 0.0
-        WWW[2,0,2] = (WWW[2,0,1] * ((1.0 / self._G4) - 1.0)) if self._G4 > 0 else 1.0
-        WWW[2,0,0] = self.mW[2,0] - WWW[2,0,1] - WWW[2,0,2]
+        self.mW[2,0,1] = (self._G4 * (1.0 - self._G2) / (self._G2 * self._G3) * self.mW[1,0,1]) if (self._G2 * self._G3) > 0 else 0.0
+        self.mW[2,0,2] = (self.mW[2,0,1] * ((1.0 / self._G4) - 1.0)) if self._G4 > 0 else 1.0
+        self.mW[2,0,0] = self.mW[2,0] - self.mW[2,0,1] - self.mW[2,0,2]
         for i in range(3):
-            self.mP[2,0,i] = WWW[2,0,i] / self.mW[2,0] if self.mW[2,0] > 0 else 0.0
+            self.mP[2,0,i] = self.mW[2,0,i] / self.mW[2,0] if self.mW[2,0] > 0 else 0.0
         
-        WWW[0,0,0] = self.mW[0,0] - WWW[1,0,0] - WWW[2,0,0]
-        WWW[0,0,1] = self.mW[0,1] - WWW[1,0,1] - WWW[2,0,1]
-        WWW[0,0,2] = self.mW[0,2] - WWW[1,0,2] - WWW[2,0,2]
+        self.mW[0,0,0] = self.mW[0,0] - self.mW[1,0,0] - self.mW[2,0,0]
+        self.mW[0,0,1] = self.mW[0,1] - self.mW[1,0,1] - self.mW[2,0,1]
+        self.mW[0,0,2] = self.mW[0,2] - self.mW[1,0,2] - self.mW[2,0,2]
         for i in range(3):
-            self.mP[0,0,i] = WWW[0,0,i] / self.mW[0,0] if self.mW[0,0] > 0 else 0.0
+            self.mP[0,0,i] = self.mW[0,0,i] / self.mW[0,0] if self.mW[0,0] > 0 else 0.0
             pass
-
-        #FIXME there is still an error with the self._mW's
 
         #restrictions:            
         for i in range(3):

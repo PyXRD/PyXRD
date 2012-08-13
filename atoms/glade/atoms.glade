@@ -1,15 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
   <requires lib="gtk+" version="2.20"/>
+  <!-- interface-naming-policy toplevel-contextual -->
   <object class="GtkTable" id="edit_atom_type">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="border_width">10</property>
-    <property name="n_rows">6</property>
+    <property name="n_rows">7</property>
     <property name="n_columns">2</property>
     <property name="row_spacing">6</property>
     <child>
-      <object class="GtkLabel" id="lbl_atom_type_name">
+      <object class="GtkLabel" id="name_lbl">
         <property name="width_request">100</property>
         <property name="visible">True</property>
         <property name="can_focus">False</property>
@@ -30,7 +31,7 @@
         <property name="xalign">0</property>
         <property name="xscale">0</property>
         <child>
-          <object class="GtkEntry" id="data_atom_type_name">
+          <object class="GtkEntry" id="atom_name">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="invisible_char">•</property>
@@ -38,6 +39,8 @@
             <property name="invisible_char_set">True</property>
             <property name="primary_icon_activatable">False</property>
             <property name="secondary_icon_activatable">False</property>
+            <property name="primary_icon_sensitive">True</property>
+            <property name="secondary_icon_sensitive">True</property>
           </object>
         </child>
       </object>
@@ -64,7 +67,7 @@
             <property name="column_spacing">10</property>
             <property name="row_spacing">10</property>
             <child>
-              <object class="GtkLabel" id="lbl_par_a1">
+              <object class="GtkLabel" id="a1_lbl">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="label" translatable="yes">a&lt;sub&gt;1&lt;/sub&gt;</property>
@@ -78,7 +81,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkLabel" id="lbl_par_a2">
+              <object class="GtkLabel" id="a2_lbl">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="label" translatable="yes">a&lt;sub&gt;2&lt;/sub&gt;</property>
@@ -92,7 +95,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkLabel" id="lbl_par_a3">
+              <object class="GtkLabel" id="a3_lbl">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="label" translatable="yes">a&lt;sub&gt;3&lt;/sub&gt;</property>
@@ -106,7 +109,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkLabel" id="lbl_par_a4">
+              <object class="GtkLabel" id="a4_lbl">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="label" translatable="yes">a&lt;sub&gt;4&lt;/sub&gt;</property>
@@ -120,7 +123,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkLabel" id="lbl_par_a5">
+              <object class="GtkLabel" id="a5_lbl">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="label" translatable="yes">a&lt;sub&gt;5&lt;/sub&gt;</property>
@@ -134,7 +137,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkLabel" id="lbl_par_b1">
+              <object class="GtkLabel" id="b1_lbl">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="label" translatable="yes">b&lt;sub&gt;1&lt;/sub&gt;</property>
@@ -150,7 +153,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkLabel" id="lbl_par_b2">
+              <object class="GtkLabel" id="b2_lbl">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="label" translatable="yes">b&lt;sub&gt;2&lt;/sub&gt;</property>
@@ -166,7 +169,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkLabel" id="lbl_par_b3">
+              <object class="GtkLabel" id="b3_lbl">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="label" translatable="yes">b&lt;sub&gt;3&lt;/sub&gt;</property>
@@ -182,7 +185,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkLabel" id="lbl_par_b4">
+              <object class="GtkLabel" id="b4_lbl">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="label" translatable="yes">b&lt;sub&gt;4&lt;/sub&gt;</property>
@@ -198,7 +201,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkLabel" id="lbl_par_b5">
+              <object class="GtkLabel" id="b5_lbl">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="label" translatable="yes">b&lt;sub&gt;5&lt;/sub&gt;</property>
@@ -214,7 +217,7 @@
               </packing>
             </child>
             <child>
-              <object class="GtkLabel" id="lbl_par_c">
+              <object class="GtkLabel" id="c_lbl">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="label" translatable="yes">c</property>
@@ -226,13 +229,15 @@
               </packing>
             </child>
             <child>
-              <object class="GtkEntry" id="atom_data_par_b5">
+              <object class="GtkEntry" id="atom_par_b5">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="invisible_char">•</property>
                 <property name="width_chars">25</property>
                 <property name="primary_icon_activatable">False</property>
                 <property name="secondary_icon_activatable">False</property>
+                <property name="primary_icon_sensitive">True</property>
+                <property name="secondary_icon_sensitive">True</property>
               </object>
               <packing>
                 <property name="left_attach">3</property>
@@ -243,13 +248,15 @@
               </packing>
             </child>
             <child>
-              <object class="GtkEntry" id="atom_data_par_b4">
+              <object class="GtkEntry" id="atom_par_b4">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="invisible_char">•</property>
                 <property name="width_chars">25</property>
                 <property name="primary_icon_activatable">False</property>
                 <property name="secondary_icon_activatable">False</property>
+                <property name="primary_icon_sensitive">True</property>
+                <property name="secondary_icon_sensitive">True</property>
               </object>
               <packing>
                 <property name="left_attach">3</property>
@@ -260,13 +267,15 @@
               </packing>
             </child>
             <child>
-              <object class="GtkEntry" id="atom_data_par_b3">
+              <object class="GtkEntry" id="atom_par_b3">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="invisible_char">•</property>
                 <property name="width_chars">25</property>
                 <property name="primary_icon_activatable">False</property>
                 <property name="secondary_icon_activatable">False</property>
+                <property name="primary_icon_sensitive">True</property>
+                <property name="secondary_icon_sensitive">True</property>
               </object>
               <packing>
                 <property name="left_attach">3</property>
@@ -277,13 +286,15 @@
               </packing>
             </child>
             <child>
-              <object class="GtkEntry" id="atom_data_par_b2">
+              <object class="GtkEntry" id="atom_par_b2">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="invisible_char">•</property>
                 <property name="width_chars">25</property>
                 <property name="primary_icon_activatable">False</property>
                 <property name="secondary_icon_activatable">False</property>
+                <property name="primary_icon_sensitive">True</property>
+                <property name="secondary_icon_sensitive">True</property>
               </object>
               <packing>
                 <property name="left_attach">3</property>
@@ -294,13 +305,15 @@
               </packing>
             </child>
             <child>
-              <object class="GtkEntry" id="atom_data_par_b1">
+              <object class="GtkEntry" id="atom_par_b1">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="invisible_char">•</property>
                 <property name="width_chars">25</property>
                 <property name="primary_icon_activatable">False</property>
                 <property name="secondary_icon_activatable">False</property>
+                <property name="primary_icon_sensitive">True</property>
+                <property name="secondary_icon_sensitive">True</property>
               </object>
               <packing>
                 <property name="left_attach">3</property>
@@ -311,13 +324,15 @@
               </packing>
             </child>
             <child>
-              <object class="GtkEntry" id="atom_data_par_a5">
+              <object class="GtkEntry" id="atom_par_a5">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="invisible_char">•</property>
                 <property name="width_chars">25</property>
                 <property name="primary_icon_activatable">False</property>
                 <property name="secondary_icon_activatable">False</property>
+                <property name="primary_icon_sensitive">True</property>
+                <property name="secondary_icon_sensitive">True</property>
               </object>
               <packing>
                 <property name="left_attach">1</property>
@@ -328,13 +343,15 @@
               </packing>
             </child>
             <child>
-              <object class="GtkEntry" id="atom_data_par_a4">
+              <object class="GtkEntry" id="atom_par_a4">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="invisible_char">•</property>
                 <property name="width_chars">25</property>
                 <property name="primary_icon_activatable">False</property>
                 <property name="secondary_icon_activatable">False</property>
+                <property name="primary_icon_sensitive">True</property>
+                <property name="secondary_icon_sensitive">True</property>
               </object>
               <packing>
                 <property name="left_attach">1</property>
@@ -345,13 +362,15 @@
               </packing>
             </child>
             <child>
-              <object class="GtkEntry" id="atom_data_par_a3">
+              <object class="GtkEntry" id="atom_par_a3">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="invisible_char">•</property>
                 <property name="width_chars">25</property>
                 <property name="primary_icon_activatable">False</property>
                 <property name="secondary_icon_activatable">False</property>
+                <property name="primary_icon_sensitive">True</property>
+                <property name="secondary_icon_sensitive">True</property>
               </object>
               <packing>
                 <property name="left_attach">1</property>
@@ -362,13 +381,15 @@
               </packing>
             </child>
             <child>
-              <object class="GtkEntry" id="atom_data_par_a2">
+              <object class="GtkEntry" id="atom_par_a2">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="invisible_char">•</property>
                 <property name="width_chars">25</property>
                 <property name="primary_icon_activatable">False</property>
                 <property name="secondary_icon_activatable">False</property>
+                <property name="primary_icon_sensitive">True</property>
+                <property name="secondary_icon_sensitive">True</property>
               </object>
               <packing>
                 <property name="left_attach">1</property>
@@ -379,13 +400,15 @@
               </packing>
             </child>
             <child>
-              <object class="GtkEntry" id="atom_data_par_a1">
+              <object class="GtkEntry" id="atom_par_a1">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="invisible_char">•</property>
                 <property name="width_chars">25</property>
                 <property name="primary_icon_activatable">False</property>
                 <property name="secondary_icon_activatable">False</property>
+                <property name="primary_icon_sensitive">True</property>
+                <property name="secondary_icon_sensitive">True</property>
               </object>
               <packing>
                 <property name="left_attach">1</property>
@@ -402,13 +425,15 @@
                 <property name="xalign">0</property>
                 <property name="xscale">0</property>
                 <child>
-                  <object class="GtkEntry" id="atom_data_par_c">
+                  <object class="GtkEntry" id="atom_par_c">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="invisible_char">•</property>
                     <property name="width_chars">25</property>
                     <property name="primary_icon_activatable">False</property>
                     <property name="secondary_icon_activatable">False</property>
+                    <property name="primary_icon_sensitive">True</property>
+                    <property name="secondary_icon_sensitive">True</property>
                   </object>
                 </child>
               </object>
@@ -433,8 +458,8 @@
       </object>
       <packing>
         <property name="right_attach">2</property>
-        <property name="top_attach">4</property>
-        <property name="bottom_attach">5</property>
+        <property name="top_attach">5</property>
+        <property name="bottom_attach">6</property>
         <property name="y_options">GTK_FILL</property>
         <property name="x_padding">10</property>
       </packing>
@@ -451,14 +476,14 @@
       </object>
       <packing>
         <property name="right_attach">2</property>
-        <property name="top_attach">5</property>
-        <property name="bottom_attach">6</property>
+        <property name="top_attach">6</property>
+        <property name="bottom_attach">7</property>
         <property name="x_padding">10</property>
         <property name="y_padding">10</property>
       </packing>
     </child>
     <child>
-      <object class="GtkLabel" id="lbl_atom_type_weight">
+      <object class="GtkLabel" id="weight_lbl">
         <property name="width_request">100</property>
         <property name="visible">True</property>
         <property name="can_focus">False</property>
@@ -481,7 +506,7 @@
         <property name="xalign">0</property>
         <property name="xscale">0</property>
         <child>
-          <object class="GtkEntry" id="atom_data_weight">
+          <object class="GtkEntry" id="atom_weight">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="invisible_char">•</property>
@@ -489,6 +514,8 @@
             <property name="invisible_char_set">True</property>
             <property name="primary_icon_activatable">False</property>
             <property name="secondary_icon_activatable">False</property>
+            <property name="primary_icon_sensitive">True</property>
+            <property name="secondary_icon_sensitive">True</property>
           </object>
         </child>
       </object>
@@ -502,7 +529,7 @@
       </packing>
     </child>
     <child>
-      <object class="GtkLabel" id="lbl_atom_type_nr">
+      <object class="GtkLabel" id="atom_nr_lbl">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">0</property>
@@ -518,7 +545,7 @@
       </packing>
     </child>
     <child>
-      <object class="GtkLabel" id="lbl_atom_type_weight2">
+      <object class="GtkLabel" id="debye_lbl">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">0</property>
@@ -526,8 +553,8 @@
         <property name="width_chars">23</property>
       </object>
       <packing>
-        <property name="top_attach">3</property>
-        <property name="bottom_attach">4</property>
+        <property name="top_attach">4</property>
+        <property name="bottom_attach">5</property>
         <property name="x_options">GTK_FILL</property>
         <property name="y_options">GTK_FILL</property>
         <property name="x_padding">12</property>
@@ -540,7 +567,7 @@
         <property name="xalign">0</property>
         <property name="xscale">0</property>
         <child>
-          <object class="GtkEntry" id="atom_data_atom_nr">
+          <object class="GtkEntry" id="atom_atom_nr">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="invisible_char">•</property>
@@ -548,6 +575,8 @@
             <property name="invisible_char_set">True</property>
             <property name="primary_icon_activatable">False</property>
             <property name="secondary_icon_activatable">False</property>
+            <property name="primary_icon_sensitive">True</property>
+            <property name="secondary_icon_sensitive">True</property>
           </object>
         </child>
       </object>
@@ -567,7 +596,7 @@
         <property name="xalign">0</property>
         <property name="xscale">0</property>
         <child>
-          <object class="GtkEntry" id="atom_data_debye">
+          <object class="GtkEntry" id="atom_debye">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="invisible_char">•</property>
@@ -575,6 +604,37 @@
             <property name="invisible_char_set">True</property>
             <property name="primary_icon_activatable">False</property>
             <property name="secondary_icon_activatable">False</property>
+            <property name="primary_icon_sensitive">True</property>
+            <property name="secondary_icon_sensitive">True</property>
+          </object>
+        </child>
+      </object>
+      <packing>
+        <property name="left_attach">1</property>
+        <property name="right_attach">2</property>
+        <property name="top_attach">4</property>
+        <property name="bottom_attach">5</property>
+        <property name="y_options">GTK_FILL</property>
+        <property name="x_padding">12</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkAlignment" id="atom_type_entry_align5">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="xalign">0</property>
+        <property name="xscale">0</property>
+        <child>
+          <object class="GtkEntry" id="atom_charge">
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="invisible_char">•</property>
+            <property name="width_chars">25</property>
+            <property name="invisible_char_set">True</property>
+            <property name="primary_icon_activatable">False</property>
+            <property name="secondary_icon_activatable">False</property>
+            <property name="primary_icon_sensitive">True</property>
+            <property name="secondary_icon_sensitive">True</property>
           </object>
         </child>
       </object>
@@ -583,6 +643,22 @@
         <property name="right_attach">2</property>
         <property name="top_attach">3</property>
         <property name="bottom_attach">4</property>
+        <property name="y_options">GTK_FILL</property>
+        <property name="x_padding">12</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkLabel" id="charge_lbl">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="xalign">0</property>
+        <property name="label" translatable="yes">Charge</property>
+        <property name="width_chars">23</property>
+      </object>
+      <packing>
+        <property name="top_attach">3</property>
+        <property name="bottom_attach">4</property>
+        <property name="x_options">GTK_FILL</property>
         <property name="y_options">GTK_FILL</property>
         <property name="x_padding">12</property>
       </packing>

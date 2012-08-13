@@ -55,8 +55,8 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
         add_column('2θ', model.c_x)
         add_column('Calculated', model.c_y)
         
-        for i in range(model.get_n_columns()-2):
-            add_column(model._y_names[i], i+2)
+        for i in range(model.get_n_columns()-3):
+            add_column(model.get_y_name(i), i+2)
     
     def register_adapters(self):
         if self.model is not None:
@@ -391,8 +391,6 @@ class BackgroundController(DialogController):
         bg_pattern_x = pattern[:,0].copy()
         bg_pattern_y = pattern[:,1].copy()
         del pattern
-        
-        print bg_pattern_x.shape
         
         if bg_pattern_x.shape != self.model.xy_store._model_data_x.shape:
             raise ValueError, "Shape mismatch: background pattern (shape = %s) and experimental data (shape = %s) need to have the same length!" % (bg_pattern_x.shape, self.model.xy_store._model_data_x.shape)

@@ -281,12 +281,12 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
        
         #rescale scales and fractions so they fit into [0-1] range, and round them to have 6 digits max:
         fractions, scales, bgshifts = self._parse_x(lastx, n, m)
-        fractions = fractions.flatten().round(6).tolist()
+        fractions = fractions.flatten()
         scales = scales.round(6)
         bgshifts = bgshifts.round(6)
         
         sum_frac = np.sum(fractions)
-        fractions /= sum_frac
+        fractions = np.around((fractions / sum_frac), 6)
         scales *= sum_frac
         
         #set model properties:
@@ -326,6 +326,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         """
         unique_phases = np.unique(self.data_phase_matrix.flatten())
         
+        
         self.data_refinables.clear()
          
         def add_property(parent_itr, obj, prop):            
@@ -338,7 +339,13 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
                 attr: the attribute of obj or None if obj is the attribute
                 root_itr: the iter new iters should be put under
             """
-            value = getattr(obj, attr) if attr!=None else obj
+            if attr!=None:
+                if hasattr(obj, "get_base_value"):
+                    value = obj.get_base_value(attr)
+                else:
+                    value = getattr(obj, attr) 
+            else:
+                value = obj
             
             if isinstance(value, RefinementValue): #Atom Ratios and UnitCellProperties
                 new_itr = add_property(root_itr, value, None)
@@ -351,8 +358,8 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
             else: #regular values
                 new_itr = add_property(root_itr, obj, attr)
             
-        for phase in unique_phases:
-            if phase: parse_attribute(phase, None, None)
+        for phase in self.parent.data_phases.iter_objects():
+            if phase in self.data_phase_matrix: parse_attribute(phase, None, None)
     
     last_refine_rp = 0.0
         
@@ -503,6 +510,8 @@ class RefinableProperty(ChildModel, ObjectListStoreChildMixin, Storable):
         
     @property
     def refinable(self):
+        if isinstance(self.obj, RefinementGroup) and self.prop_intel!=None:
+            return self.obj.children_refinable and not self.inherited
         if isinstance(self.obj, _RefinementBase) and self.prop_intel==None:
             return self.obj.is_refinable
         else:

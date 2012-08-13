@@ -8,9 +8,27 @@
 
 class _RefinementBase(object):
     """
-        Base class for `RefinementGroup` and `RefinementValue` mixins. It's 
-        used to provide common functionailty and a way to check for the kind of
-        refinement class we're dealing with when building the refinement tree.
+    Base class for `RefinementGroup` and `RefinementValue` mixins. It's 
+    used to provide common functionality and a way to check for the kind of
+    refinement class we're dealing with when building the refinement tree.
+            
+    .. attribute:: refine_title
+
+        A string used as the title for the group in the refinement tree
+        
+    .. attribute:: is_refinable
+
+        Wether or not this instance is refinable
+        
+    .. attribute:: refinables
+        
+        An iterable with the names of the refinable properties 
+        
+    .. attribute:: refine_value
+    
+        Mapper for the actual refinable value (if available). This should be
+        overriden by deriving classes.
+        
     """
     
     @property
@@ -36,10 +54,17 @@ class _RefinementBase(object):
 
 class RefinementGroup(_RefinementBase):
     """
-        Mixin for objects that are not refinable themselves,
-        but have refinable properties. They are presented in the refinement
-        tree using their title value.
-        Subclasses should override refine_title to make it more descriptive.
+    Mixin for objects that are not refinable themselves,
+    but have refinable properties. They are presented in the refinement
+    tree using their title value.
+    Subclasses should override refine_title to make it more descriptive.
+    
+    .. attribute:: children_refinable
+
+        Wether or not the child properties of this group can be refinable.
+        This should normally always be True, unless for example if the entire
+        group of properties have a single inherit property.
+    
     """
     
     @property
@@ -49,6 +74,10 @@ class RefinementGroup(_RefinementBase):
     @property 
     def is_refinable(self):
         return False
+      
+    @property
+    def children_refinable(self):
+        return True
        
     @property 
     def refinables(self):

@@ -49,17 +49,16 @@ class EditCSDSTypeController(ChildController):
                 break
         return store
 
+    def register_view(self, view):
+        combo = self.view["cmb_type"]
+        combo.connect('changed', self.on_changed)
+        cell = gtk.CellRendererText()
+        combo.pack_start(cell, True)
+        combo.add_attribute(cell, 'markup', 0)    
+
     def register_adapters(self):
         if self.model is not None:
-            combo = self.view["cmb_type"]
             store = self.reset_type_store()
-            
-            combo.connect('changed', self.on_changed)
-            
-            cell = gtk.CellRendererText()
-            combo.pack_start(cell, True)
-            combo.add_attribute(cell, 'markup', 0)                    
-
             if self.distributions_controller==None:      
                 self.distributions_controller = EditCSDSDistributionController(
                     model=self.model.data_CSDS_distribution,
@@ -67,8 +66,6 @@ class EditCSDSTypeController(ChildController):
                     parent=self)
             else:
                 self.distributions_controller.reset_model(self.model)
-            
-            return
        
     # ------------------------------------------------------------
     #      GTK Signal handlers
@@ -109,8 +106,8 @@ class EditCSDSDistributionController(ChildController):
     # ------------------------------------------------------------
     @Controller.observe("updated", signal=True)
     def notif_updated(self, model, prop_name, info):
-        self.view.update_figure(self.model.distrib[1])
-        return
+        if self.model.distrib!=None:
+            self.view.update_figure(self.model.distrib[1])
     
     pass #end of class    
 
@@ -156,8 +153,8 @@ class EditUnitCellPropertyController(ChildController):
                     combo.pack_start(cell, True)
                     def get_name(celllayout, cell, model, itr, data=None):
                         obj = model.get_value(itr, 1)
-                        if hasattr(obj, "data_name"):
-                            cell.set_property("markup", obj.data_name)
+                        if hasattr(obj, "name"):
+                            cell.set_property("markup", obj.name)
                         else:
                             cell.set_property("markup", obj)
                     combo.set_cell_data_func(cell, get_name, None)
@@ -177,6 +174,7 @@ class EditUnitCellPropertyController(ChildController):
                 elif not name in self.model.__have_no_widget__:
                     FloatEntryValidator(self.view[name])
                     self.adapt(name)
+                    
             self.update_sensitivities()
             return
 
@@ -234,14 +232,14 @@ class EditLayerController(InlineObjectListStoreController):
             if renderer is not None:
                 col.set_cell_data_func(rend, renderer, colnr)
             tv.append_column(col)
-        add_text_col('Atom name', model.c_data_name)
+        add_text_col('Atom name', model.c_name)
         add_text_col('Def. Z (nm)', model.c_default_z, float_renderer)
-        add_text_col('Calc. Z (nm)', model.c_data_z, float_renderer, editable=False)
-        add_text_col('#', model.c_data_pn, float_renderer)
+        add_text_col('Calc. Z (nm)', model.c_z, float_renderer, editable=False)
+        add_text_col('#', model.c_pn, float_renderer)
 
         def atom_type_renderer(column, cell, model, itr, col=None):
             try:            
-                name = model.get_user_data_from_path(model.get_path(itr)).data_atom_type.data_name
+                name = model.get_user_data_from_path(model.get_path(itr)).atom_type.name
             except:
                 name = '#NA#'
             cell.set_property('text', name)
@@ -249,7 +247,7 @@ class EditLayerController(InlineObjectListStoreController):
         rend = gtk.CellRendererCombo()
         atom_type_model = self.model.parent.parent.data_atom_types
         rend.set_property("model", atom_type_model)
-        rend.set_property("text_column", atom_type_model.c_data_name)
+        rend.set_property("text_column", atom_type_model.c_name)
         rend.set_property("editable", True)
         rend.set_property("has-entry", True)
         
@@ -360,11 +358,11 @@ class EditAtomRatioController(InlineObjectListStoreController):
                 if attr == prop:
                     cell.set_property("markup", "NaN")
                 else:
-                    cell.set_property("markup", atom.data_name)
+                    cell.set_property("markup", atom.name)
             
             def combo_cell_renderer(column, cell, model, itr, data=None):
                 atom = model.get_value(itr, 1)
-                cell.set_property("markup", atom.data_name)
+                cell.set_property("markup", atom.name)
             
             def adjust_combo(combo, cell, editable, path, data=None):
                 text_cell = cell.get_cells()[0]
@@ -417,7 +415,6 @@ class EditAtomRatioController(InlineObjectListStoreController):
         self.model._data_interlayer_atoms.connect("item-inserted", on_item_changed)
         
         self._reset_treeview(tv, model)
-
 
     def __init__(self, model_property_name, *args, **kwargs):
         InlineObjectListStoreController.__init__(self, model_property_name, *args, **kwargs)
@@ -483,27 +480,22 @@ class EditComponentController(ChildController):
                 
     def register_adapters(self):
         if self.model is not None:
-            for name in self.model.get_properties():
-                if name == "data_name":
-                    self.adapt(name, "component_data_name")
-                elif name == "data_linked_with":
+            def handler(intel):
+                if intel.name == "data_linked_with":
                     self.reset_combo_box()
-                elif name.find("inherit") is not -1:
-                    self.adapt(name)
-                elif name == "data_layer_atoms":
+                elif intel.name == "data_layer_atoms":
                     self.view.set_layer_view(self.layer_view.get_top_widget())
-                elif name == "data_interlayer_atoms":
+                elif intel.name == "data_interlayer_atoms":
                     self.view.set_interlayer_view(self.interlayer_view.get_top_widget())
-                elif name ==  "data_atom_ratios":
+                elif intel.name ==  "data_atom_ratios":
                     self.view.set_atom_ratios_view(self.atom_ratios_view.get_top_widget())
-                elif name in ("data_ucp_a", "data_ucp_b"):
+                elif intel.name in ("data_ucp_a", "data_ucp_b"):
                     self.view.set_ucpa_view(self.ucpa_view.get_top_widget())
                     self.view.set_ucpb_view(self.ucpb_view.get_top_widget())
-                elif name == "default_c":
-                    self.adapt(name, "component_default_c")
-                elif not name in self.model.__have_no_widget__:
-                    FloatEntryValidator(self.view["component_%s" % name])
-                    self.adapt(name)
+                else: return False
+                return True
+            self.register_defaults(handler, prefix="component_%s")
+            
             self.update_sensitivities()
             return
 
@@ -514,10 +506,10 @@ class EditComponentController(ChildController):
             self.view[widget].set_sensitive(not (can_inherit and getattr(self.model, "inherit_%s" % name)))
             self.view[widget].set_visible(not (can_inherit and getattr(self.model, "inherit_%s" % name)))
             self.view["component_inherit_%s" % name].set_sensitive(can_inherit)
-        for name in ("data_d001", "default_c"):
-            update("component_%s" % name, name.replace("data_", "", 1))
+        for name in ("data_d001", "default_c", "delta_c"):
+            update("container_%s" % name, name.replace("data_", "", 1))
         for name in ("interlayer_atoms", "layer_atoms", "atom_ratios", "ucp_a", "ucp_b"):
-            update("%s_container" % name, name)
+            update("container_%s" % name, name)
 
 
     # ------------------------------------------------------------
@@ -530,6 +522,7 @@ class EditComponentController(ChildController):
     @Controller.observe("inherit_ucp_b", assign=True)
     @Controller.observe("inherit_d001", assign=True)
     @Controller.observe("inherit_default_c", assign=True)
+    @Controller.observe("inherit_delta_c", assign=True)
     def notif_change_data_inherit(self, model, prop_name, info):
         self.update_sensitivities()
     
@@ -598,12 +591,8 @@ class EditPhaseController(ChildController):
 
     def register_adapters(self):
         if self.model is not None:
-            for name in self.model.get_properties():
-                if name in self.model.__have_no_widget__:
-                    pass
-                elif name == "data_name":
-                    self.adapt(name, "phase_data_name")
-                elif name == "data_based_on":
+            def handler(intel):
+                if intel.name == "data_based_on":
                     combo = self.view["phase_data_based_on"]
 
                     tv_model = self.cparent.model.current_project.data_phases
@@ -623,27 +612,20 @@ class EditPhaseController(ChildController):
                         if tv_model.get_user_data(row.iter) == self.model.data_based_on:
                             combo.set_active_iter (row.iter)
                             break
-                elif name == "display_color":
-                    ad = Adapter(self.model, name)
-                    ad.connect_widget(self.view["phase_data_%s" % name], getter=get_color_val)
-                    self.adapt(ad)
-                elif name == "data_CSDS_distribution":
+                elif intel.name == "data_CSDS_distribution":
                     self.csds_controller = EditCSDSTypeController(model=self.model, view=self.csds_view, parent=self)
-                elif name == "data_components":
+                elif intel.name == "data_components":
                     self.components_controller = ComponentsController(model=self.model, view=self.components_view, parent=self)
-                elif name == "data_probabilities":
+                elif intel.name == "data_probabilities":
                     if self.model.data_G > 1:
                         self.probabilities_controller = EditProbabilitiesController(model=self.model.data_probabilities, view=self.probabilities_view, parent=self)
-                elif name.find("inherit") is not -1 or name == "data_numcomp":
-                    self.adapt(name)
-                elif name == "data_sigma_star":
-                    widget = self.view.add_scale_widget("align_sigma_star", self.model.get_prop_intel_by_name(name), "phase_%s" % name, enforce_range=True)
-                    adapter = Adapter(self.model, name)
-                    adapter.connect_widget(widget)
-                    self.adapt(adapter)
-                else:
-                    FloatEntryValidator(self.view["phase_%s" % name])
-                    self.adapt(name)
+                elif intel.name == "data_G" or intel.name == "data_R":
+                    self.adapt(intel.name)
+                else: return False
+                return True       
+        
+            self.register_defaults(handler, prefix="phase_%s")
+       
             self.update_sensitivities()
             return
 
@@ -651,7 +633,7 @@ class EditPhaseController(ChildController):
         can_inherit = (self.model.data_based_on != None)
         
         for name in ("sigma_star", "display_color"):
-            widget_name = "phase_data_%s" % name
+            widget_name = "container_data_%s" % name
             self.view[widget_name].set_sensitive(not (can_inherit and getattr(self.model, "inherit_%s" % name)))
             self.view[widget_name].set_visible(not (can_inherit and getattr(self.model, "inherit_%s" % name)))
             self.view["phase_inherit_%s" % name].set_sensitive(can_inherit)

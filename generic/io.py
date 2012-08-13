@@ -62,10 +62,9 @@ class Storable(object):
         print self.dump_object()
 
     def save_object(self, filename):
-        f = open(filename, 'w')
-        json.dump(self, f, indent = 4, cls=PyXRDEncoder)
-        f.close()
-        
+        with open(filename, 'w') as f:
+            json.dump(self, f, indent = 4, cls=PyXRDEncoder)
+    
     @staticmethod
     def load_object(filename, parent=None):
         try:

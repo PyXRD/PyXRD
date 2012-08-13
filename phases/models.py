@@ -40,9 +40,9 @@ class ComponentPropMixin(object):
     def _parseattr(self, attr):
         attrs = attr.split(".")
         if attrs[0] == "data_layer_atoms":
-            return self.component._data_layer_atoms._model_data[int(attrs[1])], "data_pn"
+            return self.component._data_layer_atoms._model_data[int(attrs[1])], "pn"
         elif attrs[0] == "data_interlayer_atoms":
-            return self.component._data_interlayer_atoms._model_data[int(attrs[1])], "data_pn"
+            return self.component._data_interlayer_atoms._model_data[int(attrs[1])], "pn"
         else:
             return self.component, attr
 
@@ -250,7 +250,6 @@ class UnitCellProperty(ChildModel, Storable, ComponentPropMixin, RefinementValue
         return self.value
     @refine_value.setter
     def refine_value(self, value):
-        #print "REFINE VALUE SETTER CALLED"
         if not self.data_enabled:
             self.value = value
         
@@ -299,8 +298,8 @@ class UnitCellProperty(ChildModel, Storable, ComponentPropMixin, RefinementValue
         
     pass #end of class
 
-
-class Component(ChildModel, Storable, ObjectListStoreChildMixin, ObjectListStoreParentMixin, RefinementGroup):
+class Component(ChildModel, Storable, ObjectListStoreChildMixin,
+        ObjectListStoreParentMixin, RefinementGroup):
 
     #MODEL INTEL:
     __parent_alias__ = "phase"
@@ -309,12 +308,14 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin, ObjectListStore
         PropIntel(name="data_linked_with",          inh_name=None,                          label="Linked with",            minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=False, storable=False, observable=True,  has_widget=True),
         PropIntel(name="data_d001",                 inh_name="inherit_d001",                label="Cell length c [nm]",     minimum=0.0,   maximum=None,  is_column=True,  ctype=float,  refinable=True,  storable=True,  observable=True,  has_widget=True),
         PropIntel(name="default_c",                 inh_name="inherit_default_c",           label="Default c length [nm]",  minimum=0.0,   maximum=None,  is_column=True,  ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="delta_c",                   inh_name="inherit_delta_c",             label="C length dev. [nm]",     minimum=0.0,   maximum=0.05,  is_column=True,  ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
         PropIntel(name="data_ucp_a",                inh_name="inherit_ucp_a",               label="Cell length a [nm]",     minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=True,  storable=True,  observable=True,  has_widget=True),
         PropIntel(name="data_ucp_b",                inh_name="inherit_ucp_b",               label="Cell length b [nm]",     minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=True,  storable=True,  observable=True,  has_widget=True),      
         PropIntel(name="inherit_d001",              inh_name=None,                          label="Inh. cell length c",     minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
         PropIntel(name="inherit_ucp_b",             inh_name=None,                          label="Inh. cell length b",     minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
         PropIntel(name="inherit_ucp_a",             inh_name=None,                          label="Inh. cell length a",     minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
         PropIntel(name="inherit_default_c",         inh_name=None,                          label="Inh. default length c",  minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="inherit_delta_c",           inh_name=None,                          label="Inh. c length dev.",     minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
         PropIntel(name="inherit_layer_atoms",       inh_name=None,                          label="Inh. layer atoms",       minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
         PropIntel(name="inherit_interlayer_atoms",  inh_name=None,                          label="Inh. interlayer atoms",  minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
         PropIntel(name="inherit_atom_ratios",       inh_name=None,                          label="Inh. atom ratios",       minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
@@ -355,6 +356,7 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin, ObjectListStore
 
     _inherit_d001 = False
     _inherit_default_c = False
+    _inherit_delta_c = False
     _inherit_layer_atoms = False
     _inherit_interlayer_atoms = False
     _inherit_atom_ratios = False
@@ -389,11 +391,12 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin, ObjectListStore
     _data_ucp_b = None
     _data_d001 = 1.0
     _default_c = 1.0
+    _delta_c = 0.0
     _data_layer_atoms = None
     _data_interlayer_atoms = None
     _data_atom_ratios = None
     @Model.getter(*[prop.name for prop in __model_intel__ if prop.inh_name])
-    def get_inheritable(self, prop_name): #TODO remove the data prefixes!
+    def get_inheritable(self, prop_name):
         inh_name = "inherit_%s" % prop_name.replace("data_", "", 1)
         if self.data_linked_with != None and getattr(self, inh_name):
             return getattr(self.data_linked_with, prop_name)
@@ -417,9 +420,11 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin, ObjectListStore
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def __init__(self, data_name=None, data_ucp_a=None, data_ucp_b=None, data_d001=None, default_c=None,
+    def __init__(self, data_name=None, data_ucp_a=None, data_ucp_b=None,
+                 data_d001=None, default_c=None, delta_c=None,
                  data_layer_atoms=None, data_interlayer_atoms=None, data_atom_ratios=None,
-                 inherit_ucp_a=False, inherit_ucp_b=False, inherit_d001=False, inherit_default_c=False,
+                 inherit_ucp_a=False, inherit_ucp_b=False, inherit_d001=False,
+                 inherit_default_c=False, inherit_delta_c=False,
                  inherit_layer_atoms=False, inherit_interlayer_atoms=False, inherit_atom_ratios=False, 
                  linked_with_index = None, linked_with_uuid = None, parent=None, **kwargs):
         ChildModel.__init__(self, parent=parent)
@@ -456,6 +461,7 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin, ObjectListStore
         self._data_d001 = data_d001 or self.data_d001
         
         self._default_c = default_c or data_d001 or self._default_c
+        self._delta_c = delta_c or self._delta_c
         self._update_lattice_d()        
         
         if data_ucp_a==None and "data_cell_a" in kwargs:
@@ -477,6 +483,7 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin, ObjectListStore
         self._inherit_ucp_a = inherit_ucp_a
         self._inherit_ucp_b = inherit_ucp_b
         self._inherit_default_c = inherit_default_c
+        self._inherit_delta_c = inherit_delta_c        
         self._inherit_layer_atoms = inherit_layer_atoms          
         self._inherit_interlayer_atoms = inherit_interlayer_atoms
         self._inherit_atom_ratios = inherit_atom_ratios
@@ -555,7 +562,7 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin, ObjectListStore
                 sf_tot += atom.get_structure_factors(range_stl)
             for atom in self.data_interlayer_atoms._model_data:
                 sf_tot += atom.get_structure_factors(range_stl)
-            self._cached_factors[hsh] = sf_tot, np.exp(2*pi*self.data_d001*range_stl*1j)
+            self._cached_factors[hsh] = sf_tot, np.exp(2*pi*range_stl * (self.data_d001*1j - pi*self.delta_c*range_stl))
             self.dirty = False
         return self._cached_factors[hsh]
 
@@ -570,7 +577,7 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin, ObjectListStore
         except:
             raise
             return None
-
+    
     @property
     def data_cell_a(self):
         return self._data_ucp_a.value
@@ -591,22 +598,23 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin, ObjectListStore
         return weight
 
 
-class Phase(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStoreChildMixin, RefinementGroup):
+class Phase(ChildModel, Storable, ObjectListStoreParentMixin,
+        ObjectListStoreChildMixin, RefinementGroup):
 
     #MODEL INTEL:
     __parent_alias__ = 'project'
     __model_intel__ = [
         PropIntel(name="data_name",                 inh_name=None,                          label="Name",                               minimum=None,  maximum=None,  is_column=True,  ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="display_color",             inh_name="inherit_display_color",       label="Display color",                      minimum=None,  maximum=None,  is_column=True,  ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="display_color",             inh_name="inherit_display_color",       label="Display color",                      minimum=None,  maximum=None,  is_column=True,  ctype='color',refinable=False, storable=True,  observable=True,  has_widget=True),
         PropIntel(name="data_based_on",             inh_name=None,                          label="Based on phase",                     minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=False, storable=False, observable=True,  has_widget=True),
         PropIntel(name="data_G",                    inh_name=None,                          label="# of components",                    minimum=None,  maximum=None,  is_column=True,  ctype=int,    refinable=False, storable=True,  observable=True,  has_widget=True),
         PropIntel(name="data_R",                    inh_name=None,                          label="Reichweite",                         minimum=None,  maximum=None,  is_column=True,  ctype=int,    refinable=False, storable=True,  observable=True,  has_widget=True),
         PropIntel(name="data_CSDS_distribution",    inh_name="inherit_CSDS_distribution",   label="CSDS Distribution",                  minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=True,  storable=True,  observable=True,  has_widget=True),
         PropIntel(name="data_sigma_star",           inh_name="inherit_sigma_star",          label="$\sigma^*$ [°]",                     minimum=0.0,   maximum=90.0,  is_column=True,  ctype=float,  refinable=True,  storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="inherit_display_color",     inh_name=None,                          label="Inh. display color",                 minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="inherit_CSDS_distribution", inh_name=None,                          label="Inh. mean CSDS",                     minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="inherit_sigma_star",        inh_name=None,                          label="Inh. sigma star",                    minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="inherit_probabilities",     inh_name=None,                          label="Inh. probabilities",                 minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="inherit_display_color",     inh_name=None,                          label="Inh. display color",                 minimum=None,  maximum=None,  is_column=True,  ctype='flag', refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="inherit_CSDS_distribution", inh_name=None,                          label="Inh. mean CSDS",                     minimum=None,  maximum=None,  is_column=True,  ctype='flag', refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="inherit_sigma_star",        inh_name=None,                          label="Inh. sigma star",                    minimum=None,  maximum=None,  is_column=True,  ctype='flag', refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="inherit_probabilities",     inh_name=None,                          label="Inh. probabilities",                 minimum=None,  maximum=None,  is_column=True,  ctype='flag', refinable=False, storable=True,  observable=True,  has_widget=True),
         PropIntel(name="data_probabilities",        inh_name="inherit_probabilities",       label="Probabilities",                      minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=True,  storable=True,  observable=True,  has_widget=True),
         PropIntel(name="data_components",           inh_name=None,                          label="Components",                         minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=True,  storable=True,  observable=True,  has_widget=True),
         PropIntel(name="needs_update",              inh_name=None,                          label="",                                   minimum=None,  maximum=None,  is_column=False, ctype=object, refinable=False, storable=False, observable=True,  has_widget=False),
@@ -874,9 +882,11 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStoreChi
             Returns multiple phases loaded from a single file.
         """
         if zipfile.is_zipfile(filename):
+            pyxrd_object_pool.stack_uuids()
             with zipfile.ZipFile(filename, 'r') as zfile:
                 for uuid in zfile.namelist():
                     yield cls.load_object(zfile.open(uuid), parent=parent)
+            pyxrd_object_pool.restore_uuids()
         else:
             yield cls.load_object(filename, parent=parent)
 
@@ -913,7 +923,7 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStoreChi
         return Qn
        
     _cached_diffracted_intensities = None
-    def get_diffracted_intensity (self, range_theta, range_stl, lpf_callback, quantity, correction_range):
+    def get_diffracted_intensity(self, range_theta, range_stl, lpf_callback, quantity, correction_range):
         hsh = get_md5_hash(range_theta)
         if self._dirty:
             self._cached_diffracted_intensities = dict()

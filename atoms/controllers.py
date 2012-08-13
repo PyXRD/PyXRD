@@ -28,14 +28,14 @@ class EditAtomTypeController(ChildController):
         print "EditAtomTypeController.register_adapters()"
         if self.model is not None:
             for name in self.model.get_properties():
-                if name == "data_name":
-                    ad = Adapter(self.model, "data_name")
-                    ad.connect_widget(self.view["data_atom_type_name"])
+                if name == "name":
+                    ad = Adapter(self.model, "name")
+                    ad.connect_widget(self.view["atom_name"])
                     self.adapt(ad)
-                elif name in ("data_atom_nr", "data_debye", "data_weight" "data_par_a1", "data_par_a2", "data_par_a3", "data_par_a4", "data_par_a5", "data_par_b1", "data_par_b2", "data_par_b3", "data_par_b4", "data_par_b5", "data_par_c"):
+                elif name in ("atom_nr", "debye", "weight", "par_a1", "par_a2", "par_a3", "par_a4", "par_a5", "par_b1", "par_b2", "par_b3", "par_b4", "par_b5", "par_c"):
                     FloatEntryValidator(self.view["atom_%s" % name])
                     self.adapt(name)                
-                elif not name in ("parameters_changed", "data_atom_nr", "parent", "added", "removed"):
+                elif not name in ("parameters_changed", "atom_nr", "parent", "added", "removed"):
                     self.adapt(name)
             self.update_plot()
             return
@@ -63,7 +63,7 @@ class EditAtomTypeController(ChildController):
 class AtomTypesController(ObjectListStoreController):
     file_filters = ("Single atom type file", "*.sat"), ("Atom types list file", "*.atl")
     model_property_name = "data_atom_types"
-    columns = [ ("Atom type name", "c_data_name") ]
+    columns = [ ("Atom type name", "c_name") ]
     delete_msg = "Deleting an atom type is irreverisble!\nAre You sure you want to continue?"
     title="Edit Atom Types"
 

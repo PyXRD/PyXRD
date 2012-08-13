@@ -246,6 +246,7 @@
           <object class="GtkExpander" id="phase_data_probabilities">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
+            <property name="expanded">True</property>
             <child>
               <object class="GtkEventBox" id="prob_container">
                 <property name="width_request">450</property>
@@ -363,13 +364,19 @@
               </packing>
             </child>
             <child>
-              <object class="GtkColorButton" id="phase_data_display_color">
-                <property name="width_request">75</property>
+              <object class="GtkEventBox" id="container_data_display_color">
                 <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-                <property name="use_action_appearance">False</property>
-                <property name="color">#ffffb6f20000</property>
+                <property name="can_focus">False</property>
+                <child>
+                  <object class="GtkColorButton" id="phase_display_color">
+                    <property name="width_request">75</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="receives_default">True</property>
+                    <property name="use_action_appearance">False</property>
+                    <property name="color">#ffffb6f20000</property>
+                  </object>
+                </child>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -420,6 +427,7 @@
           <object class="GtkExpander" id="phase_data_CSDS_distribution">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
+            <property name="expanded">True</property>
             <child>
               <object class="GtkEventBox" id="csds_container">
                 <property name="visible">True</property>
@@ -470,7 +478,7 @@
           </packing>
         </child>
         <child>
-          <object class="GtkAlignment" id="align_sigma_star">
+          <object class="GtkAlignment" id="container_data_sigma_star">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="xalign">0</property>

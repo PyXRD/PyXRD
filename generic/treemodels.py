@@ -765,6 +765,7 @@ class XYListStore(_BaseObjectListStore, Storable):
         for x,y in XYListStore.parse_data(*args, **kwargs):
             self.append(x, y)
         
+        
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------
@@ -914,6 +915,12 @@ class XYListStore(_BaseObjectListStore, Storable):
             self.emit('columns-changed')
         else:
             self.set_from_data(data_x, *data_y, **kwargs)
+        
+    def get_y_name(self, col_index):
+        try:
+            return self._y_names[col_index]
+        except:
+            return ""
         
     def get_raw_model_data(self):
         if self._model_data_x.size:

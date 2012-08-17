@@ -3,8 +3,9 @@ import os
 import settings
 import logging
 
-class PyXRDLogger(): 
+class PyXRDLogger(object): 
     def __init__(self, filename): 
+        object.__init__(self)
         self.saveout = sys.stdout
         self.saveerr = sys.stderr
 
@@ -21,11 +22,11 @@ class PyXRDLogger():
     def write(self, text): 
         self.saveout.write(text) 
         self.logfile.write(text) 
-        self.logfile.flush()
-        os.fsync(self.logfile.fileno())
+        #self.logfile.flush()
+        #os.fsync(self.logfile.fileno())
         
     def close(self): 
-        self.saveout.close() 
+        self.saveout.close()
         self.logfile.flush()
         os.fsync(self.logfile.fileno())
         self.logfile.close()
@@ -34,6 +35,11 @@ class PyXRDLogger():
         sys.stdout = self.saveout
         sys.stderr = self.saveerr
     
+    def __del__(self):
+        self.logfile.flush()
+        os.fsync(self.logfile.fileno())
+        object.__del__(self)
+    
     @classmethod
     def start_logging(cls):
         cls.writer = PyXRDLogger(settings.LOG_FILENAME) 
@@ -41,3 +47,7 @@ class PyXRDLogger():
     @classmethod
     def stop_logging(cls):
         cls.writer.restore()
+        
+    def __del__(self):
+        self.close()
+        object.__del__(self)

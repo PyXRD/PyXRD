@@ -44,6 +44,8 @@ class RefinementView(DialogView):
     def show_refinement_info(self, refine_function, gui_callback, complete_callback, initial_rp):
         self["hbox_actions"].set_sensitive(False)
         self["lbl_rp_initial"].set_text("%.2f" % initial_rp)
+        self["tv_param_selection"].set_visible(False)
+        self["tv_param_selection"].set_no_show_all(True)
                
         if self.refine_spin_box != None:
             self.refine_spin_box.cancel()
@@ -65,6 +67,8 @@ class RefinementView(DialogView):
         if self.refine_spin_box != None:
             self.refine_spin_box.cancel()
         self["hbox_actions"].set_sensitive(True)
+        self["tv_param_selection"].set_visible(True)
+        self["tv_param_selection"].set_no_show_all(False)
        
     def update_refinement_info(self, current_rp=None):
         if not isnan(current_rp):
@@ -110,11 +114,14 @@ class EditMixtureView(BaseView): #TODO add delete buttons as well!
         
     def update_all(self, fractions, scales, bgs):
         for i, fraction in enumerate(fractions):
-            self.fraction_inputs[i].set_text(str(fraction))
+            if not i >= len(self.fraction_inputs):
+                self.fraction_inputs[i].set_text(str(fraction))
         for i, scale in enumerate(scales):
-            self.scale_inputs[i].set_text(str(scale))
+            if not i >= len(self.scale_inputs):
+                self.scale_inputs[i].set_text(str(scale))
         for i, bgs in enumerate(bgs):
-            self.bgs_inputs[i].set_text(str(bgs))
+            if not i >= len(self.bgs_inputs):
+                self.bgs_inputs[i].set_text(str(bgs))
         
     def add_column(self, phase_store, del_phase_callback, label_callback, fraction_callback, combo_callback, label, fraction, phases):
         r,c = self.matrix.get_property('n_rows'), self.matrix.get_property('n_columns')

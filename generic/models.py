@@ -17,6 +17,7 @@ import numpy as np
 import scipy
 
 from gtkmvc.model import Model, Signal
+from gtkmvc.model_mt import ModelMT
 
 from generic.metaclasses import PyXRDMeta
 from generic.treemodels import XYListStore
@@ -96,7 +97,7 @@ class DefaultSignal (Signal):
 
 from generic.metaclasses import get_new_uuid, pyxrd_object_pool
 
-class PyXRDModel(Model):
+class PyXRDModel(ModelMT):
     __metaclass__ = PyXRDMeta
     __model_intel__ = [
         PropIntel(name="uuid",    inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=str, refinable=False, storable=True, observable=False,  has_widget=False),
@@ -135,7 +136,7 @@ class PyXRDModel(Model):
     def uuid(self): return self.__uuid__
     
     def __init__(self, *args, **kwargs):
-        Model.__init__(self, *args, **kwargs)
+        ModelMT.__init__(self, *args, **kwargs)
         self.__stored_uuids__ = list()
     
     def stack_uuid(self):
@@ -246,6 +247,9 @@ class PyXRDLine(ChildModel, Storable, Line2D):
         self.set_color(value)
         self.needs_update.emit()
 
+    @property
+    def size(self):
+        return len(self.xy_store._model_data_x)
     
     @property
     def max_intensity(self):
@@ -325,12 +329,14 @@ class PyXRDLine(ChildModel, Storable, Line2D):
     def set_xdata(self, x):
         Line2D.set_xdata(self, x)
         if not self._inhibit_updates:
-            self.xy_store.update_from_data(x, self.xy_store._model_data_y)
+            xdata, ydata = self.xy_store.get_raw_model_data()
+            self.xy_store.update_from_data(x, ydata)
         
     def set_ydata(self, y):
         Line2D.set_ydata(self, self._transform_y(y))
         if not self._inhibit_updates:
-            self.xy_store.update_from_data(self.xy_store._model_data_x, y)
+            xdata, ydata = self.xy_store.get_raw_model_data()
+            self.xy_store.update_from_data(xdata, y)
             
     def clear(self):
         if len(self.xy_store._model_data_x) > 1:
@@ -406,16 +412,14 @@ class CalculatedLine(PyXRDLine):
         if self.parent.display_phases:
             scale, offset = self.get_transform_factors()
             for line in self.child_lines:
-                if line: line.draw(renderer, scale, offset)
+                if line:
+                    line.draw(renderer, scale, offset)
     
     def set_transform(self, transform):
         PyXRDLine.set_transform(self, transform)
+        tf = self.get_transform()
         for line in self.child_lines:
-            if line: line.set_transform(self.get_transform())
-
-    def set_childs_visible(self, visible):
-        for child in self.child_lines:
-            if child: child.set_visible(visible)
+            if line: line.set_transform(tf)
 
     def set_data(self, x, y, phases_y=None, phases_colors=None, phases_names=None):
         self._inhibit_updates = True
@@ -439,6 +443,7 @@ class CalculatedLine(PyXRDLine):
             self._child_lines.extend([None]*-diff)
         axes = self.get_axes()
         figure = self.get_figure()
+        tf = self.get_transform()
         for i, color, y in izip(count(), colors, ydata):
             line = self._child_lines[i]
             if not line:
@@ -447,6 +452,7 @@ class CalculatedLine(PyXRDLine):
             line.set_linewidth(self.get_linewidth())
             line.set_data(self.get_xdata(), y)
             line.set_color(color)
+            line.set_transform(tf)
             if axes: line.set_axes(axes)
             if figure: line.set_figure(figure)
         

@@ -10,7 +10,7 @@ from uuid import uuid1 as get_uuid
 
 from weakref import WeakValueDictionary
 
-from gtkmvc.support.metaclasses import ObservablePropertyMeta
+from gtkmvc.support.metaclasses import ObservablePropertyMetaMT
 
 def get_new_uuid():
     return get_uuid().hex
@@ -20,7 +20,7 @@ def get_unique_list(seq):
     seen_add = seen.add
     return [ x for x in seq if x not in seen and not seen_add(x)]
 
-class PyXRDMeta(ObservablePropertyMeta):
+class PyXRDMeta(ObservablePropertyMetaMT):
 
     def __init__(cls, name, bases, d):        
 
@@ -85,7 +85,7 @@ class PyXRDMeta(ObservablePropertyMeta):
         for key in keys:
             setattr(cls, key, list(d[key]))
 
-        return ObservablePropertyMeta.__init__(cls, name, bases, d)
+        return ObservablePropertyMetaMT.__init__(cls, name, bases, d)
                 
     def __call__(cls, *args, **kwargs):
     
@@ -100,7 +100,7 @@ class PyXRDMeta(ObservablePropertyMeta):
             uuid = get_new_uuid()
         
         #Create instance & set the uuid:
-        instance = ObservablePropertyMeta.__call__(cls, *args, **kwargs)
+        instance = ObservablePropertyMetaMT.__call__(cls, *args, **kwargs)
         instance.__uuid__ = uuid
         
         #Add a reference to the instance for each model intel, 

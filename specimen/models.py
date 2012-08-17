@@ -7,7 +7,7 @@
 # a letter to Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
 
 import os
-#import time
+from traceback import format_exc
 from math import tan, sin, pi, radians, log
 from warnings import warn
 
@@ -43,6 +43,7 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
         PropIntel(name="data_sample_length",        inh_name=None,  label="Sample length [cm]",                 minimum=0.0,   maximum=None,  is_column=True,  ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
         PropIntel(name="data_abs_scale",            inh_name=None,  label="Absolute scale [counts]",            minimum=0.0,   maximum=None,  is_column=True,  ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
         PropIntel(name="data_bg_shift",             inh_name=None,  label="Background shift [counts]",          minimum=0.0,   maximum=None,  is_column=True,  ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="absorption",                inh_name=None,  label="Absorption coeff. (µ*g)",           minimum=0.0,   maximum=None,  is_column=True,  ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
         PropIntel(name="display_calculated",        inh_name=None,  label="Display calculated diffractogram",   minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
         PropIntel(name="display_experimental",      inh_name=None,  label="Display experimental diffractogram", minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
         PropIntel(name="display_phases",            inh_name=None,  label="Display phases seperately",          minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
@@ -84,7 +85,7 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
         self.needs_update.emit()
  
     def get_data_label_value(self):
-        if self.display_stats_in_lbl:
+        if not settings.VIEW_MODE and self.display_stats_in_lbl:
             return self.data_sample + "\nRp = %.1f%%" % self.statistics.data_Rp
         else:
             return self.data_sample
@@ -116,15 +117,19 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
             if self._data_exclusion_ranges!=None:
                 pass
     
-    _data_sample_length = 3.0
+    _data_sample_length = 1.25
     _data_abs_scale = 1.0
     _data_bg_shift = 0.0
-    @Model.getter("data_sample_length", "data_abs_scale", "data_bg_shift")
+    _absorption = 0.9
+    @Model.getter("data_sample_length", "data_abs_scale", "data_bg_shift", "absorption")
     def get_data_sample_length_value(self, prop_name):
         return getattr(self, "_%s" % prop_name)
-    @Model.setter("data_sample_length", "data_abs_scale", "data_bg_shift")
+    @Model.setter("data_sample_length", "data_abs_scale", "data_bg_shift", "absorption")
     def set_data_sample_length_value(self, prop_name, value):
         setattr(self, "_%s" % prop_name, value)
+        if self.parent:
+            for phase in self.parent.data_phases.iter_objects():
+                phase.dirty=True
         self.needs_update.emit()
     
     statistics = None
@@ -190,11 +195,12 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def __init__(self, data_name="", data_sample="", data_sample_length=3.0, data_abs_scale=1.0, data_bg_shift=0.0,
+    def __init__(self, data_name="", data_sample="", data_sample_length=1.25,
+                 data_abs_scale=1.0, data_bg_shift=0.0, absorption = 0.9,
                  display_calculated=True, display_experimental=True, display_phases=False, display_stats_in_lbl=True,
                  data_experimental_pattern = None, data_calculated_pattern = None, data_exclusion_ranges = None, data_markers = None,
                  phase_indeces=None, phase_uuids=None, calc_color=None, exp_color=None, 
-                 inherit_calc_color=True, inherit_exp_color=True, parent=None):
+                 inherit_calc_color=True, inherit_exp_color=True, parent=None, **kwargs):
         ChildModel.__init__(self, parent=parent)
         Storable.__init__(self)
                
@@ -202,17 +208,16 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
                
         self.data_name = data_name
         self.data_sample = data_sample
-        self.data_sample_length = data_sample_length
-        self.data_abs_scale  = data_abs_scale
-        self.data_bg_shift = data_bg_shift
+        self.data_sample_length = float(data_sample_length)
+        self.absorption = float(absorption)
+        self.data_abs_scale  = float(data_abs_scale)
+        self.data_bg_shift = float(data_bg_shift)
 
         self._calc_color = calc_color or self.calc_color
         self._exp_color = exp_color or self.exp_color
         
         self.inherit_calc_color = inherit_calc_color
         self.inherit_exp_color = inherit_exp_color
-               
-        self.data_phases = []
 
         if isinstance(data_calculated_pattern, dict) and "type" in data_calculated_pattern and data_calculated_pattern["type"]=="generic.models/XYData":
             self.data_calculated_pattern = CalculatedLine.from_json(parent=self, **data_calculated_pattern["properties"])
@@ -314,9 +319,10 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
     # ------------------------------------------------------------
     #TODO move this to the controller/view level:
     def on_update_plot(self, figure, axes, pctrl):
-        """Called by a `PlotController` whenever the plot required an update, _
+        """Called by a `PlotController` whenever the plot required an update,
         updates the actual intensity plots
         """
+        #self.data_calculated_pattern.set_childs_visible(self.display_phases)
         axes.add_line(self.data_experimental_pattern)
         axes.add_line(self.data_calculated_pattern)
         pctrl.update_lim()
@@ -324,7 +330,7 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
     #TODO move this to the controller/view level
     _hatches = None
     def on_update_hatches(self, figure, axes, pctrl):
-        """Called by a `PlotController` whenever the plot required an update, _
+        """Called by a `PlotController` whenever the plot required an update,
         updates exclusion 'hatched' areas on the plot
         """
         # try to remove hatches if any are still present
@@ -443,8 +449,7 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
         :rtype: a 3-tuple containing 2-theta values, phase intensities and the
         total intensity, or None if the length of *phases* is 0
         """
-        num_phases = len(phases)
-        if num_phases == 0:
+        if len(phases) == 0:
             self.data_calculated_pattern.clear()
             self.statistics.update_statistics()
             return None
@@ -459,6 +464,7 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
                         
             #Sum the phase intensities and apply the background shift
             total_intensity = np.sum(self.data_phase_intensities, axis=0) + self.data_bg_shift
+            self.data_phase_intensities += self.data_bg_shift
 
             #Update the pattern data:            
             self.data_calculated_pattern.set_data(
@@ -473,7 +479,7 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
             #Return what we just calculated for anyone interested
             return (theta_range, self.data_phase_intensities, total_intensity)
         
-
+    #@print_timing
     def get_phase_intensities(self, phases, lpf_callback, steps=2500):
         """
         Gets phase intensities for the provided phases
@@ -489,24 +495,33 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
         :rtype: a 2-tuple containing 2-theta values and phase intensities or
         None if the length of *phases* is 0
         """
-        if phases!=None:
+        if phases!=None: #TODO cache correction range!
         
             l = self.parent.data_goniometer.data_lambda
-            L_Rta =  self.data_sample_length / (self.parent.data_goniometer.data_radius * tan(radians(self.parent.data_goniometer.data_divergence)))
             theta_range = None
-            torad = pi / 180.0
             if self.data_experimental_pattern.xy_store._model_data_x.size <= 1:
-                min_theta = radians(self.parent.data_goniometer.data_min_2theta*0.5)
-                max_theta = radians(self.parent.data_goniometer.data_max_2theta*0.5)
-                delta_theta = float(max_theta - min_theta) / float(steps-1)
-                theta_range = (min_theta + delta_theta * np.array(range(0,steps-1), dtype=float))
+                theta_range = self.parent.data_goniometer.get_default_theta_range()
             else:
-                theta_range =  self.data_experimental_pattern.xy_store._model_data_x * torad * 0.5
-            stl_range = 2 * np.sin(theta_range) / l
+                theta_range = np.radians(self.data_experimental_pattern.xy_store._model_data_x * 0.5)
+            sin_range = np.sin(theta_range)
+            stl_range = 2 * sin_range / l
             
-            correction_range = np.minimum(np.sin(theta_range) * L_Rta, 1)
+            correction_range = self.parent.data_goniometer.get_machine_correction_range(
+                theta_range, self.data_sample_length, self.absorption)            
+            #absorption = float(self.absorption)
+            #if absorption > 0.0:
+            #    correction_range *= (1.0 - np.exp(-2.0*absorption / sin_range))
             
-            intensities = np.array([phase.get_diffracted_intensity(theta_range, stl_range, lpf_callback, 1.0, correction_range) if phase else np.zeros(shape=theta_range.shape) for phase in phases], dtype=np.float_)
+            intensities = np.array([
+                   phase.get_diffracted_intensity(
+                        theta_range,
+                        stl_range,
+                        lpf_callback,
+                        1.0,
+                        correction_range
+                    ) if phase else
+                    np.zeros(shape=theta_range.shape) for phase in phases],
+                dtype=np.float_)
             
             return (theta_range, intensities)
     
@@ -571,7 +586,12 @@ class ThresholdSelector(ChildModel):
         self.steps = steps or self.steps
         self.sel_threshold = sel_threshold or self.sel_threshold
         
-        self.update_threshold_plot_data()
+        if self.parent.data_experimental_pattern.size > 0:
+            self.pattern == "exp"
+        else:
+            self.pattern == "calc"
+        
+        #self.update_threshold_plot_data()
     
     # ------------------------------------------------------------
     #      Methods & Functions
@@ -581,7 +601,8 @@ class ThresholdSelector(ChildModel):
             data_x, data_y = self.parent.data_experimental_pattern.xy_store.get_raw_model_data()
         elif self._pattern == "calc":
             data_x, data_y = self.parent.data_calculated_pattern.xy_store.get_raw_model_data()
-        data_y = data_y / np.max(data_y)
+        if data_y.size > 0:
+            data_y = data_y / np.max(data_y)
         return data_x, data_y
     
     def update_threshold_plot_data(self):
@@ -906,21 +927,23 @@ class Statistics(ChildModel):
         if self.data_residual_pattern == None:
             self.data_residual_pattern = PyXRDLine(label="Residual Data", color="#000000", parent=self)
         
-        self.data_residual_pattern.clear()
-        
         exp_x, exp_y = self._get_experimental()
         cal_x, cal_y = self._get_calculated()
 
-        if cal_y != None and exp_y != None and cal_y.size > 0 and exp_y.size > 0:
-            try:
+        try:
+            if cal_y != None and exp_y != None and cal_y.size > 0 and exp_y.size > 0:
                 self.data_residual_pattern.set_data(exp_x, exp_y - cal_y)
 
                 e_ex, e_ey, e_cx, e_cy = self.specimen.get_exclusion_xy()
 
                 self.data_chi2 = stats.chisquare(e_ey, e_cy)[0]
                 self.data_Rp, self.data_R2 = self._calc_RpR2(e_ey, e_cy)
-            except ValueError, ZeroDivisionError:
-                print "Error occured when trying to calculate statistics, aborting calculation!"
+            else:
+                self.data_residual_pattern.clear()                    
+        except ValueError, ZeroDivisionError:
+            self.data_residual_pattern.clear()
+            print "Error occured when trying to calculate statistics, aborting calculation!"
+            print format_exc()
            
     @staticmethod
     def _calc_RpR2(o, e):
@@ -934,6 +957,23 @@ class Statistics(ChildModel):
         
     @staticmethod
     def _calc_Rp(o, e):
+        """l = e.size
+        chop_size = 50
+        if l >= chop_size*2:
+            chops = l / chop_size
+            Rps = []
+            for i in range(chops):
+                lb = min(i * chop_size, l-1)
+                if i == chops-1:
+                    ub = l-1
+                else:
+                    ub = min((i+1) * chop_size, l-1)
+                co = o[lb:ub]
+                ce = e[lb:ub]
+                Rps.append(np.sum(np.abs(co - ce)) / np.sum(np.abs(co)) * 100)
+            Rps = np.sort(Rps)            
+            return np.average(Rps) + 2*np.std(Rps)
+        else:"""
         return np.sum(np.abs(o - e)) / np.sum(np.abs(o)) * 100
         
     pass #end of class

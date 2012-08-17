@@ -694,16 +694,18 @@ class XYListStore(_BaseObjectListStore, Storable):
     def __init__(self, data=None):
         _BaseObjectListStore.__init__(self, Point)
         Storable.__init__(self)
-        self.set_property("leak-references", True)
+        self.set_property("leak-references", False)
         self._model_data_x = np.array([], dtype=float)
         self._model_data_y = np.zeros(shape=(0,0), dtype=float)
         self._y_names = []
+        
+        self._iters = dict()
         
         if data!=None:
             self._load_data(data)
         else:
             self.set_from_data(np.array([], dtype=float), np.array([], dtype=float))
-       
+           
     def _load_data(self, data):
         #data should be in this format:
         #  [  (x1, y1, y2, ..., yn), (x2, y1, y2, ..., yn), ... ]
@@ -790,6 +792,9 @@ class XYListStore(_BaseObjectListStore, Storable):
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------
+    def on_get_flags(self):
+        return gtk.TREE_MODEL_LIST_ONLY
+    
     _y_from_user = lambda self, y_value: np.array(y_value, ndmin=2)
     def _y_to_user(self, y_value):
         try:
@@ -798,22 +803,26 @@ class XYListStore(_BaseObjectListStore, Storable):
             return (y_value,)
     def _get_subitr(self, index):
         x = self._model_data_x[index]
-        try:
-            y = tuple(self._y_to_user(self._model_data_y[:,index]))
-        except:
-            raise
+        y = tuple(self._y_to_user(self._model_data_y[:,index]))
         return (x,) + y
     
     def on_get_iter(self, path): #returns a rowref
         try:
             path = path[0]
             if path < self._model_data_x.size:
-                return (path,) + self._get_subitr(path)
+                itr = self._iters.get(path, None)
+                if itr==None:
+                    self._iters[path] = itr = (path,) + self._get_subitr(path)
+                return itr
             else:
                 return None
         except IndexError, msg:
             return None
             
+    def invalidate_iters(self):
+        self._iters.clear()
+        _BaseObjectListStore.invalidate_iters(self)
+        
     def set_value(self, itr, column, value):
         i = self.get_user_data(itr)[0]
         if i < self._model_data_x.size:
@@ -891,16 +900,19 @@ class XYListStore(_BaseObjectListStore, Storable):
         index = int(path[0])
         self.emit('item-inserted', self._get_subitr(index))
         itr = self.get_iter(path)
+        self.invalidate_iters()
         self.row_inserted(path, itr)
 
     def remove_from_index(self, *indeces):
         if indeces != []:
             indeces = np.sort(indeces)[::-1]
+            shape = self._model_data_x.shape
             for index in indeces:
-                self.emit('item-removed', self._get_subitr(index))
-                self._model_data_x = np.delete(self._model_data_x, index)
+                self.emit('item-removed', 0) #self._get_subitr(index))
+                self._model_data_x = np.delete(self._model_data_x, index, axis=0)
                 self._model_data_y = np.delete(self._model_data_y, index, axis=1)
                 self.row_deleted((index,))
+            self.invalidate_iters()
 
     def remove(self, itr):
         path = self.get_path(itr)
@@ -928,7 +940,7 @@ class XYListStore(_BaseObjectListStore, Storable):
         names = kwargs.get("names", None)
         tempx = np.array(data_x)
         tempy = np.array(data_y, ndmin=2)
-        if tempx.shape == self._model_data_x.shape and tempy.shape[1] == self._model_data_y.shape[1]:
+        if self._model_data_x.size > 0 and tempx.shape == self._model_data_x.shape and tempy.shape[1] == self._model_data_y.shape[1]:
             self._model_data_x = tempx
             if tempy.shape[0] == 1:
                 self._model_data_y[0] = tempy[0]

@@ -55,79 +55,48 @@ class ScaleEntry(HBox):
         
         step = max((upper-lower)/200.0, 0.01)
         self.adjustment = gtk.Adjustment(
-            0.0, lower, upper, step, step, 1.0)
+            0.0, lower, upper, step, step, 0.0)
+        
+        self.adjustment.connect('value-changed', self.on_adj_value_changed)
         
         self.scale = gtk.HScale(self.adjustment)
         self.scale.set_draw_value(False)
         self.scale.set_size_request(50, -1)
         self.scale.set_update_policy(gtk.UPDATE_DELAYED)
-        self.scale.connect('value-changed', self.on_scale_value_changed)
         
-        self.entry = Entry()
-        FloatEntryValidator(self.entry)
-        self.entry.set_size_request(200,-1)
-        self.entry.connect('changed', self.on_entry_changed)
+        self.entry = gtk.SpinButton(self.adjustment)
+        self.entry.set_digits(5)
+        self.entry.set_numeric(True)
+        self.entry.set_size_request(150,-1)
         
         self.set_value(self.scale.get_value())
         
         HBox.pack_start(self, self.scale, expand=False)
         HBox.pack_start(self, self.entry, expand=False)
 
-    def on_scale_value_changed(self, *args, **kwargs):
-        self._update_value_and_range(self.scale.get_value())
-        return False
-
-    def on_entry_changed(self, *args, **kwargs):
-        try:
-            self._update_value_and_range(self.get_text())
-        except ValueError:
-            pass #ignore the "can't convert string to float" messages
-        return False
-
-    def _update_adjustment(self, value, lower, upper):
-        step = round_sig(max((upper-lower)/200.0, 0.0005))
-        self.adjustment.configure(value, lower, upper, 
-            step, step, step)
-
-    inhibit_updates = False
-    def _update_value_and_range(self, value):
-        if not self.inhibit_updates:
-            self.inhibit_updates = True   
-            #set scale value:
-            try: value = float(value)
-            except ValueError:
-               self.inhibit_updates = False
-               return
-            lower, upper = self.lower, self.upper
-            if not self.enforce_range:
-                if value < (lower + abs(lower)*0.05):
-                    lower = value - abs(value)*0.2
-                if value > (upper - abs(lower)*0.05):
-                    upper = value + abs(value)*0.2
-            else:
-                value = max(min(value, upper), lower)
-            self._update_adjustment(value, lower, upper)
-            #set entry text:     
-            self.entry.set_text(str(self.scale.get_value()))
-            #emit 'toplevel' changed signal:
-            self._delay_emit_changed()
-            self.inhibit_updates = False
-        
-    @delayed(delay=100)
-    def _delay_emit_changed(self):
+    def on_adj_value_changed(self, adj, *args):
         self.emit('changed')
+
+    def _update_adjustment(self, lower, upper):
+        step = round_sig(max((upper-lower)/200.0, 0.0005))
+        self.adjustment.configure(lower, upper, 
+            step, step, 0.0)
+
+    def _update_range(self, value):
+        lower, upper = self.lower, self.upper
+        if not self.enforce_range:
+            if value < (lower + abs(lower)*0.05):
+                lower = value - abs(value)*0.2
+            if value > (upper - abs(lower)*0.05):
+                upper = value + abs(value)*0.2
+            self._update_adjustment(lower, upper)
         
     def set_value(self, value):
-        self.set_text(value)
+        self._update_range(value)
+        self.adjustment.set_value(value)
 
     def get_value(self):
-        return float(self.get_text())
-
-    def set_text(self, text):
-        self._update_value_and_range(text)
-        
-    def get_text(self):
-        return float(self.entry.get_text())
+        return self.adjustment.get_value()
 
     def get_children(self, *args, **kwargs):
         return []
@@ -170,7 +139,8 @@ class ThreadedTaskBox(gtk.Table):
   
     __gsignals__ = {
         'complete' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
-        'cancelrequested' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,))
+        'cancelrequested' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
+        'stoprequested' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,))        
     }
     
     def __init__(self, run_function, gui_callback, complete_callback, params=None, cancelable=True):
@@ -198,8 +168,8 @@ class ThreadedTaskBox(gtk.Table):
         self.connect("destroy", self.__destroy)
 
  
-    def setup_ui(self, cancelable=True):
-        gtk.Table.__init__(self, 2, 3)
+    def setup_ui(self, cancelable=True, stoppable=True):
+        gtk.Table.__init__(self, 3, 3)
         self.set_row_spacings(10)
         self.set_col_spacings(10)
 
@@ -209,18 +179,26 @@ class ThreadedTaskBox(gtk.Table):
 
         self.spinner = gtk.Spinner()
         self.spinner.show()
-        self.attach(self.spinner, 0, 1, 1, 2, xoptions=0, yoptions=0)
+        self.attach(self.spinner, 0, 1, 1, 3, xoptions=0, yoptions=0)
 
         self.label = gtk.Label()
         self.label.show()
-        self.attach(self.label, 1, 2, 1, 2, xoptions=gtk.FILL, yoptions=0)
+        self.attach(self.label, 1, 2, 1, 3, xoptions=gtk.FILL, yoptions=0)
 
         self.cancel_button = gtk.Button(stock=gtk.STOCK_CANCEL)
         if cancelable:
             self.cancel_button.show()
         self.cancel_button.set_sensitive(False)
-        self.cancel_button.connect("clicked",self.__stop_clicked)
+        self.cancel_button.connect("clicked", self.__cancel_clicked)
         self.attach(self.cancel_button, 2, 3, 1, 2, xoptions=0, yoptions=0)
+        
+        self.stop_button = gtk.Button(stock=gtk.STOCK_STOP)
+        if stoppable:
+            self.stop_button.show()
+        self.stop_button.set_sensitive(False)
+        self.stop_button.connect("clicked", self.__stop_clicked)
+        self.attach(self.stop_button, 2, 3, 2, 3, xoptions=0, yoptions=0)
+        
  
     def start(self, caption="Working"):
         """
@@ -245,10 +223,11 @@ class ThreadedTaskBox(gtk.Table):
         self.pulse_thread.start()
 
         #enable the button so the user can try to kill the task
-        self.cancel_button.set_sensitive( True )
+        self.cancel_button.set_sensitive(True)
+        self.stop_button.set_sensitive(True)        
   
     #call back function for after run_function returns
-    def __on_complete( self, data ):
+    def __on_complete(self, data):
         gtk.gdk.threads_enter()
         if callable(self.complete_callback): self.complete_callback(data)
         gtk.gdk.threads_leave()
@@ -256,23 +235,32 @@ class ThreadedTaskBox(gtk.Table):
         self.kill()
 
     #call back function for cancel button
-    def __stop_clicked( self, widget, data = None ):
+    def __cancel_clicked(self, widget, data = None):
         self.cancel()
 
-    cancelling = False
+    def __stop_clicked(self, widget, data = None):
+        self.stop()
+
     def cancel(self):
-        if not self.cancelling: #prevents endless cancel loops
-            self.cancelling = True        
-            self.kill()
-            self.emit("cancelrequested", self)
-            self.cancelling = False
+        self.stop(kill=True)
+
+    stopping = False
+    def stop(self, kill=False):
+        if not self.stopping: #prevents endless cancel loops
+            self.stopping = True        
+            self.stop(kill=kill)
+            if kill:
+                self.emit("cancelrequested", self)
+            else:
+                self.emit("stoprequested", self)
+            self.stopping = False
 
     def gui_function(self):
         if callable(self.gui_callback): self.gui_callback()
 
-    def kill(self, caption="Done"):
+    def stop(self, kill=False, caption="Done"):
         """
-            Stops spinning the spinner and sets the value of 'kill' to True in
+            Stops spinning the spinner and sets the value of 'stop' to True in
             the run_function.
         """
 
@@ -282,13 +270,20 @@ class ThreadedTaskBox(gtk.Table):
             self.pulse_thread = None
 
         #disable the cancel button since the task is about to be told to stop
-        self.cancel_button.set_sensitive( False )
+        self.cancel_button.set_sensitive(False)
+        self.stop_button.set_sensitive(False)  
         #tell the users function tostop if it's thread exists
         if self.work_thread != None:
-            self.work_thread.kill()
+            if kill:
+                self.work_thread.kill()
+            else:
+                self.work_thread.stop()
             
         self.spinner.stop()
         self.label.set_text(caption)
+
+    def kill(self, caption="Done"):
+        self.stop(kill=True, caption=caption)
 
     def __destroy(self, widget, data = None):
         #called when the widget is destroyed, attempts to clean up

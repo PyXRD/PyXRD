@@ -26,7 +26,10 @@ class GoniometerController(DialogController, DialogMixin):
     def register_adapters(self):
         if self.model is not None:
             for name in self.model.get_properties():
-                if name in ("data_radius", "data_divergence", "data_soller1", "data_soller2", "data_min_2theta", "data_max_2theta", "data_lambda"):
+                if name in ("data_radius", "data_divergence", "data_soller1", 
+                        "data_soller2", "data_min_2theta", "data_max_2theta", 
+                        "data_lambda", "ads_factor", "ads_phase_fact",
+                        "ads_phase_shift", "ads_const"):
                     FloatEntryValidator(self.view["gonio_%s" % name])
                     self.adapt(name)
                 elif not name in self.model.__have_no_widget__:
@@ -36,7 +39,6 @@ class GoniometerController(DialogController, DialogMixin):
         DialogController.__init__(self, *args, **kwargs)
             
     def register_view(self, view):
-        print "REGISTER VIEW"
         self.generate_combo()
 
     def generate_combo(self):

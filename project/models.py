@@ -31,9 +31,9 @@ class Project(PyXRDModel, Storable, ObjectListStoreParentMixin):
     #MODEL INTEL:
     __model_intel__ = [ #TODO add labels
         PropIntel(name="name",             inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="data_date",             inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="data_description",      inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="data_author",           inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="date",             inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="description",      inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="author",           inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
         PropIntel(name="display_marker_angle",  inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
         PropIntel(name="display_calc_color",    inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
         PropIntel(name="display_exp_color",     inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
@@ -45,7 +45,7 @@ class Project(PyXRDModel, Storable, ObjectListStoreParentMixin):
         PropIntel(name="axes_xstretch",         inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
         PropIntel(name="axes_yscale",           inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=int,    refinable=False, storable=True,  observable=True,  has_widget=True),
         PropIntel(name="axes_yvisible",         inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="data_specimens",        inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="specimens",        inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
         PropIntel(name="data_phases",           inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=object, refinable=False, storable=True,  observable=True,  has_widget=False),
         PropIntel(name="data_mixtures",         inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=object, refinable=False, storable=True,  observable=True,  has_widget=False),
         PropIntel(name="data_atom_types",       inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=object, refinable=False, storable=True,  observable=True,  has_widget=False),
@@ -60,9 +60,9 @@ class Project(PyXRDModel, Storable, ObjectListStoreParentMixin):
 
     #PROPERTIES:
     name = ""
-    data_date = ""
-    data_description = None
-    data_author = ""
+    date = ""
+    description = None
+    author = ""
     
     needs_saving = True
     
@@ -102,15 +102,15 @@ class Project(PyXRDModel, Storable, ObjectListStoreParentMixin):
         if value != getattr(self, "_%s" % prop_name):
             setattr(self, "_%s" % prop_name, value)
             calc = ("calc" in prop_name)
-            for specimen in self.data_specimens._model_data:
+            for specimen in self.specimens._model_data:
                 if calc:
                     specimen.data_calculated_pattern.color = value
                 else:
                     specimen.data_experimental_pattern.color = value
             self.needs_update.emit()
     
-    _data_specimens = None
-    def get_data_specimens_value(self): return self._data_specimens
+    _specimens = None
+    def get_specimens_value(self): return self._specimens
     
     _data_phases = None
     def get_data_phases_value(self): return self._data_phases
@@ -127,11 +127,11 @@ class Project(PyXRDModel, Storable, ObjectListStoreParentMixin):
     #      Initialisation and other internals
     # ------------------------------------------------------------
     def __init__(self, name = "Project name",
-            data_date = time.strftime("%d/%m/%Y"),
-            data_description = "Project description",
-            data_author = "Project author",
+            date = time.strftime("%d/%m/%Y"),
+            description = "Project description",
+            author = "Project author",
             data_goniometer = None, data_atom_types = None, data_phases = None,
-            data_specimens = None, data_mixtures = None,
+            specimens = None, data_mixtures = None,
             display_marker_angle=None, display_plot_offset=None, 
             display_calc_color=None, display_exp_color=None, display_label_pos=None,
             axes_xscale=None, axes_xmin=None, axes_xmax=None, 
@@ -145,31 +145,32 @@ class Project(PyXRDModel, Storable, ObjectListStoreParentMixin):
 
         self._data_atom_types = self.parse_liststore_arg(data_atom_types, IndexListStore, AtomType)        
         self._data_phases = self.parse_liststore_arg(data_phases, ObjectListStore, Phase)
-        self._data_specimens = self.parse_liststore_arg(data_specimens, ObjectListStore, Specimen)
+        specimens = specimens or self.get_depr(kwargs, None, "data_specimens")
+        self._specimens = self.parse_liststore_arg(specimens, ObjectListStore, Specimen)
         self._data_mixtures = self.parse_liststore_arg(data_mixtures, ObjectListStore, Mixture)
 
         for phase in self._data_phases._model_data:
             phase.resolve_json_references()
             self.observe_model(phase)            
-        for specimen in self._data_specimens.iter_objects():
+        for specimen in self._specimens.iter_objects():
             self.observe_model(specimen)
 
         self._data_atom_types.connect("item-removed", self.on_atom_type_item_removed)        
         self._data_phases.connect("item-removed", self.on_phase_item_removed)
-        self._data_specimens.connect("item-removed", self.on_specimen_item_removed)
+        self._specimens.connect("item-removed", self.on_specimen_item_removed)
         self._data_mixtures.connect("item-removed", self.on_mixture_item_removed)
         
         self._data_atom_types.connect("item-inserted", self.on_atom_type_item_inserted)
         self._data_phases.connect("item-inserted", self.on_phase_item_inserted)
-        self._data_specimens.connect("item-inserted", self.on_specimen_item_inserted)
+        self._specimens.connect("item-inserted", self.on_specimen_item_inserted)
         self._data_mixtures.connect("item-inserted", self.on_mixture_item_inserted)
         
-        self.data_description = gtk.TextBuffer()
+        self.description = gtk.TextBuffer()
         
         self.name = str(name or self.get_depr(kwargs, "", "data_name"))
-        self.data_date = data_date
-        self.data_description.set_text(data_description)
-        self.data_author = data_author
+        self.date = str(date or self.get_depr(kwargs, "", "data_date"))
+        self.description.set_text(str(description or self.get_depr(kwargs, "", "data_description")))
+        self.author = str(author or self.get_depr(kwargs, "", "data_author"))
         
         self.data_goniometer = self.parse_init_arg(data_goniometer, Goniometer(parent=self), child=True)
         
@@ -271,8 +272,8 @@ class Project(PyXRDModel, Storable, ObjectListStoreParentMixin):
    
     def get_max_intensity(self):
         max_intensity = 0
-        if self.data_specimens:
-            for specimen in self.data_specimens._model_data:
+        if self.specimens:
+            for specimen in self.specimens._model_data:
                 max_intensity = max(specimen.max_intensity, max_intensity)
         return max_intensity
    
@@ -282,8 +283,7 @@ class Project(PyXRDModel, Storable, ObjectListStoreParentMixin):
     def thaw_updates(self):
         self.before_needs_update_lock = False
 
-    
-    pass #TODO: calculate all patterns
+    pass
     
     
     

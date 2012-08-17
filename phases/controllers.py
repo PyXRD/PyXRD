@@ -8,6 +8,8 @@
 
 import locale
 
+from traceback import format_exc
+
 import gtk
 
 from gtkmvc import Model, Controller
@@ -106,8 +108,11 @@ class EditCSDSDistributionController(ChildController):
     # ------------------------------------------------------------
     @Controller.observe("updated", signal=True)
     def notif_updated(self, model, prop_name, info):
-        if self.model.distrib!=None:
-            self.view.update_figure(self.model.distrib[1])
+        if self.model.distrib!=None and not self.model.phase.project.before_needs_update_lock:
+            try: self.view.update_figure(self.model.distrib[1])
+            except any as error:
+                print "Caught unhandled exception: %s" % error
+                print format_exc()
     
     pass #end of class    
 

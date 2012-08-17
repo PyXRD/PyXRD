@@ -182,14 +182,14 @@ class EditMixtureController(ChildController):
 
         def on_specimen_changed(combobox):
             itr = combobox.get_active_iter()
-            specimen = self.model.parent.data_specimens.get_user_data(itr) if itr!=None else None
+            specimen = self.model.parent.specimens.get_user_data(itr) if itr!=None else None
             self.model.data_specimens[index] = specimen
         
         def on_specimen_delete(widget):
             self.model._del_specimen_by_index(index)
             widget.disconnect(widget.get_data("deleventid"))
         
-        self.view.add_row(self.model.parent.data_phases, self.model.parent.data_specimens, on_specimen_delete, on_scale_changed, on_bgs_changed, on_specimen_changed, self.on_combo_changed, scale=self.model.data_scales[index], bgs=self.model.data_bgshifts[index], specimen=self.model.data_specimens[index], phases=self.model.data_phase_matrix)
+        self.view.add_row(self.model.parent.data_phases, self.model.parent.specimens, on_specimen_delete, on_scale_changed, on_bgs_changed, on_specimen_changed, self.on_combo_changed, scale=self.model.data_scales[index], bgs=self.model.data_bgshifts[index], specimen=self.model.data_specimens[index], phases=self.model.data_phase_matrix)
     
     # ------------------------------------------------------------
     #      Notifications of observable properties

@@ -25,8 +25,8 @@ class _AbstractProbability(ChildModel, Storable, RefinementGroup):
     __model_intel__ = [ #TODO add labels
         PropIntel(name="updated",   inh_name=None,  label="",               minimum=None,  maximum=None,  is_column=False, ctype=object, refinable=False, storable=False,  observable=True,  has_widget=False),
         PropIntel(name="data_name", inh_name=None,  label="Probabilites",   minimum=None,  maximum=None,  is_column=False, ctype=str,    refinable=False, storable=False,  observable=True,  has_widget=False),
-        PropIntel(name="W_valid",   inh_name=None,  label="Valid W matrix", minimum=None,  maximum=None,  is_column=False, ctype=bool,   refinable=False, storable=False,  observable=True,  has_widget=False),
-        PropIntel(name="P_valid",   inh_name=None,  label="Valid P matrix", minimum=None,  maximum=None,  is_column=False, ctype=bool,   refinable=False, storable=False,  observable=True,  has_widget=False),
+        PropIntel(name="W_valid",   inh_name=None,  label="Valid W matrix", minimum=None,  maximum=None,  is_column=False, ctype=object,   refinable=False, storable=False,  observable=True,  has_widget=False),
+        PropIntel(name="P_valid",   inh_name=None,  label="Valid P matrix", minimum=None,  maximum=None,  is_column=False, ctype=object,   refinable=False, storable=False,  observable=True,  has_widget=False),
     ]
     __independent_label_map__ = []
     
@@ -122,10 +122,20 @@ class _AbstractProbability(ChildModel, Storable, RefinementGroup):
         self._lW[-1] = np.zeros(shape=(lrank, lrank), dtype=float)
         self._W = self._lW[-2]
         self._P = self._lP[-1]
+        
+        #validity matrices:
+        self.W_valid = np.array([False]*(R+1))
+        self.W_valid_mask = np.array([None]*(R+1))
+        self.P_valid = np.array([False]*R)
+        self.P_valid_mask = np.array([None]*R)
     
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------
+    def get_prob_descriptions(self):
+        for prop, name in self.__independent_label_map__:
+            yield "%s: %.3f" % (prop, getattr(self, prop))
+    
     def update(self):
         raise NotImplementedError
         
@@ -229,13 +239,7 @@ class _AbstractProbability(ChildModel, Storable, RefinementGroup):
             
             return P_valid, P_valid_mask
 
-        size = max(self.R, 1)
-
-        self.W_valid = [False]*(size+1)
-        self.W_valid_mask = [None]*(size+1)
-        self.P_valid = [False]*size
-        self.P_valid_mask = [None]*size
-        for i in range(size):
+        for i in range(max(self.R, 1)):
             self.W_valid[i], self.W_valid_mask[i] = _validate_W(self._lW[i], i+1)
             self.P_valid[i], self.P_valid_mask[i] = _validate_P(self._lP[i], i+1)
         

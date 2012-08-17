@@ -109,6 +109,25 @@ class Storable(object):
         }
     
     def parse_init_arg(self, arg, default, child=False, **kwargs):
+        """
+        Can be used to transform an argument passed to a __init__ method of a
+        Storable (sub-)class containing a JSON dict into the actual object it
+        is representing.
+        
+        *arg* the passed argument
+        
+        *default* the default value if argument is None
+        
+        **child* boolean flag indicating wether or not the object is a child,
+        if true, self is passed as the parent keyword to the JSON decoder if
+        the passed argument is a JSON dict
+        
+        **kwargs* any other kwargs are passed to the JSON decoder if the passed
+        argument is a JSON dict
+        
+        :rtype: the argument (not a JSON dict), the actual object (argument was
+        a JSON dict) or the default value (argument was None)
+        """
         if arg==None:
             return default
         elif isinstance(arg, dict) and "type" in arg and "properties" in arg:

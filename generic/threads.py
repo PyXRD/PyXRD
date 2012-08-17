@@ -55,6 +55,7 @@ class KillableThread(Thread):
         if self.params == None:
             self.params = {}
         self.params["kill"] = False
+        self.params["stop"] = False
         #tell the function to run
         data = self.run_function(self.params)
         #return any data from the function so it can be sent in the complete signal
@@ -64,5 +65,8 @@ class KillableThread(Thread):
     #Note the user's function may not check this
     def kill(self):
         self.params["kill"] = True
+        
+    def stop(self):
+        self.params["stop"] = True
 
     pass #end of class

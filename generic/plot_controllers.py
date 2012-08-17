@@ -13,11 +13,11 @@ from math import sin, radians
 
 import matplotlib
 import matplotlib.transforms as transforms
+from matplotlib.text import Text
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanvasGTK
 from matplotlib.font_manager import FontProperties
 
-#from mpl_toolkits.axes_grid1.axislines import Subplot
 from mpl_toolkits.axisartist import Subplot
 
 import settings
@@ -79,7 +79,17 @@ class PlotController (DialogMixin):
         self._proxies = list()
         
     def draw(self):
-        self.figure.canvas.draw()
+        #rend = self.figure.canvas.get_renderer()
+        #if rend:
+        #    self.figure.canvas.draw_event(rend)
+        try:
+            self.figure.canvas.draw()
+            self.fix_after_drawing()
+        except matplotlib.pyparsing.ParseFatalException as e:
+            print "Catching unhandled exception: %s" % e
+    
+    def fix_after_drawing(self):
+        pass #nothing to fix
     
     def get_save_dims(self, num_specimens=1, offset=0.75):    
         raise NotImplementedError
@@ -88,7 +98,7 @@ class PlotController (DialogMixin):
         return matplotlib.transforms.Bbox.from_bounds(0, 0, width, height)
         
     def save(self, parent=None, suggest_name="graph", size="auto", num_specimens=1, offset=0.75, dpi=150):
-        width, height = 0,0
+        width, height = 0, 0
         if size == "auto":
             width, height = self.get_save_dims(num_specimens=num_specimens, offset=offset)
         else:    
@@ -115,7 +125,7 @@ class PlotController (DialogMixin):
             height = float(entry_h.get_text())
             dpi = float(entry_dpi.get_text())
             original_width, original_height = self.figure.get_size_inches()      
-            original_dpi = self.figure.get_dpi()
+            #original_dpi = self.figure.get_dpi()
             i_width, i_height = width / dpi, height / dpi            
             bbox_inches = self.get_save_bbox(i_width, i_height)
             
@@ -130,6 +140,10 @@ class MainPlotController (PlotController):
 
     def __init__(self, app_controller, *args, **kwargs):
         self.scale = 1.0
+        self.labels = list()
+        self.stats = False
+        self.xdiff = 30.0
+        self.plot_left = 0.0
         self.app_controller = app_controller
         PlotController.__init__(self, *args, **kwargs)
         
@@ -151,22 +165,24 @@ class MainPlotController (PlotController):
         yaxis = self.stats_plot.get_yaxis()
         yaxis.tick_left()
 
+        self.canvas.mpl_connect('draw_event', self.on_draw)
+
         self.update()
         
     def get_save_dims(self, num_specimens=1, offset=0.75):
         return settings.PRINT_WIDTH, settings.PRINT_MARGIN_HEIGHT + settings.PRINT_SINGLE_HEIGHT*(1 + (num_specimens-1)*offset*0.25)
         
     def get_save_bbox(self, width, height):
-        xaxis = self.plot.get_xaxis()
-        xmin, xmax = xaxis.get_view_interval()
-        width = width*min((settings.get_plot_right(xmax)+0.05),1.0)
+        width = width*min((self.plot.get_position().xmax+0.05),1.0)
         return matplotlib.transforms.Bbox.from_bounds(0, 0, width, height)
         
     ###
     ### UPDATE SUBROUTINES
     ###
     def update(self, clear=False, single=True, labels=None, stats=(False,None), project=None):
-        if clear: self.plot.cla()
+        if clear: 
+            self.plot.cla()
+            self.stats_plot.cla()
         
         self.update_proxies(draw=False)
         self.update_axes(draw=False, single=single, labels=labels, stats=stats, project=project)
@@ -196,47 +212,69 @@ class MainPlotController (PlotController):
             xmin, xmax = max(project.axes_xmin, 0.0), project.axes_xmax
         self.plot.set_xlim(left=xmin, right=xmax, auto=False)
         self.stats_plot.set_xlim(left=xmin, right=xmax, auto=False)
-        
-        #lines = self.plot.get_lines()
-        #ymax = 0.0
-        #for line in lines:
-        #    x, y = map(np.array, line.get_data())
-        #    if x.size > 2: #only diff data
-        #        mask = y[(x < xmax) & (x > xmin)]
-        #        if mask.size > 0:
-        #            ymax = max(np.amax(mask), ymax)
-        #print self.plot.get_ybound(), self.plot.get_ylim(), ymax
-        #            
-        #self.plot.set_ylim(bottom=0, top=ymax)
                  
         self.stats_plot.relim()   
         self.stats_plot.set_ylim(auto=True)
         self.stats_plot.get_yaxis().get_major_locator().set_params(symmetric=True, nbins=2, integer=False)
 
+    def on_draw(self, event):
+        self.fix_after_drawing()
+
+    def fix_after_drawing(self):
+        if len(self.labels)>0:
+            bboxes = []
+            for label in self.labels:
+                bbox = label.get_window_extent()
+                # the figure transform goes from relative coords->pixels and we
+                # want the inverse of that
+                bboxi = bbox.inverse_transformed(self.figure.transFigure)
+                bboxes.append(bboxi)
+
+            # this is the bbox that bounds all the bboxes, again in relative
+            # figure coords
+            bbox = transforms.Bbox.union(bboxes)
+            plot_pos = None
+            self.plot_left = 0.05 + bbox.xmax - bbox.xmin
+            if self.stats:
+                plot_pos = settings.get_plot_stats_position(self.xdiff, stretch=self.stretch, plot_left=self.plot_left)
+                self.stats_plot.set_position(settings.get_stats_plot_position(self.xdiff, stretch=self.stretch, plot_left=self.plot_left))
+            else:
+                plot_pos = settings.get_plot_position(self.xdiff, stretch=self.stretch, plot_left=self.plot_left)
+            self.plot.set_position(plot_pos)
+                
+            for label in self.labels:
+                label.set_x(plot_pos[0]-0.025)
+        self.figure.canvas.draw()
+    
+        return False
 
     def update_axes(self, draw=True, single=True, labels=None, stats=(False,None), project=None):
         self.update_lim(project=project)
         
-        stats, res_pattern = stats        
-        stretch = project.axes_xstretch if project != None else False
+        self.stats, res_pattern = stats        
+        self.stretch = project.axes_xstretch if project != None else False
         
         xaxis = self.plot.get_xaxis()
         yaxis = self.plot.get_yaxis()
         xmin, xmax = xaxis.get_view_interval()
         ymin, ymax = yaxis.get_view_interval()
-        xdiff = xmax-xmin
+        self.xdiff = xmax-xmin
         
+        self.labels = list()
         if labels != None and labels != []:
             max_intensity = 1.0
             if project!=None and project.axes_yscale==2:
                 max_intensity = project.get_max_intensity()
             for label, position in labels:
                 position *= max_intensity
-                self.plot.text(
-                    settings.PLOT_LEFT-0.05, position, label, 
+                text = Text(
+                    text=label, x=settings.PLOT_LEFT-0.05, y=position, 
+                    clip_on=False,
                     horizontalalignment='right', verticalalignment='center', 
                     transform=transforms.blended_transform_factory(self.figure.transFigure, self.plot.transData)
                 )
+                self.plot.add_artist(text)
+                self.labels.append(text)
         if project==None or project.axes_yvisible==False:
             self.plot.axis["left"].set_visible(False)
         else:
@@ -251,22 +289,21 @@ class MainPlotController (PlotController):
             label.set_weight('heavy')
             label.set_size(16)
                         
-        if stats:
-            self.plot.set_position(settings.get_plot_stats_position(xdiff, stretch=stretch))
+        if self.stats:
+            self.plot.set_position(settings.get_plot_stats_position(self.xdiff, stretch=self.stretch, plot_left=self.plot_left))
             
             self.figure.add_axes(self.stats_plot)
-            self.stats_plot.cla()
             self.stats_plot.add_line(res_pattern)
             self.stats_plot.axhline(ls=":", c="k")
 
-            self.stats_plot.set_position(settings.get_stats_plot_position(xdiff, stretch=stretch)) 
+            self.stats_plot.set_position(settings.get_stats_plot_position(self.xdiff, stretch=self.stretch, plot_left=self.plot_left)) 
             
             set_label_text(self.plot.axis["bottom"].label, '')
             set_label_text(self.stats_plot.axis["bottom"].label, u'Angle (°2θ)')
             set_label_text(self.stats_plot.axis["left"].label, 'Residual')
             self.plot.axis["bottom"].major_ticklabels.set_visible(False)
         else:
-            self.plot.set_position(settings.get_plot_position(xdiff, stretch=stretch))
+            self.plot.set_position(settings.get_plot_position(self.xdiff, stretch=self.stretch, plot_left=self.plot_left))
             
             set_label_text(self.plot.axis["bottom"].label, u'Angle (°2θ)')
             self.plot.axis["bottom"].major_ticklabels.set_visible(True)
@@ -275,26 +312,6 @@ class MainPlotController (PlotController):
                 self.figure.delaxes(self.stats_plot)
         
         if draw: self.draw()
-    
-    def update_labels(self, draw=True, single=True):
-        if draw: self.draw()
-
-    def plot_lines(self, lines, draw=True, clear=True):
-        if clear: self.plot.cla()
-        if lines != None:
-            for line in lines:
-                self.plot.add_line(line)
-        if draw: self.draw()
-
-    def plot_markers(self, markers, draw=True, clear=True):
-        if clear: self.plot.cla()
-        if markers != None:
-            if hasattr(markers, "_model_data"):
-                markers = markers._model_data
-            for marker in markers:
-               marker.plot(self.plot)
-        if draw: self.draw()
-
     
 class SmallPlotController (PlotController):
     pass

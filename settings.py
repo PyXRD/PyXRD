@@ -14,18 +14,18 @@ PLOT_TOP = 0.85
 MAX_PLOT_RIGHT = 0.95
 PLOT_BOTTOM = 0.10
 PLOT_LEFT = 0.15
-MAX_PLOT_WIDTH = MAX_PLOT_RIGHT - PLOT_LEFT
 PLOT_HEIGHT = PLOT_TOP - PLOT_BOTTOM
 
 STATS_PLOT_BOTTOM = 0.10
 
-def _get_ratio(angle, stretch=False):
+def _get_ratio(angle, stretch=False, plot_left=PLOT_LEFT):
+    MAX_PLOT_WIDTH = MAX_PLOT_RIGHT - plot_left
     if stretch:
         return MAX_PLOT_WIDTH
     else:
         return min((angle / 70), 1.0) * MAX_PLOT_WIDTH
 
-def get_plot_position(angle, stretch=False):
+def get_plot_position(angle, stretch=False, plot_left=PLOT_LEFT):
     """Get the position of the main plot
     
     Arguments:
@@ -33,10 +33,10 @@ def get_plot_position(angle, stretch=False):
     stretch -- wether or not to stretch the plot to fit the available space  
                (default False)
     """
-    PLOT_WIDTH = _get_ratio(angle, stretch=stretch)
-    return [PLOT_LEFT, PLOT_BOTTOM, PLOT_WIDTH, PLOT_HEIGHT]
+    PLOT_WIDTH = _get_ratio(angle, stretch=stretch, plot_left=PLOT_LEFT)
+    return [plot_left, PLOT_BOTTOM, PLOT_WIDTH, PLOT_HEIGHT]
 
-def get_plot_stats_position(angle, stretch=False):
+def get_plot_stats_position(angle, stretch=False, plot_left=PLOT_LEFT):
     """Get the position of the plot when the statistics plot is also visible
     
     Arguments:
@@ -44,10 +44,10 @@ def get_plot_stats_position(angle, stretch=False):
     stretch -- wether or not to stretch the plot to fit the available space  
                (default False)
     """
-    PLOT_WIDTH = _get_ratio(angle, stretch=stretch)
-    return [PLOT_LEFT, PLOT_BOTTOM+PLOT_STATS_OFFSET, PLOT_WIDTH, PLOT_HEIGHT-PLOT_STATS_OFFSET]
+    PLOT_WIDTH = _get_ratio(angle, stretch=stretch, plot_left=PLOT_LEFT)
+    return [plot_left, PLOT_BOTTOM+PLOT_STATS_OFFSET, PLOT_WIDTH, PLOT_HEIGHT-PLOT_STATS_OFFSET]
 
-def get_stats_plot_position(angle, stretch=False):
+def get_stats_plot_position(angle, stretch=False, plot_left=PLOT_LEFT):
     """Get the position of the statistics plot
     
     Arguments:
@@ -55,10 +55,10 @@ def get_stats_plot_position(angle, stretch=False):
     stretch -- wether or not to stretch the plot to fit the available space  
                (default False)
     """
-    PLOT_WIDTH = _get_ratio(angle, stretch=stretch)
-    return [PLOT_LEFT, STATS_PLOT_BOTTOM, PLOT_WIDTH, PLOT_STATS_OFFSET]
+    PLOT_WIDTH = _get_ratio(angle, stretch=stretch, plot_left=PLOT_LEFT)
+    return [plot_left, STATS_PLOT_BOTTOM, PLOT_WIDTH, PLOT_STATS_OFFSET]
     
-def get_plot_right(angle, stretch=False):
+def get_plot_right(angle, stretch=False, plot_left=PLOT_LEFT):
     """Get the rightmost position of plots
     
     Arguments:
@@ -66,8 +66,8 @@ def get_plot_right(angle, stretch=False):
     stretch -- wether or not to stretch the plot to fit the available space  
                (default False)
     """
-    PLOT_WIDTH = _get_ratio(angle, stretch=stretch)
-    return PLOT_LEFT + PLOT_WIDTH
+    PLOT_WIDTH = _get_ratio(angle, stretch=stretch, plot_left=PLOT_LEFT)
+    return plot_left + PLOT_WIDTH
     
 PRINT_WIDTH = 1800
 PRINT_BASE_HEIGHT = 1200

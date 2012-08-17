@@ -229,7 +229,7 @@ class Atom(ChildModel, ObjectListStoreChildMixin, Storable):
         
         self.stretch_values = stretch_values
         self.default_z = float(default_z or self.get_depr(kwargs, 0.0, "data_z", "z"))
-        self.pn = float(pn or self.get_depr(kwargs, 0.0, "pn"))
+        self.pn = float(pn or self.get_depr(kwargs, 0.0, "data_pn"))
         self.atom_type = atom_type or self.get_depr(kwargs, None, "data_atom_type")
         
         self._atom_type_uuid = atom_type_uuid

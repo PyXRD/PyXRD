@@ -308,7 +308,7 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin,
         PropIntel(name="data_linked_with",          inh_name=None,                          label="Linked with",            minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=False, storable=False, observable=True,  has_widget=True),
         PropIntel(name="data_d001",                 inh_name="inherit_d001",                label="Cell length c [nm]",     minimum=0.0,   maximum=None,  is_column=True,  ctype=float,  refinable=True,  storable=True,  observable=True,  has_widget=True),
         PropIntel(name="default_c",                 inh_name="inherit_default_c",           label="Default c length [nm]",  minimum=0.0,   maximum=None,  is_column=True,  ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="delta_c",                   inh_name="inherit_delta_c",             label="C length dev. [nm]",     minimum=0.0,   maximum=0.05,  is_column=True,  ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="delta_c",                   inh_name="inherit_delta_c",             label="C length dev. [nm]",     minimum=0.0,   maximum=0.05,  is_column=True,  ctype=float,  refinable=True,  storable=True,  observable=True,  has_widget=True),
         PropIntel(name="data_ucp_a",                inh_name="inherit_ucp_a",               label="Cell length a [nm]",     minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=True,  storable=True,  observable=True,  has_widget=True),
         PropIntel(name="data_ucp_b",                inh_name="inherit_ucp_b",               label="Cell length b [nm]",     minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=True,  storable=True,  observable=True,  has_widget=True),      
         PropIntel(name="inherit_d001",              inh_name=None,                          label="Inh. cell length c",     minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
@@ -405,7 +405,8 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin,
     @Model.setter(*[prop.name for prop in __model_intel__ if prop.inh_name])
     def set_inheritable(self, prop_name, value):
         setattr(self, "_%s" % prop_name, value)
-        if prop_name=="default_d":
+        if prop_name=="default_c":
+            setattr(self, "_%s" % prop_name, float(value))
             for atom in self.data_interlayer_atoms.iter_objects():
                 atom.liststore_item_changed()
         self.dirty = True
@@ -460,7 +461,7 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin,
     
         self._data_d001 = data_d001 or self.data_d001
         
-        self._default_c = default_c or data_d001 or self._default_c
+        self._default_c = float(default_c) if default_c!=None else 1.0
         self._delta_c = delta_c or self._delta_c
         self._update_lattice_d()        
         
@@ -542,7 +543,7 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin,
                         
     def json_properties(self):
         retval = Storable.json_properties(self)    
-        if not self.phase.save_links:
+        if self.phase==None or not self.phase.save_links:
             for prop in self.__model_intel__:
                 if prop.inh_name:
                     retval[prop.inh_name] = False
@@ -550,7 +551,7 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin,
         else:
             retval["linked_with_uuid"] = self.data_linked_with.uuid if self.data_linked_with!=None else ""
         return retval
-
+    
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------  
@@ -865,7 +866,7 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin,
         """
         pyxrd_object_pool.stack_uuids()
         for phase in phases:
-            phase.export_atom_types = True
+            phase.export_atom_types = True #TODO move this flag down to the components, so we can export them as well
             if phase.data_based_on!="" and not phase.data_based_on in phases:
                 phase.save_links = False        
         with zipfile.ZipFile(filename, 'w') as zfile:
@@ -925,11 +926,11 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin,
     _cached_diffracted_intensities = None
     def get_diffracted_intensity(self, range_theta, range_stl, lpf_callback, quantity, correction_range):
         hsh = get_md5_hash(range_theta)
-        if self._dirty:
+        if self.dirty:
             self._cached_diffracted_intensities = dict()
-        if self.dirty or not hsh in self._cached_diffracted_intensities:
-            #Check probability model:
-            if not (self.data_probabilities.P_valid and self.data_probabilities.W_valid):
+        if not hsh in self._cached_diffracted_intensities:
+            #Check probability model, if invalid return zeros instead of the actual pattern:
+            if not (all(self.data_probabilities.P_valid) and all(self.data_probabilities.W_valid)):
                 self._cached_diffracted_intensities[hsh] = np.zeros_like(range_theta)
             else:
                 stl_dim = range_stl.shape[0]

@@ -122,21 +122,16 @@ class R1G3Model(_AbstractProbability):
     ]
 
     #PROPERTIES
-    def get_W1_value(self): return self.mW[0]
+    _W0 = 0.0
+    def get_W1_value(self): return self._W0
     def set_W1_value(self, value):
-        self.mW[0] = min(max(value, 0.0), 1.0)
+        self._W0 = min(max(value, 0.0), 1.0)
         self.update()
-            
-    def get_P11_or_P22_value(self):
-        if self.mW[0] <= 0.5:
-            return self.mP[0,0]
-        else:
-            return self.mP[1,1]
+           
+    _P00_P11 = 0.0
+    def get_P11_or_P22_value(self): return self._P00_P11
     def set_P11_or_P22_value(self, value):
-        if self.mW[0] <= 0.5:
-            self.mP[0,0] = min(max(value, 0.0), 1.0)
-        else:
-            self.mP[1,1] = min(max(value, 0.0), 1.0)
+        self._P00_P11 = min(max(value, 0.0), 1.0)
         self.update()
 
     _G1 = 0
@@ -171,38 +166,44 @@ class R1G3Model(_AbstractProbability):
         #temporary storage:
         #WW = np.matrix(np.zeros(shape=(3,3), dtype=float))
         
-        G2inv =  ( 1.0 / self._G2) - 1.0 if self._G2 > 0 else 0.0
-        G3inv =  ( 1.0 / self._G3) - 1.0 if self._G3 > 0 else 0.0
-        G4inv =  ( 1.0 / self._G4) - 1.0 if self._G4 > 0 else 0.0
+        G2inv =  ( 1.0 / self._G2) - 1.0 if self._G2 > 0.0 else 0.0
+        G3inv =  ( 1.0 / self._G3) - 1.0 if self._G3 > 0.0 else 0.0
+        G4inv =  ( 1.0 / self._G4) - 1.0 if self._G4 > 0.0 else 0.0
         
         #self.mW = diagonal with W1, W2, W3 etc.
         #WW = 3x3 with W11, W12, ... etc.
-        
+        self.mW[0] = self._W0
         self.mW[1] = (1-self.mW[0]) * self._G1
     	self.mW[2]   = 1.0 - self.mW[0] - self.mW[1]
     	
-    	if self.mW[0] < 0.5:
-    	    if self.mW[1] > 0:
-        	    self.mP[1,1] =  self._G2 * self._G3 * (self.mW[0]*(self.mP[0,0]-1) + self.mW[1] + self.mW[2]) / self.mW[1]
+    	if self.mW[0] <= 0.5:
+            self.mP[0,0] = self._P00_P11
+    	    if self.mW[1] > 0.0:
+        	    self.mP[1,1] = self._G2 * self._G3 * (self.mW[0]*(self.mP[0,0]-1.0) + self.mW[1] + self.mW[2]) / self.mW[1]
             else:
                 self.mP[1,1] = 0.0
+        else:
+            self.mP[0,0] = 0.0
+            self.mP[1,1] = self._P00_P11
     	
     	self.mW[1,1] = self.mP[1,1] * self.mW[1]
     	self.mW[1,2] = self.mW[1,1] * G3inv
     	self.mW[2,1] = self._G4 * G2inv * (self.mW[1,1] + self.mW[2,1])
     	self.mW[2,2] = G4inv * self.mW[2,1]
     	
-    	self.mP[1,2] = (self.mW[1,2] / self.mW[1]) if self.mW[1] > 0 else 0.0
+    	self.mP[1,2] = (self.mW[1,2] / self.mW[1]) if self.mW[1] > 0.0 else 0.0
     	self.mP[1,0] = 1 - self.mP[1,1] - self.mP[1,2]
     	
-    	self.mP[2,1] = (self.mW[2,1] / self.mW[2]) if self.mW[2] > 0 else 0.0
-    	self.mP[2,2] = (self.mW[2,2] / self.mW[2]) if self.mW[2] > 0 else 0.0
+    	self.mP[2,1] = (self.mW[2,1] / self.mW[2]) if self.mW[2] > 0.0 else 0.0
+    	self.mP[2,2] = (self.mW[2,2] / self.mW[2]) if self.mW[2] > 0.0 else 0.0
     	self.mP[2,0] = 1 - self.mP[2,1] - self.mP[2,2]
 
-    	self.mP[0,1] = ((self.mW[1] - self.mW[1,1] - self.mW[2,1]) / self.mW[0]) if self.mW[0] > 0 else 0.0
-    	self.mP[0,2] = ((self.mW[2] - self.mW[1,2] - self.mW[2,2]) / self.mW[0]) if self.mW[0] > 0 else 0.0
-    	if self.mW[0] >= 0.5:
+    	self.mP[0,1] = ((self.mW[1] - self.mW[1,1] - self.mW[2,1]) / self.mW[0]) if self.mW[0] > 0.0 else 0.0
+    	self.mP[0,2] = ((self.mW[2] - self.mW[1,2] - self.mW[2,2]) / self.mW[0]) if self.mW[0] > 0.0 else 0.0
+    	
+    	if self.mW[0] > 0.5:
         	self.mP[0,0] = 1 - self.mP[0,1] - self.mP[0,2]
+    	
         
         for i in range(3):
             for j in range(3):
@@ -324,7 +325,7 @@ class R1G4Model(_AbstractProbability):
     # ------------------------------------------------------------ 
     def update(self):
         #temporary storage:
-        WW = np.matrix(np.zeros(shape=(4,4), dtype=float))
+        #WW = np.matrix(np.zeros(shape=(4,4), dtype=float))
         
         G1inv = ( 1.0 / self._G1) - 1.0 if self._G1 > 0 else 0.0
         
@@ -346,51 +347,53 @@ class R1G4Model(_AbstractProbability):
     	W3inv = 1.0 / self.mW[1] if self.mW[1] > 0.0 else 0.0
     	    	
     	if self.mW[0] < 0.5: #P11 is given
-        	WW[0,0] = self.mW[0] * self.P11_or_P22
+        	self.mW[0,0] = self.mW[0] * self.P11_or_P22
         	if (self.mW[1] * self._G1) > 0.0:
-        	    self.mP[1,1] = (WW[0,0] - 2.0 * self.mW[0] + 1.0) * (self._G11*(self._G1-1.0)) / (self.mW[1] * self._G1)
+        	    self.mP[1,1] = self._G1 * self._G2 * (self.mW[0,0] - 2*self.mW[0] + 1.0)
             else:
                 self.mP[1,1] = 0.0
     	
-    	WW[1,1] = self.mP[1,1] * self.mW[1]
-    	WW[1,2] = WW[1,1] * G11inv * self._G12
-    	WW[1,3] = WW[1,1] * G11inv * (1.0 - self._G12)
-    	SBi = WW[1,1] + WW[1,2] + WW[1,3]
+    	self.mW[1,1] = self.mP[1,1] * self.mW[1]
+    	self.mW[1,2] = self.mW[1,1] * G11inv * self._G12
+    	self.mW[1,3] = self.mW[1,1] * G11inv * (1.0 - self._G12)
+    	SBi = self.mW[1,1] + self.mW[1,2] + self.mW[1,3]
     	
     	SCi = G1inv * self._G2 * SBi
-    	WW[2,1] = SCi * self._G21
-    	WW[2,2] = (SCi - WW[2,1]) * self._G22
-    	WW[2,3] = SCi - WW[2,1] - WW[2,2]
+    	self.mW[2,1] = SCi * self._G21
+    	self.mW[2,2] = (SCi - self.mW[2,1]) * self._G22
+    	self.mW[2,3] = SCi - self.mW[2,1] - self.mW[2,2]
     	
     	SDi = G1inv * (1.0 - self._G2) * SBi
-    	WW[3,1] = SDi * self._G31
-    	WW[3,2] = (SDi - WW[3,1]) * self._G32
-    	WW[3,3] = SDi - WW[3,1] - WW[3,2]    	
+    	self.mW[3,1] = SDi * self._G31
+    	self.mW[3,2] = (SDi - self.mW[3,1]) * self._G32
+    	self.mW[3,3] = SDi - self.mW[3,1] - self.mW[3,2]    	
     	
-    	self.mP[1,2] = WW[1,2] * W1inv
-    	self.mP[1,3] = WW[1,3] * W1inv
+    	self.mP[1,2] = self.mW[1,2] * W1inv
+    	self.mP[1,3] = self.mW[1,3] * W1inv
     	self.mP[1,0] = 1 - self.mP[1,1] - self.mP[1,2] - self.mP[1,3]
     	
-    	self.mP[2,1] = WW[2,1] * W2inv
-    	self.mP[2,2] = WW[2,2] * W2inv
-    	self.mP[2,3] = WW[2,3] * W2inv
+    	self.mP[2,1] = self.mW[2,1] * W2inv
+    	self.mP[2,2] = self.mW[2,2] * W2inv
+    	self.mP[2,3] = self.mW[2,3] * W2inv
     	self.mP[2,0] = 1 - self.mP[2,1] - self.mP[2,2] - self.mP[2,3]
 
-    	self.mP[3,1] = WW[3,1] * W3inv
-    	self.mP[3,2] = WW[3,2] * W3inv
-    	self.mP[3,3] = WW[3,3] * W3inv
+    	self.mP[3,1] = self.mW[3,1] * W3inv
+    	self.mP[3,2] = self.mW[3,2] * W3inv
+    	self.mP[3,3] = self.mW[3,3] * W3inv
     	self.mP[3,0] = 1 - self.mP[3,1] - self.mP[3,2] - self.mP[3,3]
 
-    	self.mP[0,1] = (self.mW[1] - WW[1,1] - WW[2,1] - WW[3,1]) * W0inv
-    	self.mP[0,2] = (self.mW[2] - WW[1,2] - WW[2,2] - WW[3,2]) * W0inv
-    	self.mP[0,3] = (self.mW[3] - WW[1,3] - WW[2,3] - WW[3,3]) * W0inv
+        print W0inv, self.mW[1] - self.mW[1,1] - self.mW[2,1] - self.mW[3,1]
+
+    	self.mP[0,1] = (self.mW[1] - self.mW[1,1] - self.mW[2,1] - self.mW[3,1]) * W0inv
+    	self.mP[0,2] = (self.mW[2] - self.mW[1,2] - self.mW[2,2] - self.mW[3,2]) * W0inv
+    	self.mP[0,3] = (self.mW[3] - self.mW[1,3] - self.mW[2,3] - self.mW[3,3]) * W0inv
     	
     	if self.mW[0] >= 0.5:
         	self.mP[0,0] = 1 - self.mP[0,1] - self.mP[0,2] - self.mP[0,3]
         
         for i in range(4):
             for j in range(4):
-                WW[i,j] = self.mW[i] * self.mP[i,j]
+                self.mW[i,j] = self.mW[i] * self.mP[i,j]
         
         self.solve()
         self.validate()

@@ -23,6 +23,21 @@ class ObjectListStoreChildMixin(object):
 class ObjectListStoreParentMixin(object):
 
     def parse_liststore_arg(self, arg, tm_type, child_type):
+        """
+        Can be used to transform an argument passed to a __init__ method of a
+        Storable (sub-)class containing a JSON dict into the actual 
+        _BaseObjectListStore it is representing. Raises an ValueError if a arg 
+        contains a _BaseObjectListStore sub-class which is not a tm_type
+        
+        *arg* the passed argument
+        
+        *tm_type* the _BaseObjectListStore's type (e.g. ObjectListStore)
+        
+        *child_type* the type of children the _BaseObjectListStore has
+        
+        :rtype: an empty tree model (argument was None), the argument
+        (tm_type instance), the actual object (argument was a JSON dict)
+        """
         if arg==None:
             return tm_type(child_type)
         elif isinstance(arg, tm_type):

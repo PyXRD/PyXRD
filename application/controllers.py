@@ -330,7 +330,7 @@ class AppController (BaseController, DialogMixin):
     @BaseController.status_message("Creating new specimen...", "add_specimen")
     def on_add_specimen_activate(self, event):
         specimen = Specimen(parent=self.model.current_project)
-        self.view["specimens_treeview"].set_cursor(self.model.current_project.data_specimens.append(specimen))
+        self.view["specimens_treeview"].set_cursor(self.model.current_project.specimens.append(specimen))
         self.edit_specimen(specimen, title="Create New Specimen")
         return True
 
@@ -355,7 +355,7 @@ class AppController (BaseController, DialogMixin):
                 msg.destroy()
                 return
             msg.destroy()
-            self.model.current_project.data_specimens.remove_item(obj)
+            self.model.current_project.specimens.remove_item(obj)
         return True
 
     def on_remove_background(self, event):

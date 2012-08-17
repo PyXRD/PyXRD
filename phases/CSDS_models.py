@@ -6,7 +6,9 @@
 # To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/3.0/ or send
 # a letter to Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
 
+from collections import OrderedDict
 from math import sin, cos, pi, sqrt, exp, radians, log
+from traceback import print_stack
 
 from gtkmvc.model import Model, Observer, Signal
 
@@ -142,13 +144,23 @@ class LogNormalCSDSDistribution(_AbstractCSDSDistribution, RefinementGroup):
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------
-    def update_distribution(self):
-        Tmean = self.average
-        Tmax = self.maximum
-        Tmin = self.minimum
-
-        a = self.alpha_scale * log(Tmean) + self.alpha_offset
-        b = sqrt(self.beta_scale * log(Tmean) + self.beta_offset)
+    
+    _distribution_cache = OrderedDict()
+    @classmethod
+    def get_distribution(cls, Tmean, Tmax, Tmin, alpha_scale, alpha_offset, beta_scale, beta_offset):
+        args = (Tmean, Tmax, Tmin, 
+                alpha_scale, alpha_offset, 
+                beta_scale, beta_offset)
+        if not args in cls._distribution_cache:
+            if len(cls._distribution_cache) == 100:
+                cls._distribution_cache.popitem(last=False)
+            cls._distribution_cache[args] = cls._calculate_distribution(*args)
+        return cls._distribution_cache[args]
+        
+    @classmethod
+    def _calculate_distribution(cls, Tmean, Tmax, Tmin, alpha_scale, alpha_offset, beta_scale, beta_offset):
+        a = alpha_scale * log(Tmean) + alpha_offset
+        b = sqrt(beta_scale * log(Tmean) + beta_offset)
             
         steps = int(Tmax - Tmin) + 1
         
@@ -168,9 +180,21 @@ class LogNormalCSDSDistribution(_AbstractCSDSDistribution, RefinementGroup):
             Rmean += T*q
         Rmean /= smq
             
-        self._distrib = (TQDistr.items(), TQDistr, Rmean)
-        self.updated.emit()
-       
+        return (TQDistr.items(), TQDistr, Rmean)
+    
+    _update_lock = False
+    def update_distribution(self):
+        print "UPDATE CSDS"
+        print_stack()
+        if not self._update_lock:
+            self._update_lock = True
+            self._distrib = LogNormalCSDSDistribution.get_distribution(
+                self.average, self.maximum, self.minimum, 
+                self.alpha_scale, self.alpha_offset, 
+                self.beta_scale, self.beta_offset
+            )
+            self.updated.emit()
+            self._update_lock = False
     pass #end of class
     
 class DritsCSDSDistribution(LogNormalCSDSDistribution, RefinementValue):

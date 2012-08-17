@@ -5,7 +5,9 @@ import sys
 
 def run(project):
     #simple test:
-    print "PICKLE DATA TEST FOR PROJECT %s" % project.data_name
+    for mixture in project.data_mixtures.iter_objects():
+        print mixture.get_result_description()
+    """print "PICKLE DATA TEST FOR PROJECT %s" % project.data_name
     
     def dump_and_load(obj):
         obj_dump = pickle.dumps(obj)
@@ -26,6 +28,6 @@ def run(project):
         mixt.apply_result()
     for spec in p2.data_specimens.iter_objects():
         spec.statistics.update_statistics()
-        print spec.statistics.data_Rp
+        print spec.statistics.data_Rp"""
     
     

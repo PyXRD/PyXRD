@@ -6,6 +6,8 @@
 # To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/3.0/ or send
 # a letter to Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
 
+from traceback import format_exc
+
 from warnings import warn
 import time
 from math import pi
@@ -36,12 +38,12 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
     #MODEL INTEL:
     __parent_alias__ = "project"
     __model_intel__ = [ #TODO add labels
-        PropIntel(name="data_name",             inh_name=None,         label="", minimum=None,  maximum=None,  is_column=True,  ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="data_refinables",      inh_name=None,         label="", minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=False, storable=False,  observable=True,  has_widget=True), #FIXME
-        PropIntel(name="auto_run",              inh_name=None,         label="", minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="data_refine_method",    inh_name=None,         label="", minimum=None,  maximum=None,  is_column=False, ctype=int,    refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="has_changed",           inh_name=None,         label="", minimum=None,  maximum=None,  is_column=False, ctype=object, refinable=False, storable=False, observable=True,  has_widget=False),
-        PropIntel(name="needs_reset",           inh_name=None,         label="", minimum=None,  maximum=None,  is_column=False, ctype=object, refinable=False, storable=False, observable=True,  has_widget=False),
+        PropIntel(name="data_name",             inh_name=None,         label="Name",    minimum=None,  maximum=None,  is_column=True,  ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_refinables",       inh_name=None,         label="",        minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=False, storable=False,  observable=True,  has_widget=True), #FIXME
+        PropIntel(name="auto_run",              inh_name=None,         label="",        minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="data_refine_method",    inh_name=None,         label="",        minimum=None,  maximum=None,  is_column=False, ctype=int,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="has_changed",           inh_name=None,         label="",        minimum=None,  maximum=None,  is_column=False, ctype=object, refinable=False, storable=False, observable=True,  has_widget=False),
+        PropIntel(name="needs_reset",           inh_name=None,         label="",        minimum=None,  maximum=None,  is_column=False, ctype=object, refinable=False, storable=False, observable=True,  has_widget=False),
     ]
 
     #SIGNALS:
@@ -104,7 +106,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
             self.data_specimens = [pyxrd_object_pool.get_object(uuid) if uuid else None for uuid in specimen_uuids]            
         elif specimen_indeces != None and self.parent != None:
             warn("The use of object indeces is deprected since version 0.4. Please switch to using object UUIDs.", DeprecationWarning)
-            self.data_specimens = [self.parent.data_specimens.get_user_data_from_index(index) if index!=-1 else None for index in specimen_indeces]
+            self.data_specimens = [self.parent.specimens.get_user_data_from_index(index) if index!=-1 else None for index in specimen_indeces]
         else:
             self.data_specimens = list()
         
@@ -203,7 +205,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         self.has_changed.emit()
         return n
 
-    def _del_specimen_by_index(self, index):
+    def _del_specimen_by_index(self, index): #FIXME
         del self.data_specimens[index]
         del self.data_scales[index]
         del self.data_bgshifts[index]
@@ -220,7 +222,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         return np.array(self.data_fractions + self.data_scales + self.data_bgshifts)
     
     def _parse_x(self, x, n, m): #returns: fractions | scales | bgshifts
-        return x[:m][:,np.newaxis], x[m:m+n], x[-n:]
+        return x[:m][:,np.newaxis], x[m:m+n], np.zeros(shape=(n,))# x[-n:]
    
     def _get_rp_statics(self):
         #1 get the different intensities for each phase for each specimen 
@@ -252,7 +254,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         return tot_rp
     
     #@print_timing
-    def optimize(self, silent=False, method=3):
+    def optimize(self, silent=False, method=0):
         """
             Optimizes the current mixture fractions, scales and bg shifts.
         """
@@ -277,7 +279,8 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
             lastx, lastR2 = Mixture.mod_l_bfgs_b(calculate_total_R2, x0, bounds)
         elif method == 3: #truncated Newton algorithm
              disp = 0
-             lastx, nfeval, rc = scipy.optimize.fmin_tnc(calculate_total_R2, x0, approx_grad=True, epsilon=0.05, bounds=bounds, disp=disp)   
+             lastx, nfeval, rc = scipy.optimize.fmin_tnc(calculate_total_R2, x0, approx_grad=True, epsilon=0.05, bounds=bounds, disp=disp)
+            
        
         #rescale scales and fractions so they fit into [0-1] range, and round them to have 6 digits max:
         fractions, scales, bgshifts = self._parse_x(lastx, n, m)
@@ -297,6 +300,37 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         if not silent: self.has_changed.emit()
         
         return lastR2
+       
+    def get_result_description(self):
+        n, m = self.data_phase_matrix.shape
+        
+        res  = "---------------------------------------------------------\n"        
+        res += "%s mixture results\n" % self.data_name
+        res += "---------------------------------------------------------\n"
+        res += "\n   %d specimens:\n" % n
+        for i in range(n):
+            res += "       - bgr: %5.2f   scl: %5.2f   %s\n" % (self.data_bgshifts[i], self.data_scales[i], self.data_specimens[i].data_name)
+        res += "       (bgr=background shift, scl=absolute scale factor)\n"
+        res += "\n   %d phases:\n" % m
+        for i in range(m):
+            res += "    %5.1f%%   %s\n" % (self.data_fractions[i]*100.0, self.data_phases[i])
+            phases = np.unique(self.data_phase_matrix[:,i])
+            for phase in phases:
+                res += "        > %s T=%d\n" % (phase.data_name, phase.data_CSDS_distribution.average)
+                if phase.data_G > 1:
+                    for i, comp in enumerate(phase.data_components.iter_objects()):
+                        res += "            - %5.1f%% %s\n" % (phase.data_probabilities.mW[i]*100, comp.data_name)
+                if phase.data_R > 0:
+                    res += "            - Probabilities:\n"
+                    for descr in phase.data_probabilities.get_prob_descriptions():
+                        res += "                %s\n" % descr
+                    
+                    
+                    
+                
+
+        return res
+            
        
     @staticmethod
     def mod_l_bfgs_b(func, x0, init_bounds, args=[], f1=1e12, f2=10):
@@ -401,6 +435,8 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
             lastR2 = initialR2            
                         
             if len(ref_props) > 0:      
+                self.best_rp, self.best_x = None, None
+                
                 def apply_solution(new_values):
                     for i, ref_prop in enumerate(ref_props):
                         if not (new_values.shape==()):
@@ -410,21 +446,36 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
                     self.last_refine_rp = self.optimize(silent=True, method=0)
                 
                 def fitness_func(new_values):
-                    if not params["kill"]:
+                    if not (params["kill"] or params["stop"]):
                         apply_solution(new_values)
                         time.sleep(0.05)
+                        if self.best_rp==None or self.best_rp > self.last_refine_rp:
+                            self.best_rp = self.last_refine_rp
+                            self.best_x = new_values
                         return self.last_refine_rp
-                    else:
+                    elif params["kill"]:                
                         raise GeneratorExit
+                    elif params["stop"]:
+                        print self.best_x, self.best_rp
+                        raise StopIteration
+                        
                 try:
                     if self.data_refine_method==0: #L BFGS B                                           
                         lastx, lastR2 = Mixture.mod_l_bfgs_b(fitness_func, x0, ranges, args=[], f2=1e6)
                     elif self.data_refine_method==1: #GENETIC ALGORITHM
                         lastx, lastR2 = run_genetic_algorithm(ref_props, x0, ranges, fitness_func)
+                except StopIteration:
+                    lastx, lastR2 = self.best_x, self.best_rp
+                    print lastx, lastR2
                 except GeneratorExit:
-                    apply_solution(x0) #place back original result
-                    pass #exit
-            
+                    pass #no action needed
+                except any as error:
+                    print "Handling run-time error: %s" % error
+                    print format_exc()
+                finally:
+                    del self.best_x
+                    del self.best_rp
+            print initialR2, lastR2
             self.refine_lock = False
             self.parent.thaw_updates()
             return x0, initialR2, lastx, lastR2, apply_solution

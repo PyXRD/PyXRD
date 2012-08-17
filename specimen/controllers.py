@@ -18,6 +18,7 @@ from generic.plot_controllers import DraggableVLine, EyedropperCursorPlot
 from generic.treemodels import XYListStore
 from generic.controllers import DialogController, DialogMixin, ChildController, ObjectListStoreController, HasObjectTreeview, get_color_val, ctrl_setup_combo_with_list
 from generic.validators import FloatEntryValidator
+from generic.treeview_tools import setup_treeview, new_text_column
 from generic.utils import get_case_insensitive_glob
 
 from specimen.models import Specimen, Marker, ThresholdSelector
@@ -39,24 +40,15 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
         
         for column in tv.get_columns():
             tv.remove_column(column)
+               
+        def get_num(column, cell, model, itr, colnr):
+            cell.set_property('text', '%.3f' % model.get_value(itr, colnr))
         
-        def add_column(title, colnr):
-            rend = gtk.CellRendererText()
-            rend.set_property("editable", False)
-            rend.set_property("xalign", 0.5)
-            col = gtk.TreeViewColumn(title, rend, text=colnr)
-            def get_num(column, cell, model, itr):
-                cell.set_property('text', '%.3f' % model.get_value(itr, colnr))
-            col.set_cell_data_func(rend, get_num)            
-            col.set_resizable(True)
-            col.set_expand(True)
-            col.set_alignment(0.5)
-            tv.append_column(col)
-        add_column('2θ', model.c_x)
-        add_column('Calculated', model.c_y)
-        
+        tv.append_column(new_text_column(u'2θ', model.c_x, data_func=get_num))
+        tv.append_column(new_text_column(u'Cal', model.c_x, data_func=get_num))        
         for i in range(model.get_n_columns()-3):
-            add_column(model.get_y_name(i), i+2)
+            tv.append_column(new_text_column(
+                model.get_y_name(i), i+2, data_func=get_num))
     
     def register_adapters(self):
         if self.model is not None:
@@ -66,104 +58,42 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
                     ad.connect_widget(self.view["specimen_data_name"])
                     self.adapt(ad)
                 elif name == "data_experimental_pattern":
+                    #Setup treeview:
                     tv = self.view['experimental_data_tv']
                     model = self.model.data_experimental_pattern.xy_store
-                    tv.set_model(model)
-                    tv.connect('cursor_changed', self.on_exp_data_tv_cursor_changed)
-
-                    #allow multiple selection:
-                    sel = tv.get_selection()
-                    sel.set_mode(gtk.SELECTION_MULTIPLE)
-
-                    def add_column(title, colnr):
-                        rend = gtk.CellRendererText()
-                        rend.set_property("editable", True)
-                        rend.connect('edited', self.on_xy_data_cell_edited, (model, colnr))
-                        col = gtk.TreeViewColumn(title, rend, text=colnr)
-                        col.set_resizable(True)
-                        col.set_expand(True)
-                        tv.append_column(col)
-                    add_column('2θ', model.c_x)
-                    add_column('Intensity', model.c_y)
+                    setup_treeview(tv, model,
+                        on_cursor_changed=self.on_exp_data_tv_cursor_changed,
+                        sel_mode=gtk.SELECTION_MULTIPLE)
+                    #X Column:
+                    tv.append_column(new_text_column(
+                        u'°2θ', model.c_x, editable=True,
+                        edited_callback=(self.on_xy_data_cell_edited, (model, model.c_x))))
+                    #Y Column:
+                    tv.append_column(new_text_column(
+                        u'Intensity', model.c_y, editable=True,
+                        edited_callback=(self.on_xy_data_cell_edited, (model, model.c_y))))
                 elif name == "data_calculated_pattern":
                     tv = self.view['calculated_data_tv']
                     model = self.model.data_calculated_pattern.xy_store
-                    
-                    model.connect("columns-changed", self.on_calc_treestore_changed)
-                    
-                    tv.set_model(model)
-                    #do not allow selection:
-                    sel = tv.get_selection()
-                    sel.set_mode(gtk.SELECTION_NONE)
+                    setup_treeview(tv, model,
+                        on_cursor_changed=self.on_exp_data_tv_cursor_changed,
+                        on_columns_changed=self.on_calc_treestore_changed,
+                        sel_mode=gtk.SELECTION_NONE)
                     self.update_calc_treeview()
-                    
                 elif name == "data_exclusion_ranges":
                     tv = self.view['exclusion_ranges_tv']
                     model = self.model.data_exclusion_ranges
-                    tv.set_model(model)
-                    tv.connect('cursor_changed', self.on_exclusion_ranges_tv_cursor_changed)
-
-                    #allow multiple selection:
-                    sel = tv.get_selection()
-                    sel.set_mode(gtk.SELECTION_MULTIPLE)
-
-                    def add_column(title, colnr):
-                        rend = gtk.CellRendererText()
-                        rend.set_property("editable", True)
-                        rend.connect('edited', self.on_xy_data_cell_edited, (model, colnr))
-                        col = gtk.TreeViewColumn(title, rend, text=colnr)
-                        col.set_resizable(True)
-                        col.set_expand(True)
-                        tv.append_column(col)
-                    add_column(u'From [2θ]', model.c_x)
-                    add_column(u'To [2θ]', model.c_y)
-                elif name == "data_phases":
-                    # connects the treeview to the liststore
-                    tv = self.view['display_phases_treeview']
-                    tv_model = self.model.parent.data_phases
-                    tv.set_model(tv_model)
-                    
-                    # creates the columns of the treeview
-                    rend = gtk.CellRendererText()
-                    col = gtk.TreeViewColumn('Phase name', rend, text=tv_model.c_data_name) #self.parent.project.model.data_phases.c_data_name)
-                    col.set_resizable(True)
-                    col.set_expand(True)
-                    tv.append_column(col)
-
-                    def check_in_use_renderer(column, cell, model, itr, data=None):
-                        phase = model.get_user_data(itr)
-                        cell.set_property('active', phase in self.model.data_phases)
-                        return
-                    rend = gtk.CellRendererToggle()
-                    rend.connect('toggled', self.phase_tv_toggled, tv_model) #self.parent.project.model.data_phases)
-                    col = gtk.TreeViewColumn('Used', rend, active=1)
-                    col.set_cell_data_func(rend, check_in_use_renderer)
-                    col.activatable = True
-                    col.set_resizable(False)
-                    col.set_expand(False)
-                    tv.append_column(col)
-                    
-                    def quantity_renderer(column, cell, model, itr, data=None):
-                        phase = model.get_user_data(itr)
-                        try:
-                            quantity = self.model.data_phases[phase]
-                            cell.set_property('text', quantity)
-                            column.activatable = True
-                        except KeyError:
-                            cell.set_property('text', "NA")
-                            column.activatable = False
-
-                        return
-                    rend = gtk.CellRendererText()
-                    rend.set_property("editable", True)
-                    rend.connect('edited', self.phase_quantity_edited, tv_model)
-                    col = gtk.TreeViewColumn('Quantity', rend) #, text=2)
-                    col.set_cell_data_func(rend, quantity_renderer)
-                    col.activatable = False
-                    col.set_resizable(False)
-                    col.set_expand(False)
-                    tv.append_column(col)
-                    
+                    setup_treeview(tv, model,
+                        on_cursor_changed=self.on_exclusion_ranges_tv_cursor_changed,
+                        sel_mode=gtk.SELECTION_MULTIPLE)
+                    tv.append_column(new_text_column(
+                        u'From [°2θ]', model.c_x, editable=True,
+                        edited_callback=(self.on_xy_data_cell_edited, (model, model.c_x)), 
+                        resizable=True, expand=True))
+                    tv.append_column(new_text_column(
+                        u'To [°2θ]', model.c_y, editable=True,
+                        edited_callback=(self.on_xy_data_cell_edited, (model, model.c_y)),
+                        resizable=True, expand=True))
                 elif name in ["calc_color", "exp_color"]:
                     ad = Adapter(self.model, name)
                     ad.connect_widget(self.view["specimen_%s" % name], getter=get_color_val)
@@ -219,23 +149,6 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
     def on_calc_treestore_changed(self, *args, **kwargs):
         self.update_calc_treeview()    
     
-    def phase_tv_toggled(self, cell, path, model=None, col=1):
-        if model is not None:
-            phase = model.get_user_data_from_path((int(path),))
-            if not cell.get_active():
-                self.model.add_phase(phase)
-            else:
-                self.model.del_phase(phase)
-        return True
-
-    def phase_quantity_edited(self, cell, path, new_text, tv_model):
-        try:
-            phase = tv_model.get_user_data_from_path((int(path),))
-            self.model.data_phases[phase] = float(new_text) 
-        except:    
-            pass
-        return True
-
     def on_btn_ok_clicked(self, event):
         self.parent.pop_status_msg('edit_specimen')
         return DialogController.on_btn_ok_clicked(self, event)

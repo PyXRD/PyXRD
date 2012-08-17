@@ -31,10 +31,10 @@ class ProjectController (DialogController, HasObjectTreeview, DialogMixin):
         print "ProjectController.register_view()"
         # connects the buffer and the text view
         if view is not None and self.model is not None:
-            view["project_data_description"].set_buffer(self.model.data_description)
+            view["project_data_description"].set_buffer(self.model.description)
             if self.parent is not None:
                 tv = self.parent.view["specimens_treeview"]
-                tv.set_model(self.model.data_specimens)
+                tv.set_model(self.model.specimens)
         return
 
     def register_adapters(self):
@@ -43,7 +43,7 @@ class ProjectController (DialogController, HasObjectTreeview, DialogMixin):
             for name in self.model.get_properties():
                 if name == "name":
                     self.adapt(name, "project_%s" % name)
-                elif name == "data_description":
+                elif name == "description":
                     pass
                 elif name in ("display_calc_color", "display_exp_color"):
                     ad = Adapter(self.model, name)
@@ -54,7 +54,7 @@ class ProjectController (DialogController, HasObjectTreeview, DialogMixin):
                     self.adapt(name)
                 elif name in ("axes_xscale", "axes_yscale"):
                     ctrl_setup_combo_with_list(self, self.view["cmb_%s" % name], name, "_%ss"%name)
-                elif name == "data_specimens":
+                elif name == "specimens":
                     # connects the treeview to the liststore
                     tv = self.parent.view['specimens_treeview']
                     
@@ -70,7 +70,7 @@ class ProjectController (DialogController, HasObjectTreeview, DialogMixin):
                     # (re)create the columns of the treeview
                     rend = gtk.CellRendererText()
                     rend.set_property('ellipsize', pango.ELLIPSIZE_END)
-                    col = gtk.TreeViewColumn('Specimen name', rend, text=self.model.data_specimens.c_data_name)
+                    col = gtk.TreeViewColumn('Specimen name', rend, text=self.model.specimens.c_data_name)
                     col.set_resizable(True)
                     col.set_expand(True)
 
@@ -81,7 +81,7 @@ class ProjectController (DialogController, HasObjectTreeview, DialogMixin):
                         return
                     def setup_check_column(name, attr_name, colnr):
                         rend = gtk.CellRendererToggle()
-                        rend.connect('toggled', self.specimen_tv_toggled, self.model.data_specimens, attr_name)
+                        rend.connect('toggled', self.specimen_tv_toggled, self.model.specimens, attr_name)
                         col = gtk.TreeViewColumn(name, rend)
                         col.add_attribute(rend, 'active', colnr)
                         col.set_cell_data_func(rend, toggle_renderer, attr_name)
@@ -100,10 +100,10 @@ class ProjectController (DialogController, HasObjectTreeview, DialogMixin):
                         col.pack_end(rend)
                         tv.append_column(col)
                         
-                    setup_check_column('Exp', "display_experimental", self.model.data_specimens.c_display_experimental)
+                    setup_check_column('Exp', "display_experimental", self.model.specimens.c_display_experimental)
                     if not settings.VIEW_MODE:
-                        setup_check_column('Cal', "display_calculated", self.model.data_specimens.c_display_calculated)
-                        setup_check_column('Sep', "display_phases", self.model.data_specimens.c_display_phases)
+                        setup_check_column('Cal', "display_calculated", self.model.specimens.c_display_calculated)
+                        setup_check_column('Sep', "display_phases", self.model.specimens.c_display_phases)
 
                     setup_image_button("UP", None, gtk.STOCK_GO_UP)
                     setup_image_button("DOWN", None, gtk.STOCK_GO_DOWN)
@@ -125,7 +125,7 @@ class ProjectController (DialogController, HasObjectTreeview, DialogMixin):
                 if filename[-2:].lower() == "rd":
                     print "Opening file %s for import using BINARY RD format" % filename
                     specimen = Specimen.from_experimental_data(parent=self.model, filename=filename, format="BIN")
-                last_iter = self.model.data_specimens.append(specimen)
+                last_iter = self.model.specimens.append(specimen)
             if last_iter != None:
                 self.parent.view["specimens_treeview"].set_cursor(last_iter)
         

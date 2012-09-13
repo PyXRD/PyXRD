@@ -6,6 +6,8 @@
 # To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/3.0/ or send
 # a letter to Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
 
+from traceback import print_exc
+
 from collections import namedtuple
 from generic.utils import whoami, smart_repos
 
@@ -138,6 +140,7 @@ class ObjectListStore(_BaseObjectListStore, Storable):
             return (self._model_data.index(rowref),)
         except ValueError:
             print "ValueError in on_get_path of %s caused by %s" % (self, rowref)
+            print_exc()
             return None
 
     def set_value(self, itr, column, value):

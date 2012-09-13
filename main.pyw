@@ -8,6 +8,7 @@
 # To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/3.0/ or send
 # a letter to Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
 
+import warnings
 import argparse, sys, os
 import gtk
 
@@ -63,6 +64,9 @@ if __name__ == "__main__":
     else:
         #disable unity overlay scrollbars as they cause bugs with modal windows
         os.environ['LIBOVERLAY_SCROLLBAR'] = '0'
+            
+        if not settings.DEBUG:
+            warnings.simplefilter('ignore', Warning)            
             
         #init threads
         gtk.gdk.threads_init()

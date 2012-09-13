@@ -8,6 +8,7 @@
 
 import gtk
 
+from generic.widgets import ScaleEntry
 from generic.views import BaseView, HasChildView
 from probabilities.models import RGbounds
 
@@ -84,7 +85,8 @@ class IndependentsView(BaseView, HasChildView, ProbabilityViewMixin):
                 
                 new_lbl = self.create_mathtext_widget(lbl)
                 
-                new_inp = gtk.Entry()
+                #FIXME apply limits as in the model
+                new_inp = ScaleEntry(lower=0.0, upper=1.0, enforce_range=True) # gtk.Entry()
                 new_inp.set_tooltip_text(lbl)
                 new_inp.set_name(prop)                    
                 self["prob_%s" % prop] = new_inp
@@ -115,7 +117,7 @@ class IndependentsView(BaseView, HasChildView, ProbabilityViewMixin):
     def update_matrices(self, model):
         for i, inp in enumerate(self.i_inputs):
             prop, lbl = self.labels[i]
-            inp.set_text("%.3f" % getattr(model, prop))
+            inp.set_value(getattr(model, prop))
             
     pass #end of class
             

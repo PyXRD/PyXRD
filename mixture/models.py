@@ -222,7 +222,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         return np.array(self.data_fractions + self.data_scales + self.data_bgshifts)
     
     def _parse_x(self, x, n, m): #returns: fractions | scales | bgshifts
-        return x[:m][:,np.newaxis], x[m:m+n], np.zeros(shape=(n,))# x[-n:]
+        return x[:m][:,np.newaxis], x[m:m+n], x[-n:] #np.zeros(shape=(n,))# x[-n:]
    
     def _get_rp_statics(self):
         #1 get the different intensities for each phase for each specimen 

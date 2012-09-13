@@ -36,28 +36,37 @@ class AppModel(Model):
         if self._current_project != None: self.observe_model(self._current_project)
     current_filename = None
     
-    current_specimen = None
-    
     _statistics_visible = None
     def set_statistics_visible_value(self, value): self._statistics_visible = value
     def get_statistics_visible_value(self):
         return self._statistics_visible and (self.current_specimen != None) and (not settings.VIEW_MODE)
     
-    _current_specimens = None
+    _current_specimen = None
+    def get_current_specimen_value(self): return self._current_specimen
+    def set_current_specimen_value(self, value):
+        self._current_specimens = [value]
+        self._current_specimen = value
+    
+    _current_specimens = []
     def get_current_specimens_value(self): return self._current_specimens
     def set_current_specimens_value(self, value):
         if value == None:
             value = []
         self._current_specimens = value
         if len(self._current_specimens) == 1:
-            self.current_specimen = self._current_specimens[0]
+            self._current_specimen = self._current_specimens[0]
         else:
-            self.current_specimen = None
+            self._current_specimen = None
     
     @property
     def single_specimen_selected(self):
-        return bool(self.current_specimen is not None or self.current_specimens == [])
+        return bool(self.current_specimen != None or self.current_specimens == [])
     
+    @property
+    def multiple_specimens_selected(self):
+        return bool(len(self.current_specimens)>1)
+
+
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------

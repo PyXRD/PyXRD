@@ -1,8 +1,8 @@
 ### General Information ###
 VERSION = "0.4.0"
 
-DEBUG = True
-VIEW_MODE = False
+DEBUG = False
+VIEW_MODE = True
 
 LOG_FILENAME = 'errors.log'
 UPDATE_URL = 'http://users.ugent.be/~madumon/pyxrd/'

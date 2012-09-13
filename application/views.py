@@ -42,8 +42,10 @@ class AppView(BaseView):
         "seperator2",
         "separator3",
         "separator4",
+        "separator5",
         "main_menu_item_edit_phases",
-        "main_menu_item_edit_atom_types")
+        "main_menu_item_edit_atom_types",
+        "main_menu_item_edit_mixtures")
     
     def __init__(self, *args, **kwargs):
         BaseView.__init__(self, *args, **kwargs)

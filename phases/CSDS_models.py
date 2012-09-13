@@ -184,8 +184,6 @@ class LogNormalCSDSDistribution(_AbstractCSDSDistribution, RefinementGroup):
     
     _update_lock = False
     def update_distribution(self):
-        print "UPDATE CSDS"
-        print_stack()
         if not self._update_lock:
             self._update_lock = True
             self._distrib = LogNormalCSDSDistribution.get_distribution(

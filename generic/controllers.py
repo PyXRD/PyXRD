@@ -160,17 +160,25 @@ class BaseController (Controller, DialogMixin):
 
     file_filters = ("All Files", "*.*")
 
+    @property
+    def statusbar(self):
+        if self.parent != None:
+            return self.parent.statusbar
+        elif self.view != None:
+            return self.view['statusbar']
+        else:
+            return None
+
+    @property
+    def status_cid(self):
+        if self.statusbar != None:
+            return self.statusbar.get_context_id(self.__class__.__name__)
+        else:
+            return None
+
     def __init__(self, model, view, spurious=False, auto_adapt=False, parent=None):
         self.parent = parent
-        
         Controller.__init__(self, model, view, spurious=spurious, auto_adapt=auto_adapt)
-        
-        if parent is not None:
-            self.statusbar = parent.statusbar
-        else:
-            self.statusbar = view['statusbar']
-        if self.statusbar is not None:
-            self.status_cid = self.statusbar.get_context_id(self.__class__.__name__)
 
     @staticmethod
     def status_message(message, cid=None):
@@ -251,18 +259,6 @@ class DialogController(BaseController):
         
     def on_cancel(self):
         self.view.hide()
-
-class ChildController(BaseController):
-    """
-        Simple controller which is the child of another.
-    """
-    
-    def __init__(self, *args, **kwargs):
-        #strip parent from args:
-        if "parent" in kwargs:
-            self.cparent = kwargs["parent"]
-            del kwargs["parent"]
-        BaseController.__init__(self, *args, **kwargs)
         
 class HasObjectTreeview():
     """
@@ -331,13 +327,17 @@ class ObjectListStoreMixin(HasObjectTreeview):
         if obj == None:
             return self.view.none_view
         else:
-            raise NotImplementedError, "Unsupported object type; subclasses of %s need to override this method for objects not equalling None!" % type(self)
+            raise NotImplementedError, ("Unsupported object type; subclasses of"
+                " ObjectListStoreMixin need to override get_new_edit_view for"
+                " objects not equalling None!")
         
     def get_new_edit_controller(self, obj, view, parent=None):
         if obj == None:
             return None
         else:
-            raise NotImplementedError, "Unsupported object type; subclasses of %s need to override this method for objects not equalling None!" % type(self)
+            raise NotImplementedError, ("Unsupported object type; subclasses of"
+                " ObjectListStoreMixin need to override get_new_edit_controller"
+                " for objects not equalling None!")
     
     def edit_object(self, obj):
         self.edit_view = self.get_new_edit_view(obj)
@@ -347,32 +347,38 @@ class ObjectListStoreMixin(HasObjectTreeview):
     def register_adapters(self):
         if self.model is not None:
             # connects the treeview to the liststore
-            tv = self.view['edit_objects_treeview']
-            tv.set_model(self.liststore)
-
-            sel = tv.get_selection()
-            if self.multi_selection:
-                sel.set_mode(gtk.SELECTION_MULTIPLE)
-            sel.connect('changed', self.objects_tv_selection_changed)
-
-            #reset:
-            for col in tv.get_columns():
-                tv.remove_column(col)
-
-            for name, colnr in self.columns:
-                rend = gtk.CellRendererText()
-                try:
-                    colnr = int(colnr)
-                except:
-                    colnr = getattr(self.liststore, str(colnr), colnr)
-                col = gtk.TreeViewColumn(name, rend, text=colnr)
-                col.set_resizable(False)
-                col.set_expand(False)
-                tv.append_column(col)
+            tv = self.view.treeview
+            self.setup_treeview(tv)
             
             self.set_object_sensitivities(False)
         # we can now edit 'nothing':
         self.edit_object(None)
+
+    def setup_treeview(self, tv):
+        """
+            Can be overriden by sublcasses to provide custom columns
+        """
+        tv.set_model(self.liststore)
+
+        sel = tv.get_selection()
+        if self.multi_selection:
+            sel.set_mode(gtk.SELECTION_MULTIPLE)
+        sel.connect('changed', self.objects_tv_selection_changed)
+        
+        #reset:
+        for col in tv.get_columns():
+            tv.remove_column(col)
+
+        for name, colnr in self.columns:
+            rend = gtk.CellRendererText()
+            try:
+                colnr = int(colnr)
+            except:
+                colnr = getattr(self.liststore, str(colnr), colnr)
+            col = gtk.TreeViewColumn(name, rend, text=colnr)
+            col.set_resizable(False)
+            col.set_expand(False)
+            tv.append_column(col)
 
     def set_object_sensitivities(self, value):
         if self.view.edit_view != None:
@@ -381,16 +387,16 @@ class ObjectListStoreMixin(HasObjectTreeview):
         self.view["button_save_object"].set_sensitive(value)
 
     def get_selected_object(self):
-        return HasObjectTreeview.get_selected_object(self, self.view['edit_objects_treeview'])
+        return HasObjectTreeview.get_selected_object(self, self.view.treeview)
         
     def get_selected_objects(self):
-        return HasObjectTreeview.get_selected_objects(self, self.view['edit_objects_treeview'])
+        return HasObjectTreeview.get_selected_objects(self, self.view.treeview)
 
     def get_all_objects(self):
-        return HasObjectTreeview.get_all_objects(self, self.view['edit_objects_treeview'])
+        return HasObjectTreeview.get_all_objects(self, self.view.treeview)
 
     def select_object(self, obj, unselect_all=True):
-        selection = self.view['edit_objects_treeview'].get_selection()
+        selection = self.view.treeview.get_selection()
         if unselect_all: selection.unselect_all()
         if obj:
             path = self.liststore.on_get_path(obj)
@@ -442,7 +448,7 @@ class ObjectListStoreMixin(HasObjectTreeview):
         return True
 
     def on_del_object_clicked(self, event, del_callback=None, callback=None):
-        tv = self.view['edit_objects_treeview']
+        tv = self.view.treeview
         selection = tv.get_selection()
         if selection.count_selected_rows() >= 1:
             def delete_objects(dialog):
@@ -474,20 +480,20 @@ class ObjectListStoreController(DialogController, ObjectListStoreMixin):
     def register_adapters(self):
         ObjectListStoreMixin.register_adapters(self)
             
-class ChildObjectListStoreController(ChildController, ObjectListStoreMixin):
+class ChildObjectListStoreController(BaseController, ObjectListStoreMixin):
     """
-        A embedable, regular ObjectListStore controller (left pane with objects and right pane with object properties)
+        An embedable, regular ObjectListStore controller (left pane with objects and right pane with object properties)
     """
     def __init__(self, model, view,
                  spurious=False, auto_adapt=False, parent=None,
                  model_property_name="", columns=[], delete_msg=""):
-        ChildController.__init__(self, model, view, spurious=spurious, auto_adapt=auto_adapt, parent=parent)
+        BaseController.__init__(self, model, view, spurious=spurious, auto_adapt=auto_adapt, parent=parent)
         ObjectListStoreMixin.__init__(self, model_property_name=model_property_name, columns=columns, delete_msg=delete_msg)
         
     def register_adapters(self):
         ObjectListStoreMixin.register_adapters(self)
 
-class InlineObjectListStoreController(ChildController, HasObjectTreeview):
+class InlineObjectListStoreController(BaseController, HasObjectTreeview):
     """
         ObjectListStore controller that consists of a single listview, with import & export and add & delete buttons
         Subclasses should override the _setup_treeview method to setup their columns and edit support.
@@ -503,7 +509,7 @@ class InlineObjectListStoreController(ChildController, HasObjectTreeview):
         raise NotImplementedError
 
     def __init__(self, model_property_name, *args, **kwargs):
-        ChildController.__init__(self, *args, **kwargs)
+        BaseController.__init__(self, *args, **kwargs)
         self.model_property_name = model_property_name
 
     def register_adapters(self):

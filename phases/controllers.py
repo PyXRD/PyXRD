@@ -20,7 +20,7 @@ import settings
 from generic.utils import create_treestore_from_directory, get_case_insensitive_glob
 from generic.validators import FloatEntryValidator 
 from generic.views import ChildObjectListStoreView
-from generic.controllers import DialogController, ChildController, ObjectListStoreController, ChildObjectListStoreController, get_color_val, InlineObjectListStoreController
+from generic.controllers import DialogController, BaseController, ObjectListStoreController, ChildObjectListStoreController, get_color_val, InlineObjectListStoreController
 
 from atoms.models import Atom
 
@@ -33,7 +33,7 @@ from phases.models import Phase, Component, ComponentRatioFunction
 
 from phases.CSDS_models import CSDS_distribution_types
 
-class EditCSDSTypeController(ChildController):
+class EditCSDSTypeController(BaseController):
 
     distributions_controller = None
 
@@ -83,7 +83,7 @@ class EditCSDSTypeController(ChildController):
                     
     pass #end of class
 
-class EditCSDSDistributionController(ChildController):
+class EditCSDSDistributionController(BaseController):
     
     def reset_model(self, new_model):
         self.relieve_model(self.model)
@@ -116,7 +116,7 @@ class EditCSDSDistributionController(ChildController):
     
     pass #end of class    
 
-class EditUnitCellPropertyController(ChildController):
+class EditUnitCellPropertyController(BaseController):
 
     def reset_prop_store(self):
         name = "data_prop"
@@ -137,7 +137,7 @@ class EditUnitCellPropertyController(ChildController):
         return store
 
     def __init__(self, extra_props, **kwargs):
-        ChildController.__init__(self, **kwargs)
+        BaseController.__init__(self, **kwargs)
         self.extra_props = extra_props
 
     def register_adapters(self):
@@ -431,7 +431,7 @@ class EditAtomRatioController(InlineObjectListStoreController):
     pass #end of class
 
 
-class EditComponentController(ChildController):
+class EditComponentController(BaseController):
 
     layer_view = None
     layer_controller = None
@@ -449,7 +449,7 @@ class EditComponentController(ChildController):
     ucpb_controller = None
 
     def __init__(self, *args, **kwargs):
-        ChildController.__init__(self, *args, **kwargs)
+        BaseController.__init__(self, *args, **kwargs)
         
         self.layer_view = InlineObjectListStoreView(parent=self.view)
         self.layer_controller = EditLayerController("_data_layer_atoms", model=self.model, view=self.layer_view, parent=self)
@@ -572,7 +572,7 @@ class ComponentsController(ChildObjectListStoreController): #limit # of componen
         else:
             return ChildObjectListStoreController.get_new_edit_controller(self, obj, view, parent=parent)
 
-class EditPhaseController(ChildController):
+class EditPhaseController(BaseController):
     
     probabilities_controller = None
     
@@ -580,7 +580,7 @@ class EditPhaseController(ChildController):
     components_controller = None
 
     def register_view(self, view):
-        ChildController.register_view(self, view)
+        BaseController.register_view(self, view)
 
         self.csds_view = EditCSDSDistributionView(parent=self.view)
         self.view.set_csds_view(self.csds_view)
@@ -600,7 +600,7 @@ class EditPhaseController(ChildController):
                 if intel.name == "data_based_on":
                     combo = self.view["phase_data_based_on"]
 
-                    tv_model = self.cparent.model.current_project.data_phases
+                    tv_model = self.parent.model.current_project.data_phases
                     
                     combo.set_model(tv_model)
                     combo.connect('changed', self.on_based_on_changed)
@@ -670,7 +670,7 @@ class EditPhaseController(ChildController):
     
     @Controller.observe("data_name", assign=True)
     def notif_name_changed(self, model, prop_name, info):
-        self.cparent.model.current_project.data_phases.on_item_changed(self.model)
+        self.parent.model.current_project.data_phases.on_item_changed(self.model)
         return
 
     # ------------------------------------------------------------

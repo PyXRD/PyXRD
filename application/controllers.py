@@ -87,14 +87,10 @@ class AppController (BaseController, DialogMixin):
         self.view.specimen.present()
         return True
 
-    def set_active_phases(self, project_model):
-        self.phases = PhasesController(project_model, self.view.reset_phases_view(), parent=self)
-
     @BaseController.status_message("Displaying phases...", "edit_phases")
     def edit_phases(self):
         if self.model.current_project is not None:
-            self.set_active_phases(self.model.current_project)
-        self.view.phases.present()
+            self.view.phases.present()
         return True
 
     @BaseController.status_message("Displaying atom types...", "edit_atom_types")
@@ -201,7 +197,7 @@ class AppController (BaseController, DialogMixin):
             
     def open_project(self, filename):
         try:
-            self.model.current_project = Project.load_object(filename)
+            self.model.current_project = Project.load_object(filename, parent=self.model)
             self.model.current_filename = filename
         except any as error:
             self.run_information_dialog("An error has occured.\n Your project was not loaded!", parent=self.view.get_top_widget())
@@ -259,7 +255,7 @@ class AppController (BaseController, DialogMixin):
     @BaseController.status_message("Creating new project...", "new_project")
     def on_new_project_activate(self, widget, data=None):
         def on_accept(dialog):
-            self.model.current_project = Project()
+            self.model.current_project = Project(parent=self.model)
             self.model.current_filename = None
             self.update_title()
             self.view.project.present()
@@ -343,19 +339,17 @@ class AppController (BaseController, DialogMixin):
         return True
 
     @BaseController.status_message("Deleting specimen...", "del_specimen")
-    def on_del_specimen_activate(self, event):
-        tv = self.view["specimens_treeview"]
-        path, col = tv.get_cursor()
-        if path is not None:
-            obj = tv.get_model().get_user_data_from_path(path)
-            msg = gtk.MessageDialog(self.view.get_top_widget(),
-                                    gtk.DIALOG_DESTROY_WITH_PARENT, gtk.MESSAGE_WARNING,
-                                    gtk.BUTTONS_YES_NO, 'Deleting a specimen is irreverisble!\nAre You sure you want to continue?')
-            if msg.run() != gtk.RESPONSE_YES:
-                msg.destroy()
-                return
-            msg.destroy()
-            self.model.current_project.specimens.remove_item(obj)
+    def on_del_specimen_activate(self, event):   #FIXME move this to the project level
+        tv = self.view['specimens_treeview']
+        selection = tv.get_selection()
+        if selection.count_selected_rows() >= 1:
+            def delete_objects(dialog):
+                for obj in self.project.get_selected_objects():
+                    self.model.current_project.specimens.remove_item(obj)
+            self.run_confirmation_dialog(
+                message='Deleting a specimen is irreverisble!\nAre You sure you want to continue?',
+                on_accept_callback=delete_objects, 
+                parent=self.view.get_top_widget())
         return True
 
     def on_remove_background(self, event):

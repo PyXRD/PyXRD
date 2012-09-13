@@ -16,7 +16,7 @@ from gtkmvc.adapters import Adapter
 
 from generic.plot_controllers import DraggableVLine, EyedropperCursorPlot
 from generic.treemodels import XYListStore
-from generic.controllers import DialogController, DialogMixin, ChildController, ObjectListStoreController, HasObjectTreeview, get_color_val, ctrl_setup_combo_with_list
+from generic.controllers import DialogController, DialogMixin, BaseController, ObjectListStoreController, HasObjectTreeview, get_color_val, ctrl_setup_combo_with_list
 from generic.validators import FloatEntryValidator
 from generic.treeview_tools import setup_treeview, new_text_column
 from generic.utils import get_case_insensitive_glob
@@ -380,7 +380,7 @@ class ShiftDataController(DialogController):
             
     pass #end of class
    
-class StatisticsController(ChildController):
+class StatisticsController(BaseController):
 
     def register_adapters(self):
         if self.model is not None:
@@ -393,7 +393,7 @@ class StatisticsController(ChildController):
         
     pass #end of class    
             
-class EditMarkerController(ChildController):
+class EditMarkerController(BaseController):
 
     def register_adapters(self):
         if self.model is not None:

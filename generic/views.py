@@ -45,7 +45,6 @@ class BaseView(View):
         if not isinstance(container, gtk.Widget):
             container = self[container or "container_%s" % intel.name]
         name = prefix % intel.name
-        print name
         try:
             child = container.get_child()
             if child is not None:
@@ -62,8 +61,12 @@ class BaseView(View):
         self._before_hide_widgets()
         if settings.VIEW_MODE:
             for widget in self.__widgets_to_hide__:
-                self[widget].set_visible(False)
-                self[widget].set_no_show_all(True)
+                if widget in self:
+                    self[widget].set_visible(False)
+                    self[widget].set_no_show_all(True)
+                else:
+                    print "Widget '%s' was not found in view '%s'" % (widget, self)
+
          
     def _before_hide_widgets(self):
         pass #can be overriden by subclasses
@@ -142,6 +145,12 @@ class ObjectListStoreViewMixin(HasChildView):
     
     extra_widget_builder = None
     extra_widget_toplevel = ""
+    
+    treeview_widget = "edit_objects_treeview"
+    
+    @property
+    def treeview(self):
+        return self[self.treeview_widget]
     
     @property
     def load_label(self):

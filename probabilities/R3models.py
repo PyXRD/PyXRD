@@ -53,6 +53,7 @@ class R3G2Model(_AbstractProbability):
 	"""
 
     #MODEL INTEL:
+    #FIXME ENFORCE RANGES!
     __independent_label_map__ = [
         ("W1", r"$W_1$"),
         ("P1111_or_P2112", r"$P_{1111} %s$ or $\newline P_{2112} %s$" % (

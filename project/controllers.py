@@ -18,12 +18,17 @@ from gtkmvc.adapters import Adapter
 import settings
 
 from generic.validators import FloatEntryValidator 
-from generic.controllers import BaseController, DialogController, HasObjectTreeview, DialogMixin, get_color_val, ctrl_setup_combo_with_list
+from generic.controllers import BaseController, DialogController, ObjectListStoreMixin, DialogMixin, get_color_val, ctrl_setup_combo_with_list
 from project.models import Project
 from specimen.models import Specimen
 from specimen.controllers import SpecimenController
 
-class ProjectController (DialogController, HasObjectTreeview, DialogMixin):
+class ProjectController (DialogController, ObjectListStoreMixin, DialogMixin):
+
+    model_property_name = "specimens"
+    columns = [ ]
+    delete_msg = "Deleting objects is irreverisble!\nAre You sure you want to continue?"
+
 
     file_filters = SpecimenController.file_filters
 
@@ -35,6 +40,7 @@ class ProjectController (DialogController, HasObjectTreeview, DialogMixin):
             if self.parent is not None:
                 tv = self.parent.view["specimens_treeview"]
                 tv.set_model(self.model.specimens)
+                self.view.treeview = tv
         return
 
     def register_adapters(self):
@@ -56,61 +62,69 @@ class ProjectController (DialogController, HasObjectTreeview, DialogMixin):
                     ctrl_setup_combo_with_list(self, self.view["cmb_%s" % name], name, "_%ss"%name)
                 elif name == "specimens":
                     # connects the treeview to the liststore
-                    tv = self.parent.view['specimens_treeview']
-                    
-                    sel = tv.get_selection()
-                    sel.set_mode(gtk.SELECTION_MULTIPLE)
-                    tv.connect('button-press-event', self.specimen_tv_button_press)
-                    sel.connect('changed', self.specimen_tv_selection_changed)
-                    
-                    #reset:
-                    for col in tv.get_columns():
-                        tv.remove_column(col)
-
-                    # (re)create the columns of the treeview
-                    rend = gtk.CellRendererText()
-                    rend.set_property('ellipsize', pango.ELLIPSIZE_END)
-                    col = gtk.TreeViewColumn('Specimen name', rend, text=self.model.specimens.c_data_name)
-                    col.set_resizable(True)
-                    col.set_expand(True)
-
-                    tv.append_column(col)
-
-                    def toggle_renderer(column, cell, model, itr, data=None):
-                        cell.set_property('active', getattr(model.get_user_data(itr), data))
-                        return
-                    def setup_check_column(name, attr_name, colnr):
-                        rend = gtk.CellRendererToggle()
-                        rend.connect('toggled', self.specimen_tv_toggled, self.model.specimens, attr_name)
-                        col = gtk.TreeViewColumn(name, rend)
-                        col.add_attribute(rend, 'active', colnr)
-                        col.set_cell_data_func(rend, toggle_renderer, attr_name)
-                        col.activatable = True
-                        col.set_resizable(False)
-                        col.set_expand(False)
-                        tv.append_column(col)
-                    
-                    def setup_image_button(col, callback, image):
-                        col = gtk.TreeViewColumn(col)
-                        col.set_widget(gtk.Label())
-                        col.set_resizable(False)
-                        col.set_expand(False)
-                        rend = gtk.CellRendererPixbuf()
-                        rend.set_property("stock-id", image)
-                        col.pack_end(rend)
-                        tv.append_column(col)
-                        
-                    setup_check_column('Exp', "display_experimental", self.model.specimens.c_display_experimental)
-                    if not settings.VIEW_MODE:
-                        setup_check_column('Cal', "display_calculated", self.model.specimens.c_display_calculated)
-                        setup_check_column('Sep', "display_phases", self.model.specimens.c_display_phases)
-
-                    setup_image_button("UP", None, gtk.STOCK_GO_UP)
-                    setup_image_button("DOWN", None, gtk.STOCK_GO_DOWN)
-
+                    self.setup_treeview(self.parent.view["specimens_treeview"])
                 elif not name in self.model.__have_no_widget__:
                     self.adapt(name)
             return
+
+    def setup_treeview(self, tv):
+        ObjectListStoreMixin.setup_treeview(self, tv)
+        tv.connect('button-press-event', self.specimen_tv_button_press)
+        
+        #reset:
+        for col in tv.get_columns():
+            tv.remove_column(col)
+
+        # (re)create the columns of the treeview
+        rend = gtk.CellRendererText()
+        rend.set_property('ellipsize', pango.ELLIPSIZE_END)
+        col = gtk.TreeViewColumn('Name', rend, text=self.model.specimens.c_data_name)
+        col.set_min_width(125)
+        col.set_resizable(True)
+        col.set_expand(True)
+        col.set_data("colnr", self.model.specimens.c_data_name)
+
+        tv.append_column(col)
+
+        def toggle_renderer(column, cell, model, itr, data=None):
+            cell.set_property('active', getattr(model.get_user_data(itr), data))
+            return
+        def setup_check_column(name, attr_name, colnr):
+            rend = gtk.CellRendererToggle()
+            rend.connect('toggled', self.specimen_tv_toggled, self.model.specimens, attr_name)
+            col = gtk.TreeViewColumn(name, rend)
+            col.add_attribute(rend, 'active', colnr)
+            col.set_cell_data_func(rend, toggle_renderer, attr_name)
+            col.activatable = True
+            col.set_resizable(False)
+            col.set_expand(False)
+            col.set_data("colnr", colnr)
+            tv.append_column(col)
+        
+        def setup_image_button(col, callback, image, colnr):
+            col = gtk.TreeViewColumn(col)
+            col.set_widget(gtk.Label())
+            col.set_resizable(False)
+            col.set_expand(False)
+            rend = gtk.CellRendererPixbuf()
+            rend.set_property("stock-id", image)
+            col.pack_end(rend)
+            col.set_data("colnr", colnr)
+            tv.append_column(col)
+            
+        setup_check_column('Exp', "display_experimental", self.model.specimens.c_display_experimental)
+        if not settings.VIEW_MODE:
+            setup_check_column('Cal', "display_calculated", self.model.specimens.c_display_calculated)
+            setup_check_column('Sep', "display_phases", self.model.specimens.c_display_phases)
+
+        setup_image_button("UP", None, gtk.STOCK_GO_UP, 501)
+        setup_image_button("DOWN", None, gtk.STOCK_GO_DOWN, 502)
+
+    def edit_object(self, obj):
+        pass
+
+    def set_object_sensitivities(self, value):
+        pass #no sensitivity stuff to do? --> TODO popup!
 
     @BaseController.status_message("Importing multiple specimens...", "add_specimen")
     def import_multiple_specimen(self):
@@ -161,59 +175,53 @@ class ProjectController (DialogController, HasObjectTreeview, DialogMixin):
             return True
         return False
 
-    def specimen_tv_button_press(self, tv, event):
+    def specimen_tv_button_press(self, tv, event):    
         specimen = None
+        current_specimens = self.parent.model.current_specimens or [] 
         ret = tv.get_path_at_pos(int(event.x), int(event.y))
         if ret is not None:
             path, col, x, y = ret
             model = tv.get_model()
             specimen = model.get_user_data_from_path(path)
-        if event.button == 3:
-            if specimen is not None:
-                tv.set_cursor(path)
-            self.parent.update_sensitivities()
-            self.parent.view["popup_menu_item_del_specimen"].set_sensitive(self.model is not None and specimen is not None)
-            self.parent.view["specimen_popup"].popup(None, None, None, event.button, event.time)
+        if event.button == 3:        
+            if specimen!=None:
+                #clicked a specimen which is not in the current selection,
+                #so clear selection and select it
+                if not specimen in current_specimens:
+                    self.select_object(specimen)
+            else:
+                #clicked an empty space, so clear selection
+                self.select_object(None)
+            self.view.specimens_popup(event)
             return True
-        elif event.type == gtk.gdk._2BUTTON_PRESS and specimen is not None and col.get_title() == "Specimen name":
+        elif event.type == gtk.gdk._2BUTTON_PRESS and specimen is not None and col.get_data("colnr")==self.model.specimens.c_data_name:
             self.parent.edit_specimen(specimen)
             return True
         elif (event.button == 1 or event.type == gtk.gdk._2BUTTON_PRESS) and specimen is not None:
-            title = col.get_title()
-            if title in ("Exp", "Cal", "Sep"):
-                if title=="Exp":
+            column = col.get_data("colnr")
+            if column in (self.model.specimens.c_display_experimental, 
+                    self.model.specimens.c_display_calculated,
+                    self.model.specimens.c_display_phases):
+                if column==self.model.specimens.c_display_experimental:
                     specimen.display_experimental = not specimen.display_experimental
-                elif title=="Cal":
+                elif column==self.model.specimens.c_display_calculated:
                     specimen.display_calculated = not specimen.display_calculated
-                elif title=="Sep":
+                elif column==self.model.specimens.c_display_phases:
                     specimen.display_phases = not specimen.display_phases
                 model.on_item_changed(specimen)
                 return True
-            elif title == "UP":
+            elif column == 501:
                 model.move_item_up(specimen)
                 self.parent.model.current_specimens = self.get_selected_objects()
                 return True
-            elif title == "DOWN":
+            elif column == 502:
                 model.move_item_down(specimen)
                 self.parent.model.current_specimens = self.get_selected_objects()
                 return True
 
-
-    def specimen_tv_selection_changed(self, selection):
+    def objects_tv_selection_changed(self, selection):
+        ObjectListStoreMixin.objects_tv_selection_changed(self, selection)
         self.parent.model.current_specimens = self.get_selected_objects()
         return True
-        
-    def get_selected_object(self):
-        return HasObjectTreeview.get_selected_object(self, self.parent.view['specimens_treeview'])
-        
-    def get_selected_objects(self):
-        return HasObjectTreeview.get_selected_objects(self, self.parent.view['specimens_treeview'])
-        
-    def get_all_objects(self):
-        return HasObjectTreeview.get_all_objects(self, self.parent.view['specimens_treeview'])
-
-    def on_btn_ok_clicked(self, event):
-        self.parent.pop_status_msg('edit_project')
-        return DialogController.on_btn_ok_clicked(self, event)
 
     pass # end of class

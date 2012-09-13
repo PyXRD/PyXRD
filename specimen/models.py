@@ -771,7 +771,7 @@ class Marker(ChildModel, Storable, ObjectListStoreChildMixin, CSVMixin):
             return 0
     
     def update_text(self, figure, axes): #FIXME this should be part of a view, rather then a model...
-        if self.data_style != "offset":
+        if self.data_style != "offset":        
             kws = dict(text=self.data_label,
                        x=float(self.data_position)+float(self.data_x_offset), y=settings.PLOT_TOP,
                        clip_on=False,
@@ -780,10 +780,11 @@ class Marker(ChildModel, Storable, ObjectListStoreChildMixin, CSVMixin):
                        rotation=(90-self.data_angle), rotation_mode="anchor",
                        color=self.data_color,
                        weight="heavy")
-           
+            
             if self.data_style == "none":
+                scale, offset = self.parent.scale_factor_y(self.data_y_offset)
                 y = 0
-                if int(self.data_base) == 1:
+                if self.data_base == 1:
                     y = self.get_y(self.parent.data_experimental_pattern)
                 elif self.data_base == 2:
                     y = self.get_y(self.parent.data_calculated_pattern)
@@ -792,14 +793,11 @@ class Marker(ChildModel, Storable, ObjectListStoreChildMixin, CSVMixin):
                 elif self.data_base == 4:
                     y = self.get_ymax()
                     
-                ymin, ymax = axes.get_ybound()
-                trans = axes.transData #transforms.blended_transform_factory(axes.transData, axes.transAxes)
-                #y = (y - ymin) / (ymax - ymin) + self.data_y_offset
-                y += (self.data_y_offset - ymin) / (ymax - ymin)
+                y += offset
                 
                 kws.update(dict(
                     y=y,
-                    transform=trans,
+                    transform=axes.transData,
                 ))
             
             if self._text == None:

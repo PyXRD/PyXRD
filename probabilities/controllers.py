@@ -15,7 +15,7 @@ from gtkmvc.adapters import Adapter
 
 from generic.validators import FloatEntryValidator 
 from generic.views import ChildObjectListStoreView
-from generic.controllers import ChildController
+from generic.controllers import BaseController
 
 from probabilities.views import EditProbabilitiesView, get_correct_probability_views
 from probabilities.models import RGbounds
@@ -31,13 +31,13 @@ def get_correct_probability_controllers(probability, parent_controller, independ
         else:
             raise ValueError, "Cannot (yet) handle R%d for %d layer structures!" % (R, G)
 
-class EditProbabilitiesController(ChildController):
+class EditProbabilitiesController(BaseController):
 
     independents_view = None
     matrix_view = None
 
     def __init__(self, *args, **kwargs):
-        ChildController.__init__(self, *args, **kwargs)
+        BaseController.__init__(self, *args, **kwargs)
         self._init_views(kwargs["view"])
         self.update_views()
         
@@ -60,23 +60,23 @@ class EditProbabilitiesController(ChildController):
 
     pass #end of class
     
-class IndependentsController(ChildController):
+class IndependentsController(BaseController):
     def register_adapters(self):
         if self.model is not None:
             for name in self.model.get_properties():
                 if name in self.model.__have_no_widget__:
                     pass
                 elif name in self.model.__refinables__:
-                    FloatEntryValidator(self.view["prob_%s" % name])
+                    #FloatEntryValidator(self.view["prob_%s" % name])
                     self.adapt(name)
                 else:
                     pass
             return
     pass #end of class
   
-class MatrixController(ChildController):
+class MatrixController(BaseController):
     def __init__(self, current, *args, **kwargs):
-        ChildController.__init__(self, *args, **kwargs)
+        BaseController.__init__(self, *args, **kwargs)
         self.current_W = current
         self.current_P = current
 

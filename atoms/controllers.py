@@ -17,12 +17,12 @@ from gtkmvc import Controller
 from gtkmvc.adapters import Adapter
 
 from generic.validators import FloatEntryValidator
-from generic.controllers import ChildController, ObjectListStoreController
+from generic.controllers import BaseController, ObjectListStoreController
 
 from atoms.models import AtomType
 from atoms.views import EditAtomTypeView
 
-class EditAtomTypeController(ChildController):
+class EditAtomTypeController(BaseController):
 
     def register_adapters(self):
         print "EditAtomTypeController.register_adapters()"

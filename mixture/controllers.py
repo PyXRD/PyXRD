@@ -14,7 +14,7 @@ from gtkmvc import Controller, Observer
 from gtkmvc.adapters import Adapter
 
 from generic.mathtext_support import create_pb_from_mathtext
-from generic.controllers import DialogController, DialogMixin, ChildController, ObjectListStoreController, HasObjectTreeview, get_color_val, ctrl_setup_combo_with_list
+from generic.controllers import DialogController, DialogMixin, BaseController, ObjectListStoreController, HasObjectTreeview, get_color_val, ctrl_setup_combo_with_list
 from generic.validators import FloatEntryValidator
 from generic.utils import get_case_insensitive_glob
 
@@ -116,6 +116,7 @@ class RefinementController(DialogController):
     def on_auto_restrict_clicked(self, event):
         self.model.auto_restrict()
         
+    @DialogController.status_message("Refining mixture...", "refine_mixture")
     def on_refine_clicked(self, event):
         self.view.show_refinement_info(self.model.refine, self.update_last_rp, self.on_complete, self.model.current_rp)
         
@@ -135,7 +136,7 @@ class RefinementController(DialogController):
         
     pass #end of class
         
-class EditMixtureController(ChildController):
+class EditMixtureController(BaseController):
 
     chicken_egg = False
     ref_view = None
@@ -169,7 +170,7 @@ class EditMixtureController(ChildController):
             self.model._del_phase_by_index(index)
             widget.disconnect(widget.get_data("deleventid"))
         
-        self.view.add_column(self.model.parent.data_phases, on_phase_delete, on_label_changed, on_fraction_changed, self.on_combo_changed, label=self.model.data_phases[index], fraction=self.model.data_fractions[index], phases=self.model.data_phase_matrix)
+        self.view.add_phase(self.model.parent.data_phases, on_phase_delete, on_label_changed, on_fraction_changed, self.on_combo_changed, label=self.model.data_phases[index], fraction=self.model.data_fractions[index], phases=self.model.data_phase_matrix)
     
     def add_specimen_view(self, index):
         def on_scale_changed(editable):
@@ -189,7 +190,7 @@ class EditMixtureController(ChildController):
             self.model._del_specimen_by_index(index)
             widget.disconnect(widget.get_data("deleventid"))
         
-        self.view.add_row(self.model.parent.data_phases, self.model.parent.specimens, on_specimen_delete, on_scale_changed, on_bgs_changed, on_specimen_changed, self.on_combo_changed, scale=self.model.data_scales[index], bgs=self.model.data_bgshifts[index], specimen=self.model.data_specimens[index], phases=self.model.data_phase_matrix)
+        self.view.add_specimen(self.model.parent.data_phases, self.model.parent.specimens, on_specimen_delete, on_scale_changed, on_bgs_changed, on_specimen_changed, self.on_combo_changed, scale=self.model.data_scales[index], bgs=self.model.data_bgshifts[index], specimen=self.model.data_specimens[index], phases=self.model.data_phase_matrix)
     
     # ------------------------------------------------------------
     #      Notifications of observable properties
@@ -243,8 +244,9 @@ class EditMixtureController(ChildController):
         if self.ref_view!=None: 
             self.ref_view.hide()
         else:
-            self.ref_view = RefinementView()
-            self.ref_ctrl = RefinementController(self.model, self.ref_view)
+            print self.parent
+            self.ref_view = RefinementView(parent=self.parent.view)
+            self.ref_ctrl = RefinementController(self.model, self.ref_view, parent=self)
         self.ref_view.present()        
     
     pass #end of class
@@ -263,6 +265,7 @@ class MixturesController(ObjectListStoreController):
         
     def get_new_edit_controller(self, obj, view, parent=None):
         if isinstance(obj, Mixture):
+            print "PARENT = %s" % parent
             return EditMixtureController(obj, view, parent=parent)
         else:
             return ObjectListStoreController.get_new_edit_controller(self, obj, view, parent=parent)

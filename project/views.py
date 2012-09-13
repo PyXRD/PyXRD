@@ -17,3 +17,16 @@ class ProjectView(DialogView):
     __widgets_to_hide__ = (
         "project_display_calc_color",
         "lbl_calccolor")
+
+    def __init__(self, *args, **kwargs):
+        DialogView.__init__(self, *args, **kwargs)
+        self["specimen_popup"].set_accel_group(self.parent["PyXRDGroup"])
+        self.parent["add_specimen"].connect_proxy(self["popup_menu_item_add_specimen"])
+        self.parent["edit_specimen"].connect_proxy(self["popup_menu_item_edit_specimen"])
+        self.parent["import_specimens"].connect_proxy(self["popup_menu_item_import_specimens"])
+        self.parent["del_specimen"].connect_proxy(self["popup_menu_item_del_specimen"])
+        
+    def specimens_popup(self, event):
+        self["specimen_popup"].popup(None, None, None, event.button, event.time)     
+        
+    pass #end of class

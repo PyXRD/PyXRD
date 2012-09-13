@@ -15,7 +15,7 @@ import settings
 
 from generic.utils import delayed
 from generic.model_mixins import ObjectListStoreParentMixin
-from generic.models import PyXRDModel, DefaultSignal, PropIntel, MultiProperty
+from generic.models import ChildModel, DefaultSignal, PropIntel, MultiProperty
 from generic.treemodels import ObjectListStore, IndexListStore
 from generic.io import Storable
 
@@ -25,7 +25,7 @@ from mixture.models import Mixture
 from phases.models import Phase
 from atoms.models import Atom, AtomType
 
-class Project(PyXRDModel, Storable, ObjectListStoreParentMixin):
+class Project(ChildModel, Storable, ObjectListStoreParentMixin):
 
 
     #MODEL INTEL:
@@ -137,7 +137,7 @@ class Project(PyXRDModel, Storable, ObjectListStoreParentMixin):
             axes_xscale=None, axes_xmin=None, axes_xmax=None, 
             axes_xstretch=None, axes_yscale=None, axes_yvisible=None,
             load_default_data=True, **kwargs):
-        PyXRDModel.__init__(self)
+        ChildModel.__init__(self, parent=kwargs.get("parent", None))
         Storable.__init__(self)
         
         self.before_needs_update_lock = False
@@ -272,9 +272,11 @@ class Project(PyXRDModel, Storable, ObjectListStoreParentMixin):
    
     def get_max_intensity(self):
         max_intensity = 0
-        if self.specimens:
-            for specimen in self.specimens._model_data:
-                max_intensity = max(specimen.max_intensity, max_intensity)
+        current_specimens = self.parent.current_specimens
+        for specimen in current_specimens:
+            #if self.specimens:
+            #    for specimen in self.specimens._model_data:
+            max_intensity = max(specimen.max_intensity, max_intensity)
         return max_intensity
    
     def freeze_updates(self):

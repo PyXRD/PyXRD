@@ -22,19 +22,23 @@ class SpecimenView(DialogView):
     resizable = False
     
     __widgets_to_hide__ = (
-        "entry_align_sample_length",
+        "entry_align_absolute_scale",
+        "lbl_spec_scale",
+        "bg_shift_align",
+        "lbl_spec_bgshift",
+        "absorption_align",
+        "absorption_lbl",
         "lbl_spec_length",
+        "entry_align_sample_length",
         "specimen_display_calculated",
+        "specimen_display_stats_in_lbl",
         "specimen_inherit_calc_color",
         "specimen_calc_color",
         "specimen_display_phases",
         "vbox_calculated_data_tv",
         "lbl_specimen_calculated",
         "vbox_exclusion_ranges_tv",
-        "lbl_tabexclusions",
-        "lbl_spec_scale",
-        "specimen_data_abs_scale",
-        "specimen_display_stats_in_lbl")
+        "lbl_tabexclusions",)
 
 class EditMarkerView(BaseView):
     builder = "specimen/glade/edit_marker.glade"

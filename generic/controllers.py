@@ -12,6 +12,7 @@ import gtk
 from gtkmvc import Controller
 from gtkmvc.adapters import Adapter
 
+from generic.treeview_tools import new_text_column, setup_treeview
 from generic.utils import retreive_lowercase_extension
 
 def ctrl_setup_combo_with_list(ctrl, combo, prop_name, list_prop_name):
@@ -141,8 +142,8 @@ class DialogMixin():
                     parent=parent,
                     flags=gtk.DIALOG_DESTROY_WITH_PARENT,
                     type=gtk.MESSAGE_WARNING,
-                    buttons=gtk.BUTTONS_YES_NO,
-                    message_format=message)
+                    buttons=gtk.BUTTONS_YES_NO)
+        dialog.set_markup(message)
         return self._run_dialog(dialog, on_accept_callback, on_reject_callback)
             
     def run_information_dialog(self, 
@@ -151,8 +152,8 @@ class DialogMixin():
                     parent=parent,
                     flags=gtk.DIALOG_DESTROY_WITH_PARENT,
                     type=gtk.MESSAGE_INFO,
-                    buttons=gtk.BUTTONS_OK,
-                    message_format=message)
+                    buttons=gtk.BUTTONS_OK)
+        dialog.set_markup(message)
         return self._run_dialog(dialog, None, None)
 
 
@@ -358,27 +359,27 @@ class ObjectListStoreMixin(HasObjectTreeview):
         """
             Can be overriden by sublcasses to provide custom columns
         """
-        tv.set_model(self.liststore)
-
-        sel = tv.get_selection()
-        if self.multi_selection:
-            sel.set_mode(gtk.SELECTION_MULTIPLE)
-        sel.connect('changed', self.objects_tv_selection_changed)
+        sel_mode = gtk.SELECTION_MULTIPLE if self.multi_selection else gtk.SELECTION_SINGLE
+        setup_treeview(
+            tv, self.liststore, 
+            sel_mode=sel_mode,
+            on_selection_changed=self.objects_tv_selection_changed)
         
         #reset:
         for col in tv.get_columns():
             tv.remove_column(col)
-
-        for name, colnr in self.columns:
-            rend = gtk.CellRendererText()
+        
+        #add columns
+        for i, (name, colnr) in enumerate(self.columns):
             try:
                 colnr = int(colnr)
             except:
                 colnr = getattr(self.liststore, str(colnr), colnr)
-            col = gtk.TreeViewColumn(name, rend, text=colnr)
-            col.set_resizable(False)
-            col.set_expand(False)
-            tv.append_column(col)
+            tv.append_column(new_text_column(
+                name, text_col=colnr,
+                resizable=(i==0),
+                expand=(i==0),
+                xalign=0.0 if i == 0 else 0.5))
 
     def set_object_sensitivities(self, value):
         if self.view.edit_view != None:

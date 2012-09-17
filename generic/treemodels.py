@@ -464,6 +464,7 @@ class ObjectTreeStore(_BaseObjectListStore, Storable):
         self.row_changed(self.get_path(itr), itr)
 
     def on_get_value(self, node, column):
+        
         return getattr(node.object, self._columns[column][0])
 
     def on_iter_next(self, node):

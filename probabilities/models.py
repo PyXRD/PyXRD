@@ -54,12 +54,9 @@ def get_Rbounds_for_G(G, R):
         raise ValueError, "Cannot yet handle %d layer structures!" % G
     return (low, upp, max(min(R, upp), low))
 
-def get_correct_probability_model(phase):
+def get_correct_probability_model(phase, R, G):
     global RGbounds
     if phase!=None:
-        G = phase.data_G
-        R = phase.data_R
-        
         if (RGbounds[R,G-1] > 0):
             class_name = "R%dG%dModel" % (R,G)
             return globals()[class_name](parent=phase)

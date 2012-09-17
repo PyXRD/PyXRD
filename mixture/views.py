@@ -14,15 +14,6 @@ from generic.views import BaseView, DialogView
 from generic.widgets import ThreadedTaskBox
 from generic.validators import FloatEntryValidator
 
-#class BusyView(BaseView):
-#    title = "Refinement"
-#    builder = "mixture/glade/busy.glade"
-#    top = "busy_window"
-#    
-#    def set_R(self, value):
-#        self["lbl_R"].set_text("%.2f" % value)
-
-
 class RefinementView(DialogView):
     title = "Refine Phase Parameters"
     subview_builder = "mixture/glade/refinement.glade"
@@ -150,7 +141,7 @@ class EditMixtureView(BaseView): #TODO add delete buttons as well!
         self.phase_combos.resize((c-self.base_width, r+1-self.base_height))
         for col in range(c-self.base_width):
             mcol, mrow = r-self.base_width, col
-            self.__add_new_phase_combo__(phase_store, phase_store.c_data_name, phases[mrow, mcol], mrow, mcol, combo_callback)
+            self.__add_new_phase_combo__(phase_store, phase_store.c_name, phases[mrow, mcol], mrow, mcol, combo_callback)
         
         self.wrapper.show_all()
     
@@ -166,7 +157,7 @@ class EditMixtureView(BaseView): #TODO add delete buttons as well!
         new_specimen_del_btn.set_data("deleventid", rid)
         self.matrix.attach(new_specimen_del_btn, c, c+1, 0, 1, gtk.EXPAND|gtk.FILL, 0)        
         
-        new_specimen_combo = self.__get_new_combo__(specimen_store, specimen_store.c_data_name, default=specimen, callback=specimen_callback)
+        new_specimen_combo = self.__get_new_combo__(specimen_store, specimen_store.c_name, default=specimen, callback=specimen_callback)
         self.specimen_combos.append(new_specimen_combo)
         self.matrix.attach(new_specimen_combo, c, c+1, 1, 2, gtk.EXPAND|gtk.FILL, 0)
         
@@ -183,7 +174,7 @@ class EditMixtureView(BaseView): #TODO add delete buttons as well!
         self.phase_combos.resize((c+1-self.base_width, r-self.base_height))
         for row in range(r-self.base_height):
             mcol, mrow = row, c-self.base_width
-            self.__add_new_phase_combo__(phase_store, phase_store.c_data_name, phases[mrow, mcol], mrow, mcol, combo_callback)
+            self.__add_new_phase_combo__(phase_store, phase_store.c_name, phases[mrow, mcol], mrow, mcol, combo_callback)
         self.wrapper.show_all()
 
     def __get_new_input__(self, text="", width=7, callback=None):

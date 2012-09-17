@@ -20,7 +20,7 @@ import settings
 
 from generic.utils import get_case_insensitive_glob, delayed
 from generic.controllers import BaseController, DialogMixin
-from generic.plot_controllers import MainPlotController, EyedropperCursorPlot
+from generic.plot.controllers import MainPlotController, EyedropperCursorPlot
 
 from project.controllers import ProjectController
 from project.models import Project
@@ -37,6 +37,9 @@ class AppController (BaseController, DialogMixin):
     file_filters = [("PyXRD Project files", get_case_insensitive_glob("*.pyxrd", "*.zpd")),
                     ("All Files", "*.*")]
 
+    # ------------------------------------------------------------
+    #      Initialisation and other internals
+    # ------------------------------------------------------------
     def __init__(self, model, view, spurious=False, auto_adapt=False, parent=None):
         BaseController.__init__(self, model, view, spurious=spurious, auto_adapt=auto_adapt, parent=parent)
         
@@ -68,6 +71,7 @@ class AppController (BaseController, DialogMixin):
     def reset_project_controller(self):
         self.view.reset_all_views()
         self.project = ProjectController(self.model.current_project, self.view.project, parent=self)
+        self.goniometer = GoniometerController(self.model.current_project.goniometer, self.view.goniometer, parent=self)
         self.phases = PhasesController(self.model.current_project, self.view.phases, parent=self)
         self.atom_types = AtomTypesController(self.model.current_project, self.view.atom_types, parent=self)
         self.mixtures = MixturesController(self.model.current_project, self.view.mixtures, parent=self)
@@ -80,75 +84,59 @@ class AppController (BaseController, DialogMixin):
         else:
             self.markers = None
             self.statistics = None
+
+    # ------------------------------------------------------------
+    #      Notifications of observable properties
+    # ------------------------------------------------------------
+    @Controller.observe("needs_plot_update", signal=True)        
+    @Controller.observe("needs_update", signal=True)
+    def notif_needs_update(self, model, prop_name, info):
+        self.redraw_plot()
+        return
+        
+    @Controller.observe("current_project", assign=True, after=True)
+    def notif_project_update(self, model, prop_name, info):
+        self.reset_project_controller ()
+        self.update_project_sensitivities ()
+        return
+
+    @Controller.observe("current_specimen", assign=True, after=True)
+    @Controller.observe("current_specimens", assign=True, after=True)
+    def notif_specimen_changed(self, model, prop_name, info):
+        self.reset_specimen_controller ()
+        self.update_specimen_sensitivities()
+        self.redraw_plot()
+        return
     
-    @BaseController.status_message("Displaying specimen...", "edit_specimen")
-    def edit_specimen(self, specimen, title="Edit Specimen"):
-        self.view.specimen.set_title(title)
-        self.view.specimen.present()
-        return True
+    @Controller.observe("statistics_visible", assign=True, after=True)
+    def notif_statistics_toggle(self, model, prop_name, info):
+        self.redraw_plot()
+        return
 
-    @BaseController.status_message("Displaying phases...", "edit_phases")
-    def edit_phases(self):
-        if self.model.current_project is not None:
-            self.view.phases.present()
-        return True
-
-    @BaseController.status_message("Displaying atom types...", "edit_atom_types")
-    def edit_atom_types(self):
-        if self.model.current_project is not None:
-            self.view.atom_types.present()
-        return True
-
-    @BaseController.status_message("Displaying mixtures...", "edit_mixtures")
-    def edit_mixtures(self):
-        if self.model.current_project is not None:
-            self.view.mixtures.present()
-        return True
-
-    @BaseController.status_message("Displaying markers...", "edit_markers")
-    def edit_markers(self):
-        if self.model.current_specimen is not None:
-            self.view.markers.present()
-        return True
-
-
+    # ------------------------------------------------------------
+    #      View updating
+    # ------------------------------------------------------------
     in_update_cycle = False
     @delayed(lock="in_update_cycle")
     @BaseController.status_message("Updating display...")
     def redraw_plot(self):
-        if not self.in_update_cycle:
+        if not self.in_update_cycle: #prevent never-ending update loops
             self.in_update_cycle = True
             
             single = self.model.single_specimen_selected
-            labels = []
-                        
-            self.plot_controller.unregister_all()
-            
-            if self.model.current_specimens is not None:
-                num_species = len(self.model.current_specimens)
-                offset_increment = self.model.current_project.display_plot_offset
-                offset = 0
-                i = 0
-                for specimen in self.model.current_specimens[::-1]:
-                    specimen.set_display_offset(offset)
-                    self.plot_controller.register(specimen, "on_update_plot", last=False)
-                    self.plot_controller.register(specimen, "on_update_hatches", last=True)
-                    for marker in specimen.data_markers._model_data:
-                        self.plot_controller.register(marker, "on_update_plot", last=True)
-                    labels.append((specimen.data_label, self.model.current_project.display_label_pos + offset))
-                    offset += offset_increment
-                    i += 1
         
+            # check if we should display statistics:
             stats = (False, None)
             if single and self.model.statistics_visible:
-                stats = (True, self.model.current_specimen.statistics.data_residual_pattern)
+                stats = (True, self.model.current_specimen.statistics.residual_pattern)
       
+            # let the plot controller update this:
             self.plot_controller.update(
                 clear=True,
                 single=single,
-                labels=labels,
                 stats=stats,
-                project=self.model.current_project)
+                project=self.model.current_project,
+                specimens=self.model.current_specimens[::-1])
             
             self.in_update_cycle = False
         
@@ -172,6 +160,9 @@ class AppController (BaseController, DialogMixin):
         sensitive = sensitive or (self.model.current_specimens is not None and len(self.model.current_specimens) >= 1)      
         self.view["specimens_actions"].set_sensitive(sensitive)
         
+    # ------------------------------------------------------------
+    #      Loading and saving of projects
+    # ------------------------------------------------------------
     def save_project(self, filename=None):
         filename = filename or self.model.current_filename
         
@@ -204,34 +195,7 @@ class AppController (BaseController, DialogMixin):
             print error
         
     # ------------------------------------------------------------
-    #      Notifications of observable properties
-    # ------------------------------------------------------------
-    @Controller.observe("needs_plot_update", signal=True)        
-    @Controller.observe("needs_update", signal=True)
-    def notif_needs_update(self, model, prop_name, info):
-        self.redraw_plot()
-        return
-        
-    @Controller.observe("current_project", assign=True, after=True)
-    def notif_project_update(self, model, prop_name, info):
-        self.reset_project_controller ()
-        self.update_project_sensitivities ()
-        return
-
-    @Controller.observe("current_specimen", assign=True, after=True)
-    @Controller.observe("current_specimens", assign=True, after=True)
-    def notif_specimen_changed(self, model, prop_name, info):
-        self.reset_specimen_controller ()
-        self.update_specimen_sensitivities()
-        self.redraw_plot()
-        return
-    
-    @Controller.observe("statistics_visible", assign=True, after=True)
-    def notif_statistics_toggle(self, model, prop_name, info):
-        self.redraw_plot()
-        return
-    # ------------------------------------------------------------
-    #      GTK Signal handlers
+    #      GTK Signal handlers - general
     # ------------------------------------------------------------
     def on_statistics_expand(self, widget, param_spec, data=None):
         self.model.statistics_visible = widget.get_expanded()
@@ -252,6 +216,54 @@ class AppController (BaseController, DialogMixin):
         else:
             return on_accept(None)
 
+    def on_menu_item_quit_activate (self, widget, data=None):
+        self.view.get_toplevel().destroy()
+        return True
+
+    def on_refresh_graph(self, event):
+        if self.model.current_project:
+            self.model.current_project.needs_update.emit()
+
+    def on_save_graph(self, event):
+        filename = None
+        if self.model.single_specimen_selected:
+            filename = os.path.splitext(self.model.current_specimen.name)[0]
+        else:
+            filename = self.model.current_project.name
+        self.plot_controller.save(
+            parent=self.view.get_toplevel(), 
+            suggest_name=filename, 
+            num_specimens=len(self.model.current_specimens), 
+            offset=self.model.current_project.display_plot_offset)
+         
+    def on_sample_point(self, event):
+        self.cid = -1
+        self.fig = self.plot_controller.figure
+        self.ret = self.view.get_toplevel()
+        
+        self.edc = EyedropperCursorPlot(self.plot_controller.canvas, self.plot_controller.canvas.get_window(), True, True)
+        
+        x_pos = -1
+        def onclick(event):
+            if event.inaxes:
+                x_pos = event.xdata
+            if self.cid != -1:
+                self.fig.canvas.mpl_disconnect(self.cid)
+            if self.edc != None:
+                self.edc.enabled = False
+                self.edc.disconnect()
+                
+            exp_xy = self.model.current_specimen.experimental_pattern.xy_data.interpolate(x_pos)[0]
+            calc_xy = self.model.current_specimen.calculated_pattern.xy_data.interpolate(x_pos)[0]
+            
+            self.run_information_dialog("Sampled point:\n\tExperimental data:\t( %.4f , %.4f )\n\tCalculated data:\t\t( %.4f , %.4f )" % (exp_xy + calc_xy), parent=self.view.get_toplevel())
+                
+            self.ret.present()
+        self.cid = self.fig.canvas.mpl_connect('button_press_event', onclick)
+
+    # ------------------------------------------------------------
+    #      GTK Signal handlers - Project related
+    # ------------------------------------------------------------
     @BaseController.status_message("Creating new project...", "new_project")
     def on_new_project_activate(self, widget, data=None):
         def on_accept(dialog):
@@ -310,15 +322,23 @@ class AppController (BaseController, DialogMixin):
                              on_accept_callback=on_accept,
                              parent=self.view.get_top_widget())
 
+    # ------------------------------------------------------------
+    #      GTK Signal handlers - Mixtures related
+    # -----------------------------------------------------------
+    @BaseController.status_message("Displaying mixtures view...", "edit_mixtures")    
     def on_edit_mixtures(self, widget, data=None):
-        self.edit_mixtures()
+        if self.model.current_project is not None:
+            self.view.mixtures.present()
         pass
 
-    @BaseController.status_message("Displaying goniometer data...", "edit_gonio")
-    def on_edit_gonio_activate(self, widget, data=None):
-        self.goniometer = GoniometerController(self.model.current_project.data_goniometer, self.view.goniometer, parent=self)
-        self.view.goniometer.present()
-
+    # ------------------------------------------------------------
+    #      GTK Signal handlers - Specimen related
+    # ------------------------------------------------------------
+    @BaseController.status_message("Displaying specimen...", "edit_specimen")    
+    def on_edit_specimen_activate(self, event):
+        self.view.specimen.present()
+        return True
+        
     def on_specimens_treeview_popup_menu(self, widget, data=None):
         self.view["specimen_popup"].popup(None, None, None, 0, 0)
         return True
@@ -327,19 +347,15 @@ class AppController (BaseController, DialogMixin):
     def on_add_specimen_activate(self, event):
         specimen = Specimen(parent=self.model.current_project)
         self.view["specimens_treeview"].set_cursor(self.model.current_project.specimens.append(specimen))
-        self.edit_specimen(specimen, title="Create New Specimen")
+        self.view.specimen.present()
         return True
 
     def on_add_multiple_specimens(self, event):        
         self.project.import_multiple_specimen()        
         return True
 
-    def on_edit_specimen_activate(self, event):
-        self.edit_specimen(self.project.get_selected_object())
-        return True
-
-    @BaseController.status_message("Deleting specimen...", "del_specimen")
-    def on_del_specimen_activate(self, event):   #FIXME move this to the project level
+    @BaseController.status_message("Deleting specimen view...", "del_specimen")
+    def on_del_specimen_activate(self, event):
         tv = self.view['specimens_treeview']
         selection = tv.get_selection()
         if selection.count_selected_rows() >= 1:
@@ -367,62 +383,38 @@ class AppController (BaseController, DialogMixin):
             self.specimen.shift_data()
         return True
 
+    # ------------------------------------------------------------
+    #      GTK Signal handlers - Phases related
+    # ------------------------------------------------------------
+    @BaseController.status_message("Displaying phases view...", "edit_phases")
     def on_edit_phases_activate(self, event):
-        self.edit_phases()
+        if self.model.current_project is not None:
+            self.view.phases.present()
         return True
 
+    # ------------------------------------------------------------
+    #      GTK Signal handlers - Atom Types related
+    # ------------------------------------------------------------
+    @BaseController.status_message("Displaying atom types view...", "edit_atom_types")
     def on_edit_atom_types_activate(self, event):
-        self.edit_atom_types()
+        if self.model.current_project is not None:
+            self.view.atom_types.present()
         return True
 
+    # ------------------------------------------------------------
+    #      GTK Signal handlers - Markers related
+    # ------------------------------------------------------------
+    @BaseController.status_message("Displaying markers view...", "edit_markers")
     def on_edit_markers_activate(self, event):
-        self.edit_markers()
+        if self.model.current_specimen is not None:
+            self.view.markers.present()
         return True
 
-    def on_menu_item_quit_activate (self, widget, data=None):
-        self.view.get_toplevel().destroy()
-        return True
-
-    def on_refresh_graph(self, event):
-        if self.model.current_project:
-            self.model.current_project.needs_update.emit()
-
-    def on_save_graph(self, event):
-        filename = None
-        if self.model.single_specimen_selected:
-            filename = os.path.splitext(self.model.current_specimen.data_name)[0]
-        else:
-            filename = self.model.current_project.name
-        self.plot_controller.save(
-            parent=self.view.get_toplevel(), 
-            suggest_name=filename, 
-            num_specimens=len(self.model.current_specimens), 
-            offset=self.model.current_project.display_plot_offset)
-         
-    def on_sample_point(self, event):
-        self.cid = -1
-        self.fig = self.plot_controller.figure
-        self.ret = self.view.get_toplevel()
-        
-        self.edc = EyedropperCursorPlot(self.plot_controller.canvas, self.plot_controller.canvas.get_window(), True, True)
-        
-        x_pos = -1
-        def onclick(event):
-            if event.inaxes:
-                x_pos = event.xdata
-            if self.cid != -1:
-                self.fig.canvas.mpl_disconnect(self.cid)
-            if self.edc != None:
-                self.edc.enabled = False
-                self.edc.disconnect()
-                
-            exp_xy = self.model.current_specimen.data_experimental_pattern.xy_data.interpolate(x_pos)[0]
-            calc_xy = self.model.current_specimen.data_calculated_pattern.xy_data.interpolate(x_pos)[0]
-            
-            self.run_information_dialog("Sampled point:\n\tExperimental data:\t( %.4f , %.4f )\n\tCalculated data:\t\t( %.4f , %.4f )" % (exp_xy + calc_xy), parent=self.view.get_toplevel())
-                
-            self.ret.present()
-        self.cid = self.fig.canvas.mpl_connect('button_press_event', onclick)
-
+    # ------------------------------------------------------------
+    #      GTK Signal handlers - Goniometer related
+    # ------------------------------------------------------------
+    @BaseController.status_message("Displaying goniometer data...", "edit_gonio")
+    def on_edit_gonio_activate(self, widget, data=None):
+        self.view.goniometer.present()
 
     pass # end of class

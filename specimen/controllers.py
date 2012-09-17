@@ -14,7 +14,7 @@ import numpy as np
 from gtkmvc import Controller, Observer
 from gtkmvc.adapters import Adapter
 
-from generic.plot_controllers import DraggableVLine, EyedropperCursorPlot
+from generic.plot.controllers import DraggableVLine, EyedropperCursorPlot
 from generic.treemodels import XYListStore
 from generic.controllers import DialogController, DialogMixin, BaseController, ObjectListStoreController, HasObjectTreeview, get_color_val, ctrl_setup_combo_with_list
 from generic.validators import FloatEntryValidator
@@ -36,69 +36,69 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
     
     def update_calc_treeview(self):
         tv = self.view['calculated_data_tv']
-        model = self.model.data_calculated_pattern.xy_store
+        model = self.model.calculated_pattern.xy_store
         
         for column in tv.get_columns():
             tv.remove_column(column)
-               
-        def get_num(column, cell, model, itr, colnr):
-            cell.set_property('text', '%.3f' % model.get_value(itr, colnr))
         
-        tv.append_column(new_text_column(u'2θ', model.c_x, data_func=get_num))
-        tv.append_column(new_text_column(u'Cal', model.c_x, data_func=get_num))        
+        def get_num(column, cell, model, itr, *data):
+            cell.set_property('text', '%.3f' % model.get_value(itr, column.get_col_attr('text')))
+        
+        tv.append_column(new_text_column(u'2θ', text_col=model.c_x, data_func=get_num))
+        tv.append_column(new_text_column(u'Cal', text_col=model.c_x, data_func=get_num))        
         for i in range(model.get_n_columns()-3):
             tv.append_column(new_text_column(
-                model.get_y_name(i), i+2, data_func=get_num))
+                model.get_y_name(i), text_col=i+2, data_func=get_num))
     
     def register_adapters(self):
         if self.model is not None:
             for name in self.model.get_properties():
-                if name == "data_name":
-                    ad = Adapter(self.model, "data_name")
-                    ad.connect_widget(self.view["specimen_data_name"])
+                if name == "name":
+                    ad = Adapter(self.model, "name")
+                    ad.connect_widget(self.view["specimen_name"])
                     self.adapt(ad)
-                elif name == "data_experimental_pattern":
+                elif name == "experimental_pattern":
                     #Setup treeview:
                     tv = self.view['experimental_data_tv']
-                    model = self.model.data_experimental_pattern.xy_store
+                    model = self.model.experimental_pattern.xy_store
                     setup_treeview(tv, model,
                         on_cursor_changed=self.on_exp_data_tv_cursor_changed,
                         sel_mode=gtk.SELECTION_MULTIPLE)
                     #X Column:
                     tv.append_column(new_text_column(
-                        u'°2θ', model.c_x, editable=True,
+                        u'°2θ', text_col=model.c_x, editable=True,
                         edited_callback=(self.on_xy_data_cell_edited, (model, model.c_x))))
                     #Y Column:
                     tv.append_column(new_text_column(
-                        u'Intensity', model.c_y, editable=True,
+                        u'Intensity', text_col=model.c_y, editable=True,
                         edited_callback=(self.on_xy_data_cell_edited, (model, model.c_y))))
-                elif name == "data_calculated_pattern":
+                elif name == "calculated_pattern":
                     tv = self.view['calculated_data_tv']
-                    model = self.model.data_calculated_pattern.xy_store
+                    model = self.model.calculated_pattern.xy_store
                     setup_treeview(tv, model,
                         on_cursor_changed=self.on_exp_data_tv_cursor_changed,
                         on_columns_changed=self.on_calc_treestore_changed,
                         sel_mode=gtk.SELECTION_NONE)
                     self.update_calc_treeview()
-                elif name == "data_exclusion_ranges":
+                elif name == "exclusion_ranges":
                     tv = self.view['exclusion_ranges_tv']
-                    model = self.model.data_exclusion_ranges
+                    model = self.model.exclusion_ranges
                     setup_treeview(tv, model,
                         on_cursor_changed=self.on_exclusion_ranges_tv_cursor_changed,
                         sel_mode=gtk.SELECTION_MULTIPLE)
                     tv.append_column(new_text_column(
-                        u'From [°2θ]', model.c_x, editable=True,
+                        u'From [°2θ]', text_col=model.c_x, editable=True,
                         edited_callback=(self.on_xy_data_cell_edited, (model, model.c_x)), 
                         resizable=True, expand=True))
                     tv.append_column(new_text_column(
-                        u'To [°2θ]', model.c_y, editable=True,
+                        u'To [°2θ]', text_col=model.c_y, editable=True,
                         edited_callback=(self.on_xy_data_cell_edited, (model, model.c_y)),
                         resizable=True, expand=True))
                 elif name in ["calc_color", "exp_color"]:
                     ad = Adapter(self.model, name)
                     ad.connect_widget(self.view["specimen_%s" % name], getter=get_color_val)
                     self.adapt(ad)
-                elif name in ("data_sample_length", "data_abs_scale", "data_bg_shift"):
+                elif name in ("sample_length", "abs_scale", "bg_shift"):
                     FloatEntryValidator(self.view["specimen_%s" % name])
                     self.adapt(name)
                 elif not name in self.model.__have_no_widget__:
@@ -122,17 +122,17 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
 
     def remove_background(self):
         bg_view = BackgroundView(parent=self.view)
-        bg_ctrl = BackgroundController(self.model.data_experimental_pattern, bg_view, parent=self)
+        bg_ctrl = BackgroundController(self.model.experimental_pattern, bg_view, parent=self)
         bg_view.present()
 
     def smooth_data(self):
         sd_view = SmoothDataView(parent=self.view)
-        sd_ctrl = SmoothDataController(self.model.data_experimental_pattern, sd_view, parent=self)
+        sd_ctrl = SmoothDataController(self.model.experimental_pattern, sd_view, parent=self)
         sd_view.present()
         
     def shift_data(self):
         sh_view = ShiftDataView(parent=self.view)
-        sh_ctrl = ShiftDataController(self.model.data_experimental_pattern, sh_view, parent=self)
+        sh_ctrl = ShiftDataController(self.model.experimental_pattern, sh_view, parent=self)
         sh_view.present()
         
     # ------------------------------------------------------------
@@ -165,13 +165,13 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
         return True
 
     def on_add_experimental_data_clicked(self, widget):
-        model = self.model.data_experimental_pattern.xy_store
+        model = self.model.experimental_pattern.xy_store
         path = model.append(0,0)
         self.set_selected_paths(self.view["experimental_data_tv"], (path,))
         return True
         
     def on_add_exclusion_range_clicked(self, widget):
-        model = self.model.data_exclusion_ranges
+        model = self.model.exclusion_ranges
         path = model.append(0,0)
         self.set_selected_paths(self.view["exclusion_ranges_tv"], (path,))
         return True        
@@ -179,14 +179,14 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
     def on_del_experimental_data_clicked(self, widget):
         paths = self.get_selected_paths(self.view["experimental_data_tv"])
         if paths != None:
-            model = self.model.data_experimental_pattern.xy_store
+            model = self.model.experimental_pattern.xy_store
             model.remove_from_index(*paths)
         return True
         
     def on_del_exclusion_ranges_clicked(self, widget):
         paths = self.get_selected_paths(self.view["exclusion_ranges_tv"])
         if paths != None:
-            model = self.model.data_exclusion_ranges
+            model = self.model.exclusion_ranges
             model.remove_from_index(*paths)
         return True        
 
@@ -201,7 +201,7 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
             def on_accept(dialog):
                 filename = dialog.get_filename()
                 if filename[-3:].lower() == "exc":
-                    self.model.data_exclusion_ranges.load_data(filename, format="DAT")
+                    self.model.exclusion_ranges.load_data(filename, format="DAT")
             self.run_load_dialog(title="Import exclusion ranges",
                                  on_accept_callback=on_accept, 
                                  parent=self.view.get_top_widget(),
@@ -213,7 +213,7 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
         def on_accept(dialog):
             filename = self.extract_filename(dialog, filters=self.excl_filters)
             if filename[-3:].lower() == "exc":
-                self.model.data_exclusion_ranges.save_data("%s %s" % (self.model.data_name, self.model.data_sample), filename)
+                self.model.exclusion_ranges.save_data("%s %s" % (self.model.name, self.model.sample), filename)
         self.run_save_dialog(title="Select file for exclusion ranges export",
                              on_accept_callback=on_accept, 
                              parent=self.view.get_top_widget(),
@@ -224,9 +224,9 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
             def on_accept(dialog):
                 filename = dialog.get_filename()
                 if filename[-3:].lower() == "dat":
-                    self.model.data_experimental_pattern.load_data(filename, format="DAT", clear=True)
+                    self.model.experimental_pattern.load_data(filename, format="DAT", clear=True)
                 if filename[-2:].lower() == "rd":
-                    self.model.data_experimental_pattern.load_data(filename, format="BIN", clear=True)
+                    self.model.experimental_pattern.load_data(filename, format="BIN", clear=True)
             self.run_load_dialog(title="Open XRD file for import",
                                  on_accept_callback=on_accept, 
                                  parent=self.view.get_top_widget())
@@ -238,7 +238,7 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
         def on_accept(dialog):
             filename = self.extract_filename(dialog)
             if filename[-3:].lower() == "dat":
-                self.model.data_experimental_pattern.save_data(filename)
+                self.model.experimental_pattern.save_data(filename)
             if filename[-2:].lower() == "rd":
                 self.run_information_dialog("RD file format not supported (yet)!", parent=self.view.get_top_widget())
         self.run_save_dialog(title="Select file for export",
@@ -250,7 +250,7 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
         def on_accept(dialog):
             filename = self.extract_filename(dialog)
             if filename[-3:].lower() == "dat":
-                self.model.data_calculated_pattern.save_data(filename)
+                self.model.calculated_pattern.save_data(filename)
             if filename[-2:].lower() == "rd":
                 self.run_information_dialog("RD file format not supported (yet)!", parent=self.view.get_top_widget())
         self.run_save_dialog(title="Select file for export",
@@ -398,21 +398,21 @@ class EditMarkerController(BaseController):
     def register_adapters(self):
         if self.model is not None:
             for name in self.model.get_properties():
-                if name == "data_color":
-                    ad = Adapter(self.model, "data_color")
-                    ad.connect_widget(self.view["marker_data_color"], getter=get_color_val)
+                if name == "color":
+                    ad = Adapter(self.model, "color")
+                    ad.connect_widget(self.view["marker_color"], getter=get_color_val)
                     self.adapt(ad)
-                elif name == "data_style":
+                elif name == "style":
                     ctrl_setup_combo_with_list(self, 
-                        self.view["marker_data_style"],
-                        "data_style", "_data_styles")
-                elif name == "data_base":
+                        self.view["marker_style"],
+                        "style", "_styles")
+                elif name == "base":
                     ctrl_setup_combo_with_list(self,
-                        self.view["marker_data_base"],
-                        "data_base", "_data_bases")
-                elif name in ("data_position", "data_angle", "data_x_offset", "data_y_offset"):
+                        self.view["marker_base"],
+                        "base", "_bases")
+                elif name in ("position", "angle", "x_offset", "y_offset"):
                     FloatEntryValidator(self.view["marker_%s" % name])
-                    self.adapt(name)
+                    self.adapt(name, "marker_%s" % name)
                 elif not name in self.model.__have_no_widget__:
                     self.adapt(name)
                 self.view["entry_nanometer"].set_text("%f" % self.model.get_nm_position())
@@ -420,14 +420,14 @@ class EditMarkerController(BaseController):
             return
             
     def update_sensitivities(self):
-        self.view["marker_data_angle"].set_sensitive(not self.model.inherit_angle)
+        self.view["marker_angle"].set_sensitive(not self.model.inherit_angle)
     
     # ------------------------------------------------------------
     #      Notifications of observable properties
     # ------------------------------------------------------------   
-    @Controller.observe("data_position", assign=True, after=True)
+    @Controller.observe("position", assign=True, after=True)
     def notif_parameter_changed(self, model, prop_name, info):
-        if prop_name=="data_position":
+        if prop_name=="position":
             self.view["entry_nanometer"].set_text("%f" % self.model.get_nm_position())
 
     @Controller.observe("inherit_angle", assign=True)
@@ -442,7 +442,7 @@ class EditMarkerController(BaseController):
         itr = combo.get_active_iter()
         if itr != None:
             val = combo.get_model().get_value(itr, 0)
-            self.model.data_style = val
+            self.model.style = val
             
     def on_nanometer_changed(self, widget):
         try:
@@ -453,10 +453,10 @@ class EditMarkerController(BaseController):
         
     def on_sample_clicked(self, widget):
         self.cid = -1
-        self.fig = self.cparent.plot_controller.figure
+        self.fig = self.parent.plot_controller.figure
         self.ret = self.view.get_toplevel()
         
-        self.edc = EyedropperCursorPlot(self.cparent.plot_controller.canvas, self.cparent.plot_controller.canvas.get_window(), True, True)
+        self.edc = EyedropperCursorPlot(self.parent.plot_controller.canvas, self.parent.plot_controller.canvas.get_window(), True, True)
         
         def onclick(event):
             x_pos = -1
@@ -469,17 +469,17 @@ class EditMarkerController(BaseController):
                 self.edc.disconnect()
             self.ret.present()
             if x_pos != -1:
-                self.model.data_position = x_pos
+                self.model.position = x_pos
                 
         self.cid = self.fig.canvas.mpl_connect('button_press_event', onclick)
         self.view.get_toplevel().hide()
-        self.cparent.view.get_toplevel().present()
+        self.parent.view.get_toplevel().present()
 
 class MarkersController(ObjectListStoreController):
 
     file_filters = ("Marker file", get_case_insensitive_glob("*.MRK")),
-    model_property_name = "data_markers"
-    columns = [ ("Marker label", "c_data_label") ]
+    model_property_name = "markers"
+    columns = [ ("Marker label", "c_label") ]
     delete_msg = "Deleting a marker is irreverisble!\nAre You sure you want to continue?"
     title="Edit Markers"
 
@@ -501,7 +501,7 @@ class MarkersController(ObjectListStoreController):
     def on_load_object_clicked(self, event):
         def on_accept(dialog):
             print "Importing markers..."
-            Marker.get_from_csv(dialog.get_filename(), self.model.data_markers.append)
+            Marker.get_from_csv(dialog.get_filename(), self.model.markers.append)
         self.run_load_dialog("Import markers", on_accept, parent=self.view.get_top_widget())
 
 
@@ -517,9 +517,9 @@ class MarkersController(ObjectListStoreController):
             
     def on_find_peaks_clicked(self, widget):        
         def after_cb(threshold):
-            if len(self.model.data_markers._model_data) > 0:            
+            if len(self.model.markers._model_data) > 0:            
                 def on_accept(dialog):
-                    self.model.data_markers.clear()
+                    self.model.markers.clear()
                 self.run_confirmation_dialog("Do you want to clear the current markers for this pattern?",
                                              on_accept, parent=self.view.get_top_widget())
             self.model.auto_add_peaks(threshold)

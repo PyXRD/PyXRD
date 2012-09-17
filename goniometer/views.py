@@ -19,3 +19,7 @@ class GoniometerView (DialogView):
     @property
     def import_combo_box(self):
         return self["cmb_import_gonio"]
+
+    @property
+    def wavelength_combo_box(self):
+        return self["wavelength_combo_box"]

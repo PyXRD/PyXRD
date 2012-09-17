@@ -6,6 +6,8 @@
 # To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/3.0/ or send
 # a letter to Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
 
+from traceback import print_exc
+
 import gtk
 from gtkmvc.view import View
 
@@ -44,17 +46,17 @@ class BaseView(View):
     def add_scale_widget(self, intel, prefix="default_%s", container=None, enforce_range=True):
         if not isinstance(container, gtk.Widget):
             container = self[container or "container_%s" % intel.name]
+            if container==None:
+                print "Scale widget container not found for '%s'!" % intel.name
+                return None
         name = prefix % intel.name
-        try:
-            child = container.get_child()
-            if child is not None:
-                container.remove(child)
-            inp = ScaleEntry(intel.minimum, intel.maximum, enforce_range=enforce_range)
-            self[name] = inp
-            container.add(inp)
-            inp.show_all()
-        except:
-            raise
+        child = container.get_child()
+        if child is not None:
+            container.remove(child)
+        inp = ScaleEntry(intel.minimum, intel.maximum, enforce_range=enforce_range)
+        self[name] = inp
+        container.add(inp)
+        inp.show_all()       
         return inp
     
     def _hide_widgets(self):

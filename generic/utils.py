@@ -7,6 +7,7 @@
 # a letter to Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
 
 import os
+import csv
 from math import exp, sqrt, log, pi
 import inspect
 import time
@@ -20,6 +21,16 @@ sqrtpi = sqrt(pi)
 sqrt2pi = sqrt(2*pi)
 sqrt8 = sqrt(8) 
     
+def create_valuestore_from_file(filename, data_type=float):
+    liststore = gtk.ListStore(str, data_type)
+    with open(filename, 'r') as f:
+        reader = csv.reader(f)
+        reader.next() #skip header
+        for row in reader:
+            row[1] = data_type(row[1])
+            liststore.append(row)
+    return liststore
+    
 def create_treestore_from_directory(directory, extension):
     treestore = gtk.TreeStore(str,str, bool)
     treestore.append(None, ("", "", True))
@@ -31,7 +42,6 @@ def create_treestore_from_directory(directory, extension):
         for filename in filenames:
             treestore.append(parents.get(root, None), (filename[:-ext_len], "%s/%s" % (root, filename), True))   
     return treestore
-    
     
 def recgetattr(obj, attr):
     return reduce(getattr, attr.split("."), obj)

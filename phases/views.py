@@ -183,16 +183,16 @@ class EditCSDSDistributionView(BaseView):
 class AddPhaseView(DialogView):
     title = "Add Phase"
     subview_builder = "phases/glade/addphase.glade"
-    subview_toplevel = "add_phase_box"
+    subview_toplevel = "add_phase_container"
        
     def __init__(self, *args, **kwargs):
         DialogView.__init__(self, *args, **kwargs)
        
     def get_G(self):
-        return int(self["data_G"].get_value_as_int())
+        return int(self["G"].get_value_as_int())
         
     def get_R(self):
-        return int(self["data_R"].get_value_as_int())
+        return int(self["R"].get_value_as_int())
         
     def get_phase(self):
         itr = self["cmb_default_phases"].get_active_iter()

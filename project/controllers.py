@@ -17,6 +17,7 @@ from gtkmvc.adapters import Adapter
 
 import settings
 
+from generic.treeview_tools import new_text_column, new_toggle_column, new_pb_column
 from generic.validators import FloatEntryValidator 
 from generic.controllers import BaseController, DialogController, ObjectListStoreMixin, DialogMixin, get_color_val, ctrl_setup_combo_with_list
 from project.models import Project
@@ -70,55 +71,50 @@ class ProjectController (DialogController, ObjectListStoreMixin, DialogMixin):
     def setup_treeview(self, tv):
         ObjectListStoreMixin.setup_treeview(self, tv)
         tv.connect('button-press-event', self.specimen_tv_button_press)
+        tv_model = self.model.specimens
         
-        #reset:
+        #First reset & then (re)create the columns of the treeview:
         for col in tv.get_columns():
             tv.remove_column(col)
-
-        # (re)create the columns of the treeview
-        rend = gtk.CellRendererText()
-        rend.set_property('ellipsize', pango.ELLIPSIZE_END)
-        col = gtk.TreeViewColumn('Name', rend, text=self.model.specimens.c_data_name)
-        col.set_min_width(125)
-        col.set_resizable(True)
-        col.set_expand(True)
-        col.set_data("colnr", self.model.specimens.c_data_name)
-
+        
+        #Name column:
+        col = new_text_column(u'Name', 
+            text_col=tv_model.c_name, 
+            min_width=125,
+            xalign=0.0,
+            ellipsize=pango.ELLIPSIZE_END)
+        col.set_data("colnr", tv_model.c_name)
         tv.append_column(col)
 
+        #Checkboxes:
         def toggle_renderer(column, cell, model, itr, data=None):
-            cell.set_property('active', getattr(model.get_user_data(itr), data))
-            return
-        def setup_check_column(name, attr_name, colnr):
-            rend = gtk.CellRendererToggle()
-            rend.connect('toggled', self.specimen_tv_toggled, self.model.specimens, attr_name)
-            col = gtk.TreeViewColumn(name, rend)
-            col.add_attribute(rend, 'active', colnr)
-            col.set_cell_data_func(rend, toggle_renderer, attr_name)
-            col.activatable = True
-            col.set_resizable(False)
-            col.set_expand(False)
+            col = column.get_col_attr("active")
+            cell.set_property('active', model.get_value(itr, col))
+            return  
+        def setup_check_column(title, colnr):    
+            col = new_toggle_column(title,
+                    toggled_callback=(self.specimen_tv_toggled, (tv_model, colnr)),
+                    data_func=toggle_renderer,
+                    resizable=False,
+                    expand=False,
+                    activatable=True,
+                    active_col=colnr)
             col.set_data("colnr", colnr)
             tv.append_column(col)
         
-        def setup_image_button(col, callback, image, colnr):
-            col = gtk.TreeViewColumn(col)
-            col.set_widget(gtk.Label())
-            col.set_resizable(False)
-            col.set_expand(False)
-            rend = gtk.CellRendererPixbuf()
-            rend.set_property("stock-id", image)
-            col.pack_end(rend)
+        setup_check_column('Exp', self.model.specimens.c_display_experimental)
+        if not settings.VIEW_MODE:
+            setup_check_column('Cal', self.model.specimens.c_display_calculated)
+            setup_check_column('Sep', self.model.specimens.c_display_phases)
+        
+        #Up and down arrows:       
+        def setup_image_button(image, colnr):
+            col = new_pb_column("", resizable=False, expand=False, stock_id=image)
             col.set_data("colnr", colnr)
             tv.append_column(col)
-            
-        setup_check_column('Exp', "display_experimental", self.model.specimens.c_display_experimental)
-        if not settings.VIEW_MODE:
-            setup_check_column('Cal', "display_calculated", self.model.specimens.c_display_calculated)
-            setup_check_column('Sep', "display_phases", self.model.specimens.c_display_phases)
-
-        setup_image_button("UP", None, gtk.STOCK_GO_UP, 501)
-        setup_image_button("DOWN", None, gtk.STOCK_GO_DOWN, 502)
+        setup_image_button(gtk.STOCK_GO_UP, 501)
+        setup_image_button(gtk.STOCK_GO_DOWN, 502)
+                
 
     def edit_object(self, obj):
         pass
@@ -168,10 +164,10 @@ class ProjectController (DialogController, ObjectListStoreMixin, DialogMixin):
     # ------------------------------------------------------------
     #      GTK Signal handlers
     # ------------------------------------------------------------
-    def specimen_tv_toggled(self, cell, path, model=None, attr_name=""):
-        if model is not None:
-            specimen = model.get_user_data_from_path((int(path),))
-            setattr(specimen, attr_name, not getattr(specimen, attr_name)) #cell.get_active()
+    def specimen_tv_toggled(self, cell, path, model, colnr):
+        if model != None:
+            itr = model.get_iter(path)
+            model.set_value(itr, colnr, not cell.get_active())
             return True
         return False
 
@@ -194,8 +190,8 @@ class ProjectController (DialogController, ObjectListStoreMixin, DialogMixin):
                 self.select_object(None)
             self.view.specimens_popup(event)
             return True
-        elif event.type == gtk.gdk._2BUTTON_PRESS and specimen is not None and col.get_data("colnr")==self.model.specimens.c_data_name:
-            self.parent.edit_specimen(specimen)
+        elif event.type == gtk.gdk._2BUTTON_PRESS and specimen is not None and col.get_data("colnr")==self.model.specimens.c_name:
+            self.parent.on_edit_specimen_activate(event)
             return True
         elif (event.button == 1 or event.type == gtk.gdk._2BUTTON_PRESS) and specimen is not None:
             column = col.get_data("colnr")

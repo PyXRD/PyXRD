@@ -6,6 +6,7 @@
 # To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/3.0/ or send
 # a letter to Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
 
+from collections import OrderedDict
 from traceback import format_exc
 
 import json
@@ -94,10 +95,8 @@ class Storable(object):
                 print tb
                 raise #re-raise last error
                 
-            
-
     def json_properties(self):
-        retval = {}
+        retval = OrderedDict()
         for name in self.__storables__:
             retval[name] = getattr(self, name)
         return retval
@@ -137,13 +136,13 @@ class Storable(object):
             return arg
     
     @classmethod
-    def from_json(type, **kwargs):
+    def from_json(type, *args, **kwargs):
         """
             Method transforming JSON kw-args into __init__ kwargs.
             Ideally this is a 1-in-1 mapping and no transformation is needed,
             q.e. the __init__ function can handle JSON kw-args.
         """
-        return type(**kwargs)
+        return type(*args, **kwargs)
 
     def __reduce__(self):
         props = self.dump_object()

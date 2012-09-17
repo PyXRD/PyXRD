@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
   <!-- interface-requires gtk+ 3.0 -->
-  <!-- interface-naming-policy toplevel-contextual -->
   <object class="GtkTable" id="edit_phase">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
@@ -10,7 +9,7 @@
     <property name="n_columns">3</property>
     <property name="row_spacing">5</property>
     <child>
-      <object class="GtkLabel" id="label_phase_name">
+      <object class="GtkLabel" id="name_lbl">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">1</property>
@@ -23,7 +22,7 @@
       </packing>
     </child>
     <child>
-      <object class="GtkLabel" id="label_phase_based_on">
+      <object class="GtkLabel" id="based_on_lbl">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">1</property>
@@ -38,7 +37,7 @@
       </packing>
     </child>
     <child>
-      <object class="GtkLabel" id="label_phase_sigma_star">
+      <object class="GtkLabel" id="sigma_star_lbl">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">1</property>
@@ -54,7 +53,7 @@
       </packing>
     </child>
     <child>
-      <object class="GtkHSeparator" id="phase_derived_seperator">
+      <object class="GtkHSeparator" id="phase_wide_seperator">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
       </object>
@@ -66,13 +65,13 @@
       </packing>
     </child>
     <child>
-      <object class="GtkAlignment" id="entry_align1">
+      <object class="GtkAlignment" id="name_align">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">0</property>
         <property name="xscale">0</property>
         <child>
-          <object class="GtkEntry" id="phase_data_name">
+          <object class="GtkEntry" id="phase_name">
             <property name="width_request">200</property>
             <property name="visible">True</property>
             <property name="can_focus">True</property>
@@ -80,8 +79,6 @@
             <property name="invisible_char_set">True</property>
             <property name="primary_icon_activatable">False</property>
             <property name="secondary_icon_activatable">False</property>
-            <property name="primary_icon_sensitive">True</property>
-            <property name="secondary_icon_sensitive">True</property>
           </object>
         </child>
       </object>
@@ -93,13 +90,13 @@
       </packing>
     </child>
     <child>
-      <object class="GtkAlignment" id="ddown_align1">
+      <object class="GtkAlignment" id="based_on_align">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">0</property>
         <property name="xscale">0</property>
         <child>
-          <object class="GtkComboBox" id="phase_data_based_on">
+          <object class="GtkComboBox" id="phase_based_on">
             <property name="width_request">200</property>
             <property name="visible">True</property>
             <property name="can_focus">False</property>
@@ -116,7 +113,7 @@
       </packing>
     </child>
     <child>
-      <object class="GtkLabel" id="label_phase_G">
+      <object class="GtkLabel" id="G_lbl">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">1</property>
@@ -132,13 +129,13 @@
       </packing>
     </child>
     <child>
-      <object class="GtkAlignment" id="entry_align2">
+      <object class="GtkAlignment" id="G_align">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">0</property>
         <property name="xscale">0</property>
         <child>
-          <object class="GtkEntry" id="phase_data_G">
+          <object class="GtkEntry" id="G">
             <property name="width_request">200</property>
             <property name="visible">True</property>
             <property name="sensitive">False</property>
@@ -150,8 +147,6 @@
             <property name="invisible_char_set">True</property>
             <property name="primary_icon_activatable">False</property>
             <property name="secondary_icon_activatable">False</property>
-            <property name="primary_icon_sensitive">True</property>
-            <property name="secondary_icon_sensitive">True</property>
           </object>
         </child>
       </object>
@@ -165,7 +160,7 @@
       </packing>
     </child>
     <child>
-      <object class="GtkLabel" id="label_phase_R">
+      <object class="GtkLabel" id="R_lbl">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">1</property>
@@ -181,13 +176,13 @@
       </packing>
     </child>
     <child>
-      <object class="GtkAlignment" id="entry_align3">
+      <object class="GtkAlignment" id="R_align">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">0</property>
         <property name="xscale">0</property>
         <child>
-          <object class="GtkEntry" id="phase_data_R">
+          <object class="GtkEntry" id="R">
             <property name="width_request">200</property>
             <property name="visible">True</property>
             <property name="sensitive">False</property>
@@ -199,8 +194,6 @@
             <property name="invisible_char_set">True</property>
             <property name="primary_icon_activatable">False</property>
             <property name="secondary_icon_activatable">False</property>
-            <property name="primary_icon_sensitive">True</property>
-            <property name="secondary_icon_sensitive">True</property>
           </object>
         </child>
       </object>
@@ -218,7 +211,7 @@
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <child>
-          <object class="GtkAlignment" id="align_check">
+          <object class="GtkAlignment" id="inh_prob_align">
             <property name="width_request">25</property>
             <property name="visible">True</property>
             <property name="can_focus">False</property>
@@ -226,6 +219,7 @@
             <property name="yscale">0</property>
             <child>
               <object class="GtkCheckButton" id="phase_inherit_probabilities">
+                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">False</property>
@@ -243,7 +237,7 @@
           </packing>
         </child>
         <child>
-          <object class="GtkExpander" id="phase_data_probabilities">
+          <object class="GtkExpander" id="phase_probabilities">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="expanded">True</property>
@@ -274,8 +268,8 @@
       </object>
       <packing>
         <property name="right_attach">3</property>
-        <property name="top_attach">9</property>
-        <property name="bottom_attach">10</property>
+        <property name="top_attach">10</property>
+        <property name="bottom_attach">11</property>
         <property name="y_options">GTK_FILL</property>
       </packing>
     </child>
@@ -332,29 +326,31 @@
       </object>
       <packing>
         <property name="right_attach">3</property>
-        <property name="top_attach">10</property>
+        <property name="top_attach">12</property>
         <property name="bottom_attach">13</property>
         <property name="y_options">GTK_FILL</property>
       </packing>
     </child>
     <child>
-      <object class="GtkAlignment" id="aligcol">
+      <object class="GtkAlignment" id="color_align">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">0</property>
         <property name="xscale">0</property>
         <property name="left_padding">10</property>
         <child>
-          <object class="GtkHBox" id="hbox2">
+          <object class="GtkHBox" id="color_hbox">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <child>
               <object class="GtkCheckButton" id="phase_inherit_display_color">
+                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">False</property>
                 <property name="tooltip_text" translatable="yes">Inherit the colour from the "based on" phase.</property>
                 <property name="use_action_appearance">False</property>
+                <property name="xalign">0.5</property>
                 <property name="draw_indicator">True</property>
               </object>
               <packing>
@@ -364,11 +360,12 @@
               </packing>
             </child>
             <child>
-              <object class="GtkEventBox" id="container_data_display_color">
+              <object class="GtkEventBox" id="container_display_color">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <child>
                   <object class="GtkColorButton" id="phase_display_color">
+                    <property name="use_action_appearance">False</property>
                     <property name="width_request">75</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
@@ -407,6 +404,7 @@
             <property name="yscale">0</property>
             <child>
               <object class="GtkCheckButton" id="phase_inherit_CSDS_distribution">
+                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">False</property>
@@ -424,7 +422,7 @@
           </packing>
         </child>
         <child>
-          <object class="GtkExpander" id="phase_data_CSDS_distribution">
+          <object class="GtkExpander" id="phase_CSDS_distribution">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="expanded">True</property>
@@ -465,10 +463,12 @@
         <property name="can_focus">False</property>
         <child>
           <object class="GtkCheckButton" id="phase_inherit_sigma_star">
+            <property name="use_action_appearance">False</property>
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="receives_default">False</property>
             <property name="use_action_appearance">False</property>
+            <property name="xalign">0.5</property>
             <property name="draw_indicator">True</property>
           </object>
           <packing>
@@ -478,7 +478,7 @@
           </packing>
         </child>
         <child>
-          <object class="GtkAlignment" id="container_data_sigma_star">
+          <object class="GtkAlignment" id="container_sigma_star">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="xalign">0</property>
@@ -500,6 +500,30 @@
         <property name="right_attach">3</property>
         <property name="top_attach">4</property>
         <property name="bottom_attach">5</property>
+        <property name="y_options">GTK_FILL</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkHSeparator" id="csds_seperator">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+      </object>
+      <packing>
+        <property name="right_attach">3</property>
+        <property name="top_attach">9</property>
+        <property name="bottom_attach">10</property>
+        <property name="y_options">GTK_FILL</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkHSeparator" id="prob_seperator">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+      </object>
+      <packing>
+        <property name="right_attach">3</property>
+        <property name="top_attach">11</property>
+        <property name="bottom_attach">12</property>
         <property name="y_options">GTK_FILL</property>
       </packing>
     </child>

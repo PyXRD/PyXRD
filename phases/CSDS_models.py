@@ -34,16 +34,16 @@ class _AbstractCSDSDistribution(ChildModel, Storable):
     __description__ = "Abstract CSDS distr."
     __explanation__ = ""
     __model_intel__ = [
-        PropIntel(name="distrib",           inh_name=None, label="CSDS Distribution",   minimum=None,  maximum=None,  is_column=True,  ctype=str,    refinable=False, storable=False,  observable=True,  has_widget=True),
-        PropIntel(name="data_inherited",    inh_name=None, label="Inherited",           minimum=None,  maximum=None,  is_column=False, ctype=bool,   refinable=False, storable=False,  observable=True,  has_widget=False),
-        PropIntel(name="updated",           inh_name=None, label="",                    minimum=None,  maximum=None,  is_column=False, ctype=object, refinable=False, storable=False,  observable=True,  has_widget=False),
+        PropIntel(name="distrib",   label="CSDS Distribution", ctype=str, is_column=True, has_widget=True),
+        PropIntel(name="inherited", label="Inherited",         ctype=bool),
+        PropIntel(name="updated",   label="",                  ctype=object),
     ]
 
     #SIGNALS:
     updated = None
     
     #PROPERTIES:
-    data_inherited = False
+    inherited = False
     
     _distrib = None
     def get_distrib_value(self):
@@ -71,30 +71,17 @@ class _AbstractCSDSDistribution(ChildModel, Storable):
 
     pass #end of class   
 
-class LogNormalCSDSDistribution(_AbstractCSDSDistribution, RefinementGroup):
-
-    #MODEL INTEL:
-    __description__ = "Generic log-normal CSDS distr. (Eberl et al. 1990)"
-    __model_intel__ = [
-        PropIntel(name="maximum",      inh_name=None, label="Maximum CSDS",      minimum=1,     maximum=1000,   is_column=True,  ctype=float,   refinable=False, storable=False,  observable=True,  has_widget=False),
-        PropIntel(name="minimum",      inh_name=None, label="Minimum CSDS",      minimum=1,     maximum=1000,   is_column=True,  ctype=float,   refinable=False, storable=False,  observable=True,  has_widget=False),
-        PropIntel(name="average",      inh_name=None, label="Average CSDS",      minimum=1,     maximum=200,    is_column=True,  ctype=float,   refinable=True,  storable=True,   observable=True,  has_widget=True),
-        
-        PropIntel(name="alpha_scale",  inh_name=None, label="α scale factor",    minimum=0,   maximum=10, is_column=True,  ctype=float,   refinable=True,  storable=True,   observable=True,  has_widget=True),
-        PropIntel(name="alpha_offset", inh_name=None, label="α offset factor",   minimum=-5,   maximum=5, is_column=True,  ctype=float,   refinable=True,  storable=True,   observable=True,  has_widget=True),
-        PropIntel(name="beta_scale",   inh_name=None, label="β² scale factor",   minimum=0,   maximum=10, is_column=True,  ctype=float,   refinable=True,  storable=True,   observable=True,  has_widget=True),
-        PropIntel(name="beta_offset",  inh_name=None, label="β² offset factor",  minimum=-5,   maximum=5, is_column=True,  ctype=float,   refinable=True,  storable=True,   observable=True,  has_widget=True),
-    ]
+class _LogNormalMixin():
     
     #PROPERTIES:
     def get_maximum_value(self): return int(5 * self.average)
     def get_minimum_value(self): return 1
     
-    _average = 10
+    _average = 10.0
     def get_average_value(self): return self._average
     def set_average_value(self, value):
-        if value < 1:
-            self.average = 1  #re-apply
+        if value < 1.0:
+            self.average = 1.0  #re-apply
             return
         self._average = value
         self.update_distribution()
@@ -122,12 +109,7 @@ class LogNormalCSDSDistribution(_AbstractCSDSDistribution, RefinementGroup):
     def set_beta_offset_value(self, value):
         self._beta_offset = float(value)
         self.update_distribution()
-    
-    #REFINEMENT GROUP IMPLEMENTATION:
-    @property
-    def refine_title(self):
-        return "CSDS Distribution"
-    
+        
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------       
@@ -194,16 +176,40 @@ class LogNormalCSDSDistribution(_AbstractCSDSDistribution, RefinementGroup):
             self.updated.emit()
             self._update_lock = False
     pass #end of class
+
+class LogNormalCSDSDistribution(_LogNormalMixin, _AbstractCSDSDistribution, RefinementGroup):
+
+    #MODEL INTEL:
+    __description__ = "Generic log-normal CSDS distr. (Eberl et al. 1990)"
+    __model_intel__ = [
+        PropIntel(name="maximum",       label="Maximum CSDS",      minimum=1,     maximum=1000,   is_column=True,  ctype=float),
+        PropIntel(name="minimum",       label="Minimum CSDS",      minimum=1,     maximum=1000,   is_column=True,  ctype=float),
+        PropIntel(name="average",       label="Average CSDS",      minimum=1,     maximum=200,    is_column=True,  ctype=float,   refinable=True,  storable=True,     has_widget=True),
+        
+        PropIntel(name="alpha_scale",   label="α scale factor",    minimum=0,   maximum=10, is_column=True,  ctype=float,   refinable=True,  storable=True,     has_widget=True),
+        PropIntel(name="alpha_offset",  label="α offset factor",   minimum=-5,   maximum=5, is_column=True,  ctype=float,   refinable=True,  storable=True,     has_widget=True),
+        PropIntel(name="beta_scale",    label="β² scale factor",   minimum=0,   maximum=10, is_column=True,  ctype=float,   refinable=True,  storable=True,     has_widget=True),
+        PropIntel(name="beta_offset",   label="β² offset factor",  minimum=-5,   maximum=5, is_column=True,  ctype=float,   refinable=True,  storable=True,     has_widget=True),
+    ]
+        
+    #REFINEMENT GROUP IMPLEMENTATION:
+    @property
+    def refine_title(self):
+        return "CSDS Distribution"
     
-class DritsCSDSDistribution(LogNormalCSDSDistribution, RefinementValue):
+class DritsCSDSDistribution(_LogNormalMixin, _AbstractCSDSDistribution, RefinementValue):
 
     #MODEL INTEL:
     __description__ = "Log-normal CSDS distr. (Drits et. al, 1997)"
-    __model_intel__ = [ 
-        PropIntel(name="alpha_scale",  inh_name=None, label="α scale factor",    minimum=0, maximum=None,  is_column=True,  ctype=float,   refinable=False,  storable=False,  observable=True,  has_widget=False),
-        PropIntel(name="alpha_offset", inh_name=None, label="α offset factor",   minimum=0, maximum=None,  is_column=True,  ctype=float,   refinable=False,  storable=False,  observable=True,  has_widget=False),
-        PropIntel(name="beta_scale",   inh_name=None, label="β² scale factor",   minimum=0, maximum=None,  is_column=True,  ctype=float,   refinable=False,  storable=False,  observable=True,  has_widget=False),
-        PropIntel(name="beta_offset",  inh_name=None, label="β² offset factor",  minimum=0, maximum=None,  is_column=True,  ctype=float,   refinable=False,  storable=False,  observable=True,  has_widget=False),
+    __model_intel__ = [
+        PropIntel(name="maximum",       label="Maximum CSDS",      minimum=1,     maximum=1000,   is_column=True,  ctype=float),
+        PropIntel(name="minimum",       label="Minimum CSDS",      minimum=1,     maximum=1000,   is_column=True,  ctype=float),
+        PropIntel(name="average",       label="Average CSDS",      minimum=1,     maximum=200,    is_column=True,  ctype=float,   refinable=True,  storable=True,     has_widget=True),
+        
+        PropIntel(name="alpha_scale",   label="α scale factor",    minimum=0,   maximum=10, is_column=True,  ctype=float),
+        PropIntel(name="alpha_offset",  label="α offset factor",   minimum=-5,   maximum=5, is_column=True,  ctype=float),
+        PropIntel(name="beta_scale",    label="β² scale factor",   minimum=0,   maximum=10, is_column=True,  ctype=float),
+        PropIntel(name="beta_offset",   label="β² offset factor",  minimum=-5,   maximum=5, is_column=True,  ctype=float),
     ]
    
     #PROPERTIES:   
@@ -231,9 +237,13 @@ class DritsCSDSDistribution(LogNormalCSDSDistribution, RefinementValue):
     def refine_value(self, value):
         self.average = value
         
+    @property
+    def refine_info(self):
+        return self.average_ref_info
+        
     @property 
     def is_refinable(self):
-        return not self.data_inherited
+        return not self.inherited
     
     # ------------------------------------------------------------
     #      Initialisation and other internals

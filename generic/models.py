@@ -16,67 +16,15 @@ import matplotlib.transforms as transforms
 import numpy as np
 import scipy
 
-from gtkmvc.model import Model, Signal
+from gtkmvc.model import Signal
+from gtkmvc.model import Model
 from gtkmvc.model_mt import ModelMT
 
-from generic.metaclasses import PyXRDMeta
+from generic.properties import PropIntel, MultiProperty
+from generic.metaclasses import PyXRDMeta, get_new_uuid, pyxrd_object_pool
 from generic.treemodels import XYListStore
 from generic.io import Storable, PyXRDDecoder
 from generic.utils import smooth, delayed
-
-class MultiProperty(object):
-    def __init__(self, value, mapper, callback, options):
-        object.__init__(self)
-        self.value = value
-        self.mapper = mapper
-        self.callback = callback
-        self.options = options
-        
-    def create_accesors(self, prop):
-        def getter(model):
-            return getattr(model, prop)
-        def setter(model, value):
-            value = self.mapper(value)
-            if value in self.options:
-                setattr(model, prop, value)
-                if callable(self.callback):
-                    self.callback(model, prop, value)
-            else:
-                raise ValueError, "'%s' is not a valid value for %s!" % (value, prop)
-        return getter, setter
-
-class PropIntel(object):
-    _container = None
-    @property
-    def container(self):
-        return self._container
-    @container.setter
-    def container(self, value):
-        self._container = value
-
-    _label = ""
-    @property
-    def label(self):
-        if callable(self._label):
-            return self._label(self, self.container)
-        else:
-            return self._label
-    @label.setter
-    def label(self, value):
-        self._label = value
-                
-    def __init__(self, **kwargs):
-        object.__init__(self)
-        for k, v in kwargs.iteritems():
-            setattr(self, k, v)
-            
-    def __eq__(self, other):
-        return other!=None and self.name == other.name
-
-    def __neq__(self, other):
-        return other!=None and self.name != other.name
-
-    pass #end of class
 
 class DefaultSignal (Signal):
 
@@ -95,12 +43,10 @@ class DefaultSignal (Signal):
             
     pass # end of class
 
-from generic.metaclasses import get_new_uuid, pyxrd_object_pool
-
 class PyXRDModel(ModelMT):
     __metaclass__ = PyXRDMeta
     __model_intel__ = [
-        PropIntel(name="uuid",    inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=str, refinable=False, storable=True, observable=False,  has_widget=False),
+        PropIntel(name="uuid", ctype=str,  storable=True, observable=False),
     ]
     
     
@@ -167,14 +113,42 @@ class PyXRDModel(ModelMT):
                 
     pass # end of class
 
+class RefinementInfo(PyXRDModel, Storable):
+
+    #MODEL INTEL:
+    __model_intel__ = [
+        PropIntel(name="minimum",         ctype=float,  storable=True),
+        PropIntel(name="maximum",         ctype=float,  storable=True),
+        PropIntel(name="refine",          ctype=bool,   storable=True),
+    ] 
+
+    minimum = None
+    maximum = None
+    refine = False
+    
+    def __init__(self, minimum=None, maximum=None, refine=False, **kwargs):
+        PyXRDModel.__init__(self)
+        Storable.__init__(self)
+        self.refine = bool(refine)
+        self.minimum = float(minimum) if minimum!=None else None
+        self.maximum = float(maximum) if maximum!=None else None
+        
+    def to_json(self):
+        return self.json_properties()
+        
+    def json_properties(self):
+        return [self.minimum, self.maximum, self.refine]
+        
+    pass #end of class
+
 class ChildModel(PyXRDModel):
 
     #MODEL INTEL:
     __parent_alias__ = None
     __model_intel__ = [
-        PropIntel(name="parent",    inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=object, refinable=False, storable=False, observable=True,  has_widget=False),
-        PropIntel(name="removed",   inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=object, refinable=False, storable=False, observable=True,  has_widget=False),
-        PropIntel(name="added",     inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=object, refinable=False, storable=False, observable=True,  has_widget=False),
+        PropIntel(name="parent",  ctype=object),
+        PropIntel(name="removed", ctype=object),
+        PropIntel(name="added",   ctype=object),
     ]
 
     #SIGNALS:
@@ -215,12 +189,13 @@ class ChildModel(PyXRDModel):
 class PyXRDLine(ChildModel, Storable, Line2D):
 
     #MODEL INTEL:
-    __model_intel__ = [ #TODO add labels
-        PropIntel(name="label",             inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=False),
-        PropIntel(name="xy_store",          inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=object, refinable=False, storable=True,  observable=True,  has_widget=False),
-        PropIntel(name="offset",            inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=float,  refinable=False, storable=False, observable=True,  has_widget=False),
-        PropIntel(name="color",             inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=str,    refinable=False, storable=False, observable=False, has_widget=False),
-        PropIntel(name="needs_update",      inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=object, refinable=False, storable=False, observable=True,  has_widget=False),
+    __model_intel__ = [
+        PropIntel(name="label",           ctype=str,     storable=True),
+        PropIntel(name="xy_store",        ctype=object,  storable=True),
+        PropIntel(name="offset",          ctype=float),
+        PropIntel(name="scale",           ctype=float),
+        PropIntel(name="color",           ctype=str,     observable=False),
+        PropIntel(name="needs_update",    ctype=object),
     ]
 
     #PROPERTIES:
@@ -233,6 +208,12 @@ class PyXRDLine(ChildModel, Storable, Line2D):
     def get_offset_value(self): return self._offset
     def set_offset_value(self, value):
         self._offset = float(value)
+        self.update_line()
+        
+    _scale = 1.0
+    def get_scale_value(self): return self._scale
+    def set_scale_value(self, value):
+        self._scale = float(scale)
         self.update_line()
         
     def get_label_value(self): return self.get_label()
@@ -256,7 +237,7 @@ class PyXRDLine(ChildModel, Storable, Line2D):
         if len(self.xy_store._model_data_x) > 1:
             return np.max(self.xy_store._model_data_y)
         else:
-            return 0    
+            return 0
     
     # ------------------------------------------------------------
     #      Initialisation and other internals
@@ -295,7 +276,7 @@ class PyXRDLine(ChildModel, Storable, Line2D):
         return type(**kwargs)
             
     def save_data(self, filename):
-        self.xy_store.save_data("%s %s" % (self.parent.data_name, self.parent.data_sample), filename)
+        self.xy_store.save_data("%s %s" % (self.parent.name, self.parent.sample_name), filename)
         
     def load_data(self, *args, **kwargs):    
         self._inhibit_updates = True
@@ -305,16 +286,21 @@ class PyXRDLine(ChildModel, Storable, Line2D):
             
     # ------------------------------------------------------------
     #      Methods & Functions
-    # ------------------------------------------------------------    
-    def get_transform_factors(self):
-        if self.parent:
-            return self.parent.scale_factor_y(self.offset)
-        else:
-            return 1.0, self.offset
+    # ------------------------------------------------------------           
+    def set_transform_factors(self, scale, offset):
+        self._scale = scale
+        self._offset = offset
+        self.update_line()
 
     def _transform_y(self, y):
-        scale, offset = self.get_transform_factors()
-        return np.array(y) * scale + offset
+        return np.array(y) * self.scale + self.offset
+        
+    def get_y_at_x(self, x):
+        x_data, y_data = self.get_data()
+        if len(x_data) > 0:
+            return np.interp(x, x_data, y_data)
+        else:
+            return 0
         
     def on_treestore_changed(self, treemodel, path, *args):
         self.update_line()
@@ -375,8 +361,8 @@ class CalculatedLine(PyXRDLine):
 
     #MODEL INTEL:
     __parent_alias__ = 'specimen'
-    __model_intel__ = [ #TODO add labels
-        PropIntel(name="child_lines",       inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=float,  refinable=False, storable=False, observable=True,  has_widget=False),
+    __model_intel__ = [
+        PropIntel(name="child_lines",  ctype=float),
     ]
     
     #PROPERTIES:
@@ -410,10 +396,9 @@ class CalculatedLine(PyXRDLine):
         if self.parent.display_calculated:
             PyXRDLine.draw(self, renderer)
         if self.parent.display_phases:
-            scale, offset = self.get_transform_factors()
             for line in self.child_lines:
                 if line:
-                    line.draw(renderer, scale, offset)
+                    line.draw(renderer, self.scale, self.offset)
     
     def set_transform(self, transform):
         PyXRDLine.set_transform(self, transform)
@@ -461,15 +446,15 @@ class ExperimentalLine(PyXRDLine):
 
     #MODEL INTEL:
     __parent_alias__ = 'specimen'
-    __model_intel__ = [ #TODO add labels
-        PropIntel(name="bg_position",       inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=float,  refinable=False, storable=False, observable=True,  has_widget=False),
-        PropIntel(name="bg_scale",          inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=float,  refinable=False, storable=False, observable=True,  has_widget=False),
-        PropIntel(name="bg_pattern",        inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=object, refinable=False, storable=False, observable=True,  has_widget=False),
-        PropIntel(name="bg_type",           inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=int,    refinable=False, storable=False, observable=True,  has_widget=False),
-        PropIntel(name="smooth_degree",     inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=int,    refinable=False, storable=False, observable=True,  has_widget=False),
-        PropIntel(name="smooth_type",       inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=int,    refinable=False, storable=False, observable=True,  has_widget=False),
-        PropIntel(name="shift_value",       inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=float,  refinable=False, storable=False, observable=True,  has_widget=False),
-        PropIntel(name="shift_position",    inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=float,  refinable=False, storable=False, observable=True,  has_widget=False),
+    __model_intel__ = [
+        PropIntel(name="bg_position",       ctype=float),
+        PropIntel(name="bg_scale",          ctype=float),
+        PropIntel(name="bg_pattern",        ctype=object),
+        PropIntel(name="bg_type",           ctype=int),
+        PropIntel(name="smooth_degree",     ctype=int),
+        PropIntel(name="smooth_type",       ctype=int),
+        PropIntel(name="shift_value",       ctype=float),
+        PropIntel(name="shift_position",    ctype=float),
     ]
     
     #PROPERTIES:
@@ -560,9 +545,8 @@ class ExperimentalLine(PyXRDLine):
     def draw(self, renderer):
         if self.parent.display_experimental:
             PyXRDLine.draw(self, renderer)
-            scale, offset = self.get_transform_factors()
             for line in [self.bg_line, self.smooth_line, self.shifted_line, self.reference_line]:
-                line.draw(renderer, scale, offset)
+                line.draw(renderer, self.scale, self.offset)
     
     def __init__(self, *args, **kwargs):
         self.smooth_line = ScaledLine([],[], c="#660099", lw="2")
@@ -620,7 +604,8 @@ class ExperimentalLine(PyXRDLine):
         if self.smooth_degree > 0:
             degree = int(self.smooth_degree)
             smoothed = smooth(y_data, degree)
-            self.xy_store._model_data_y = smoothed
+            self.set_ydata(smoothed)
+            #self.xy_store._model_data_y = smoothed
         self.smooth_degree = 0.0
         self.needs_update.emit()
     
@@ -646,18 +631,17 @@ class ExperimentalLine(PyXRDLine):
         if self.shift_value != 0.0:
             self.set_xdata(x_data - self.shift_value)
             if self.specimen:
-                for marker in self.specimen.data_markers._model_data:
-                    marker.data_position = marker.data_position-self.shift_value
+                for marker in self.specimen.markers._model_data:
+                    marker.position = marker.position-self.shift_value
         self.shift_value = 0.0
         self.needs_update.emit()
             
     def update_shifted_line(self):
-        yfactor, offset = self.get_transform_factors()
         x_data, y_data = self.xy_store.get_raw_model_data()
         if self.shift_value!=0.0:
             self.shifted_line.set_data(x_data-self._shift_value, y_data.copy())
             self.shifted_line.set_visible(True)
-            position = self.parent.parent.data_goniometer.get_2t_from_nm(self.shift_position)
+            position = self.parent.parent.goniometer.get_2t_from_nm(self.shift_position)
             ymax = np.max(y_data)
             self.reference_line.set_data((position, position), (0, ymax))
             self.reference_line.set_visible(True)            
@@ -671,7 +655,7 @@ class ExperimentalLine(PyXRDLine):
         self.needs_update.emit()
         
     def find_shift_value(self):
-        position = self.parent.parent.data_goniometer.get_2t_from_nm(self.shift_position)
+        position = self.parent.parent.goniometer.get_2t_from_nm(self.shift_position)
         if position > 0.1:
             x_data, y_data = self.xy_store.get_raw_model_data()
             max_x = position + 0.5

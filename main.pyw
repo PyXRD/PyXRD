@@ -14,6 +14,7 @@ import gtk
 
 import settings
 
+import generic.gtkexcepthook
 from generic.loggers import PyXRDLogger
 from generic.update import update
 

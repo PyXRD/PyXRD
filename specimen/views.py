@@ -13,7 +13,6 @@ from matplotlib.backends.backend_gtkcairo import FigureCanvasGTKCairo as FigureC
 
 from generic.views import ObjectListStoreView, DialogView, BaseView
 
-#TODO add widgets to hide when in VIEW MODE!!
 
 class SpecimenView(DialogView):
     title = "Edit Specimen"

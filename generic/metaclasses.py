@@ -22,32 +22,48 @@ def get_unique_list(seq):
 
 class PyXRDMeta(ObservablePropertyMetaMT):
 
-    def __init__(cls, name, bases, d):        
+    ref_info_name = "%s_ref_info"
 
+    def __init__(cls, name, bases, d):
         #get the model intel for this class type (excluding bases for now):        
         __model_intel__ = get_unique_list(d.get("__model_intel__", list()))
 
         #properties to be generated base on model intel named tuples:
         keys = ["__observables__", "__storables__", "__columns__", "__inheritables__", "__refinables__", "__have_no_widget__"]
     
+        #Helper functions to to set or delete extra attributes on the class
+        def set_attribute(name, value):
+            d[name] = value
+            setattr(cls, name, value)
+        def del_attribute(name):
+            del d[name]
+            delattr(cls, name)
+    
         #loop over the variables and fetch any custom values for this class (if present):
         for key in keys:
             d[key] = get_unique_list(d[key]) if key in d else list()
+        
+        #loop over the prop intels and add refinement info prop intels for
+        #refinable scalars (floats and ints), their actual initialisation is
+        #taken care of in the __call__ method of this metaclass
+        ref_info_intels = list()
+        for prop in __model_intel__:
+            if prop.refinable and prop.ctype in (float, int):
+                from properties import PropIntel
+                ref_info_name = PyXRDMeta.ref_info_name % prop.name
+                test = PropIntel(name=ref_info_name, ctype=object, storable=True)
+                ref_info_intels.append(test)
+                set_attribute(ref_info_name, None)
+        __model_intel__.extend(ref_info_intels)
         
         #loop over the model intel and generate observables list:
         for prop in __model_intel__:
             if prop.observable: 
                 d["__observables__"].append(prop.name)
             if hasattr(cls, prop.name):
-                from models import MultiProperty
+                from properties import MultiProperty
                 attr = getattr(cls, prop.name)
                 if isinstance(attr, MultiProperty):
-                    def set_attribute(name, value):
-                        d[name] = value
-                        setattr(cls, name, value)
-                    def del_attribute(name):
-                        del d[name]
-                        delattr(cls, name)
                         
                     pr_prop = "_%s" % prop.name
                     pr_optn = "_%ss" % prop.name
@@ -59,12 +75,12 @@ class PyXRDMeta(ObservablePropertyMetaMT):
                     getter, setter = attr.create_accesors(pr_prop)
                     set_attribute(getter_name, getter)
                     set_attribute(setter_name, setter)
-                    del_attribute(prop.name)
+                    del_attribute(prop.name)                  
             
         # Add model intel from the base classes to generate the remaining 
         # properties, without overriding intels already present,
-        # replace the variable by a set including the complete model intel for eventual later use:
-        #
+        # replace the variable by a set including the complete model intel for
+        # all bases and including modifications arising in this metaclass:
         for base in bases: 
             base_intel = getattr(base, "__model_intel__", list())
             for prop in base_intel: 
@@ -88,9 +104,6 @@ class PyXRDMeta(ObservablePropertyMetaMT):
         return ObservablePropertyMetaMT.__init__(cls, name, bases, d)
                 
     def __call__(cls, *args, **kwargs):
-    
-
-    
         #Check if uuid has been passed (e.g. when restored from disk)
         # if not generate a new one and set it on the instance
         uuid = kwargs.get("uuid", None)
@@ -99,16 +112,31 @@ class PyXRDMeta(ObservablePropertyMetaMT):
         else:
             uuid = get_new_uuid()
         
+        ref_infos = dict()
+        for prop_intel in cls.__model_intel__:
+            if prop_intel.refinable and prop_intel.ctype in (float, int):
+                from generic.models import RefinementInfo
+                ref_info_name = PyXRDMeta.ref_info_name % prop_intel.name
+                
+                info_args = kwargs.pop(ref_info_name, None)
+                if info_args:
+                    info = RefinementInfo.from_json(*info_args)
+                else:
+                    info = RefinementInfo(minimum = prop_intel.minimum, maximum = prop_intel.maximum)
+                ref_infos[ref_info_name] = info
+        
         #Create instance & set the uuid:
         instance = ObservablePropertyMetaMT.__call__(cls, *args, **kwargs)
         instance.__uuid__ = uuid
         
         #Add a reference to the instance for each model intel, 
         # so function calls (e.g. labels) work as expected,
-        # and parse MultiProperties:
+        # and set the ref info attributes
         for prop_intel in instance.__model_intel__:
-            prop_intel.container = instance
-        
+            prop_intel.container = instance           
+        for ref_info_name, info in ref_infos.iteritems():
+            setattr(instance, ref_info_name, info)
+
         #Add object to the object pool so other objects can 
         # retrieve it when restored from disk:
         pyxrd_object_pool.add_object(instance)

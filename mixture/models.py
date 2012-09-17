@@ -38,12 +38,12 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
     #MODEL INTEL:
     __parent_alias__ = "project"
     __model_intel__ = [ #TODO add labels
-        PropIntel(name="data_name",             inh_name=None,         label="Name",    minimum=None,  maximum=None,  is_column=True,  ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="data_refinables",       inh_name=None,         label="",        minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=False, storable=False,  observable=True,  has_widget=True), #FIXME
-        PropIntel(name="auto_run",              inh_name=None,         label="",        minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="data_refine_method",    inh_name=None,         label="",        minimum=None,  maximum=None,  is_column=False, ctype=int,    refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="has_changed",           inh_name=None,         label="",        minimum=None,  maximum=None,  is_column=False, ctype=object, refinable=False, storable=False, observable=True,  has_widget=False),
-        PropIntel(name="needs_reset",           inh_name=None,         label="",        minimum=None,  maximum=None,  is_column=False, ctype=object, refinable=False, storable=False, observable=True,  has_widget=False),
+        PropIntel(name="name",             label="Name",    ctype=str,      is_column=True, storable=True, has_widget=True),
+        PropIntel(name="refinables",       label="",        ctype=object,   is_column=True, has_widget=True),
+        PropIntel(name="auto_run",         label="",        ctype=bool,     is_column=True, storable=True,  has_widget=True),
+        PropIntel(name="refine_method",    label="",        ctype=int,      storable=True,  has_widget=True),
+        PropIntel(name="has_changed",      label="",        ctype=object),
+        PropIntel(name="needs_reset",      label="",        ctype=object,   storable=False,),
     ]
 
     #SIGNALS:
@@ -51,27 +51,27 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
     needs_reset = None
 
     #INTERNALS:
-    _data_name = ""
-    def get_data_name_value(self):
-        return self._data_name
-    def set_data_name_value(self, value):
-        self._data_name = value
+    _name = ""
+    def get_name_value(self):
+        return self._name
+    def set_name_value(self, value):
+        self._name = value
         self.liststore_item_changed()
     
     auto_run = False
     
-    data_phase_matrix = None
+    phase_matrix = None
     
-    data_specimens = None
-    data_scales = None
-    data_bgshifts = None
+    specimens = None
+    scales = None
+    bgshifts = None
     
-    data_phases = None
-    data_fractions = None
+    phases = None
+    fractions = None
 
-    data_refinables = None
+    refinables = None
 
-    data_refine_method = MultiProperty(0, int, None, 
+    refine_method = MultiProperty(0, int, None, 
         { 0: "L BFGS B algorithm", 1: "Genetic algorithm" })
 
     @property
@@ -81,48 +81,52 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def __init__(self, data_name="New Mixture", auto_run=False, 
+    def __init__(self, name="New Mixture", auto_run=False, 
             phase_indeces=None, phase_uuids=None, 
-            specimen_indeces=None, specimen_uuids=None, data_phases=None,
-            data_scales=None, data_bgshifts=None, data_fractions=None, 
-            data_refinables=None, data_refine_method=None, parent=None):
+            specimen_indeces=None, specimen_uuids=None, phases=None,
+            scales=None, bgshifts=None, fractions=None, 
+            refinables=None, refine_method=None, parent=None, **kwargs):
         ChildModel.__init__(self, parent=parent)
         self.has_changed = Signal()
         self.needs_reset = Signal()
-        self.data_name = data_name or self.data_name
+        self.name = name or self.get_depr(kwargs, "", "data_name")
         self.auto_run = auto_run or self.auto_run
         
         #2D matrix, rows match specimens, columns match mixture 'phases'; contains the actual phase objects
         if phase_uuids:
-            self.data_phase_matrix = np.array([[pyxrd_object_pool.get_object(uuid) if uuid else None for uuid in row] for row in phase_uuids], dtype=np.object_)
+            self.phase_matrix = np.array([[pyxrd_object_pool.get_object(uuid) if uuid else None for uuid in row] for row in phase_uuids], dtype=np.object_)
         elif phase_indeces and self.parent != None:
             warn("The use of object indeces is deprected since version 0.4. Please switch to using object UUIDs.", DeprecationWarning)
-            self.data_phase_matrix = np.array([[self.parent.data_phases.get_user_data_from_index(index) if index!=-1 else None for index in row] for row in phase_indeces], dtype=np.object_)
+            self.phase_matrix = np.array([[self.parent.phases.get_user_data_from_index(index) if index!=-1 else None for index in row] for row in phase_indeces], dtype=np.object_)
         else:
-            self.data_phase_matrix = np.empty(shape=(0,0), dtype=np.object_)
+            self.phase_matrix = np.empty(shape=(0,0), dtype=np.object_)
             
         #list with actual specimens, indexes match with rows in phase_matrix
         if phase_uuids:
-            self.data_specimens = [pyxrd_object_pool.get_object(uuid) if uuid else None for uuid in specimen_uuids]            
+            self.specimens = [pyxrd_object_pool.get_object(uuid) if uuid else None for uuid in specimen_uuids]            
         elif specimen_indeces != None and self.parent != None:
             warn("The use of object indeces is deprected since version 0.4. Please switch to using object UUIDs.", DeprecationWarning)
-            self.data_specimens = [self.parent.specimens.get_user_data_from_index(index) if index!=-1 else None for index in specimen_indeces]
+            self.specimens = [self.parent.specimens.get_user_data_from_index(index) if index!=-1 else None for index in specimen_indeces]
         else:
-            self.data_specimens = list()
+            self.specimens = list()
         
-        self.data_scales = data_scales or list()         #list with scale values, indexes match with rows in phase_matrix
-        self.data_bgshifts = data_bgshifts or [0.0]*len(self.data_scales)    #list with specimen background shift values, indexes match with rows in phase_matrix        
-        self.data_phases = data_phases or list()        #list with mixture phase names, indexes match with cols in phase_matrix
-        self.data_fractions = data_fractions or [0.0]*len(self.data_phases)  #list with phase fractions, indexes match with cols in phase_matrix
+        #list with scale values, indexes match with rows in phase_matrix
+        self.scales = scales or self.get_depr(kwargs, list(), "data_scales")
+        #list with specimen background shift values, indexes match with rows in phase_matrix        
+        self.bgshifts = bgshifts or self.get_depr(kwargs, [0.0]*len(self.scales), "data_bgshifts")
+        #list with mixture phase names, indexes match with cols in phase_matrix
+        self.phases = phases or self.get_depr(kwargs, list(), "data_phases")
+        #list with phase fractions, indexes match with cols in phase_matrix
+        self.fractions = fractions or self.get_depr(kwargs, [0.0]*len(self.phases), "data_fractions")
         
-        self.data_refinables = data_refinables or ObjectTreeStore(RefinableProperty) 
-        self.data_refine_method = data_refine_method or self.data_refine_method
+        self.refinables = refinables or self.get_depr(kwargs, ObjectTreeStore(RefinableProperty), "data_refinables")
+        self.refine_method = refine_method or self.get_depr(kwargs, self.refine_method, "data_refine_method")
         
         #sanity check:
-        n, m = self.data_phase_matrix.shape
-        if len(self.data_scales) != n or len(self.data_specimens) != n or len(self.data_bgshifts) != n:
+        n, m = self.phase_matrix.shape
+        if len(self.scales) != n or len(self.specimens) != n or len(self.bgshifts) != n:
             raise IndexError, "Shape mismatch: scales, background shifts or specimens lists do not match with row count of phase matrix"
-        if len(self.data_phases) != m or len(self.data_fractions) != m:
+        if len(self.phases) != m or len(self.fractions) != m:
             raise IndexError, "Shape mismatch: fractions or phases lists do not match with column count of phase matrix"
     
     # ------------------------------------------------------------
@@ -132,19 +136,19 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         self.update_refinement_treestore()
         retval = Storable.json_properties(self)
 
-        retval["phase_uuids"] = [[item.uuid if item else "" for item in row] for row in map(list, self.data_phase_matrix)]            
-        retval["specimen_uuids"] = [specimen.uuid if specimen else "" for specimen in self.data_specimens]
-        retval["data_phases"] = self.data_phases
-        retval["data_fractions"] = self.data_fractions
-        retval["data_bgshifts"] = self.data_bgshifts
-        retval["data_scales"] = self.data_scales
+        retval["phase_uuids"] = [[item.uuid if item else "" for item in row] for row in map(list, self.phase_matrix)]            
+        retval["specimen_uuids"] = [specimen.uuid if specimen else "" for specimen in self.specimens]
+        retval["phases"] = self.phases
+        retval["fractions"] = self.fractions
+        retval["bgshifts"] = self.bgshifts
+        retval["scales"] = self.scales
         
         return retval
     
     @staticmethod          
     def from_json(**kwargs):
         sargs = dict()
-        for key in ("data_refinables",):
+        for key in ("refinables",):
             if key in kwargs:
                 sargs[key] = kwargs[key]
                 del kwargs[key]
@@ -152,11 +156,6 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
                 sargs[key] = None
              
         mixture = Mixture(**kwargs)
-        #data_refinables = IndexListStore.from_json(parent=mixture, **sargs["data_refinables"]['properties'])
-        #for refinable in data_refinables._model_data:
-        #    print refinable.obj, refinable.prop
-        #    mixture.data_refinables.append(refinable)
-        #del data_refinables #FIXME
         
         return mixture
     
@@ -164,20 +163,20 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
     #      Methods & Functions
     # ------------------------------------------------------------ 
     def uncheck_phase(self, phase):
-        shape = self.data_phase_matrix.shape
+        shape = self.phase_matrix.shape
         for i in range(shape[0]):
             for j in range(shape[1]):
-                if self.data_phase_matrix[i,j] == phase:
-                    self.data_phase_matrix[i,j] = None
+                if self.phase_matrix[i,j] == phase:
+                    self.phase_matrix[i,j] = None
         self.update_refinement_treestore()
         self.needs_reset.emit()
     
     def add_phase(self, phase_name, fraction):
-        n, m = self.data_phase_matrix.shape
+        n, m = self.phase_matrix.shape
         if n > 0:
-            self.data_phases.append(phase_name)
-            self.data_fractions.append(fraction)
-            self.data_phase_matrix = np.concatenate([self.data_phase_matrix.copy(), [[None,] for n in range(n)]], axis=1)        
+            self.phases.append(phase_name)
+            self.fractions.append(fraction)
+            self.phase_matrix = np.concatenate([self.phase_matrix.copy(), [[None,] for n in range(n)]], axis=1)        
             self.update_refinement_treestore()
             self.has_changed.emit()
             return m
@@ -185,41 +184,41 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
             return -1
 
     def _del_phase_by_index(self, index):
-        del self.data_phases[index]
-        del self.data_fractions[index]
-        self.data_phase_matrix = np.delete(self.data_phase_matrix, index, axis=1)
+        del self.phases[index]
+        del self.fractions[index]
+        self.phase_matrix = np.delete(self.phase_matrix, index, axis=1)
         self.update_refinement_treestore()
         self.needs_reset.emit()
 
     def del_phase(self, phase_name):
-        self._del_phase_by_index(self.data_phases.index(phase_name))
+        self._del_phase_by_index(self.phases.index(phase_name))
     
     def add_specimen(self, specimen, scale, bgs):
-        index = len(self.data_specimens)
-        self.data_specimens.append(specimen)
-        self.data_scales.append(scale)
-        self.data_bgshifts.append(bgs)
-        n, m = self.data_phase_matrix.shape
-        self.data_phase_matrix = np.concatenate([self.data_phase_matrix.copy(), [[None]*m] ], axis=0)
-        self.data_phase_matrix[n,:] = None
+        index = len(self.specimens)
+        self.specimens.append(specimen)
+        self.scales.append(scale)
+        self.bgshifts.append(bgs)
+        n, m = self.phase_matrix.shape
+        self.phase_matrix = np.concatenate([self.phase_matrix.copy(), [[None]*m] ], axis=0)
+        self.phase_matrix[n,:] = None
         self.has_changed.emit()
         return n
 
     def _del_specimen_by_index(self, index): #FIXME
-        del self.data_specimens[index]
-        del self.data_scales[index]
-        del self.data_bgshifts[index]
-        self.data_phase_matrix = np.delete(self.data_phase_matrix, index, axis=0)
+        del self.specimens[index]
+        del self.scales[index]
+        del self.bgshifts[index]
+        self.phase_matrix = np.delete(self.phase_matrix, index, axis=0)
         self.needs_reset.emit()
 
     def del_specimen(self, specimen):
-        self._del_specimen_by_index(self.data_specimens.index(specimen))
+        self._del_specimen_by_index(self.specimens.index(specimen))
     
     # ------------------------------------------------------------
     #      Refinement stuff:
     # ------------------------------------------------------------ 
     def _get_x0(self):
-        return np.array(self.data_fractions + self.data_scales + self.data_bgshifts)
+        return np.array(self.fractions + self.scales + self.bgshifts)
     
     def _parse_x(self, x, n, m): #returns: fractions | scales | bgshifts
         return x[:m][:,np.newaxis], x[m:m+n], x[-n:] #np.zeros(shape=(n,))# x[-n:]
@@ -229,17 +228,17 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         #  -> each specimen gets a 2D np-array of size m,t with:
         #         m the number of phases        
         #         t the number of data points for that specimen
-        n, m = self.data_phase_matrix.shape
+        n, m = self.phase_matrix.shape
         calculated = [None]*n
         experimental = [None]*n
         selectors = [None]*n
         todeg = 360.0 / pi
         for i in range(n):
-            phases = self.data_phase_matrix[i]
-            specimen = self.data_specimens[i]
-            theta_range, calc = specimen.get_phase_intensities(phases, self.parent.data_goniometer.get_lorentz_polarisation_factor)
+            phases = self.phase_matrix[i]
+            specimen = self.specimens[i]
+            theta_range, calc = specimen.get_phase_intensities(phases, self.parent.goniometer.get_lorentz_polarisation_factor)
             calculated[i] = calc.copy()
-            experimental[i] = specimen.data_experimental_pattern.xy_store.get_raw_model_data()[1].copy()
+            experimental[i] = specimen.experimental_pattern.xy_store.get_raw_model_data()[1].copy()
             selectors[i] = specimen.get_exclusion_selector(theta_range*todeg)
         return n, m, calculated, experimental, selectors
    
@@ -293,44 +292,85 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         scales *= sum_frac
         
         #set model properties:
-        self.data_fractions = list(fractions)
-        self.data_scales = list(scales)
-        self.data_bgshifts = list(bgshifts)
+        self.fractions = list(fractions)
+        self.scales = list(scales)
+        self.bgshifts = list(bgshifts)
         
         if not silent: self.has_changed.emit()
         
         return lastR2
        
     def get_result_description(self):
-        n, m = self.data_phase_matrix.shape
+        n, m = self.phase_matrix.shape
         
         res  = "---------------------------------------------------------\n"        
-        res += "%s mixture results\n" % self.data_name
+        res += "%s mixture results\n" % self.name
         res += "---------------------------------------------------------\n"
         res += "\n   %d specimens:\n" % n
         for i in range(n):
-            res += "       - bgr: %5.2f   scl: %5.2f   %s\n" % (self.data_bgshifts[i], self.data_scales[i], self.data_specimens[i].data_name)
+            res += "       - bgr: %5.2f   scl: %5.2f   %s\n" % (self.bgshifts[i], self.scales[i], self.specimens[i].name)
         res += "       (bgr=background shift, scl=absolute scale factor)\n"
         res += "\n   %d phases:\n" % m
         for i in range(m):
-            res += "    %5.1f%%   %s\n" % (self.data_fractions[i]*100.0, self.data_phases[i])
-            phases = np.unique(self.data_phase_matrix[:,i])
+            res += "    %5.1f%%   %s\n" % (self.fractions[i]*100.0, self.phases[i])
+            phases = np.unique(self.phase_matrix[:,i])
             for phase in phases:
-                res += "        > %s T=%d\n" % (phase.data_name, phase.data_CSDS_distribution.average)
-                if phase.data_G > 1:
-                    for i, comp in enumerate(phase.data_components.iter_objects()):
-                        res += "            - %5.1f%% %s\n" % (phase.data_probabilities.mW[i]*100, comp.data_name)
-                if phase.data_R > 0:
+                res += "        > %s T=%d\n" % (phase.name, phase.CSDS_distribution.average)
+                if phase.G > 1:
+                    for i, comp in enumerate(phase.components.iter_objects()):
+                        res += "            - %5.1f%% %s\n" % (phase.probabilities.mW[i]*100, comp.name)
+                if phase.R > 0:
                     res += "            - Probabilities:\n"
-                    for descr in phase.data_probabilities.get_prob_descriptions():
-                        res += "                %s\n" % descr
-                    
-                    
-                    
-                
-
+                    for descr in phase.probabilities.get_prob_descriptions():
+                        res += "                %s\n" % descr              
         return res
             
+    def get_composition_matrix(self):
+        from itertools import chain
+        from collections import OrderedDict
+        import csv
+        
+        # create an atom nr -> (atom name, conversion) mapping
+        # this is used to transform most of the elements into their oxides
+        atom_conv = OrderedDict()
+        with open(settings.get_def_file("COMPOSITION_CONV"), 'r') as f:
+            reader = csv.reader(f)
+            reader.next() #skip header
+            for row in reader:
+                nr, name, fact = row
+                atom_conv[int(nr)] = (name, float(fact))
+        
+        comps = list()
+        for i, row in enumerate(self.phase_matrix):
+            comp = dict()
+            for j, phase in enumerate(row):
+                phase_fract = self.fractions[j]
+                for k, component in enumerate(phase.components.iter_objects()):
+                    comp_fract = phase.probabilities.mW[k] * phase_fract
+                    for atom in chain(component.layer_atoms.iter_objects(),
+                            component.interlayer_atoms.iter_objects()):
+                        nr = atom.atom_type.atom_nr
+                        if nr in atom_conv:
+                            wt = atom.pn * atom.atom_type.weight * comp_fract * atom_conv[nr][1]
+                            comp[nr] = comp.get(nr, 0.0) + wt
+            comps.append(comp)
+               
+        final_comps = np.zeros(shape=(len(atom_conv)+1, len(comps)+1), dtype='a15')
+        final_comps[0,0] = " "*8
+        for j, comp in enumerate(comps):
+            fact = 100.0 / sum(comp.values())        
+            for i, (nr, (oxide_name, conv)) in enumerate(atom_conv.iteritems()):
+                wt = comp.get(nr, 0.0) * fact
+                # set relevant cells:
+                if i==0:
+                    final_comps[i,j+1] = self.specimens[j].name.ljust(15)[:15]
+                if j==0:
+                    final_comps[i+1,j] = ("%s  " % oxide_name).rjust(8)[:8]
+                final_comps[i+1,j+1] = ("%.1f" % wt).ljust(15)[:15]
+                    
+        return final_comps
+                
+
        
     @staticmethod
     def mod_l_bfgs_b(func, x0, init_bounds, args=[], f1=1e12, f2=10):
@@ -358,14 +398,13 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
             store with the refinable properties and their minimum, maximum and
             current value.
         """
-        unique_phases = np.unique(self.data_phase_matrix.flatten())
+        unique_phases = np.unique(self.phase_matrix.flatten())
         
-        
-        self.data_refinables.clear()
+        self.refinables.clear()
          
         def add_property(parent_itr, obj, prop):            
             rp = RefinableProperty(obj, prop, sensitivity=0, refine=False, parent=self)
-            return self.data_refinables.append(parent_itr, rp)
+            return self.refinables.append(parent_itr, rp)
             
         def parse_attribute(obj, attr, root_itr):
             """
@@ -392,8 +431,8 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
             else: #regular values
                 new_itr = add_property(root_itr, obj, attr)
             
-        for phase in self.parent.data_phases.iter_objects():
-            if phase in self.data_phase_matrix: parse_attribute(phase, None, None)
+        for phase in self.parent.phases.iter_objects():
+            if phase in self.phase_matrix: parse_attribute(phase, None, None)
     
     last_refine_rp = 0.0
         
@@ -402,7 +441,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
             Convenience function that restricts the selected properties 
             automatically by setting their minimum and maximum values.
         """
-        for ref_prop in self.data_refinables.iter_objects():
+        for ref_prop in self.refinables.iter_objects():
             if ref_prop.refine and ref_prop.refinable:
                 ref_prop.value_min = ref_prop.value * 0.95
                 ref_prop.value_max = ref_prop.value * 1.05
@@ -423,7 +462,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         
             self.parent.freeze_updates()
                        
-            for ref_prop in self.data_refinables.iter_objects():
+            for ref_prop in self.refinables.iter_objects():
                 if ref_prop.refine and ref_prop.refinable:
                     ref_props.append(ref_prop)
                     values.append(ref_prop.value)
@@ -460,9 +499,9 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
                         raise StopIteration
                         
                 try:
-                    if self.data_refine_method==0: #L BFGS B                                           
+                    if self.refine_method==0: #L BFGS B                                           
                         lastx, lastR2 = Mixture.mod_l_bfgs_b(fitness_func, x0, ranges, args=[], f2=1e6)
-                    elif self.data_refine_method==1: #GENETIC ALGORITHM
+                    elif self.refine_method==1: #GENETIC ALGORITHM
                         lastx, lastR2 = run_genetic_algorithm(ref_props, x0, ranges, fitness_func)
                 except StopIteration:
                     lastx, lastR2 = self.best_x, self.best_rp
@@ -482,13 +521,15 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
                     
     def apply_result(self):
         if self.auto_run: self.optimize()
-        for i, specimen in enumerate(self.data_specimens):
-            specimen.data_abs_scale = self.data_scales[i]
-            specimen.data_bg_shift = self.data_bgshifts[i]
-            specimen.update_pattern(self.data_phase_matrix[i,:], self.data_fractions, self.project.data_goniometer.get_lorentz_polarisation_factor)
+        for i, specimen in enumerate(self.specimens):
+            if specimen!=None:
+                specimen.abs_scale = self.scales[i]
+                specimen.bg_shift = self.bgshifts[i]
+                specimen.update_pattern(self.phase_matrix[i,:], self.fractions, self.project.goniometer.get_lorentz_polarisation_factor)
                 
     pass #end of class
     
+#a wrapper class:
 class RefinableProperty(ChildModel, ObjectListStoreChildMixin, Storable):
     
     #MODEL INTEL:
@@ -540,20 +581,16 @@ class RefinableProperty(ChildModel, ObjectListStoreChildMixin, Storable):
     def get_value_value(self):
         if isinstance(self.obj, RefinementValue):
             return self.obj.refine_value
-        else:
+        elif self.prop!=None:
             return getattr(self.obj, self.prop)
+        else:
+            return None
     def set_value_value(self, value):
         value = max(min(value, self.value_max), self.value_min)
         if isinstance(self.obj, RefinementValue):
             self.obj.refine_value = value
         else:
             setattr(self.obj, self.prop, value)
-    
-    _refine = False
-    def get_refine_value(self): return self._refine
-    def set_refine_value(self, value):
-        self._refine = value and self.refinable
-        self.liststore_item_changed()
       
     @property
     def inherited(self):
@@ -568,16 +605,33 @@ class RefinableProperty(ChildModel, ObjectListStoreChildMixin, Storable):
         else:
             return (not self.inherited)
     
-    _value_min = 0.0
-    def get_value_min_value(self): return self._value_min
+    @property
+    def ref_info(self):
+        name = self.prop_intel.name if self.prop_intel else self.prop
+        if hasattr(self.obj, "%s_ref_info" % name):
+            return getattr(self.obj, "%s_ref_info" % name)
+        elif isinstance(self.obj, _RefinementBase) and self.prop_intel==None:
+            return self.obj.refine_info
+    
+    def get_value_min_value(self):        
+        return self.ref_info.minimum if self.ref_info else None
     def set_value_min_value(self, value):
-        self._value_min = value
-        self.liststore_item_changed()
-    _value_max = 0.0
-    def get_value_max_value(self): return self._value_max    
+        if self.ref_info:
+            self.ref_info.minimum = value
+            self.liststore_item_changed()
+    def get_value_max_value(self):
+        return self.ref_info.maximum if self.ref_info else None
     def set_value_max_value(self, value):
-        self._value_max = value
-        self.liststore_item_changed()
+        if self.ref_info:
+            self.ref_info.maximum = value
+            self.liststore_item_changed()
+
+    def get_refine_value(self):
+        return self.ref_info.refine if self.ref_info else False
+    def set_refine_value(self, value):
+        if self.ref_info:
+            self.ref_info.refine = value and self.refinable
+            self.liststore_item_changed()
 
     def get_index_value(self):
        return (self.obj, self.prop)
@@ -585,7 +639,7 @@ class RefinableProperty(ChildModel, ObjectListStoreChildMixin, Storable):
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def __init__(self, obj=None, prop=None, refine=None, obj_index=None, obj_uuid=None, parent=None, **kwargs):
+    def __init__(self, obj=None, prop=None, obj_uuid=None, parent=None, **kwargs):
         ChildModel.__init__(self, parent=parent)
         Storable.__init__(self)
 
@@ -597,11 +651,6 @@ class RefinableProperty(ChildModel, ObjectListStoreChildMixin, Storable):
                 
         self.obj = obj
         self.prop = prop
-        
-        self.value_min = kwargs.get("value_min", self.prop_intel.minimum if self.prop_intel else None) or self.value_min
-        self.value_max = kwargs.get("value_max", self.prop_intel.maximum if self.prop_intel else None) or self.value_max
-        
-        self._refine = refine or self._refine
         
     # ------------------------------------------------------------
     #      Input/Output stuff

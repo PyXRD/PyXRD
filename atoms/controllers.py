@@ -44,7 +44,7 @@ class EditAtomTypeController(BaseController):
         x, y = (),()
         if self.model is not None:
             x = np.arange(0,90.0,90.0/100.0)
-            y = self.model.get_atomic_scattering_factors(2*np.sin(np.radians(x/2)) / self.model.project.data_goniometer.data_lambda)
+            y = self.model.get_atomic_scattering_factors(2*np.sin(np.radians(x/2)) / self.model.project.goniometer.wavelength)
         self.view.update_figure(x, y)
 
     # ------------------------------------------------------------
@@ -62,7 +62,7 @@ class EditAtomTypeController(BaseController):
 
 class AtomTypesController(ObjectListStoreController):
     file_filters = ("Single atom type file", "*.sat"), ("Atom types list file", "*.atl")
-    model_property_name = "data_atom_types"
+    model_property_name = "atom_types"
     columns = [ ("Atom type name", "c_name") ]
     delete_msg = "Deleting an atom type is irreverisble!\nAre You sure you want to continue?"
     title="Edit Atom Types"
@@ -92,7 +92,12 @@ class AtomTypesController(ObjectListStoreController):
             if fltr.get_name() == self.file_filters[0][0]:
                 self.open_atom_type(open_dialog.get_filename())
             elif fltr.get_name() == self.file_filters[1][0]:
-                AtomType.get_from_csv(open_dialog.get_filename(), self.model.data_atom_types.append)
+                def save_append(*args):
+                    try:
+                        self.model.atom_types.append(*args)
+                    except AssertionError:
+                        print "AssertionError raised when trying to add %s: most likely there is already an AtomType with this name!" % args
+                AtomType.get_from_csv(open_dialog.get_filename(), save_append) #self.model.atom_types.append)
         self.run_load_dialog("Import atom types", on_accept, parent=self.view.get_top_widget())
 
 

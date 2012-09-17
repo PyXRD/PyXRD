@@ -44,6 +44,10 @@ class _RefinementBase(object):
         return []
         
     @property
+    def refine_info(self):
+        return None
+        
+    @property
     def refine_value(self):
         return None
     @refine_value.setter

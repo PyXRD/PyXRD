@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
   <requires lib="gtk+" version="2.24"/>
+  <!-- interface-naming-policy toplevel-contextual -->
   <object class="GtkTable" id="edit_marker">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
@@ -10,7 +11,7 @@
     <property name="column_spacing">5</property>
     <property name="row_spacing">5</property>
     <child>
-      <object class="GtkLabel" id="lbl_label">
+      <object class="GtkLabel" id="label_lbl">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">1</property>
@@ -24,7 +25,7 @@
       </packing>
     </child>
     <child>
-      <object class="GtkLabel" id="lbl_colour">
+      <object class="GtkLabel" id="colour_lbl">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">1</property>
@@ -38,7 +39,7 @@
       </packing>
     </child>
     <child>
-      <object class="GtkLabel" id="lbl_base">
+      <object class="GtkLabel" id="base_lbl">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">1</property>
@@ -53,7 +54,7 @@
       </packing>
     </child>
     <child>
-      <object class="GtkLabel" id="lbl_line">
+      <object class="GtkLabel" id="line_lbl">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">1</property>
@@ -67,7 +68,7 @@
       </packing>
     </child>
     <child>
-      <object class="GtkLabel" id="lbl_angle">
+      <object class="GtkLabel" id="angle_lbl">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">1</property>
@@ -82,7 +83,7 @@
       </packing>
     </child>
     <child>
-      <object class="GtkLabel" id="lbl_position">
+      <object class="GtkLabel" id="position_lbl">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">1</property>
@@ -97,13 +98,15 @@
       </packing>
     </child>
     <child>
-      <object class="GtkEntry" id="marker_data_position">
+      <object class="GtkEntry" id="marker_position">
         <property name="visible">True</property>
         <property name="can_focus">True</property>
         <property name="invisible_char">•</property>
         <property name="invisible_char_set">True</property>
         <property name="primary_icon_activatable">False</property>
         <property name="secondary_icon_activatable">False</property>
+        <property name="primary_icon_sensitive">True</property>
+        <property name="secondary_icon_sensitive">True</property>
       </object>
       <packing>
         <property name="left_attach">1</property>
@@ -115,7 +118,7 @@
       </packing>
     </child>
     <child>
-      <object class="GtkLabel" id="lbl_degrees">
+      <object class="GtkLabel" id="degrees_lbl">
         <property name="width_request">25</property>
         <property name="visible">True</property>
         <property name="can_focus">False</property>
@@ -139,6 +142,8 @@
         <property name="invisible_char_set">True</property>
         <property name="primary_icon_activatable">False</property>
         <property name="secondary_icon_activatable">False</property>
+        <property name="primary_icon_sensitive">True</property>
+        <property name="secondary_icon_sensitive">True</property>
         <signal name="changed" handler="on_nanometer_changed" swapped="no"/>
       </object>
       <packing>
@@ -168,7 +173,7 @@
       </packing>
     </child>
     <child>
-      <object class="GtkLabel" id="lbl_visible">
+      <object class="GtkLabel" id="visible_lbl">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">1</property>
@@ -179,7 +184,7 @@
       </packing>
     </child>
     <child>
-      <object class="GtkCheckButton" id="chk_data_visible">
+      <object class="GtkCheckButton" id="chk_visible">
         <property name="label" translatable="yes">Visible</property>
         <property name="visible">True</property>
         <property name="can_focus">True</property>
@@ -228,13 +233,13 @@
       </packing>
     </child>
     <child>
-      <object class="GtkAlignment" id="algn_color">
+      <object class="GtkAlignment" id="color_algn">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">0</property>
         <property name="xscale">0</property>
         <child>
-          <object class="GtkColorButton" id="marker_data_color">
+          <object class="GtkColorButton" id="marker_color">
             <property name="width_request">100</property>
             <property name="visible">True</property>
             <property name="can_focus">True</property>
@@ -282,13 +287,13 @@
       </packing>
     </child>
     <child>
-      <object class="GtkAlignment" id="algn_label">
+      <object class="GtkAlignment" id="label_algn">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">0</property>
         <property name="xscale">0</property>
         <child>
-          <object class="GtkEntry" id="marker_data_label">
+          <object class="GtkEntry" id="marker_label">
             <property name="width_request">235</property>
             <property name="visible">True</property>
             <property name="can_focus">True</property>
@@ -296,6 +301,8 @@
             <property name="invisible_char_set">True</property>
             <property name="primary_icon_activatable">False</property>
             <property name="secondary_icon_activatable">False</property>
+            <property name="primary_icon_sensitive">True</property>
+            <property name="secondary_icon_sensitive">True</property>
           </object>
         </child>
       </object>
@@ -309,13 +316,13 @@
       </packing>
     </child>
     <child>
-      <object class="GtkAlignment" id="algn_angle">
+      <object class="GtkAlignment" id="angle_algn">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">0</property>
         <property name="xscale">0</property>
         <child>
-          <object class="GtkEntry" id="marker_data_angle">
+          <object class="GtkEntry" id="marker_angle">
             <property name="width_request">235</property>
             <property name="visible">True</property>
             <property name="sensitive">False</property>
@@ -324,6 +331,8 @@
             <property name="invisible_char_set">True</property>
             <property name="primary_icon_activatable">False</property>
             <property name="secondary_icon_activatable">False</property>
+            <property name="primary_icon_sensitive">True</property>
+            <property name="secondary_icon_sensitive">True</property>
           </object>
         </child>
       </object>
@@ -337,13 +346,13 @@
       </packing>
     </child>
     <child>
-      <object class="GtkAlignment" id="algn_base">
+      <object class="GtkAlignment" id="base_algn">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">0</property>
         <property name="xscale">0</property>
         <child>
-          <object class="GtkComboBox" id="marker_data_base">
+          <object class="GtkComboBox" id="marker_base">
             <property name="width_request">235</property>
             <property name="visible">True</property>
             <property name="can_focus">False</property>
@@ -360,13 +369,13 @@
       </packing>
     </child>
     <child>
-      <object class="GtkAlignment" id="algn_style">
+      <object class="GtkAlignment" id="style_algn">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">0</property>
         <property name="xscale">0</property>
         <child>
-          <object class="GtkComboBox" id="marker_data_style">
+          <object class="GtkComboBox" id="marker_style">
             <property name="width_request">235</property>
             <property name="visible">True</property>
             <property name="can_focus">False</property>
@@ -425,7 +434,7 @@
       </packing>
     </child>
     <child>
-      <object class="GtkEntry" id="marker_data_x_offset">
+      <object class="GtkEntry" id="marker_x_offset">
         <property name="width_request">235</property>
         <property name="visible">True</property>
         <property name="can_focus">True</property>
@@ -433,6 +442,8 @@
         <property name="invisible_char_set">True</property>
         <property name="primary_icon_activatable">False</property>
         <property name="secondary_icon_activatable">False</property>
+        <property name="primary_icon_sensitive">True</property>
+        <property name="secondary_icon_sensitive">True</property>
       </object>
       <packing>
         <property name="left_attach">1</property>
@@ -444,7 +455,7 @@
       </packing>
     </child>
     <child>
-      <object class="GtkEntry" id="marker_data_y_offset">
+      <object class="GtkEntry" id="marker_y_offset">
         <property name="width_request">235</property>
         <property name="visible">True</property>
         <property name="can_focus">True</property>
@@ -452,6 +463,8 @@
         <property name="invisible_char_set">True</property>
         <property name="primary_icon_activatable">False</property>
         <property name="secondary_icon_activatable">False</property>
+        <property name="primary_icon_sensitive">True</property>
+        <property name="secondary_icon_sensitive">True</property>
       </object>
       <packing>
         <property name="left_attach">1</property>

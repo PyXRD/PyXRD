@@ -22,6 +22,7 @@ from mpl_toolkits.axisartist import Subplot
 
 import settings
 
+from generic.plot.plotters import plot_specimens
 from generic.controllers import DialogMixin
 
 #TODO:
@@ -42,6 +43,15 @@ class PlotController (DialogMixin):
             self.setup_content()
         return self._canvas
 
+    def get_save_dims(self, num_specimens=1, offset=0.75):    
+        raise NotImplementedError
+        
+    def get_save_bbox(self, width, height):
+        return matplotlib.transforms.Bbox.from_bounds(0, 0, width, height)
+
+    # ------------------------------------------------------------
+    #      Initialisation and other internals
+    # ------------------------------------------------------------
     def __init__(self):
         self._proxies = dict()
         self.setup_figure()
@@ -58,30 +68,11 @@ class PlotController (DialogMixin):
        
     def setup_content(self):
         raise NotImplementedError
-        
-    _proxies = None
-    def register(self, proxy, callback, last=True):
-        if not (proxy, callback) in self._proxies:
-            if last:
-                self._proxies.append((proxy, callback))
-            else:
-                self._proxies = [(proxy, callback),] + self._proxies
-            setattr(proxy, "__pctrl__", self)
-    
-    def unregister(self, proxy, callback):
-        if (proxy, callback) in self._proxies:
-            self._proxies.remove((proxy, callback))
-            setattr(proxy, "__pctrl__", None)
-            
-    def unregister_all(self):
-        for (proxy, callback) in self._proxies:
-            setattr(proxy, "__pctrl__", None)
-        self._proxies = list()
-        
+              
+    # ------------------------------------------------------------
+    #      Update subroutines
+    # ------------------------------------------------------------ 
     def draw(self):
-        #rend = self.figure.canvas.get_renderer()
-        #if rend:
-        #    self.figure.canvas.draw_event(rend)
         try:
             self.figure.canvas.draw()
             self.fix_after_drawing()
@@ -91,12 +82,9 @@ class PlotController (DialogMixin):
     def fix_after_drawing(self):
         pass #nothing to fix
     
-    def get_save_dims(self, num_specimens=1, offset=0.75):    
-        raise NotImplementedError
-        
-    def get_save_bbox(self, width, height):
-        return matplotlib.transforms.Bbox.from_bounds(0, 0, width, height)
-        
+    # ------------------------------------------------------------
+    #      Graph exporting
+    # ------------------------------------------------------------ 
     def save(self, parent=None, suggest_name="graph", size="auto", num_specimens=1, offset=0.75, dpi=150):
         width, height = 0, 0
         if size == "auto":
@@ -135,12 +123,21 @@ class PlotController (DialogMixin):
         
         self.run_save_dialog("Save Graph", on_accept, None, parent=parent, suggest_name=suggest_name, extra_widget=size_expander)
    
-          
 class MainPlotController (PlotController):
 
+    def get_save_dims(self, num_specimens=1, offset=0.75):
+        return settings.PRINT_WIDTH, settings.PRINT_MARGIN_HEIGHT + settings.PRINT_SINGLE_HEIGHT*(1 + (num_specimens-1)*offset*0.25)
+        
+    def get_save_bbox(self, width, height):
+        width = width*min((self.plot.get_position().xmax+0.05),1.0)
+        return matplotlib.transforms.Bbox.from_bounds(0, 0, width, height)
+
+    # ------------------------------------------------------------
+    #      Initialisation and other internals
+    # ------------------------------------------------------------
     def __init__(self, app_controller, *args, **kwargs):
-        self.scale = 1.0
         self.labels = list()
+        self.scale = 1.0
         self.stats = False
         self.xdiff = 30.0
         self.plot_left = 0.0
@@ -165,116 +162,36 @@ class MainPlotController (PlotController):
         yaxis = self.stats_plot.get_yaxis()
         yaxis.tick_left()
 
-        self.canvas.mpl_connect('draw_event', self.on_draw)
+        self.canvas.mpl_connect('draw_event', self.fix_after_drawing)
 
         self.update()
-        
-    def get_save_dims(self, num_specimens=1, offset=0.75):
-        return settings.PRINT_WIDTH, settings.PRINT_MARGIN_HEIGHT + settings.PRINT_SINGLE_HEIGHT*(1 + (num_specimens-1)*offset*0.25)
-        
-    def get_save_bbox(self, width, height):
-        width = width*min((self.plot.get_position().xmax+0.05),1.0)
-        return matplotlib.transforms.Bbox.from_bounds(0, 0, width, height)
-        
-    ###
-    ### UPDATE SUBROUTINES
-    ###
-    def update(self, clear=False, single=True, labels=None, stats=(False,None), project=None):
+              
+    # ------------------------------------------------------------
+    #      Update subroutines
+    # ------------------------------------------------------------    
+    def update(self, clear=False, single=True, stats=(False,None), project=None, specimens=None):
         if clear: 
             self.plot.cla()
             self.stats_plot.cla()
         
-        self.update_proxies(draw=False)
-        self.update_axes(draw=False, single=single, labels=labels, stats=stats, project=project)
+        if project and specimens:
+            self.labels = plot_specimens(project, specimens, self.plot)
+        self.update_axes(single=single, stats=stats, project=project)
         
-        self.draw()
-
-    def update_proxies(self, draw=True):
-        for obj, callback in self._proxies:
-            ret = getattr(obj, callback)(self.figure, self.plot, self)
-        if draw: self.draw()
-    
-    def update_lim(self, project=None):
-        self.plot.relim()
-        self.plot.autoscale_view()
-        
-        self.stats_plot.relim()
-        self.stats_plot.autoscale_view()
-               
-        self.plot.set_ylim(bottom=0, auto=True)
-               
-        xaxis = self.plot.get_xaxis()
-        xmin,xmax = 0.0,20.0
-        if project==None or project.axes_xscale == 0:
-            xmin, xmax = xaxis.get_view_interval()
-            xmin, xmax = max(xmin, 0.0),  max(xmax, 20.0)
-        else:
-            xmin, xmax = max(project.axes_xmin, 0.0), project.axes_xmax
-        self.plot.set_xlim(left=xmin, right=xmax, auto=False)
-        self.stats_plot.set_xlim(left=xmin, right=xmax, auto=False)
-                 
-        self.stats_plot.relim()   
-        self.stats_plot.set_ylim(auto=True)
-        self.stats_plot.get_yaxis().get_major_locator().set_params(symmetric=True, nbins=2, integer=False)
-
-    def on_draw(self, event):
-        self.fix_after_drawing()
-
-    def fix_after_drawing(self):
-        if len(self.labels)>0:
-            bboxes = []
-            for label in self.labels:
-                bbox = label.get_window_extent()
-                # the figure transform goes from relative coords->pixels and we
-                # want the inverse of that
-                bboxi = bbox.inverse_transformed(self.figure.transFigure)
-                bboxes.append(bboxi)
-
-            # this is the bbox that bounds all the bboxes, again in relative
-            # figure coords
-            bbox = transforms.Bbox.union(bboxes)
-            plot_pos = None
-            self.plot_left = 0.05 + bbox.xmax - bbox.xmin
-            if self.stats:
-                plot_pos = settings.get_plot_stats_position(self.xdiff, stretch=self.stretch, plot_left=self.plot_left)
-                self.stats_plot.set_position(settings.get_stats_plot_position(self.xdiff, stretch=self.stretch, plot_left=self.plot_left))
-            else:
-                plot_pos = settings.get_plot_position(self.xdiff, stretch=self.stretch, plot_left=self.plot_left)
-            self.plot.set_position(plot_pos)
-                
-            for label in self.labels:
-                label.set_x(plot_pos[0]-0.025)
-        self.figure.canvas.draw()
-    
-        return False
-
-    def update_axes(self, draw=True, single=True, labels=None, stats=(False,None), project=None):
-        self.update_lim(project=project)
-        
+    def update_axes(self, single=True, stats=(False,None), project=None):
+        """
+            Updates the view limits and displays statistics plot if needed         
+        """
         self.stats, res_pattern = stats        
         self.stretch = project.axes_xstretch if project != None else False
         
+        self.update_lim(project=project)
         xaxis = self.plot.get_xaxis()
         yaxis = self.plot.get_yaxis()
         xmin, xmax = xaxis.get_view_interval()
         ymin, ymax = yaxis.get_view_interval()
         self.xdiff = xmax-xmin
         
-        self.labels = list()
-        if labels != None and labels != []:
-            max_intensity = 1.0
-            if project!=None and project.axes_yscale==2:
-                max_intensity = project.get_max_intensity()
-            for label, position in labels:
-                position *= max_intensity
-                text = Text(
-                    text=label, x=settings.PLOT_LEFT-0.05, y=position, 
-                    clip_on=False,
-                    horizontalalignment='right', verticalalignment='center', 
-                    transform=transforms.blended_transform_factory(self.figure.transFigure, self.plot.transData)
-                )
-                self.plot.add_artist(text)
-                self.labels.append(text)
         if project==None or project.axes_yvisible==False:
             self.plot.axis["left"].set_visible(False)
         else:
@@ -311,8 +228,70 @@ class MainPlotController (PlotController):
             if self.stats_plot in self.figure.axes: #delete stats plot if present:
                 self.figure.delaxes(self.stats_plot)
         
-        if draw: self.draw()
+        self.draw()
     
+    def update_lim(self, project=None):
+        """
+            Updates the view limits
+        """
+        self.plot.relim()
+        self.plot.autoscale_view()
+        
+        self.stats_plot.relim()
+        self.stats_plot.autoscale_view()
+               
+        self.plot.set_ylim(bottom=0, auto=True)
+               
+        xaxis = self.plot.get_xaxis()
+        xmin,xmax = 0.0,20.0
+        if project==None or project.axes_xscale == 0:
+            xmin, xmax = self.plot.get_xlim()
+            xmin, xmax = max(xmin, 0.0),  max(xmax, 20.0)
+        else:
+            xmin, xmax = max(project.axes_xmin, 0.0), project.axes_xmax
+        self.plot.set_xlim(left=xmin, right=xmax, auto=False)
+        self.stats_plot.set_xlim(left=xmin, right=xmax, auto=False)
+    
+    def fix_after_drawing(self, *args):
+        """
+            Fixeds alignment issues due to longer labels or smaller viewports
+            Is executed after an initial draw event, since we can then retrieve
+            the actual label dimensions and shift/resize the plot accordingly.
+        """
+        if len(self.labels)>0:
+            bboxes = []
+            try:
+                for label in self.labels:
+                    bbox = label.get_window_extent()
+                    # the figure transform goes from relative coords->pixels and we
+                    # want the inverse of that
+                    bboxi = bbox.inverse_transformed(self.figure.transFigure)
+                    bboxes.append(bboxi)
+            except RuntimeError as e:
+                print "Catching unhandled exception: %s" % e
+                return #don't continue
+
+            # this is the bbox that bounds all the bboxes, again in relative
+            # figure coords
+            bbox = transforms.Bbox.union(bboxes)
+            plot_pos = None
+            self.plot_left = 0.05 + bbox.xmax - bbox.xmin
+            if self.stats:
+                plot_pos = settings.get_plot_stats_position(self.xdiff, stretch=self.stretch, plot_left=self.plot_left)
+                self.stats_plot.set_position(settings.get_stats_plot_position(self.xdiff, stretch=self.stretch, plot_left=self.plot_left))
+            else:
+                plot_pos = settings.get_plot_position(self.xdiff, stretch=self.stretch, plot_left=self.plot_left)
+            self.plot.set_position(plot_pos)
+                
+            for label in self.labels:
+                label.set_x(plot_pos[0]-0.025)
+        self.figure.canvas.draw()
+    
+        return False
+    
+    pass #end of class    
+
+
 class SmallPlotController (PlotController):
     pass
     
@@ -350,7 +329,7 @@ class DraggableVLine():
         if connect: self.connect()
 
     def connect(self):
-        'connect to all the events we need'
+        """ Connect to the canvas mouse events """
         self.cidpress = self.line.figure.canvas.mpl_connect(
             'button_press_event', self.on_press)
         self.cidrelease = self.line.figure.canvas.mpl_connect(
@@ -359,7 +338,7 @@ class DraggableVLine():
             'motion_notify_event', self.on_motion)
 
     def on_press(self, event):
-        'on button press we will see if the mouse is over us and store some data'
+        """ Check if the mouse is over us and store the data """
         if event.inaxes != self.line.axes: return
         if DraggableVLine.lock is not None: return
         contains, attrd = self.line.contains(event)
@@ -369,7 +348,7 @@ class DraggableVLine():
         DraggableVLine.lock = self
 
     def on_motion(self, event):
-        'on motion we will move the line if the mouse is over us'
+        """ Move the line if the mouse is over us & pressed """
         if self.window != None and event.inaxes == self.line.axes:
             if DraggableVLine.lock is not self:
                 change_cursor, attrd = self.line.contains(event)
@@ -392,7 +371,7 @@ class DraggableVLine():
         self.line.figure.canvas.draw()
 
     def on_release(self, event):
-        'on release we reset the press data'
+        """ Reset the on_press data """
         if DraggableVLine.lock is not self:
             return
 
@@ -407,7 +386,7 @@ class DraggableVLine():
         self.line.figure.canvas.draw()
 
     def disconnect(self):
-        'disconnect all the stored connection ids'
+        """ Disconnect all the stored connection ids """
         self.line.figure.canvas.mpl_disconnect(self.cidpress)
         self.line.figure.canvas.mpl_disconnect(self.cidrelease)
         self.line.figure.canvas.mpl_disconnect(self.cidmotion)

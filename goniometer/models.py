@@ -24,29 +24,28 @@ class Goniometer(ChildModel, Storable):
     #MODEL INTEL:
     __parent_alias__ = 'project'
     __model_intel__ = [ #TODO add labels
-        PropIntel(name="data_radius",       inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True, ctype=float,    refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="data_divergence",   inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True, ctype=float,    refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="data_soller1",      inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True, ctype=float,    refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="data_soller2",      inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True, ctype=float,    refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="data_min_2theta",   inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True, ctype=float,    refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="data_max_2theta",   inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True, ctype=float,    refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="steps",             inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True, ctype=float,    refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="data_lambda",       inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True, ctype=float,    refinable=False, storable=True,  observable=True,  has_widget=True),
-        
-        PropIntel(name="has_ads",           inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True, ctype=bool,     refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="ads_fact",          inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True, ctype=float,    refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="ads_phase_fact",    inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True, ctype=float,    refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="ads_phase_shift",   inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True, ctype=float,    refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="ads_const",         inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True, ctype=float,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="radius",      ctype=float, storable=True, has_widget=True),
+        PropIntel(name="divergence",  ctype=float, storable=True, has_widget=True),
+        PropIntel(name="soller1",     ctype=float, storable=True, has_widget=True),
+        PropIntel(name="soller2",     ctype=float, storable=True, has_widget=True),
+        PropIntel(name="min_2theta",  ctype=float, storable=True, has_widget=True),
+        PropIntel(name="max_2theta",  ctype=float, storable=True, has_widget=True),
+        PropIntel(name="steps",            ctype=float, storable=True, has_widget=True),
+        PropIntel(name="wavelength",      ctype=float, storable=True),
+        PropIntel(name="has_ads",          ctype=bool,  storable=True, has_widget=True),
+        PropIntel(name="ads_fact",         ctype=float, storable=True, has_widget=True),
+        PropIntel(name="ads_phase_fact",   ctype=float, storable=True, has_widget=True),
+        PropIntel(name="ads_phase_shift",  ctype=float, storable=True, has_widget=True),
+        PropIntel(name="ads_const",        ctype=float, storable=True, has_widget=True),
     ]
         
     #PROPERTIES:
-    data_radius = 24.0
-    data_divergence = 0.5
-    data_min_2theta = 3.0
-    data_max_2theta = 45.0
-    steps = 2500
-    data_lambda = 0.154056
+    radius = 24.0
+    divergence = 0.5
+    min_2theta = 3.0
+    max_2theta = 45.0
+    steps = 2500    
+    wavelength = 0.154056
     
     has_ads = False
     ads_fact = 1.0
@@ -57,14 +56,14 @@ class Goniometer(ChildModel, Storable):
     _dirty_cache = True
     _S = 0
     
-    _data_soller1 = 2.3
-    _data_soller2 = 2.3
-    @Model.getter("data_soller[12]")
-    def get_data_soller(self, prop_name):
+    _soller1 = 2.3
+    _soller2 = 2.3
+    @Model.getter("soller[12]")
+    def get_soller(self, prop_name):
         prop_name = "_%s" % prop_name
         return getattr(self, prop_name)
-    @Model.setter("data_soller[12]")
-    def set_data_soller(self, prop_name, value):
+    @Model.setter("soller[12]")
+    def set_soller(self, prop_name, value):
         prop_name = "_%s" % prop_name
         if value != getattr(self, prop_name):
             setattr(self, prop_name, value)
@@ -73,22 +72,22 @@ class Goniometer(ChildModel, Storable):
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def __init__(self, data_radius = 24.0, data_divergence = 0.5, 
-                 data_soller1 = 2.3, data_soller2 = 2.3,
-                 data_min_2theta = 3.0, data_max_2theta = 45.0, steps=2500,
-                 data_lambda = 0.154056, has_ads =  False, ads_fact = 1.0, 
+    def __init__(self, radius = None, divergence = None,
+                 soller1 = None, soller2 = None,
+                 min_2theta = None, max_2theta = None, steps=2500,
+                 wavelength = None, has_ads =  False, ads_fact = 1.0, 
                  ads_phase_fact=1.0, ads_phase_shift = 0.0, ads_const = 0.0,
                  parent=None, **kwargs):
         ChildModel.__init__(self, parent=parent)
         Storable.__init__(self)
-        self.data_radius = data_radius
-        self.data_divergence = data_divergence
-        self.data_soller1 = data_soller1
-        self.data_soller2 = data_soller2
-        self.data_min_2theta = data_min_2theta
-        self.data_max_2theta = data_max_2theta
+        self.radius = radius or self.get_depr(kwargs, 24.0, "data_radius")
+        self.divergence = divergence or self.get_depr(kwargs, 0.5, "data_divergence")
+        self.soller1 = soller1 or self.get_depr(kwargs, 2.3, "data_soller1")
+        self.soller2 = soller2 or self.get_depr(kwargs, 2.3, "data_soller2")
+        self.min_2theta = min_2theta or self.get_depr(kwargs, 3.0, "data_min_2theta")
+        self.max_2theta = max_2theta or self.get_depr(kwargs, 45.0, "data_max_2theta")
         self.steps = steps
-        self.data_lambda = data_lambda
+        self.wavelength = wavelength or self.get_depr(kwargs, 0.154056, "data_lambda")
         self.has_ads = has_ads
         self.ads_fact = ads_fact
         self.ads_phase_fact = ads_phase_fact
@@ -109,8 +108,8 @@ class Goniometer(ChildModel, Storable):
     
     def get_S(self):
         if self._dirty_cache:
-            self._S = sqrt((self.data_soller1 * 0.5)**2 + (self.data_soller2 * 0.5)**2)
-            self._S1S2 = self.data_soller1 * self.data_soller2
+            self._S = sqrt((self.soller1 * 0.5)**2 + (self.soller2 * 0.5)**2)
+            self._S1S2 = self.soller1 * self.soller2
             self._dirty_cache = False
         return self._S, self._S1S2
        
@@ -126,7 +125,7 @@ class Goniometer(ChildModel, Storable):
     
     def get_nm_from_2t(self, twotheta):
         if twotheta != 0:
-            return self.data_lambda / (2.0*sin(radians(twotheta/2.0)))
+            return self.wavelength / (2.0*sin(radians(twotheta/2.0)))
         else:
             return 0.0
         
@@ -136,7 +135,7 @@ class Goniometer(ChildModel, Storable):
     def get_2t_from_nm(self, nm):
         twotheta = 0.0
         if nm != 0: 
-            twotheta = degrees(asin(max(-1.0, min(1.0, self.data_lambda/(2.0*nm)))))*2.0
+            twotheta = degrees(asin(max(-1.0, min(1.0, self.wavelength/(2.0*nm)))))*2.0
         return twotheta
         
     def get_default_theta_range(self, as_radians=True): #TODO cache this
@@ -145,8 +144,8 @@ class Goniometer(ChildModel, Storable):
                 return radians(val)
             else:
                 return val
-        min_theta = torad(self.data_min_2theta*0.5)
-        max_theta = torad(self.data_max_2theta*0.5)
+        min_theta = torad(self.min_2theta*0.5)
+        max_theta = torad(self.max_2theta*0.5)
         delta_theta = float(max_theta - min_theta) / float(self.steps-1)
         theta_range = (min_theta + delta_theta * np.arange(0,self.steps-1, dtype=float))
         
@@ -181,8 +180,13 @@ class Goniometer(ChildModel, Storable):
         return cls._mc_cache[args]
     
     def get_machine_correction_range(self, theta_range, sample_length, absorption):
+        """
+            Calculates correction factors for the given theta range, sample
+            length and absorption using the information about the machine's
+            geometry.
+        """
         return Goniometer._get_mc_range(theta_range, sample_length, absorption,
-            self.data_radius, self.data_divergence, self.has_ads, self.ads_fact,
+            self.radius, self.divergence, self.has_ads, self.ads_fact,
             self.ads_phase_fact, self.ads_phase_shift, self.ads_const)
        
     pass #end of class

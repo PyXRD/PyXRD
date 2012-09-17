@@ -59,7 +59,7 @@ class R2G2Model(_AbstractProbability):
         ),
     ]
     __model_intel__ = [
-        PropIntel(name=prop, inh_name=None, label=label, minimum=0.0, maximum=1.0, is_column=False, ctype=float, refinable=True, storable=True, observable=True, has_widget=True) \
+        PropIntel(name=prop, label=label, minimum=0.0, maximum=1.0, ctype=float, refinable=True, storable=True, has_widget=True) \
             for prop, label in __independent_label_map__
     ]
 
@@ -225,7 +225,7 @@ class R2G3Model(_AbstractProbability):
 
     ]
     __model_intel__ = [
-        PropIntel(name=prop, inh_name=None, label=label, minimum=0.0, maximum=1.0, is_column=False, ctype=float, refinable=True, storable=True, observable=True, has_widget=True) \
+        PropIntel(name=prop, label=label, minimum=0.0, maximum=1.0, ctype=float, refinable=True, storable=True, has_widget=True) \
             for prop, label in __independent_label_map__
     ]
 

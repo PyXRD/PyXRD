@@ -13,7 +13,8 @@ import numpy as np
 from gtkmvc.model import Signal
 
 from generic.io import Storable
-from generic.models import ChildModel, PropIntel
+from generic.models import ChildModel
+from generic.properties import PropIntel
 from generic.utils import indexproperty
 
 from mixture.refinement import RefinementGroup
@@ -23,10 +24,10 @@ class _AbstractProbability(ChildModel, Storable, RefinementGroup):
     #MODEL INTEL:     
     __parent_alias__ = 'phase'
     __model_intel__ = [ #TODO add labels
-        PropIntel(name="updated",   inh_name=None,  label="",               minimum=None,  maximum=None,  is_column=False, ctype=object, refinable=False, storable=False,  observable=True,  has_widget=False),
-        PropIntel(name="data_name", inh_name=None,  label="Probabilites",   minimum=None,  maximum=None,  is_column=False, ctype=str,    refinable=False, storable=False,  observable=True,  has_widget=False),
-        PropIntel(name="W_valid",   inh_name=None,  label="Valid W matrix", minimum=None,  maximum=None,  is_column=False, ctype=object,   refinable=False, storable=False,  observable=True,  has_widget=False),
-        PropIntel(name="P_valid",   inh_name=None,  label="Valid P matrix", minimum=None,  maximum=None,  is_column=False, ctype=object,   refinable=False, storable=False,  observable=True,  has_widget=False),
+        PropIntel(name="updated",   inh_name=None,  label="",               ctype=object),
+        PropIntel(name="name",      inh_name=None,  label="Probabilites",   ctype=str),
+        PropIntel(name="W_valid",   inh_name=None,  label="Valid W matrix", ctype=object),
+        PropIntel(name="P_valid",   inh_name=None,  label="Valid P matrix", ctype=object),
     ]
     __independent_label_map__ = []
     
@@ -34,7 +35,7 @@ class _AbstractProbability(ChildModel, Storable, RefinementGroup):
     updated = None
     
     #PROPERTIES:
-    data_name = "Probabilities"
+    name = "Probabilities"
     W_valid = None
     W_valid_mask = None
     P_valid = None
@@ -52,7 +53,7 @@ class _AbstractProbability(ChildModel, Storable, RefinementGroup):
     @property
     def G(self):
         if self.parent!=None:
-            return self.parent.data_G
+            return self.parent.G
         else:
             return None
     
@@ -80,7 +81,7 @@ class _AbstractProbability(ChildModel, Storable, RefinementGroup):
     #REFINEMENT GROUP IMPLEMENTATION:
     @property
     def refine_title(self):
-        return self.data_name
+        return self.name
         
     @property
     def children_refinable(self):

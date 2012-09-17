@@ -15,7 +15,7 @@
         <property name="column_spacing">6</property>
         <property name="row_spacing">6</property>
         <child>
-          <object class="GtkLabel" id="lbl_spec_name">
+          <object class="GtkLabel" id="spec_name_lbl">
             <property name="width_request">100</property>
             <property name="visible">True</property>
             <property name="can_focus">False</property>
@@ -29,7 +29,7 @@
           </packing>
         </child>
         <child>
-          <object class="GtkLabel" id="lbl_spec_sample">
+          <object class="GtkLabel" id="spec_sample_lbl">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="xalign">0</property>
@@ -44,7 +44,7 @@
           </packing>
         </child>
         <child>
-          <object class="GtkEntry" id="specimen_data_name">
+          <object class="GtkEntry" id="specimen_name">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="invisible_char">•</property>
@@ -61,7 +61,7 @@
           </packing>
         </child>
         <child>
-          <object class="GtkEntry" id="specimen_data_sample">
+          <object class="GtkEntry" id="specimen_sample_name">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="invisible_char">•</property>
@@ -259,7 +259,7 @@
           </packing>
         </child>
         <child>
-          <object class="GtkLabel" id="lbl_spec_length">
+          <object class="GtkLabel" id="spec_length_lbl">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="xalign">0</property>
@@ -275,13 +275,13 @@
           </packing>
         </child>
         <child>
-          <object class="GtkAlignment" id="entry_align_sample_length">
+          <object class="GtkAlignment" id="entry_sample_length_align">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="xalign">0</property>
             <property name="xscale">0</property>
             <child>
-              <object class="GtkEntry" id="specimen_data_sample_length">
+              <object class="GtkEntry" id="specimen_sample_length">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="invisible_char">•</property>
@@ -302,7 +302,7 @@
           </packing>
         </child>
         <child>
-          <object class="GtkLabel" id="lbl_spec_scale">
+          <object class="GtkLabel" id="spec_scale_lbl">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="xalign">0</property>
@@ -324,7 +324,7 @@
             <property name="xalign">0</property>
             <property name="xscale">0</property>
             <child>
-              <object class="GtkEntry" id="specimen_data_abs_scale">
+              <object class="GtkEntry" id="specimen_abs_scale">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="tooltip_markup">The absolute scale the calculated diffractogram needs to be multiplied with,
@@ -348,7 +348,7 @@
           </packing>
         </child>
         <child>
-          <object class="GtkLabel" id="lbl_spec_bgshift">
+          <object class="GtkLabel" id="spec_bgshift_lbl">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="xalign">0</property>
@@ -370,7 +370,7 @@
             <property name="xalign">0</property>
             <property name="xscale">0</property>
             <child>
-              <object class="GtkEntry" id="specimen_data_bg_shift">
+              <object class="GtkEntry" id="specimen_bg_shift">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="tooltip_text" translatable="yes">The number of counts the calculated profile needs to be shifted upwards.</property>

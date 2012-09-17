@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
-  <requires lib="gtk+" version="2.24"/>
-  <!-- interface-naming-policy project-wide -->
+  <!-- interface-requires gtk+ 3.0 -->
   <object class="GtkHBox" id="tbl_csds_distr">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
@@ -65,6 +64,12 @@
             <property name="n_columns">2</property>
             <property name="column_spacing">5</property>
             <property name="row_spacing">5</property>
+            <child>
+              <placeholder/>
+            </child>
+            <child>
+              <placeholder/>
+            </child>
             <child>
               <placeholder/>
             </child>

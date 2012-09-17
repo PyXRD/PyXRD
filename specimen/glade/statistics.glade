@@ -26,7 +26,7 @@
       </packing>
     </child>
     <child>
-      <object class="GtkLabel" id="lbl_chi2">
+      <object class="GtkLabel" id="chi2_lbl">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">1</property>
@@ -42,7 +42,7 @@
       </packing>
     </child>
     <child>
-      <object class="GtkLabel" id="lbl_points">
+      <object class="GtkLabel" id="points_lbl">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">1</property>
@@ -58,7 +58,7 @@
       </packing>
     </child>
     <child>
-      <object class="GtkLabel" id="lbl_data_points">
+      <object class="GtkLabel" id="lbl_points">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">0</property>
@@ -78,7 +78,7 @@
       </packing>
     </child>
     <child>
-      <object class="GtkLabel" id="lbl_data_chi2">
+      <object class="GtkLabel" id="lbl_chi2">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">0</property>
@@ -98,7 +98,7 @@
       </packing>
     </child>
     <child>
-      <object class="GtkLabel" id="lbl_R2">
+      <object class="GtkLabel" id="R2_lbl">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">1</property>
@@ -116,7 +116,7 @@
       </packing>
     </child>
     <child>
-      <object class="GtkLabel" id="lbl_data_R2">
+      <object class="GtkLabel" id="lbl_R2">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">0</property>
@@ -136,7 +136,7 @@
       </packing>
     </child>
     <child>
-      <object class="GtkLabel" id="lbl_Rp">
+      <object class="GtkLabel" id="Rp_lbl">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">1</property>
@@ -154,7 +154,7 @@
       </packing>
     </child>
     <child>
-      <object class="GtkLabel" id="lbl_data_Rp">
+      <object class="GtkLabel" id="lbl_Rp">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">0</property>

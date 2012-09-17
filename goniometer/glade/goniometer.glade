@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
-  <requires lib="gtk+" version="2.20"/>
-  <!-- interface-naming-policy toplevel-contextual -->
+  <!-- interface-requires gtk+ 3.0 -->
   <object class="GtkAdjustment" id="adj_steps_gonio">
     <property name="lower">1</property>
     <property name="upper">5000</property>
@@ -17,7 +16,7 @@
     <property name="column_spacing">12</property>
     <property name="row_spacing">6</property>
     <child>
-      <object class="GtkLabel" id="lbl_gonio_lambda">
+      <object class="GtkLabel" id="gonio_lambda_lbl">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">1</property>
@@ -30,7 +29,7 @@
       </packing>
     </child>
     <child>
-      <object class="GtkLabel" id="lbl_gonio_radius">
+      <object class="GtkLabel" id="gonio_radius_lbl">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">1</property>
@@ -45,7 +44,7 @@
       </packing>
     </child>
     <child>
-      <object class="GtkLabel" id="lbl_gonio_divergence">
+      <object class="GtkLabel" id="gonio_divergence_lbl">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">1</property>
@@ -60,20 +59,22 @@
       </packing>
     </child>
     <child>
-      <object class="GtkAlignment" id="algn_gonio_lambda">
+      <object class="GtkAlignment" id="gonio_lambda_algn">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">0</property>
         <property name="xscale">0</property>
         <child>
-          <object class="GtkEntry" id="gonio_data_lambda">
+          <object class="GtkComboBox" id="wavelength_combo_box">
             <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="invisible_char">•</property>
-            <property name="primary_icon_activatable">False</property>
-            <property name="secondary_icon_activatable">False</property>
-            <property name="primary_icon_sensitive">True</property>
-            <property name="secondary_icon_sensitive">True</property>
+            <property name="can_focus">False</property>
+            <property name="has_entry">True</property>
+            <signal name="changed" handler="on_cmb_wavelength_changed" swapped="no"/>
+            <child internal-child="entry">
+              <object class="GtkEntry" id="gonio_wavelength">
+                <property name="can_focus">True</property>
+              </object>
+            </child>
           </object>
         </child>
       </object>
@@ -85,20 +86,18 @@
       </packing>
     </child>
     <child>
-      <object class="GtkAlignment" id="algn_gonio_radius">
+      <object class="GtkAlignment" id="gonio_radius_algn">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">0</property>
         <property name="xscale">0</property>
         <child>
-          <object class="GtkEntry" id="gonio_data_radius">
+          <object class="GtkEntry" id="gonio_radius">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="invisible_char">•</property>
             <property name="primary_icon_activatable">False</property>
             <property name="secondary_icon_activatable">False</property>
-            <property name="primary_icon_sensitive">True</property>
-            <property name="secondary_icon_sensitive">True</property>
           </object>
         </child>
       </object>
@@ -112,20 +111,18 @@
       </packing>
     </child>
     <child>
-      <object class="GtkAlignment" id="algn_gonio_soller1">
+      <object class="GtkAlignment" id="gonio_soller1_algn">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">0</property>
         <property name="xscale">0</property>
         <child>
-          <object class="GtkEntry" id="gonio_data_soller1">
+          <object class="GtkEntry" id="gonio_soller1">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="invisible_char">•</property>
             <property name="primary_icon_activatable">False</property>
             <property name="secondary_icon_activatable">False</property>
-            <property name="primary_icon_sensitive">True</property>
-            <property name="secondary_icon_sensitive">True</property>
           </object>
         </child>
       </object>
@@ -139,20 +136,18 @@
       </packing>
     </child>
     <child>
-      <object class="GtkAlignment" id="algn_gonio_divergence">
+      <object class="GtkAlignment" id="gonio_divergence_algn">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">0</property>
         <property name="xscale">0</property>
         <child>
-          <object class="GtkEntry" id="gonio_data_divergence">
+          <object class="GtkEntry" id="gonio_divergence">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="invisible_char">•</property>
             <property name="primary_icon_activatable">False</property>
             <property name="secondary_icon_activatable">False</property>
-            <property name="primary_icon_sensitive">True</property>
-            <property name="secondary_icon_sensitive">True</property>
           </object>
         </child>
       </object>
@@ -166,7 +161,7 @@
       </packing>
     </child>
     <child>
-      <object class="GtkLabel" id="lbl_gonio_soller1">
+      <object class="GtkLabel" id="gonio_soller1_lbl">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">1</property>
@@ -181,20 +176,18 @@
       </packing>
     </child>
     <child>
-      <object class="GtkAlignment" id="algn_gonio_soller2">
+      <object class="GtkAlignment" id="gonio_soller2_algn">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">0</property>
         <property name="xscale">0</property>
         <child>
-          <object class="GtkEntry" id="gonio_data_soller2">
+          <object class="GtkEntry" id="gonio_soller2">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="invisible_char">•</property>
             <property name="primary_icon_activatable">False</property>
             <property name="secondary_icon_activatable">False</property>
-            <property name="primary_icon_sensitive">True</property>
-            <property name="secondary_icon_sensitive">True</property>
           </object>
         </child>
       </object>
@@ -208,7 +201,7 @@
       </packing>
     </child>
     <child>
-      <object class="GtkLabel" id="lbl_gonio_soller2">
+      <object class="GtkLabel" id="gonio_soller2_lbl">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">1</property>
@@ -223,20 +216,18 @@
       </packing>
     </child>
     <child>
-      <object class="GtkAlignment" id="algn_gonio_min_2theta">
+      <object class="GtkAlignment" id="gonio_min_2theta_algn">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">0</property>
         <property name="xscale">0</property>
         <child>
-          <object class="GtkEntry" id="gonio_data_min_2theta">
+          <object class="GtkEntry" id="gonio_min_2theta">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="invisible_char">•</property>
             <property name="primary_icon_activatable">False</property>
             <property name="secondary_icon_activatable">False</property>
-            <property name="primary_icon_sensitive">True</property>
-            <property name="secondary_icon_sensitive">True</property>
           </object>
         </child>
       </object>
@@ -250,7 +241,7 @@
       </packing>
     </child>
     <child>
-      <object class="GtkLabel" id="lbl_gonio_min_2theta">
+      <object class="GtkLabel" id="gonio_min_2theta_lbl">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">1</property>
@@ -265,20 +256,18 @@
       </packing>
     </child>
     <child>
-      <object class="GtkAlignment" id="algn_gonio_max_2theta">
+      <object class="GtkAlignment" id="gonio_max_2theta_algn">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">0</property>
         <property name="xscale">0</property>
         <child>
-          <object class="GtkEntry" id="gonio_data_max_2theta">
+          <object class="GtkEntry" id="gonio_max_2theta">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="invisible_char">•</property>
             <property name="primary_icon_activatable">False</property>
             <property name="secondary_icon_activatable">False</property>
-            <property name="primary_icon_sensitive">True</property>
-            <property name="secondary_icon_sensitive">True</property>
           </object>
         </child>
       </object>
@@ -292,7 +281,7 @@
       </packing>
     </child>
     <child>
-      <object class="GtkLabel" id="lbl_gonio_max_2theta">
+      <object class="GtkLabel" id="gonio_max_2theta_lbl">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">1</property>
@@ -361,6 +350,7 @@
     <child>
       <object class="GtkButton" id="btn_export_gonio">
         <property name="label" translatable="yes">Store setup</property>
+        <property name="use_action_appearance">False</property>
         <property name="visible">True</property>
         <property name="can_focus">True</property>
         <property name="receives_default">True</property>
@@ -403,8 +393,6 @@
             <property name="text" translatable="yes">1.0</property>
             <property name="primary_icon_activatable">False</property>
             <property name="secondary_icon_activatable">False</property>
-            <property name="primary_icon_sensitive">True</property>
-            <property name="secondary_icon_sensitive">True</property>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -435,8 +423,6 @@
             <property name="invisible_char_set">True</property>
             <property name="primary_icon_activatable">False</property>
             <property name="secondary_icon_activatable">False</property>
-            <property name="primary_icon_sensitive">True</property>
-            <property name="secondary_icon_sensitive">True</property>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -467,8 +453,6 @@
             <property name="invisible_char_set">True</property>
             <property name="primary_icon_activatable">False</property>
             <property name="secondary_icon_activatable">False</property>
-            <property name="primary_icon_sensitive">True</property>
-            <property name="secondary_icon_sensitive">True</property>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -499,8 +483,6 @@
             <property name="invisible_char_set">True</property>
             <property name="primary_icon_activatable">False</property>
             <property name="secondary_icon_activatable">False</property>
-            <property name="primary_icon_sensitive">True</property>
-            <property name="secondary_icon_sensitive">True</property>
           </object>
           <packing>
             <property name="expand">False</property>
@@ -534,10 +516,12 @@
     <child>
       <object class="GtkCheckButton" id="chk_has_ads">
         <property name="label" translatable="yes">ADS correction</property>
+        <property name="use_action_appearance">False</property>
         <property name="visible">True</property>
         <property name="can_focus">True</property>
         <property name="receives_default">False</property>
         <property name="use_action_appearance">False</property>
+        <property name="xalign">0.5</property>
         <property name="draw_indicator">True</property>
       </object>
       <packing>
@@ -575,8 +559,6 @@
             <property name="invisible_char">●</property>
             <property name="primary_icon_activatable">False</property>
             <property name="secondary_icon_activatable">False</property>
-            <property name="primary_icon_sensitive">True</property>
-            <property name="secondary_icon_sensitive">True</property>
             <property name="adjustment">adj_steps_gonio</property>
             <property name="snap_to_ticks">True</property>
             <property name="numeric">True</property>

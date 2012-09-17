@@ -33,17 +33,17 @@ class AtomType(ChildModel, ObjectListStoreChildMixin, Storable, CSVMixin):
     __index_column__ = 'name'
     __parent_alias__ = 'project'
     __model_intel__ = [ #TODO add labels
-        PropIntel(name="atom_nr",      inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True, ctype=int,    refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="name",         inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True, ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="charge",       inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True, ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="weight",       inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True, ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="debye",        inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True, ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="par_c",        inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True, ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="parameters_changed",inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True, ctype=float,  refinable=False, storable=False, observable=True,  has_widget=False),
+        PropIntel(name="atom_nr",             is_column=True, ctype=int,   storable=True, has_widget=True),
+        PropIntel(name="name",                is_column=True, ctype=str,   storable=True, has_widget=True),
+        PropIntel(name="charge",              is_column=True, ctype=float, storable=True, has_widget=True),
+        PropIntel(name="weight",              is_column=True, ctype=float, storable=True, has_widget=True),
+        PropIntel(name="debye",               is_column=True, ctype=float, storable=True, has_widget=True),
+        PropIntel(name="par_c",               is_column=True, ctype=float, storable=True, has_widget=True),
+        PropIntel(name="parameters_changed",  is_column=True, ctype=float),
     ] + [
-        PropIntel(name="par_a%d" % i,  inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True, ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True) for i in [1,2,3,4,5]
+        PropIntel(name="par_a%d" % i,         is_column=True, ctype=float, storable=True, has_widget=True) for i in [1,2,3,4,5]
     ] + [
-        PropIntel(name="par_b%d" % i,  inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True, ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True) for i in [1,2,3,4,5]
+        PropIntel(name="par_b%d" % i,         is_column=True, ctype=float, storable=True, has_widget=True) for i in [1,2,3,4,5]
     ]
     __csv_storables__ = [(prop.name, prop.name) for prop in __model_intel__ if prop.storable]
 
@@ -154,12 +154,12 @@ class Atom(ChildModel, ObjectListStoreChildMixin, Storable):
     #MODEL INTEL:
     __parent_alias__ = 'component'
     __model_intel__ = [ #TODO add labels
-        PropIntel(name="name",              inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True,  ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="default_z",         inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True,  ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="z",                 inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True,  ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="pn",                inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True,  ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="atom_type",         inh_name=None,  label="", minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=False, storable=False, observable=True,  has_widget=True),
-        PropIntel(name="stretch_values",    inh_name=None,  label="", minimum=None,  maximum=None,  is_column=False, ctype=bool,   refinable=False, storable=False, observable=True,  has_widget=False),
+        PropIntel(name="name",              ctype=str,    is_column=True, storable=True, has_widget=True),
+        PropIntel(name="default_z",         ctype=float,  is_column=True, storable=True, has_widget=True),
+        PropIntel(name="z",                 ctype=float,  is_column=True, storable=True, has_widget=True),
+        PropIntel(name="pn",                ctype=float,  is_column=True, storable=True, has_widget=True),
+        PropIntel(name="atom_type",         ctype=object, is_column=True, has_widget=True),
+        PropIntel(name="stretch_values",    ctype=bool),
     ]    
     
     #PROPERTIES:
@@ -277,13 +277,13 @@ class Atom(ChildModel, ObjectListStoreChildMixin, Storable):
             assert(self.component.phase!=None)
             assert(self.component.phase.project!=None)
             if self._atom_type_name!="":
-                for atom_type in self.component.phase.project.data_atom_types.iter_objects():
+                for atom_type in self.component.phase.project.atom_types.iter_objects():
                     if atom_type.name == self._atom_type_name:
                         self.atom_type = atom_type
             else:
                 warn("The use of object indeces is deprected since version 0.4. \
                     Please switch to using object UUIDs.", DeprecationWarning)
-                self.atom_type = self.component.phase.project.data_atom_types.get_user_data_from_path((self._atom_type_index,))
+                self.atom_type = self.component.phase.project.atom_types.get_user_data_from_path((self._atom_type_index,))
         self._atom_type_name = ""
         self._atom_type_uuid = ""
         self._atom_type_index = None
@@ -306,7 +306,7 @@ class Atom(ChildModel, ObjectListStoreChildMixin, Storable):
         
         types = dict()
         if parent != None:
-            for atom_type in parent.phase.project.data_atom_types._model_data:
+            for atom_type in parent.phase.project.atom_types._model_data:
                 if not atom_type.name in types:
                     types[atom_type.name] = atom_type
         

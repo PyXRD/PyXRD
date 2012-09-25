@@ -237,6 +237,34 @@ class ChildObjectListStoreView(BaseView, ObjectListStoreViewMixin):
         ObjectListStoreViewMixin.__init__(self, edit_view_container=edit_view_container, display_buttons=display_buttons, load_label=load_label, save_label=save_label, **kwargs)
         
         self["frm_objects_tv"].set_size_request(150, 150)
+  
+class InlineObjectListStoreView(BaseView):
+    builder = "generic/glade/inline_ols.glade"
+    top = "edit_item"
+    
+    @property
+    def treeview_widget(self):
+        return self['tvw_items']
+    
+    @property   
+    def del_item_widget(self):
+        return self['btn_del_item']
+
+    @property
+    def add_item_widget(self):
+        return self['btn_add_item']
+        
+    @property
+    def export_items_widget(self):
+        return self['btn_export_item']
+        
+    @property
+    def import_items_widget(self):
+        return self['btn_import_item']
+        
+    @property
+    def type_combobox_widget(self):
+        return self['cmb_add_type']
         
 class NoneView(BaseView):
     builder = "generic/glade/none.glade"

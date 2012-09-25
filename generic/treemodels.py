@@ -240,6 +240,11 @@ class ObjectListStore(_BaseObjectListStore, Storable):
     def index(self, item):
         return self._model_data.index(item)
         
+    def replace_item(self, old_item, new_item):
+        index = self.index(old_item)
+        self.remove_item(old_item)
+        self.insert(index, new_item)
+        
     def get_user_data_from_index(self, index):
         return self._model_data[index]
         
@@ -447,7 +452,8 @@ class ObjectTreeStore(_BaseObjectListStore, Storable):
             if hasattr(path, 'split'): path = map(int, path.split(":"))
             return self._model_data.get_child_node(*path)
         except IndexError, msg:
-            print "self in on_get_iter of %s caused by %s" % (self, path)
+            print "IndexError in on_get_iter of %s caused by %s" % (self, path)
+            print_exc()
             return None
 
     def on_get_path(self, node):
@@ -455,7 +461,7 @@ class ObjectTreeStore(_BaseObjectListStore, Storable):
             return ":".join(map(str,node.get_indeces()))
         except ValueError:
             print "ValueError in on_get_path of %s caused by %s" % (self, node)
-            raise
+            print_exc()
             return None
 
     def set_value(self, itr, column, value):

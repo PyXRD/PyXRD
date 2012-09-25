@@ -36,7 +36,8 @@ class ObjectListStoreParentMixin(object):
         *child_type* the type of children the _BaseObjectListStore has
         
         :rtype: an empty tree model (argument was None), the argument
-        (tm_type instance), the actual object (argument was a JSON dict)
+        (argument was a 'tm_type' instance), the actual object (argument was a 
+        JSON dict)
         """
         if arg==None:
             return tm_type(child_type)
@@ -45,7 +46,7 @@ class ObjectListStoreParentMixin(object):
         elif isinstance(arg, dict):
             return tm_type.from_json(parent=self, **arg['properties'])
         else:
-            raise ValueError, "Could not parse a TreeModel argument: %s" % arg
+            raise ValueError, "Could not parse argument as TreeModel: %s" % arg
             
 class CSVMixin(object):
     

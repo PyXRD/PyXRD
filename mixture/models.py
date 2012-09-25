@@ -24,11 +24,9 @@ from generic.metaclasses import pyxrd_object_pool
 from generic.io import Storable
 from generic.utils import print_timing, delayed
 from generic.model_mixins import ObjectListStoreChildMixin
-from generic.models import ChildModel, Storable, PropIntel, MultiProperty
-from generic.treemodels import ObjectTreeStore, _BaseObjectListStore
+from generic.models import ChildModel, PropIntel, MultiProperty
+from generic.treemodels import ObjectTreeStore
 
-from phases.models import Phase, Component, UnitCellProperty, ComponentRatioFunction
-from probabilities.base_models import _AbstractProbability
 from specimen.models import Statistics
 
 from mixture.genetics import run_genetic_algorithm

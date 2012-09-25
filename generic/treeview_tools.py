@@ -184,7 +184,7 @@ def new_text_column(title,
     return col
     
 def new_pb_column(title,
-        data_func=None,
+        data_func=None,      
         spacing=0,
         visible=True,
         resizable=True,
@@ -277,7 +277,90 @@ def new_toggle_column(title,
         col_attrs=col_attrs)
     return col
     
+def new_combo_column(title,
+        data_func=None,
+        changed_callback=None,
+        edited_callback=None,
+        editing_started_callback=None,
+        editing_canceled_callback=None,
+        spacing=0,
+        visible=True,
+        resizable=True,
+        sizing=0,
+        fixed_width=-1,
+        min_width=-1,
+        max_width=-1,
+        expand=True,        
+        clickable=False,
+        alignment=None,
+        reorderable=False,
+        sort_column_id=-1,
+        sort_indicator=False,
+        sort_order=gtk.SORT_ASCENDING,
+        **kwargs):
+    """
+        Creates a TreeViewColumn packed with a CellRendererCombo.
+    """
+    kwargs, col_attrs = _parse_kwargs(**kwargs)
+    alignment = alignment if alignment!=None else kwargs["xalign"]
+    
+    rend = _get_default_renderer(gtk.CellRendererCombo, **kwargs)
+    if changed_callback!=None:
+        callback, args = _parse_callback(changed_callback, reduce=False)
+        rend.connect('changed', callback, *args)
+    if edited_callback!=None:
+        callback, args = _parse_callback(edited_callback, reduce=False)
+        rend.connect('edited', callback, *args)
+    if editing_started_callback!=None:
+        callback, args = _parse_callback(editing_started_callback, reduce=False)
+        rend.connect('editing-started', callback, *args)
+    if editing_canceled_callback!=None:
+        callback, args = _parse_callback(editing_canceled_callback, reduce=False)
+        rend.connect('editing-canceled', callback, *args)        
+    
+    col = _get_default_column(
+        title, rend,
+        data_func=data_func,
+        spacing=spacing,
+        visible=visible,
+        resizable=resizable,
+        sizing=sizing,
+        fixed_width=fixed_width,
+        min_width=min_width,
+        max_width=max_width,
+        expand=expand,
+        clickable=clickable,
+        alignment=alignment,
+        reorderable=reorderable,
+        sort_column_id=sort_column_id,
+        sort_indicator=sort_indicator,
+        sort_order=sort_order,
+        col_attrs=col_attrs)
+        
+    return col
+      
+def create_float_data_func(attribute='text', fmt="%.5f", invalid="#NA#"):
+    """
+        Creates a data function that can be used to render floats as formatted
+        strings, with detection of invalid values (e.g. None)
+    """
+    def float_renderer(column, cell, model, itr, args=None):
+        nr = model.get_value(itr, column.get_col_attr(attribute))
+        try:
+            cell.set_property('text', fmt % nr)
+        except:
+            cell.set_property('text', invalid)
+    return float_renderer
+    
+def reset_columns(tv):
+    """
+        Remove all columns from the treeview
+    """
+    for col in tv.get_columns(): 
+        tv.remove_column(col)
+    
 def setup_treeview(tv, model, 
+        reset=False,
         on_cursor_changed=None, 
         on_columns_changed=None,
         on_selection_changed=None,
@@ -286,12 +369,15 @@ def setup_treeview(tv, model,
         Sets up a treeview (model & signal connection, sets selection mode).
     """
     tv.set_model(model)
+    if reset: reset_columns(tv)
     sel = tv.get_selection()
+    sel.set_mode(sel_mode)
+    ids = ()
     if on_cursor_changed!=None:
-        tv.connect('cursor_changed', on_cursor_changed)
+        ids += (tv.connect('cursor_changed', on_cursor_changed),)
     if on_columns_changed!=None:
-        model.connect('columns-changed', on_columns_changed)
+        ids += (model.connect('columns-changed', on_columns_changed),)
     if on_selection_changed!=None:
-        sel.connect('changed', on_selection_changed)
-    #set selection mode:
-    sel.set_mode(sel_mode)    
+        ids += (sel.connect('changed', on_selection_changed),)
+    return ids
+    

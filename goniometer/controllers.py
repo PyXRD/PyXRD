@@ -31,9 +31,7 @@ class GoniometerController(DialogController, DialogMixin):
                         "ads_factor", "ads_phase_fact",
                         "ads_phase_shift", "ads_const"):
                     FloatEntryValidator(self.view["gonio_%s" % name])
-                    self.adapt(name)
-                    #wavelength_combo_box FIXME
-                    
+                    self.adapt(name)                   
                 elif not name in self.model.__have_no_widget__:
                     self.adapt(name)
         

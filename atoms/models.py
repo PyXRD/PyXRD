@@ -291,7 +291,7 @@ class Atom(ChildModel, ObjectListStoreChildMixin, Storable):
     def json_properties(self):
         from phases.models import Phase
         retval = Storable.json_properties(self)
-        if self.component.phase.export_atom_types:
+        if self.component==None or self.component.export_atom_types:
             retval["atom_type_name"] = self.atom_type.name if self.atom_type else ""
         else:
             retval["atom_type_uuid"] = self.atom_type.uuid if self.atom_type else ""

@@ -15,12 +15,18 @@ from gtkmvc.adapters import Adapter
 from generic.treeview_tools import new_text_column, setup_treeview
 from generic.utils import retreive_lowercase_extension
 
-def ctrl_setup_combo_with_list(ctrl, combo, prop_name, list_prop_name):
-    store = gtk.ListStore(str, str)   
-    list_data = getattr(ctrl.model, list_prop_name)             
-    for key in list_data:
-        store.append([key, list_data[key]])
-        
+def ctrl_setup_combo_with_list(ctrl, combo, prop_name, list_prop_name=None, list_data=None, store=None):
+
+    if store==None:
+        if list_data!=None:
+            store = gtk.ListStore(str, str)
+        elif list_prop_name!=None:
+            store = gtk.ListStore(str, str)
+            list_data = getattr(ctrl.model, list_prop_name)
+        else:
+            raise AttributeError, "Either one of list_prop_name, list_data or store is required to be passed!"
+        for key in list_data:
+            store.append([key, list_data[key]])
     combo.set_model(store)
 
     cell = gtk.CellRendererText()
@@ -496,21 +502,61 @@ class ChildObjectListStoreController(BaseController, ObjectListStoreMixin):
 
 class InlineObjectListStoreController(BaseController, HasObjectTreeview):
     """
-        ObjectListStore controller that consists of a single listview, with import & export and add & delete buttons
-        Subclasses should override the _setup_treeview method to setup their columns and edit support.
+        ObjectListStore controller that consists of a single listview, 
+        with import & export and add & delete buttons and an optional combo box
+        for type selection
+        Subclasses should override the _setup_treeview method to setup their 
+        columns and edit support.
     """
     treeview = None
-    
+    enable_import = True
+    enable_export = True
     model_property_name = ""
+    add_types = list()
+    
     @property
     def liststore(self):
         return getattr(self.model, self.model_property_name)
 
+    def _edit_item(self, item):
+        item_type = type(item)
+        for name, tpe, view, ctrl in self.add_types:
+            if tpe==item_type:
+                vw = view()
+                ct = ctrl(model=item, view=vw, parent=self)
+                vw.present()
+                break
+
+    def _setup_combo_type(self, combo):
+        if self.add_types:
+            store = gtk.ListStore(str, object, object, object)   
+            for name, type, view, ctrl in self.add_types:
+                store.append([name, type, view, ctrl])
+                
+            combo.set_model(store)
+
+            cell = gtk.CellRendererText()
+            combo.pack_start(cell, True)
+            combo.add_attribute(cell, 'text', 0)
+            
+            def on_changed(combo, user_data=None):
+                itr = combo.get_active_iter()
+                if itr != None:
+                    val = combo.get_model().get_value(itr, 1)
+                    self.add_type = val
+            combo.connect('changed', on_changed)
+            combo.set_active_iter(store[0].iter)
+            combo.set_visible(True)
+            combo.set_no_show_all(False)
+            combo.show_all()
+
     def _setup_treeview(self, tv, model):
         raise NotImplementedError
 
-    def __init__(self, model_property_name, *args, **kwargs):
+    def __init__(self, model_property_name, enable_import=True, enable_export=True, *args, **kwargs):
         BaseController.__init__(self, *args, **kwargs)
+        self.enable_import = enable_import
+        self.enable_export = enable_export
         self.model_property_name = model_property_name
 
     def register_adapters(self):
@@ -518,13 +564,17 @@ class InlineObjectListStoreController(BaseController, HasObjectTreeview):
             self.treeview = self.view.treeview_widget
             self.treeview.connect('cursor-changed', self.on_treeview_cursor_changed, self.liststore)
             self._setup_treeview(self.treeview, self.liststore)
+            self.type_combobox = self.view.type_combobox_widget
+            self._setup_combo_type(self.type_combobox)
         self.update_sensitivities()
         return
 
     def update_sensitivities(self):
         self.view.del_item_widget.set_sensitive((self.treeview.get_cursor() != (None, None)))
         self.view.add_item_widget.set_sensitive((self.liststore is not None))
-        self.view.export_items_widget.set_sensitive(len(self.liststore._model_data) > 0)
+        self.view.export_items_widget.set_visible(self.enable_export)
+        self.view.export_items_widget.set_sensitive(len(self.liststore) > 0)        
+        self.view.import_items_widget.set_visible(self.enable_import)
 
     def get_selected_object(self):
         return HasObjectTreeview.get_selected_object(self, self.treeview)
@@ -538,7 +588,8 @@ class InlineObjectListStoreController(BaseController, HasObjectTreeview):
     def select_object(self, obj, unselect_all=True):
         selection = self.treeview.get_selection()
         if unselect_all: selection.unselect_all()
-        selection.select_path(self.liststore.on_get_path(obj))
+        if hasattr(self.liststore, "on_get_path"):
+            selection.select_path(self.liststore.on_get_path(obj))
     
     def create_new_object_proxy(self):
         raise NotImplementedError
@@ -571,8 +622,7 @@ class InlineObjectListStoreController(BaseController, HasObjectTreeview):
     def on_import_item(self, widget, user_data=None):        
         raise NotImplementedError
 
-    def on_item_cell_edited(self, cell, path, new_text, user_data):
-        model, col = user_data
+    def on_item_cell_edited(self, cell, path, new_text, model, col):
         model.set_value(model.get_iter(path), col, model.convert(col, new_text))
         pass
         

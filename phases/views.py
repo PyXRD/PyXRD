@@ -53,26 +53,39 @@ class EditPhaseView(BaseView, HasChildView):
             self._add_child_view(view.get_top_widget(), self[self.components_view_container])
         return view
     
-class InlineObjectListStoreView(BaseView):
-    builder = "phases/glade/inline_ols.glade"
-    top = "edit_item"
-    
-    @property
-    def treeview_widget(self):
-        return self['tvw_items']
-    
-    @property   
-    def del_item_widget(self):
-        return self['btn_del_item']
+class EditAtomRatioView(DialogView):
+    title = "Edit Atom Ratio"
+    subview_builder = "phases/glade/ratio.glade"
+    subview_toplevel = "edit_ratio"
+    modal = True
 
-    @property
-    def add_item_widget(self):
-        return self['btn_add_item']
+    @property    
+    def atom1_combo(self):
+        return self["ratio_atom1_cmb"]
+
+    @property    
+    def atom2_combo(self):
+        return self["ratio_atom2_cmb"]
+                  
+    pass #end of class
+    
+class EditAtomContentsView(DialogView, HasChildView):
+    title = "Edit Atom Contents"
+    subview_builder = "phases/glade/contents.glade"
+    subview_toplevel = "edit_contents"
+    modal = True
         
-    @property
-    def export_items_widget(self):
-        return self['btn_export_item']
-
+    contents_list_view_container = "container_atom_contents"
+      
+    def set_contents_list_view(self, view):
+        self.contents_list_view = view
+        return self._add_child_view(view, self[self.contents_list_view_container])
+      
+    @property    
+    def atom_contents_container(self):
+        return self["container_atom_contents"]
+                 
+    pass #end of class
 
 class EditComponentView(BaseView, HasChildView):
     title = "Edit Component"
@@ -85,8 +98,8 @@ class EditComponentView(BaseView, HasChildView):
     interlayer_view = None
     interlayer_view_container = "container_interlayer_atoms"
     
-    atom_ratios_view = None
-    atom_ratios_view_container = "container_atom_ratios"    
+    atom_relations_view = None
+    atom_relations_view_container = "container_atom_relations"    
 
     ucpa_view = None    
     ucpa_view_container = "container_ucp_a"
@@ -102,9 +115,9 @@ class EditComponentView(BaseView, HasChildView):
         self.layer_view = view
         return self._add_child_view(view, self[self.layer_view_container])
         
-    def set_atom_ratios_view(self, view):
-        self.atom_ratios_view = view
-        return self._add_child_view(view, self[self.atom_ratios_view_container])
+    def set_atom_relations_view(self, view):
+        self.atom_relations_view = view
+        return self._add_child_view(view, self[self.atom_relations_view_container])
         
     def set_interlayer_view(self, view):
         self.interlayer_view = view

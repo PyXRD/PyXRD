@@ -13,7 +13,7 @@ from weakref import WeakValueDictionary
 from gtkmvc.support.metaclasses import ObservablePropertyMetaMT
 
 def get_new_uuid():
-    return get_uuid().hex
+    return unicode(get_uuid().hex)
 
 def get_unique_list(seq):
     seen = set()

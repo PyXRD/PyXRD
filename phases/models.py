@@ -131,15 +131,22 @@ class UnitCellProperty(ChildModel, Storable, ComponentPropMixin, RefinementValue
     # ------------------------------------------------------------                        
     def json_properties(self):
         retval = Storable.json_properties(self)
-        retval["prop"] = [retval["prop"][0].uuid if retval["prop"][0] else None, retval["prop"][1]]
+        if retval["prop"]:
+            retval["prop"] = [retval["prop"][0].uuid if retval["prop"][0] else None, retval["prop"][1]]
         return retval
         
     def resolve_json_references(self):
         if self._temp_prop:
+            self._temp_prop = list(self._temp_prop)
             if isinstance(self._temp_prop[0], basestring):
-                self._temp_prop[0] = pyxrd_object_pool.get_object(self._temp_prop[0])
-            self.prop = list(self._temp_prop)
-            del self._temp_prop
+                obj = pyxrd_object_pool.get_object(self._temp_prop[0])
+                if obj:
+                    self._temp_prop[0] = obj
+                    self.prop = self._temp_prop
+                else:
+                    self._temp_prop = None
+            self.prop = self._temp_prop
+        del self._temp_prop
             
     # ------------------------------------------------------------
     #      Notifications of observable properties
@@ -494,12 +501,11 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin,
             yield cls.load_object(filename, parent=parent)
                         
     def json_properties(self):
-        retval = Storable.json_properties(self)    
-        if self.phase==None or not self.phase.save_links:
+        retval = Storable.json_properties(self)
+        if self.phase==None or not self.save_links:
             for prop in self.__model_intel__:
                 if prop.inh_name:
                     retval[prop.inh_name] = False
-            retval["linked_with_uuid"] = ""
         else:
             retval["linked_with_uuid"] = self.linked_with.uuid if self.linked_with!=None else ""
         return retval
@@ -824,17 +830,17 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin,
         """
         pyxrd_object_pool.stack_uuids()
         for phase in phases:
-            for component in phase.components:
-                component.export_atom_types = True
-                component.save_links = False                
             if phase.based_on!="" and not phase.based_on in phases:
                 phase.save_links = False
+            for component in phase.components.iter_objects():
+                component.export_atom_types = True
+                component.save_links = phase.save_links
         with zipfile.ZipFile(filename, 'w') as zfile:
             for phase in phases:
                 zfile.writestr(phase.uuid, phase.dump_object())
         for phase in phases:
             phase.save_links = True
-            for component in phase.components:
+            for component in phase.components.iter_objects():
                 component.export_atom_types = False
                 component.save_links = True                
         pyxrd_object_pool.restore_uuids()

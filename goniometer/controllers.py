@@ -32,6 +32,8 @@ class GoniometerController(DialogController, DialogMixin):
                         "ads_phase_shift", "ads_const"):
                     FloatEntryValidator(self.view["gonio_%s" % name])
                     self.adapt(name)                   
+                elif name=="steps":
+                    self.adapt(name, "gonio_%s" % name)
                 elif not name in self.model.__have_no_widget__:
                     self.adapt(name)
         

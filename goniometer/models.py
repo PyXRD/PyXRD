@@ -44,7 +44,7 @@ class Goniometer(ChildModel, Storable):
     divergence = 0.5
     min_2theta = 3.0
     max_2theta = 45.0
-    steps = 2500    
+    steps = 2500
     wavelength = 0.154056
     
     has_ads = False
@@ -148,6 +148,7 @@ class Goniometer(ChildModel, Storable):
         max_theta = torad(self.max_2theta*0.5)
         delta_theta = float(max_theta - min_theta) / float(self.steps-1)
         theta_range = (min_theta + delta_theta * np.arange(0,self.steps-1, dtype=float))
+        return theta_range
         
     _mc_cache = OrderedDict()
     @classmethod

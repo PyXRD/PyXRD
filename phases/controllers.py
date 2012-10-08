@@ -140,9 +140,9 @@ class EditUnitCellPropertyController(BaseController):
         combo = self.view["prop"]
         #object, property, label(-callback)
         store = gtk.ListStore(object, str, object)
-        for i, atom in enumerate(self.model.parent.layer_atoms._model_data):
+        for i, atom in enumerate(self.model.parent._layer_atoms._model_data):
             store.append([atom, "pn", lambda o: o.name])
-        for i, atom in enumerate(self.model.parent.interlayer_atoms._model_data):
+        for i, atom in enumerate(self.model.parent._interlayer_atoms._model_data):
             store.append([atom, "pn", lambda o: o.name])
         for prop in self.extra_props:
             store.append(prop)
@@ -399,7 +399,7 @@ class ContentsListController(InlineObjectListStoreController):
     """ 
         Controller for the atom contents ListStore
     """
-    new_atom = None
+    new_val = None
     
     def _reset_treeview(self, tv, model):
         setup_treeview(tv, model, sel_mode=gtk.SELECTION_MULTIPLE, reset=True)
@@ -444,16 +444,20 @@ class ContentsListController(InlineObjectListStoreController):
     def _setup_treeview(self, tv, model):
         self._reset_treeview(tv, model)
         
+    def __init__(self, model_property_name, **kwargs):
+        InlineObjectListStoreController.__init__(self, model_property_name, enable_import=False, enable_export=False, **kwargs)
+        
     def create_new_object_proxy(self):
-        return [None, None, 0.0]
+        return [None, None, 1.0]
       
     def on_atom_changed(self, combo, path, new_iter, user_data=None):
         self.new_val = combo.get_property("model").get(new_iter, 0, 1)
         
     def on_atom_edited(self, combo, path, new_text, args=None):
-        new_atom, new_prop = self.new_val
-        self.liststore.set(self.liststore.get_iter(path), 0, new_atom, 1, new_prop)
-        self.new_atom = None
+        if self.new_val:
+            new_atom, new_prop = self.new_val
+            self.liststore.set(self.liststore.get_iter(path), 0, new_atom, 1, new_prop)
+            self.new_val = None
         return True
         
     pass #end of class
@@ -506,8 +510,8 @@ class EditAtomRelationsController(InlineObjectListStoreController):
         tv.connect('button-press-event', self.tv_button_press)
         self._reset_treeview(tv, model)
 
-    def __init__(self, model_property_name, *args, **kwargs):
-        InlineObjectListStoreController.__init__(self, model_property_name, *args, **kwargs)
+    def __init__(self, model_property_name, **kwargs):
+        InlineObjectListStoreController.__init__(self, model_property_name, enable_import=False, enable_export=False, **kwargs)
         
     def create_new_object_proxy(self):
         return self.add_type(parent=self.model)
@@ -685,7 +689,10 @@ class ComponentsController(ChildObjectListStoreController):
     def load_components(self, filename):
         old_comps = self.get_selected_objects()
         num_oc = len(old_comps)
-        new_comps = list(Component.load_components(filename, parent=self.model))
+        new_comps = list()
+        for comp in Component.load_components(filename, parent=self.model):
+            comp.resolve_json_references()
+            new_comps.append(comp)
         num_nc = len(new_comps)
         if num_oc != num_nc:
             self.run_information_dialog("The number of components to import must equal the number of selected components!")
@@ -696,7 +703,6 @@ class ComponentsController(ChildObjectListStoreController):
             #replace component(s):
             for old_comp, new_comp in zip(old_comps, new_comps):
                 self.liststore.replace_item(old_comp, new_comp)
-                new_comp.resolve_json_references()
                 #this will break any links as well with other components:
                 old_comp.parent = None
             #self.select_object(new_comp)

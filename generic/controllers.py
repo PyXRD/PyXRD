@@ -117,7 +117,7 @@ class DialogMixin():
         dialog.set_do_overwrite_confirmation(True)
         if suggest_name:
             dialog.set_current_name(suggest_name)
-        dialog.set_current_folder(suggest_folder or os.getenv("HOME"))
+        dialog.set_current_folder(suggest_folder or os.path.expanduser('~user'))
         for fltr in self._get_object_file_filters(filters):
             dialog.add_filter (fltr)
         return self._run_dialog(dialog, on_accept_callback, on_reject_callback)

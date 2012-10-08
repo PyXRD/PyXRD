@@ -3,10 +3,12 @@
 import pickle
 import sys
 
+import numpy as np
+
 def run(project):
     #simple test:
-    for mixture in project.data_mixtures.iter_objects():
-        print mixture.get_result_description()
+    for mixture in project.mixtures.iter_objects():
+        np.savetxt("output.txt", mixture.get_result_description(), fmt='%s', delimiter=';')
     """print "PICKLE DATA TEST FOR PROJECT %s" % project.data_name
     
     def dump_and_load(obj):

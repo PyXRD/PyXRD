@@ -306,11 +306,77 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         res += "---------------------------------------------------------\n"
         res += "\n   %d specimens:\n" % n
         for i in range(n):
-            res += "       - bgr: %5.2f   scl: %5.2f   %s\n" % (self.bgshifts[i], self.scales[i], self.specimens[i].name)
-        res += "       (bgr=background shift, scl=absolute scale factor)\n"
+            res += "       - %s   bgr: %5.2f   scl: %5.2f\n" % (self.specimens[i].name.ljust(15), self.bgshifts[i], self.scales[i])
+        res += "    (bgr=background shift, scl=absolute scale factor)\n"
         res += "\n   %d phases:\n" % m
-        for i in range(m):
-            res += "    %5.1f%%   %s\n" % (self.fractions[i]*100.0, self.phases[i])
+       
+        phase_props = [
+            "name",
+            "wt",
+            "sigma_star",
+            "T_mean",
+            "probs",
+        ]
+        comp_props = [
+            "name",
+            "d-spacing",
+            "relations",
+        ]
+        
+        phases = np.unique(self.phase_matrix)
+        max_G = 1
+        for phase in phases:
+            max_G = max(phase.G, max_G)
+      
+        num_rows = len(phase_props) + len(comp_props) * max_G
+        num_cols = phases.size + 1
+        
+        text_matrix = np.zeros(shape=(num_rows, num_cols), dtype=object)
+        text_matrix[:] = ""
+        i = 1
+        for phase_index in range(m):
+            phases = np.unique(self.phase_matrix[:,phase_index])
+            for phase in phases:
+                j = 0
+                for prop in phase_props:
+                    text_matrix[j,0] = prop
+                    text = ""         
+                    if prop=="name":
+                        text = "%s" % phase.name
+                    elif prop=="wt":
+                        text = " %.1f" % (self.fractions[phase_index]*100.0)
+                    elif prop=="sigma_star":
+                        text = "%.1f" % phase.sigma_star
+                    elif prop=="T_mean":
+                        text = "%.1f" % phase.CSDS_distribution.average
+                    elif prop=="probs":
+                        text += "\""
+                        for descr in phase.probabilities.get_prob_descriptions():
+                            text += "%s\n" % descr
+                        text += "\""
+                    text_matrix[j,i] = text
+                    j += 1
+                for component in phase.components.iter_objects():
+                    for prop in comp_props:
+                        text_matrix[j,0] = prop
+                        text = ""
+                        if prop=="name":
+                            text = "%s" % component.name                        
+                        elif prop=="d-spacing":
+                            text = "%.3f" % component.cell_c
+                            if component.delta_c != 0:
+                                text += " +/- %s" % component.delta_c
+                        elif prop=="relations":
+                            text += "\""
+                            for relation in component.atom_relations.iter_objects():
+                                text += "%s: %.3f\n" % (relation.name, relation.value)
+                            text += "\""
+                        text_matrix[j,i] = text
+                        j += 1
+                i += 1
+            
+        
+            """res += "    %5.1f%%   %s\n" % (self.fractions[i]*100.0, self.phases[i])
             phases = np.unique(self.phase_matrix[:,i])
             for phase in phases:
                 res += "        > %s T=%d\n" % (phase.name, phase.CSDS_distribution.average)
@@ -320,8 +386,8 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
                 if phase.R > 0:
                     res += "            - Probabilities:\n"
                     for descr in phase.probabilities.get_prob_descriptions():
-                        res += "                %s\n" % descr              
-        return res
+                        res += "                %s\n" % descr  """            
+        return text_matrix
             
     def get_composition_matrix(self):
         from itertools import chain

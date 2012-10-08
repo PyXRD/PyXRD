@@ -190,8 +190,8 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
             model.remove_from_index(*paths)
         return True        
 
-    def on_xy_data_cell_edited(self, cell, path, new_text, user_data):
-        model, col = user_data
+    def on_xy_data_cell_edited(self, cell, path, new_text, model, col):
+        #model, col = user_data
         itr = model.get_iter(path)
         model.set_value(itr, col, model.convert(col, locale.atof(new_text)))
         return True

@@ -73,6 +73,7 @@ class ScaleEntry(HBox):
         
         HBox.pack_start(self, self.scale, expand=False)
         HBox.pack_start(self, self.entry, expand=False)
+        self.set_focus_chain((self.entry, ))
 
     def on_adj_value_changed(self, adj, *args):
         self.emit('changed')

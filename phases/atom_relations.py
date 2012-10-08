@@ -156,13 +156,13 @@ class AtomRatio(AtomRelation):
         self._sum = float(value)
         self.changed.emit()
        
-    _atom1 = None
+    _atom1 = [None, None]
     def get_atom1_value(self): return self._atom1
     def set_atom1_value(self, value):
         self._atom1 = value
         self.changed.emit()
     
-    _atom2 = None
+    _atom2 = [None, None]
     def get_atom2_value(self): return self._atom2    
     def set_atom2_value(self, value):
         self._atom2 = value
@@ -171,16 +171,16 @@ class AtomRatio(AtomRelation):
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def __init__(self, sum=0.0, atom1=None, atom2=None, name="New Ratio", **kwargs):
+    def __init__(self, sum=0.0, atom1=[None, None], atom2=[None, None], name="New Ratio", **kwargs):
         AtomRelation.__init__(self, name=name, **kwargs)
         
         self.sum = sum or self.get_depr(kwargs, self._sum, "data_sum")
                
-        atom1 = atom1 or self._parseattr(self.get_depr(kwargs, None, "prop1", "data_prop1"))
+        atom1 = atom1 or self._parseattr(self.get_depr(kwargs, [None, None], "prop1", "data_prop1"))
         if isinstance(atom1[0], basestring): atom1[0] = pyxrd_object_pool.get_object(atom1[0])
         self.atom1 = list(atom1)
         
-        atom2 = atom2 or self._parseattr(self.get_depr(kwargs, None, "prop2", "data_prop2"))
+        atom2 = atom2 or self._parseattr(self.get_depr(kwargs, [None, None], "prop2", "data_prop2"))
         if isinstance(atom2[0], basestring): atom2[0] = pyxrd_object_pool.get_object(atom2[0])
         self.atom2 = list(atom2)
         
@@ -199,12 +199,14 @@ class AtomRatio(AtomRelation):
     # ------------------------------------------------------------
     def apply_relation(self):
         if self.enabled and self.applicable:
-            if self.atom1: 
+            if self.atom1:
                 obj, prop = self.atom1
-                setattr(obj, prop, self.value*self.sum)
-            if self.atom2: 
+                if obj and prop:
+                    setattr(obj, prop, self.value*self.sum)
+            if self.atom2:
                 obj, prop = self.atom2
-                setattr(obj, prop, (1.0-self.value)*self.sum)
+                if obj and prop:
+                    setattr(obj, prop, (1.0-self.value)*self.sum)
         
     pass #end of class
     

@@ -5,6 +5,7 @@
 # This work is licensed under the Creative Commons Attribution-ShareAlike 3.0 Unported License. 
 # To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/3.0/ or send
 # a letter to Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
+
 from itertools import izip, count
 from collections import namedtuple
 from warnings import warn
@@ -20,11 +21,12 @@ from gtkmvc.model import Signal
 from gtkmvc.model import Model
 from gtkmvc.model_mt import ModelMT
 
-from generic.properties import PropIntel, MultiProperty
-from generic.metaclasses import PyXRDMeta, get_new_uuid, pyxrd_object_pool
-from generic.treemodels import XYListStore
 from generic.io import Storable, PyXRDDecoder
 from generic.utils import smooth, delayed
+
+from metaclasses import PyXRDMeta, get_new_uuid, pyxrd_object_pool
+from properties import PropIntel, MultiProperty
+from treemodels import XYListStore
 
 class DefaultSignal (Signal):
 
@@ -46,7 +48,7 @@ class DefaultSignal (Signal):
 class PyXRDModel(ModelMT):
     __metaclass__ = PyXRDMeta
     __model_intel__ = [
-        PropIntel(name="uuid", ctype=str,  storable=True, observable=False),
+        PropIntel(name="uuid", data_type=str,  storable=True, observable=False),
     ]
     
     
@@ -117,9 +119,9 @@ class RefinementInfo(PyXRDModel, Storable):
 
     #MODEL INTEL:
     __model_intel__ = [
-        PropIntel(name="minimum",         ctype=float,  storable=True),
-        PropIntel(name="maximum",         ctype=float,  storable=True),
-        PropIntel(name="refine",          ctype=bool,   storable=True),
+        PropIntel(name="minimum",         data_type=float,  storable=True),
+        PropIntel(name="maximum",         data_type=float,  storable=True),
+        PropIntel(name="refine",          data_type=bool,   storable=True),
     ] 
 
     minimum = None
@@ -146,9 +148,9 @@ class ChildModel(PyXRDModel):
     #MODEL INTEL:
     __parent_alias__ = None
     __model_intel__ = [
-        PropIntel(name="parent",  ctype=object),
-        PropIntel(name="removed", ctype=object),
-        PropIntel(name="added",   ctype=object),
+        PropIntel(name="parent",  data_type=object),
+        PropIntel(name="removed", data_type=object),
+        PropIntel(name="added",   data_type=object),
     ]
 
     #SIGNALS:
@@ -190,12 +192,13 @@ class PyXRDLine(ChildModel, Storable, Line2D):
 
     #MODEL INTEL:
     __model_intel__ = [
-        PropIntel(name="label",           ctype=str,     storable=True),
-        PropIntel(name="xy_store",        ctype=object,  storable=True),
-        PropIntel(name="offset",          ctype=float),
-        PropIntel(name="scale",           ctype=float),
-        PropIntel(name="color",           ctype=str,     observable=False),
-        PropIntel(name="needs_update",    ctype=object),
+        PropIntel(name="label",           data_type=str,     storable=True),
+        PropIntel(name="xy_store",        data_type=object,  storable=True),
+        PropIntel(name="offset",          data_type=float),
+        PropIntel(name="scale",           data_type=float),
+        PropIntel(name="color",           data_type=str,     observable=False),
+        PropIntel(name="lw",              data_type=float,   observable=False),
+        PropIntel(name="needs_update",    data_type=object),
     ]
 
     #PROPERTIES:
@@ -226,6 +229,14 @@ class PyXRDLine(ChildModel, Storable, Line2D):
     @color.setter
     def color(self, value):
         self.set_color(value)
+        self.needs_update.emit()
+
+    @property
+    def lw(self):
+        return self.get_lw()
+    @lw.setter
+    def lw(self, value):
+        self.set_lw(value)
         self.needs_update.emit()
 
     @property
@@ -278,11 +289,18 @@ class PyXRDLine(ChildModel, Storable, Line2D):
     def save_data(self, filename):
         self.xy_store.save_data("%s %s" % (self.parent.name, self.parent.sample_name), filename)
         
-    def load_data(self, *args, **kwargs):    
+    def load_data(self, *args, **kwargs):   
+        """
+            Loads data using passed args & kwargs, which are passed on to the
+            internal XYListStore's load_data method.
+            If the file contains additional y-value columns, they are returned
+            as a list of numpy 2D lists (X & Y columns).
+        """ 
         self._inhibit_updates = True
-        self.xy_store.load_data(*args, **kwargs)
+        ays = self.xy_store.load_data(*args, **kwargs)
         self._inhibit_updates = False
         self.update_line()
+        return ays
             
     # ------------------------------------------------------------
     #      Methods & Functions
@@ -362,7 +380,7 @@ class CalculatedLine(PyXRDLine):
     #MODEL INTEL:
     __parent_alias__ = 'specimen'
     __model_intel__ = [
-        PropIntel(name="child_lines",  ctype=float),
+        PropIntel(name="child_lines",  data_type=float),
     ]
     
     #PROPERTIES:
@@ -377,7 +395,7 @@ class CalculatedLine(PyXRDLine):
     # ------------------------------------------------------------
     def __init__(self, *args, **kwargs):
         PyXRDLine.__init__(self, *args, **kwargs)
-        self.set_linewidth(2)
+        self.set_linewidth(3)
     
     # ------------------------------------------------------------
     #      Methods & Functions
@@ -447,14 +465,14 @@ class ExperimentalLine(PyXRDLine):
     #MODEL INTEL:
     __parent_alias__ = 'specimen'
     __model_intel__ = [
-        PropIntel(name="bg_position",       ctype=float),
-        PropIntel(name="bg_scale",          ctype=float),
-        PropIntel(name="bg_pattern",        ctype=object),
-        PropIntel(name="bg_type",           ctype=int),
-        PropIntel(name="smooth_degree",     ctype=int),
-        PropIntel(name="smooth_type",       ctype=int),
-        PropIntel(name="shift_value",       ctype=float),
-        PropIntel(name="shift_position",    ctype=float),
+        PropIntel(name="bg_position",       data_type=float),
+        PropIntel(name="bg_scale",          data_type=float),
+        PropIntel(name="bg_pattern",        data_type=object),
+        PropIntel(name="bg_type",           data_type=int),
+        PropIntel(name="smooth_degree",     data_type=int),
+        PropIntel(name="smooth_type",       data_type=int),
+        PropIntel(name="shift_value",       data_type=float),
+        PropIntel(name="shift_position",    data_type=float),
     ]
     
     #PROPERTIES:

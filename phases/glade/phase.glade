@@ -135,7 +135,7 @@
         <property name="xalign">0</property>
         <property name="xscale">0</property>
         <child>
-          <object class="GtkEntry" id="G">
+          <object class="GtkEntry" id="phase_G">
             <property name="width_request">200</property>
             <property name="visible">True</property>
             <property name="sensitive">False</property>
@@ -182,7 +182,7 @@
         <property name="xalign">0</property>
         <property name="xscale">0</property>
         <child>
-          <object class="GtkEntry" id="R">
+          <object class="GtkEntry" id="phase_R">
             <property name="width_request">200</property>
             <property name="visible">True</property>
             <property name="sensitive">False</property>

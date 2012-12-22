@@ -11,8 +11,8 @@ from math import isnan
 import numpy as np
 
 from generic.views import BaseView, DialogView
-from generic.widgets import ThreadedTaskBox
-from generic.validators import FloatEntryValidator
+from generic.views.widgets import ThreadedTaskBox
+from generic.views.validators import FloatEntryValidator
 
 class RefinementView(DialogView):
     title = "Refine Phase Parameters"

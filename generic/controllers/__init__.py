@@ -12,8 +12,10 @@ import gtk
 from gtkmvc import Controller
 from gtkmvc.adapters import Adapter
 
-from generic.treeview_tools import new_text_column, setup_treeview
+from generic.views.treeview_tools import new_text_column, setup_treeview
 from generic.utils import retreive_lowercase_extension
+from handlers import default_widget_handler, widget_handlers
+import settings 
 
 def ctrl_setup_combo_with_list(ctrl, combo, prop_name, list_prop_name=None, list_data=None, store=None):
 
@@ -166,6 +168,7 @@ class DialogMixin():
 class BaseController (Controller, DialogMixin):
 
     file_filters = ("All Files", "*.*")
+    widget_handlers = {} #handlers can be string representations of a class method
 
     @property
     def statusbar(self):
@@ -220,29 +223,37 @@ class BaseController (Controller, DialogMixin):
         else:
             return None
             
-    def register_defaults(self, handler, prefix="default_%s", *exceptions):
-        for intel in self.model.__model_intel__:
-            if intel.name in exceptions:
-                handler(intel)
-            elif intel.has_widget:
-                if intel.ctype == float:                    
-                    widget = self.view.add_scale_widget(intel, prefix=prefix)
-                    #adapt the widget to the model property:
-                    adapter = Adapter(self.model, intel.name)
-                    adapter.connect_widget(widget)
-                    self.adapt(adapter)
-                elif intel.ctype == 'color':
-                    ad = Adapter(self.model, intel.name)
-                    ad.connect_widget(self.view[prefix % intel.name], getter=get_color_val)
-                    self.adapt(ad)
-                elif intel.ctype == 'flag':
-                    self.adapt(intel.name)
-                elif intel.ctype == str:
-                    self.adapt(intel.name, prefix % intel.name)
-                elif not handler(intel):
-                    self.adapt(intel.name)
-                
-
+    def register_adapters(self):
+        if self.model is not None:
+            for intel in self.model.__model_intel__:
+                if intel.has_widget:
+                    if settings.DEBUG: print "Adapting %s" % intel.name
+                    handled = False
+                    # Order of handlers:
+                    # 1. PropIntel handler (if set)
+                    # 2. class handlers (if set)
+                    # 3. default handlers
+                    # Since handlers are stored as dictionaries, we use the 
+                    # update method to override the keys in the reverse order as
+                    # stated above. The result being that handlers not having 
+                    # precedence over others, are no longer available.
+                    local_handlers = {}
+                    local_handlers.update(widget_handlers) #default
+                    for widget_type, handler in self.widget_handlers.iteritems():
+                        if isinstance(handler, basestring):
+                            self.widget_handlers[widget_type] = getattr(self, handler)
+                    local_handlers.update(self.widget_handlers) #class
+                    if callable(intel.get_widget_handler()): #PropIntel
+                        local_handlers.update({ intel.widget_type: intel.get_widget_handler() })
+                    handler = local_handlers.get(intel.widget_type, default_widget_handler)
+                    if callable(handler):
+                         handled = handler(self, intel, self.view.widget_format)
+                    if not handled:
+                        # if after going through the above two steps the 
+                        # property still is not handled, raise an error:
+                        raise AttributeError, "Could not derive the widget handler for property '%s' of class '%s'" % (intel.name, type(self.model))
+    pass #end of class
+      
 class DialogController(BaseController):
     """
         Simple controller which is the child of a dialog.
@@ -627,7 +638,3 @@ class InlineObjectListStoreController(BaseController, HasObjectTreeview):
         pass
         
     pass #end of class
-
-def get_color_val(widget):
-    c = widget.get_color()
-    return "#%02x%02x%02x" % (int(c.red_float*255), int(c.green_float*255), int(c.blue_float*255))

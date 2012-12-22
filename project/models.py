@@ -14,10 +14,10 @@ from gtkmvc.model import Model, Signal, Observer
 import settings
 
 from generic.utils import delayed
-from generic.model_mixins import ObjectListStoreParentMixin
 from generic.models import ChildModel, DefaultSignal
-from generic.properties import PropIntel, MultiProperty
-from generic.treemodels import ObjectListStore, IndexListStore
+from generic.models.mixins import ObjectListStoreParentMixin
+from generic.models.properties import PropIntel, MultiProperty
+from generic.models.treemodels import ObjectListStore, IndexListStore
 from generic.io import Storable
 
 from goniometer.models import Goniometer
@@ -31,28 +31,31 @@ class Project(ChildModel, Storable, ObjectListStoreParentMixin):
 
     #MODEL INTEL:
     __model_intel__ = [ #TODO add labels
-        PropIntel(name="name",                     ctype=str,    storable=True,  has_widget=True),
-        PropIntel(name="date",                     ctype=str,    storable=True,  has_widget=True),
-        PropIntel(name="description",              ctype=str,    storable=True,  has_widget=True),
-        PropIntel(name="author",                   ctype=str,    storable=True,  has_widget=True),
-        PropIntel(name="display_marker_angle",     ctype=float,  storable=True,  has_widget=True),
-        PropIntel(name="display_calc_color",       ctype=str,    storable=True,  has_widget=True),
-        PropIntel(name="display_exp_color",        ctype=str,    storable=True,  has_widget=True),
-        PropIntel(name="display_plot_offset",      ctype=float,  storable=True,  has_widget=True),
-        PropIntel(name="display_label_pos",        ctype=float,  storable=True,  has_widget=True),
-        PropIntel(name="axes_xscale",              ctype=int,    storable=True,  has_widget=True),
-        PropIntel(name="axes_xmin",                ctype=float,  storable=True,  has_widget=True),
-        PropIntel(name="axes_xmax",                ctype=float,  storable=True,  has_widget=True),
-        PropIntel(name="axes_xstretch",            ctype=bool,   storable=True,  has_widget=True),
-        PropIntel(name="axes_yscale",              ctype=int,    storable=True,  has_widget=True),
-        PropIntel(name="axes_yvisible",            ctype=bool,   storable=True,  has_widget=True),
-        PropIntel(name="goniometer",               ctype=object, storable=True),
-        PropIntel(name="specimens",                ctype=str,    storable=True,  has_widget=True),
-        PropIntel(name="phases",                   ctype=object, storable=True),
-        PropIntel(name="mixtures",                 ctype=object, storable=True),
-        PropIntel(name="atom_types",               ctype=object, storable=True),
-        PropIntel(name="needs_update",             ctype=object, storable=False),           
-        PropIntel(name="needs_saving",             ctype=bool,   storable=False),           
+        PropIntel(name="name",                     data_type=str,    storable=True,  has_widget=True),
+        PropIntel(name="date",                     data_type=str,    storable=True,  has_widget=True),
+        PropIntel(name="description",              data_type=str,    storable=True,  has_widget=True),
+        PropIntel(name="author",                   data_type=str,    storable=True,  has_widget=True),
+        PropIntel(name="display_marker_angle",     data_type=float,  storable=True,  has_widget=True),
+        PropIntel(name="display_calc_color",       data_type=str,    storable=True,  has_widget=True),
+        PropIntel(name="display_exp_color",        data_type=str,    storable=True,  has_widget=True),
+        PropIntel(name="display_calc_lw",          data_type=float,  storable=True,  has_widget=True),
+        PropIntel(name="display_exp_lw",           data_type=float,  storable=True,  has_widget=True),
+        PropIntel(name="display_plot_offset",      data_type=float,  storable=True,  has_widget=True),
+        PropIntel(name="display_group_by",         data_type=int,    storable=True,  has_widget=True),
+        PropIntel(name="display_label_pos",        data_type=float,  storable=True,  has_widget=True),
+        PropIntel(name="axes_xscale",              data_type=int,    storable=True,  has_widget=True),
+        PropIntel(name="axes_xmin",                data_type=float,  storable=True,  has_widget=True),
+        PropIntel(name="axes_xmax",                data_type=float,  storable=True,  has_widget=True),
+        PropIntel(name="axes_xstretch",            data_type=bool,   storable=True,  has_widget=True),
+        PropIntel(name="axes_yscale",              data_type=int,    storable=True,  has_widget=True),
+        PropIntel(name="axes_yvisible",            data_type=bool,   storable=True,  has_widget=True),
+        PropIntel(name="goniometer",               data_type=object, storable=True),
+        PropIntel(name="specimens",                data_type=object, storable=True,  has_widget=True),
+        PropIntel(name="phases",                   data_type=object, storable=True),
+        PropIntel(name="mixtures",                 data_type=object, storable=True),
+        PropIntel(name="atom_types",               data_type=object, storable=True),
+        PropIntel(name="needs_update",             data_type=object, storable=False),           
+        PropIntel(name="needs_saving",             data_type=bool,   storable=False),           
     ]
     
     #SIGNALS:
@@ -71,14 +74,20 @@ class Project(ChildModel, Storable, ObjectListStoreParentMixin):
     _axes_xstretch = False
     _axes_yvisible = False
     _display_plot_offset = 0.75
+    _display_group_by = 1
     _display_marker_angle = 0.0
     _display_label_pos = 0.35
-    @Model.getter("axes_xmin", "axes_xmax", "axes_xstretch", "axes_yvisible", "display_plot_offset", "display_marker_angle", "display_label_pos")
+    @Model.getter("axes_xmin", "axes_xmax", "axes_xstretch", "axes_yvisible",
+            "display_plot_offset", "display_group_by", "display_marker_angle",
+            "display_label_pos")
     def get_axes_value(self, prop_name):
         return getattr(self, "_%s" % prop_name)
-    @Model.setter("axes_xmin", "axes_xmax", "axes_xstretch", "axes_yvisible", "display_plot_offset", "display_marker_angle", "display_label_pos")
+    @Model.setter("axes_xmin", "axes_xmax", "axes_xstretch", "axes_yvisible",
+            "display_plot_offset", "display_group_by", "display_marker_angle",
+            "display_label_pos")
     def set_axes_value(self, prop_name, value):
         if prop_name == "axes_xmin": value = max(value, 0.0)
+        if prop_name == "display_group_by": value = max(value, 1)
         setattr(self, "_%s" % prop_name, value)
         self.needs_update.emit()
 
@@ -92,8 +101,8 @@ class Project(ChildModel, Storable, ObjectListStoreParentMixin):
     })
   
     
-    _display_calc_color = settings.CALCULATED_LINE
-    _display_exp_color = settings.EXPERIMENTAL_LINE
+    _display_calc_color = settings.CALCULATED_COLOR
+    _display_exp_color = settings.EXPERIMENTAL_COLOR   
     @Model.getter("display_calc_color", "display_exp_color")
     def get_color(self, prop_name):
         return getattr(self, "_%s" % prop_name)
@@ -102,12 +111,32 @@ class Project(ChildModel, Storable, ObjectListStoreParentMixin):
         if value != getattr(self, "_%s" % prop_name):
             setattr(self, "_%s" % prop_name, value)
             calc = ("calc" in prop_name)
-            for specimen in self.specimens._model_data:
-                if calc:
-                    specimen.calculated_pattern.color = value
-                else:
-                    specimen.experimental_pattern.color = value
+            if self.specimens:
+                for specimen in self.specimens.iter_objects():
+                    if calc and specimen.inherit_calc_color:
+                        specimen.calculated_pattern.color = value
+                    elif not calc and specimen.inherit_exp_color:
+                        specimen.experimental_pattern.color = value
             self.needs_update.emit()
+
+    _display_calc_lw = settings.CALCULATED_LINEWIDTH
+    _display_exp_lw = settings.EXPERIMENTAL_LINEWIDTH   
+    @Model.getter("display_calc_lw", "display_exp_lw")
+    def get_lw(self, prop_name):
+        return getattr(self, "_%s" % prop_name)
+    @Model.setter("display_calc_lw", "display_exp_lw")
+    def set_lw(self, prop_name, value):
+        if value != getattr(self, "_%s" % prop_name):
+            setattr(self, "_%s" % prop_name, float(value))
+            calc = ("calc" in prop_name)
+            if self.specimens:
+                for specimen in self.specimens.iter_objects():
+                    if calc and specimen.inherit_calc_lw:
+                        specimen.calculated_pattern.lw = value
+                    elif not calc and specimen.inherit_exp_lw:
+                        specimen.experimental_pattern.lw = value
+            self.needs_update.emit()
+
     
     _specimens = None
     def get_specimens_value(self): return self._specimens
@@ -130,16 +159,34 @@ class Project(ChildModel, Storable, ObjectListStoreParentMixin):
             description = "Project description", author = "Project author",
             goniometer = None, atom_types = None, phases = None, 
             specimens = None, mixtures = None,
-            display_marker_angle=None, display_plot_offset=None, 
+            display_marker_angle=None, display_plot_offset=None, display_group_by=None,
             display_calc_color=None, display_exp_color=None, display_label_pos=None,
+            display_calc_lw=None, display_exp_lw=None,
             axes_xscale=None, axes_xmin=None, axes_xmax=None, 
             axes_xstretch=None, axes_yscale=None, axes_yvisible=None,
             load_default_data=True, **kwargs):
         ChildModel.__init__(self, parent=kwargs.get("parent", None))
+        self.parent = kwargs.get("parent") #FIXME??? old project files seem to have an issue here?
         Storable.__init__(self)
         
         self.before_needs_update_lock = False
         self.needs_update = DefaultSignal(before=self.before_needs_update)
+
+        self.display_marker_angle = display_marker_angle or self.display_marker_angle
+        self.display_calc_color = display_calc_color or self.display_calc_color
+        self.display_exp_color = display_exp_color or self.display_exp_color
+        self.display_calc_lw = display_calc_lw or self.display_calc_lw
+        self.display_exp_lw = display_exp_lw or self.display_exp_lw
+        self.display_plot_offset = display_plot_offset or self.display_plot_offset
+        self.display_group_by = display_group_by or self.display_group_by
+        self.display_label_pos = display_label_pos or self.display_label_pos
+        
+        self.axes_xscale = axes_xscale or self.axes_xscale
+        self.axes_xmin = axes_xmin or self.axes_xmin
+        self.axes_xmax = axes_xmax or self.axes_xmax
+        self.axes_xstretch = axes_xstretch or self.axes_xstretch
+        self.axes_yscale = axes_yscale or self.axes_yscale
+        self.axes_yvisible = axes_yvisible or self.axes_yvisible
 
         atom_types = atom_types or self.get_depr(kwargs, None, "data_atom_types")
         phases = phases or self.get_depr(kwargs, None, "data_phases")
@@ -175,20 +222,7 @@ class Project(ChildModel, Storable, ObjectListStoreParentMixin):
         
         self.goniometer = self.parse_init_arg(
             goniometer or self.get_depr(kwargs, None, "data_goniometer"), 
-            Goniometer(parent=self), child=True)
-        
-        self.display_marker_angle = display_marker_angle or self.display_marker_angle
-        self.display_calc_color = display_calc_color or self.display_calc_color
-        self.display_exp_color = display_exp_color or self.display_exp_color
-        self.display_plot_offset = display_plot_offset or self.display_plot_offset
-        self.display_label_pos = display_label_pos or self.display_label_pos
-        
-        self.axes_xscale = axes_xscale or self.axes_xscale
-        self.axes_xmin = axes_xmin or self.axes_xmin
-        self.axes_xmax = axes_xmax or self.axes_xmax
-        self.axes_xstretch = axes_xstretch or self.axes_xstretch
-        self.axes_yscale = axes_yscale or self.axes_yscale
-        self.axes_yvisible = axes_yvisible or self.axes_yvisible
+            Goniometer(parent=self), child=True)       
 
         if load_default_data and not settings.VIEW_MODE and \
             len(self._atom_types._model_data)==0: self.load_default_data()
@@ -219,8 +253,8 @@ class Project(ChildModel, Storable, ObjectListStoreParentMixin):
         for phase in self._phases._model_data:
             if phase.based_on == item:
                 phase.based_on = None
-        for mixture in self.mixtures._model_data:
-            mixture.uncheck_phase(item)
+        for mixture in self.mixtures.iter_objects():
+            mixture.unset_phase(item)
         if not self.before_needs_update_lock:
             self.needs_update.emit() #propagate signal
     def on_atom_type_item_removed(self, model, item, *data):
@@ -228,8 +262,8 @@ class Project(ChildModel, Storable, ObjectListStoreParentMixin):
             self.needs_update.emit() #propagate signal
     def on_specimen_item_removed(self, model, item, *data):
         self.relieve_model(item)
-        for mixture in self.mixtures._model_data:
-            mixture.del_specimen(item)
+        for mixture in self.mixtures.iter_objects():
+            mixture.unset_specimen(item)
         if not self.before_needs_update_lock:
             self.needs_update.emit() #propagate signal
     def on_mixture_item_removed(self, model, item, *data):
@@ -246,7 +280,7 @@ class Project(ChildModel, Storable, ObjectListStoreParentMixin):
         if not self.before_needs_update_lock:
             self.before_needs_update_lock = True
             t1 = time.time()
-            for mixture in self.mixtures._model_data:
+            for mixture in self.mixtures.iter_objects():
                 mixture.apply_result()
             t2 = time.time()
             print '%s took %0.3f ms' % ("before_needs_update", (t2-t1)*1000.0)
@@ -295,8 +329,10 @@ class Project(ChildModel, Storable, ObjectListStoreParentMixin):
    
     def get_max_intensity(self):
         max_intensity = 0
-        for specimen in self.parent.current_specimens:
-            max_intensity = max(specimen.max_intensity, max_intensity)
+        print self.parent
+        if self.parent != None:
+            for specimen in self.parent.current_specimens:
+                max_intensity = max(specimen.max_intensity, max_intensity)
         return max_intensity
 
     pass #end of class

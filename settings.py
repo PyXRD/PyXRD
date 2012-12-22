@@ -1,15 +1,19 @@
 ### General Information ###
 VERSION = "0.3.10"
 
-DEBUG = False
+DEBUG = True
 VIEW_MODE = False
+BGSHIFT = True
 
 LOG_FILENAME = 'errors.log'
 UPDATE_URL = 'http://users.ugent.be/~madumon/pyxrd/'
 
 ### Default Styles & Colors ###
-CALCULATED_LINE = "#FF0000"
-EXPERIMENTAL_LINE = "#000000"
+EXPERIMENTAL_COLOR = "#000000"
+CALCULATED_COLOR = "#FF0000"
+
+EXPERIMENTAL_LINEWIDTH = 1.0
+CALCULATED_LINEWIDTH = 2.0
 
 MARKER_COLOR = "#000000"
 MARKER_BASE = 1
@@ -28,6 +32,15 @@ PLOT_LEFT = 0.15
 PLOT_HEIGHT = PLOT_TOP - PLOT_BOTTOM
 
 STATS_PLOT_BOTTOM = 0.10
+
+OUTPUT_PRESETS = [
+    ("Landscape Large print", 8000, 4800, 300),
+    ("Landscape Medium print", 6000, 3800, 300),
+    ("Landscape Small print", 4000, 2800, 300),
+    ("Portrait Large print", 4800, 8000, 300),
+    ("Portrait Medium print", 3800, 6000, 300),
+    ("Portrait Small print", 2800, 4000, 300),
+]
 
 def _get_ratio(angle, stretch=False, plot_left=PLOT_LEFT):
     MAX_PLOT_WIDTH = MAX_PLOT_RIGHT - plot_left

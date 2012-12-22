@@ -16,7 +16,9 @@ class ProjectView(DialogView):
     
     __widgets_to_hide__ = (
         "project_display_calc_color",
-        "lbl_calccolor")
+        "lbl_calccolor",
+        "project_display_calc_lw",
+        "calc_lw_lbl")
 
     def __init__(self, *args, **kwargs):
         DialogView.__init__(self, *args, **kwargs)

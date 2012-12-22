@@ -6,13 +6,14 @@
 # To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/3.0/ or send
 # a letter to Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
 
+from warnings import warn
 from traceback import print_exc
 
 import gtk
 from gtkmvc.view import View
 
 import settings
-from generic.widgets import ScaleEntry
+from generic.views.widgets import ScaleEntry
 from generic.mathtext_support import create_image_from_mathtext
 
 class BaseView(View):
@@ -22,6 +23,7 @@ class BaseView(View):
     builder = ""
     modal = False
     resizable = True
+    widget_format = "default_%s"
     
     __widgets_to_hide__ = ()
     
@@ -43,13 +45,13 @@ class BaseView(View):
             widget.set_property('justify', gtk.JUSTIFY_CENTER)
         return widget
     
-    def add_scale_widget(self, intel, prefix="default_%s", container=None, enforce_range=True):
+    def add_scale_widget(self, intel, widget_format="default_%s", container=None, enforce_range=True):
         if not isinstance(container, gtk.Widget):
-            container = self[container or "container_%s" % intel.name]
+            container = self[(container or "container_%s") % intel.name]
             if container==None:
-                print "Scale widget container not found for '%s'!" % intel.name
+                warn("Scale widget container not found for '%s'!" % intel.name, Warning)
                 return None
-        name = prefix % intel.name
+        name = widget_format % intel.name
         child = container.get_child()
         if child is not None:
             container.remove(child)

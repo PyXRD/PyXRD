@@ -14,14 +14,23 @@ import settings
 
 from gtk import TextBuffer
        
+aliases = {
+    'generic.treemodels/XYListStore': 'generic.models.treemodels/XYListStore',
+    #'generic.treemodels/XYListStore': 'generic.models.treemodels/XYListStore'
+}
+       
 def get_json_type(strtype):
+    strtype = aliases.get(strtype, strtype)
     parts = strtype.split('/')
     t = parts[-1]
     m = "".join(parts[:-1])
     if m == "generic.models" and t=="XYData":
         return None
     else:
-        m = __import__(m, fromlist=[""])
+        try:
+            m = __import__(m, fromlist=[""])
+        except ImportError:
+            raise ImportError, "Could not find class using json descriptor '%s'" % strtype
         return getattr(m, t)
 
 def json_type(type):

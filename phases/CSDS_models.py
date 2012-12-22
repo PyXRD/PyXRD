@@ -8,20 +8,14 @@
 
 from collections import OrderedDict
 from math import sin, cos, pi, sqrt, exp, radians, log
-from traceback import print_stack
 
-from gtkmvc.model import Model, Observer, Signal
+from gtkmvc.model import Signal
 
 import numpy as np
-from scipy.special import erf
 
-from generic.metaclasses import pyxrd_object_pool
 from generic.utils import lognormal, sqrt2pi, sqrt8, print_timing, get_md5_hash, recgetattr, recsetattr
-from generic.custom_math import mmult, mdot, mtim, solve_division
 from generic.io import Storable, PyXRDDecoder
-from generic.model_mixins import ObjectListStoreChildMixin, ObjectListStoreParentMixin
 from generic.models import ChildModel, PropIntel
-from generic.treemodels import ObjectListStore
 
 from atoms.models import Atom
 from probabilities.models import get_correct_probability_model
@@ -34,9 +28,9 @@ class _AbstractCSDSDistribution(ChildModel, Storable):
     __description__ = "Abstract CSDS distr."
     __explanation__ = ""
     __model_intel__ = [
-        PropIntel(name="distrib",   label="CSDS Distribution", ctype=str, is_column=True, has_widget=True),
-        PropIntel(name="inherited", label="Inherited",         ctype=bool),
-        PropIntel(name="updated",   label="",                  ctype=object),
+        PropIntel(name="distrib",   label="CSDS Distribution", data_type=str, is_column=True, has_widget=True),
+        PropIntel(name="inherited", label="Inherited",         data_type=bool),
+        PropIntel(name="updated",   label="",                  data_type=object),
     ]
 
     #SIGNALS:
@@ -182,14 +176,14 @@ class LogNormalCSDSDistribution(_LogNormalMixin, _AbstractCSDSDistribution, Refi
     #MODEL INTEL:
     __description__ = "Generic log-normal CSDS distr. (Eberl et al. 1990)"
     __model_intel__ = [
-        PropIntel(name="maximum",       label="Maximum CSDS",      minimum=1,     maximum=1000,   is_column=True,  ctype=float),
-        PropIntel(name="minimum",       label="Minimum CSDS",      minimum=1,     maximum=1000,   is_column=True,  ctype=float),
-        PropIntel(name="average",       label="Average CSDS",      minimum=1,     maximum=200,    is_column=True,  ctype=float,   refinable=True,  storable=True,     has_widget=True),
+        PropIntel(name="maximum",       label="Maximum CSDS",      minimum=1,     maximum=1000,   is_column=True,  data_type=float),
+        PropIntel(name="minimum",       label="Minimum CSDS",      minimum=1,     maximum=1000,   is_column=True,  data_type=float),
+        PropIntel(name="average",       label="Average CSDS",      minimum=1,     maximum=200,    is_column=True,  data_type=float,   refinable=True,  storable=True,     has_widget=True),
         
-        PropIntel(name="alpha_scale",   label="α scale factor",    minimum=0,   maximum=10, is_column=True,  ctype=float,   refinable=True,  storable=True,     has_widget=True),
-        PropIntel(name="alpha_offset",  label="α offset factor",   minimum=-5,   maximum=5, is_column=True,  ctype=float,   refinable=True,  storable=True,     has_widget=True),
-        PropIntel(name="beta_scale",    label="β² scale factor",   minimum=0,   maximum=10, is_column=True,  ctype=float,   refinable=True,  storable=True,     has_widget=True),
-        PropIntel(name="beta_offset",   label="β² offset factor",  minimum=-5,   maximum=5, is_column=True,  ctype=float,   refinable=True,  storable=True,     has_widget=True),
+        PropIntel(name="alpha_scale",   label="α scale factor",    minimum=0,   maximum=10, is_column=True,  data_type=float,   refinable=True,  storable=True,     has_widget=True),
+        PropIntel(name="alpha_offset",  label="α offset factor",   minimum=-5,   maximum=5, is_column=True,  data_type=float,   refinable=True,  storable=True,     has_widget=True),
+        PropIntel(name="beta_scale",    label="β² scale factor",   minimum=0,   maximum=10, is_column=True,  data_type=float,   refinable=True,  storable=True,     has_widget=True),
+        PropIntel(name="beta_offset",   label="β² offset factor",  minimum=-5,   maximum=5, is_column=True,  data_type=float,   refinable=True,  storable=True,     has_widget=True),
     ]
         
     #REFINEMENT GROUP IMPLEMENTATION:
@@ -202,14 +196,14 @@ class DritsCSDSDistribution(_LogNormalMixin, _AbstractCSDSDistribution, Refineme
     #MODEL INTEL:
     __description__ = "Log-normal CSDS distr. (Drits et. al, 1997)"
     __model_intel__ = [
-        PropIntel(name="maximum",       label="Maximum CSDS",      minimum=1,     maximum=1000,   is_column=True,  ctype=float),
-        PropIntel(name="minimum",       label="Minimum CSDS",      minimum=1,     maximum=1000,   is_column=True,  ctype=float),
-        PropIntel(name="average",       label="Average CSDS",      minimum=1,     maximum=200,    is_column=True,  ctype=float,   refinable=True,  storable=True,     has_widget=True),
+        PropIntel(name="maximum",       label="Maximum CSDS",      minimum=1,     maximum=1000,   is_column=True,  data_type=float),
+        PropIntel(name="minimum",       label="Minimum CSDS",      minimum=1,     maximum=1000,   is_column=True,  data_type=float),
+        PropIntel(name="average",       label="Average CSDS",      minimum=1,     maximum=200,    is_column=True,  data_type=float,   refinable=True,  storable=True,     has_widget=True),
         
-        PropIntel(name="alpha_scale",   label="α scale factor",    minimum=0,   maximum=10, is_column=True,  ctype=float),
-        PropIntel(name="alpha_offset",  label="α offset factor",   minimum=-5,   maximum=5, is_column=True,  ctype=float),
-        PropIntel(name="beta_scale",    label="β² scale factor",   minimum=0,   maximum=10, is_column=True,  ctype=float),
-        PropIntel(name="beta_offset",   label="β² offset factor",  minimum=-5,   maximum=5, is_column=True,  ctype=float),
+        PropIntel(name="alpha_scale",   label="α scale factor",    minimum=0,   maximum=10, is_column=True,  data_type=float),
+        PropIntel(name="alpha_offset",  label="α offset factor",   minimum=-5,   maximum=5, is_column=True,  data_type=float),
+        PropIntel(name="beta_scale",    label="β² scale factor",   minimum=0,   maximum=10, is_column=True,  data_type=float),
+        PropIntel(name="beta_offset",   label="β² offset factor",  minimum=-5,   maximum=5, is_column=True,  data_type=float),
     ]
    
     #PROPERTIES:   

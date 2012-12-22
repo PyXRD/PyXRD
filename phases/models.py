@@ -17,13 +17,14 @@ from gtkmvc.model import Model, Observer, Signal
 import numpy as np
 from scipy.special import erf
 
-from generic.metaclasses import pyxrd_object_pool
+
 from generic.utils import print_timing, get_md5_hash
 from generic.custom_math import mmult, mdot, mtim, solve_division
 from generic.io import Storable, PyXRDDecoder
-from generic.model_mixins import ObjectListStoreChildMixin, ObjectListStoreParentMixin
 from generic.models import ChildModel, PropIntel
-from generic.treemodels import ObjectListStore
+from generic.models.mixins import ObjectListStoreChildMixin, ObjectListStoreParentMixin
+from generic.models.treemodels import ObjectListStore
+from generic.models.metaclasses import pyxrd_object_pool
 
 from atoms.models import Atom
 from probabilities.models import get_correct_probability_model
@@ -36,13 +37,13 @@ class UnitCellProperty(ChildModel, Storable, ComponentPropMixin, RefinementValue
     #MODEL INTEL:
     __parent_alias__ = "component"
     __model_intel__ = [
-        PropIntel(name="name",       label="Name",      ctype=str,    is_column=True),
-        PropIntel(name="value",      label="Value",     ctype=float,  storable=True, has_widget=True, refinable=True),
-        PropIntel(name="factor",     label="Factor",    ctype=float,  storable=True, has_widget=True),
-        PropIntel(name="constant",   label="Constant",  ctype=float,  storable=True, has_widget=True),
-        PropIntel(name="prop",       label="Property",  ctype=object, storable=True, has_widget=True),
-        PropIntel(name="enabled",    label="Enabled",   ctype=bool,   storable=True, has_widget=True),
-        PropIntel(name="inherited",  label="Inherited", ctype=bool)
+        PropIntel(name="name",       label="Name",      data_type=str,    is_column=True),
+        PropIntel(name="value",      label="Value",     data_type=float,  storable=True, has_widget=True, refinable=True),
+        PropIntel(name="factor",     label="Factor",    data_type=float,  storable=True, has_widget=True),
+        PropIntel(name="constant",   label="Constant",  data_type=float,  storable=True, has_widget=True),
+        PropIntel(name="prop",       label="Property",  data_type=object, widget_type='combo', storable=True, has_widget=True),
+        PropIntel(name="enabled",    label="Enabled",   data_type=bool,   storable=True, has_widget=True),
+        PropIntel(name="inherited",  label="Inherited", data_type=bool)
     ]
     
     #SIGNALS:
@@ -176,26 +177,26 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin,
     #MODEL INTEL:
     __parent_alias__ = "phase"
     __model_intel__ = [
-        PropIntel(name="name",                      ctype=str,    label="Name",                   is_column=True, has_widget=True, storable=True),
-        PropIntel(name="linked_with",               ctype=object, label="Linked with",            is_column=True, has_widget=True),
-        PropIntel(name="d001",                      ctype=float,  label="Cell length c [nm]",     is_column=True, has_widget=True, storable=True, refinable=True, minimum=0.0, maximum=5.0,  inh_name="inherit_d001"),
-        PropIntel(name="default_c",                 ctype=float,  label="Default c length [nm]",  is_column=True, has_widget=True, storable=True, minimum=0.0, maximum=5.0,  inh_name="inherit_default_c"),
-        PropIntel(name="delta_c",                   ctype=float,  label="C length dev. [nm]",     is_column=True, has_widget=True, storable=True, refinable=True, minimum=0.0, maximum=0.05, inh_name="inherit_delta_c"),
-        PropIntel(name="ucp_a",                     ctype=object, label="Cell length a [nm]",     is_column=True, has_widget=True, storable=True, refinable=True, inh_name="inherit_ucp_a"),
-        PropIntel(name="ucp_b",                     ctype=object, label="Cell length b [nm]",     is_column=True, has_widget=True, storable=True, refinable=True, inh_name="inherit_ucp_b"),
-        PropIntel(name="inherit_d001",              ctype=bool,   label="Inh. cell length c",     is_column=True, has_widget=True, storable=True),
-        PropIntel(name="inherit_ucp_b",             ctype=bool,   label="Inh. cell length b",     is_column=True, has_widget=True, storable=True),
-        PropIntel(name="inherit_ucp_a",             ctype=bool,   label="Inh. cell length a",     is_column=True, has_widget=True, storable=True),
-        PropIntel(name="inherit_default_c",         ctype=bool,   label="Inh. default length c",  is_column=True, has_widget=True, storable=True),
-        PropIntel(name="inherit_delta_c",           ctype=bool,   label="Inh. c length dev.",     is_column=True, has_widget=True, storable=True),
-        PropIntel(name="inherit_layer_atoms",       ctype=bool,   label="Inh. layer atoms",       is_column=True, has_widget=True, storable=True),
-        PropIntel(name="inherit_interlayer_atoms",  ctype=bool,   label="Inh. interlayer atoms",  is_column=True, has_widget=True, storable=True),
-        PropIntel(name="inherit_atom_relations",    ctype=bool,   label="Inh. atom relations",    is_column=True, has_widget=True, storable=True),
-        PropIntel(name="atom_relations",            ctype=object, label="Atom relations",         is_column=True, has_widget=True, storable=True, refinable=True, inh_name="inherit_atom_relations"),
-        PropIntel(name="layer_atoms",               ctype=object, label="Layer atoms",            is_column=True, has_widget=True, storable=True, inh_name="inherit_layer_atoms"),
-        PropIntel(name="interlayer_atoms",          ctype=object, label="Interlayer atoms",       is_column=True, has_widget=True, storable=True, inh_name="inherit_interlayer_atoms"),
-        PropIntel(name="needs_update",              ctype=object),
-        PropIntel(name="dirty",                     ctype=bool),        
+        PropIntel(name="name",                      data_type=str,    label="Name",                   is_column=True, has_widget=True, storable=True),
+        PropIntel(name="linked_with",               data_type=object, label="Linked with",            widget_type='combo', is_column=True, has_widget=True),
+        PropIntel(name="d001",                      data_type=float,  label="Cell length c [nm]",     is_column=True, has_widget=True, storable=True, refinable=True, minimum=0.0, maximum=5.0,  inh_name="inherit_d001"),
+        PropIntel(name="default_c",                 data_type=float,  label="Default c length [nm]",  is_column=True, has_widget=True, storable=True, minimum=0.0, maximum=5.0,  inh_name="inherit_default_c"),
+        PropIntel(name="delta_c",                   data_type=float,  label="C length dev. [nm]",     is_column=True, has_widget=True, storable=True, refinable=True, minimum=0.0, maximum=0.05, inh_name="inherit_delta_c"),
+        PropIntel(name="ucp_a",                     data_type=object, label="Cell length a [nm]",     is_column=True, has_widget=True, storable=True, refinable=True, inh_name="inherit_ucp_a"),
+        PropIntel(name="ucp_b",                     data_type=object, label="Cell length b [nm]",     is_column=True, has_widget=True, storable=True, refinable=True, inh_name="inherit_ucp_b"),
+        PropIntel(name="inherit_d001",              data_type=bool,   label="Inh. cell length c",     is_column=True, has_widget=True, storable=True),
+        PropIntel(name="inherit_ucp_b",             data_type=bool,   label="Inh. cell length b",     is_column=True, has_widget=True, storable=True),
+        PropIntel(name="inherit_ucp_a",             data_type=bool,   label="Inh. cell length a",     is_column=True, has_widget=True, storable=True),
+        PropIntel(name="inherit_default_c",         data_type=bool,   label="Inh. default length c",  is_column=True, has_widget=True, storable=True),
+        PropIntel(name="inherit_delta_c",           data_type=bool,   label="Inh. c length dev.",     is_column=True, has_widget=True, storable=True),
+        PropIntel(name="inherit_layer_atoms",       data_type=bool,   label="Inh. layer atoms",       is_column=True, has_widget=True, storable=True),
+        PropIntel(name="inherit_interlayer_atoms",  data_type=bool,   label="Inh. interlayer atoms",  is_column=True, has_widget=True, storable=True),
+        PropIntel(name="inherit_atom_relations",    data_type=bool,   label="Inh. atom relations",    is_column=True, has_widget=True, storable=True),
+        PropIntel(name="atom_relations",            data_type=object, label="Atom relations",         is_column=True, has_widget=True, storable=True, refinable=True, inh_name="inherit_atom_relations"),
+        PropIntel(name="layer_atoms",               data_type=object, label="Layer atoms",            is_column=True, has_widget=True, storable=True, inh_name="inherit_layer_atoms"),
+        PropIntel(name="interlayer_atoms",          data_type=object, label="Interlayer atoms",       is_column=True, has_widget=True, storable=True, inh_name="inherit_interlayer_atoms"),
+        PropIntel(name="needs_update",              data_type=object),
+        PropIntel(name="dirty",                     data_type=bool),        
     ]
 
     #SIGNALS:
@@ -567,21 +568,21 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin,
     #MODEL INTEL:
     __parent_alias__ = 'project'
     __model_intel__ = [
-    PropIntel(name="name",                          ctype=str,     label="Name",                is_column=True, has_widget=True, storable=True),
-        PropIntel(name="display_color",             ctype='color', label="Display color",       is_column=True, has_widget=True, storable=True, inh_name="inherit_display_color"),
-        PropIntel(name="based_on",                  ctype=object,  label="Based on phase",      is_column=True, has_widget=True),
-        PropIntel(name="G",                         ctype=int,     label="# of components",     is_column=True, has_widget=True, storable=True),
-        PropIntel(name="R",                         ctype=int,     label="Reichweite",          is_column=True, has_widget=True),
-        PropIntel(name="CSDS_distribution",         ctype=object,  label="CSDS Distribution",   is_column=True, has_widget=True, storable=True, refinable=True, inh_name="inherit_CSDS_distribution"),
-        PropIntel(name="sigma_star",                ctype=float,   label="$\sigma^*$ [°]",      is_column=True, has_widget=True, storable=True, refinable=True, minimum=0.0,   maximum=90.0, inh_name="inherit_sigma_star"),
-        PropIntel(name="inherit_display_color",     ctype='flag',  label="Inh. display color",  is_column=True, has_widget=True, storable=True),
-        PropIntel(name="inherit_CSDS_distribution", ctype='flag',  label="Inh. mean CSDS",      is_column=True, has_widget=True, storable=True),
-        PropIntel(name="inherit_sigma_star",        ctype='flag',  label="Inh. sigma star",     is_column=True, has_widget=True, storable=True),
-        PropIntel(name="inherit_probabilities",     ctype='flag',  label="Inh. probabilities",  is_column=True, has_widget=True, storable=True),
-        PropIntel(name="probabilities",             ctype=object,  label="Probabilities",       is_column=True, has_widget=True, storable=True, refinable=True, inh_name="inherit_probabilities",),
-        PropIntel(name="components",                ctype=object,  label="Components",          is_column=True, has_widget=True, storable=True, refinable=True),
-        PropIntel(name="needs_update",              ctype=object),
-        PropIntel(name="dirty",                     ctype=bool),
+        PropIntel(name="name",                      data_type=str,     label="Name",                is_column=True, has_widget=True, storable=True),
+        PropIntel(name="display_color",             data_type=str,     label="Display color",       is_column=True, has_widget=True, widget_type='color', storable=True, inh_name="inherit_display_color"),
+        PropIntel(name="based_on",                  data_type=object,  label="Based on phase",      is_column=True, has_widget=True, widget_type='combo'),
+        PropIntel(name="G",                         data_type=int,     label="# of components",     is_column=True, has_widget=True, storable=True),
+        PropIntel(name="R",                         data_type=int,     label="Reichweite",          is_column=True, has_widget=True),
+        PropIntel(name="CSDS_distribution",         data_type=object,  label="CSDS Distribution",   is_column=True, has_widget=True, storable=True, refinable=True, inh_name="inherit_CSDS_distribution"),
+        PropIntel(name="sigma_star",                data_type=float,   label="$\sigma^*$ [°]",      is_column=True, has_widget=True, storable=True, refinable=True, minimum=0.0,   maximum=90.0, inh_name="inherit_sigma_star"),
+        PropIntel(name="inherit_display_color",     data_type=bool,    label="Inh. display color",  is_column=True, has_widget=True, storable=True),
+        PropIntel(name="inherit_CSDS_distribution", data_type=bool,    label="Inh. mean CSDS",      is_column=True, has_widget=True, storable=True),
+        PropIntel(name="inherit_sigma_star",        data_type=bool,    label="Inh. sigma star",     is_column=True, has_widget=True, storable=True),
+        PropIntel(name="inherit_probabilities",     data_type=bool,    label="Inh. probabilities",  is_column=True, has_widget=True, storable=True),
+        PropIntel(name="probabilities",             data_type=object,  label="Probabilities",       is_column=True, has_widget=True, storable=True, refinable=True, inh_name="inherit_probabilities",),
+        PropIntel(name="components",                data_type=object,  label="Components",          is_column=True, has_widget=True, storable=True, refinable=True),
+        PropIntel(name="needs_update",              data_type=object),
+        PropIntel(name="dirty",                     data_type=bool),
     ]
     
     #SIGNALS:

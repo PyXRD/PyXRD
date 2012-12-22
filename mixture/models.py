@@ -20,12 +20,12 @@ import scipy
 
 import settings
 
-from generic.metaclasses import pyxrd_object_pool
 from generic.io import Storable
 from generic.utils import print_timing, delayed
-from generic.model_mixins import ObjectListStoreChildMixin
 from generic.models import ChildModel, PropIntel, MultiProperty
-from generic.treemodels import ObjectTreeStore
+from generic.models.mixins import ObjectListStoreChildMixin
+from generic.models.metaclasses import pyxrd_object_pool
+from generic.models.treemodels import ObjectTreeStore
 
 from specimen.models import Statistics
 
@@ -36,12 +36,12 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
     #MODEL INTEL:
     __parent_alias__ = "project"
     __model_intel__ = [ #TODO add labels
-        PropIntel(name="name",             label="Name",    ctype=str,      is_column=True, storable=True, has_widget=True),
-        PropIntel(name="refinables",       label="",        ctype=object,   is_column=True, has_widget=True),
-        PropIntel(name="auto_run",         label="",        ctype=bool,     is_column=True, storable=True,  has_widget=True),
-        PropIntel(name="refine_method",    label="",        ctype=int,      storable=True,  has_widget=True),
-        PropIntel(name="has_changed",      label="",        ctype=object),
-        PropIntel(name="needs_reset",      label="",        ctype=object,   storable=False,),
+        PropIntel(name="name",             label="Name",    data_type=str,      is_column=True, storable=True, has_widget=True),
+        PropIntel(name="refinables",       label="",        data_type=object,   is_column=True, has_widget=True),
+        PropIntel(name="auto_run",         label="",        data_type=bool,     is_column=True, storable=True,  has_widget=True),
+        PropIntel(name="refine_method",    label="",        data_type=int,      storable=True,  has_widget=True),
+        PropIntel(name="has_changed",      label="",        data_type=object),
+        PropIntel(name="needs_reset",      label="",        data_type=object,   storable=False,),
     ]
 
     #SIGNALS:
@@ -70,7 +70,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
     refinables = None
 
     refine_method = MultiProperty(0, int, None, 
-        { 0: "L BFGS B algorithm", 1: "Genetic algorithm" })
+        { 0: "L BFGS B algorithm", 1: "Genetic algorithm", 100: "Brute force algorithm" })
 
     @property
     def current_rp(self):
@@ -160,16 +160,24 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------ 
-    def uncheck_phase(self, phase):
+    def unset_phase(self, phase):
+        print "UNSET PHASE"
         shape = self.phase_matrix.shape
         for i in range(shape[0]):
             for j in range(shape[1]):
                 if self.phase_matrix[i,j] == phase:
                     self.phase_matrix[i,j] = None
         self.update_refinement_treestore()
-        self.needs_reset.emit()
+        self.has_changed.emit()
+    
+    def unset_specimen(self, specimen):
+        for i, spec in enumerate(self.specimens):
+            if spec==specimen:
+                self.specimens[i] = None
+        self.has_changed.emit()
     
     def add_phase(self, phase_name, fraction):
+        print "ADD PHASE"
         n, m = self.phase_matrix.shape
         if n > 0:
             self.phases.append(phase_name)
@@ -210,7 +218,10 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         self.needs_reset.emit()
 
     def del_specimen(self, specimen):
-        self._del_specimen_by_index(self.specimens.index(specimen))
+        try:
+            self._del_specimen_by_index(self.specimens.index(specimen))
+        except ValueError, msg:
+            print "Caught a ValueError when deleting a specimen from mixture '%s': %s" % (self.name, msg)
     
     # ------------------------------------------------------------
     #      Refinement stuff:
@@ -219,7 +230,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         return np.array(self.fractions + self.scales + self.bgshifts)
     
     def _parse_x(self, x, n, m): #returns: fractions | scales | bgshifts
-        return x[:m][:,np.newaxis], x[m:m+n], x[-n:] #np.zeros(shape=(n,))# x[-n:]
+        return x[:m][:,np.newaxis], x[m:m+n], x[-n:] if settings.BGSHIFT else np.zeros(shape=(n,))
    
     def _get_rp_statics(self):
         #1 get the different intensities for each phase for each specimen 
@@ -234,20 +245,24 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         for i in range(n):
             phases = self.phase_matrix[i]
             specimen = self.specimens[i]
-            theta_range, calc = specimen.get_phase_intensities(phases, self.parent.goniometer.get_lorentz_polarisation_factor)
-            calculated[i] = calc.copy()
-            experimental[i] = specimen.experimental_pattern.xy_store.get_raw_model_data()[1].copy()
-            selectors[i] = specimen.get_exclusion_selector(theta_range*todeg)
+            if specimen!=None:
+                theta_range, calc = specimen.get_phase_intensities(phases, self.parent.goniometer.get_lorentz_polarisation_factor)
+                calculated[i] = calc.copy()
+                experimental[i] = specimen.experimental_pattern.xy_store.get_raw_model_data()[1].copy()
+                selectors[i] = specimen.get_exclusion_selector(theta_range*todeg)
         return n, m, calculated, experimental, selectors
    
     def _calculate_total_rp(self, x, n, m, calculated, experimental, selectors):
         tot_rp = 0.0
         fractions, scales, bgshifts = self._parse_x(x, n, m)
         for i in range(n):
-            calc = (scales[i] * np.sum(calculated[i]*fractions, axis=0)) + bgshifts[i]
-            exp = experimental[i][selectors[i]]
-            cal = calc[selectors[i]]
-            tot_rp += Statistics._calc_Rp(exp, cal)
+            if calculated[i]!=None:
+                calc = (scales[i] * np.sum(calculated[i]*fractions, axis=0)) 
+                if settings.BGSHIFT:
+                    calc += bgshifts[i]
+                exp = experimental[i][selectors[i]]
+                cal = calc[selectors[i]]
+                tot_rp += Statistics._calc_Rp(exp, cal)
         return tot_rp
     
     #@print_timing
@@ -283,7 +298,8 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         fractions, scales, bgshifts = self._parse_x(lastx, n, m)
         fractions = fractions.flatten()
         scales = scales.round(6)
-        bgshifts = bgshifts.round(6)
+        if settings.BGSHIFT:
+            bgshifts = bgshifts.round(6)
         
         sum_frac = np.sum(fractions)
         fractions = np.around((fractions / sum_frac), 6)
@@ -292,7 +308,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         #set model properties:
         self.fractions = list(fractions)
         self.scales = list(scales)
-        self.bgshifts = list(bgshifts)
+        self.bgshifts = list(bgshifts) if settings.BGSHIFT else [0]*n
         
         if not silent: self.has_changed.emit()
         
@@ -312,13 +328,14 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
        
         phase_props = [
             "name",
-            "wt",
+            "wt%",
             "sigma_star",
             "T_mean",
             "probs",
         ]
         comp_props = [
             "name",
+            "wt%",
             "d-spacing",
             "relations",
         ]
@@ -343,8 +360,8 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
                     text = ""         
                     if prop=="name":
                         text = "%s" % phase.name
-                    elif prop=="wt":
-                        text = " %.1f" % (self.fractions[phase_index]*100.0)
+                    elif prop=="wt%":
+                        text = "%.1f" % (self.fractions[phase_index]*100.0)
                     elif prop=="sigma_star":
                         text = "%.1f" % phase.sigma_star
                     elif prop=="T_mean":
@@ -356,12 +373,14 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
                         text += "\""
                     text_matrix[j,i] = text
                     j += 1
-                for component in phase.components.iter_objects():
+                for k, component in enumerate(phase.components.iter_objects()):
                     for prop in comp_props:
                         text_matrix[j,0] = prop
                         text = ""
                         if prop=="name":
                             text = "%s" % component.name                        
+                        elif prop=="wt%":
+                            text = "%.1f" % (phase.probabilities.mW[k]*100)
                         elif prop=="d-spacing":
                             text = "%.3f" % component.cell_c
                             if component.delta_c != 0:
@@ -373,20 +392,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
                             text += "\""
                         text_matrix[j,i] = text
                         j += 1
-                i += 1
-            
-        
-            """res += "    %5.1f%%   %s\n" % (self.fractions[i]*100.0, self.phases[i])
-            phases = np.unique(self.phase_matrix[:,i])
-            for phase in phases:
-                res += "        > %s T=%d\n" % (phase.name, phase.CSDS_distribution.average)
-                if phase.G > 1:
-                    for i, comp in enumerate(phase.components.iter_objects()):
-                        res += "            - %5.1f%% %s\n" % (phase.probabilities.mW[i]*100, comp.name)
-                if phase.R > 0:
-                    res += "            - Probabilities:\n"
-                    for descr in phase.probabilities.get_prob_descriptions():
-                        res += "                %s\n" % descr  """            
+                i += 1           
         return text_matrix
             
     def get_composition_matrix(self):
@@ -567,6 +573,8 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
                         lastx, lastR2 = Mixture.mod_l_bfgs_b(fitness_func, x0, ranges, args=[], f2=1e6)
                     elif self.refine_method==1: #GENETIC ALGORITHM
                         lastx, lastR2 = run_genetic_algorithm(ref_props, x0, ranges, fitness_func)
+                    elif self.refine_method==100: #BRUTE FORCE, only for scripting
+                        lastx, lastR2, val_grid, rp_grid  = scipy.optimize.brute(fitness_func, ranges, Ns=10, full_output=1, finish=None)
                 except StopIteration:
                     lastx, lastR2 = self.best_x, self.best_rp
                     print lastx, lastR2
@@ -578,11 +586,13 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
                 finally:
                     del self.best_x
                     del self.best_rp
-            print initialR2, lastR2
             self.refine_lock = False
             self.parent.thaw_updates()
-            return x0, initialR2, lastx, lastR2, apply_solution
-                    
+            if self.refine_method != 100:
+                return x0, initialR2, lastx, lastR2, apply_solution
+            else:
+                return x0, initialR2, lastx, lastR2, apply_solution, val_grid, rp_grid
+                                    
     def apply_result(self):
         if self.auto_run: self.optimize()
         for i, specimen in enumerate(self.specimens):
@@ -600,17 +610,17 @@ class RefinableProperty(ChildModel, ObjectListStoreChildMixin, Storable):
     __parent_alias__ = "mixture"
     __index_column__ = "index"
     __model_intel__ = [ #TODO add labels
-        PropIntel(name="title",             inh_name=None,         label="", minimum=None,  maximum=None,  is_column=True,  ctype=str,    refinable=False, storable=False, observable=True,  has_widget=True),
-        PropIntel(name="refine",            inh_name=None,         label="", minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="refinable",         inh_name=None,         label="", minimum=None,  maximum=None,  is_column=True,  ctype=bool,   refinable=False, storable=False, observable=True,  has_widget=False),
-        PropIntel(name="prop",              inh_name=None,         label="", minimum=None,  maximum=None,  is_column=True,  ctype=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="inh_prop",          inh_name=None,         label="", minimum=None,  maximum=None,  is_column=True,  ctype=str,    refinable=False, storable=False, observable=True,  has_widget=True),        
-        PropIntel(name="value",             inh_name=None,         label="", minimum=None,  maximum=None,  is_column=True,  ctype=float,  refinable=False, storable=False, observable=True,  has_widget=False),
-        PropIntel(name="value_min",         inh_name=None,         label="", minimum=None,  maximum=None,  is_column=True,  ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="value_max",         inh_name=None,         label="", minimum=None,  maximum=None,  is_column=True,  ctype=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="obj",               inh_name=None,         label="", minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=False, storable=False, observable=True,  has_widget=False),
-        PropIntel(name="index",             inh_name=None,         label="", minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=False, storable=False, observable=True,  has_widget=False),
-        PropIntel(name="prop_intel",        inh_name=None,         label="", minimum=None,  maximum=None,  is_column=True,  ctype=object, refinable=False, storable=False, observable=True,  has_widget=False),
+        PropIntel(name="title",             inh_name=None,         label="", minimum=None,  maximum=None,  is_column=True,  data_type=str,    refinable=False, storable=False, observable=True,  has_widget=True),
+        PropIntel(name="refine",            inh_name=None,         label="", minimum=None,  maximum=None,  is_column=True,  data_type=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="refinable",         inh_name=None,         label="", minimum=None,  maximum=None,  is_column=True,  data_type=bool,   refinable=False, storable=False, observable=True,  has_widget=False),
+        PropIntel(name="prop",              inh_name=None,         label="", minimum=None,  maximum=None,  is_column=True,  data_type=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="inh_prop",          inh_name=None,         label="", minimum=None,  maximum=None,  is_column=True,  data_type=str,    refinable=False, storable=False, observable=True,  has_widget=True),        
+        PropIntel(name="value",             inh_name=None,         label="", minimum=None,  maximum=None,  is_column=True,  data_type=float,  refinable=False, storable=False, observable=True,  has_widget=False),
+        PropIntel(name="value_min",         inh_name=None,         label="", minimum=None,  maximum=None,  is_column=True,  data_type=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="value_max",         inh_name=None,         label="", minimum=None,  maximum=None,  is_column=True,  data_type=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
+        PropIntel(name="obj",               inh_name=None,         label="", minimum=None,  maximum=None,  is_column=True,  data_type=object, refinable=False, storable=False, observable=True,  has_widget=False),
+        PropIntel(name="index",             inh_name=None,         label="", minimum=None,  maximum=None,  is_column=True,  data_type=object, refinable=False, storable=False, observable=True,  has_widget=False),
+        PropIntel(name="prop_intel",        inh_name=None,         label="", minimum=None,  maximum=None,  is_column=True,  data_type=object, refinable=False, storable=False, observable=True,  has_widget=False),
     ]
     
     #PROPERTIES:

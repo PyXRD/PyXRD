@@ -795,8 +795,20 @@ class XYListStore(_BaseObjectListStore, Storable):
         if kwargs.get("clear", True):
             self.clear()
         if "clear" in kwargs: del kwargs["clear"]
-        for x,y in XYListStore.parse_data(*args, **kwargs):
-            self.append(x, y)
+        ays = None
+        for data in XYListStore.parse_data(*args, **kwargs):
+            if len(data) == 2:
+                x, y = data
+                self.append(x, y)
+            else:
+                if ays==None:
+                    ays = [ np.zeros(shape=(0,2)) for i in range(len(data)-2)]
+                x, y, ay = data[0], data[1], data[2:]
+                self.append(x, y)
+                for i, y in enumerate(ay):
+                    ays[i] = np.append(ays[i], [[x, y]], axis=0) #ays[0][:,1] = y waarden
+        return ays
+                
         
         
     # ------------------------------------------------------------

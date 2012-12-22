@@ -14,7 +14,7 @@ from gtk import Entry, HScale, HBox
 
 from gtkmvc.adapters.default import add_adapter
 
-from generic.validators import FloatEntryValidator
+from generic.views.validators import FloatEntryValidator
 from generic.custom_math import round_sig
 from generic.utils import delayed
 from generic.threads import KillableThread, GUIThread

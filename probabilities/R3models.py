@@ -62,7 +62,7 @@ class R3G2Model(_AbstractProbability):
         ),
     ]
     __model_intel__ = [
-        PropIntel(name=prop, label=label, minimum=0.0, maximum=1.0, ctype=float, refinable=True, storable=True, has_widget=True) \
+        PropIntel(name=prop, label=label, minimum=0.0, maximum=1.0, data_type=float, refinable=True, storable=True, has_widget=True) \
             for prop, label in __independent_label_map__
     ]
 

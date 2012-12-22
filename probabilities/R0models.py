@@ -40,7 +40,7 @@ def R0_model_generator(pasG):
             ) for g in range(pasG-1)
         ]
         __model_intel__ = [
-            PropIntel(name=prop, label=label, minimum=0.0, maximum=1.0, ctype=float, refinable=True, storable=True, has_widget=True) \
+            PropIntel(name=prop, label=label, minimum=0.0, maximum=1.0, data_type=float, refinable=True, storable=True, has_widget=True) \
                 for prop, label in __independent_label_map__
         ]
 

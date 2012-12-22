@@ -28,8 +28,7 @@ if __name__ == "__main__":
     #setup & parse keyword arguments:
     parser = argparse.ArgumentParser()
     parser.add_argument("filename", nargs="?", default="", help="A PyXRD project filename", )
-    parser.add_argument("-n", "--no-gui", default=False, help="Do not start the GUI", action="store_true")
-    parser.add_argument("-s", "--script", default="", help="Can be used to pass a script containing a run(project) function, implies -n")
+    parser.add_argument("-s", "--script", default="", help="Can be used to pass a script containing a run() function")
     args = parser.parse_args()
     del parser #free some memory
 
@@ -40,29 +39,26 @@ if __name__ == "__main__":
     update()
 
     #apply settings
-    settings.apply_runtime_settings(args.no_gui)
+    settings.apply_runtime_settings(args.script)
 
-    #check if a filename was passed, if so try to load it
-    project = None
-    if args.filename!="":
+    if args.script: #SCRIPT
         try:
-            print "Opening: %s" % args.filename
-            project = Project.load_object(args.filename)
-        except IOError:
-            print 'Could not load file %s: IOError' % args.filename
-
-    if args.no_gui or args.script:
-        if project==None:
-            print "No PyXRD project filename passed, exiting..."
-        else:
-            if args.script:
-                try:
-                    import imp
-                    user_script = imp.load_source('user_script', args.script)
-                except:
-                    raise ImportError, "Error when trying to import run() from %s" % args.script
-                user_script.run(project)
-    else:
+            import imp
+            user_script = imp.load_source('user_script', args.script)
+        except:
+            raise ImportError, "Error when trying to import %s" % args.script
+        user_script.run(args)
+    else: #GUI
+    
+        #check if a filename was passed, if so try to load it
+        project = None
+        if args.filename!="":
+            try:
+                print "Opening: %s" % args.filename
+                project = Project.load_object(args.filename)
+            except IOError:
+                print 'Could not load file %s: IOError' % args.filename
+    
         #disable unity overlay scrollbars as they cause bugs with modal windows
         os.environ['LIBOVERLAY_SCROLLBAR'] = '0'
             

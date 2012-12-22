@@ -13,13 +13,14 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_gtkcairo import FigureCanvasGTKCairo as FigureCanvasGTK
 
 from generic.views import BaseView, HasChildView, DialogView, NoneView
-from generic.widgets import ScaleEntry
+from generic.views.widgets import ScaleEntry
 
 class EditPhaseView(BaseView, HasChildView):
     title = "Edit Phases"
     builder = "phases/glade/phase.glade"
     top = "edit_phase"
-
+    widget_format = "phase_%s"
+    
     csds_view = None    
     csds_view_container = "csds_container"
     
@@ -74,6 +75,7 @@ class EditAtomContentsView(DialogView, HasChildView):
     subview_builder = "phases/glade/contents.glade"
     subview_toplevel = "edit_contents"
     modal = True
+    widget_format = "contents_%s"
         
     contents_list_view_container = "container_atom_contents"
       
@@ -91,6 +93,7 @@ class EditComponentView(BaseView, HasChildView):
     title = "Edit Component"
     builder = "phases/glade/component.glade"
     top = "edit_component"
+    widget_format = "component_%s"
 
     layer_view = None    
     layer_view_container = "container_layer_atoms"

@@ -29,7 +29,14 @@ class PyXRDMeta(ObservablePropertyMetaMT):
         __model_intel__ = get_unique_list(d.get("__model_intel__", list()))
 
         #properties to be generated base on model intel named tuples:
-        keys = ["__observables__", "__storables__", "__columns__", "__inheritables__", "__refinables__", "__have_no_widget__"]
+        keys = [
+            "__observables__", 
+            "__storables__", 
+            "__columns__",
+            "__inheritables__",
+            "__refinables__", 
+            "__have_no_widget__"
+        ]
     
         #Helper functions to to set or delete extra attributes on the class
         def set_attribute(name, value):
@@ -48,11 +55,10 @@ class PyXRDMeta(ObservablePropertyMetaMT):
         #taken care of in the __call__ method of this metaclass
         ref_info_intels = list()
         for prop in __model_intel__:
-            if prop.refinable and prop.ctype in (float, int):
+            if prop.refinable and prop.data_type in (float, int):
                 from properties import PropIntel
                 ref_info_name = PyXRDMeta.ref_info_name % prop.name
-                test = PropIntel(name=ref_info_name, ctype=object, storable=True)
-                ref_info_intels.append(test)
+                ref_info_intels.append(PropIntel(name=ref_info_name, data_type=object, storable=True))
                 set_attribute(ref_info_name, None)
         __model_intel__.extend(ref_info_intels)
         
@@ -92,7 +98,7 @@ class PyXRDMeta(ObservablePropertyMetaMT):
         for prop in __model_intel__:
             if prop.storable:   
                 d["__storables__"].append(prop.name)
-            if prop.is_column:  d["__columns__"].append((prop.name, prop.ctype))
+            if prop.is_column:  d["__columns__"].append((prop.name, prop.data_type))
             if prop.inh_name:   d["__inheritables__"].append(prop.name)
             if prop.refinable:  d["__refinables__"].append(prop.name)
             if not prop.has_widget: d["__have_no_widget__"].append(prop.name)                
@@ -114,7 +120,7 @@ class PyXRDMeta(ObservablePropertyMetaMT):
         
         ref_infos = dict()
         for prop_intel in cls.__model_intel__:
-            if prop_intel.refinable and prop_intel.ctype in (float, int):
+            if prop_intel.refinable and prop_intel.data_type in (float, int):
                 from generic.models import RefinementInfo
                 ref_info_name = PyXRDMeta.ref_info_name % prop_intel.name
                 

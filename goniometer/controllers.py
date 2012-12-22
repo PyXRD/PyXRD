@@ -15,7 +15,7 @@ from gtkmvc import Controller
 import settings
 
 from generic.utils import create_treestore_from_directory, create_valuestore_from_file, get_case_insensitive_glob
-from generic.validators import FloatEntryValidator
+from generic.views.validators import FloatEntryValidator
 from generic.controllers import DialogController, DialogMixin
 
 class GoniometerController(DialogController, DialogMixin):

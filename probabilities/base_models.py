@@ -14,7 +14,7 @@ from gtkmvc.model import Signal
 
 from generic.io import Storable
 from generic.models import ChildModel
-from generic.properties import PropIntel
+from generic.models.properties import PropIntel
 from generic.utils import indexproperty
 
 from mixture.refinement import RefinementGroup
@@ -24,10 +24,10 @@ class _AbstractProbability(ChildModel, Storable, RefinementGroup):
     #MODEL INTEL:     
     __parent_alias__ = 'phase'
     __model_intel__ = [ #TODO add labels
-        PropIntel(name="updated",   inh_name=None,  label="",               ctype=object),
-        PropIntel(name="name",      inh_name=None,  label="Probabilites",   ctype=str),
-        PropIntel(name="W_valid",   inh_name=None,  label="Valid W matrix", ctype=object),
-        PropIntel(name="P_valid",   inh_name=None,  label="Valid P matrix", ctype=object),
+        PropIntel(name="updated",   inh_name=None,  label="",               data_type=object),
+        PropIntel(name="name",      inh_name=None,  label="Probabilites",   data_type=str),
+        PropIntel(name="W_valid",   inh_name=None,  label="Valid W matrix", data_type=object),
+        PropIntel(name="P_valid",   inh_name=None,  label="Valid P matrix", data_type=object),
     ]
     __independent_label_map__ = []
     

@@ -13,7 +13,7 @@ import gtk
 from gtkmvc import Model, Controller
 from gtkmvc.adapters import Adapter
 
-from generic.validators import FloatEntryValidator 
+from generic.views.validators import FloatEntryValidator 
 from generic.views import ChildObjectListStoreView
 from generic.controllers import BaseController
 
@@ -50,6 +50,9 @@ class EditProbabilitiesController(BaseController):
         self.dependents_view.update_matrices(self.model)
         self.independents_view.update_matrices(self.model)
         
+    def register_adapters(self):
+        return        
+        
     # ------------------------------------------------------------
     #      Notifications of observable properties
     # ------------------------------------------------------------
@@ -79,6 +82,9 @@ class MatrixController(BaseController):
         BaseController.__init__(self, *args, **kwargs)
         self.current_W = current
         self.current_P = current
+
+    def register_adapters(self):
+        return
 
     def on_w_prev_clicked(self, widget, *args):
         self.current_W = self.view.show_w_matrix(self.current_W - 1)

@@ -9,9 +9,10 @@
 import settings
 from gtkmvc.model import Model, Observer, Signal
 
-from generic.metaclasses import pyxrd_object_pool
+from generic.models import PyXRDModel
+from generic.models.metaclasses import pyxrd_object_pool
     
-class AppModel(Model):
+class AppModel(PyXRDModel):
 
     #MODEL INTEL:
     __observables__ = ( 
@@ -71,7 +72,7 @@ class AppModel(Model):
     #      Initialisation and other internals
     # ------------------------------------------------------------
     def __init__(self, project = None):
-        Model.__init__(self)
+        PyXRDModel.__init__(self)
         self.needs_plot_update = Signal()
         self.current_project = project
         self._statistics_visible = False

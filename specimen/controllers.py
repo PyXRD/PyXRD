@@ -15,10 +15,11 @@ from gtkmvc import Controller, Observer
 from gtkmvc.adapters import Adapter
 
 from generic.plot.controllers import DraggableVLine, EyedropperCursorPlot
-from generic.treemodels import XYListStore
-from generic.controllers import DialogController, DialogMixin, BaseController, ObjectListStoreController, HasObjectTreeview, get_color_val, ctrl_setup_combo_with_list
-from generic.validators import FloatEntryValidator
-from generic.treeview_tools import setup_treeview, new_text_column
+from generic.models.treemodels import XYListStore
+from generic.controllers import DialogController, DialogMixin, BaseController, ObjectListStoreController, HasObjectTreeview, ctrl_setup_combo_with_list
+from generic.controllers.handlers import get_color_val
+from generic.views.validators import FloatEntryValidator
+from generic.views.treeview_tools import setup_treeview, new_text_column
 from generic.utils import get_case_insensitive_glob
 
 from specimen.models import Specimen, Marker, ThresholdSelector
@@ -98,6 +99,8 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
                     ad = Adapter(self.model, name)
                     ad.connect_widget(self.view["specimen_%s" % name], getter=get_color_val)
                     self.adapt(ad)
+                elif name in ["calc_lw", "exp_lw"]:
+                    self.adapt(name, "specimen_%s" % name)
                 elif name in ("sample_length", "abs_scale", "bg_shift"):
                     FloatEntryValidator(self.view["specimen_%s" % name])
                     self.adapt(name)
@@ -120,6 +123,9 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
         if not self.model.inherit_calc_color:
             self.view["specimen_calc_color"].set_color(gtk.gdk.color_parse(self.model.calc_color))
 
+        self.view["spb_calc_lw"].set_sensitive(not self.model.inherit_calc_lw)           
+        self.view["spb_exp_lw"].set_sensitive(not self.model.inherit_exp_lw)
+
     def remove_background(self):
         bg_view = BackgroundView(parent=self.view)
         bg_ctrl = BackgroundController(self.model.experimental_pattern, bg_view, parent=self)
@@ -140,6 +146,8 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
     # ------------------------------------------------------------
     @Controller.observe("inherit_exp_color", assign=True)
     @Controller.observe("inherit_calc_color", assign=True)
+    @Controller.observe("inherit_exp_lw", assign=True)
+    @Controller.observe("inherit_calc_lw", assign=True)
     def notif_color_toggled(self, model, prop_name, info):
         self.update_sensitivities()
 
@@ -213,7 +221,7 @@ class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
         def on_accept(dialog):
             filename = self.extract_filename(dialog, filters=self.excl_filters)
             if filename[-3:].lower() == "exc":
-                self.model.exclusion_ranges.save_data("%s %s" % (self.model.name, self.model.sample), filename)
+                self.model.exclusion_ranges.save_data("%s %s" % (self.model.name, self.model.sample_name), filename)
         self.run_save_dialog(title="Select file for exclusion ranges export",
                              on_accept_callback=on_accept, 
                              parent=self.view.get_top_widget(),
@@ -394,6 +402,9 @@ class StatisticsController(BaseController):
     pass #end of class    
             
 class EditMarkerController(BaseController):
+
+    def register_view(self, view):
+        self.update_sensitivities()
 
     def register_adapters(self):
         if self.model is not None:

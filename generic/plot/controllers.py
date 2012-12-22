@@ -22,7 +22,7 @@ from mpl_toolkits.axisartist import Subplot
 
 import settings
 
-from generic.plot.plotters import plot_specimens
+from generic.plot.plotters import plot_specimens, plot_mixture
 from generic.controllers import DialogMixin
 
 #TODO:
@@ -42,13 +42,7 @@ class PlotController (DialogMixin):
             self.setup_canvas()
             self.setup_content()
         return self._canvas
-
-    def get_save_dims(self, num_specimens=1, offset=0.75):    
-        raise NotImplementedError
         
-    def get_save_bbox(self, width, height):
-        return matplotlib.transforms.Bbox.from_bounds(0, 0, width, height)
-
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
@@ -85,15 +79,38 @@ class PlotController (DialogMixin):
     # ------------------------------------------------------------
     #      Graph exporting
     # ------------------------------------------------------------ 
-    def save(self, parent=None, suggest_name="graph", size="auto", num_specimens=1, offset=0.75, dpi=150):
+    def save(self, parent=None, suggest_name="graph", size="auto", num_specimens=1, offset=0.75):
+        #parse arguments:
         width, height = 0, 0
         if size == "auto":
-            width, height = self.get_save_dims(num_specimens=num_specimens, offset=offset)
+            descr, width, height, dpi = settings.OUTPUT_PRESETS[0]
         else:    
-            width, height = map(float, size.split("x"))
+            width, height, dpi = map(float, size.replace("@", "x").split("x"))
+            
+        #load gui:
         builder = gtk.Builder()
         builder.add_from_file("specimen/glade/save_graph_size.glade")    
         size_expander = builder.get_object("size_expander")
+        cmb_presets = builder.get_object("cmb_presets")
+        
+        #setup combo with presets:
+        cmb_store =  gtk.ListStore(str, float, float, float)
+        for row in settings.OUTPUT_PRESETS:
+            cmb_store.append(row)
+        cmb_presets.clear()
+        cmb_presets.set_model(cmb_store)
+        cell = gtk.CellRendererText()
+        cmb_presets.pack_start(cell, True)
+        cmb_presets.add_attribute(cell, 'text', 0)
+        def on_cmb_changed(cmb, *args):
+            itr = cmb_presets.get_active_iter()
+            w, h, d = cmb_store.get(itr, 1, 2, 3)
+            entry_w.set_text(str(w))
+            entry_h.set_text(str(h))
+            entry_dpi.set_text(str(d))
+        cmb_presets.connect('changed', on_cmb_changed)
+            
+        #setup input boxes:
         entry_w = builder.get_object("entry_width")
         entry_h = builder.get_object("entry_height")
         entry_dpi = builder.get_object("entry_dpi")
@@ -101,6 +118,7 @@ class PlotController (DialogMixin):
         entry_h.set_text(str(height))
         entry_dpi.set_text(str(dpi))
         
+        #what to do when the user wants to save this:
         def on_accept(dialog):
             cur_fltr = dialog.get_filter()
             filename = dialog.get_filename()
@@ -113,25 +131,25 @@ class PlotController (DialogMixin):
             height = float(entry_h.get_text())
             dpi = float(entry_dpi.get_text())
             original_width, original_height = self.figure.get_size_inches()      
-            #original_dpi = self.figure.get_dpi()
+            original_dpi = self.figure.get_dpi()
             i_width, i_height = width / dpi, height / dpi            
-            bbox_inches = self.get_save_bbox(i_width, i_height)
-            
+
+            #set everything according to the user selection:
+            self.figure.set_dpi(dpi)            
             self.figure.set_size_inches((i_width, i_height))
+            self.figure.canvas.draw() #replot
+            bbox_inches = matplotlib.transforms.Bbox.from_bounds(0, 0, i_width, i_height)
+            #save the figure:
             self.figure.savefig(filename, dpi=dpi, bbox_inches=bbox_inches)
+            #put everything back the way it was:
+            self.figure.set_dpi(original_dpi)
             self.figure.set_size_inches((original_width, original_height))
+            self.figure.canvas.draw() #replot
         
+        #ask the user where, how and if he wants to save:
         self.run_save_dialog("Save Graph", on_accept, None, parent=parent, suggest_name=suggest_name, extra_widget=size_expander)
    
 class MainPlotController (PlotController):
-
-    def get_save_dims(self, num_specimens=1, offset=0.75):
-        return settings.PRINT_WIDTH, settings.PRINT_MARGIN_HEIGHT + settings.PRINT_SINGLE_HEIGHT*(1 + (num_specimens-1)*offset*0.25)
-        
-    def get_save_bbox(self, width, height):
-        width = width*min((self.plot.get_position().xmax+0.05),1.0)
-        return matplotlib.transforms.Bbox.from_bounds(0, 0, width, height)
-
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
@@ -176,6 +194,8 @@ class MainPlotController (PlotController):
         
         if project and specimens:
             self.labels = plot_specimens(project, specimens, self.plot)
+            for mixture in project.mixtures.iter_objects():
+                plot_mixture(mixture, self.plot)
         self.update_axes(single=single, stats=stats, project=project)
         
     def update_axes(self, single=True, stats=(False,None), project=None):

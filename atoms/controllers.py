@@ -16,7 +16,7 @@ import numpy as np
 from gtkmvc import Controller
 from gtkmvc.adapters import Adapter
 
-from generic.validators import FloatEntryValidator
+from generic.views.validators import FloatEntryValidator
 from generic.controllers import BaseController, ObjectListStoreController
 
 from atoms.models import AtomType

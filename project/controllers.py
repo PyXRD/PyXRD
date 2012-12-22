@@ -17,9 +17,10 @@ from gtkmvc.adapters import Adapter
 
 import settings
 
-from generic.treeview_tools import new_text_column, new_toggle_column, new_pb_column
-from generic.validators import FloatEntryValidator 
-from generic.controllers import BaseController, DialogController, ObjectListStoreMixin, DialogMixin, get_color_val, ctrl_setup_combo_with_list
+from generic.views.treeview_tools import new_text_column, new_toggle_column, new_pb_column
+from generic.views.validators import FloatEntryValidator 
+from generic.controllers import BaseController, DialogController, ObjectListStoreMixin, DialogMixin, ctrl_setup_combo_with_list
+from generic.controllers.handlers import get_color_val #FIXME USE HANDLERS!!
 from project.models import Project
 from specimen.models import Specimen
 from specimen.controllers import SpecimenController
@@ -129,11 +130,12 @@ class ProjectController (DialogController, ObjectListStoreMixin, DialogMixin):
                 specimen = None
                 if filename[-3:].lower() == "dat":
                     print "Opening file %s for import using ASCII DAT format" % filename
-                    specimen = Specimen.from_experimental_data(parent=self.model, filename=filename, format="DAT")
+                    specimens = Specimen.from_experimental_data(parent=self.model, filename=filename, format="DAT")
                 if filename[-2:].lower() == "rd":
                     print "Opening file %s for import using BINARY RD format" % filename
-                    specimen = Specimen.from_experimental_data(parent=self.model, filename=filename, format="BIN")
-                last_iter = self.model.specimens.append(specimen)
+                    specimens = Specimen.from_experimental_data(parent=self.model, filename=filename, format="BIN")
+                for specimen in specimens:
+                    last_iter = self.model.specimens.append(specimen)
             if last_iter != None:
                 self.parent.view["specimens_treeview"].set_cursor(last_iter)
         

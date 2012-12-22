@@ -14,13 +14,12 @@ import matplotlib
 import matplotlib.transforms as transforms
 from matplotlib.text import Text
 
-
 def plot_marker_text(marker, offset, marker_scale, base_y, axes):
     """
         Plots a markers text using the given offset and scale
     """
     if marker.visible and marker.style != "offset":
-        kws = dict(text=marker.label,
+        kws = dict(text=unicode(marker.label),
                    x=float(marker.position)+float(marker.x_offset), y=settings.PLOT_TOP+float(marker.y_offset),
                    clip_on=False,
                    transform=transforms.blended_transform_factory(axes.transData, axes.get_figure().transFigure),
@@ -134,8 +133,8 @@ def plot_specimen(project, specimen, labels, label_offset,
     """
     # Plot the patterns;
     specimen.set_transform_factors(scale, offset)
+    axes.add_line(specimen.calculated_pattern)    
     axes.add_line(specimen.experimental_pattern)
-    axes.add_line(specimen.calculated_pattern)
     # exclusion ranges;
     plot_hatches(specimen, offset, scale, axes)
     # markers;
@@ -161,21 +160,44 @@ def plot_specimens(project, specimens, axes):
         label_offset *= max_intensity
     
     labels = list()
-    offset = 0    
+    offset = 0   
+    group_counter = 0 
     for specimen in specimens:
+        #adjust actual offsets using the specimen vertical shifts:
+        spec_offset = offset + base_offset * specimen.display_vshift
+        spec_lbl_offset = label_offset + base_offset * specimen.display_vshift * specimen.display_vscale
+        spec_scale = scale
+        
         #single specimen normalisation:
         if project.axes_yscale == 1:
             max_intensity = specimen.max_intensity
-            scale = (1.0 / max_intensity) if max_intensity!=0 else 1.0
+            spec_scale = (1.0 / max_intensity) if max_intensity!=0 else 1.0
         if project.axes_yscale == 2:
             marker_scale = specimen.max_intensity
         #plot it
+
+        spec_scale *= specimen.display_vscale
+        #marker_scale *= specimen.display_vscale
+    
         plot_specimen(
             project, specimen, labels,
-            label_offset, offset, scale, marker_scale, 
+            spec_lbl_offset, spec_offset, spec_scale, marker_scale, 
             axes)
-        #increase offsets
-        offset += base_offset
-        label_offset += base_offset
+        #increase offsets:
+        group_counter += 1
+        if group_counter >= project.display_group_by:
+            group_counter = 0
+            offset += base_offset
+            label_offset += base_offset
         
     return labels
+    
+def plot_mixture(mixture, axes):
+    axes.text(1.0, 1.0,
+        "\n".join(["{}: {:>5.1f}".format(phase, fraction*100.0) for phase, fraction in zip(mixture.phases, mixture.fractions)]),
+        multialignment='right',
+        horizontalalignment='right',
+        verticalalignment='top',
+        transform = axes.transAxes)
+        
+    

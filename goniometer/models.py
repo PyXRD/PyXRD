@@ -16,7 +16,7 @@ from scipy.special import erf
 from math import sin, cos, pi, sqrt, radians, degrees, asin, tan
 
 from generic.models import ChildModel, PropIntel
-from generic.model_mixins import CSVMixin
+from generic.models.mixins import CSVMixin
 from generic.utils import sqrt2pi, sqrt8, get_md5_hash
 from generic.io import Storable
        
@@ -24,19 +24,19 @@ class Goniometer(ChildModel, Storable):
     #MODEL INTEL:
     __parent_alias__ = 'project'
     __model_intel__ = [ #TODO add labels
-        PropIntel(name="radius",      ctype=float, storable=True, has_widget=True),
-        PropIntel(name="divergence",  ctype=float, storable=True, has_widget=True),
-        PropIntel(name="soller1",     ctype=float, storable=True, has_widget=True),
-        PropIntel(name="soller2",     ctype=float, storable=True, has_widget=True),
-        PropIntel(name="min_2theta",  ctype=float, storable=True, has_widget=True),
-        PropIntel(name="max_2theta",  ctype=float, storable=True, has_widget=True),
-        PropIntel(name="steps",            ctype=float, storable=True, has_widget=True),
-        PropIntel(name="wavelength",      ctype=float, storable=True),
-        PropIntel(name="has_ads",          ctype=bool,  storable=True, has_widget=True),
-        PropIntel(name="ads_fact",         ctype=float, storable=True, has_widget=True),
-        PropIntel(name="ads_phase_fact",   ctype=float, storable=True, has_widget=True),
-        PropIntel(name="ads_phase_shift",  ctype=float, storable=True, has_widget=True),
-        PropIntel(name="ads_const",        ctype=float, storable=True, has_widget=True),
+        PropIntel(name="radius",            data_type=float, storable=True, has_widget=True),
+        PropIntel(name="divergence",        data_type=float, storable=True, has_widget=True),
+        PropIntel(name="soller1",           data_type=float, storable=True, has_widget=True),
+        PropIntel(name="soller2",           data_type=float, storable=True, has_widget=True),
+        PropIntel(name="min_2theta",        data_type=float, storable=True, has_widget=True),
+        PropIntel(name="max_2theta",        data_type=float, storable=True, has_widget=True),
+        PropIntel(name="steps",             data_type=float, storable=True, has_widget=True),
+        PropIntel(name="wavelength",        data_type=float, storable=True),
+        PropIntel(name="has_ads",           data_type=bool,  storable=True, has_widget=True),
+        PropIntel(name="ads_fact",          data_type=float, storable=True, has_widget=True),
+        PropIntel(name="ads_phase_fact",    data_type=float, storable=True, has_widget=True),
+        PropIntel(name="ads_phase_shift",   data_type=float, storable=True, has_widget=True),
+        PropIntel(name="ads_const",         data_type=float, storable=True, has_widget=True),
     ]
         
     #PROPERTIES:

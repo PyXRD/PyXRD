@@ -1,12 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
   <!-- interface-requires gtk+ 3.0 -->
-  <!-- interface-naming-policy toplevel-contextual -->
   <object class="GtkTable" id="statistics_box">
     <property name="width_request">300</property>
     <property name="visible">True</property>
     <property name="can_focus">False</property>
-    <property name="n_rows">4</property>
+    <property name="n_rows">5</property>
     <property name="n_columns">4</property>
     <child>
       <object class="GtkLabel" id="lbl_statistics">
@@ -35,8 +34,10 @@
         <property name="use_markup">True</property>
       </object>
       <packing>
-        <property name="top_attach">3</property>
-        <property name="bottom_attach">4</property>
+        <property name="left_attach">2</property>
+        <property name="right_attach">3</property>
+        <property name="top_attach">4</property>
+        <property name="bottom_attach">5</property>
         <property name="x_options">GTK_FILL</property>
         <property name="y_options">GTK_FILL</property>
       </packing>
@@ -89,30 +90,12 @@
         </attributes>
       </object>
       <packing>
-        <property name="left_attach">1</property>
-        <property name="right_attach">2</property>
-        <property name="top_attach">3</property>
-        <property name="bottom_attach">4</property>
+        <property name="left_attach">3</property>
+        <property name="right_attach">4</property>
+        <property name="top_attach">4</property>
+        <property name="bottom_attach">5</property>
         <property name="y_options">GTK_FILL</property>
         <property name="y_padding">3</property>
-      </packing>
-    </child>
-    <child>
-      <object class="GtkLabel" id="R2_lbl">
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="xalign">1</property>
-        <property name="xpad">5</property>
-        <property name="label" translatable="yes">&lt;small&gt;R²&lt;/small&gt;</property>
-        <property name="use_markup">True</property>
-      </object>
-      <packing>
-        <property name="left_attach">2</property>
-        <property name="right_attach">3</property>
-        <property name="top_attach">2</property>
-        <property name="bottom_attach">3</property>
-        <property name="x_options">GTK_FILL</property>
-        <property name="y_options">GTK_FILL</property>
       </packing>
     </child>
     <child>
@@ -127,10 +110,10 @@
         </attributes>
       </object>
       <packing>
-        <property name="left_attach">3</property>
-        <property name="right_attach">4</property>
-        <property name="top_attach">2</property>
-        <property name="bottom_attach">3</property>
+        <property name="left_attach">1</property>
+        <property name="right_attach">2</property>
+        <property name="top_attach">3</property>
+        <property name="bottom_attach">4</property>
         <property name="y_options">GTK_FILL</property>
         <property name="y_padding">3</property>
       </packing>
@@ -145,10 +128,8 @@
         <property name="use_markup">True</property>
       </object>
       <packing>
-        <property name="left_attach">2</property>
-        <property name="right_attach">3</property>
-        <property name="top_attach">3</property>
-        <property name="bottom_attach">4</property>
+        <property name="top_attach">4</property>
+        <property name="bottom_attach">5</property>
         <property name="x_options">GTK_FILL</property>
         <property name="y_options">GTK_FILL</property>
       </packing>
@@ -165,12 +146,104 @@
         </attributes>
       </object>
       <packing>
+        <property name="left_attach">1</property>
+        <property name="right_attach">2</property>
+        <property name="top_attach">4</property>
+        <property name="bottom_attach">5</property>
+        <property name="y_options">GTK_FILL</property>
+        <property name="y_padding">3</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkLabel" id="lbl_Re">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="xalign">0</property>
+        <property name="xpad">10</property>
+        <property name="label" translatable="yes">0</property>
+        <attributes>
+          <attribute name="weight" value="bold"/>
+        </attributes>
+      </object>
+      <packing>
         <property name="left_attach">3</property>
         <property name="right_attach">4</property>
         <property name="top_attach">3</property>
         <property name="bottom_attach">4</property>
         <property name="y_options">GTK_FILL</property>
         <property name="y_padding">3</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkLabel" id="lbl_Rwp">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="xalign">0</property>
+        <property name="xpad">10</property>
+        <property name="label" translatable="yes">0</property>
+        <attributes>
+          <attribute name="weight" value="bold"/>
+        </attributes>
+      </object>
+      <packing>
+        <property name="left_attach">3</property>
+        <property name="right_attach">4</property>
+        <property name="top_attach">2</property>
+        <property name="bottom_attach">3</property>
+        <property name="y_options">GTK_FILL</property>
+        <property name="y_padding">3</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkLabel" id="R2_lbl">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="xalign">1</property>
+        <property name="xpad">5</property>
+        <property name="label" translatable="yes">&lt;small&gt;R²&lt;/small&gt;</property>
+        <property name="use_markup">True</property>
+      </object>
+      <packing>
+        <property name="top_attach">3</property>
+        <property name="bottom_attach">4</property>
+        <property name="x_options">GTK_FILL</property>
+        <property name="y_options">GTK_FILL</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkLabel" id="Rwp_lbl">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="xalign">1</property>
+        <property name="xpad">5</property>
+        <property name="label" translatable="yes">&lt;small&gt;Rwp [%]&lt;/small&gt;</property>
+        <property name="use_markup">True</property>
+      </object>
+      <packing>
+        <property name="left_attach">2</property>
+        <property name="right_attach">3</property>
+        <property name="top_attach">2</property>
+        <property name="bottom_attach">3</property>
+        <property name="x_options">GTK_FILL</property>
+        <property name="y_options">GTK_FILL</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkLabel" id="Re_lbl">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="xalign">1</property>
+        <property name="xpad">5</property>
+        <property name="label" translatable="yes">&lt;small&gt;Re [%]&lt;/small&gt;</property>
+        <property name="use_markup">True</property>
+      </object>
+      <packing>
+        <property name="left_attach">2</property>
+        <property name="right_attach">3</property>
+        <property name="top_attach">3</property>
+        <property name="bottom_attach">4</property>
+        <property name="x_options">GTK_FILL</property>
+        <property name="y_options">GTK_FILL</property>
       </packing>
     </child>
   </object>

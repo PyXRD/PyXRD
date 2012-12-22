@@ -38,7 +38,7 @@ class R1G2Model(_AbstractProbability):
         ),
     ]
     __model_intel__ = [
-        PropIntel(name=prop, label=label, minimum=0.0, maximum=1.0, ctype=float, refinable=True, storable=True, has_widget=True) \
+        PropIntel(name=prop, label=label, minimum=0.0, maximum=1.0, data_type=float, refinable=True, storable=True, has_widget=True) \
             for prop, label in __independent_label_map__
     ]
 
@@ -117,7 +117,7 @@ class R1G3Model(_AbstractProbability):
         ("G4", r"$\large\frac{W_{32}}{W_{32} + W_{33}}$"),
     ]
     __model_intel__ = [
-        PropIntel(name=prop, label=label, minimum=0.0, maximum=1.0, ctype=float, refinable=True, storable=True, has_widget=True) \
+        PropIntel(name=prop, label=label, minimum=0.0, maximum=1.0, data_type=float, refinable=True, storable=True, has_widget=True) \
             for prop, label in __independent_label_map__
     ]
 
@@ -260,7 +260,7 @@ class R1G4Model(_AbstractProbability):
         ("G32", r"$\large\frac{W_{43}}{\sum_{j=3}^{4} W_{4j}}$"),
     ]
     __model_intel__ = [
-        PropIntel(name=prop, label=label, minimum=0.0, maximum=1.0, ctype=float, refinable=True, storable=True, has_widget=True) \
+        PropIntel(name=prop, label=label, minimum=0.0, maximum=1.0, data_type=float, refinable=True, storable=True, has_widget=True) \
             for prop, label in __independent_label_map__
     ]
 

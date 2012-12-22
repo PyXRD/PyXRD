@@ -10,8 +10,8 @@ from gtkmvc.model import Model, Observer, Signal
 
 from generic.utils import recgetattr, recsetattr
 from generic.models import ChildModel, PropIntel
-from generic.metaclasses import pyxrd_object_pool
-from generic.model_mixins import ObjectListStoreChildMixin, ObjectListStoreParentMixin
+from generic.models.metaclasses import pyxrd_object_pool
+from generic.models.mixins import ObjectListStoreChildMixin
 from generic.io import Storable
 
 from atoms.models import Atom
@@ -48,11 +48,11 @@ class AtomRelation(ChildModel, Storable, ObjectListStoreChildMixin, ComponentPro
     #MODEL INTEL:
     __parent_alias__ = "component"
     __model_intel__ = [
-        PropIntel(name="name",    label="Name",    ctype=str,   is_column=True,  storable=True,  has_widget=True),
-        PropIntel(name="value",   label="Value",   ctype=float, is_column=True,  storable=True,  has_widget=True, refinable=True),
-        PropIntel(name="enabled", label="Enabled", ctype=bool,  is_column=True,  storable=True,  has_widget=True),
+        PropIntel(name="name",    label="Name",    data_type=str,   is_column=True,  storable=True,  has_widget=True),
+        PropIntel(name="value",   label="Value",   data_type=float, is_column=True,  storable=True,  has_widget=True, widget_type='float_input', refinable=True),
+        PropIntel(name="enabled", label="Enabled", data_type=bool,  is_column=True,  storable=True,  has_widget=True),
         
-        PropIntel(name="changed", ctype=object),
+        PropIntel(name="changed", data_type=object),
     ]
 
     #SIGNALS:
@@ -142,9 +142,9 @@ class AtomRatio(AtomRelation):
     #MODEL INTEL:
     __parent_alias__ = "component"
     __model_intel__ = [
-        PropIntel(name="sum",       label="Sum",                     ctype=float,  is_column=True,  storable=True,  has_widget=True, minimum=0.0),
-        PropIntel(name="atom1",     label="Substituting Atom",       ctype=str,    is_column=True,  storable=True,  has_widget=True),
-        PropIntel(name="atom2",     label="Original Atom",           ctype=str,    is_column=True,  storable=True,  has_widget=True),
+        PropIntel(name="sum",       label="Sum",                     data_type=float,  is_column=True,  storable=True,  has_widget=True, minimum=0.0),
+        PropIntel(name="atom1",     label="Substituting Atom",       data_type=str,    is_column=True,  storable=True,  has_widget=True),
+        PropIntel(name="atom2",     label="Original Atom",           data_type=str,    is_column=True,  storable=True,  has_widget=True),
     ]
     
     #SIGNALS:
@@ -215,7 +215,7 @@ class AtomContents(AtomRelation):
     #MODEL INTEL:
     __parent_alias__ = "component"
     __model_intel__ = [
-        PropIntel(name="atom_contents", label="Atom contents",  ctype=object,    is_column=True,  storable=True,  has_widget=True),
+        PropIntel(name="atom_contents", label="Atom contents",  data_type=object,    is_column=True,  storable=True,  has_widget=True),
     ]
         
     #SIGNALS:

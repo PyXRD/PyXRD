@@ -8,7 +8,7 @@
 
 import gtk
 
-from generic.widgets import ScaleEntry
+from generic.views.widgets import ScaleEntry
 from generic.views import BaseView, HasChildView
 from probabilities.models import RGbounds
 
@@ -37,7 +37,9 @@ class EditProbabilitiesView(BaseView, HasChildView):
     independents_container = "independents_box"
     independents_view = None
     dependents_container = "dependents_box"
-    dependents_view = None     
+    dependents_view = None
+    
+    widget_format = "prob_%s"
        
     def set_views(self, independents_view, dependents_view):
         self.independents_view = independents_view
@@ -70,6 +72,8 @@ class IndependentsView(BaseView, HasChildView, ProbabilityViewMixin):
 
     lbl_widget = "lbl_independents"
     sep_widget = "seperator_i"
+    
+    widget_format = "prob_%s"
 
     def __init__(self, labels=[], **kwargs):
         BaseView.__init__(self, **kwargs)

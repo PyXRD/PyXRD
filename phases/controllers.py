@@ -17,13 +17,13 @@ from gtkmvc.adapters import Adapter
 
 import settings
 
-from generic.treeview_tools import new_text_column, new_pb_column, new_combo_column, create_float_data_func, setup_treeview
+from generic.views.treeview_tools import new_text_column, new_pb_column, new_combo_column, create_float_data_func, setup_treeview
 from generic.utils import create_treestore_from_directory, get_case_insensitive_glob
-from generic.validators import FloatEntryValidator 
+from generic.views.validators import FloatEntryValidator 
 from generic.views import ChildObjectListStoreView, InlineObjectListStoreView
 from generic.controllers import (DialogController, BaseController, 
     ObjectListStoreController, ChildObjectListStoreController,
-    InlineObjectListStoreController, ctrl_setup_combo_with_list, get_color_val)
+    InlineObjectListStoreController, ctrl_setup_combo_with_list)
 
 from atoms.models import Atom
 
@@ -325,6 +325,32 @@ class EditAtomRatioController(DialogController):
     """ 
         Controller for the atom ratio edit dialog
     """
+    
+    def reset_combo_box(self, name):
+        if self.model is not None and self.model.parent is not None:
+            #TODO make this a more general function to be used by both AtomRatio's and UCP's
+            store = self.model.create_prop_store()
+            combo = self.view["ratio_%s_cmb"%name]
+            combo.set_model(store)
+
+            combo.clear()
+            cell = gtk.CellRendererText()
+            combo.pack_start(cell, True)
+            def atom_renderer(column, cell, model, itr, col):
+                obj = model.get_value(itr, col)
+                if obj:
+                    cell.set_property('text', obj.name)
+                else:
+                    cell.set_property('text', '#NA#')
+            combo.set_cell_data_func(cell, atom_renderer, 0)
+
+            for row in store:
+                if list(store.get(row.iter, 0, 1)) == getattr(self.model, name):
+                    combo.set_active_iter(row.iter)
+                    break   
+                    
+            return combo, store
+    
     def register_adapters(self):  
         if self.model is not None and self.parent is not None:
             for name in self.model.get_properties():
@@ -333,33 +359,15 @@ class EditAtomRatioController(DialogController):
                 elif name in ("value", "sum"):
                     FloatEntryValidator(self.view["ratio_%s" % name])
                     self.adapt(name)
-                elif name in ("atom1", "atom2"):
-                    #TODO make this a more general function to be used by both AtomRatio's and UCP's
-                    store = self.model.create_prop_store()
-                    combo = self.view["ratio_%s_cmb"%name]
-                    combo.set_model(store)
-
-                    cell = gtk.CellRendererText()
-                    combo.pack_start(cell, True)
-                    def atom_renderer(column, cell, model, itr, col):
-                        obj = model.get_value(itr, col)
-                        if obj:
-                            cell.set_property('text', obj.name)
-                        else:
-                            cell.set_property('text', '#NA#')
-                    combo.set_cell_data_func(cell, atom_renderer, 0)
-                    
+                elif name in ("atom1", "atom2"):                   
+                    combo, store = self.reset_combo_box(name)
                     def on_changed(combo, user_data=None):
                         itr = combo.get_active_iter()
                         if itr != None:
                             val = combo.get_model().get(itr, 0, 1)
-                            setattr(self.model, name, val)
+                            setattr(self.model, combo.get_data('model_prop'), val)
+                    combo.set_data('model_prop', name)
                     combo.connect('changed', on_changed)
-
-                    for row in store:
-                        if list(store.get(row.iter, 0, 1)) == getattr(self.model, name):
-                            combo.set_active_iter(row.iter)
-                            break
                 elif not name in self.model.__have_no_widget__:
                     self.adapt(name)
             return
@@ -374,24 +382,19 @@ class EditAtomContentsController(DialogController):
     contents_list_view = None
     contents_list_controller = None
 
+    widget_handlers = { 'custom': 'widget_handler' }
+
     def __init__(self, *args, **kwargs):
         DialogController.__init__(self, *args, **kwargs)
         self.contents_list_view = InlineObjectListStoreView(parent=self.view)
         self.contents_list_controller = ContentsListController("atom_contents", model=self.model, view=self.contents_list_view, parent=self)
 
-    def register_adapters(self):  
-        if self.model is not None and self.parent is not None:
-            for name in self.model.get_properties():
-                if name == "name":
-                    self.adapt(name, "contents_%s" % name)
-                elif name == "value":
-                    FloatEntryValidator(self.view["contents_%s" % name])
-                    self.adapt(name)
-                elif name == "atom_contents":
-                    self.view.set_contents_list_view(self.contents_list_view.get_top_widget())
-                elif not name in self.model.__have_no_widget__:
-                    self.adapt(name)
-            return
+    @staticmethod
+    def widget_handler(self, intel, prefix):
+        if intel.name == "atom_contents":
+            self.view.set_contents_list_view(self.contents_list_view.get_top_widget())
+        else: return False
+        return True
             
     pass #end of class
 
@@ -560,6 +563,11 @@ class EditComponentController(BaseController):
     ucpb_view = None
     ucpb_controller = None
 
+    widget_handlers = { 
+        'custom': 'custom_handler',
+        'combo':  'combo_handler' 
+    }
+
     def __init__(self, *args, **kwargs):
         BaseController.__init__(self, *args, **kwargs)
         
@@ -594,26 +602,31 @@ class EditComponentController(BaseController):
                         break
             else:
                 combo.set_model(None)
-                
+
+    @staticmethod
+    def combo_handler(self, intel, prefix):
+        if intel.name == "linked_with":
+            self.reset_combo_box()
+        else: return False
+        return True
+         
+    @staticmethod
+    def custom_handler(self, intel, prefix):
+        if intel.name == "layer_atoms":
+            self.view.set_layer_view(self.layer_view.get_top_widget())
+        elif intel.name == "interlayer_atoms":
+            self.view.set_interlayer_view(self.interlayer_view.get_top_widget())
+        elif intel.name ==  "atom_relations":
+            self.view.set_atom_relations_view(self.atom_relations_view.get_top_widget())
+        elif intel.name in ("ucp_a", "ucp_b"):
+            self.view.set_ucpa_view(self.ucpa_view.get_top_widget())
+            self.view.set_ucpb_view(self.ucpb_view.get_top_widget())
+        else: return False
+        return True
+         
     def register_adapters(self):
-        if self.model is not None:
-            def handler(intel):
-                if intel.name == "linked_with":
-                    self.reset_combo_box()
-                elif intel.name == "layer_atoms":
-                    self.view.set_layer_view(self.layer_view.get_top_widget())
-                elif intel.name == "interlayer_atoms":
-                    self.view.set_interlayer_view(self.interlayer_view.get_top_widget())
-                elif intel.name ==  "atom_relations":
-                    self.view.set_atom_relations_view(self.atom_relations_view.get_top_widget())
-                elif intel.name in ("ucp_a", "ucp_b"):
-                    self.view.set_ucpa_view(self.ucpa_view.get_top_widget())
-                    self.view.set_ucpb_view(self.ucpb_view.get_top_widget())
-                else: return False
-                return True
-            self.register_defaults(handler, prefix="component_%s")
-            self.update_sensitivities()
-            return
+        BaseController.register_adapters(self)
+        self.update_sensitivities()
 
     def update_sensitivities(self):
         can_inherit = (self.model.linked_with != None)
@@ -732,6 +745,11 @@ class EditPhaseController(BaseController):
     
     components_view = None
     components_controller = None
+    
+    widget_handlers = { 
+        'custom': 'custom_handler',
+        'combo': 'combo_handler'
+    }
 
     def register_view(self, view):
         BaseController.register_view(self, view)
@@ -752,45 +770,46 @@ class EditPhaseController(BaseController):
         self.components_view["button_del_object"].set_no_show_all(True)
         self.view.set_components_view(self.components_view)
 
-    def register_adapters(self):
-        if self.model is not None:
-            def handler(intel):
-                if intel.name == "based_on":
-                    combo = self.view["phase_based_on"]
-
-                    tv_model = self.parent.model.current_project.phases
-                    
-                    combo.set_model(tv_model)
-                    combo.connect('changed', self.on_based_on_changed)
-
-                    cell = gtk.CellRendererText()
-                    combo.pack_start(cell, True)
-                    combo.add_attribute(cell, 'text', tv_model.c_name)
-                    def phase_renderer(celllayout, cell, model, itr, user_data=None):
-                        phase = model.get_user_data(itr)
-                        cell.set_sensitive(phase.R == self.model.R and phase.G == self.model.G and phase.get_based_on_root() != self.model)
-                    combo.set_cell_data_func(cell, phase_renderer, None)
-
-                    for row in tv_model:
-                        if tv_model.get_user_data(row.iter) == self.model.based_on:
-                            combo.set_active_iter (row.iter)
-                            break
-                elif intel.name == "CSDS_distribution":
-                    self.csds_controller = EditCSDSTypeController(model=self.model, view=self.csds_view, parent=self)
-                elif intel.name == "components":
-                    self.components_controller = ComponentsController(model=self.model, view=self.components_view, parent=self)
-                elif intel.name == "probabilities":
-                    if self.model.G > 1:
-                        self.probabilities_controller = EditProbabilitiesController(model=self.model.probabilities, view=self.probabilities_view, parent=self)
-                elif intel.name == "G" or intel.name == "R":
-                    self.adapt(intel.name, intel.name)
-                else: return False
-                return True       
+    @staticmethod
+    def custom_handler(self, intel, prefix):
+        if intel.name == "CSDS_distribution":
+            self.csds_controller = EditCSDSTypeController(model=self.model, view=self.csds_view, parent=self)
+        elif intel.name == "components":
+            self.components_controller = ComponentsController(model=self.model, view=self.components_view, parent=self)
+        elif intel.name == "probabilities":
+            if self.model.G > 1:
+                self.probabilities_controller = EditProbabilitiesController(model=self.model.probabilities, view=self.probabilities_view, parent=self)
+        else: return False
+        return True
         
-            self.register_defaults(handler, prefix="phase_%s")
-       
-            self.update_sensitivities()
-            return
+    @staticmethod
+    def combo_handler(self, intel, prefix):
+        if intel.name == "based_on":
+            combo = self.view["phase_based_on"]
+
+            tv_model = self.parent.model.current_project.phases
+            
+            combo.set_model(tv_model)
+            combo.connect('changed', self.on_based_on_changed)
+
+            cell = gtk.CellRendererText()
+            combo.pack_start(cell, True)
+            combo.add_attribute(cell, 'text', tv_model.c_name)
+            def phase_renderer(celllayout, cell, model, itr, user_data=None):
+                phase = model.get_user_data(itr)
+                cell.set_sensitive(phase.R == self.model.R and phase.G == self.model.G and phase.get_based_on_root() != self.model)
+            combo.set_cell_data_func(cell, phase_renderer, None)
+
+            for row in tv_model:
+                if tv_model.get_user_data(row.iter) == self.model.based_on:
+                    combo.set_active_iter (row.iter)
+                    break
+        else: return False
+        return True
+
+    def register_adapters(self):
+        BaseController.register_adapters(self)
+        self.update_sensitivities()
 
     def update_sensitivities(self):
         can_inherit = (self.model.based_on != None)

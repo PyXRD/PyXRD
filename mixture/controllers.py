@@ -13,10 +13,10 @@ import gtk
 from gtkmvc import Controller, Observer
 from gtkmvc.adapters import Adapter
 
-from generic.treeview_tools import new_text_column, new_pb_column, new_toggle_column
+from generic.views.treeview_tools import new_text_column, new_pb_column, new_toggle_column
 from generic.mathtext_support import create_pb_from_mathtext
-from generic.controllers import DialogController, DialogMixin, BaseController, ObjectListStoreController, HasObjectTreeview, get_color_val, ctrl_setup_combo_with_list
-from generic.validators import FloatEntryValidator
+from generic.controllers import DialogController, BaseController, ObjectListStoreController, ctrl_setup_combo_with_list
+from generic.views.validators import FloatEntryValidator #FIXME use handlers!
 from generic.utils import get_case_insensitive_glob
 
 from phases.models import Phase, Component
@@ -219,6 +219,7 @@ class EditMixtureController(BaseController):
     def on_combo_changed(self, combobox, row, col):
         itr = combobox.get_active_iter()
         phase = self.model.parent.phases.get_user_data(itr) if itr!=None else None
+        print "COMBO %d, %d CHANGED %s" % (row, col, phase)
         self.model.phase_matrix[row, col] = phase
     
     def on_add_phase(self, widget, *args):

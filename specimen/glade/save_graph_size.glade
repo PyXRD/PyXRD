@@ -1,15 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
-  <requires lib="gtk+" version="2.20"/>
+  <!-- interface-requires gtk+ 3.0 -->
   <object class="GtkExpander" id="size_expander">
     <property name="visible">True</property>
     <property name="can_focus">True</property>
+    <property name="border_width">6</property>
+    <property name="expanded">True</property>
+    <property name="spacing">6</property>
     <child>
       <object class="GtkTable" id="save_graph_size">
         <property name="width_request">320</property>
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="n_rows">3</property>
+        <property name="n_rows">4</property>
         <property name="n_columns">2</property>
         <property name="column_spacing">12</property>
         <property name="row_spacing">6</property>
@@ -26,6 +29,8 @@
           <packing>
             <property name="left_attach">1</property>
             <property name="right_attach">2</property>
+            <property name="top_attach">1</property>
+            <property name="bottom_attach">2</property>
             <property name="y_options"></property>
           </packing>
         </child>
@@ -42,8 +47,8 @@
           <packing>
             <property name="left_attach">1</property>
             <property name="right_attach">2</property>
-            <property name="top_attach">1</property>
-            <property name="bottom_attach">2</property>
+            <property name="top_attach">2</property>
+            <property name="bottom_attach">3</property>
             <property name="y_options"></property>
           </packing>
         </child>
@@ -55,6 +60,8 @@
             <property name="label" translatable="yes">Width (cm)</property>
           </object>
           <packing>
+            <property name="top_attach">1</property>
+            <property name="bottom_attach">2</property>
             <property name="x_options">GTK_FILL</property>
             <property name="y_options"></property>
           </packing>
@@ -67,8 +74,8 @@
             <property name="label" translatable="yes">Height (cm)</property>
           </object>
           <packing>
-            <property name="top_attach">1</property>
-            <property name="bottom_attach">2</property>
+            <property name="top_attach">2</property>
+            <property name="bottom_attach">3</property>
             <property name="x_options">GTK_FILL</property>
             <property name="y_options"></property>
           </packing>
@@ -81,8 +88,8 @@
             <property name="label" translatable="yes">DPI</property>
           </object>
           <packing>
-            <property name="top_attach">2</property>
-            <property name="bottom_attach">3</property>
+            <property name="top_attach">3</property>
+            <property name="bottom_attach">4</property>
             <property name="x_options">GTK_FILL</property>
             <property name="y_options"></property>
           </packing>
@@ -100,18 +107,42 @@
           <packing>
             <property name="left_attach">1</property>
             <property name="right_attach">2</property>
-            <property name="top_attach">2</property>
-            <property name="bottom_attach">3</property>
+            <property name="top_attach">3</property>
+            <property name="bottom_attach">4</property>
+            <property name="y_options"></property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkLabel" id="lbl_preset">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="xalign">1</property>
+            <property name="label" translatable="yes">Load preset:</property>
+          </object>
+          <packing>
+            <property name="x_options">GTK_FILL</property>
+            <property name="y_options"></property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkComboBox" id="cmb_presets">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+          </object>
+          <packing>
+            <property name="left_attach">1</property>
+            <property name="right_attach">2</property>
+            <property name="x_options">GTK_FILL</property>
             <property name="y_options"></property>
           </packing>
         </child>
       </object>
     </child>
     <child type="label">
-      <object class="GtkLabel" id="lbl_advanced">
+      <object class="GtkLabel" id="lbl_settings">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="label" translatable="yes">Advanced</property>
+        <property name="label" translatable="yes">Settings</property>
       </object>
     </child>
   </object>

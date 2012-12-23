@@ -59,14 +59,15 @@ class EditAtomRatioView(DialogView):
     subview_builder = "phases/glade/ratio.glade"
     subview_toplevel = "edit_ratio"
     modal = True
+    widget_format = "ratio_%s"
 
     @property    
     def atom1_combo(self):
-        return self["ratio_atom1_cmb"]
+        return self["ratio_atom1"]
 
     @property    
     def atom2_combo(self):
-        return self["ratio_atom2_cmb"]
+        return self["ratio_atom2"]
                   
     pass #end of class
     
@@ -137,6 +138,7 @@ class EditComponentView(BaseView, HasChildView):
 class EditUnitCellPropertyView(BaseView):
     builder = "phases/glade/unit_cell_prop.glade"
     top = "box_ucf"
+    widget_format = "ucp_%s"
     
 class EditCSDSDistributionView(BaseView):
     builder = "phases/glade/csds.glade"

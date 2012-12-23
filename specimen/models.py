@@ -893,13 +893,10 @@ class Statistics(ChildModel):
         sm2 = 0
         for i in range(exp.size):
             t = (exp[i] - calc[i])**2 / exp[i]
-            if np.isnan(t) or np.isinf(t):
-                print t
-            else:
+            if not (np.isnan(t) or np.isinf(t)):
                 sm1 += t        
-                sm2 = abs(exp[i])
-        print sm1, sm2
-        return sqrt(sm1 / sm2) #np.sqrt(np.nansum((exp - calc)**2 / exp) / np.sum(np.abs(exp))) * 100
+                sm2 += abs(exp[i])
+        return sqrt(sm1 / sm2) * 100
 
     @staticmethod
     def _calc_Re(exp, calc, num_params):

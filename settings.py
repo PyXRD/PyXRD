@@ -1,7 +1,7 @@
 ### General Information ###
 VERSION = "0.3.10"
 
-DEBUG = True
+DEBUG = False
 VIEW_MODE = False
 BGSHIFT = True
 

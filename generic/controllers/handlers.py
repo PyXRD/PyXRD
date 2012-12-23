@@ -26,11 +26,14 @@ widget_types = [
     #valid alternatives:
     ('float_input', float),
     ('input', float),
+    #('custom', float),
     ('color', str),
+    #('custom', str),
     ('list', object),
     ('tree', object),
     ('combo', object),
     ('input', object),
+
 ]    
 
 # List of tuples containg a widget type and its handler, should not be modified
@@ -55,7 +58,6 @@ def scale_widget_handler(ctrl, intel, widget_format):
         widget = ctrl.view[widget_format % intel.name]
     else:
         # if not create and add to the view:
-        warn("Scale widget '%s' not found for property '%s' of model '%s' using controller '%s'" % (widget_format % intel.name, intel.name, ctrl.model, ctrl))
         widget = ctrl.view.add_scale_widget(intel, widget_format=widget_format)
     #adapt the widget to the model property:
     adapter = Adapter(ctrl.model, intel.name)
@@ -82,7 +84,6 @@ def float_input_widget_handler(ctrl, intel, widget_format):
 @register_handler('input')
 def default_widget_handler(ctrl, intel, widget_format):
     """ Default handler leaving everything to gtkmvc """
-    print widget_format
     ctrl.adapt(intel.name, widget_format % intel.name)
     return True
     

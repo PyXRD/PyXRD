@@ -8,58 +8,7 @@
 
 import gtk
 
-#general rule is:
-#explicit kwargs = column kwargs
-#implicit kwargs = renderer kwargs
-
-def _parse_kwargs(**kwargs):
-    """
-        Parses key-word arguments passed to the new_*_column functions.
-        It checks for the presence of key-words ending with '_col', these are
-        popped and stored in a seperate dictionary, as they are to be passed
-        to the constructor of the actual TreeViewColumn (attribute mappings)
-        In addition it sets a number of default attributes for the CellRenderer.
-        
-        Returns a tuple containing a dict with the CellRenderer attributes and a
-        dict with the TreeViewColumn attribute mappings
-    """
-    kwargs["xalign"] = kwargs.get("xalign", 0.5)
-    kwargs["yalign"] = kwargs.get("yalign", 0.5)
-    
-    col_attrs = dict()
-    for key, value in dict(kwargs).iteritems():
-        if key.endswith("_col"):
-            col_attrs[key[:-4]] = value
-            kwargs.pop(key)
-    return kwargs, col_attrs
-
-def _parse_callback(callback, reduce=True):
-    """
-        Parses callbacks passed to the new_*_column functions, splits the 
-        callback from its arguments if present. Additionally this method will 
-        not create singleton argument lists, but pass them as a single argument.
-        
-        Returns the callback and its argument(s) (or an empty tuple)
-    """
-    args = tuple()
-    try:
-        callback, args = callback
-    except TypeError, ValueError:
-        pass
-    #deconvolve things:
-    if reduce and len(args) == 1: args = args[0]
-    return callback, args
-
-def _get_default_renderer(type, **kwargs):
-    """
-        Creates a CellRendere of type 'type' and sets any attributes passed with
-        the key-word arguments. Underscores in variable names are replaced with
-        dashes in the proces.
-    """
-    rend = type()
-    for key, val in kwargs.iteritems():
-        rend.set_property(key.replace("_", "-"), val)
-    return rend
+from cell_renderer_tools import get_default_renderer, parse_callback, parse_kwargs
 
 class PyXRDTreeViewColumn(gtk.TreeViewColumn):
     """
@@ -112,7 +61,7 @@ def _get_default_column(title, rend,
     """
     col = PyXRDTreeViewColumn(title, rend, **col_attrs)    
     if data_func!=None:
-        callback, args = _parse_callback(data_func)
+        callback, args = parse_callback(data_func)
         col.set_cell_data_func(rend, callback, args)
     col.set_spacing(spacing)
     col.set_visible(visible)
@@ -155,12 +104,12 @@ def new_text_column(title,
     """
         Creates a TreeViewColumn packed with a CellRendererText .
     """
-    kwargs, col_attrs = _parse_kwargs(**kwargs)
+    kwargs, col_attrs = parse_kwargs(**kwargs)
     alignment = alignment if alignment!=None else kwargs["xalign"]
     
-    rend = _get_default_renderer(gtk.CellRendererText, **kwargs)
+    rend = get_default_renderer(gtk.CellRendererText, **kwargs)
     if edited_callback!=None:
-        callback, args = _parse_callback(edited_callback, reduce=False)
+        callback, args = parse_callback(edited_callback, reduce=False)
         rend.connect('edited', callback, *args)
         
     col = _get_default_column(
@@ -203,10 +152,10 @@ def new_pb_column(title,
     """
         Creates a TreeViewColumn packed with a CellRendererPixbuf.
     """        
-    kwargs, col_attrs = _parse_kwargs(**kwargs)
+    kwargs, col_attrs = parse_kwargs(**kwargs)
     alignment = alignment if alignment!=None else kwargs["xalign"]
         
-    rend = _get_default_renderer(gtk.CellRendererPixbuf, **kwargs)
+    rend = get_default_renderer(gtk.CellRendererPixbuf, **kwargs)
     
     col = _get_default_column(
         title, rend,
@@ -249,12 +198,12 @@ def new_toggle_column(title,
     """
         Creates a TreeViewColumn packed with a CellRendererToggle.
     """
-    kwargs, col_attrs = _parse_kwargs(**kwargs)
+    kwargs, col_attrs = parse_kwargs(**kwargs)
     alignment = alignment if alignment!=None else kwargs["xalign"]
     
-    rend = _get_default_renderer(gtk.CellRendererToggle, **kwargs)
+    rend = get_default_renderer(gtk.CellRendererToggle, **kwargs)
     if toggled_callback!=None:
-        callback, args = _parse_callback(toggled_callback, reduce=False)
+        callback, args = parse_callback(toggled_callback, reduce=False)
         rend.connect('toggled', callback, *args)
     
     col = _get_default_column(
@@ -301,21 +250,21 @@ def new_combo_column(title,
     """
         Creates a TreeViewColumn packed with a CellRendererCombo.
     """
-    kwargs, col_attrs = _parse_kwargs(**kwargs)
+    kwargs, col_attrs = parse_kwargs(**kwargs)
     alignment = alignment if alignment!=None else kwargs["xalign"]
     
-    rend = _get_default_renderer(gtk.CellRendererCombo, **kwargs)
+    rend = get_default_renderer(gtk.CellRendererCombo, **kwargs)
     if changed_callback!=None:
-        callback, args = _parse_callback(changed_callback, reduce=False)
+        callback, args = parse_callback(changed_callback, reduce=False)
         rend.connect('changed', callback, *args)
     if edited_callback!=None:
-        callback, args = _parse_callback(edited_callback, reduce=False)
+        callback, args = parse_callback(edited_callback, reduce=False)
         rend.connect('edited', callback, *args)
     if editing_started_callback!=None:
-        callback, args = _parse_callback(editing_started_callback, reduce=False)
+        callback, args = parse_callback(editing_started_callback, reduce=False)
         rend.connect('editing-started', callback, *args)
     if editing_canceled_callback!=None:
-        callback, args = _parse_callback(editing_canceled_callback, reduce=False)
+        callback, args = parse_callback(editing_canceled_callback, reduce=False)
         rend.connect('editing-canceled', callback, *args)        
     
     col = _get_default_column(

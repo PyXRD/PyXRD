@@ -57,6 +57,7 @@ class Project(ChildModel, Storable, ObjectListStoreParentMixin):
         PropIntel(name="needs_update",             data_type=object, storable=False),           
         PropIntel(name="needs_saving",             data_type=bool,   storable=False),           
     ]
+    __store_id__ = "Project"
     
     #SIGNALS:
     needs_update = None
@@ -337,6 +338,5 @@ class Project(ChildModel, Storable, ObjectListStoreParentMixin):
 
     pass #end of class
     
-    
-    
+Project.register_storable()   
 

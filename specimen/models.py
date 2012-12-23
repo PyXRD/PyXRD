@@ -63,8 +63,7 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
         PropIntel(name="inherit_exp_lw",       label="Use default linewidth",              data_type=bool,   is_column=True,  storable=True,   has_widget=True),
         PropIntel(name="needs_update",                                                     data_type=object),
     ]
-
-    __pctrl__ = None
+    __store_id__ = "Specimen"
 
     #SIGNALS:
     needs_update = None
@@ -333,8 +332,6 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
     def on_marker_inserted(self, model, item):
         self.observe_model(item)
         item.parent = self
-        if self.__pctrl__:
-            self.__pctrl__.register(item, "on_update_plot", last=True)
         self.needs_update.emit() #propagate signal
                   
     # ------------------------------------------------------------
@@ -550,6 +547,8 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
     
     pass #end of class
     
+Specimen.register_storable()
+    
 class ThresholdSelector(ChildModel):
     
     #MODEL INTEL:
@@ -688,6 +687,7 @@ class Marker(ChildModel, Storable, ObjectListStoreChildMixin, CSVMixin):
         PropIntel(name="needs_update",  data_type=object),
     ]
     __csv_storables__ = [ (prop.name, prop.name) for prop in __model_intel__ ]
+    __store_id__ = "Marker"
 
     #SIGNALS:
     needs_update = None
@@ -788,6 +788,8 @@ class Marker(ChildModel, Storable, ObjectListStoreChildMixin, CSVMixin):
             self.position = 0.0
         
     pass #end of class
+        
+Marker.register_storable()
         
 class Statistics(ChildModel):
 

@@ -45,7 +45,7 @@ class UnitCellProperty(ChildModel, Storable, ComponentPropMixin, RefinementValue
         PropIntel(name="enabled",    label="Enabled",   data_type=bool,   storable=True, has_widget=True),
         PropIntel(name="inherited",  label="Inherited", data_type=bool)
     ]
-    
+    __store_id__ = "UnitCellProperty"
     #SIGNALS:
     
     #PROPERTIES:
@@ -171,6 +171,8 @@ class UnitCellProperty(ChildModel, Storable, ComponentPropMixin, RefinementValue
         
     pass #end of class
 
+UnitCellProperty.register_storable()
+
 class Component(ChildModel, Storable, ObjectListStoreChildMixin,
         ObjectListStoreParentMixin, RefinementGroup):
 
@@ -198,6 +200,7 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin,
         PropIntel(name="needs_update",              data_type=object),
         PropIntel(name="dirty",                     data_type=bool),        
     ]
+    __store_id__ = "Component"
 
     #SIGNALS:
     needs_update = None
@@ -561,6 +564,7 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin,
             weight += atom.weight
         return weight
 
+Component.register_storable()
 
 class Phase(ChildModel, Storable, ObjectListStoreParentMixin,
         ObjectListStoreChildMixin, RefinementGroup):
@@ -584,6 +588,7 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin,
         PropIntel(name="needs_update",              data_type=object),
         PropIntel(name="dirty",                     data_type=bool),
     ]
+    __store_id__ = "Phase"
     
     #SIGNALS:
     needs_update = None
@@ -997,3 +1002,5 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin,
         return mean_d001 / (real_mean *  mean_volume**2 * mean_density)
 
     pass #end of class
+    
+Phase.register_storable()

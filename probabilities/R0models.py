@@ -43,6 +43,7 @@ def R0_model_generator(pasG):
             PropIntel(name=prop, label=label, minimum=0.0, maximum=1.0, data_type=float, refinable=True, storable=True, has_widget=True) \
                 for prop, label in __independent_label_map__
         ]
+        __store_id__ = "R0G%dModel" % pasG
 
         @property
         def G(self):
@@ -108,7 +109,9 @@ def R0_model_generator(pasG):
         #    return self.__independent_label_map__[:(self.G-1)]
         
         pass #end of class
-    return type("R0G%dModel" % pasG, (R0Model,), dict())
+    cls = type("R0G%dModel" % pasG, (R0Model,), dict())
+    cls.register_storable()
+    return cls 
 
 R0G1Model = R0_model_generator(1)
 R0G2Model = R0_model_generator(2)

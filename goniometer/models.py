@@ -38,6 +38,7 @@ class Goniometer(ChildModel, Storable):
         PropIntel(name="ads_phase_shift",   data_type=float, storable=True, has_widget=True),
         PropIntel(name="ads_const",         data_type=float, storable=True, has_widget=True),
     ]
+    __store_id__ = "Goniometer"
         
     #PROPERTIES:
     radius = 24.0
@@ -191,3 +192,5 @@ class Goniometer(ChildModel, Storable):
             self.ads_phase_fact, self.ads_phase_shift, self.ads_const)
        
     pass #end of class
+    
+Goniometer.register_storable()

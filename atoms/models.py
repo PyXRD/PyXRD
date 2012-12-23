@@ -47,7 +47,7 @@ class AtomType(ChildModel, ObjectListStoreChildMixin, Storable, CSVMixin):
         PropIntel(name="par_b%d" % i,         is_column=True, data_type=float, storable=True, has_widget=True) for i in [1,2,3,4,5]
     ]
     __csv_storables__ = [(prop.name, prop.name) for prop in __model_intel__ if prop.storable]
-
+    __store_id__ = "AtomType"
     
     #SIGNALS:
     parameters_changed = None
@@ -146,7 +146,10 @@ class AtomType(ChildModel, ObjectListStoreChildMixin, Storable, CSVMixin):
         #if self.cache:
         #    self.cache[stl] = f
         return f
-        
+       
+    pass #end of class
+       
+AtomType.register_storable()  
 
 class Atom(ChildModel, ObjectListStoreChildMixin, Storable):
     """
@@ -162,6 +165,7 @@ class Atom(ChildModel, ObjectListStoreChildMixin, Storable):
         PropIntel(name="atom_type",         data_type=object, is_column=True, has_widget=True),
         PropIntel(name="stretch_values",    data_type=bool),
     ]    
+    __store_id__ = "Atom"
     
     #PROPERTIES:
     name = ""
@@ -341,4 +345,6 @@ class Atom(ChildModel, ObjectListStoreChildMixin, Storable):
                 atl_writer.writerow([item.name, item.z, item.default_z, item.pn, item.atom_type.name])
             
     pass #end of class
-        
+    
+Atom.register_storable() 
+

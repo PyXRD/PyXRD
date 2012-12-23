@@ -54,6 +54,7 @@ class AtomRelation(ChildModel, Storable, ObjectListStoreChildMixin, ComponentPro
         
         PropIntel(name="changed", data_type=object),
     ]
+    __store_id__ = "AtomRelation"
 
     #SIGNALS:
     changed = None
@@ -137,6 +138,8 @@ class AtomRelation(ChildModel, Storable, ObjectListStoreChildMixin, ComponentPro
     
     pass #end of class
     
+AtomRelation.register_storable()
+    
 class AtomRatio(AtomRelation):
     
     #MODEL INTEL:
@@ -146,6 +149,7 @@ class AtomRatio(AtomRelation):
         PropIntel(name="atom1",     label="Substituting Atom",       data_type=object, is_column=True,  storable=True,  has_widget=True),
         PropIntel(name="atom2",     label="Original Atom",           data_type=object, is_column=True,  storable=True,  has_widget=True),
     ]
+    __store_id__ = "AtomRatio"
     
     #SIGNALS:
     
@@ -210,6 +214,8 @@ class AtomRatio(AtomRelation):
         
     pass #end of class
     
+AtomRatio.register_storable()
+    
 class AtomContents(AtomRelation):
     
     #MODEL INTEL:
@@ -217,6 +223,7 @@ class AtomContents(AtomRelation):
     __model_intel__ = [
         PropIntel(name="atom_contents", label="Atom contents",  data_type=object,    is_column=True,  storable=True,  has_widget=True),
     ]
+    __store_id__ = "AtomContents"
         
     #SIGNALS:
     
@@ -264,3 +271,5 @@ class AtomContents(AtomRelation):
                     setattr(atom, prop, amount*self.value)
         
     pass #end of class
+    
+AtomContents.register_storable()

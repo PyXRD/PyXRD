@@ -88,7 +88,7 @@ class ObjectListStore(_BaseObjectListStore, Storable):
     """
 
     #MODEL INTEL:
-    
+    __store_id__ = "ObjectListStore"
 
     #SIGNALS:
     __gsignals__ = { 
@@ -283,6 +283,7 @@ class ObjectListStore(_BaseObjectListStore, Storable):
     pass #end of class
 
 gobject.type_register(ObjectListStore)
+ObjectListStore.register_storable()
 
 class ObjectTreeNode(object):
 
@@ -400,7 +401,7 @@ class ObjectTreeStore(_BaseObjectListStore, Storable):
     """
 
     #MODEL INTEL:
-    
+    __store_id__ = "ObjectTreeStore"
 
     #SIGNALS:
     __gsignals__ = { 
@@ -566,6 +567,7 @@ class ObjectTreeStore(_BaseObjectListStore, Storable):
     pass #end of class
 
 gobject.type_register(ObjectTreeStore)
+ObjectTreeStore.register_storable()
 
 class IndexListStore(ObjectListStore):
     """
@@ -574,6 +576,7 @@ class IndexListStore(ObjectListStore):
         an iter). This ListStore requires the objects to be unique, based on
         their '__index_column__' value.
     """
+    __store_id__ = "IndexListStore"
     _index_column_name = None
     _index = None
     
@@ -672,6 +675,7 @@ class IndexListStore(ObjectListStore):
     pass #end of class
 
 gobject.type_register(IndexListStore)
+IndexListStore.register_storable()
 
 Point = namedtuple('Point', ['x', 'y'], verbose=False)
 Point.__columns__ = [
@@ -687,7 +691,7 @@ class XYListStore(_BaseObjectListStore, Storable):
         Also implements some additional signals, passing an (X,Y) tuple instead
         of an iter.
     """
-    
+    __store_id__ = "XYListStore"
     __gsignals__ = { 
         'item-removed' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
         'item-inserted' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
@@ -998,6 +1002,7 @@ class XYListStore(_BaseObjectListStore, Storable):
         return zip(x_vals, f(x_vals))
         
     pass #end of class
-   
+    
+XYListStore.register_storable()
 gobject.type_register(XYListStore)
 

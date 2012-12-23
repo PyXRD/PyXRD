@@ -41,6 +41,7 @@ class R1G2Model(_AbstractProbability):
         PropIntel(name=prop, label=label, minimum=0.0, maximum=1.0, data_type=float, refinable=True, storable=True, has_widget=True) \
             for prop, label in __independent_label_map__
     ]
+    __store_id__ = "R1G2Model"
 
     #PROPERTIES:
     def get_W1_value(self): return self.mW[0]
@@ -89,6 +90,8 @@ class R1G2Model(_AbstractProbability):
     
     pass #end of class
         
+R1G2Model.register_storable()
+        
 class R1G3Model(_AbstractProbability):
 	"""
 	Reichweite = 1 / Components = 3
@@ -120,6 +123,7 @@ class R1G3Model(_AbstractProbability):
         PropIntel(name=prop, label=label, minimum=0.0, maximum=1.0, data_type=float, refinable=True, storable=True, has_widget=True) \
             for prop, label in __independent_label_map__
     ]
+    __store_id__ = "R1G3Model"
 
     #PROPERTIES
     _W0 = 0.0
@@ -215,6 +219,8 @@ class R1G3Model(_AbstractProbability):
     
     pass #end of class
         
+R1G3Model.register_storable()
+        
 class R1G4Model(_AbstractProbability):
 	"""
 	Reichweite = 1 / Components = 4
@@ -263,6 +269,7 @@ class R1G4Model(_AbstractProbability):
         PropIntel(name=prop, label=label, minimum=0.0, maximum=1.0, data_type=float, refinable=True, storable=True, has_widget=True) \
             for prop, label in __independent_label_map__
     ]
+    __store_id__ = "R1G4Model"
 
     #PROPERTIES
     def get_W1_value(self): return self.mW[0]
@@ -400,3 +407,5 @@ class R1G4Model(_AbstractProbability):
         self.updated.emit()
     
     pass #end of class
+    
+R1G4Model.register_storable()

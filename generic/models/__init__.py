@@ -122,7 +122,7 @@ class RefinementInfo(PyXRDModel, Storable):
         PropIntel(name="minimum",         data_type=float,  storable=True),
         PropIntel(name="maximum",         data_type=float,  storable=True),
         PropIntel(name="refine",          data_type=bool,   storable=True),
-    ] 
+    ]
 
     minimum = None
     maximum = None
@@ -200,6 +200,7 @@ class PyXRDLine(ChildModel, Storable, Line2D):
         PropIntel(name="lw",              data_type=float,   observable=False),
         PropIntel(name="needs_update",    data_type=object),
     ]
+    __store_id__ = "PyXRDLine"
 
     #PROPERTIES:
     xy_empty_data = ([],[])
@@ -364,6 +365,8 @@ class PyXRDLine(ChildModel, Storable, Line2D):
             
     pass #end of class
 
+PyXRDLine.register_storable()
+
 class ScaledLine(Line2D):
        
     def draw(self, renderer, scale, offset):
@@ -374,6 +377,7 @@ class ScaledLine(Line2D):
         self._yorig = temp_y
         Line2D.draw(self, renderer)
         
+    pass #end of class
 
 class CalculatedLine(PyXRDLine):
 
@@ -382,6 +386,7 @@ class CalculatedLine(PyXRDLine):
     __model_intel__ = [
         PropIntel(name="child_lines",  data_type=float),
     ]
+    __store_id__ = "CalculatedLine"
     
     #PROPERTIES:
     _child_lines = None
@@ -458,7 +463,9 @@ class CalculatedLine(PyXRDLine):
             line.set_transform(tf)
             if axes: line.set_axes(axes)
             if figure: line.set_figure(figure)
-        
+    pass #end of class
+    
+CalculatedLine.register_storable()
 
 class ExperimentalLine(PyXRDLine):
 
@@ -474,6 +481,7 @@ class ExperimentalLine(PyXRDLine):
         PropIntel(name="shift_value",       data_type=float),
         PropIntel(name="shift_position",    data_type=float),
     ]
+    __store_id__ = "ExperimentalLine"
     
     #PROPERTIES:
     _bg_position = 0
@@ -683,3 +691,6 @@ class ExperimentalLine(PyXRDLine):
             actual_position = section_x[np.argmax(section_y)]
             self.shift_value = actual_position - position 
     pass #end of class
+    
+ExperimentalLine.register_storable()
+

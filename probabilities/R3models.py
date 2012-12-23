@@ -65,6 +65,7 @@ class R3G2Model(_AbstractProbability):
         PropIntel(name=prop, label=label, minimum=0.0, maximum=1.0, data_type=float, refinable=True, storable=True, has_widget=True) \
             for prop, label in __independent_label_map__
     ]
+    __store_id__ = "R3G2Model"
 
     #PROPERTIES:
     twothirds = 2.0/3.0
@@ -140,3 +141,5 @@ class R3G2Model(_AbstractProbability):
         self.updated.emit()
     
     pass #end of class
+    
+R3G2Model.register_storable()

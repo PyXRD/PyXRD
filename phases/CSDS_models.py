@@ -185,11 +185,16 @@ class LogNormalCSDSDistribution(_LogNormalMixin, _AbstractCSDSDistribution, Refi
         PropIntel(name="beta_scale",    label="β² scale factor",   minimum=0,   maximum=10, is_column=True,  data_type=float,   refinable=True,  storable=True,     has_widget=True),
         PropIntel(name="beta_offset",   label="β² offset factor",  minimum=-5,   maximum=5, is_column=True,  data_type=float,   refinable=True,  storable=True,     has_widget=True),
     ]
+    __store_id__ = "LogNormalCSDSDistribution"
         
     #REFINEMENT GROUP IMPLEMENTATION:
     @property
     def refine_title(self):
         return "CSDS Distribution"
+    
+    pass #end of class
+    
+LogNormalCSDSDistribution.register_storable()
     
 class DritsCSDSDistribution(_LogNormalMixin, _AbstractCSDSDistribution, RefinementValue):
 
@@ -205,7 +210,8 @@ class DritsCSDSDistribution(_LogNormalMixin, _AbstractCSDSDistribution, Refineme
         PropIntel(name="beta_scale",    label="β² scale factor",   minimum=0,   maximum=10, is_column=True,  data_type=float),
         PropIntel(name="beta_offset",   label="β² offset factor",  minimum=-5,   maximum=5, is_column=True,  data_type=float),
     ]
-   
+    __store_id__ = "DritsCSDSDistribution"
+       
     #PROPERTIES:   
     def get_alpha_scale_value(self): return 0.9485
     set_alpha_scale_value = property() #delete this function
@@ -248,6 +254,8 @@ class DritsCSDSDistribution(_LogNormalMixin, _AbstractCSDSDistribution, Refineme
         self.update_distribution()
        
     pass #end of class
+    
+DritsCSDSDistribution.register_storable()
     
 CSDS_distribution_types = [
     LogNormalCSDSDistribution,

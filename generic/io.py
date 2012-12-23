@@ -14,27 +14,63 @@ import settings
 
 from gtk import TextBuffer
        
+#For backwards compatibility:
 aliases = {
-    'generic.treemodels/XYListStore': 'generic.models.treemodels/XYListStore',
-    #'generic.treemodels/XYListStore': 'generic.models.treemodels/XYListStore'
+    'generic.treemodels/XYListStore': 'XYListStore',
+    'generic.treemodels/ObjectListStore': 'ObjectListStore',
+    'generic.treemodels/ObjectTreeStore': 'ObjectTreeStore',
+    'generic.treemodels/IndexListStore': 'IndexListStore',
+    'generic.models.treemodels/ObjectListStore': 'ObjectListStore',
+    'generic.models.treemodels/ObjectTreeStore': 'ObjectTreeStore',
+    'generic.models.treemodels/IndexListStore': 'IndexListStore',
+    'generic.models.treemodels/XYListStore': 'XYListStore',
+    'generic.models/PyXRDLine': 'PyXRDLine',
+    'generic.models/CalculatedLine': 'CalculatedLine',
+    'generic.models/ExperimentalLine': 'ExperimentalLine',
+    'goniometer.models/Goniometer': 'Goniometer',
+    'specimen.models/Specimen': 'Specimen',
+    'specimen.models/Marker': 'Marker',
+    'mixture.models/Mixture': 'Mixture',
+    'atoms.models/AtomType': 'AtomType',
+    'atoms.models/Atom': 'Atom',
+    'probabilities.R0models/R0G1Model': 'R0G1Model',
+    'probabilities.R0models/R0G2Model': 'R0G2Model',
+    'probabilities.R0models/R0G3Model': 'R0G3Model',
+    'probabilities.R0models/R0G4Model': 'R0G4Model',
+    'probabilities.R0models/R0G5Model': 'R0G5Model',
+    'probabilities.R0models/R0G6Model': 'R0G6Model',
+    'probabilities.R1models/R1G2Model': 'R1G2Model',
+    'probabilities.R1models/R1G3Model': 'R1G3Model',
+    'probabilities.R1models/R1G4Model': 'R1G4Model',
+    'probabilities.R2models/R2G2Model': 'R2G2Model',
+    'probabilities.R2models/R2G3Model': 'R2G3Model',
+    'probabilities.R3models/R3G2Model': 'R3G2Model',
+    'phases.CSDS_models/LogNormalCSDSDistribution': 'LogNormalCSDSDistribution',
+    'phases.CSDS_models/DritsCSDSDistribution': 'DritsCSDSDistribution',
+    'phases.atom_relations/AtomRelation': 'AtomRelation',
+    'phases.atom_relations/AtomRatio': 'AtomRatio',
+    'phases.atom_relations/AtomContents': 'AtomContents',
+    'phases.models/UnitCellProperty': 'UnitCellProperty',
+    'phases.models/Component': 'Component',
+    'phases.models/Phase': 'Phase',
+    'project.models/Project': 'Project',
 }
-       
-def get_json_type(strtype):
-    strtype = aliases.get(strtype, strtype)
-    parts = strtype.split('/')
-    t = parts[-1]
-    m = "".join(parts[:-1])
-    if m == "generic.models" and t=="XYData":
-        return None
-    else:
-        try:
-            m = __import__(m, fromlist=[""])
-        except ImportError:
-            raise ImportError, "Could not find class using json descriptor '%s'" % strtype
-        return getattr(m, t)
+
+#This is filled dynamically using the __store_id__ properties from storables
+storables = {
+}
+
+def register_storable(type, store_id):
+    if settings.DEBUG: print "'%s' registering as storage type with id '%s'" % (json_type(type), store_id)
+    storables[store_id] = type        
+
+def get_json_type(store_id):
+    store_id = aliases.get(store_id, store_id)
+    type = storables.get(store_id, None)
+    return type
 
 def json_type(type):
-    return type.__module__ + "/" + type.__name__
+    return type.__store_id__
 
 class PyXRDEncoder(json.JSONEncoder):
     def default(self, obj):
@@ -71,6 +107,8 @@ def __map_reduce__(json_obj):
 class Storable(object):
     __storables__ = []
 
+    __store_id__ = None
+
     def dump_object(self):
         return json.dumps(self, indent = 4, cls=PyXRDEncoder)
 
@@ -80,6 +118,11 @@ class Storable(object):
     def save_object(self, filename):
         with open(filename, 'w') as f:
             json.dump(self, f, indent = 4, cls=PyXRDEncoder)
+    
+    @classmethod
+    def register_storable(type):
+        if type.__store_id__:
+            register_storable(type, type.__store_id__)
     
     @staticmethod
     def load_object(filename, parent=None):

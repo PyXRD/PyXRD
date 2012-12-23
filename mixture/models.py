@@ -43,6 +43,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         PropIntel(name="has_changed",      label="",        data_type=object),
         PropIntel(name="needs_reset",      label="",        data_type=object,   storable=False,),
     ]
+    __store_id__ = "Mixture"
 
     #SIGNALS:
     has_changed = None
@@ -56,8 +57,12 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         self._name = value
         self.liststore_item_changed()
     
+    refinables = None
     auto_run = False
+    refine_method = MultiProperty(0, int, None, 
+        { 0: "L BFGS B algorithm", 1: "Genetic algorithm", 100: "Brute force algorithm" })
     
+    #Lists and matrices:
     phase_matrix = None
     
     specimens = None
@@ -66,11 +71,6 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
     
     phases = None
     fractions = None
-
-    refinables = None
-
-    refine_method = MultiProperty(0, int, None, 
-        { 0: "L BFGS B algorithm", 1: "Genetic algorithm", 100: "Brute force algorithm" })
 
     @property
     def current_rp(self):
@@ -161,7 +161,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
     #      Methods & Functions
     # ------------------------------------------------------------ 
     def unset_phase(self, phase):
-        print "UNSET PHASE"
+        """ Clears a phase slot in the phase matrix """
         shape = self.phase_matrix.shape
         for i in range(shape[0]):
             for j in range(shape[1]):
@@ -171,13 +171,14 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         self.has_changed.emit()
     
     def unset_specimen(self, specimen):
+        """ Clears a specimen slot in the specimen list """
         for i, spec in enumerate(self.specimens):
             if spec==specimen:
                 self.specimens[i] = None
         self.has_changed.emit()
     
     def add_phase(self, phase_name, fraction):
-        print "ADD PHASE"
+        """ Adds a new phase column to the phase matrix """
         n, m = self.phase_matrix.shape
         if n > 0:
             self.phases.append(phase_name)
@@ -190,6 +191,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
             return -1
 
     def _del_phase_by_index(self, index):
+        """ Deletes a phase column using its index """
         del self.phases[index]
         del self.fractions[index]
         self.phase_matrix = np.delete(self.phase_matrix, index, axis=1)
@@ -197,9 +199,11 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         self.needs_reset.emit()
 
     def del_phase(self, phase_name):
+        """ Deletes a phase column using its name """
         self._del_phase_by_index(self.phases.index(phase_name))
     
     def add_specimen(self, specimen, scale, bgs):
+        """ Adds a new specimen to the phase matrix (a row) and specimen list """
         index = len(self.specimens)
         self.specimens.append(specimen)
         self.scales.append(scale)
@@ -210,7 +214,8 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         self.has_changed.emit()
         return n
 
-    def _del_specimen_by_index(self, index): #FIXME
+    def _del_specimen_by_index(self, index):
+        """ Deletes a specimen row using its index """
         del self.specimens[index]
         del self.scales[index]
         del self.bgshifts[index]
@@ -218,6 +223,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         self.needs_reset.emit()
 
     def del_specimen(self, specimen):
+        """ Deletes a specimen row using the actual object """
         try:
             self._del_specimen_by_index(self.specimens.index(specimen))
         except ValueError, msg:
@@ -227,12 +233,25 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
     #      Refinement stuff:
     # ------------------------------------------------------------ 
     def _get_x0(self):
+        """ 
+            Compiles an initial solution (x0) using the current fractions, 
+            scales and background shifts.
+        """
         return np.array(self.fractions + self.scales + self.bgshifts)
     
     def _parse_x(self, x, n, m): #returns: fractions | scales | bgshifts
+        """ 
+            Decompiles a solution into m fractions, n scales and n bgshifts,
+            m and n being the number of phases and specimens respectively.
+        """
         return x[:m][:,np.newaxis], x[m:m+n], x[-n:] if settings.BGSHIFT else np.zeros(shape=(n,))
    
     def _get_rp_statics(self):
+        """
+            Returns the current number of phases (n), number of specimens (m),
+            m times n number of calculated phase patterns, m number of
+            experimental patterns, and m selectors.
+        """
         #1 get the different intensities for each phase for each specimen 
         #  -> each specimen gets a 2D np-array of size m,t with:
         #         m the number of phases        
@@ -253,6 +272,11 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         return n, m, calculated, experimental, selectors
    
     def _calculate_total_rp(self, x, n, m, calculated, experimental, selectors):
+        """
+            Returns the Rp for a given solution (x), number of phases (n),
+            number of specimens (m), m times n number of calculated phase patterns
+            and m number of experimental patterns using the passed m selectors.
+        """
         tot_rp = 0.0
         fractions, scales, bgshifts = self._parse_x(x, n, m)
         for i in range(n):
@@ -396,6 +420,11 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         return text_matrix
             
     def get_composition_matrix(self):
+        """
+            Returns a matrix containing the oxide composition for each specimen 
+            in this mixture. It uses the COMPOSITION_CONV file for this purpose
+            to convert element weights into their oxide weight equivalent.
+        """
         from itertools import chain
         from collections import OrderedDict
         import csv
@@ -439,9 +468,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
                 final_comps[i+1,j+1] = ("%.1f" % wt).ljust(15)[:15]
                     
         return final_comps
-                
-
-       
+                      
     @staticmethod
     def mod_l_bfgs_b(func, x0, init_bounds, args=[], f1=1e12, f2=10):
         """
@@ -594,6 +621,10 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
                 return x0, initialR2, lastx, lastR2, apply_solution, val_grid, rp_grid
                                     
     def apply_result(self):
+        """
+            Applies the result of the optimization (phase fractions, bgshifts
+            and absolute scales) to the specimens in the mixture.
+        """
         if self.auto_run: self.optimize()
         for i, specimen in enumerate(self.specimens):
             if specimen!=None:
@@ -603,8 +634,13 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
                 
     pass #end of class
     
-#a wrapper class:
+Mixture.register_storable()  
+    
 class RefinableProperty(ChildModel, ObjectListStoreChildMixin, Storable):
+    """
+        Wrapper class for refinable properties easing the retrieval of certain
+        properties for the different types of refinable properties.
+    """
     
     #MODEL INTEL:
     __parent_alias__ = "mixture"

@@ -160,9 +160,7 @@ class Goniometer(ChildModel, Storable):
             divergence, has_ads, ads_fact, 
             ads_phase_fact, ads_phase_shift, ads_const)
         if not args in cls._mc_cache:
-            print "CACHE"
             if len(cls._mc_cache) == 10:
-                print "POP"
                 cls._mc_cache.popitem(last=False)
             sin_range = np.sin(theta_range)
             correction_range = np.ones_like(theta_range)

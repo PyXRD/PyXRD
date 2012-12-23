@@ -159,7 +159,7 @@ class EditAtomRatioController(DialogController):
                     cell.set_property('text', obj.name)
                 else:
                     cell.set_property('text', '#NA#')
-            add_combo_text_column(combo, data_func=(atom_renderer, 0))
+            add_combo_text_column(combo, data_func=(atom_renderer, (0,)))
 
             for row in store:
                 if list(store.get(row.iter, 0, 1)) == getattr(self.model, name):

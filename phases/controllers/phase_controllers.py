@@ -83,7 +83,8 @@ class EditPhaseController(BaseController):
             
             def phase_renderer(celllayout, cell, model, itr, user_data=None):
                 phase = model.get_user_data(itr)
-                cell.set_sensitive(phase.R == self.model.R and phase.G == self.model.G and phase.get_based_on_root() != self.model)            
+                if phase: # an error can occur here if the phase list is cleared and the view is still open
+                    cell.set_sensitive(phase.R == self.model.R and phase.G == self.model.G and phase.get_based_on_root() != self.model)            
             add_combo_text_column(combo, data_func=phase_renderer, text_col=tv_model.c_name)
             
             for row in tv_model:

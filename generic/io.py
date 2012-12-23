@@ -9,6 +9,8 @@
 from collections import OrderedDict
 from traceback import format_exc
 
+from zipfile import ZipFile, ZIP_DEFLATED, is_zipfile
+
 import json
 import settings
 
@@ -115,9 +117,14 @@ class Storable(object):
     def print_object(self):
         print self.dump_object()
 
-    def save_object(self, filename):
-        with open(filename, 'w') as f:
-            json.dump(self, f, indent = 4, cls=PyXRDEncoder)
+    def save_object(self, filename, zipped=False):
+        if zipped:
+            f = ZipFile(filename, mode="w", compression=ZIP_DEFLATED)
+            f.writestr('content', json.dumps(self, indent = 4, cls=PyXRDEncoder))
+            f.close()
+        else:
+            with open(filename, 'w') as f:
+                json.dump(self, f, indent = 4, cls=PyXRDEncoder)
     
     @classmethod
     def register_storable(type):
@@ -136,10 +143,16 @@ class Storable(object):
         :rtype: the loaded object instance
         """
         try:
-            with open(filename, 'r') as f:
-                return json.load(f, cls=PyXRDDecoder, parent=parent)
+            if is_zipfile(filename):
+                with ZipFile(filename, 'r') as zf:
+                    with zf.open('content') as cf:
+                        jcontent = json.load(cf, cls=PyXRDDecoder, parent=parent)
+                        return jcontent
+            else:
+                with open(filename, 'r') as f:
+                    return json.load(f, cls=PyXRDDecoder, parent=parent)
         except TypeError as error:
-            print "Handling run-time error: %s" % error
+            if settings.DEBUG: print "Handling run-time error: %s" % error
             tb = format_exc()
             try:
                 return json.load(filename, cls=PyXRDDecoder, parent=parent)

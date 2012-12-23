@@ -305,7 +305,7 @@ class Project(ChildModel, Storable, ObjectListStoreParentMixin):
                 
     def save_object(self, filename):
         #if filename.endswith(".pyxrd"):
-        Storable.save_object(self, filename)
+        Storable.save_object(self, filename, zipped = True)
         #elif filename.endswith(".zpd"):
         #TODO
         self.needs_saving = False

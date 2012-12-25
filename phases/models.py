@@ -289,9 +289,9 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin,
         self.liststore_item_changed()
         self.needs_update.emit()
     
-    #Flag indicating wether or not linked_with & inherit flags should be saved
+    #Instance flag indicating wether or not linked_with & inherit flags should be saved
     save_links = True
-    #Flag indicating wether or not atom types in the component should be
+    #Class flag indicating wether or not atom types in the component should be
     #exported using their name rather then their project-uuid.
     export_atom_types = False
     
@@ -315,7 +315,6 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin,
         for cls in [ObjectListStoreChildMixin, ObjectListStoreParentMixin, RefinementGroup]:
             cls.__init__(self)
         
-
         self.name = name or self.get_depr(kwargs, self.name, "data_name")
 
         self.needs_update = Signal()
@@ -479,15 +478,15 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin,
             Saves multiple components to a single file.
         """
         pyxrd_object_pool.stack_uuids()
+        Component.export_atom_types = True
         for comp in components:
-            comp.export_atom_types = True
             comp.save_links = False
         with zipfile.ZipFile(filename, 'w') as zfile:
             for component in components:
                 zfile.writestr(component.uuid, component.dump_object())
         for comp in components:
-            comp.export_atom_types = False
             comp.save_links = True
+        Component.export_atom_types = False
         pyxrd_object_pool.restore_uuids()
         
     @classmethod
@@ -511,6 +510,7 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin,
                 if prop.inh_name:
                     retval[prop.inh_name] = False
         else:
+            retval = Storable.json_properties(self)
             retval["linked_with_uuid"] = self.linked_with.uuid if self.linked_with!=None else ""
         return retval
     
@@ -838,8 +838,8 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin,
         for phase in phases:
             if phase.based_on!="" and not phase.based_on in phases:
                 phase.save_links = False
+            Component.export_atom_types = True
             for component in phase.components.iter_objects():
-                component.export_atom_types = True
                 component.save_links = phase.save_links
         with zipfile.ZipFile(filename, 'w') as zfile:
             for phase in phases:
@@ -847,8 +847,8 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin,
         for phase in phases:
             phase.save_links = True
             for component in phase.components.iter_objects():
-                component.export_atom_types = False
-                component.save_links = True                
+                component.save_links = True
+            Component.export_atom_types = False
         pyxrd_object_pool.restore_uuids()
         
     @classmethod

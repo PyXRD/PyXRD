@@ -182,7 +182,6 @@ class _AbstractProbability(ChildModel, Storable, RefinementGroup):
             
             #sum of the entire matrix must equal one:
             if abs(np.sum(W) - 1.0) > 1e4:
-                print abs(np.sum(W) - 1.0) 
                 W_valid_mask -= 1
             
             #values need to be between 0 and 1

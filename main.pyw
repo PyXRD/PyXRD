@@ -8,6 +8,7 @@
 # To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/3.0/ or send
 # a letter to Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
 
+from traceback import print_exc
 import warnings
 import argparse, sys, os
 import gtk
@@ -46,6 +47,7 @@ if __name__ == "__main__":
             import imp
             user_script = imp.load_source('user_script', args.script)
         except:
+            if settings.DEBUG: print_exc()
             raise ImportError, "Error when trying to import %s" % args.script
         user_script.run(args)
     else: #GUI

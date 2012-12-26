@@ -176,24 +176,27 @@ class ComponentsController(ChildObjectListStoreController):
 
     def load_components(self, filename):
         old_comps = self.get_selected_objects()
-        num_oc = len(old_comps)
-        new_comps = list()
-        for comp in Component.load_components(filename, parent=self.model):
-            comp.resolve_json_references()
-            new_comps.append(comp)
-        num_nc = len(new_comps)
-        if num_oc != num_nc:
-            self.run_information_dialog("The number of components to import must equal the number of selected components!")
-            return
+        if old_comps:
+            num_oc = len(old_comps)
+            new_comps = list()
+            for comp in Component.load_components(filename, parent=self.model):
+                comp.resolve_json_references()
+                new_comps.append(comp)
+            num_nc = len(new_comps)
+            if num_oc != num_nc:
+                self.run_information_dialog("The number of components to import must equal the number of selected components!")
+                return
+            else:
+                self.select_object(None)
+                print "Importing components..."
+                #replace component(s):
+                for old_comp, new_comp in zip(old_comps, new_comps):
+                    self.liststore.replace_item(old_comp, new_comp)
+                    #this will break any links as well with other components:
+                    old_comp.parent = None
+                #self.select_object(new_comp)
         else:
-            self.select_object(None)
-            print "Importing components..."
-            #replace component(s):
-            for old_comp, new_comp in zip(old_comps, new_comps):
-                self.liststore.replace_item(old_comp, new_comp)
-                #this will break any links as well with other components:
-                old_comp.parent = None
-            #self.select_object(new_comp)
+            self.run_information_dialog("No components selected to replace!")
 
     # ------------------------------------------------------------
     #      GTK Signal handlers

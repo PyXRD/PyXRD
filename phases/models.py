@@ -391,6 +391,9 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin,
         self._inherit_interlayer_atoms = inherit_interlayer_atoms
         self._inherit_atom_relations = inherit_atom_relations
 
+    def __str__(self):
+        return ("<Component %s" % self.name) + \
+            (" linked with %s>" % self.linked_with if self.linked_with else ">")
 
     # ------------------------------------------------------------
     #      Notifications of observable properties
@@ -748,7 +751,7 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin,
                  probabilities=None, components=None,
                  inherit_display_color=False, inherit_sigma_star=False,
                  inherit_CSDS_distribution=False, inherit_probabilities=False, 
-                 inherit_wtfractions=False, parent=None, **kwargs):
+                 parent=None, **kwargs):
         ChildModel.__init__(self, parent=parent)
         Storable.__init__(self)
         for cls in [ObjectListStoreParentMixin, ObjectListStoreChildMixin, RefinementGroup]:
@@ -795,7 +798,8 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin,
         self._based_on_index = based_on_index if based_on_index > -1 else None
 
     def __str__(self):
-        return "<PHASE %s(%s) %s>" % (self.name, repr(self), self.based_on)
+        return ("<Phase %s" % self.name) + \
+            (" based on %s>" % self.based_on if self.based_on else ">")
 
     # ------------------------------------------------------------
     #      Notifications of observable properties
@@ -841,10 +845,21 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin,
             Component.export_atom_types = True
             for component in phase.components.iter_objects():
                 component.save_links = phase.save_links
-        with zipfile.ZipFile(filename, 'w') as zfile:
+                
+        ordered_phases = list(phases) # make a copy               
+        if len(phases) > 1:
             for phase in phases:
-                zfile.writestr(phase.uuid, phase.dump_object())
-        for phase in phases:
+                if phase.based_on in phases:
+                    index = ordered_phases.index(phase)
+                    index2 = ordered_phases.index(phase.based_on)
+                    if index < index2:
+                        ordered_phases.remove(phase.based_on)
+                        ordered_phases.insert(index, phase.based_on)
+                
+        with zipfile.ZipFile(filename, 'w') as zfile:
+            for i, phase in enumerate(ordered_phases):
+                zfile.writestr("%d###%s" % (i, phase.uuid), phase.dump_object())
+        for phase in ordered_phases:
             phase.save_links = True
             for component in phase.components.iter_objects():
                 component.save_links = True
@@ -859,8 +874,10 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin,
         if zipfile.is_zipfile(filename):
             pyxrd_object_pool.stack_uuids()
             with zipfile.ZipFile(filename, 'r') as zfile:
-                for uuid in zfile.namelist():
-                    yield cls.load_object(zfile.open(uuid), parent=parent)
+                for name in zfile.namelist():
+                    #i, hs, uuid = name.partition("###")
+                    #if uuid=='': uuid = i
+                    yield cls.load_object(zfile.open(name), parent=parent)
             pyxrd_object_pool.restore_uuids()
         else:
             yield cls.load_object(filename, parent=parent)

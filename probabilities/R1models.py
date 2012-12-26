@@ -389,8 +389,6 @@ class R1G4Model(_AbstractProbability):
     	self.mP[3,3] = self.mW[3,3] * W3inv
     	self.mP[3,0] = 1 - self.mP[3,1] - self.mP[3,2] - self.mP[3,3]
 
-        print W0inv, self.mW[1] - self.mW[1,1] - self.mW[2,1] - self.mW[3,1]
-
     	self.mP[0,1] = (self.mW[1] - self.mW[1,1] - self.mW[2,1] - self.mW[3,1]) * W0inv
     	self.mP[0,2] = (self.mW[2] - self.mW[1,2] - self.mW[2,2] - self.mW[3,2]) * W0inv
     	self.mP[0,3] = (self.mW[3] - self.mW[1,3] - self.mW[2,3] - self.mW[3,3]) * W0inv

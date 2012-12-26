@@ -1,5 +1,5 @@
 ### General Information ###
-VERSION = "0.3.10"
+VERSION = "0.3.11"
 
 DEBUG = False
 VIEW_MODE = False
@@ -106,6 +106,7 @@ PRINT_SINGLE_HEIGHT = PRINT_BASE_HEIGHT*PLOT_HEIGHT
 BASE_DIR = "" #is set runtime!
 DEFAULT_DATA_DIR = 'data/'
 DEFAULT_PHASES_DIR = '%sdefault phases/' % DEFAULT_DATA_DIR
+DEFAULT_COMPONENTS_DIR = '%sdefault components/' % DEFAULT_DATA_DIR
 DEFAULT_GONIOS_DIR = '%sdefault goniometers/' % DEFAULT_DATA_DIR
 
 COMPOSITION_CONV_FILE = "%scomposition_conversion.csv" % DEFAULT_DATA_DIR

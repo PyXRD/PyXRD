@@ -103,8 +103,6 @@ class R3G2Model(_AbstractProbability):
         W0 = self._W0
         W1 = 1.0 - W0
         
-        print W0, self.mP[1,0,0,1]
-        
         if W0 >= 0.75: #1,0,0,1 is given
             self.mP[1,0,0,0] = 1.0 - self.mP[1,0,0,1]
             self.mP[0,0,0,0] = 1.0 - self.mP[1,0,0,0] * W1/(W0-2*W1)

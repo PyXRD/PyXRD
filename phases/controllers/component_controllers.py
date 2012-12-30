@@ -13,6 +13,7 @@ import settings
 
 from generic.utils import get_case_insensitive_glob
 from generic.views import InlineObjectListStoreView
+from generic.views.combobox_tools import add_combo_text_column
 from generic.controllers import BaseController, ChildObjectListStoreController
 
 from phases.controllers import EditLayerController, EditAtomRelationsController, EditUnitCellPropertyController
@@ -68,9 +69,8 @@ class EditComponentController(BaseController):
             if self.model.parent.based_on is not None:
                 tv_model = self.model.parent.based_on.components
                 combo.set_model(tv_model)
-                cell = gtk.CellRendererText() #FIXME!
-                combo.pack_start(cell, True)
-                combo.add_attribute(cell, 'text', tv_model.c_name)
+                add_combo_text_column(combo, text_col=tv_model.c_name)
+                
                 for row in tv_model:
                     if tv_model.get_user_data(row.iter) == self.model.linked_with:
                         combo.set_active_iter (row.iter)
@@ -194,7 +194,6 @@ class ComponentsController(ChildObjectListStoreController):
                     self.liststore.replace_item(old_comp, new_comp)
                     #this will break any links as well with other components:
                     old_comp.parent = None
-                #self.select_object(new_comp)
         else:
             self.run_information_dialog("No components selected to replace!")
 

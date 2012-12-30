@@ -348,6 +348,7 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin,
             atom.stretch_values = True
             
         for relation in self._atom_relations.iter_objects():
+            relation.resolve_relations()
             self.observe_model(relation)
 
         self._layer_atoms.connect("item-inserted", self.on_layer_atom_inserted)

@@ -55,6 +55,7 @@ class AtomRelation(ChildModel, Storable, ObjectListStoreChildMixin, ComponentPro
         PropIntel(name="changed", data_type=object),
     ]
     __store_id__ = "AtomRelation"
+    allowed_relations = {}
 
     #SIGNALS:
     changed = None
@@ -122,6 +123,12 @@ class AtomRelation(ChildModel, Storable, ObjectListStoreChildMixin, ComponentPro
         self.enabled = enabled
         
     # ------------------------------------------------------------
+    #      Input/Output stuff
+    # ------------------------------------------------------------ 
+    def resolve_relations(self):
+        raise NotImplementedError, "Subclasses should implement the resolve_relations method!"
+        
+    # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------
     def create_prop_store(self, prop=None):
@@ -130,7 +137,12 @@ class AtomRelation(ChildModel, Storable, ObjectListStoreChildMixin, ComponentPro
         for i, atom in enumerate(self.component._layer_atoms.iter_objects()):
             store.append([atom, "pn", lambda o: o.name])
         for i, atom in enumerate(self.component._interlayer_atoms.iter_objects()):
-            store.append([atom, "pn", lambda o: o.name])            
+            store.append([atom, "pn", lambda o: o.name])  
+        for i, relation in enumerate(self.component._atom_relations.iter_objects()):
+            tp = type(relation)
+            if tp in self.allowed_relations:
+                prop, name = self.allowed_relations[tp]
+                store.append([relation, prop, name])          
         return store
     
     def apply_relation(self):
@@ -159,6 +171,11 @@ class AtomRatio(AtomRelation):
     def set_sum_value(self, value):
         self._sum = float(value)
         self.changed.emit()
+    
+    def __internal_sum__(self, value):
+        self._sum = float(value)
+        self.apply_relation()
+    __internal_sum__ = property(fset=__internal_sum__)
        
     _atom1 = [None, None]
     def get_atom1_value(self): return self._atom1
@@ -189,7 +206,7 @@ class AtomRatio(AtomRelation):
         self.atom2 = list(atom2)
         
              
-   # ------------------------------------------------------------
+    # ------------------------------------------------------------
     #      Input/Output stuff
     # ------------------------------------------------------------                        
     def json_properties(self):
@@ -197,6 +214,11 @@ class AtomRatio(AtomRelation):
         retval["atom1"] = [retval["atom1"][0].uuid if retval["atom1"][0] else None, retval["atom1"][1]]
         retval["atom2"] = [retval["atom2"][0].uuid if retval["atom2"][0] else None, retval["atom2"][1]]
         return retval             
+                
+    def resolve_relations(self):
+        print "RESOLVE RELATIONS ATOMRATIO"
+        pass #not needed for AtomRatio
+
                 
     # ------------------------------------------------------------
     #      Methods & Functions
@@ -225,6 +247,10 @@ class AtomContents(AtomRelation):
     ]
     __store_id__ = "AtomContents"
         
+    allowed_relations = {
+        AtomRatio: ("__internal_sum__", lambda o: o.name),
+    }
+        
     #SIGNALS:
     
     #PROPERTIES:       
@@ -235,16 +261,17 @@ class AtomContents(AtomRelation):
     #      Initialisation and other internals
     # ------------------------------------------------------------
     def __init__(self, atom_contents=None, name="New Contents", **kwargs):
-        AtomRelation.__init__(self,  name=name, **kwargs)        
+        AtomRelation.__init__(self,  name=name, **kwargs)
         self._atom_contents = ListStore(object, object, float)
+        
         if atom_contents:
             for row in atom_contents:
-                if isinstance(row[0], basestring):
-                    row[0] = pyxrd_object_pool.get_object(row[0])
                 self._atom_contents.append(row)
                 
         def on_change(*args):
             if self.enabled: #no need for updates in this case
+                from traceback import print_stack
+                print_stack()
                 self.changed.emit()
         self._atom_contents.connect("row-changed", on_change)
         self._atom_contents.connect("row-inserted", on_change)
@@ -260,6 +287,17 @@ class AtomContents(AtomRelation):
             for row in retval["atom_contents"]
         ])
         return retval
+        
+    def resolve_relations(self):
+        # Disable event dispatching to prevent infinite loops
+        enabled = self.enabled
+        self.enabled = False
+        # Change rows with string references to objects (uuid's)
+        for row in self._atom_contents:
+            if isinstance(row[0], basestring):
+                row[0] = pyxrd_object_pool.get_object(row[0])
+        # Set the flag to its original value
+        self.enabled = enabled
         
     # ------------------------------------------------------------
     #      Methods & Functions

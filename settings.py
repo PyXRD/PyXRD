@@ -3,10 +3,13 @@ VERSION = "0.3.11"
 
 DEBUG = False
 VIEW_MODE = False
-BGSHIFT = True
+BGSHIFT = False
 
 LOG_FILENAME = 'errors.log'
 UPDATE_URL = 'http://users.ugent.be/~madumon/pyxrd/'
+
+### Factor to multiply the CSDS average with to obtain the maximum CSDS ###
+LOG_NORMAL_MAX_CSDS_FACTOR = 2.5
 
 ### Default Styles & Colors ###
 EXPERIMENTAL_COLOR = "#000000"

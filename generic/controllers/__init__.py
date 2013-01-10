@@ -374,7 +374,19 @@ class ObjectListStoreMixin(HasObjectTreeview):
 
     def setup_treeview(self, tv):
         """
-            Can be overriden by sublcasses to provide custom columns
+            Sets up the treeview with columns based on the columns-tuple passed
+            to the __init__ or set in the class definition.
+            Subclasses can override either this method completely or provide
+            custom column creation code on a per-column basis.
+            To do this, create a method for e.g. column with colnr = 2:
+            def setup_treeview_col_2(self, treeview, name, col_descr, col_index, tv_col_nr):
+                ...
+            If a string description of the column number was given, e.g. for the
+            column c_name the definition should be:
+            def setup_treeview_col_c_name(self, treeview, name, col_descr, col_index, tv_col_nr):
+                ...
+                
+            The method should return True upon succes or False otherwise.
         """
         sel_mode = gtk.SELECTION_MULTIPLE if self.multi_selection else gtk.SELECTION_SINGLE
         setup_treeview(
@@ -387,16 +399,24 @@ class ObjectListStoreMixin(HasObjectTreeview):
             tv.remove_column(col)
         
         #add columns
-        for i, (name, colnr) in enumerate(self.columns):
+        for tv_col_nr, (name, col_descr) in enumerate(self.columns):
             try:
-                colnr = int(colnr)
+                col_index = int(colnr)
             except:
-                colnr = getattr(self.liststore, str(colnr), colnr)
-            tv.append_column(new_text_column(
-                name, text_col=colnr,
-                resizable=(i==0),
-                expand=(i==0),
-                xalign=0.0 if i == 0 else 0.5))
+                col_index = getattr(self.liststore, str(col_descr), col_descr)
+                
+            handled = False                
+            if hasattr(self, "setup_treeview_col_%s" % str(col_descr)):
+                handler = getattr(self, "setup_treeview_col_%s" % str(col_descr))
+                if callable(handler):
+                    handled = handler(tv, name, col_descr, col_index, tv_col_nr)
+            # custom handler failed or not present, default text column:
+            if not handled:
+                tv.append_column(new_text_column(
+                    name, text_col=col_index,
+                    resizable=(tv_col_nr==0),
+                    expand=(tv_col_nr==0),
+                    xalign=0.0 if tv_col_nr == 0 else 0.5))
 
     def set_object_sensitivities(self, value):
         if self.view.edit_view != None:

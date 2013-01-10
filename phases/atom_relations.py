@@ -216,7 +216,6 @@ class AtomRatio(AtomRelation):
         return retval             
                 
     def resolve_relations(self):
-        print "RESOLVE RELATIONS ATOMRATIO"
         pass #not needed for AtomRatio
 
                 

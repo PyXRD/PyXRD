@@ -235,7 +235,7 @@ class R2G3Model(_AbstractProbability):
     #PROPERTIES:
     twothirds = 2.0/3.0
     
-    _W0 = 0.0
+    _W0 = 0.75
     def get_W1_value(self): return self._W0
     def set_W1_value(self, value):
         self._W0 = min(max(value, 0.5), 1.0)

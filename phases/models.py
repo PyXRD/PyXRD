@@ -977,7 +977,7 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin,
                             
                 #Create Phi & F matrices:        
                 SFa = np.repeat(SF[...,np.newaxis,:], SF.shape[1], axis=1)
-                SFb = np.transpose(np.conjugate(SFa), axes=(0,2,1)) #np.conjugate(np.repeat(SF[...,np.newaxis], SF.shape[1], axis=2)) 
+                SFb = np.transpose(np.conjugate(SFa), axes=(0,2,1))
                        
                 F = np.repeat(np.repeat(np.multiply(SFb, SFa), reps, axis=2), reps, axis=1)
 

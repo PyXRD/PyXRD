@@ -15,6 +15,7 @@ import settings
 
 from generic.utils import create_treestore_from_directory, get_case_insensitive_glob
 from generic.views import ChildObjectListStoreView
+from generic.views.treeview_tools import new_text_column, new_pb_column
 from generic.views.combobox_tools import add_combo_text_column
 from generic.controllers import DialogController, BaseController, ObjectListStoreController
 
@@ -163,6 +164,7 @@ class PhasesController(ObjectListStoreController):
     multi_selection = True
     columns = [ 
         ("Phase name", "c_name"),
+        (" ", "c_display_color"),
         ("R", "c_R"),
         ("#", "c_G"),
     ]
@@ -187,6 +189,27 @@ class PhasesController(ObjectListStoreController):
             self.add_object(phase)
             phase.resolve_json_references()
         self.select_object(phase)
+
+    def setup_treeview_col_c_display_color(self, treeview, name, col_descr, col_index, tv_col_nr):
+    
+        def set_pb(column, cell_renderer, tree_model, iter, col_index):
+            color = gtk.gdk.color_parse(tree_model.get_value(iter, col_index))
+            color = (int(color.red_float*255) << 24) + (int(color.green_float*255) << 16) + (int(color.blue_float*255) << 8) + 255            
+            phase = tree_model.get_user_data(iter)
+            pb, old_color = getattr(phase, "__col_c_pb", (None, None))
+            if old_color != color:
+                pb = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB, True, 8, 10, 20)
+                pb.fill(color)
+                setattr(phase, "__col_c_pb", (color, pb))
+            cell_renderer.set_property('pixbuf', pb)
+    
+        treeview.append_column(new_pb_column(
+            name,
+            data_func=(set_pb, (col_index,)),
+            resizable=False,
+            expand=False))
+            
+        return True
 
     def create_new_object_proxy(self):
         def on_accept(phase, G, R):

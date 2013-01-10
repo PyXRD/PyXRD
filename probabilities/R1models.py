@@ -192,7 +192,7 @@ class R1G3Model(_AbstractProbability):
     	
     	self.mW[1,1] = self.mP[1,1] * self.mW[1]
     	self.mW[1,2] = self.mW[1,1] * G3inv
-    	self.mW[2,1] = self._G4 * G2inv * (self.mW[1,1] + self.mW[2,1])
+    	self.mW[2,1] = self._G4 * G2inv * (self.mW[1,1] + self.mW[1,2])
     	self.mW[2,2] = G4inv * self.mW[2,1]
     	
     	self.mP[1,2] = (self.mW[1,2] / self.mW[1]) if self.mW[1] > 0.0 else 0.0

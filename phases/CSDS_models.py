@@ -13,6 +13,8 @@ from gtkmvc.model import Signal
 
 import numpy as np
 
+import settings
+
 from generic.utils import lognormal, sqrt2pi, sqrt8, print_timing, get_md5_hash, recgetattr, recsetattr
 from generic.io import Storable, PyXRDDecoder
 from generic.models import ChildModel, PropIntel
@@ -68,7 +70,7 @@ class _AbstractCSDSDistribution(ChildModel, Storable):
 class _LogNormalMixin():
     
     #PROPERTIES:
-    def get_maximum_value(self): return int(5 * self.average)
+    def get_maximum_value(self): return int(settings.LOG_NORMAL_MAX_CSDS_FACTOR * self.average)
     def get_minimum_value(self): return 1
     
     _average = 10.0

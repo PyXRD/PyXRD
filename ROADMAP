@@ -1,17 +1,26 @@
 Feature-wise:
-0.4 - test probability code (and iron out bugs, clean up code etc.)
-0.4 - add more 'default' phases
-0.5 - fix refinement
-        - move inheritance of probabilities down to the indepent parameters level
-        (- add ability to spawn a second PyXRD from current project (e.g. save to temp location)
-          in a headless mode and refine that refinement setup, allowing for multiple processes to refine different paramaters.)
+0.4 - move plotter stuff from calculated/experimetnal line objects to plotters.py
+0.5 - Sybilla Support:
+        - integrate XML file import
+        - direct import of calculated csv files (from sybilla)
+
+0.5 - add ability to spawn a second PyXRD from current project (e.g. save to temp location)
+  in a headless mode and refine that refinement setup, allowing for multiple processes to refine different parameters.
 0.5 - add manual Y limit option (in raw counts?)
-0.5 - add zip project files (*.zpd)
-        - split large object stores in project zip file into separate files in the zip file
+0.5 - add zip project files (*.zpd) (DONE)
+        - TODO: split large object stores in project zip file into separate files in the zip file
+0.5 - add refinement options (e.g. stagnation limits etc.) to the GUI -> requires some generalisation for future methods?
+0.8 - split layers and interlayers in two separate parts, each with their own
+      atoms, dimensions and atom relations (usually the content of both are not related to one other, check this)
+      this would allow chlorite interlayers to change their dimensions based on both the iron content in the
+      interlayer sheet as well as the silica sheet.
+      Would require some sort of definition of how these units are stacked
     
 Code-Wise:
-0.4 - check most of the TreeView/Combobox creation code for sanity (e.g. register treeview instead of register_adapters)
+0.4 - check for backwards compatibility issues with pre-O.4 project files
+0.4 - DOCUMENTATION!
 0.4 - cleanse code from TODO & FIXME's
 0.5 - check for file extension registers on windows (using exec assoc & ftype) & linux (pyxdg)
+0.6 - export to Sybilla's XML format?
 0.7 - most of the default dialog actions (confirmation ,information etc.) could also be usefull as decorators.
-0.7 - ability to hide listview in objectliststore edit dialogs (slicker windows)
+

@@ -70,17 +70,17 @@ class AppController (BaseController, DialogMixin):
 
     def reset_project_controller(self):
         self.view.reset_all_views()
-        self.project = ProjectController(self.model.current_project, self.view.project, parent=self)
-        self.goniometer = GoniometerController(self.model.current_project.goniometer, self.view.goniometer, parent=self)
-        self.phases = PhasesController(self.model.current_project, self.view.phases, parent=self)
-        self.atom_types = AtomTypesController(self.model.current_project, self.view.atom_types, parent=self)
-        self.mixtures = MixturesController(self.model.current_project, self.view.mixtures, parent=self)
+        self.project = ProjectController(model=self.model.current_project, view=self.view.project, parent=self)
+        self.goniometer = GoniometerController(model=self.model.current_project.goniometer, view=self.view.goniometer, parent=self)
+        self.phases = PhasesController(model=self.model.current_project, view=self.view.phases, parent=self)
+        self.atom_types = AtomTypesController(model=self.model.current_project, view=self.view.atom_types, parent=self)
+        self.mixtures = MixturesController(model=self.model.current_project, view=self.view.mixtures, parent=self)
         
     def reset_specimen_controller(self):
-        self.specimen = SpecimenController(self.model.current_specimen, self.view.reset_specimen_view(), parent=self)
+        self.specimen = SpecimenController(model=self.model.current_specimen, view=self.view.reset_specimen_view(), parent=self)
         if self.model.current_specimen != None:
-            self.markers = MarkersController(self.model.current_specimen, self.view.reset_markers_view(), parent=self)    
-            self.statistics = StatisticsController(self.model.current_specimen.statistics, self.view.reset_statistics_view(), parent=self)
+            self.markers = MarkersController(model=self.model.current_specimen, view=self.view.reset_markers_view(), parent=self)    
+            self.statistics = StatisticsController(model=self.model.current_specimen.statistics, view=self.view.reset_statistics_view(), parent=self)
         else:
             self.markers = None
             self.statistics = None

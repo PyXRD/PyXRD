@@ -8,6 +8,7 @@ import sys
 from os.path import basename
 from urlparse import urlsplit
 from zipfile import ZipFile
+from collections import OrderedDict
 import re
 
 import threading
@@ -20,7 +21,7 @@ def mycmp(version1, version2):
 
 class Updater(gtk.Dialog):
 
-    def __init__(self, filename, *args, **kwargs):
+    def __init__(self, updates, *args, **kwargs):
         gtk.Dialog.__init__(self, "Updater", None, 0, (gtk.STOCK_EXECUTE,  gtk.RESPONSE_APPLY, 
                      gtk.STOCK_CLOSE, gtk.RESPONSE_CLOSE), *args, **kwargs)
         
@@ -40,8 +41,11 @@ class Updater(gtk.Dialog):
         self.set_data("progress", self.bar)
         
         self.run = True
-        self.filename = filename
-        self.tempfilename = 'data/last_version.zip'
+        self.updates = updates
+        #Get the filename of the latest version:
+        self.filename = updates[0][1]
+        self.tempfilename = 'data/latest_version.zip'
+        self.currfilename = 'data/current_version.zip'
         
     def response(self, widget, response_id):
         if response_id != gtk.RESPONSE_APPLY:
@@ -70,8 +74,34 @@ class Updater(gtk.Dialog):
                 
                 succes = False
                 if self.run: #be sure download wasn't cancelled
-                    print "Installing new version..."
-                    self.update(0.0, "Installing new version...")
+                    #Delete files, if a current zip file is present:
+                    if os.path.exists(self.currfilename):
+                        print "Removing old files..."
+                        self.update(0.0, "Removing old files...")
+                        zfile = ZipFile(self.currfilename)
+                        names = zfile.namelist()
+                        n = len(names)
+                        dirs = []
+                        for i, name in enumerate(names):
+                            if not name.startswith("data/"): #keep old data
+                                if os.path.isdir(name):
+                                    dirs.append(name)
+                                else:
+                                    try: os.remove(name)
+                                    except: pass
+                                # also remove compiled files (if they exist):
+                                if name.endswith(".py"):
+                                    try: os.remove("%sc" % name)
+                                    except: pass
+                                self.update(float(i) / float(n), "Removing old files...")
+                        n = len(dirs)
+                        for i, name in enumerate(dirs):
+                            try: os.rmdir(name)
+                            except: pass
+                            self.update(float(i) / float(n), "Removing old directories...")                            
+                
+                    print "Installing new files..."
+                    self.update(0.0, "Installing new files...")
                     
                     zfile = ZipFile(self.tempfilename)
                     zfile.extractall()
@@ -84,7 +114,8 @@ class Updater(gtk.Dialog):
                 self.run = False
                 self.update(0.0, "Cleaning...")
                 print "Removing temporary file"
-                os.remove(self.tempfilename)
+                os.rename(self.tempfilename, self.currfilename)
+                
                 self.update(1.0, "Done.")
                 
                 if succes: #relaunch process
@@ -96,7 +127,7 @@ class Updater(gtk.Dialog):
                     os.execv(sys.executable, args)
                     gtk.main_quit()
                     sys.exit(0)
-            except URLError:
+            except urllib2.URLError:
                 print "Updater failed for url: %s" % settings.UPDATE_URL+self.filename
             else:
                 raise #re-raise uncaught errors
@@ -120,98 +151,18 @@ class Updater(gtk.Dialog):
 
 def update():
     try:
-        response = urllib2.urlopen(settings.UPDATE_URL+'version', timeout=3)
+        response = urllib2.urlopen(settings.UPDATE_URL+'upgrades', timeout=5)
         html = response.read()
-        last_version, filename = html.split("\n")[:2]
+        updates = map(lambda s: s.split(), html.split("\n"))
+        last_version, filename = updates[0][0], updates[0][1]
         if mycmp(last_version, settings.VERSION) >= 1:
             print "New version available (%s), now at (%s)" % (last_version, settings.VERSION)
-            dialog = Updater(filename)
+            dialog = Updater(updates)
             dialog.show_all()
             gtk.main()
         else:
             print "Most recent version installed (%s), remote is (%s)" % (settings.VERSION, last_version)
     except:
         print "An error occured while trying to acces the update server, current version is (%s)" % (settings.VERSION,)
-        
+       
 
-
-
-"""class Updater(threading.Thread):
-
-    def __init__(self, bar, label, filename):
-        threading.Thread.__init__(self)
-        self.bar = bar
-        self.label = label
-        self.filename = filename
-	
-    def run(self):
-        print "Running Updater"
-        self.update_window(0.0, "Downloading new version...")
-
-        response = urllib2.urlopen(settings.UPDATE_URL+self.filename)
-        f = open('data/last_version.zip', 'wb')
-        f.write(response.read())
-        f.close()
-
-        self.update_window(0.5, "Installing new version...")
-        self.update_window(1.0, "Ready!")
-	
-        #gtk.threads_enter()	
-        #gtk.main_quit()
-        #gtk.threads_leave()
-        
-    def update_window(self, fraction, label):
-        gtk.threads_enter()
-        self.bar.set_fraction(fraction)
-        self.label.set_text(label)
-        while gtk.events_pending():
-            gtk.main_iteration(False)
-        gtk.threads_leave()
-			
-def update():
-    response = urllib2.urlopen(settings.UPDATE_URL+'version')
-    html = response.read()
-    last_version, filename = html.split("\n")[:2]
-    current_version = "0.3.3"
-    if mycmp(last_version, current_version) >= 1:
-        print "New version available"
-        
-        dialog = gtk.MessageDialog(
-                    flags=gtk.DIALOG_DESTROY_WITH_PARENT,
-                    type=gtk.MESSAGE_WARNING,
-                    buttons=gtk.BUTTONS_YES_NO,
-                    message_format="A new version of PyXRD is available.\nDo you want to update now?")       
-        response = dialog.run()
-        dialog.destroy()
-        if response in (gtk.RESPONSE_ACCEPT, gtk.RESPONSE_YES, gtk.RESPONSE_APPLY, gtk.RESPONSE_OK):
-        
-            #Window with progressbar & label
-            window = gtk.Window()
-            vbox = gtk.VBox()
-            bar = gtk.ProgressBar()
-            label = gtk.Label("")
-            vbox.pack_start(bar)
-            vbox.pack_start(label)
-            window.add(vbox)
-                       
-            window.show_all()
-    
-            progress = dialog.get_data("progress")
-         progress.set_text("Calculating....")
-         progress.grab_add()
-
-         while i < n:
-             sleep(0.005)
-             progress.set_fraction(i/(n - 1.0))
-             i += 1
-
-             while gtk.events_pending():
-                 gtk.main_iteration_do(False)
-
-         progress.set_fraction(0.0)
-         progress.set_text("")
-         progress.grab_remove()
-    
-            gtk.main()
-        else:
-            pass"""

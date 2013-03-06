@@ -109,19 +109,19 @@ class AtomType(ChildModel, ObjectListStoreChildMixin, Storable, CSVMixin):
         self.parameters_changed = Signal()
                
         self.name = str(name or self.get_depr(kwargs, "", "data_name"))
-        self.atom_nr = int(atom_nr or self.get_depr(kwargs, 0.0, "data_atom_nr"))
-        self.weight = float(weight or self.get_depr(kwargs, 0.0, "data_weight"))
-        self.debye = float(debye or self.get_depr(kwargs, 0.0, "data_debye"))
-        self.charge = float(charge or self.get_depr(kwargs, 0.0, "data_charge"))
+        self.atom_nr = int(atom_nr or self.get_depr(kwargs, 0, "data_atom_nr") or 0)
+        self.weight = float(weight or self.get_depr(kwargs, 0.0, "data_weight") or 0.0)
+        self.debye = float(debye or self.get_depr(kwargs, 0.0, "data_debye") or 0.0)
+        self.charge = float(charge or self.get_depr(kwargs, 0.0, "data_charge") or 0.0)
         
-        self._c = float(par_c or self.get_depr(kwargs, 0.0, "data_par_c"))
+        self._c = float(par_c or self.get_depr(kwargs, 0.0, "data_par_c") or 0.0)
 
         self._a = []
         self._b = []
         for name in ["par_a1", "par_a2", "par_a3", "par_a4", "par_a5"]:
-            self._a.append(float(locals()[name] or self.get_depr(kwargs, 0.0, "data_%s" % name)))
+            self._a.append(float(locals()[name] or self.get_depr(kwargs, 0.0, "data_%s" % name) or 0.0))
         for name in ["par_b1", "par_b2", "par_b3", "par_b4", "par_b5"]:
-            self._b.append(float(locals()[name] or self.get_depr(kwargs, 0.0, "data_%s" % name)))
+            self._b.append(float(locals()[name] or self.get_depr(kwargs, 0.0, "data_%s" % name) or 0.0))
         
     def __str__(self):
         return "<AtomType %s (%s)>" % (self.name, id(self))

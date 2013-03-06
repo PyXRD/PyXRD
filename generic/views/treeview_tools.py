@@ -67,7 +67,11 @@ def _get_default_column(title, rend,
     col.set_visible(visible)
     col.set_resizable(resizable)
     col.set_sizing(sizing)
-    col.set_fixed_width(fixed_width)
+    if fixed_width>=0:
+        col.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+        col.set_fixed_width(fixed_width)
+    else:
+        col.set_sizing(gtk.TREE_VIEW_COLUMN_GROW_ONLY)        
     col.set_min_width(min_width)
     col.set_max_width(max_width)
     col.set_title(title)

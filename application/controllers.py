@@ -179,7 +179,7 @@ class AppController (BaseController, DialogMixin):
             self.model.current_filename = filename
         except:
             if backupfile: 
-                move(backupfile, filename) #move original file back
+                move(backupfile, self.model.current_filename) #move original file back
                 backupfile = None
             self.run_information_dialog("An error has occured.\n Your project was not saved!", parent=self.view.get_top_widget())
             raise
@@ -418,3 +418,4 @@ class AppController (BaseController, DialogMixin):
         self.view.goniometer.present()
 
     pass # end of class
+

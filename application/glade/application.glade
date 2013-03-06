@@ -3,6 +3,7 @@
   <!-- interface-requires gtk+ 3.0 -->
   <object class="GtkAccelGroup" id="PyXRDGroup"/>
   <object class="GtkActionGroup" id="persistent_actions">
+    <property name="accel_group">PyXRDGroup</property>
     <child>
       <object class="GtkAction" id="new_project">
         <property name="label" translatable="yes">New Project</property>

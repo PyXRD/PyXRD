@@ -18,7 +18,7 @@ import settings
 widget_types = [
     #defaults:
     ('scale', float),
-    ('input', str),
+    ('input', unicode),
     ('spin', int),
     ('custom', object),
     ('check', bool),

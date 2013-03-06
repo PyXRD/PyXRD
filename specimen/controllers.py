@@ -16,7 +16,7 @@ from gtkmvc.adapters import Adapter
 
 from generic.plot.controllers import DraggableVLine, EyedropperCursorPlot
 from generic.models.treemodels import XYListStore
-from generic.controllers import DialogController, DialogMixin, BaseController, ObjectListStoreController, HasObjectTreeview, ctrl_setup_combo_with_list
+from generic.controllers import DialogController, DialogMixin, BaseController, ObjectListStoreController, ObjectTreeviewMixin, ctrl_setup_combo_with_list
 from generic.controllers.handlers import get_color_val
 from generic.views.validators import FloatEntryValidator
 from generic.views.treeview_tools import setup_treeview, new_text_column
@@ -25,7 +25,7 @@ from generic.utils import get_case_insensitive_glob
 from specimen.models import Specimen, Marker, ThresholdSelector
 from specimen.views import EditMarkerView, DetectPeaksView, BackgroundView, SmoothDataView, ShiftDataView
 
-class SpecimenController(DialogController, DialogMixin, HasObjectTreeview):
+class SpecimenController(DialogController, DialogMixin, ObjectTreeviewMixin):
 
     file_filters = [("Data Files", get_case_insensitive_glob("*.DAT", "*.RD")),    
                     ("ASCII Data", get_case_insensitive_glob("*.DAT")),

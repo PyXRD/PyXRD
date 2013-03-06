@@ -54,7 +54,7 @@ class ObjectTreeNode(object):
         return len(self._children)
 
     def __init__(self, obj=None, children=()):
-        object.__init__(self)
+        super(ObjectTreeNode, self).__init__()
         self.object = obj
         self._children = list()
         for child in children: self.append(child)

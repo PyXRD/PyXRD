@@ -24,7 +24,7 @@ import json
 
 class BaseObjectListStore(gtk.GenericTreeModel):
     """
-        Base class for creating GenericTreeModel implementations for lists of
+        Base mixin for creating GenericTreeModel implementations for lists of
         objects. It maps the columns of the store with properties of the object.
     """
     

@@ -10,4 +10,9 @@ from object_list_stores import ObjectListStore, IndexListStore
 from object_tree_stores import ObjectTreeStore
 from xy_list_stores import XYListStore
 
-__all__ = [ ObjectListStore, IndexListStore, ObjectTreeStore, XYListStore ]
+__all__ = [
+    "ObjectListStore",
+    "IndexListStore",
+    "ObjectTreeStore",
+    "XYListStore"
+]

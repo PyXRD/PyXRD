@@ -167,7 +167,6 @@ class EditCSDSDistributionView(BaseView):
     def update_figure(self, distr_dict):
         self.plot.cla()
         keys, vals = distr_dict.keys(), distr_dict.values()
-        #ymax = max(vals)
         self.plot.hist(keys, len(keys), weights=vals, normed=1, ec='b', histtype='stepfilled')
         self.plot.set_ylabel('')
         self.plot.set_xlabel('CSDS', size=14, weight="heavy")

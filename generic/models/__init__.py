@@ -192,7 +192,7 @@ class PyXRDLine(ChildModel, Storable, Line2D):
 
     #MODEL INTEL:
     __model_intel__ = [
-        PropIntel(name="label",           data_type=str,     storable=True),
+        PropIntel(name="label",           data_type=unicode, storable=True),
         PropIntel(name="xy_store",        data_type=object,  storable=True),
         PropIntel(name="offset",          data_type=float),
         PropIntel(name="scale",           data_type=float),

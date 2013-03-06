@@ -25,7 +25,7 @@ class _AbstractProbability(ChildModel, Storable, RefinementGroup):
     __parent_alias__ = 'phase'
     __model_intel__ = [ #TODO add labels
         PropIntel(name="updated",   inh_name=None,  label="",               data_type=object),
-        PropIntel(name="name",      inh_name=None,  label="Probabilites",   data_type=str),
+        PropIntel(name="name",      inh_name=None,  label="Probabilites",   data_type=unicode),
         PropIntel(name="W_valid",   inh_name=None,  label="Valid W matrix", data_type=object),
         PropIntel(name="P_valid",   inh_name=None,  label="Valid P matrix", data_type=object),
     ]

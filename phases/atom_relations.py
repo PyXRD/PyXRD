@@ -48,9 +48,9 @@ class AtomRelation(ChildModel, Storable, ObjectListStoreChildMixin, ComponentPro
     #MODEL INTEL:
     __parent_alias__ = "component"
     __model_intel__ = [
-        PropIntel(name="name",    label="Name",    data_type=str,   is_column=True,  storable=True,  has_widget=True),
-        PropIntel(name="value",   label="Value",   data_type=float, widget_type='float_input', is_column=True,  storable=True,  has_widget=True, refinable=True),
-        PropIntel(name="enabled", label="Enabled", data_type=bool,  is_column=True,  storable=True,  has_widget=True),
+        PropIntel(name="name",    label="Name",    data_type=unicode,   is_column=True,  storable=True,  has_widget=True),
+        PropIntel(name="value",   label="Value",   data_type=float,     is_column=True,  storable=True,  has_widget=True, widget_type='float_input', refinable=True),
+        PropIntel(name="enabled", label="Enabled", data_type=bool,      is_column=True,  storable=True,  has_widget=True),
         
         PropIntel(name="changed", data_type=object),
     ]

@@ -98,7 +98,10 @@ class PyXRDMeta(ObservablePropertyMetaMT):
         for prop in __model_intel__:
             if prop.storable:   
                 d["__storables__"].append(prop.name)
-            if prop.is_column:  d["__columns__"].append((prop.name, prop.data_type))
+            if prop.is_column:
+                # replace unicodes with strs for PyGtk
+                data_type = prop.data_type if prop.data_type != unicode else str
+                d["__columns__"].append((prop.name, data_type))
             if prop.inh_name:   d["__inheritables__"].append(prop.name)
             if prop.refinable:  d["__refinables__"].append(prop.name)
             if not prop.has_widget: d["__have_no_widget__"].append(prop.name)                

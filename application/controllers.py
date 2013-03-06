@@ -151,6 +151,8 @@ class AppController (BaseController, DialogMixin):
         sensitive = (self.model.current_project != None)
         self.view["main_pained"].set_sensitive(sensitive)
         self.view["project_actions"].set_sensitive(sensitive)
+        for action in self.view["project_actions"].list_actions():
+            action.set_sensitive(sensitive)
         
     def update_specimen_sensitivities(self):
         sensitive = (self.model.current_specimen != None)

@@ -40,6 +40,8 @@ class BaseView(View):
         try:
             widget = create_image_from_mathtext(text)
         except:
+            print_exc()
+            print "Exception when trying to render mathtext widget"
             widget = gtk.Label(text)
             widget.set_use_markup(True)
             widget.set_property('justify', gtk.JUSTIFY_CENTER)

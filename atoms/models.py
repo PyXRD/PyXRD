@@ -34,12 +34,12 @@ class AtomType(ChildModel, ObjectListStoreChildMixin, Storable, CSVMixin):
     __index_column__ = 'name'
     __parent_alias__ = 'project'
     __model_intel__ = [ #TODO add labels
-        PropIntel(name="atom_nr",             is_column=True, data_type=int,   storable=True, has_widget=True),
-        PropIntel(name="name",                is_column=True, data_type=str,   storable=True, has_widget=True),
-        PropIntel(name="charge",              is_column=True, data_type=float, storable=True, has_widget=True),
-        PropIntel(name="weight",              is_column=True, data_type=float, storable=True, has_widget=True),
-        PropIntel(name="debye",               is_column=True, data_type=float, storable=True, has_widget=True),
-        PropIntel(name="par_c",               is_column=True, data_type=float, storable=True, has_widget=True),
+        PropIntel(name="atom_nr",             is_column=True, data_type=int,     storable=True, has_widget=True),
+        PropIntel(name="name",                is_column=True, data_type=unicode, storable=True, has_widget=True),
+        PropIntel(name="charge",              is_column=True, data_type=float,   storable=True, has_widget=True),
+        PropIntel(name="weight",              is_column=True, data_type=float,   storable=True, has_widget=True),
+        PropIntel(name="debye",               is_column=True, data_type=float,   storable=True, has_widget=True),
+        PropIntel(name="par_c",               is_column=True, data_type=float,   storable=True, has_widget=True),
         PropIntel(name="parameters_changed",  is_column=True, data_type=float),
     ] + [
         PropIntel(name="par_a%d" % i,         is_column=True, data_type=float, storable=True, has_widget=True) for i in [1,2,3,4,5]
@@ -158,11 +158,11 @@ class Atom(ChildModel, ObjectListStoreChildMixin, Storable):
     #MODEL INTEL:
     __parent_alias__ = 'component'
     __model_intel__ = [ #TODO add labels
-        PropIntel(name="name",              data_type=str,    is_column=True, storable=True, has_widget=True),
-        PropIntel(name="default_z",         data_type=float,  is_column=True, storable=True, has_widget=True),
-        PropIntel(name="z",                 data_type=float,  is_column=True, storable=True, has_widget=True),
-        PropIntel(name="pn",                data_type=float,  is_column=True, storable=True, has_widget=True),
-        PropIntel(name="atom_type",         data_type=object, is_column=True, has_widget=True),
+        PropIntel(name="name",              data_type=unicode, is_column=True, storable=True, has_widget=True),
+        PropIntel(name="default_z",         data_type=float,   is_column=True, storable=True, has_widget=True),
+        PropIntel(name="z",                 data_type=float,   is_column=True, storable=True, has_widget=True),
+        PropIntel(name="pn",                data_type=float,   is_column=True, storable=True, has_widget=True),
+        PropIntel(name="atom_type",         data_type=object,  is_column=True, has_widget=True),
         PropIntel(name="stretch_values",    data_type=bool),
     ]    
     __store_id__ = "Atom"

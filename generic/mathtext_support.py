@@ -20,6 +20,8 @@ screen = display.get_default_screen()
 dpi = screen.get_resolution() or 96
 
 def _handle_customs(text):
+    text = text.decode('utf-8')
+
     if r"\larger" in text:
         fontsize = 20
     elif r"\large" in text:
@@ -28,29 +30,29 @@ def _handle_customs(text):
         fontsize = 10
         
     replacers = [ 
-        (r"²", r"$^{2}$"),
-        (r"³", r"$^{3}$"),
-        (r"α", r"$\alpha$"),
-        (r"β", r"$\beta$"),
-        (r"γ", r"$\gamma$"),
-        (r"δ", r"$\delta$"),
-        (r"ϝ", r"$\digamma$"),
-        (r"η", r"$\eta$"),
-        (r"ι", r"$\iota$"),
-        (r"κ", r"$\kappa$"),
-        (r"λ", r"$\lambda$"),
-        (r"μ", r"$\mu$"),
-        (r"ω", r"$\omega$"),
-        (r"φ", r"$\phi$"),
-        (r"π", r"$\pi$"),
-        (r"ψ", r"$\psi$"),
-        (r"ρ", r"$\rho$"),
-        (r"σ", r"$\sigma$"),
-        (r"τ", r"$\tau$"),
-        (r"θ", r"$\theta$"),
-        (r"υ", r"$\upsilon$"),
-        (r"ξ", r"$\xi$"),
-        (r"ζ", r"$\zeta$"),
+        (ur"²", r"$^{2}$"),
+        (ur"³", r"$^{3}$"),
+        (ur"α", r"$\alpha$"),
+        (ur"β", r"$\beta$"),
+        (ur"γ", r"$\gamma$"),
+        (ur"δ", r"$\delta$"),
+        (ur"γ", r"$\digamma$"),
+        (ur"η", r"$\eta$"),
+        (ur"ι", r"$\iota$"),
+        (ur"κ", r"$\kappa$"),
+        (ur"λ", r"$\lambda$"),
+        (ur"μ", r"$\mu$"),
+        (ur"ω", r"$\omega$"),
+        (ur"φ", r"$\phi$"),
+        (ur"π", r"$\pi$"),
+        (ur"ψ", r"$\psi$"),
+        (ur"ρ", r"$\rho$"),
+        (ur"σ", r"$\sigma$"),
+        (ur"τ", r"$\tau$"),
+        (ur"θ", r"$\theta$"),
+        (ur"υ", r"$\upsilon$"),
+        (ur"ξ", r"$\xi$"),
+        (ur"ζ", r"$\zeta$"),
         (r"\larger", r""),
         (r"\large", r""),
         (r"\newline", r"$\newline$"),
@@ -58,7 +60,7 @@ def _handle_customs(text):
     for val, rep in replacers:
         text = text.replace(val, rep)
         
-    parts = text.split(r"\newline")
+    parts = text.replace("$$", "").split(r"\newline")
     while "$$" in parts: parts.remove("$$")    
     return parts, fontsize
 
@@ -73,7 +75,6 @@ def create_pb_from_mathtext(text, align='center', weight='heavy', color='b', sty
         width = 0
         height = 0
         heights = []
-        depth = 0
 
         #Temporarily set font properties:
         old_params = rcParams["font.weight"], rcParams["text.color"], rcParams["font.style"]
@@ -87,7 +88,7 @@ def create_pb_from_mathtext(text, align='center', weight='heavy', color='b', sty
             parser.to_png(png_loader, part, dpi=dpi, fontsize=fontsize)        
             png_loader.close()
             pb = png_loader.get_pixbuf()
-            w, h, depth = pb.get_width(), pb.get_height(), pb.get_bits_per_sample()
+            w, h = pb.get_width(), pb.get_height()
             width = max(width, w)
             height += h
             pbs.append((pb, w, h))     

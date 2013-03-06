@@ -25,6 +25,7 @@ widget_types = [
     
     #valid alternatives:
     ('float_input', float),
+    ('input', str),
     ('input', float),
     #('custom', float),
     ('color', str),

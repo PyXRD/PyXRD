@@ -35,9 +35,9 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
     #MODEL INTEL:
     __parent_alias__ = 'project'
     __model_intel__ = [
-        PropIntel(name="name",                 label="Name",                               data_type=str,    is_column=True,  storable=True,   has_widget=True),
-        PropIntel(name="sample_name",          label="Sample",                             data_type=str,    is_column=True,  storable=True,   has_widget=True),
-        PropIntel(name="label",                label="Label",                              data_type=str,    is_column=True),        
+        PropIntel(name="name",                 label="Name",                               data_type=unicode,    is_column=True,  storable=True,   has_widget=True),
+        PropIntel(name="sample_name",          label="Sample",                             data_type=unicode,    is_column=True,  storable=True,   has_widget=True),
+        PropIntel(name="label",                label="Label",                              data_type=unicode,    is_column=True),        
         PropIntel(name="sample_length",        label="Sample length [cm]",                 data_type=float,  minimum=0.0,     is_column=True,  storable=True,    has_widget=True),
         PropIntel(name="abs_scale",            label="Absolute scale [counts]",            data_type=float,  minimum=0.0,     is_column=True,  storable=True,    has_widget=True),
         PropIntel(name="bg_shift",             label="Background shift [counts]",          data_type=float,  minimum=0.0,     is_column=True,  storable=True,    has_widget=True),
@@ -69,8 +69,8 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
     needs_update = None
 
     #PROPERTIES:
-    _sample_name = ""
-    _name = ""
+    _sample_name = u""
+    _name = u""
     _display_calculated = True
     _display_experimental = True
     _display_vshift = 0.0
@@ -240,7 +240,7 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def __init__(self, name="", sample_name="", sample_length=0.0, abs_scale=1.0,
+    def __init__(self, name=u"", sample_name=u"", sample_length=0.0, abs_scale=1.0,
                  bg_shift=0.0, absorption = 0.9, display_calculated=True,
                  display_experimental=True, display_phases=False, display_stats_in_lbl=True,
                  display_vshift=0.0, display_vscale=1.0, 
@@ -253,8 +253,8 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
                
         self.needs_update = Signal()
                
-        self.name = name or self.get_depr(kwargs, "", "data_name")
-        self.sample_name = sample_name or self.get_depr(kwargs, "", "data_sample")
+        self.name = name or self.get_depr(kwargs, u"", "data_name")
+        self.sample_name = sample_name or self.get_depr(kwargs, u"", "data_sample")
         self.sample_length = float(sample_length or self.get_depr(kwargs, 1.25, "data_sample_length"))
         self.absorption = float(absorption)
         self.abs_scale  = float(abs_scale or self.get_depr(kwargs, 1.0, "data_abs_scale"))
@@ -674,16 +674,16 @@ class Marker(ChildModel, Storable, ObjectListStoreChildMixin, CSVMixin):
     #MODEL INTEL:
     __parent_alias__ = 'specimen'
     __model_intel__ = [ #TODO add labels
-        PropIntel(name="label",         data_type=str,   storable=True, has_widget=True, is_column=True),
-        PropIntel(name="visible",       data_type=bool,  storable=True, has_widget=True),
-        PropIntel(name="position",      data_type=float, storable=True, has_widget=True),
-        PropIntel(name="x_offset",      data_type=float, storable=True, has_widget=True),
-        PropIntel(name="y_offset",      data_type=float, storable=True, has_widget=True),
-        PropIntel(name="color",         data_type=float, storable=True, has_widget=True),
-        PropIntel(name="base",          data_type=float, storable=True, has_widget=True),
-        PropIntel(name="angle",         data_type=float, storable=True, has_widget=True, inh_name="inherit_angle"),
-        PropIntel(name="inherit_angle", data_type=bool,  storable=True, has_widget=True),
-        PropIntel(name="style",         data_type=str,   storable=True, has_widget=True),
+        PropIntel(name="label",         data_type=unicode, storable=True, has_widget=True, is_column=True),
+        PropIntel(name="visible",       data_type=bool,    storable=True, has_widget=True),
+        PropIntel(name="position",      data_type=float,   storable=True, has_widget=True),
+        PropIntel(name="x_offset",      data_type=float,   storable=True, has_widget=True),
+        PropIntel(name="y_offset",      data_type=float,   storable=True, has_widget=True),
+        PropIntel(name="color",         data_type=float,   storable=True, has_widget=True),
+        PropIntel(name="base",          data_type=float,   storable=True, has_widget=True),
+        PropIntel(name="angle",         data_type=float,   storable=True, has_widget=True, inh_name="inherit_angle"),
+        PropIntel(name="inherit_angle", data_type=bool,    storable=True, has_widget=True),
+        PropIntel(name="style",         data_type=str,     storable=True, has_widget=True),
         PropIntel(name="needs_update",  data_type=object),
     ]
     __csv_storables__ = [ (prop.name, prop.name) for prop in __model_intel__ ]

@@ -37,12 +37,12 @@ class UnitCellProperty(ChildModel, Storable, ComponentPropMixin, RefinementValue
     #MODEL INTEL:
     __parent_alias__ = "component"
     __model_intel__ = [
-        PropIntel(name="name",       label="Name",      data_type=str,    is_column=True),
-        PropIntel(name="value",      label="Value",     data_type=float,  widget_type='float_input', storable=True, has_widget=True, refinable=True),
-        PropIntel(name="factor",     label="Factor",    data_type=float,  widget_type='float_input', storable=True, has_widget=True),
-        PropIntel(name="constant",   label="Constant",  data_type=float,  widget_type='float_input', storable=True, has_widget=True),
-        PropIntel(name="prop",       label="Property",  data_type=object, widget_type='combo', storable=True, has_widget=True),
-        PropIntel(name="enabled",    label="Enabled",   data_type=bool,   storable=True, has_widget=True),
+        PropIntel(name="name",       label="Name",      data_type=unicode, is_column=True),
+        PropIntel(name="value",      label="Value",     data_type=float,   widget_type='float_input', storable=True, has_widget=True, refinable=True),
+        PropIntel(name="factor",     label="Factor",    data_type=float,   widget_type='float_input', storable=True, has_widget=True),
+        PropIntel(name="constant",   label="Constant",  data_type=float,   widget_type='float_input', storable=True, has_widget=True),
+        PropIntel(name="prop",       label="Property",  data_type=object,  widget_type='combo', storable=True, has_widget=True),
+        PropIntel(name="enabled",    label="Enabled",   data_type=bool,    storable=True, has_widget=True),
         PropIntel(name="inherited",  label="Inherited", data_type=bool)
     ]
     __store_id__ = "UnitCellProperty"
@@ -179,7 +179,7 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin,
     #MODEL INTEL:
     __parent_alias__ = "phase"
     __model_intel__ = [
-        PropIntel(name="name",                      data_type=str,    label="Name",                   is_column=True, has_widget=True, storable=True),
+        PropIntel(name="name",                      data_type=unicode,label="Name",                   is_column=True, has_widget=True, storable=True),
         PropIntel(name="linked_with",               data_type=object, label="Linked with",            widget_type='combo', is_column=True, has_widget=True),
         PropIntel(name="d001",                      data_type=float,  label="Cell length c [nm]",     is_column=True, has_widget=True, storable=True, refinable=True, minimum=0.0, maximum=5.0,  inh_name="inherit_d001"),
         PropIntel(name="default_c",                 data_type=float,  label="Default c length [nm]",  is_column=True, has_widget=True, storable=True, minimum=0.0, maximum=5.0,  inh_name="inherit_default_c"),
@@ -576,7 +576,7 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin,
     #MODEL INTEL:
     __parent_alias__ = 'project'
     __model_intel__ = [
-        PropIntel(name="name",                      data_type=str,     label="Name",                is_column=True, has_widget=True, storable=True),
+        PropIntel(name="name",                      data_type=unicode, label="Name",                is_column=True, has_widget=True, storable=True),
         PropIntel(name="display_color",             data_type=str,     label="Display color",       is_column=True, has_widget=True, widget_type='color', storable=True, inh_name="inherit_display_color"),
         PropIntel(name="based_on",                  data_type=object,  label="Based on phase",      is_column=True, has_widget=True, widget_type='combo'),
         PropIntel(name="G",                         data_type=int,     label="# of components",     is_column=True, has_widget=True, storable=True),

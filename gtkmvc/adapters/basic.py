@@ -295,7 +295,11 @@ class Adapter (Observer):
         t = type(val)
         if issubclass(t, totype): return val
         if issubclass(totype, types.StringType): return str(val)
-        if issubclass(totype, types.UnicodeType): return unicode(val)
+        if issubclass(totype, types.UnicodeType):
+            try:
+                return unicode(val, "UTF-8", errors="replace")
+            except: #if this fails, code will bail out with an error:
+                return unicode(val)
         if issubclass(totype, gtk.gdk.Color): return gtk.gdk.color_parse(val)
         
         try:

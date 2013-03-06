@@ -12,9 +12,9 @@ import gtk
 # will be matched by the search function. 
 # ----------------------------------------------------------------------
 __def_adapter = [ # class, default signal, getter, setter, value type
-    (gtk.Entry, "changed", gtk.Entry.get_text, gtk.Entry.set_text, types.StringType),
-    (gtk.Entry, "changed", gtk.Entry.get_text, gtk.Entry.set_text, types.StringType),
-    (gtk.Label, None, gtk.Label.get_text, gtk.Label.set_text, types.StringType),
+    (gtk.Entry, "changed", gtk.Entry.get_text, gtk.Entry.set_text, types.UnicodeType),
+    (gtk.Entry, "changed", gtk.Entry.get_text, gtk.Entry.set_text, types.UnicodeType),
+    (gtk.Label, None, gtk.Label.get_text, gtk.Label.set_text, types.UnicodeType),
     (gtk.Arrow, None, lambda a: a.get_property("arrow-type"),
      lambda a,v: a.set(v,a.get_property("shadow-type")), gtk.ArrowType),
     (gtk.ToggleButton, "toggled", gtk.ToggleButton.get_active, gtk.ToggleButton.set_active, types.BooleanType),

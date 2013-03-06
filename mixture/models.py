@@ -36,7 +36,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
     #MODEL INTEL:
     __parent_alias__ = "project"
     __model_intel__ = [ #TODO add labels
-        PropIntel(name="name",             label="Name",    data_type=str,      is_column=True, storable=True, has_widget=True),
+        PropIntel(name="name",             label="Name",    data_type=unicode,  is_column=True, storable=True, has_widget=True),
         PropIntel(name="refinables",       label="",        data_type=object,   is_column=True, has_widget=True),
         PropIntel(name="auto_run",         label="",        data_type=bool,     is_column=True, storable=True,  has_widget=True),
         PropIntel(name="refine_method",    label="",        data_type=int,      storable=True,  has_widget=True),

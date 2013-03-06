@@ -16,7 +16,7 @@ from scipy.interpolate import interp1d
 
 import gtk, gobject
 
-from generic.io import Storable
+from generic.io import Storable, unicode_open as open
 from base_models import BaseObjectListStore
 
 
@@ -88,8 +88,10 @@ class XYListStore(BaseObjectListStore, Storable):
     def save_data(self, header, filename):
         f = open(filename, 'w')
         if self._model_data_y.shape[0] > 1:
-            header = "%s - columns: %s" % (header, "2θ, Int., " + ", ".join(self._y_names))
-        f.write("%s\n" % header)
+            names = u", ".join(self._y_names) if self._y_names!=None else "Phase intensities"
+            names = u"2θ, Int., " + names
+            header = u"%s - columns: %s" % (header, names)
+        f.write(u"%s\n" % header)
         np.savetxt(f, np.insert(self._model_data_y, 0, self._model_data_x, axis=0).transpose(), fmt="%.8f")
         f.close()
         

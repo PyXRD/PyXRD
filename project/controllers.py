@@ -76,8 +76,8 @@ class ProjectController (DialogController, ObjectListStoreMixin, DialogMixin):
         for col in tv.get_columns():
             tv.remove_column(col)
         
-        #Name column:
-        col = new_text_column(u'Name', 
+        #Name column:       
+        col = new_text_column('Name', 
             text_col=tv_model.c_name, 
             min_width=125,
             xalign=0.0,

@@ -30,7 +30,7 @@ class _AbstractCSDSDistribution(ChildModel, Storable):
     __description__ = "Abstract CSDS distr."
     __explanation__ = ""
     __model_intel__ = [
-        PropIntel(name="distrib",   label="CSDS Distribution", data_type=str, is_column=True, has_widget=True),
+        PropIntel(name="distrib",   label="CSDS Distribution", data_type=unicode, is_column=True, has_widget=True),
         PropIntel(name="inherited", label="Inherited",         data_type=bool),
         PropIntel(name="updated",   label="",                  data_type=object),
     ]

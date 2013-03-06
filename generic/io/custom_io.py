@@ -6,6 +6,16 @@
 # To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/3.0/ or send
 # a letter to Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
 
+import sys
+if sys.version_info[0] < 3:
+    import codecs
+    _open_func_bak = open # Make a back up, just in case
+    open = codecs.open
+def unicode_open(*args, **kwargs):
+    if not "encoding" in kwargs:
+        kwargs["encoding"] = "utf-8"
+    return open(*args, **kwargs)
+
 from collections import OrderedDict
 from traceback import format_exc
 

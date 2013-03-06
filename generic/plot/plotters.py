@@ -19,7 +19,7 @@ def plot_marker_text(marker, offset, marker_scale, base_y, axes):
         Plots a markers text using the given offset and scale
     """
     if marker.visible and marker.style != "offset":
-        kws = dict(text=unicode(marker.label),
+        kws = dict(text=marker.label,
                    x=float(marker.position)+float(marker.x_offset), y=settings.PLOT_TOP+float(marker.y_offset),
                    clip_on=False,
                    transform=transforms.blended_transform_factory(axes.transData, axes.get_figure().transFigure),

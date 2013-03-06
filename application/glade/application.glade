@@ -224,6 +224,22 @@
         <property name="sensitive">False</property>
       </object>
     </child>
+    <child>
+      <object class="GtkAction" id="replace_specimen_data">
+        <property name="label" translatable="yes">Replace data</property>
+        <property name="short_label" translatable="yes">Replace data</property>
+        <property name="stock_id">gtk-harddisk</property>
+        <signal name="activate" handler="on_replace_specimen_data_activate" swapped="no"/>
+      </object>
+    </child>
+    <child>
+      <object class="GtkAction" id="export_specimen_data">
+        <property name="label" translatable="yes">Export data</property>
+        <property name="short_label" translatable="yes">Export data</property>
+        <property name="stock_id">gtk-floppy</property>
+        <signal name="activate" handler="on_export_specimen_data_activate" swapped="no"/>
+      </object>
+    </child>
   </object>
   <object class="GtkActionGroup" id="specimens_actions">
     <property name="sensitive">False</property>
@@ -357,7 +373,7 @@
                     <child>
                       <object class="GtkImageMenuItem" id="menu_item_quit">
                         <property name="label">gtk-quit</property>
-                        <property name="use_action_appearance">False</property>
+                        
                         <property name="related_action">exit</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
@@ -403,7 +419,7 @@
                     </child>
                     <child>
                       <object class="GtkSeparatorMenuItem" id="separatormenuitem3">
-                        <property name="use_action_appearance">False</property>
+                        
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                       </object>
@@ -441,7 +457,7 @@
             </child>
             <child>
               <object class="GtkMenuItem" id="menu_item_data">
-                <property name="use_action_appearance">False</property>
+                
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="label" translatable="yes">_Data</property>
@@ -472,7 +488,7 @@
                     </child>
                     <child>
                       <object class="GtkSeparatorMenuItem" id="separator3">
-                        <property name="use_action_appearance">False</property>
+                        
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                       </object>
@@ -488,7 +504,7 @@
                     </child>
                     <child>
                       <object class="GtkSeparatorMenuItem" id="separator4">
-                        <property name="use_action_appearance">False</property>
+                        
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                       </object>
@@ -505,7 +521,7 @@
                     </child>
                     <child>
                       <object class="GtkSeparatorMenuItem" id="separator5">
-                        <property name="use_action_appearance">False</property>
+                        
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                       </object>
@@ -577,10 +593,10 @@
             </child>
             <child>
               <object class="GtkSeparatorToolItem" id="toolbutton2">
-                <property name="use_action_appearance">False</property>
+                
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="use_action_appearance">False</property>
+                
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -589,12 +605,12 @@
             </child>
             <child>
               <object class="GtkToolButton" id="tbtn_save_graph">
-                <property name="use_action_appearance">False</property>
+                
                 <property name="related_action">save_graph</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="related_action">save_graph</property>
-                <property name="use_action_appearance">False</property>
+                
                 <property name="label" translatable="yes">Save Graph</property>
                 <property name="use_underline">True</property>
                 <property name="stock_id">gtk-floppy</property>
@@ -606,10 +622,10 @@
             </child>
             <child>
               <object class="GtkSeparatorToolItem" id="separatortoolitem1">
-                <property name="use_action_appearance">False</property>
+                
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="use_action_appearance">False</property>
+                
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -657,10 +673,10 @@
             </child>
             <child>
               <object class="GtkSeparatorToolItem" id="toolbutton1">
-                <property name="use_action_appearance">False</property>
+                
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="use_action_appearance">False</property>
+                
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -682,10 +698,10 @@
             </child>
             <child>
               <object class="GtkSeparatorToolItem" id="tbtn_separator1">
-                <property name="use_action_appearance">False</property>
+                
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="use_action_appearance">False</property>
+                
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -835,7 +851,7 @@
                       <packing>
                         <property name="right_attach">2</property>
                         <property name="x_options">GTK_FILL</property>
-                        <property name="y_options"></property>
+                        <property name="y_options"/>
                       </packing>
                     </child>
                     <child>
@@ -861,10 +877,10 @@
                         </child>
                         <child>
                           <object class="GtkSeparatorToolItem" id="separator1">
-                            <property name="use_action_appearance">False</property>
+                            
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="use_action_appearance">False</property>
+                            
                           </object>
                           <packing>
                             <property name="expand">False</property>
@@ -888,13 +904,13 @@
                         </child>
                         <child>
                           <object class="GtkToolButton" id="btn_refresh">
-                            <property name="use_action_appearance">False</property>
+                            
                             <property name="related_action">refresh_graph</property>
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
                             <property name="tooltip_text" translatable="yes">Refresh the graph</property>
                             <property name="related_action">refresh_graph</property>
-                            <property name="use_action_appearance">False</property>
+                            
                             <property name="label" translatable="yes">Refresh</property>
                             <property name="use_underline">True</property>
                             <property name="stock_id">gtk-refresh</property>
@@ -906,10 +922,10 @@
                         </child>
                         <child>
                           <object class="GtkSeparatorToolItem" id="seperator2">
-                            <property name="use_action_appearance">False</property>
+                            
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
-                            <property name="use_action_appearance">False</property>
+                            
                           </object>
                           <packing>
                             <property name="expand">False</property>
@@ -1006,7 +1022,7 @@
                         <property name="top_attach">1</property>
                         <property name="bottom_attach">2</property>
                         <property name="x_options">GTK_FILL</property>
-                        <property name="y_options"></property>
+                        <property name="y_options"/>
                       </packing>
                     </child>
                   </object>

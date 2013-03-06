@@ -23,10 +23,12 @@ class ProjectView(DialogView):
     def __init__(self, *args, **kwargs):
         DialogView.__init__(self, *args, **kwargs)
         self["specimen_popup"].set_accel_group(self.parent["PyXRDGroup"])
-        self.parent["add_specimen"].connect_proxy(self["popup_menu_item_add_specimen"])
-        self.parent["edit_specimen"].connect_proxy(self["popup_menu_item_edit_specimen"])
-        self.parent["import_specimens"].connect_proxy(self["popup_menu_item_import_specimens"])
-        self.parent["del_specimen"].connect_proxy(self["popup_menu_item_del_specimen"])
+        self["popup_menu_item_add_specimen"].set_related_action(self.parent["add_specimen"])
+        self["popup_menu_item_edit_specimen"].set_related_action(self.parent["edit_specimen"])
+        self["popup_menu_item_import_specimens"].set_related_action(self.parent["import_specimens"])
+        self["popup_menu_item_replace_data"].set_related_action(self.parent["replace_specimen_data"])
+        self["popup_menu_item_export_data"].set_related_action(self.parent["export_specimen_data"])
+        self["popup_menu_item_del_specimen"].set_related_action(self.parent["del_specimen"])
         
     def specimens_popup(self, event):
         self["specimen_popup"].popup(None, None, None, event.button, event.time)     

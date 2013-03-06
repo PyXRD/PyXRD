@@ -24,7 +24,7 @@
           </object>
           <packing>
             <property name="x_options">GTK_FILL</property>
-            <property name="y_options"></property>
+            <property name="y_options"/>
           </packing>
         </child>
         <child>
@@ -38,7 +38,7 @@
             <property name="top_attach">1</property>
             <property name="bottom_attach">2</property>
             <property name="x_options">GTK_FILL</property>
-            <property name="y_options"></property>
+            <property name="y_options"/>
           </packing>
         </child>
         <child>
@@ -52,7 +52,7 @@
             <property name="top_attach">2</property>
             <property name="bottom_attach">3</property>
             <property name="x_options">GTK_FILL</property>
-            <property name="y_options"></property>
+            <property name="y_options"/>
           </packing>
         </child>
         <child>
@@ -69,7 +69,7 @@
             <property name="right_attach">2</property>
             <property name="top_attach">2</property>
             <property name="bottom_attach">3</property>
-            <property name="y_options"></property>
+            <property name="y_options"/>
           </packing>
         </child>
         <child>
@@ -86,7 +86,7 @@
             <property name="right_attach">2</property>
             <property name="top_attach">1</property>
             <property name="bottom_attach">2</property>
-            <property name="y_options"></property>
+            <property name="y_options"/>
           </packing>
         </child>
         <child>
@@ -101,7 +101,7 @@
           <packing>
             <property name="left_attach">1</property>
             <property name="right_attach">2</property>
-            <property name="y_options"></property>
+            <property name="y_options"/>
           </packing>
         </child>
         <child>
@@ -189,27 +189,27 @@
                     <property name="row_spacing">5</property>
                     <child>
                       <object class="GtkColorButton" id="project_display_exp_color">
-                        <property name="use_action_appearance">False</property>
+                        
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
-                        <property name="use_action_appearance">False</property>
+                        
                         <property name="color">#000000000000</property>
                       </object>
                       <packing>
                         <property name="left_attach">1</property>
                         <property name="right_attach">2</property>
                         <property name="x_options"></property>
-                        <property name="y_options"></property>
+                        <property name="y_options"/>
                       </packing>
                     </child>
                     <child>
                       <object class="GtkColorButton" id="project_display_calc_color">
-                        <property name="use_action_appearance">False</property>
+                        
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
-                        <property name="use_action_appearance">False</property>
+                        
                         <property name="color">#000000000000</property>
                       </object>
                       <packing>
@@ -218,7 +218,7 @@
                         <property name="top_attach">2</property>
                         <property name="bottom_attach">3</property>
                         <property name="x_options"></property>
-                        <property name="y_options"></property>
+                        <property name="y_options"/>
                       </packing>
                     </child>
                     <child>
@@ -229,7 +229,7 @@
                         <property name="label" translatable="yes">Experimental color</property>
                       </object>
                       <packing>
-                        <property name="y_options"></property>
+                        <property name="y_options"/>
                       </packing>
                     </child>
                     <child>
@@ -261,7 +261,7 @@
                         <property name="top_attach">4</property>
                         <property name="bottom_attach">5</property>
                         <property name="x_options"></property>
-                        <property name="y_options"></property>
+                        <property name="y_options"/>
                       </packing>
                     </child>
                     <child>
@@ -274,7 +274,7 @@
                       <packing>
                         <property name="top_attach">4</property>
                         <property name="bottom_attach">5</property>
-                        <property name="y_options"></property>
+                        <property name="y_options"/>
                       </packing>
                     </child>
                     <child>
@@ -287,7 +287,7 @@
                       <packing>
                         <property name="top_attach">5</property>
                         <property name="bottom_attach">6</property>
-                        <property name="y_options"></property>
+                        <property name="y_options"/>
                       </packing>
                     </child>
                     <child>
@@ -306,7 +306,7 @@
                         <property name="top_attach">5</property>
                         <property name="bottom_attach">6</property>
                         <property name="x_options"></property>
-                        <property name="y_options"></property>
+                        <property name="y_options"/>
                       </packing>
                     </child>
                     <child>
@@ -319,7 +319,7 @@
                       <packing>
                         <property name="top_attach">1</property>
                         <property name="bottom_attach">2</property>
-                        <property name="y_options"></property>
+                        <property name="y_options"/>
                       </packing>
                     </child>
                     <child>
@@ -332,7 +332,7 @@
                       <packing>
                         <property name="top_attach">3</property>
                         <property name="bottom_attach">4</property>
-                        <property name="y_options"></property>
+                        <property name="y_options"/>
                       </packing>
                     </child>
                     <child>
@@ -351,7 +351,7 @@
                         <property name="top_attach">3</property>
                         <property name="bottom_attach">4</property>
                         <property name="x_options"></property>
-                        <property name="y_options"></property>
+                        <property name="y_options"/>
                       </packing>
                     </child>
                     <child>
@@ -370,7 +370,7 @@
                         <property name="top_attach">1</property>
                         <property name="bottom_attach">2</property>
                         <property name="x_options"></property>
-                        <property name="y_options"></property>
+                        <property name="y_options"/>
                       </packing>
                     </child>
                   </object>
@@ -421,7 +421,7 @@
                         <property name="left_attach">1</property>
                         <property name="right_attach">2</property>
                         <property name="x_options"></property>
-                        <property name="y_options"></property>
+                        <property name="y_options"/>
                       </packing>
                     </child>
                     <child>
@@ -432,7 +432,7 @@
                         <property name="label" translatable="yes">Default marker angle [°]</property>
                       </object>
                       <packing>
-                        <property name="y_options"></property>
+                        <property name="y_options"/>
                       </packing>
                     </child>
                     <child>
@@ -445,7 +445,7 @@
                       <packing>
                         <property name="top_attach">1</property>
                         <property name="bottom_attach">2</property>
-                        <property name="y_options"></property>
+                        <property name="y_options"/>
                       </packing>
                     </child>
                     <child>
@@ -464,7 +464,7 @@
                         <property name="top_attach">1</property>
                         <property name="bottom_attach">2</property>
                         <property name="x_options"></property>
-                        <property name="y_options"></property>
+                        <property name="y_options"/>
                       </packing>
                     </child>
                   </object>
@@ -525,7 +525,7 @@
                         <property name="label" translatable="yes">X scaling</property>
                       </object>
                       <packing>
-                        <property name="y_options"></property>
+                        <property name="y_options"/>
                       </packing>
                     </child>
                     <child>
@@ -546,17 +546,17 @@
                         <property name="top_attach">2</property>
                         <property name="bottom_attach">3</property>
                         <property name="x_options"></property>
-                        <property name="y_options"></property>
+                        <property name="y_options"/>
                       </packing>
                     </child>
                     <child>
                       <object class="GtkCheckButton" id="project_axes_xstretch">
                         <property name="label" translatable="yes">Stretch X-axis to fit window</property>
-                        <property name="use_action_appearance">False</property>
+                        
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">False</property>
-                        <property name="use_action_appearance">False</property>
+                        
                         <property name="xalign">0</property>
                         <property name="draw_indicator">True</property>
                       </object>
@@ -565,7 +565,7 @@
                         <property name="top_attach">3</property>
                         <property name="bottom_attach">4</property>
                         <property name="x_options">GTK_FILL</property>
-                        <property name="y_options"></property>
+                        <property name="y_options"/>
                       </packing>
                     </child>
                     <child>
@@ -578,7 +578,7 @@
                         <property name="top_attach">4</property>
                         <property name="bottom_attach">5</property>
                         <property name="x_options">GTK_FILL</property>
-                        <property name="y_options"></property>
+                        <property name="y_options"/>
                       </packing>
                     </child>
                     <child>
@@ -591,7 +591,7 @@
                       <packing>
                         <property name="top_attach">5</property>
                         <property name="bottom_attach">6</property>
-                        <property name="y_options"></property>
+                        <property name="y_options"/>
                       </packing>
                     </child>
                     <child>
@@ -613,7 +613,7 @@
                         <property name="top_attach">1</property>
                         <property name="bottom_attach">2</property>
                         <property name="x_options"></property>
-                        <property name="y_options"></property>
+                        <property name="y_options"/>
                       </packing>
                     </child>
                     <child>
@@ -629,7 +629,7 @@
                         <property name="right_attach">2</property>
                         <property name="top_attach">2</property>
                         <property name="bottom_attach">3</property>
-                        <property name="y_options"></property>
+                        <property name="y_options"/>
                       </packing>
                     </child>
                     <child>
@@ -645,7 +645,7 @@
                         <property name="right_attach">2</property>
                         <property name="top_attach">1</property>
                         <property name="bottom_attach">2</property>
-                        <property name="y_options"></property>
+                        <property name="y_options"/>
                       </packing>
                     </child>
                     <child>
@@ -657,7 +657,7 @@
                         <property name="left_attach">1</property>
                         <property name="right_attach">3</property>
                         <property name="x_options">GTK_FILL</property>
-                        <property name="y_options"></property>
+                        <property name="y_options"/>
                       </packing>
                     </child>
                     <child>
@@ -670,17 +670,17 @@
                         <property name="right_attach">3</property>
                         <property name="top_attach">5</property>
                         <property name="bottom_attach">6</property>
-                        <property name="y_options"></property>
+                        <property name="y_options"/>
                       </packing>
                     </child>
                     <child>
                       <object class="GtkCheckButton" id="project_axes_yvisible">
                         <property name="label" translatable="yes">Y-axis visible</property>
-                        <property name="use_action_appearance">False</property>
+                        
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">False</property>
-                        <property name="use_action_appearance">False</property>
+                        
                         <property name="xalign">0</property>
                         <property name="draw_indicator">True</property>
                       </object>
@@ -689,7 +689,7 @@
                         <property name="top_attach">6</property>
                         <property name="bottom_attach">7</property>
                         <property name="x_options">GTK_FILL</property>
-                        <property name="y_options"></property>
+                        <property name="y_options"/>
                       </packing>
                     </child>
                   </object>
@@ -739,7 +739,7 @@
     <property name="can_focus">False</property>
     <child>
       <object class="GtkImageMenuItem" id="popup_menu_item_add_specimen">
-        <property name="use_action_appearance">False</property>
+        
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="accel_path">&lt;Actions&gt;/project_actions/add_specimen</property>
@@ -750,7 +750,7 @@
     </child>
     <child>
       <object class="GtkImageMenuItem" id="popup_menu_item_import_specimens">
-        <property name="use_action_appearance">False</property>
+        
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="accel_path">&lt;Actions&gt;/project_actions/import_specimens</property>
@@ -760,14 +760,14 @@
     </child>
     <child>
       <object class="GtkSeparatorMenuItem" id="menuitem2">
-        <property name="use_action_appearance">False</property>
+        
         <property name="visible">True</property>
         <property name="can_focus">False</property>
       </object>
     </child>
     <child>
       <object class="GtkImageMenuItem" id="popup_menu_item_edit_specimen">
-        <property name="use_action_appearance">False</property>
+        
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="accel_path">&lt;Actions&gt;/specimen_actions/edit_specimen</property>
@@ -776,15 +776,31 @@
       </object>
     </child>
     <child>
+      <object class="GtkImageMenuItem" id="popup_menu_item_replace_data">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="accel_path">&lt;Actions&gt;/specimen_actions/replace_specimen_data</property>
+        <property name="use_stock">True</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkImageMenuItem" id="popup_menu_item_export_data">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="accel_path">&lt;Actions&gt;/specimen_actions/export_specimen_data</property>
+        <property name="use_stock">True</property>
+      </object>
+    </child>
+    <child>
       <object class="GtkSeparatorMenuItem" id="menuitem3">
-        <property name="use_action_appearance">False</property>
+        
         <property name="visible">True</property>
         <property name="can_focus">False</property>
       </object>
     </child>
     <child>
       <object class="GtkImageMenuItem" id="popup_menu_item_del_specimen">
-        <property name="use_action_appearance">False</property>
+        
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="accel_path">&lt;Actions&gt;/specimens_actions/del_specimen</property>

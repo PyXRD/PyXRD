@@ -356,6 +356,12 @@ class AppController (BaseController, DialogMixin):
         self.project.import_multiple_specimen()        
         return True
 
+    def on_replace_specimen_data_activate(self, event):
+        self.specimen.on_replace_experimental_data()
+
+    def on_export_specimen_data_activate(self, event):
+        self.specimen.on_export_experimental_data()
+
     @BaseController.status_message("Deleting specimen view...", "del_specimen")
     def on_del_specimen_activate(self, event):
         tv = self.view['specimens_treeview']

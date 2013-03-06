@@ -227,32 +227,27 @@ class SpecimenController(DialogController, DialogMixin, ObjectTreeviewMixin):
                              parent=self.view.get_top_widget(),
                              filters=self.excl_filters)
 
+    def on_replace_experimental_data(self, *args, **kwargs):
+        def on_accept(dialog):
+            filename = dialog.get_filename()
+            if filename[-3:].lower() == "dat":
+                self.model.experimental_pattern.load_data(filename, format="DAT", clear=True)
+            if filename[-2:].lower() == "rd":
+                self.model.experimental_pattern.load_data(filename, format="BIN", clear=True)
+        self.run_load_dialog(title="Open XRD file for import",
+                            on_accept_callback=on_accept, 
+                             parent=self.view.get_top_widget())
+        return True
+
     def on_btn_import_experimental_data_clicked(self, widget, data=None):
         def on_confirm(dialog):
-            def on_accept(dialog):
-                filename = dialog.get_filename()
-                if filename[-3:].lower() == "dat":
-                    self.model.experimental_pattern.load_data(filename, format="DAT", clear=True)
-                if filename[-2:].lower() == "rd":
-                    self.model.experimental_pattern.load_data(filename, format="BIN", clear=True)
-            self.run_load_dialog(title="Open XRD file for import",
-                                 on_accept_callback=on_accept, 
-                                 parent=self.view.get_top_widget())
+            self.on_replace_experimental_data()
         self.run_confirmation_dialog("Importing a new experimental file will erase all current data.\nAre you sure you want to continue?",
                                      on_confirm, parent=self.view.get_top_widget())
         return True
         
     def on_btn_export_experimental_data_clicked(self, widget, data=None):
-        def on_accept(dialog):
-            filename = self.extract_filename(dialog)
-            if filename[-3:].lower() == "dat":
-                self.model.experimental_pattern.save_data(filename)
-            if filename[-2:].lower() == "rd":
-                self.run_information_dialog("RD file format not supported (yet)!", parent=self.view.get_top_widget())
-        self.run_save_dialog(title="Select file for export",
-                             on_accept_callback=on_accept, 
-                             parent=self.view.get_top_widget())
-        return True
+        return self.on_export_experimental_data()
         
     def on_btn_export_calculated_data_clicked(self, widget, data=None):
         def on_accept(dialog):

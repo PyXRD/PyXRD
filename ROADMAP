@@ -1,5 +1,4 @@
 Feature-wise:
-0.4 - move plotter stuff from calculated/experimetnal line objects to plotters.py
 0.5 - Sybilla Support:
         - integrate XML file import
         - direct import of calculated csv files (from sybilla)
@@ -17,9 +16,9 @@ Feature-wise:
       Would require some sort of definition of how these units are stacked
     
 Code-Wise:
-0.4 - check for backwards compatibility issues with pre-O.4 project files
-0.4 - DOCUMENTATION!
-0.4 - cleanse code from TODO & FIXME's
+0.x - check for backwards compatibility issues with pre-O.4 project files
+0.x - DOCUMENTATION!
+0.x - cleanse code from TODO & FIXME's
 0.5 - check for file extension registers on windows (using exec assoc & ftype) & linux (pyxdg)
 0.6 - export to Sybilla's XML format?
 0.7 - most of the default dialog actions (confirmation ,information etc.) could also be usefull as decorators.

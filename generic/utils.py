@@ -21,6 +21,36 @@ sqrtpi = sqrt(pi)
 sqrt2pi = sqrt(2*pi)
 sqrt8 = sqrt(8) 
     
+def print_stack_plus():
+    """
+    Print the usual traceback information, followed by a listing of all the
+    local variables in each frame.
+    """
+    stack = []
+    depth = 1
+    while 1:
+        try:
+            f = sys._getframe(depth)
+            depth += 1
+            stack.append(f)
+        except ValueError:
+            break    
+    print "Locals by frame, innermost last"
+    for frame in stack:
+        print
+        print "Frame %s in %s at line %s" % (frame.f_code.co_name,
+                                             frame.f_code.co_filename,
+                                             frame.f_lineno)
+        for key, value in frame.f_locals.items():
+            print "\t%20s = " % key,
+            #We have to be careful not to cause a new error in our error
+            #printer! Calling str() on an unknown object could cause an
+            #error we don't want.
+            try:                   
+                print value
+            except:
+                print "<ERROR WHILE PRINTING VALUE>"
+    
 def create_valuestore_from_file(filename, data_type=float):
     liststore = gtk.ListStore(str, data_type)
     with open(filename, 'r') as f:

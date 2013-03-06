@@ -278,7 +278,7 @@ class Project(ChildModel, Storable, ObjectListStoreParentMixin):
 
     @delayed("before_needs_update_lock")
     def before_needs_update(self, after):
-        if not self.before_needs_update_lock:
+        if not self.before_needs_update_lock and self.mixtures!=None:
             self.before_needs_update_lock = True
             t1 = time.time()
             for mixture in self.mixtures.iter_objects():

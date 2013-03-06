@@ -133,7 +133,7 @@ class Storable(object):
             f.writestr('content', json.dumps(self, indent = 4, cls=PyXRDEncoder))
             f.close()
         else:
-            with open(filename, 'w') as f:
+            with unicode_open(filename, 'w') as f:
                 json.dump(self, f, indent = 4, cls=PyXRDEncoder)
     
     @classmethod
@@ -159,7 +159,7 @@ class Storable(object):
                         jcontent = json.load(cf, cls=PyXRDDecoder, parent=parent)
                         return jcontent
             else:
-                with open(filename, 'r') as f:
+                with unicode_open(filename, 'r') as f:
                     return json.load(f, cls=PyXRDDecoder, parent=parent)
         except TypeError as error:
             if settings.DEBUG: print "Handling run-time error: %s" % error

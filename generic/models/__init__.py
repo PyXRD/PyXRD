@@ -188,14 +188,12 @@ class ChildModel(PyXRDModel):
             
     pass #end of class
 
-class PyXRDLine(ChildModel, Storable, Line2D):
+class PyXRDLine(ChildModel, Storable):
 
     #MODEL INTEL:
     __model_intel__ = [
         PropIntel(name="label",           data_type=unicode, storable=True),
         PropIntel(name="xy_store",        data_type=object,  storable=True),
-        PropIntel(name="offset",          data_type=float),
-        PropIntel(name="scale",           data_type=float),
         PropIntel(name="color",           data_type=str,     observable=False),
         PropIntel(name="lw",              data_type=float,   observable=False),
         PropIntel(name="needs_update",    data_type=object),
@@ -203,41 +201,28 @@ class PyXRDLine(ChildModel, Storable, Line2D):
     __store_id__ = "PyXRDLine"
 
     #PROPERTIES:
-    xy_empty_data = ([],[])
     _xy_store = None
     def get_xy_store_value(self): return self._xy_store
     needs_update = None
+    
+    _label = ""
+    def get_label_value(self): return self._label
+    def set_label_value(self, value): self._label = value
 
-    _offset = 0
-    def get_offset_value(self): return self._offset
-    def set_offset_value(self, value):
-        self._offset = float(value)
-        self.update_line()
-        
-    _scale = 1.0
-    def get_scale_value(self): return self._scale
-    def set_scale_value(self, value):
-        self._scale = float(scale)
-        self.update_line()
-        
-    def get_label_value(self): return self.get_label()
-    def set_label_value(self, value): self.set_label(value)
-
+    _color = "#000000"
     @property
-    def color(self):
-        return matplotlib.colors.rgb2hex(
-            matplotlib.colors.colorConverter.to_rgb(self.get_color()))
+    def color(self): return self._color
     @color.setter
     def color(self, value):
-        self.set_color(value)
+        self._color = value
         self.needs_update.emit()
 
+    _lw = 2
     @property
-    def lw(self):
-        return self.get_lw()
+    def lw(self): return self._lw
     @lw.setter
     def lw(self, value):
-        self.set_lw(value)
+        self._lw = value
         self.needs_update.emit()
 
     @property
@@ -254,20 +239,18 @@ class PyXRDLine(ChildModel, Storable, Line2D):
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def __init__(self, xy_store=None, parent=None, color=None, **kwargs):
-        ChildModel.__init__(self, parent=parent)
-        Storable.__init__(self)
-        
-        self.needs_update = Signal()
+    def __init__(self, xy_store=None, label=None, color=None, lw=None, *args, **kwargs):
         self.init_xy_store(xy_store=xy_store)
         self.xy_store.connect('row-deleted', self.on_treestore_changed)
         self.xy_store.connect('row-inserted', self.on_treestore_changed)
         self.xy_store.connect('row-changed', self.on_treestore_changed)
-
-        Line2D.__init__(self, *self.xy_store.get_raw_model_data(), color=color, **kwargs)
-                
-        self._inhibit_updates = False
-        self.update_line()
+        super(PyXRDLine, self).__init__(*args, **kwargs)
+        
+        self.needs_update = Signal()
+        
+        self.color = color if color!=None else self.color
+        self.label = label if label!=None else self.label
+        self.lw = lw if lw != None else self.lw
 
     def init_xy_store(self, xy_store=None):
         self._xy_store = xy_store or XYListStore()
@@ -297,172 +280,50 @@ class PyXRDLine(ChildModel, Storable, Line2D):
             If the file contains additional y-value columns, they are returned
             as a list of numpy 2D lists (X & Y columns).
         """ 
-        self._inhibit_updates = True
-        ays = self.xy_store.load_data(*args, **kwargs)
-        self._inhibit_updates = False
-        self.update_line()
-        return ays
+        return self.xy_store.load_data(*args, **kwargs)
             
     # ------------------------------------------------------------
     #      Methods & Functions
-    # ------------------------------------------------------------           
-    def set_transform_factors(self, scale, offset):
-        self._scale = scale
-        self._offset = offset
-        self.update_line()
-
-    def _transform_y(self, y):
-        return np.array(y) * self.scale + self.offset
-        
-    def get_y_at_x(self, x):
-        x_data, y_data = self.get_data()
-        if len(x_data) > 0:
-            return np.interp(x, x_data, y_data)
-        else:
-            return 0
-        
+    # ------------------------------------------------------------                  
     def on_treestore_changed(self, treemodel, path, *args):
-        self.update_line()
         self.needs_update.emit()
     
-    def set_data(self, x, y):
-        self._inhibit_updates = True
-        Line2D.set_data(self, x, y)
-        self.xy_store.update_from_data(x, y)
-        self._inhibit_updates = False
-        
-    def set_xdata(self, x):
-        Line2D.set_xdata(self, x)
-        if not self._inhibit_updates:
-            xdata, ydata = self.xy_store.get_raw_model_data()
-            self.xy_store.update_from_data(x, ydata)
-        
-    def set_ydata(self, y):
-        Line2D.set_ydata(self, self._transform_y(y))
-        if not self._inhibit_updates:
-            xdata, ydata = self.xy_store.get_raw_model_data()
-            self.xy_store.update_from_data(xdata, y)
-            
+    def set_data(self, x, *y, **kwargs):
+        self.xy_store.update_from_data(x, *y, **kwargs)
+               
     def clear(self):
-        if len(self.xy_store._model_data_x) > 1:
-            self._inhibit_updates = True
-            self.xy_store.clear()
-            self._inhibit_updates = False            
-            self.update_line()
-    
-    def update_line(self):
-        if not self._inhibit_updates:
-            if len(self.xy_store._model_data_x) > 1:
-                self.set_data(*self.xy_store.get_raw_model_data())
-                self.set_visible(True)
-            else:
-                self.set_data(*self.xy_empty_data)
-                self.set_visible(False)
-    
-    def draw(self, renderer):
-        self.update_line()
-        Line2D.draw(self, renderer)
+        self.xy_store.clear()
+
             
     pass #end of class
 
 PyXRDLine.register_storable()
 
-class ScaledLine(Line2D):
-       
-    def draw(self, renderer, scale, offset):
-        temp_y = np.array(self._yorig)
-        self._yorig = temp_y * scale + offset
-        try: self.recache(always=True)
-        except:return #exit gracefully if this fails
-        self._yorig = temp_y
-        Line2D.draw(self, renderer)
-        
-    pass #end of class
-
 class CalculatedLine(PyXRDLine):
 
     #MODEL INTEL:
     __parent_alias__ = 'specimen'
-    __model_intel__ = [
-        PropIntel(name="child_lines",  data_type=float),
-    ]
+    __model_intel__ = [ ]
     __store_id__ = "CalculatedLine"
+    __gtype_name__ = "PyXRDCalculatedLine"
     
     #PROPERTIES:
-    _child_lines = None
-    def get_child_lines_value(self):
-        if self._child_lines==None:
-            self._child_lines = []
-        return self._child_lines
+    phases = None
         
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
     def __init__(self, *args, **kwargs):
-        PyXRDLine.__init__(self, *args, **kwargs)
-        self.set_linewidth(3)
+        self.phases = []
+        super(CalculatedLine, self).__init__(*args, **kwargs)
     
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------  
-    def set_figure(self, figure):
-        PyXRDLine.set_figure(self, figure)
-        for child in self.child_lines:
-            if child: child.set_figure(figure)
+    def set_data(self, x, y, phase_patterns=None, phases=None):
+        self.phases = phases
+        super(CalculatedLine, self).set_data(x, y, *phase_patterns, names=[phase.name for phase in phases])
 
-    def set_axes(self, axes):
-        PyXRDLine.set_axes(self, axes)
-        for child in self.child_lines:
-            if child: child.set_axes(axes)
-    
-    def draw(self, renderer):
-        if self.parent.display_calculated:
-            PyXRDLine.draw(self, renderer)
-        if self.parent.display_phases:
-            for line in self.child_lines:
-                if line:
-                    line.draw(renderer, self.scale, self.offset)
-    
-    def set_transform(self, transform):
-        PyXRDLine.set_transform(self, transform)
-        tf = self.get_transform()
-        for line in self.child_lines:
-            if line: line.set_transform(tf)
-
-    def set_data(self, x, y, phases_y=None, phases_colors=None, phases_names=None):
-        self._inhibit_updates = True
-        #total line:
-        if phases_y!=None and phases_colors:
-            self.xy_store.update_from_data(x, y, *phases_y, names=phases_names)
-            #phase lines:
-            self._update_child_lines(phases_colors, phases_y)
-        else:
-            self.xy_store.update_from_data(x, y)
-        Line2D.set_data(self, x, y)
-        self._inhibit_updates = False
-
-    def _update_child_lines(self, colors, ydata):
-        clen = len(colors)
-        mlen = len(self.child_lines)
-        diff = mlen-clen
-        if diff>0: #too many child line instances
-            self._child_lines = self._child_lines[:-diff]
-        elif diff<0: #too few child line instances
-            self._child_lines.extend([None]*-diff)
-        axes = self.get_axes()
-        figure = self.get_figure()
-        tf = self.get_transform()
-        for i, color, y in izip(count(), colors, ydata):
-            line = self._child_lines[i]
-            if not line:
-                line = ScaledLine([],[])
-                self._child_lines[i] = line
-            line.set_linewidth(self.get_linewidth())
-            line.set_data(self.get_xdata(), y)
-            line.set_color(color)
-            line.set_transform(tf)
-            if axes: line.set_axes(axes)
-            if figure: line.set_figure(figure)
     pass #end of class
     
 CalculatedLine.register_storable()
@@ -480,17 +341,39 @@ class ExperimentalLine(PyXRDLine):
         PropIntel(name="smooth_type",       data_type=int),
         PropIntel(name="shift_value",       data_type=float),
         PropIntel(name="shift_position",    data_type=float),
+        PropIntel(name="cap_value",         data_type=float),
     ]
     __store_id__ = "ExperimentalLine"
+    __gtype_name__ = "PyXRDExperimentalLine"
     
     #PROPERTIES:
+    @property
+    def child_lines(self):
+        return [self.bg_line, self.smooth_line, self.shifted_line, self.reference_line]
+
+    _cap_value = 0.0
+    def get_cap_value_value(self): return self._cap_value
+    def set_cap_value_value(self, value):
+        try:
+            self._cap_value = float(value)
+            self.needs_update.emit()
+        except ValueError:
+            pass
+    
+    @property
+    def max_intensity(self):
+        max_value = super(ExperimentalLine, self).max_intensity
+        if self.cap_value > 0:
+            max_value = min(max_value, self.cap_value)
+        return max_value
+
     _bg_position = 0
     bg_line = None
     def get_bg_position_value(self): return self._bg_position
     def set_bg_position_value(self, value):
         try:
             self._bg_position = float(value)
-            self.update_bg_line()
+            self.needs_update.emit()
         except ValueError:
             pass
 
@@ -499,7 +382,7 @@ class ExperimentalLine(PyXRDLine):
     def set_bg_scale_value(self, value):
         try:
             self._bg_scale = float(value)
-            self.update_bg_line()
+            self.needs_update.emit()
         except ValueError:
             pass
             
@@ -507,7 +390,7 @@ class ExperimentalLine(PyXRDLine):
     def get_bg_pattern_value(self): return self._bg_pattern
     def set_bg_pattern_value(self, value):
         self._bg_pattern = value
-        self.update_bg_line()
+        self.needs_update.emit()
 
     def get_bg_type_lbl(self):
         return self._bg_types[self._bg_type]    
@@ -520,13 +403,11 @@ class ExperimentalLine(PyXRDLine):
     def get_smooth_degree_value(self): return self._smooth_degree
     def set_smooth_degree_value(self, value):
         self._smooth_degree = float(value)
-        self.update_smooth_pattern()
-        self.update_smooth_line()
-
-    def on_sdtype(self, prop_name, value):
-        self.update_smooth_pattern()
-        self.update_smooth_line()
+        self.needs_update.emit()
         
+    def on_sdtype(self, prop_name, value):
+        self.needs_update.emit()
+                
     _shift_value = 0.0
     shifted_line = None
     reference_line = None
@@ -534,7 +415,7 @@ class ExperimentalLine(PyXRDLine):
     def set_shift_value_value(self, value):
         try:
             self._shift_value = float(value)
-            self.update_shifted_line()
+            self.needs_update.emit()
         except ValueError:
             pass
   
@@ -550,37 +431,6 @@ class ExperimentalLine(PyXRDLine):
     smooth_type = MultiProperty(0, int, on_sdtype, { 0: "Moving Triangle" })
     bg_type = MultiProperty(0, int, on_bgtype, { 0: "Linear", 1: "Pattern" })
             
-    # ------------------------------------------------------------
-    #      Methods & Functions
-    # ------------------------------------------------------------        
-    def set_figure(self, figure):
-        PyXRDLine.set_figure(self, figure)
-        for child in [self.bg_line, self.smooth_line, self.shifted_line, self.reference_line]:
-            if child: child.set_figure(figure)
-
-    def set_axes(self, axes):
-        PyXRDLine.set_axes(self, axes)
-        for child in [self.bg_line, self.smooth_line, self.shifted_line, self.reference_line]:
-            if child: child.set_axes(axes)
-    
-    def set_transform(self, transform):
-        PyXRDLine.set_transform(self, transform)
-        for child in [self.bg_line, self.smooth_line, self.shifted_line, self.reference_line]:
-            if child: child.set_transform(self.get_transform())
-    
-    def draw(self, renderer):
-        if self.parent.display_experimental:
-            PyXRDLine.draw(self, renderer)
-            for line in [self.bg_line, self.smooth_line, self.shifted_line, self.reference_line]:
-                line.draw(renderer, self.scale, self.offset)
-    
-    def __init__(self, *args, **kwargs):
-        self.smooth_line = ScaledLine([],[], c="#660099", lw="2")
-        self.bg_line = ScaledLine([],[], c="#660099", lw="2")
-        self.shifted_line = ScaledLine([],[], c="#660099", lw="2")
-        self.reference_line = ScaledLine([],[], c="#660099", lw="2", ls="--")
-        PyXRDLine.__init__(self, *args, **kwargs)
-    
     # ------------------------------------------------------------
     #      Background Removal
     # ------------------------------------------------------------
@@ -604,24 +454,7 @@ class ExperimentalLine(PyXRDLine):
         self.bg_scale = 0.0
         self.bg_position = 0.0
         self.needs_update.emit()
-        
-    def update_bg_line(self):
-        self.recache()
-        x_data, y_data = self.xy_store.get_raw_model_data()
-        if self.bg_type == 0 and self._bg_position != 0.0:
-            xmin, xmax = np.min(x_data), np.max(x_data)
-            self.bg_line.set_data((xmin, xmax), (self.bg_position, self.bg_position))
-            self.bg_line.set_visible(True)            
-        elif self.bg_type == 1 and self.bg_pattern != None:
-            bg = ((self.bg_pattern * self.bg_scale) + self.bg_position)
-            self.bg_line.set_data(x_data, bg)
-            self.bg_line.set_visible(True)
-        else:
-            self.bg_line.set_data([],[])
-            self.bg_line.set_visible(False)
-
-        self.needs_update.emit()
-        
+                
     # ------------------------------------------------------------
     #       Data Smoothing
     # ------------------------------------------------------------
@@ -631,24 +464,9 @@ class ExperimentalLine(PyXRDLine):
             degree = int(self.smooth_degree)
             smoothed = smooth(y_data, degree)
             self.set_ydata(smoothed)
-            #self.xy_store._model_data_y = smoothed
         self.smooth_degree = 0.0
         self.needs_update.emit()
-    
-    def update_smooth_pattern(self):
-        x_data, y_data = self.xy_store.get_raw_model_data()
-        degree = int(self.smooth_degree)
-        if degree > 1:
-            self.smooth_pattern = x_data, smooth(y_data, degree)
-        else:
-            self.smooth_pattern = [],[]
             
-    def update_smooth_line(self):
-        self.update_smooth_pattern()
-        self.smooth_line.set_data(*self.smooth_pattern)
-        self.smooth_line.set_visible(( self._smooth_degree > 1))    
-        self.needs_update.emit()
-        
     # ------------------------------------------------------------
     #       Data Shifting
     # ------------------------------------------------------------
@@ -660,24 +478,6 @@ class ExperimentalLine(PyXRDLine):
                 for marker in self.specimen.markers._model_data:
                     marker.position = marker.position-self.shift_value
         self.shift_value = 0.0
-        self.needs_update.emit()
-            
-    def update_shifted_line(self):
-        x_data, y_data = self.xy_store.get_raw_model_data()
-        if self.shift_value!=0.0:
-            self.shifted_line.set_data(x_data-self._shift_value, y_data.copy())
-            self.shifted_line.set_visible(True)
-            position = self.parent.parent.goniometer.get_2t_from_nm(self.shift_position)
-            ymax = np.max(y_data)
-            self.reference_line.set_data((position, position), (0, ymax))
-            self.reference_line.set_visible(True)            
-        else:
-            self.shifted_line.set_data([],[])
-            self.shifted_line.set_visible(False)
-            self.reference_line.set_data([],[])
-            self.reference_line.set_visible(False)
-            
-        trans = self.get_transform()
         self.needs_update.emit()
         
     def find_shift_value(self):

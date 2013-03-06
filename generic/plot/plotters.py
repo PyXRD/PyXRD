@@ -18,12 +18,13 @@ def plot_marker_text(marker, offset, marker_scale, base_y, axes):
     """
         Plots a markers text using the given offset and scale
     """
+    text = getattr(marker, "__plot_text", None)
     if marker.visible and marker.style != "offset":
         kws = dict(text=marker.label,
                    x=float(marker.position)+float(marker.x_offset), y=settings.PLOT_TOP+float(marker.y_offset),
                    clip_on=False,
                    transform=transforms.blended_transform_factory(axes.transData, axes.get_figure().transFigure),
-                   horizontalalignment="left", verticalalignment="center",
+                   horizontalalignment=marker.align, verticalalignment="center",
                    rotation=(90-marker.angle), rotation_mode="anchor",
                    color=marker.color,
                    weight="heavy")
@@ -36,18 +37,22 @@ def plot_marker_text(marker, offset, marker_scale, base_y, axes):
                 transform=axes.transData,
             ))
         
-        if not hasattr(marker, "_plt_text") or marker._plt_text == None:
-            marker._plt_text = Text(**kws)
+        if text:
+            for key in kws: getattr(text, "set_%s"%key)(kws[key])
         else:
-            for key in kws:
-                getattr(marker._plt_text, "set_%s"%key)(kws[key])
-        if not marker._plt_text in axes.get_children():
-            axes.add_artist(marker._plt_text)
+            text = Text(**kws)
+        if not text in axes.get_children():
+            axes.add_artist(text)
+    elif text:
+        try: text.remove()
+        except: pass  
+    marker.__plot_text = text
 
 def plot_marker_line(marker, offset, base_y, axes):
     """
         Plots a markers connector line using the given offset
     """
+    line = getattr(marker, "__plot_line", None)
     if marker.visible:
         # We need to strip away the units for comparison with
         # non-unitized bounds
@@ -65,33 +70,68 @@ def plot_marker_line(marker, offset, base_y, axes):
             
         data = [y0,y1]
             
-        if not hasattr(marker, "_plt_vline") or marker._plt_vline == None:
-            marker._plt_vline = matplotlib.lines.Line2D([marker.position,marker.position], data , transform=trans, color=marker.color, ls=style)
-            marker._plt_vline.y_isdata = False
+        if line:
+            line.set_xdata(np.array([marker.position,marker.position]))
+            line.set_ydata(np.array(data))
+            line.set_transform(trans)
+            line.set_color(marker.color)
+            line.set_linestyle(style)
         else:
-            marker._plt_vline.set_xdata(np.array([marker.position,marker.position]))
-            marker._plt_vline.set_ydata(np.array(data))
-            marker._plt_vline.set_transform(trans)
-            marker._plt_vline.set_color(marker.color)
-            marker._plt_vline.set_linestyle(style)
+            line = matplotlib.lines.Line2D([marker.position,marker.position], data , transform=trans, color=marker.color, ls=style)
+            line.y_isdata = False
             
-        if not marker._plt_vline in axes.get_lines():
-            axes.add_line(marker._plt_vline)
+        if not line in axes.get_lines():
+            axes.add_line(line)
+    elif line:
+        try: line.remove()
+        except: pass  
+    marker.__plot_line = line
+
+def get_y_at_x(x, data):
+    """ 
+        Get the value for x in data pattern
+    """
+    x_data, y_data = data
+    if len(x_data) > 0:
+        return np.interp(x, x_data, y_data)
+    else:
+        return 0
+
+def get_y_min_at_x(x, data1, data2):
+    """ 
+        Get the lowest value for x in both data patterns
+    """
+    return min(get_y_at_x(x, data1), 
+               get_y_at_x(x, data2))
+               
+def get_y_max_at_x(x, data1, data2):
+    """ 
+        Get the highest value for x in both data patterns
+    """
+    return max(get_y_at_x(x, data1), 
+               get_y_at_x(x, data2))
 
 def plot_markers(specimen, offset, scale, marker_scale, axes):
     """
         Plots a specimens markers using the given offset and scale
-    """     
+    """
+    
+    try:    exp_data = specimen.experimental_pattern.__plot_line.get_data()
+    except: exp_data = ([],[])
+    try:    cal_data = specimen.calculated_pattern.__plot_line.get_data()
+    except: cal_data = ([],[])
+    
     for marker in specimen.markers.iter_objects():
         base_y = 0
+        
         if marker.base == 1:
-            base_y = specimen.experimental_pattern.get_y_at_x(marker.position)
+            base_y = get_y_at_x(marker.position, exp_data)
         elif marker.base == 2:
-            base_y = specimen.calculated_pattern.get_y_at_x(marker.position)
+            base_y = get_y_at_x(marker.position, cal_data)
         elif marker.base == 3:   
-            base_y = specimen.get_y_min_at_x(marker.position)
+            base_y = get_y_min_at_x(marker.position, exp_data, cal_data)
         elif marker.base == 4:
-            base_y = specimen.get_y_max_at_x(marker.position)
+            base_y = get_y_max_at_x(marker.position, exp_data, cal_data)
             
         plot_marker_line(marker, offset, base_y, axes)
         plot_marker_text(marker, offset, marker_scale, base_y, axes)
@@ -106,6 +146,18 @@ def plot_hatches(specimen, offset, scale, axes):
     y0 = offset
     y1 = offset + max(specimen.max_intensity * scale, 1.0)
     
+    #these are easier to just remove for now, not too expensive
+    leftborder, hatch, rightborder = getattr(specimen, "__plot_hatches_artists", (None, None, None))
+    if leftborder: 
+        try: leftborder.remove()
+        except: pass  
+    if hatch:
+        try: hatch.remove()
+        except: pass  
+    if rightborder: 
+        try: rightborder.remove()
+        except: pass  
+    
     #Create & add new hatches:
     for i, (x0, x1) in enumerate(zip(*specimen.exclusion_ranges.get_raw_model_data())):
         leftborder = axes.axvline(x0, y0, y1, c=settings.EXCLUSION_LINES)
@@ -113,17 +165,50 @@ def plot_hatches(specimen, offset, scale, axes):
             x0, x1, y0, y1, fill=True, hatch="/", 
             facecolor=settings.EXCLUSION_FOREG, 
             edgecolor=settings.EXCLUSION_LINES, linewidth=0)
-        rightborder = axes.axvline(x1, y0, y1, c=settings.EXCLUSION_LINES)
+        rightborder = axes.axvline(x1, y0, y1, c=settings.EXCLUSION_LINES)    
 
 def plot_label(specimen, labels, label_offset, axes):
-    text = Text(
-        text=specimen.label, x=settings.PLOT_LEFT-0.05, y=label_offset, 
+    text = getattr(specimen, "__plot_label_artist", None)
+    props = dict(
+        text=specimen.label, 
+        x=settings.PLOT_LEFT-0.05, 
+        y=label_offset, 
         clip_on=False,
-        horizontalalignment='right', verticalalignment='center', 
+        horizontalalignment='right', 
+        verticalalignment='center', 
         transform=transforms.blended_transform_factory(axes.get_figure().transFigure, axes.transData)
     )
-    axes.add_artist(text)
+    if text:
+        for key in props: getattr(text, "set_%s"%key)(props[key])
+    else:
+        text = Text(**props)
+    if not text in axes.get_children():
+        axes.add_artist(text)
     labels.append(text)
+    specimen.__plot_label_artist = text
+
+def apply_transform(data, scale=1, offset=0, cap=0):
+    data_x, data_y = data
+    data_y = np.array(data_y) #make a copy
+    if cap > 0:
+        np.copyto(data_y, [cap], where=(data_y>=cap)) #copy the cap where values are larger then cap
+    print offset, data_y
+    data_y = data_y * scale + offset #scale and offset the capped data
+    return data_x, data_y
+
+def plot_pattern(pattern, axes, scale=1, offset=0, cap=0):
+    #setup or update the line       
+       
+    line = getattr(pattern, "__plot_line", matplotlib.lines.Line2D([],[]))
+    
+    line.update(dict(
+        data=apply_transform(pattern.xy_store.get_raw_model_data(), scale=scale, offset=offset, cap=cap),
+        color=pattern.color,
+        linewidth=pattern.lw
+    ))
+    if not line in axes.get_lines():
+        axes.add_line(line)
+    pattern.__plot_line = line
 
 def plot_specimen(project, specimen, labels, label_offset, 
         offset, scale, marker_scale, axes):
@@ -132,16 +217,130 @@ def plot_specimen(project, specimen, labels, label_offset,
         offset and scale
     """
     # Plot the patterns;
-    specimen.set_transform_factors(scale, offset)
-    axes.add_line(specimen.calculated_pattern)    
-    axes.add_line(specimen.experimental_pattern)
+        
+    if specimen.display_experimental:
+        pattern = specimen.experimental_pattern
+        
+        #plot the experimental pattern:
+        plot_pattern(pattern, axes, scale=scale, offset=offset, cap=pattern.cap_value)
+        
+        #get some common data for the next lines:        
+        x_data, y_data = pattern.xy_store.get_raw_model_data()
+        xmin, xmax = (np.min(x_data), np.max(x_data)) if x_data.size > 0 else (0, 0)
+        ymin, ymax = (np.min(y_data), np.max(y_data)) if y_data.size > 0 else (0, 0)
+        
+        ########################################################################
+        #plot the background pattern:
+        bg_line = getattr(pattern, "__plot_bg_line", matplotlib.lines.Line2D([],[], c="#660099", lw="2"))
+        if pattern.bg_type == 0 and pattern._bg_position != 0.0:
+            bg_line.update(dict(
+                data = apply_transform(([xmin, xmax], [pattern.bg_position, pattern.bg_position]), scale=scale, offset=offset),
+                visible = True
+            ))
+        elif pattern.bg_type == 1 and pattern.bg_pattern != None:
+            bg_line.update(dict(
+                data = apply_transform((x_data, (pattern.bg_pattern * pattern.bg_scale) + pattern.bg_position), scale=scale, offset=offset),
+                visible = True
+            ))
+        else:
+            bg_line.update(dict(
+                data = ([],[]),
+                visible = True
+            ))
+            
+        if bg_line.get_visible() and not bg_line in axes.get_lines():
+            axes.add_line(bg_line)
+        elif not bg_line.get_visible():
+            try: bg_line.remove()
+            except: pass
+        pattern.__plot_bg_line = bg_line
+        ########################################################################
+        
+        ########################################################################
+        #plot the smooth pattern:        
+        smooth_line = getattr(pattern, "__plot_smooth_line", matplotlib.lines.Line2D([],[], c="#660099", lw="2"))
+        
+        if int(pattern.smooth_degree) > 1:
+            data = x_data, smooth(y_data, degree)
+        else:
+            data = [],[]
+        smooth_line.update(dict(
+            data = apply_transform(data, scale=scale, offset=offset),
+            visible = bool(pattern.smooth_degree > 1)
+        ))
+        if smooth_line.get_visible() and not smooth_line in axes.get_lines():
+            axes.add_line(smooth_line)
+        elif not smooth_line.get_visible():
+            try: smooth_line.remove()
+            except: pass
+        pattern.__plot_smooth_line = smooth_line
+        ########################################################################
+            
+        ########################################################################
+        #plot the shift & reference lines:       
+        shifted_line = getattr(pattern, "__plot_shifted_line", matplotlib.lines.Line2D([],[], c="#660099", lw="2"))
+        reference_line = getattr(pattern, "__plot_reference_line", matplotlib.lines.Line2D([],[], c="#660099", lw="2", ls="--"))
+        
+        if pattern.shift_value!=0.0:
+            shifted_line.update(dict(
+                data=apply_transform((x_data-pattern._shift_value, y_data.copy()), scale=scale, offset=offset),
+                visible=True
+            ))
+            position = specimen.parent.goniometer.get_2t_from_nm(pattern.shift_position)
+            reference_line.update(dict(
+                data=apply_transform(([position, position], [0, ymax]), scale=scale, offset=offset),
+                visible = True
+            ))
+            if not shifted_line in axes.get_lines():
+                axes.add_line(shifted_line)
+            if not reference_line in axes.get_lines():
+                axes.add_line(reference_line)
+        else:
+            shifted_line.set_data([],[])
+            shifted_line.set_visible(False)
+            try: shifted_line.remove()
+            except: pass
+            reference_line.set_data([],[])
+            reference_line.set_visible(False)
+            try: reference_line.remove()
+            except: pass
+        pattern.__plot_shifted_line = shifted_line
+        pattern.__plot_reference_line = reference_line
+        ########################################################################
+        
+    if specimen.display_calculated:   
+        pattern = specimen.calculated_pattern
+        plot_pattern(pattern, axes, scale=scale, offset=offset)
+        
+        #fetch x data, y data and linewidth for the phase patterns:
+        x_data = pattern.xy_store._model_data_x
+        y_data_n = pattern.xy_store._model_data_y
+        lw = pattern.lw
+        
+        #setup or update the calculated lines (phases)
+        for i, phase in enumerate(pattern.phases):
+            phase_line = getattr(phase, "__plot_phase_lines", dict()).get(
+                specimen,
+                matplotlib.lines.Line2D([],[])
+            )
+            phase_line.update(dict(
+                data=apply_transform((x_data, y_data_n[i+1]), scale=scale, offset=offset),
+                color=phase.display_color,
+                linewidth=lw
+            ))
+            if not hasattr(phase, "__plot_phase_lines"):
+                phase.__plot_phase_lines = dict() #TODO this should probably be a sort of cache (limit number of entries to 10 or so)
+            if not phase_line in axes.get_lines():
+                axes.add_line(phase_line)
+            phase.__plot_phase_lines[specimen] = phase_line
+    
     # exclusion ranges;
     plot_hatches(specimen, offset, scale, axes)
     # markers;
     plot_markers(specimen, offset, scale, marker_scale, axes)
     # & label:
     plot_label(specimen, labels, label_offset, axes)
-    
+       
 def plot_specimens(project, specimens, axes):
     """
         Plots multiple specimens within the context of a project
@@ -193,11 +392,18 @@ def plot_specimens(project, specimens, axes):
     return labels
     
 def plot_mixture(mixture, axes):
-    axes.text(1.0, 1.0,
-        "\n".join(["{}: {:>5.1f}".format(phase, fraction*100.0) for phase, fraction in zip(mixture.phases, mixture.fractions)]),
+    text = getattr(mixture, "__plot_text", None)
+    props = dict(x=1.0, y=1.0,
+        text=u"\n".join([u"{}: {:>5.1f}".format(phase, fraction*100.0) for phase, fraction in zip(mixture.phases, mixture.fractions)]),
         multialignment='right',
         horizontalalignment='right',
         verticalalignment='top',
-        transform = axes.transAxes)
-        
-    
+        transform = axes.transAxes
+    )
+    if text:
+        for key in props: getattr(text, "set_%s"%key)(props[key])
+    else:
+        text = Text(**props)
+    if not text in axes.get_children():
+        axes.add_artist(text)
+    mixture.__plot_text = text

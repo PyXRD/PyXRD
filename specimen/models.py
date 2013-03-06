@@ -53,6 +53,7 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
         PropIntel(name="exclusion_ranges",     label="Excluded ranges",                    data_type=object, is_column=True,  storable=True,   has_widget=True),
         PropIntel(name="markers",              label="Markers",                            data_type=object, is_column=True,  storable=True),
         PropIntel(name="statistics",           label="Statistics",                         data_type=object, is_column=True),
+        PropIntel(name="exp_cap_value",        label="Cut-off value",                      data_type=float,   is_column=True,  storable=True,   has_widget=True),
         PropIntel(name="calc_color",           label="Calculated color",                   data_type=str,    is_column=True,  storable=True,   has_widget=True),
         PropIntel(name="inherit_calc_color",   label="Use default color",                  data_type=bool,   is_column=True,  storable=True,   has_widget=True),
         PropIntel(name="exp_color",            label="Experimental color",                 data_type=str,    is_column=True,  storable=True,   has_widget=True),
@@ -220,11 +221,15 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
     def set_exp_color_value(self, value):
         if value != self._exp_color:
             self._exp_color = value
-            self.experimental_pattern.color = value
-    
-    def set_transform_factors(self, scale, offset):
-        self.experimental_pattern.set_transform_factors(scale, offset)
-        self.calculated_pattern.set_transform_factors(scale, offset)
+            self.experimental_pattern.color = value      
+     
+    @property
+    def exp_cap_value(self):
+        """The value used to cut-off experimental data"""
+        return self.experimental_pattern.cap_value
+    @exp_cap_value.setter
+    def exp_cap_value(self, value):
+        self.experimental_pattern.cap_value = value
        
     _markers = None
     def get_markers_value(self): return self._markers
@@ -245,11 +250,10 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
                  display_experimental=True, display_phases=False, display_stats_in_lbl=True,
                  display_vshift=0.0, display_vscale=1.0, 
                  experimental_pattern = None, calculated_pattern = None, exclusion_ranges = None, markers = None,
-                 phase_indeces=None, phase_uuids=None, calc_color=None, exp_color=None,
+                 phase_indeces=None, phase_uuids=None, calc_color=None, exp_color=None, exp_cap_value=None,
                  calc_lw=None, exp_lw=None, inherit_calc_lw=True, inherit_exp_lw=True,
                  inherit_calc_color=True, inherit_exp_color=True, parent=None, **kwargs):
-        ChildModel.__init__(self, parent=parent)
-        Storable.__init__(self)
+        super(Specimen, self).__init__(parent=parent)
                
         self.needs_update = Signal()
                
@@ -287,6 +291,8 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
                 experimental_pattern, 
                 ExperimentalLine(label="Experimental Profile", color=self.exp_color, lw=self.exp_lw, parent=self), 
                 child=True)
+
+        self.exp_cap_value = exp_cap_value or 0.0
         
         exclusion_ranges = exclusion_ranges or self.get_depr(kwargs, None, "data_exclusion_ranges")
         self.exclusion_ranges = self.parse_init_arg(exclusion_ranges, XYListStore())
@@ -356,9 +362,9 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
                 header = f.readline().replace("\n", "")
                 ays = specimens[0].experimental_pattern.load_data(data=f, format=format, has_header=False, clear=True)            
             name = u(os.path.basename(filename))
-            specimens[0].sample_name, sep, sample_names = map(unicode, header.partition("- columns: "))
+            specimens[0].sample_name, sep, sample_names = map(lambda s: unicode(s, errors='replace'), header.partition("- columns: "))
             if ays:
-                sample_names = map(unicode, sample_names.split(", ")[1:])
+                sample_names = sample_names.split(u", ")[1:]
                 for i, ay in enumerate(ays):
                     spec = Specimen(parent=parent)
                     spec.experimental_pattern.set_data(ay[:,0],ay[:,1])
@@ -404,22 +410,7 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
                 new_marker = Marker("%%.%df" % (3 + min(int(log(nm, 10)), 0)) % nm, parent=self, position=x, base=base)
                 self.markers.append(new_marker)
             i += 1
-            
-    def get_y_min_at_x(self, x):
-        """ 
-            Get the lowest value for both experimental and calculated data on
-            position x (in °2-theta)
-        """
-        return min(self.experimental_pattern.get_y_at_x(x), 
-                   self.calculated_pattern.get_y_at_x(x))
-    def get_y_max_at_x(self, x):
-        """ 
-            Get the highest value for both experimental and calculated data on
-            position x (in °2-theta)
-        """
-        return max(self.experimental_pattern.get_y_at_x(x), 
-                   self.calculated_pattern.get_y_at_x(x))
-            
+               
     def get_exclusion_selector(self, x):
         """
         Get the numpy selector array for non-excluded data
@@ -488,7 +479,7 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
                 theta_range,
                 total_intensity,
                 phase_intensities, 
-                *zip(*[ (phase.display_color, phase.name) for phase in phases if phase!=None]))
+                phases)
             
             #update stats:
             self.statistics.update_statistics()
@@ -679,6 +670,7 @@ class Marker(ChildModel, Storable, ObjectListStoreChildMixin, CSVMixin):
         PropIntel(name="position",      data_type=float,   storable=True, has_widget=True),
         PropIntel(name="x_offset",      data_type=float,   storable=True, has_widget=True),
         PropIntel(name="y_offset",      data_type=float,   storable=True, has_widget=True),
+        PropIntel(name="align",         data_type=str,     storable=True, has_widget=True),
         PropIntel(name="color",         data_type=float,   storable=True, has_widget=True),
         PropIntel(name="base",          data_type=float,   storable=True, has_widget=True),
         PropIntel(name="angle",         data_type=float,   storable=True, has_widget=True, inh_name="inherit_angle"),
@@ -717,8 +709,6 @@ class Marker(ChildModel, Storable, ObjectListStoreChildMixin, CSVMixin):
     def get_inherit_angle_value(self): return self._inherit_angle
     def set_inherit_angle_value(self, value):
         self._inherit_angle = bool(value)
-        if self._text!=None:
-            self._text.set_rotation(90-self.angle)
         self.needs_update.emit()
             
     _angle = 0.0
@@ -729,33 +719,35 @@ class Marker(ChildModel, Storable, ObjectListStoreChildMixin, CSVMixin):
             return self._angle
     def set_angle_value(self, value):
         self._angle = value
-        if self._text!=None:
-            self._text.set_rotation(90-self.angle)
         self.needs_update.emit()
      
     def cbb_callback(self, prop_name, value):
-        self.needs_update.emit()  
-    style = MultiProperty(settings.MARKER_STYLE, lambda i: i, cbb_callback, { 
-        "none": "Display at base", "solid": "Solid", 
-        "dashed": "Dash", "dotted": "Dotted", 
-        "dashdot": "Dash-Dotted", "offset": "Display at Y-offset" 
-    })    
+        self.needs_update.emit() 
+    
+    align = MultiProperty(settings.MARKER_ALIGN, lambda i: i, cbb_callback, { 
+        "left": "Left align", 
+        "center": "Centered", 
+        "right": "Right align"
+    })  
     
     _bases = { 0: "X-axis", 1: "Experimental profile" }
     if not settings.VIEW_MODE:
         _bases.update({ 2: "Calculated profile", 3: "Lowest of both", 4: "Highest of both" })
     base = MultiProperty(settings.MARKER_BASE, int, cbb_callback, _bases)
     
-    _vline = None
-    _text = None
-    
+    style = MultiProperty(settings.MARKER_STYLE, lambda i: i, cbb_callback, { 
+        "none": "Display at base", "solid": "Solid", 
+        "dashed": "Dash", "dotted": "Dotted", 
+        "dashdot": "Dash-Dotted", "offset": "Display at Y-offset" 
+    })
+        
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
     def __init__(self, label=None, visible=None, position=None, 
              x_offset=None, y_offset=None, 
              color=None, base=None, angle=None,
-             inherit_angle=True, style=None, parent=None, **kwargs):
+             inherit_angle=True, align=None, style=None, parent=None, **kwargs):
         ChildModel.__init__(self, parent=parent)
         Storable.__init__(self)
         
@@ -767,10 +759,11 @@ class Marker(ChildModel, Storable, ObjectListStoreChildMixin, CSVMixin):
         self.x_offset = float(x_offset or self.get_depr(kwargs, 0.0, "data_x_offset"))
         self.y_offset = float(y_offset or self.get_depr(kwargs, 0.05, "data_y_offset"))
         self.color = color or self.get_depr(kwargs, settings.MARKER_COLOR, "data_color")
-        self.base = int(base if base!=None else self.get_depr(kwargs, 1, "data_base"))
+        self.base = int(base if base!=None else self.get_depr(kwargs, settings.MARKER_BASE, "data_base"))
         self.inherit_angle = inherit_angle
         self.angle = float(angle or self.get_depr(kwargs, 0.0, "data_angle"))
-        self.style = style or self.get_depr(kwargs, "none", "data_style")
+        self.align = align or settings.MARKER_ALIGN        
+        self.style = style or self.get_depr(kwargs, settings.MARKER_STYLE, "data_style")
         
     # ------------------------------------------------------------
     #      Methods & Functions

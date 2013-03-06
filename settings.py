@@ -21,6 +21,7 @@ CALCULATED_LINEWIDTH = 2.0
 MARKER_COLOR = "#000000"
 MARKER_BASE = 1
 MARKER_STYLE = "none"
+MARKER_ALIGN = "left"
 
 EXCLUSION_FOREG = "#999999"
 EXCLUSION_LINES = "#333333"
@@ -37,12 +38,12 @@ PLOT_HEIGHT = PLOT_TOP - PLOT_BOTTOM
 STATS_PLOT_BOTTOM = 0.10
 
 OUTPUT_PRESETS = [
-    ("Landscape Large print", 8000, 4800, 300),
-    ("Landscape Medium print", 6000, 3800, 300),
-    ("Landscape Small print", 4000, 2800, 300),
-    ("Portrait Large print", 4800, 8000, 300),
-    ("Portrait Medium print", 3800, 6000, 300),
-    ("Portrait Small print", 2800, 4000, 300),
+    ("Landscape Large print", 8000, 4800, 300.0),
+    ("Landscape Medium print", 6000, 3800, 300.0),
+    ("Landscape Small print", 4000, 2800, 300.0),
+    ("Portrait Large print", 4800, 8000, 300.0),
+    ("Portrait Medium print", 3800, 6000, 300.0),
+    ("Portrait Small print", 2800, 4000, 300.0),
 ]
 
 def _get_ratio(angle, stretch=False, plot_left=PLOT_LEFT):

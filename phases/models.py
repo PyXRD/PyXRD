@@ -112,10 +112,7 @@ class UnitCellProperty(ChildModel, Storable, ComponentPropMixin, RefinementValue
     #      Initialisation and other internals
     # ------------------------------------------------------------
     def __init__(self, name="", value=0.0, enabled=False, factor=0.0, constant=0.0, prop=None, parent=None, **kwargs):
-        ChildModel.__init__(self, parent=parent)
-        Storable.__init__(self)
-        for cls in [ComponentPropMixin, RefinementValue]:
-            cls.__init__(self)
+        super(UnitCellProperty, self).__init__(parent=parent)
                
         self.name = name or self.get_depr(kwargs, self.name, "data_name")
         self.value = value or self.get_depr(kwargs, self._value, "data_value")
@@ -310,10 +307,7 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin,
                  inherit_default_c=False, inherit_delta_c=False,
                  inherit_layer_atoms=False, inherit_interlayer_atoms=False, inherit_atom_relations=False, 
                  linked_with_index = None, linked_with_uuid = None, parent=None, **kwargs):
-        ChildModel.__init__(self, parent=parent)
-        Storable.__init__(self)
-        for cls in [ObjectListStoreChildMixin, ObjectListStoreParentMixin, RefinementGroup]:
-            cls.__init__(self)
+        super(Component, self).__init__(parent=parent)
         
         self.name = name or self.get_depr(kwargs, self.name, "data_name")
 
@@ -753,10 +747,7 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin,
                  inherit_display_color=False, inherit_sigma_star=False,
                  inherit_CSDS_distribution=False, inherit_probabilities=False, 
                  parent=None, **kwargs):
-        ChildModel.__init__(self, parent=parent)
-        Storable.__init__(self)
-        for cls in [ObjectListStoreParentMixin, ObjectListStoreChildMixin, RefinementGroup]:
-            cls.__init__(self)
+        super(Phase, self).__init__(parent=parent)
         
         self._dirty = True
         self._cached_diffracted_intensities = dict()  

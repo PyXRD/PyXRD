@@ -99,7 +99,7 @@ class SpecimenController(DialogController, DialogMixin, ObjectTreeviewMixin):
                     ad = Adapter(self.model, name)
                     ad.connect_widget(self.view["specimen_%s" % name], getter=get_color_val)
                     self.adapt(ad)
-                elif name in ["calc_lw", "exp_lw"]:
+                elif name in ["calc_lw", "exp_lw", "exp_cap_value"]:
                     self.adapt(name, "specimen_%s" % name)
                 elif name in ("sample_length", "abs_scale", "bg_shift"):
                     FloatEntryValidator(self.view["specimen_%s" % name])
@@ -417,6 +417,10 @@ class EditMarkerController(BaseController):
                     ctrl_setup_combo_with_list(self, 
                         self.view["marker_style"],
                         "style", "_styles")
+                elif name == "align":
+                    ctrl_setup_combo_with_list(self, 
+                        self.view["marker_align"],
+                        "align", "_aligns")
                 elif name == "base":
                     ctrl_setup_combo_with_list(self,
                         self.view["marker_base"],

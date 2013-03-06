@@ -22,7 +22,7 @@ from mpl_toolkits.axisartist import Subplot
 
 import settings
 
-from generic.plot.plotters import plot_specimens, plot_mixture
+from generic.plot.plotters import plot_specimens, plot_mixture, plot_pattern
 from generic.controllers import DialogMixin
 
 #TODO:
@@ -94,7 +94,7 @@ class PlotController (DialogMixin):
         cmb_presets = builder.get_object("cmb_presets")
         
         #setup combo with presets:
-        cmb_store =  gtk.ListStore(str, float, float, float)
+        cmb_store =  gtk.ListStore(str, int, int, float)
         for row in settings.OUTPUT_PRESETS:
             cmb_store.append(row)
         cmb_presets.clear()
@@ -230,7 +230,7 @@ class MainPlotController (PlotController):
             self.plot.set_position(settings.get_plot_stats_position(self.xdiff, stretch=self.stretch, plot_left=self.plot_left))
             
             self.figure.add_axes(self.stats_plot)
-            self.stats_plot.add_line(res_pattern)
+            plot_pattern(res_pattern, self.stats_plot)
             self.stats_plot.axhline(ls=":", c="k")
 
             self.stats_plot.set_position(settings.get_stats_plot_position(self.xdiff, stretch=self.stretch, plot_left=self.plot_left)) 

@@ -2,7 +2,7 @@
 VERSION = "0.4"
 
 DEBUG = False
-VIEW_MODE = True
+VIEW_MODE = False
 BGSHIFT = True
 
 LOG_FILENAME = 'errors.log'

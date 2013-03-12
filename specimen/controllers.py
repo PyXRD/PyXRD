@@ -246,6 +246,18 @@ class SpecimenController(DialogController, DialogMixin, ObjectTreeviewMixin):
                                      on_confirm, parent=self.view.get_top_widget())
         return True
         
+    def on_export_experimental_data(self, *args, **kwargs):
+        def on_accept(dialog):
+            filename = self.extract_filename(dialog)
+            if filename[-3:].lower() == "dat":
+                self.model.experimental_pattern.save_data(filename)
+            if filename[-2:].lower() == "rd":
+                self.run_information_dialog("RD file format not supported (yet)!", parent=self.view.get_top_widget())
+        self.run_save_dialog(title="Select file for export",
+                             on_accept_callback=on_accept, 
+                             parent=self.view.get_top_widget())
+        return True
+        
     def on_btn_export_experimental_data_clicked(self, widget, data=None):
         return self.on_export_experimental_data()
         

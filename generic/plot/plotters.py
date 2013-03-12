@@ -391,10 +391,17 @@ def plot_specimens(project, specimens, axes):
         
     return labels
     
-def plot_mixture(mixture, axes):
-    text = getattr(mixture, "__plot_text", None)
+def plot_mixtures(project, mixtures, axes):
+    text = getattr(project, "__plot_mixture_text", None)
+    
+    str_text = u""
+    for mixture in mixtures:
+        str_text += u"%s:\n" % mixture.name
+        str_text += u"\n".join([u"{}: {:>5.1f}".format(phase, fraction*100.0) for phase, fraction in zip(mixture.phases, mixture.fractions)])
+        str_text += u"\n"
+    
     props = dict(x=1.0, y=1.0,
-        text=u"\n".join([u"{}: {:>5.1f}".format(phase, fraction*100.0) for phase, fraction in zip(mixture.phases, mixture.fractions)]),
+        text=str_text,
         multialignment='right',
         horizontalalignment='right',
         verticalalignment='top',
@@ -406,4 +413,4 @@ def plot_mixture(mixture, axes):
         text = Text(**props)
     if not text in axes.get_children():
         axes.add_artist(text)
-    mixture.__plot_text = text
+    project.__plot_mixture_text = text

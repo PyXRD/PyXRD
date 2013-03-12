@@ -22,7 +22,7 @@ from mpl_toolkits.axisartist import Subplot
 
 import settings
 
-from generic.plot.plotters import plot_specimens, plot_mixture, plot_pattern
+from generic.plot.plotters import plot_specimens, plot_mixtures, plot_pattern
 from generic.controllers import DialogMixin
 
 #TODO:
@@ -194,8 +194,14 @@ class MainPlotController (PlotController):
         
         if project and specimens:
             self.labels = plot_specimens(project, specimens, self.plot)
+            # get mixtures for the selected specimens:
+            mixtures = []
             for mixture in project.mixtures.iter_objects():
-                plot_mixture(mixture, self.plot)
+                for specimen in specimens:
+                    if specimen in mixture.specimens:
+                        mixtures.append(mixture)
+                        break
+            plot_mixtures(project, mixtures, self.plot)
         self.update_axes(single=single, stats=stats, project=project)
         
     def update_axes(self, single=True, stats=(False,None), project=None):

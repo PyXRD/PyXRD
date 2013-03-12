@@ -322,7 +322,7 @@ class CalculatedLine(PyXRDLine):
     # ------------------------------------------------------------  
     def set_data(self, x, y, phase_patterns=None, phases=None):
         self.phases = phases
-        super(CalculatedLine, self).set_data(x, y, *phase_patterns, names=[phase.name for phase in phases])
+        super(CalculatedLine, self).set_data(x, y, *phase_patterns, names=[phase.name if phase!=None else "NOT SET" for phase in phases])
 
     pass #end of class
     

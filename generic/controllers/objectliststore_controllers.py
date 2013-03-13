@@ -171,7 +171,7 @@ class ObjectListStoreMixin(ObjectTreeviewMixin):
         if unselect_all: selection.unselect_all()
         if obj:
             path = self.liststore.on_get_path(obj)
-            selection.select_path(path)
+            if path!=None: selection.select_path(path)
         
     def select_objects(self, objs):
         for obj in objs: self.select_object(obj, False)

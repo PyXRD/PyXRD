@@ -284,7 +284,7 @@ class Project(ChildModel, Storable, ObjectListStoreParentMixin):
             for mixture in self.mixtures.iter_objects():
                 mixture.apply_result()
             t2 = time.time()
-            print '%s took %0.3f ms' % ("before_needs_update", (t2-t1)*1000.0)
+            if settings.DEBUG: print '%s took %0.3f ms' % ("before_needs_update", (t2-t1)*1000.0)
             after()
             self.before_needs_update_lock = False
 
@@ -330,7 +330,6 @@ class Project(ChildModel, Storable, ObjectListStoreParentMixin):
    
     def get_max_intensity(self):
         max_intensity = 0
-        print self.parent
         if self.parent != None:
             for specimen in self.parent.current_specimens:
                 max_intensity = max(specimen.max_intensity, max_intensity)

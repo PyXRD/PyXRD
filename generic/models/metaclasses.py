@@ -15,18 +15,29 @@ from gtkmvc.support.metaclasses import ObservablePropertyMetaMT
 def get_new_uuid():
     return unicode(get_uuid().hex)
 
-def get_unique_list(seq):
+def get_unique_list(seq): #FIXME move to utils or something
     seen = set()
     seen_add = seen.add
-    return [ x for x in seq if x not in seen and not seen_add(x)]
+    return [ x for x in seq if x not in seen and not seen_add(x)]   
 
 class PyXRDMeta(ObservablePropertyMetaMT):
 
-    ref_info_name = "%s_ref_info"
+    hooks = []
+    @staticmethod
+    def register_hook(class_handler, pre_handler, post_handler):
+        PyXRDMeta.hooks.append((class_handler, pre_handler, post_handler))
 
     def __init__(cls, name, bases, d):
         #get the model intel for this class type (excluding bases for now):        
         __model_intel__ = get_unique_list(d.get("__model_intel__", list()))
+    
+        #First execute any class hooks that might have been registered,
+        # They can alter the arguments passed to the init function,
+        # so they can alter a lot ;-)
+        for handlers in PyXRDMeta.hooks:
+            class_handler, pre_handler, post_handler = handlers
+            if callable(post_handler): 
+                class_handler(cls, name, bases, d, __model_intel__)    
 
         #properties to be generated base on model intel named tuples:
         keys = [
@@ -49,19 +60,7 @@ class PyXRDMeta(ObservablePropertyMetaMT):
         #loop over the variables and fetch any custom values for this class (if present):
         for key in keys:
             d[key] = get_unique_list(d[key]) if key in d else list()
-        
-        #loop over the prop intels and add refinement info prop intels for
-        #refinable scalars (floats and ints), their actual initialisation is
-        #taken care of in the __call__ method of this metaclass
-        ref_info_intels = list()
-        for prop in __model_intel__:
-            if prop.refinable and prop.data_type in (float, int):
-                from properties import PropIntel
-                ref_info_name = PyXRDMeta.ref_info_name % prop.name
-                ref_info_intels.append(PropIntel(name=ref_info_name, data_type=object, storable=True))
-                set_attribute(ref_info_name, None)
-        __model_intel__.extend(ref_info_intels)
-        
+                
         #loop over the model intel and generate observables list:
         for prop in __model_intel__:
             if prop.observable: 
@@ -120,19 +119,14 @@ class PyXRDMeta(ObservablePropertyMetaMT):
             del kwargs["uuid"]
         else:
             uuid = get_new_uuid()
-        
-        ref_infos = dict()
-        for prop_intel in cls.__model_intel__:
-            if prop_intel.refinable and prop_intel.data_type in (float, int):
-                from generic.models import RefinementInfo
-                ref_info_name = PyXRDMeta.ref_info_name % prop_intel.name
-                
-                info_args = kwargs.pop(ref_info_name, None)
-                if info_args:
-                    info = RefinementInfo.from_json(*info_args)
-                else:
-                    info = RefinementInfo(minimum = prop_intel.minimum, maximum = prop_intel.maximum)
-                ref_infos[ref_info_name] = info
+
+        # Call any hooks that are registered at this point, store return value
+        # so we can pass it back to any       
+        hook_retvals = dict()
+        for handlers in PyXRDMeta.hooks:
+            class_handler, pre_handler, post_handler = handlers
+            if callable(pre_handler): 
+                hook_retvals[handlers] = pre_handler(cls, args, kwargs)
         
         #Create instance & set the uuid:
         instance = ObservablePropertyMetaMT.__call__(cls, *args, **kwargs)
@@ -141,11 +135,16 @@ class PyXRDMeta(ObservablePropertyMetaMT):
         #Add a reference to the instance for each model intel, 
         # so function calls (e.g. labels) work as expected,
         # and set the ref info attributes
+        # Additionally call any hooks that are registered at this point
         for prop_intel in instance.__model_intel__:
-            prop_intel.container = instance           
-        for ref_info_name, info in ref_infos.iteritems():
-            setattr(instance, ref_info_name, info)
-
+            prop_intel.container = instance            
+        for handlers in PyXRDMeta.hooks:
+            class_handler, pre_handler, post_handler = handlers
+            if callable(post_handler): 
+                post_handler(instance, hook_retvals[handlers])
+        
+        del hook_retvals
+        
         #Add object to the object pool so other objects can 
         # retrieve it when restored from disk:
         pyxrd_object_pool.add_object(instance)

@@ -891,7 +891,10 @@ class Statistics(ChildModel):
             if not (np.isnan(t) or np.isinf(t)):
                 sm1 += t        
                 sm2 += abs(exp[i])
-        return sqrt(sm1 / sm2) * 100
+        try:
+            return sqrt(sm1 / sm2) * 100
+        except:
+            return 0
 
     @staticmethod
     def _calc_Re(exp, calc, num_params):

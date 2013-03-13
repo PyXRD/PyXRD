@@ -192,7 +192,6 @@ def apply_transform(data, scale=1, offset=0, cap=0):
     data_y = np.array(data_y) #make a copy
     if cap > 0:
         np.copyto(data_y, [cap], where=(data_y>=cap)) #copy the cap where values are larger then cap
-    print offset, data_y
     data_y = data_y * scale + offset #scale and offset the capped data
     return data_x, data_y
 

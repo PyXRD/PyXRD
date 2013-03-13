@@ -274,23 +274,35 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
         self._calc_lw = calc_lw or self.calc_lw
         self._exp_lw = exp_lw or self.exp_lw  
 
+        ##
+        ## This is terrible: linewidth and color should ideally be stored in the pattern object itself...
+        ##
+
         calculated_pattern = calculated_pattern or self.get_depr(kwargs, None, "data_calculated_pattern")
         if isinstance(calculated_pattern, dict) and "type" in calculated_pattern and calculated_pattern["type"]=="generic.models/XYData":
+            calculated_pattern["properties"]["lw"] = self.calc_lw
+            calculated_pattern["properties"]["color"] = self.calc_color
             self.calculated_pattern = CalculatedLine.from_json(parent=self, **calculated_pattern["properties"])
         else:
+            initkwargs = dict(label="Calculated Profile",
+                color=self.calc_color, lw=self.calc_lw, parent=self)
             self.calculated_pattern = self.parse_init_arg(
                 calculated_pattern,
-                CalculatedLine(label="Calculated Profile", color=self.calc_color, lw=self.calc_lw, parent=self),
-                child=True)
+                CalculatedLine(**initkwargs),
+                child=True, **initkwargs)
 
         experimental_pattern = experimental_pattern or self.get_depr(kwargs, None, "data_experimental_pattern")
         if isinstance(experimental_pattern, dict) and "type" in experimental_pattern and experimental_pattern["type"]=="generic.models/XYData":
+            experimental_pattern["properties"]["lw"] = self.exp_lw
+            experimental_pattern["properties"]["color"] = self.exp_color
             self.experimental_pattern = ExperimentalLine.from_json(parent=self, **experimental_pattern["properties"])
         else:
+            initkwargs = dict(label="Experimental Profile",
+                color=self.exp_color, lw=self.exp_lw, parent=self)
             self.experimental_pattern = self.parse_init_arg(
                 experimental_pattern, 
-                ExperimentalLine(label="Experimental Profile", color=self.exp_color, lw=self.exp_lw, parent=self), 
-                child=True)
+                ExperimentalLine(**initkwargs), 
+                child=True, **initkwargs)
 
         self.exp_cap_value = exp_cap_value or 0.0
         

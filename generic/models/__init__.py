@@ -217,7 +217,7 @@ class PyXRDLine(ChildModel, Storable):
         self._color = value
         self.needs_update.emit()
 
-    _lw = 2
+    _lw = 2.0
     @property
     def lw(self): return self._lw
     @lw.setter

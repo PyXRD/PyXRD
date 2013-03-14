@@ -1,8 +1,8 @@
 ### General Information ###
-VERSION = "0.4"
+VERSION = "0.4.1"
 
 DEBUG = False
-VIEW_MODE = False
+VIEW_MODE = True
 BGSHIFT = True
 
 LOG_FILENAME = 'errors.log'
@@ -159,7 +159,12 @@ def apply_runtime_settings(no_gui=False):
         if not no_gui:
             import matplotlib
 
-            font = {'weight' : 'heavy', 'size': 14}
+            font = {
+                'weight' : 'heavy', 'size': 14,
+                'sans-serif' : 'Arial',
+                'family' : 'sans-serif'
+            }
+            
             matplotlib.rc('font', **font)
             mathtext = {'default': 'regular', 'fontset': 'stixsans'}
             matplotlib.rc('mathtext', **mathtext)

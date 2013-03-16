@@ -1,5 +1,5 @@
 ### General Information ###
-VERSION = "0.4.1"
+VERSION = "0.4.2"
 
 DEBUG = False
 VIEW_MODE = True
@@ -125,6 +125,9 @@ def get_def_dir(name):
     elif name=="DEFAULT_PHASES":
         global DEFAULT_PHASES_DIR
         return get_abs_dir(DEFAULT_PHASES_DIR)
+    elif name=="DEFAULT_COMPONENTS":
+        global DEFAULT_COMPONENTS_DIR
+        return get_abs_dir(DEFAULT_COMPONENTS_DIR)
     elif name=="DEFAULT_GONIOS":
         global DEFAULT_GONIOS_DIR
         return get_abs_dir(DEFAULT_GONIOS_DIR)
@@ -172,6 +175,13 @@ def apply_runtime_settings(no_gui=False):
         
         import sys, os
         BASE_DIR = os.path.abspath(os.path.dirname(sys.argv[0]))
+        
+        #Check if the default directories exist,
+        #if not create them:
+        for dirname in ["DEFAULT_DATA", "DEFAULT_PHASES", "DEFAULT_COMPONENTS", "DEFAULT_GONIOS"]:
+            path = get_def_dir(dirname)
+            if not os.path.exists(path):
+                os.makedirs(path)
         
         print "Runtime settings applied"
     SETTINGS_APPLIED = True

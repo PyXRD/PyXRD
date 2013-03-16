@@ -297,7 +297,7 @@ class ExperimentalLine(PyXRDLine):
         if self.smooth_degree > 0:
             degree = int(self.smooth_degree)
             smoothed = smooth(y_data, degree)
-            self.set_ydata(smoothed)
+            self.set_data(x_data, smoothed)
         self.smooth_degree = 0.0
         self.needs_update.emit()
             

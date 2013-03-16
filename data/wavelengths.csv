@@ -1,0 +1,17 @@
+#Description,wavelength - α1, α2 and β values from Holzer et al. (1997, "Kα1,2 and Kβ1,3 x-ray emission lines of the 3d transition metals"), ᾱ values (weighted average) from Bearden, J. A. (1967, "X-Ray Wavelengths"). 
+CrKα1,0.2289760
+CoKα1,0.1789010
+CuKα1,0.1540598
+MoKα1,0.0709319
+CrKα2,0.2293663
+CoKα2,0.1792900
+CuKα2,0.1544426
+MoKα2,0.0713609
+CrKᾱ,0.229100
+CoKᾱ,0.179026
+CuKᾱ,0.154184
+MoKᾱ,0.071073
+CrKβ,0.2084920
+CoKβ,0.1620830
+CuKβ,0.1392250
+MoKβ,0.0632305

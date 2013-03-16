@@ -1,0 +1,19 @@
+{
+    "type": "goniometer.models/Goniometer", 
+    "properties": {
+        "data_soller1": 2.3, 
+        "data_soller2": 2.3, 
+        "data_lambda": 0.154056, 
+        "data_radius": 24.0, 
+        "data_divergence": 0.5, 
+        "data_min_2theta": 3.0,        
+        "data_max_2theta": 45.0,
+        "steps": 2500,
+        "has_ads": false,
+        "ads_fact": 1.0,
+        "ads_phase_fact": 1.0,
+        "ads_phase_shift": 0.0,
+        "ads_const": 0.0,
+        "uuid": "e93e4084b63311e19e5e782bcbaf1941"
+    }
+}

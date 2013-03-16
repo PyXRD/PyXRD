@@ -14,6 +14,8 @@ import matplotlib
 import matplotlib.transforms as transforms
 from matplotlib.text import Text
 
+from generic.utils import smooth
+
 def plot_marker_text(marker, offset, marker_scale, base_y, axes):
     """
         Plots a markers text using the given offset and scale
@@ -260,7 +262,7 @@ def plot_specimen(project, specimen, labels, label_offset,
         smooth_line = getattr(pattern, "__plot_smooth_line", matplotlib.lines.Line2D([],[], c="#660099", lw="2"))
         
         if int(pattern.smooth_degree) > 1:
-            data = x_data, smooth(y_data, degree)
+            data = x_data, smooth(y_data, pattern.smooth_degree)
         else:
             data = [],[]
         smooth_line.update(dict(

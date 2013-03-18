@@ -7,6 +7,7 @@ BGSHIFT = True
 
 LOG_FILENAME = 'errors.log'
 UPDATE_URL = 'http://users.ugent.be/~madumon/pyxrd/'
+MANUAL_URL = UPDATE_URL
 
 ### Factor to multiply the CSDS average with to obtain the maximum CSDS ###
 LOG_NORMAL_MAX_CSDS_FACTOR = 2.5
@@ -159,6 +160,7 @@ def apply_runtime_settings(no_gui=False):
     global SETTINGS_APPLIED
     global BASE_DIR
     if not SETTINGS_APPLIED:
+        import sys, os
         if not no_gui:
             import matplotlib
 
@@ -173,7 +175,6 @@ def apply_runtime_settings(no_gui=False):
             matplotlib.rc('mathtext', **mathtext)
             #matplotlib.rc('text', **{'usetex':True})
         
-        import sys, os
         BASE_DIR = os.path.abspath(os.path.dirname(sys.argv[0]))
         
         #Check if the default directories exist,

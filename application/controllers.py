@@ -199,6 +199,14 @@ class AppController (BaseController, DialogMixin):
     # ------------------------------------------------------------
     #      GTK Signal handlers - general
     # ------------------------------------------------------------
+    def on_manual_activate(self, widget, data=None):
+        try:
+            import webbrowser
+            webbrowser.open(settings.MANUAL_URL)
+        except:
+            pass #ignore errors
+        return True
+    
     def on_statistics_expand(self, widget, param_spec, data=None):
         self.model.statistics_visible = widget.get_expanded()
         self.view['statistics_expander'].set_expanded(self.model.statistics_visible)

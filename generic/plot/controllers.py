@@ -17,6 +17,7 @@ from matplotlib.text import Text
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanvasGTK
 from matplotlib.font_manager import FontProperties
+from pyparsing import ParseFatalException
 
 from mpl_toolkits.axisartist import Subplot
 
@@ -70,7 +71,7 @@ class PlotController (DialogMixin):
         try:
             self.figure.canvas.draw()
             self.fix_after_drawing()
-        except matplotlib.pyparsing.ParseFatalException as e:
+        except ParseFatalException as e:
             print "Catching unhandled exception: %s" % e
     
     def fix_after_drawing(self):

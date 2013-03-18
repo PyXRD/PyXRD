@@ -63,6 +63,7 @@ if __name__ == "__main__":
     
         #disable unity overlay scrollbars as they cause bugs with modal windows
         os.environ['LIBOVERLAY_SCROLLBAR'] = '0'
+        os.environ['UBUNTU_MENUPROXY'] = ""
             
         if not settings.DEBUG:
             warnings.simplefilter('ignore', Warning)            

@@ -166,9 +166,11 @@ def apply_runtime_settings(no_gui=False):
 
             font = {
                 'weight' : 'heavy', 'size': 14,
-                'sans-serif' : 'Arial',
-                'family' : 'sans-serif'
+                'family' : 'sans-serif',
             }
+            
+            if sys.platform == "win32":
+               font['sans-serif'] = 'Verdana, Arial, Helvetica, sans-serif' 
             
             matplotlib.rc('font', **font)
             mathtext = {'default': 'regular', 'fontset': 'stixsans'}

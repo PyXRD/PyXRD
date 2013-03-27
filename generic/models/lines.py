@@ -307,7 +307,7 @@ class ExperimentalLine(PyXRDLine):
     def shift_data(self):
         x_data, y_data = self.xy_store.get_raw_model_data()
         if self.shift_value != 0.0:
-            self.set_xdata(x_data - self.shift_value)
+            self.set_data(x_data - self.shift_value, y_data)
             if self.specimen:
                 for marker in self.specimen.markers._model_data:
                     marker.position = marker.position-self.shift_value

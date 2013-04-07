@@ -2,7 +2,7 @@
 VERSION = "0.4.2"
 
 DEBUG = False
-VIEW_MODE = True
+VIEW_MODE = False
 BGSHIFT = True
 
 LOG_FILENAME = 'errors.log'
@@ -113,6 +113,7 @@ DEFAULT_DATA_DIR = 'data/'
 DEFAULT_PHASES_DIR = '%sdefault phases/' % DEFAULT_DATA_DIR
 DEFAULT_COMPONENTS_DIR = '%sdefault components/' % DEFAULT_DATA_DIR
 DEFAULT_GONIOS_DIR = '%sdefault goniometers/' % DEFAULT_DATA_DIR
+APPLICATION_ICONS_DIR = "application/icons/"
 
 COMPOSITION_CONV_FILE = "%scomposition_conversion.csv" % DEFAULT_DATA_DIR
 ATOM_SCAT_FACTORS_FILE = "%satomic scattering factors.atl" % DEFAULT_DATA_DIR
@@ -132,6 +133,9 @@ def get_def_dir(name):
     elif name=="DEFAULT_GONIOS":
         global DEFAULT_GONIOS_DIR
         return get_abs_dir(DEFAULT_GONIOS_DIR)
+    elif name=="APPLICATION_ICONS_DIR":
+        global APPLICATION_ICONS_DIR
+        return get_abs_dir(APPLICATION_ICONS_DIR)
     else:
         return get_abs_dir("")
         
@@ -161,8 +165,12 @@ def apply_runtime_settings(no_gui=False):
     global BASE_DIR
     if not SETTINGS_APPLIED:
         import sys, os
+        
+        BASE_DIR = os.path.abspath(os.path.dirname(sys.argv[0]))
+        
         if not no_gui:
             import matplotlib
+            import gtk
 
             font = {
                 'weight' : 'heavy', 'size': 14,
@@ -176,8 +184,17 @@ def apply_runtime_settings(no_gui=False):
             mathtext = {'default': 'regular', 'fontset': 'stixsans'}
             matplotlib.rc('mathtext', **mathtext)
             #matplotlib.rc('text', **{'usetex':True})
-        
-        BASE_DIR = os.path.abspath(os.path.dirname(sys.argv[0]))
+            
+            # Load all additional icons
+            iconfactory = gtk.IconFactory()
+            for root, dirnames, filenames in os.walk(get_def_dir("APPLICATION_ICONS_DIR")):
+                for filename in filenames:
+                    if filename.endswith(".png"):
+                        stock_id = filename[:-4] #remove extensions
+                        pixbuf = gtk.gdk.pixbuf_new_from_file("%s%s" % (get_def_dir("APPLICATION_ICONS_DIR"), filename))
+                        iconset = gtk.IconSet(pixbuf)
+                        iconfactory.add(stock_id, iconset)
+            iconfactory.add_default()
         
         #Check if the default directories exist,
         #if not create them:

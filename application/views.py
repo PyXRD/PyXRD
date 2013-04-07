@@ -51,8 +51,6 @@ class AppView(BaseView):
         BaseView.__init__(self, *args, **kwargs)
 
         self.reset_all_views()
-        
-        self.get_top_widget().set_icon(gtk.gdk.pixbuf_new_from_file(os.path.join(__file__[:__file__.rfind(os.sep)], "icon.png")))
         if not settings.DEBUG:
             self.get_top_widget().maximize()
 

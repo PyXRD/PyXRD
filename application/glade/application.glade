@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
   <!-- interface-requires gtk+ 3.0 -->
-  <object class="GtkAccelGroup" id="PyXRDGroup"/>
   <object class="GtkActionGroup" id="persistent_actions">
     <property name="accel_group">PyXRDGroup</property>
     <child>
@@ -9,7 +8,7 @@
         <property name="label" translatable="yes">New Project</property>
         <property name="short_label" translatable="yes">New</property>
         <property name="tooltip" translatable="yes">Create a new project</property>
-        <property name="stock_id">gtk-new</property>
+        <property name="stock_id">424-new-file</property>
         <property name="always_show_image">True</property>
         <signal name="activate" handler="on_new_project_activate" swapped="no"/>
       </object>
@@ -20,7 +19,7 @@
         <property name="label" translatable="yes">Open Project</property>
         <property name="short_label" translatable="yes">Open</property>
         <property name="tooltip" translatable="yes">Open a previously saved project</property>
-        <property name="stock_id">gtk-open</property>
+        <property name="stock_id">144-folder-open</property>
         <property name="always_show_image">True</property>
         <signal name="activate" handler="on_open_project_activate" swapped="no"/>
       </object>
@@ -31,7 +30,7 @@
         <property name="label" translatable="yes">Exit</property>
         <property name="short_label" translatable="yes">Exit</property>
         <property name="tooltip" translatable="yes">Quits this program</property>
-        <property name="stock_id">gtk-quit</property>
+        <property name="stock_id">063-power</property>
         <property name="always_show_image">True</property>
       </object>
       <accelerator key="w" modifiers="GDK_CONTROL_MASK"/>
@@ -45,7 +44,7 @@
         <property name="label" translatable="yes">Edit Mixtures</property>
         <property name="short_label" translatable="yes">Mixtures</property>
         <property name="tooltip" translatable="yes">Edit the mixtures and find optimal solutions using the multi-specimen method</property>
-        <property name="stock_id">gtk-edit</property>
+        <property name="stock_id">427-blender</property>
         <property name="always_show_image">True</property>
         <signal name="activate" handler="on_edit_mixtures" swapped="no"/>
       </object>
@@ -65,7 +64,7 @@
         <property name="label" translatable="yes">Edit Goniometer</property>
         <property name="short_label" translatable="yes">Goniometer</property>
         <property name="tooltip" translatable="yes">Edit the goniometer properties used to calculate XRD-profiles</property>
-        <property name="stock_id">gtk-edit</property>
+        <property name="stock_id">425-goniometer</property>
         <property name="always_show_image">True</property>
         <signal name="activate" handler="on_edit_gonio_activate" swapped="no"/>
       </object>
@@ -76,7 +75,7 @@
         <property name="label" translatable="yes">Edit Atom Types</property>
         <property name="short_label" translatable="yes">Atoms</property>
         <property name="tooltip" translatable="yes">Edit the atom types in this project</property>
-        <property name="stock_id">gtk-edit</property>
+        <property name="stock_id">426-atom</property>
         <property name="always_show_image">True</property>
         <signal name="activate" handler="on_edit_atom_types_activate" swapped="no"/>
       </object>
@@ -87,7 +86,7 @@
         <property name="label">Add Specimen</property>
         <property name="short_label" translatable="yes">Add Specimen</property>
         <property name="tooltip" translatable="yes">Add a new specimen to this project</property>
-        <property name="stock_id">gtk-add</property>
+        <property name="stock_id">190-circle-plus</property>
         <property name="always_show_image">True</property>
         <signal name="activate" handler="on_add_specimen_activate" swapped="no"/>
       </object>
@@ -103,7 +102,7 @@
         <property name="label" translatable="yes">Save Project</property>
         <property name="short_label" translatable="yes">Save</property>
         <property name="tooltip" translatable="yes">Save this project</property>
-        <property name="stock_id">gtk-save</property>
+        <property name="stock_id">342-hdd</property>
         <property name="always_show_image">True</property>
         <signal name="activate" handler="on_save_project_activate" swapped="no"/>
       </object>
@@ -114,7 +113,7 @@
         <property name="label" translatable="yes">Save Project as</property>
         <property name="short_label" translatable="yes">Save as</property>
         <property name="tooltip" translatable="yes">Save this project using another filename</property>
-        <property name="stock_id">gtk-save-as</property>
+        <property name="stock_id">342-hdd-as</property>
         <property name="always_show_image">True</property>
         <signal name="activate" handler="on_save_project_as_activate" swapped="no"/>
       </object>
@@ -125,7 +124,7 @@
         <property name="label" translatable="yes">Edit Project</property>
         <property name="short_label" translatable="yes">Edit Project</property>
         <property name="tooltip" translatable="yes">Edit the properties of this project</property>
-        <property name="stock_id">gtk-edit</property>
+        <property name="stock_id">280-settings</property>
         <property name="always_show_image">True</property>
         <signal name="activate" handler="on_edit_project_activate" swapped="no"/>
       </object>
@@ -135,7 +134,7 @@
         <property name="label" translatable="yes">Edit Phases</property>
         <property name="short_label" translatable="yes">Phases</property>
         <property name="tooltip" translatable="yes">Edit the phases in this project</property>
-        <property name="stock_id">gtk-edit</property>
+        <property name="stock_id">139-adjust-alt</property>
         <property name="always_show_image">True</property>
         <signal name="activate" handler="on_edit_phases_activate" swapped="no"/>
       </object>
@@ -150,7 +149,7 @@
         <property name="label" translatable="yes">Shift pattern</property>
         <property name="short_label" translatable="yes">Shift</property>
         <property name="tooltip" translatable="yes">Shift pattern using a reference peak</property>
-        <property name="stock_id">gtk-edit</property>
+        <property name="stock_id">422-shift</property>
         <property name="always_show_image">True</property>
         <signal name="activate" handler="on_shift_data" swapped="no"/>
       </object>
@@ -161,7 +160,7 @@
         <property name="label" translatable="yes">Smooth data</property>
         <property name="short_label" translatable="yes">Smooth</property>
         <property name="tooltip" translatable="yes">Smooth noisy data</property>
-        <property name="stock_id">gtk-edit</property>
+        <property name="stock_id">421-smooth</property>
         <property name="always_show_image">True</property>
         <signal name="activate" handler="on_smooth_data" swapped="no"/>
       </object>
@@ -171,7 +170,7 @@
         <property name="label" translatable="yes">Remove Background</property>
         <property name="short_label" translatable="yes">Background</property>
         <property name="tooltip" translatable="yes">Remove the background</property>
-        <property name="stock_id">gtk-edit</property>
+        <property name="stock_id">420-background</property>
         <property name="always_show_image">True</property>
         <signal name="activate" handler="on_remove_background" swapped="no"/>
       </object>
@@ -190,7 +189,7 @@
         <property name="label" translatable="yes">Add Marker</property>
         <property name="short_label" translatable="yes">Add Marker</property>
         <property name="tooltip" translatable="yes">Add Marker</property>
-        <property name="stock_id">gtk-add</property>
+        <property name="stock_id">190-circle-plus</property>
         <property name="always_show_image">True</property>
       </object>
     </child>
@@ -199,7 +198,7 @@
         <property name="label" translatable="yes">Edit Markers</property>
         <property name="short_label" translatable="yes">Edit Markers</property>
         <property name="tooltip" translatable="yes">Edit Markers</property>
-        <property name="stock_id">gtk-edit</property>
+        <property name="stock_id">066-tags</property>
         <property name="always_show_image">True</property>
         <signal name="activate" handler="on_edit_markers_activate" swapped="no"/>
       </object>
@@ -209,7 +208,7 @@
         <property name="label" translatable="yes">Sample Point</property>
         <property name="short_label" translatable="yes">Sample Point</property>
         <property name="tooltip" translatable="yes">Sample Point</property>
-        <property name="stock_id">gtk-color-picker</property>
+        <property name="stock_id">090-eyedropper</property>
         <property name="always_show_image">True</property>
         <signal name="activate" handler="on_sample_point" swapped="no"/>
       </object>
@@ -249,7 +248,7 @@
         <property name="label" translatable="yes">Save Graph</property>
         <property name="short_label" translatable="yes">Save Graph</property>
         <property name="tooltip" translatable="yes">Save Graph</property>
-        <property name="stock_id">gtk-floppy</property>
+        <property name="stock_id">423-save-graph</property>
         <property name="always_show_image">True</property>
         <signal name="activate" handler="on_save_graph" swapped="no"/>
       </object>
@@ -259,7 +258,7 @@
         <property name="label" translatable="yes">Refresh Graph</property>
         <property name="short_label" translatable="yes">Refresh</property>
         <property name="tooltip" translatable="yes">Refresh Graph</property>
-        <property name="stock_id">gtk-refresh</property>
+        <property name="stock_id">081-refresh</property>
         <property name="always_show_image">True</property>
         <signal name="activate" handler="on_refresh_graph" swapped="no"/>
       </object>
@@ -269,12 +268,13 @@
         <property name="label" translatable="yes">Remove Specimen</property>
         <property name="short_label" translatable="yes">Remove Specimen</property>
         <property name="tooltip" translatable="yes">Remove a specimen from this project</property>
-        <property name="stock_id">gtk-remove</property>
+        <property name="stock_id">191-circle-minus</property>
         <property name="always_show_image">True</property>
         <signal name="activate" handler="on_del_specimen_activate" swapped="no"/>
       </object>
     </child>
   </object>
+  <object class="GtkAccelGroup" id="PyXRDGroup"/>
   <object class="GtkWindow" id="main_window">
     <property name="width_request">1024</property>
     <property name="height_request">712</property>
@@ -284,7 +284,7 @@
     <property name="window_position">center</property>
     <property name="default_width">800</property>
     <property name="default_height">600</property>
-    <property name="icon">icon.png</property>
+    <property name="icon">../icons/pyxrd2.svg</property>
     <accel-groups>
       <group name="PyXRDGroup"/>
     </accel-groups>
@@ -555,7 +555,7 @@
           <object class="GtkToolbar" id="toolbar_actions">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="toolbar_style">both</property>
+            <property name="toolbar_style">icons</property>
             <child>
               <object class="GtkToolButton" id="tbtn_new_project">
                 <property name="related_action">new_project</property>
@@ -607,9 +607,7 @@
                 <property name="related_action">save_graph</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="label" translatable="yes">Save Graph</property>
                 <property name="use_underline">True</property>
-                <property name="stock_id">gtk-floppy</property>
               </object>
               <packing>
                 <property name="expand">False</property>
@@ -712,6 +710,7 @@
                 <property name="related_action">edit_phases</property>
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
+                <property name="tooltip_text" translatable="yes">Phases</property>
                 <property name="use_underline">True</property>
               </object>
               <packing>
@@ -725,6 +724,66 @@
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
                 <property name="label" translatable="yes">Atoms</property>
+                <property name="use_underline">True</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="homogeneous">True</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkSeparatorToolItem" id="separator1">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="homogeneous">True</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkToolButton" id="btn_edit_markers">
+                <property name="related_action">edit_markers</property>
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="has_tooltip">True</property>
+                <property name="tooltip_markup" translatable="yes">Edit Marker</property>
+                <property name="tooltip_text" translatable="yes">Edit Marker</property>
+                <property name="label" translatable="yes">Edit markers</property>
+                <property name="use_underline">True</property>
+                <property name="stock_id">066-tags</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="homogeneous">True</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkToolButton" id="btn_sample">
+                <property name="related_action">sample_point</property>
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="has_tooltip">True</property>
+                <property name="tooltip_markup" translatable="yes">Identify Points</property>
+                <property name="tooltip_text" translatable="yes">Identify Points</property>
+                <property name="label" translatable="yes">Select Point</property>
+                <property name="use_underline">True</property>
+                <property name="stock_id">090-eyedropper</property>
+              </object>
+              <packing>
+                <property name="expand">False</property>
+                <property name="homogeneous">True</property>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkToolButton" id="btn_refresh">
+                <property name="related_action">refresh_graph</property>
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="has_tooltip">True</property>
+                <property name="tooltip_markup" translatable="yes">Refresh the graph</property>
+                <property name="tooltip_text" translatable="yes">Refresh the graph</property>
+                <property name="label" translatable="yes">Refresh</property>
                 <property name="use_underline">True</property>
               </object>
               <packing>
@@ -820,7 +879,6 @@
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="n_rows">4</property>
-                    <property name="n_columns">2</property>
                     <child>
                       <object class="GtkLabel" id="lbl_output">
                         <property name="visible">True</property>
@@ -832,101 +890,8 @@
                         <property name="use_markup">True</property>
                       </object>
                       <packing>
-                        <property name="right_attach">2</property>
                         <property name="x_options">GTK_FILL</property>
                         <property name="y_options"/>
-                      </packing>
-                    </child>
-                    <child>
-                      <object class="GtkToolbar" id="graph_toolbar">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="orientation">vertical</property>
-                        <property name="toolbar_style">icons</property>
-                        <child>
-                          <object class="GtkToolButton" id="btn_edit_markers">
-                            <property name="related_action">edit_markers</property>
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="tooltip_text" translatable="yes">Edit Marker</property>
-                            <property name="label" translatable="yes">Edit markers</property>
-                            <property name="use_underline">True</property>
-                          </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="homogeneous">True</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkSeparatorToolItem" id="separator1">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                          </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="homogeneous">True</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkToolButton" id="btn_sample">
-                            <property name="related_action">sample_point</property>
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="tooltip_text" translatable="yes">Identify Points</property>
-                            <property name="label" translatable="yes">Select Point</property>
-                            <property name="use_underline">True</property>
-                          </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="homogeneous">True</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkToolButton" id="btn_refresh">
-                            <property name="related_action">refresh_graph</property>
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="tooltip_text" translatable="yes">Refresh the graph</property>
-                            <property name="label" translatable="yes">Refresh</property>
-                            <property name="use_underline">True</property>
-                            <property name="stock_id">gtk-refresh</property>
-                          </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="homogeneous">True</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkSeparatorToolItem" id="seperator2">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                          </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="homogeneous">True</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkToolButton" id="btn_view_statistics">
-                            <property name="related_action">view_statistics</property>
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="tooltip_text" translatable="yes">View statistics</property>
-                            <property name="label" translatable="yes">View Statistics</property>
-                            <property name="use_underline">True</property>
-                          </object>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="homogeneous">True</property>
-                          </packing>
-                        </child>
-                      </object>
-                      <packing>
-                        <property name="left_attach">1</property>
-                        <property name="right_attach">2</property>
-                        <property name="top_attach">1</property>
-                        <property name="bottom_attach">4</property>
-                        <property name="x_options">GTK_FILL</property>
                       </packing>
                     </child>
                     <child>

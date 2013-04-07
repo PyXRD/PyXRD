@@ -7,29 +7,22 @@
 # a letter to Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
 
 import os
-from traceback import format_exc
-from math import tan, sin, pi, radians, log, sqrt
-from warnings import warn
+from math import pi, log
 
-import gtk
-import gobject
-from gtkmvc.model import Model, Signal, Observer
-
-import matplotlib
-import matplotlib.transforms as transforms
-from matplotlib.text import Text
+from gtkmvc.model import Signal, Observer
 
 import numpy as np
-from scipy import stats
 
 import settings
-from generic.utils import interpolate, print_timing, u
+from generic.utils import print_timing, u
 from generic.io import Storable
-from generic.models import PyXRDLine, ExperimentalLine, CalculatedLine, ChildModel, PropIntel, MultiProperty
-from generic.models.mixins import CSVMixin, ObjectListStoreChildMixin, ObjectListStoreParentMixin
-from generic.models.metaclasses import pyxrd_object_pool
+from generic.models import ExperimentalLine, CalculatedLine, ChildModel, PropIntel
+from generic.models.mixins import ObjectListStoreChildMixin, ObjectListStoreParentMixin
 from generic.models.treemodels import ObjectListStore, XYListStore
-from generic.peak_detection import multi_peakdetect, peakdetect
+from generic.peak_detection import peakdetect
+
+from markers import Marker
+from statistics import Statistics
 
 class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStoreChildMixin):
     #MODEL INTEL:
@@ -78,12 +71,12 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
     _display_vscale = 1.0
     _display_phases = False
     _display_stats_in_lbl = True
-    @Model.getter("sample_name", "name", "display_vshift", "display_vscale",
+    @ChildModel.getter("sample_name", "name", "display_vshift", "display_vscale",
          "display_phases", "display_stats_in_lbl",
          "display_calculated", "display_experimental")
     def get_name(self, prop_name):
         return getattr(self, "_%s" % prop_name)
-    @Model.setter("sample_name", "name", "display_vshift", "display_vscale",
+    @ChildModel.setter("sample_name", "name", "display_vshift", "display_vscale",
         "display_phases", "display_stats_in_lbl",
         "display_calculated", "display_experimental")
     def set_name(self, prop_name, value):
@@ -131,10 +124,10 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
     _abs_scale = 1.0
     _bg_shift = 0.0
     _absorption = 0.9
-    @Model.getter("sample_length", "abs_scale", "bg_shift", "absorption")
+    @ChildModel.getter("sample_length", "abs_scale", "bg_shift", "absorption")
     def get_sample_length_value(self, prop_name):
         return getattr(self, "_%s" % prop_name)
-    @Model.setter("sample_length", "abs_scale", "bg_shift", "absorption")
+    @ChildModel.setter("sample_length", "abs_scale", "bg_shift", "absorption")
     def set_sample_length_value(self, prop_name, value):
         setattr(self, "_%s" % prop_name, value)
         if self.parent:
@@ -551,368 +544,3 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
     pass #end of class
     
 Specimen.register_storable()
-    
-class ThresholdSelector(ChildModel):
-    
-    #MODEL INTEL:
-    __parent_alias__ = 'specimen'
-    __model_intel__ = [ #TODO add labels
-        PropIntel(name="pattern",                 data_type=str,    storable=True,    has_widget=True),
-        PropIntel(name="max_threshold",           data_type=float,  storable=True,    has_widget=True),
-        PropIntel(name="steps",                   data_type=int,    storable=True,    has_widget=True),
-        PropIntel(name="sel_threshold",           data_type=float,  storable=True,    has_widget=True),
-        PropIntel(name="sel_num_peaks",           data_type=int,    storable=True,    has_widget=True),
-        PropIntel(name="threshold_plot_data",     data_type=object, storable=True),
-    ]
-    
-    #PROPERTIES:
-    
-    pattern = MultiProperty(
-        "exp", 
-        lambda i: i, 
-        lambda self,p,v: self.update_threshold_plot_data(), 
-        { "exp": "Experimental Pattern", "calc": "Calculated Pattern" }
-    )    
-    
-    _max_threshold = 0.32
-    def get_max_threshold_value(self): return self._max_threshold
-    def set_max_threshold_value(self, value):
-        value = min(max(0, float(value)), 1) #set some bounds
-        if value != self._max_threshold:
-            self._max_threshold = value
-            self.update_threshold_plot_data()
-            
-    _steps = 20
-    def get_steps_value(self): return self._steps
-    def set_steps_value(self, value):
-        value = min(max(3, value), 50) #set some bounds
-        if value != self._steps:
-            self._steps = value
-            self.update_threshold_plot_data()
-            
-    _sel_threshold = 0.1
-    sel_num_peaks = 0
-    def get_sel_threshold_value(self): return self._sel_threshold
-    def set_sel_threshold_value(self, value):
-        if value != self._sel_threshold:
-            self._sel_threshold = value
-            deltas, numpeaks = self.threshold_plot_data
-            self.sel_num_peaks = int(interpolate(zip(deltas, numpeaks), self._sel_threshold))
-    
-    threshold_plot_data = None
-   
-    # ------------------------------------------------------------
-    #      Initialisation and other internals
-    # ------------------------------------------------------------ 
-    def __init__(self, max_threshold=None, steps=None, sel_threshold=None, parent=None):
-        ChildModel.__init__(self, parent=parent)
-        
-        self.max_threshold = max_threshold or self.max_threshold
-        self.steps = steps or self.steps
-        self.sel_threshold = sel_threshold or self.sel_threshold
-        
-        if self.parent.experimental_pattern.size > 0:
-            self.pattern == "exp"
-        else:
-            self.pattern == "calc"
-        
-        #self.update_threshold_plot_data()
-    
-    # ------------------------------------------------------------
-    #      Methods & Functions
-    # ------------------------------------------------------------
-    def get_xy(self):
-        if self._pattern == "exp":
-            data_x, data_y = self.parent.experimental_pattern.xy_store.get_raw_model_data()
-        elif self._pattern == "calc":
-            data_x, data_y = self.parent.calculated_pattern.xy_store.get_raw_model_data()
-        if data_y.size > 0:
-            data_y = data_y / np.max(data_y)
-        return data_x, data_y
-    
-    def update_threshold_plot_data(self):
-        if self.parent != None:
-            data_x, data_y = self.get_xy()
-            length = data_x.size
-            
-            if length > 2:
-                resolution = length / (data_x[-1] - data_x[0])
-                delta_angle = 0.05
-                window = int(delta_angle * resolution)
-                window += (window % 2)*2
-                
-                steps = max(self.steps, 2) - 1
-                factor = self.max_threshold / steps
-
-                deltas = [i*factor for i in range(0, self.steps)]
-                
-                numpeaks = []
-                maxtabs, mintabs = multi_peakdetect(data_y, data_x, 5, deltas)
-                for maxtab, mintab in zip(maxtabs, mintabs):
-                    numpeak = len(maxtab)
-                    numpeaks.append(numpeak)
-                numpeaks = map(float, numpeaks)
-                
-                #update plot:
-                self.threshold_plot_data = (deltas, numpeaks)
-                
-                #update auto selected threshold:
-                ln = 4
-                max_ln = len(deltas)
-                stop = False
-                while not stop:
-                    x = deltas[0:ln]
-                    y = numpeaks[0:ln]
-                    slope, intercept, R, p_value, std_err = stats.linregress(x,y)
-                    ln += 1
-                    if abs(R) < 0.95 or ln >= max_ln:
-                        stop = True
-                    peak_x = -intercept / slope                
-
-                self.sel_threshold = peak_x
-    pass #end of class
-            
-class Marker(ChildModel, Storable, ObjectListStoreChildMixin, CSVMixin):
-    
-    #MODEL INTEL:
-    __parent_alias__ = 'specimen'
-    __model_intel__ = [ #TODO add labels
-        PropIntel(name="label",         data_type=unicode, storable=True, has_widget=True, is_column=True),
-        PropIntel(name="visible",       data_type=bool,    storable=True, has_widget=True),
-        PropIntel(name="position",      data_type=float,   storable=True, has_widget=True),
-        PropIntel(name="x_offset",      data_type=float,   storable=True, has_widget=True),
-        PropIntel(name="y_offset",      data_type=float,   storable=True, has_widget=True),
-        PropIntel(name="align",         data_type=str,     storable=True, has_widget=True),
-        PropIntel(name="color",         data_type=float,   storable=True, has_widget=True),
-        PropIntel(name="base",          data_type=float,   storable=True, has_widget=True),
-        PropIntel(name="angle",         data_type=float,   storable=True, has_widget=True, inh_name="inherit_angle"),
-        PropIntel(name="inherit_angle", data_type=bool,    storable=True, has_widget=True),
-        PropIntel(name="style",         data_type=str,     storable=True, has_widget=True),
-        PropIntel(name="needs_update",  data_type=object),
-    ]
-    __csv_storables__ = [ (prop.name, prop.name) for prop in __model_intel__ ]
-    __store_id__ = "Marker"
-
-    #SIGNALS:
-    needs_update = None
-
-    #PROPERTIES:
-    _label = ""
-    def get_label_value(self): return self._label
-    def set_label_value(self, value):
-        self._label = value
-        self.liststore_item_changed()
-        self.needs_update.emit()
-    
-    _visible = True
-    _position = 0.0
-    _x_offset = 0.0
-    _y_offset = 0.05
-    _color = settings.MARKER_COLOR
-    @Model.getter("visible", "position", "x_offset", "y_offset", "color")
-    def get_plot_value(self, prop_name):
-        return getattr(self, "_%s" % prop_name)
-    @Model.setter("visible", "position", "x_offset", "y_offset", "color")
-    def set_plot_value(self, prop_name, value):
-        setattr(self, "_%s" % prop_name, value)
-        self.needs_update.emit()
-
-    _inherit_angle = True
-    def get_inherit_angle_value(self): return self._inherit_angle
-    def set_inherit_angle_value(self, value):
-        self._inherit_angle = bool(value)
-        self.needs_update.emit()
-            
-    _angle = 0.0
-    def get_angle_value(self):
-        if self.inherit_angle and self.parent!=None and self.parent.parent!=None:
-            return self.parent.parent.display_marker_angle
-        else:
-            return self._angle
-    def set_angle_value(self, value):
-        self._angle = value
-        self.needs_update.emit()
-     
-    def cbb_callback(self, prop_name, value):
-        self.needs_update.emit() 
-    
-    align = MultiProperty(settings.MARKER_ALIGN, lambda i: i, cbb_callback, { 
-        "left": "Left align", 
-        "center": "Centered", 
-        "right": "Right align"
-    })  
-    
-    _bases = { 0: "X-axis", 1: "Experimental profile" }
-    if not settings.VIEW_MODE:
-        _bases.update({ 2: "Calculated profile", 3: "Lowest of both", 4: "Highest of both" })
-    base = MultiProperty(settings.MARKER_BASE, int, cbb_callback, _bases)
-    
-    style = MultiProperty(settings.MARKER_STYLE, lambda i: i, cbb_callback, { 
-        "none": "Display at base", "solid": "Solid", 
-        "dashed": "Dash", "dotted": "Dotted", 
-        "dashdot": "Dash-Dotted", "offset": "Display at Y-offset" 
-    })
-        
-    # ------------------------------------------------------------
-    #      Initialisation and other internals
-    # ------------------------------------------------------------
-    def __init__(self, label=None, visible=None, position=None, 
-             x_offset=None, y_offset=None, 
-             color=None, base=None, angle=None,
-             inherit_angle=True, align=None, style=None, parent=None, **kwargs):
-        ChildModel.__init__(self, parent=parent)
-        Storable.__init__(self)
-        
-        self.needs_update = Signal()
-        
-        self.label = label or self.get_depr(kwargs, "", "data_label")
-        self.visible = visible or self.get_depr(kwargs, True, "data_visible")
-        self.position = float(position or self.get_depr(kwargs, 0.0, "data_position"))
-        self.x_offset = float(x_offset or self.get_depr(kwargs, 0.0, "data_x_offset"))
-        self.y_offset = float(y_offset or self.get_depr(kwargs, 0.05, "data_y_offset"))
-        self.color = color or self.get_depr(kwargs, settings.MARKER_COLOR, "data_color")
-        self.base = int(base if base!=None else self.get_depr(kwargs, settings.MARKER_BASE, "data_base"))
-        self.inherit_angle = inherit_angle
-        self.angle = float(angle or self.get_depr(kwargs, 0.0, "data_angle"))
-        self.align = align or settings.MARKER_ALIGN        
-        self.style = style or self.get_depr(kwargs, settings.MARKER_STYLE, "data_style")
-        
-    # ------------------------------------------------------------
-    #      Methods & Functions
-    # ------------------------------------------------------------
-    def get_nm_position(self):
-        if self.parent != None:
-            return self.parent.parent.goniometer.get_nm_from_2t(self.position)
-        else:
-            return 0.0
-        
-    def set_nm_position(self, position):
-        if self.parent != None:
-            self.position = self.parent.parent.goniometer.get_2t_from_nm(position)
-        else:
-            self.position = 0.0
-        
-    pass #end of class
-        
-Marker.register_storable()
-        
-class Statistics(ChildModel):
-
-    #MODEL INTEL:
-    __parent_alias__ = 'specimen'
-    __model_intel__ = [ #TODO add labels
-        PropIntel(name="points",            data_type=int,   has_widget=True),
-        PropIntel(name="residual_pattern",  data_type=object),
-        PropIntel(name="Rp",                data_type=float, has_widget=True),
-        PropIntel(name="Rwp",               data_type=float, has_widget=True),
-        PropIntel(name="Re",                data_type=float, has_widget=True),
-        PropIntel(name="chi2",              data_type=float, has_widget=True),
-        PropIntel(name="R2",                data_type=float, has_widget=True),
-    ]
-    
-    #PROPERTIES:
-    def set_parent_value(self, value):
-        ChildModel.set_parent_value(self, value)
-        self.update_statistics()
-       
-    def get_points_value(self):
-        try:
-            e_ex, e_ey, e_cx, e_cy = self.specimen.get_exclusion_xy()
-            return e_ex.size
-        except: pass
-        return 0
-
-    Rp = None
-    Rwp = None
-    Re = None
-    chi2 = None      
-    R2 = None
-    residual_pattern = None
-         
-    # ------------------------------------------------------------
-    #      Methods & Functions
-    # ------------------------------------------------------------ 
-    def _get_experimental(self):
-        if self.specimen != None:
-            x, y = self.specimen.experimental_pattern.xy_store.get_raw_model_data()
-            return x.copy(), y.copy()
-        else:
-            return None, None
-    def _get_calculated(self):
-        if self.specimen != None:
-            x, y = self.specimen.calculated_pattern.xy_store.get_raw_model_data()
-            return x.copy(), y.copy()
-        else:
-            return None, None 
-             
-    def scale_factor_y(self, offset):
-        return self.specimen.scale_factor_y(offset) if self.specimen else (1.0, offset)
-      
-    def update_statistics(self, num_params=0):
-        self.Rp = 0
-        self.Rwp = 0
-        self.Re = 0
-        self.chi2 = 0        
-        self.R2 = 0
-        if self.residual_pattern == None:
-            self.residual_pattern = PyXRDLine(label="Residual Data", color="#000000", parent=self)
-        
-        exp_x, exp_y = self._get_experimental()
-        cal_x, cal_y = self._get_calculated()
-
-        try:
-            if cal_y != None and exp_y != None and cal_y.size > 0 and exp_y.size > 0:
-                self.residual_pattern.set_data(exp_x, exp_y - cal_y)
-
-                e_ex, e_ey, e_cx, e_cy = self.specimen.get_exclusion_xy()
-
-                #self.chi2 = stats.chisquare(e_ey, e_cy)[0]
-                #if exp.size > 0:
-                self.R2 = self._calc_R2(e_ey, e_cy)
-                self.Rp  = self._calc_Rp(e_ey, e_cy)
-                self.Rwp = self._calc_Rwp(e_ey, e_cy)
-                self.Re = self._calc_Re(e_ey, e_cy, num_params)                
-                self.chi2 = (self.Rwp / self.Re) ** 2
-            else:
-                self.residual_pattern.clear()                    
-        except ValueError, ZeroDivisionError:
-            self.residual_pattern.clear()
-            print "Error occured when trying to calculate statistics, aborting calculation!"
-            print format_exc()
-           
-       
-    @staticmethod
-    def _calc_R2(exp, calc):
-        avg = sum(exp)/exp.size
-        sserr = np.sum((exp - calc)**2)
-        sstot = np.sum((exp - avg)**2)
-        return 1 - (sserr / sstot)
-        
-    @staticmethod
-    def _calc_Rp(exp, calc):
-        return np.sum(np.abs(exp - calc)) / np.sum(np.abs(exp)) * 100
-
-    @staticmethod
-    def _calc_Rwp(exp, calc):
-        #weighted Rp:   
-        # Rwp = Sqrt ( Sum[w * (obs - calc)²] / Sum[w * obs²] )  w = 1 / Iobs
-        sm1 = 0
-        sm2 = 0
-        for i in range(exp.size):
-            t = (exp[i] - calc[i])**2 / exp[i]
-            if not (np.isnan(t) or np.isinf(t)):
-                sm1 += t        
-                sm2 += abs(exp[i])
-        try:
-            return sqrt(sm1 / sm2) * 100
-        except:
-            return 0
-
-    @staticmethod
-    def _calc_Re(exp, calc, num_params):
-        # R expected:
-        # Re = Sqrt( (Points - Params) / Sum[ w * obs² ] )    
-        num_points = exp.size
-        return np.sqrt( (num_points - num_params) / np.sum(exp**2) ) * 100
-    
-    pass #end of class

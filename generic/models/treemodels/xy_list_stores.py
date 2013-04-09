@@ -335,6 +335,16 @@ class XYListStore(BaseObjectListStore, Storable):
         else:
             return np.array([], dtype=float), np.array([], dtype=float)
                 
+    def get_y_at_x(self, x, column=0):
+        """ 
+            Get the (interpolated) value for the y-column 'column' for
+            a given x value
+        """
+        if self._model_data_x.size:
+            return np.interp(x, self._model_data_x, self._model_data_y[column])
+        else:
+            return 0
+                
     def on_get_n_columns(self):
         return 1 + self._model_data_y.shape[0]
 

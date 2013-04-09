@@ -88,52 +88,29 @@ def plot_marker_line(marker, offset, base_y, axes):
         try: line.remove()
         except: pass  
     marker.__plot_line = line
-
-def get_y_at_x(x, data):
-    """ 
-        Get the value for x in data pattern
-    """
-    x_data, y_data = data
-    if len(x_data) > 0:
-        return np.interp(x, x_data, y_data)
-    else:
-        return 0
-
-def get_y_min_at_x(x, data1, data2):
-    """ 
-        Get the lowest value for x in both data patterns
-    """
-    return min(get_y_at_x(x, data1), 
-               get_y_at_x(x, data2))
-               
-def get_y_max_at_x(x, data1, data2):
-    """ 
-        Get the highest value for x in both data patterns
-    """
-    return max(get_y_at_x(x, data1), 
-               get_y_at_x(x, data2))
-
+    
 def plot_markers(specimen, offset, scale, marker_scale, axes):
     """
         Plots a specimens markers using the given offset and scale
     """
     
-    try:    exp_data = specimen.experimental_pattern.__plot_line.get_data()
-    except: exp_data = ([],[])
-    try:    cal_data = specimen.calculated_pattern.__plot_line.get_data()
-    except: cal_data = ([],[])
-    
     for marker in specimen.markers.iter_objects():
         base_y = 0
         
         if marker.base == 1:
-            base_y = get_y_at_x(marker.position, exp_data)
+            base_y = specimen.experimental_pattern.get_plotted_y_at_x(marker.position)
         elif marker.base == 2:
-            base_y = get_y_at_x(marker.position, cal_data)
+            base_y = specimen.calculated_pattern.get_plotted_y_at_x(marker.position)
         elif marker.base == 3:   
-            base_y = get_y_min_at_x(marker.position, exp_data, cal_data)
+            base_y = min(
+                specimen.experimental_pattern.get_plotted_y_at_x(marker.position),
+                specimen.calculated_pattern.get_plotted_y_at_x(marker.position)
+            )
         elif marker.base == 4:
-            base_y = get_y_max_at_x(marker.position, exp_data, cal_data)
+            base_y = max(
+                specimen.experimental_pattern.get_plotted_y_at_x(marker.position),
+                specimen.calculated_pattern.get_plotted_y_at_x(marker.position)
+            )
             
         plot_marker_line(marker, offset, base_y, axes)
         plot_marker_text(marker, offset, marker_scale, base_y, axes)

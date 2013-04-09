@@ -124,6 +124,15 @@ class PyXRDLine(ChildModel, Storable):
     
     def set_data(self, x, *y, **kwargs):
         self.xy_store.update_from_data(x, *y, **kwargs)
+        
+    def get_plotted_y_at_x(self, x):
+        try:
+         xdata, ydata = getattr(self, "__plot_line").get_data()
+         return np.interp(x, xdata, ydata)   
+        except AttributeError:
+            from traceback import print_exc
+            print_exc()
+            return 0
                
     def clear(self):
         self.xy_store.clear()

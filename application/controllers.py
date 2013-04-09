@@ -263,10 +263,10 @@ class AppController (BaseController, DialogMixin):
                 self.edc.enabled = False
                 self.edc.disconnect()
                 
-            exp_xy = self.model.current_specimen.experimental_pattern.xy_data.interpolate(x_pos)[0]
-            calc_xy = self.model.current_specimen.calculated_pattern.xy_data.interpolate(x_pos)[0]
+            exp_y = self.model.current_specimen.experimental_pattern.xy_store.get_y_at_x(x_pos)
+            calc_y = self.model.current_specimen.calculated_pattern.xy_store.get_y_at_x(x_pos)
             
-            self.run_information_dialog("Sampled point:\n\tExperimental data:\t( %.4f , %.4f )\n\tCalculated data:\t\t( %.4f , %.4f )" % (exp_xy + calc_xy), parent=self.view.get_toplevel())
+            self.run_information_dialog("Sampled point:\n\tExperimental data:\t( %.4f , %.4f )\n\tCalculated data:\t\t( %.4f , %.4f )" % (x_pos, exp_y, x_pos, calc_y), parent=self.view.get_toplevel())
                 
             self.ret.present()
         self.cid = self.fig.canvas.mpl_connect('button_press_event', onclick)

@@ -77,12 +77,16 @@ class SmoothDataView(DialogView):
     modal = True
     resizable = False
      
+    pass #end of class
+     
 class ShiftDataView(DialogView):
     title = "Shift Pattern"
     subview_builder = "specimen/glade/shifting.glade"
     subview_toplevel = "shift_pattern"
     modal = True
     resizable = False
+
+    pass #end of class
       
 class EditMarkersView(ObjectListStoreView):
     extra_widget_builder = "specimen/glade/find_peaks.glade"
@@ -93,11 +97,27 @@ class EditMarkersView(ObjectListStoreView):
         ObjectListStoreView.__init__(self, *args, **kwargs)
         
         self[self.subview_toplevel].child_set_property(self["frame_object_param"], "resize", False)
+
+    pass #end of class
+        
+class MatchMineralsView(DialogView):
+    title = "Match minerals"
+    subview_builder = "specimen/glade/match_minerals.glade"
+    subview_toplevel = "tbl_match_minerals"
+    modal = True
+    
+    def __init__(self, *args, **kwargs):
+        DialogView.__init__(self, *args, **kwargs)
+        self.tv_minerals = self["tv_minerals"]
+        self.tv_matches = self["tv_matches"]
+
+    pass #end of class
         
 class DetectPeaksView(DialogView):
     title = "Auto detect peaks"
     subview_builder = "specimen/glade/find_peaks_dialog.glade"
     subview_toplevel = "tbl_find_peaks"
+    modal = True
     resizable = False
     
     __widgets_to_hide__ = (
@@ -126,9 +146,13 @@ class DetectPeaksView(DialogView):
         self.graph_parent.add(self.matlib_canvas)
         self.graph_parent.show_all()
         
+    pass #end of class
+        
 class StatisticsView(BaseView):
     builder = "specimen/glade/statistics.glade"
     top = "statistics_box"
     
     def __init__(self, *args, **kwargs):
-        BaseView.__init__(self, *args, **kwargs)       
+        BaseView.__init__(self, *args, **kwargs)
+        
+    pass #end of class

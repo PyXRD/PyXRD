@@ -13,10 +13,92 @@ from scipy import stats
 
 import settings
 from generic.utils import interpolate
-from generic.io import Storable
+from generic.io import unicode_open, Storable
 from generic.models import ChildModel, PropIntel, MultiProperty
 from generic.models.mixins import CSVMixin, ObjectListStoreChildMixin
-from generic.peak_detection import multi_peakdetect
+from generic.peak_detection import multi_peakdetect, score_minerals
+
+class MineralScorer(ChildModel):
+    #MODEL INTEL:
+    __parent_alias__ = 'specimen'
+    __model_intel__ = [
+        PropIntel(name="matches",                 data_type=list,    has_widget=True),
+        PropIntel(name="minerals",                data_type=list,    has_widget=True),
+        PropIntel(name="matches_changed",         data_type=object,  has_widget=False, storable=False)
+    ]
+    
+    matches_changed = None
+    
+    _matches = None
+    def get_matches_value(self):
+        return self._matches
+    
+    _minerals = None
+    def get_minerals_value(self):
+        #Load them when accessed for the first time:
+        if self._minerals==None:
+            self._minerals = list()
+            with unicode_open(settings.get_def_file("MINERALS")) as f:
+                mineral = ""
+                abbreviation = ""
+                position_flag = True
+                peaks = []
+                for line in f:
+                    line = line.replace('\n', '')
+                    try:
+                        number = float(line)
+                        if position_flag:
+                            position = number
+                        else:
+                            intensity = number
+                            peaks.append((position, intensity))
+                        position_flag = not position_flag
+                    except ValueError:
+                        if mineral!="":
+                            self._minerals.append((mineral, abbreviation, peaks))
+                        position_flag = True
+                        if len(line) > 25:
+                            mineral = line[:24].strip()
+                        if len(line) > 49:
+                            abbreviation = line[49:].strip()
+                        peaks = []
+        sorted(self._minerals, key=lambda mineral:mineral[0])
+        return self._minerals
+    
+    # ------------------------------------------------------------
+    #      Initialisation and other internals
+    # ------------------------------------------------------------
+    def __init__(self, marker_peaks=[], *args, **kwargs):
+        super(MineralScorer, self).__init__(*args, **kwargs)
+        self._matches = []
+        self.matches_changed = Signal()
+        
+        self.marker_peaks = marker_peaks #position, intensity
+            
+    # ------------------------------------------------------------
+    #      Methods & Functions
+    # ------------------------------------------------------------
+    def auto_match(self):
+        self._matches = score_minerals(self.marker_peaks, self.minerals)
+        self.matches_changed.emit()
+    
+    def del_match(self, index):
+        if self.matches:
+            del self.matches[index]
+            self.matches_changed.emit()
+         
+    def add_match(self, name, abbreviation, peaks):
+        matches = score_minerals(self.marker_peaks, [(name, abbreviation, peaks)])
+        if len(matches):
+            name, abbreviation, peaks, matches, score = matches[0]
+        else:
+            matches, score = [], 0.
+        self.matches.append([name, abbreviation, peaks, matches, score])
+        sorted(self._matches, key=lambda match: match[-1], reverse=True)
+        self.matches_changed.emit()
+         
+    pass #end of class
+    
 
 class ThresholdSelector(ChildModel):
     
@@ -288,3 +370,4 @@ class Marker(ChildModel, Storable, ObjectListStoreChildMixin, CSVMixin):
     pass #end of class
         
 Marker.register_storable()
+    

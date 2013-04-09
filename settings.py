@@ -118,6 +118,7 @@ APPLICATION_ICONS_DIR = "application/icons/"
 COMPOSITION_CONV_FILE = "%scomposition_conversion.csv" % DEFAULT_DATA_DIR
 ATOM_SCAT_FACTORS_FILE = "%satomic scattering factors.atl" % DEFAULT_DATA_DIR
 WAVELENGTHS_FILE = "%swavelengths.csv" % DEFAULT_DATA_DIR
+MINERALS_FILE = "%smineral_references.csv" % DEFAULT_DATA_DIR
 
 def get_def_dir(name):
     """Get absolute paths for default directories"""
@@ -150,6 +151,9 @@ def get_def_file(name):
     elif name=="WAVELENGTHS":
         global WAVELENGTHS_FILE
         return get_abs_dir(WAVELENGTHS_FILE)
+    elif name=="MINERALS":
+        global MINERALS_FILE
+        return get_abs_dir(MINERALS_FILE)
     else:
         return get_abs_dir("")
     

@@ -7,6 +7,75 @@
 # a letter to Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
 
 import numpy as np
+from scipy import stats
+from math import sqrt
+
+def find_closest(value, array, col=0):
+    """
+        Find closest value to another value in an array 
+    """
+    nparray = np.array(zip(*array)[col])
+    idx = (np.abs(nparray-value)).argmin()
+    return array[idx]
+
+def score_minerals(peak_list, minerals):
+    """
+        Scoring function for mineral peaks
+        peak_list: list of tuples containing observed peak position and (abs) intensity
+        minerals: dict with the mineral name as key and a peak list as value,
+           analogeous to the first argument but with relative intensities
+           
+        Uses a simple appoach:
+        loop over the reference minerals, 
+         loop over first 10 strongest peaks for that mineral (starting at 
+          stronger reflections towards weaker)
+         find a peak in the observed peak data set that matches
+         if matching add to the list of matched peaks
+         if not matching and this is the strongest reflections, ignore mineral
+        after this initial loop we have a list of matched peaks,
+        this list is then used to calculate a score for the mineral by looking
+        at how well positions and intensities match with the reference and how
+        many peaks are actually matched of course. Higher values means a higher
+        likelihood this mineral is present.
+    """
+    max_pos_dev = 0.01 #fraction
+    scores = []
+    for mineral, abbreviation, mpeaks in minerals:
+        tot_score = 0
+        p_matches = []
+        i_matches = []
+        already_matched = []
+        mpeaks = sorted(mpeaks, key=lambda peak: peak[0], reverse=True)
+        if len(mpeaks) > 15:
+            mpeaks = mpeaks[:15]
+        
+        for i, (mpos, mint) in enumerate(mpeaks):
+            epos, eint = find_closest(mpos, peak_list)
+            if abs(epos - mpos) / mpos <= max_pos_dev and not epos in already_matched: 
+                p_matches.append([mpos, epos])
+                i_matches.append([mint, eint])
+                already_matched.append(epos)
+            elif i == 0:
+                break #if strongest peak does not match, ignore mineral
+       
+        if len(p_matches) > 3:
+            p_matches = np.array(p_matches)
+            i_matches = np.array(i_matches)
+            
+            i_matches[:,1] = i_matches[:,1] / np.max(i_matches[:,1])
+                      
+            p_slope, p_intercept, p_r_value, p_value, p_std_err = stats.linregress(p_matches)
+            i_slope, i_intercept, i_r_value, p_value, i_std_err = stats.linregress(i_matches)
+            
+            p_factor = (p_r_value ** 2) * min(1.0 / (abs(1.0 - p_slope) + 1E-50), 1000.) / 1000.0
+            i_factor = (1.0 - min(i_std_err / 0.25, 5.0) / 5.0) * min(1.0 / (abs(1.0 - i_slope) + 1E-50), 1000.) / 1000.0 # * max(1. / (abs(i_intercept) + 1E-50), 100.) / 100.
+            tot_score = len(p_matches) * p_factor * i_factor
+            
+        if tot_score > 0:
+            scores.append((mineral, abbreviation, mpeaks, p_matches, tot_score))
+                
+    scores = sorted(scores, key=lambda score: score[-1], reverse=True)
+    return scores
 
 def peakdetect(y_axis, x_axis = None, lookahead = 500, delta = 0):
     mintabs, maxtabs = multi_peakdetect(y_axis, x_axis, lookahead, [delta])

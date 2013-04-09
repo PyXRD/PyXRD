@@ -312,13 +312,41 @@ def plot_specimen(project, specimen, labels, label_offset,
                 axes.add_line(phase_line)
             phase.__plot_phase_lines[specimen] = phase_line
     
+    # mineral preview sticks
+    if hasattr(specimen, "mineral_preview") and specimen.mineral_preview!=None:
+        name, peaks = specimen.mineral_preview
+        lines = getattr(specimen, "__plot_mineral_preview", [])
+        for line in lines:
+            try: line.remove()
+            except: pass
+        
+        lines = []
+        for position, intensity in peaks:
+            position = specimen.parent.goniometer.get_2t_from_nm(position/10.)
+            intensity /= 100.
+            
+            trans = transforms.blended_transform_factory(axes.transData, axes.transAxes)
+            ymin, ymax = axes.get_ybound()
+            style = "solid"
+            color = "#FF00FF"
+            y0 = (offset - ymin) / (ymax - ymin)
+            y1 = y0 + (intensity - ymin) / (ymax - ymin)
+            line = matplotlib.lines.Line2D(
+                [position,position], [y0,y1],
+                transform=trans, color=color, ls=style
+            )
+            axes.add_line(line)
+            lines.append(line)
+        setattr(specimen, "__plot_mineral_preview", lines)
+    
+    
     # exclusion ranges;
     plot_hatches(specimen, offset, scale, axes)
     # markers;
     plot_markers(specimen, offset, scale, marker_scale, axes)
     # & label:
     plot_label(specimen, labels, label_offset, axes)
-       
+            
 def plot_specimens(project, specimens, axes):
     """
         Plots multiple specimens within the context of a project

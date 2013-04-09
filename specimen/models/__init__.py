@@ -7,12 +7,13 @@
 # a letter to Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
 
 from base import Specimen
-from markers import ThresholdSelector, Marker
+from markers import ThresholdSelector, Marker, MineralScorer
 from statistics import Statistics
 
 __all__ = [
     "Specimen",
     "Thresholdselector",
     "Marker",
+    "MineralScorer",
     "Statistics"
 ]

@@ -14,16 +14,24 @@ import numpy as np
 from gtkmvc import Controller, Observer
 from gtkmvc.adapters import Adapter
 
+
 from generic.plot.controllers import DraggableVLine, EyedropperCursorPlot
 from generic.models.treemodels import XYListStore
 from generic.controllers import DialogController, DialogMixin, BaseController, ObjectListStoreController, ObjectTreeviewMixin, ctrl_setup_combo_with_list
 from generic.controllers.handlers import get_color_val
 from generic.views.validators import FloatEntryValidator
-from generic.views.treeview_tools import setup_treeview, new_text_column
+from generic.views.treeview_tools import setup_treeview, new_text_column, new_toggle_column
 from generic.utils import get_case_insensitive_glob
 
-from specimen.models import Specimen, Marker, ThresholdSelector
-from specimen.views import EditMarkerView, DetectPeaksView, BackgroundView, SmoothDataView, ShiftDataView
+from specimen.models import Specimen, Marker, ThresholdSelector, MineralScorer
+from specimen.views import (
+    EditMarkerView, 
+    DetectPeaksView,
+    MatchMineralsView,
+    BackgroundView, 
+    SmoothDataView, 
+    ShiftDataView
+)
 
 class SpecimenController(DialogController, DialogMixin, ObjectTreeviewMixin):
 
@@ -517,6 +525,10 @@ class MarkersController(ObjectListStoreController):
         else:
             return ObjectListStoreController.get_new_edit_controller(self, obj, view, parent=parent)
     
+    def set_object_sensitivities(self, value):
+        self.view["cmd_match_minerals"].set_sensitive(value)
+        super(MarkersController, self).set_object_sensitivities(value)
+    
     # ------------------------------------------------------------
     #      GTK Signal handlers
     # ------------------------------------------------------------        
@@ -552,6 +564,181 @@ class MarkersController(ObjectListStoreController):
         sel_ctrl = ThresholdController(sel_model, sel_view, parent=self, callback = after_cb)
         
         sel_view.present()
+        
+    def on_match_minerals_clicked(self, widget):
+        def apply_cb(matches):
+            for name, abbreviation, peaks, matches, score in matches:
+                for marker in self.get_selected_objects():
+                    for mpos, epos in matches:
+                        if marker.get_nm_position()*10. == epos:
+                            marker.label += ", %s" % abbreviation
+    
+        def close_cb():
+            self.model.mineral_preview = None
+            self.model.needs_update.emit()
+            self.view.show()
+        
+        marker_peaks = [] #position, intensity
+        
+        for marker in self.get_selected_objects():
+            intensity = self.model.experimental_pattern.xy_store.get_y_at_x(
+                marker.position)
+            marker_peaks.append((marker.get_nm_position()*10., intensity))
+    
+        scorer_model = MineralScorer(marker_peaks=marker_peaks, parent=self.model)
+        scorer_view = MatchMineralsView(parent=self.view)
+        scorer_ctrl = MatchMineralController(model=scorer_model, view=scorer_view, parent=self, apply_callback = apply_cb, close_callback = close_cb)
+        
+        self.view.hide()
+        scorer_view.present()
+        
+    pass #end of class
+        
+class MatchMineralController(DialogController):
+    
+    apply_callback = None
+    close_callback = None
+    
+    # ------------------------------------------------------------
+    #      Initialisation and other internals
+    # ------------------------------------------------------------
+    def __init__(self, model, view, spurious=False, auto_adapt=False, parent=None, apply_callback=None, close_callback=None):
+        DialogController.__init__(self, model, view, spurious=spurious, auto_adapt=auto_adapt, parent=parent)
+        self.apply_callback = apply_callback
+        self.close_callback = close_callback
+        
+    def register_adapters(self):
+        if self.model is not None:
+            self.reload_minerals()
+            self.reload_matches()
+
+    def register_view(self, view):
+        if view is not None:
+            top = view.get_toplevel()
+            top.set_transient_for(self.parent.view.get_toplevel())
+            top.set_modal(True)
+            #FIXME DO WE STILL NEED THIS?
+            
+            # MATCHES Treeview:
+            tv = self.view['tv_matches']
+            
+            setup_treeview(tv, None, 
+                reset=True,
+                on_selection_changed=self.selection_changed,
+            )
+
+            tv.append_column(new_text_column(
+                "Name", markup_col=0,
+                xalign=0,
+            ))
+
+            tv.append_column(new_text_column(
+                "Abbr.", markup_col=1,
+                expand=False,
+            ))
+
+            def get_value(column, cell, model, itr, *args):
+                value = model.get_value(itr, column.get_col_attr('markup'))
+                try: value = "%.5f" % value
+                except TypeError: value = ""
+                cell.set_property("markup",  value)                    
+                return    
+            tv.append_column(new_text_column(
+                "Score",
+                markup_col=4,
+                expand=False,
+                data_func=get_value
+            ))
+
+            # ALL MINERALS Treeview:
+            tv = self.view['tv_minerals']
+            setup_treeview(tv, None, 
+                reset=True,
+                on_selection_changed=self.selection_changed,
+            )
+
+            tv.append_column(new_text_column(
+                "Name", markup_col=0,
+                xalign=0,
+            ))
+        
+            tv.append_column(new_text_column(
+                "Abbr.", markup_col=1,
+                expand=False,
+            ))
+        
+    # ------------------------------------------------------------
+    #      Notifications of observable properties
+    # ------------------------------------------------------------
+    @Controller.observe("matches_changed", signal=True)
+    def notif_parameter_changed(self, model, prop_name, info):
+        self.reload_matches()
+        
+    # ------------------------------------------------------------
+    #      GTK Signal handlers
+    # ------------------------------------------------------------
+    def selection_changed(self, selection, *args):
+        if selection.count_selected_rows() >= 1:
+            model, paths = selection.get_selected_rows()
+            itr = model.get_iter(paths[0])
+            name, abbreviation, peaks = model.get(itr, 0, 1, 2)
+            self.model.specimen.mineral_preview = (name, peaks)
+            self.model.specimen.needs_update.emit()
+    
+    def on_auto_match_clicked(self, event):
+        self.model.auto_match()
+        
+    def on_add_match_clicked(self, event):
+        selection = self.view.tv_minerals.get_selection()
+        if selection.count_selected_rows() >= 1:
+            model, paths = selection.get_selected_rows()
+            itr = model.get_iter(paths[0])
+            name, abbreviation, peaks = model.get(itr, 0, 1)
+            self.model.add_match(name, abbreviation, peaks)
+    
+    def on_del_match_clicked(self, event):
+        selection = self.view.tv_matches.get_selection()
+        if selection.count_selected_rows() >= 1:
+            model, paths = selection.get_selected_rows()
+            self.model.del_match(*paths[0])
+    
+    def on_apply_clicked(self, event):
+        if self.apply_callback != None and callable(self.apply_callback):
+            self.apply_callback(self.model.matches)
+        self.view.hide()
+    
+    def on_cancel(self):
+        if self.close_callback != None and callable(self.close_callback):
+            self.close_callback()        
+        self.view.hide()
+    
+    # ------------------------------------------------------------
+    #      Methods & Functions
+    # ------------------------------------------------------------
+    def reload_matches(self):
+        if not hasattr(self, 'tv_matches_model'):
+            self.tv_matches_model = gtk.ListStore(str, str, object, object, float)
+        else:
+            self.tv_matches_model.clear()
+        for name, abbreviation, peaks, matches, score in self.model.matches:
+            self.tv_matches_model.append([name, abbreviation, peaks, matches, score])
+        
+        tv = self.view.tv_matches
+        tv.set_model(self.tv_matches_model)
+    
+    def reload_minerals(self):
+        if not hasattr(self, 'tv_matches_model'):
+            self.tv_minerals_model = gtk.ListStore(str, str, object)
+        else:
+            self.tv_minerals_model.clear()
+        for name, abbreviation, peaks in self.model.minerals:
+            self.tv_minerals_model.append([name, abbreviation, peaks])
+        
+        tv = self.view.tv_minerals
+        tv.set_model(self.tv_minerals_model)
+        
+    pass #end of class
+        
         
 class ThresholdController(DialogController):
     
@@ -618,3 +805,5 @@ class ThresholdController(DialogController):
         if self.callback != None and callable(self.callback):
             self.callback(self.model)
         return DialogController.on_btn_ok_clicked(self, event)
+        
+    pass #end of class

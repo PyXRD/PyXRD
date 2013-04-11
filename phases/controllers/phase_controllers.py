@@ -109,9 +109,8 @@ class EditPhaseController(BaseController):
 
         for name in ("CSDS_distribution", "probabilities"):
             sensitive = not (can_inherit and getattr(self.model, "inherit_%s" % name))            
-            self.view["phase_%s" % name].set_sensitive(sensitive)
+            #FIXME self.view["phase_%s" % name].set_sensitive(sensitive)
             self.view["phase_inherit_%s" % name].set_sensitive(can_inherit)
-            if not sensitive: self.view["phase_%s" % name].set_expanded(sensitive)
 
     # ------------------------------------------------------------
     #      Notifications of observable properties

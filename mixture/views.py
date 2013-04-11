@@ -77,7 +77,7 @@ class EditMixtureView(BaseView): #TODO add delete buttons as well!
     top = "edit_mixture"
     
     base_width = 4
-    base_height = 4
+    base_height = 5
     
     matrix_widget = "tbl_matrix"
     wrapper_widget = "tbl_wrapper"
@@ -97,7 +97,7 @@ class EditMixtureView(BaseView): #TODO add delete buttons as well!
         def remove(item):
             if not item in self.labels: self.matrix.remove(item)
         self.matrix.foreach(remove)
-        self.matrix.resize(self.base_width,self.base_height)
+        self.matrix.resize(self.base_height,self.base_width)
         
         self.phase_inputs = []
         self.fraction_inputs = []
@@ -140,7 +140,7 @@ class EditMixtureView(BaseView): #TODO add delete buttons as well!
         
         self.phase_combos.resize((c-self.base_width, r+1-self.base_height))
         for col in range(c-self.base_width):
-            mcol, mrow = r-self.base_width, col
+            mcol, mrow = r-self.base_height, col
             self.__add_new_phase_combo__(phase_store, phase_store.c_name, phases[mrow, mcol], mrow, mcol, combo_callback)
         
         self.wrapper.show_all()
@@ -150,7 +150,7 @@ class EditMixtureView(BaseView): #TODO add delete buttons as well!
         self.matrix.resize(r, c+1)
 
         del_icon = gtk.Image()
-        del_icon.set_from_stock (gtk.STOCK_REMOVE, gtk.ICON_SIZE_BUTTON)        
+        del_icon.set_from_stock("192-circle-remove", gtk.ICON_SIZE_SMALL_TOOLBAR)        
         new_specimen_del_btn = gtk.Button()
         new_specimen_del_btn.set_image(del_icon)
         rid = new_specimen_del_btn.connect("clicked", del_specimen_callback)

@@ -70,7 +70,7 @@ class AppView(BaseView):
             setattr(self, view_name, None)
         setattr(self, view_name, class_type(parent=self))
         return getattr(self, view_name)
-
+    
     def reset_all_views(self):
         self.reset_project_view()
         self.reset_goniometer_view()
@@ -91,16 +91,17 @@ class AppView(BaseView):
         return self._reset_child_view("specimen", SpecimenView)
         
     def reset_statistics_view(self):
-        view = self._reset_child_view("statistics", StatisticsView)
-        child = self["statistics_expander"].get_child()
-        if child is not None:
-            self["statistics_expander"].remove(child)
-        self["statistics_expander"].add(view[view.top])
-        if not settings.VIEW_MODE:
-            self["statistics_expander"].show_all()
-        else:
-            self["statistics_expander"].set_visible(False)
-        return view
+        #view = self._reset_child_view("statistics", StatisticsView)
+        #child = self["statistics_expander"].get_child()
+        #if child is not None:
+        #    self["statistics_expander"].remove(child)
+        #self["statistics_expander"].add(view[view.top])
+        #if not settings.VIEW_MODE:
+        #    self["statistics_expander"].show_all()
+        #else:
+        #    self["statistics_expander"].set_visible(False)
+        #return view
+        pass
         
     def reset_markers_view(self):
         return self._reset_child_view("markers", EditMarkersView)

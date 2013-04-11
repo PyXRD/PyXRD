@@ -311,12 +311,12 @@ class EditAtomRelationsController(InlineObjectListStoreController):
                        
         #Up, down and edit arrows:       
         def setup_image_button(image, colnr):
-            col = new_pb_column("", resizable=False, expand=False, stock_id=image)
+            col = new_pb_column(" ", resizable=False, expand=False, stock_id=image)
             col.set_data("col_descr", colnr)
             tv.append_column(col)
-        setup_image_button(gtk.STOCK_GO_UP, "Up")
-        setup_image_button(gtk.STOCK_GO_DOWN, "Down")
-        setup_image_button(gtk.STOCK_EDIT, "Edit")
+        setup_image_button(gtk.STOCK_GO_UP, "Up") #FIXME icons!
+        setup_image_button(gtk.STOCK_GO_DOWN, "Down") #FIXME icons!
+        setup_image_button(gtk.STOCK_EDIT, "Edit") #FIXME icons!
                    
     def _setup_treeview(self, tv, model):   
         tv.connect('button-press-event', self.tv_button_press)

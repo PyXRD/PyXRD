@@ -1,7 +1,26 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
-  <requires lib="gtk+" version="2.20"/>
-  <!-- interface-naming-policy toplevel-contextual -->
+  <!-- interface-requires gtk+ 3.0 -->
+  <object class="GtkImage" id="img_add">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">190-circle-plus</property>
+  </object>
+  <object class="GtkImage" id="img_del">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">192-circle-remove</property>
+  </object>
+  <object class="GtkImage" id="img_export">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">359-file-export</property>
+  </object>
+  <object class="GtkImage" id="img_import">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">358-file-import</property>
+  </object>
   <object class="GtkHPaned" id="edit_object_store">
     <property name="visible">True</property>
     <property name="can_focus">True</property>
@@ -15,7 +34,7 @@
         <child>
           <object class="GtkFrame" id="frm_objects_tv">
             <property name="width_request">150</property>
-            <property name="height_request">450</property>
+            <property name="height_request">320</property>
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="label_xalign">0</property>
@@ -36,6 +55,9 @@
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="rules_hint">True</property>
+                        <child internal-child="selection">
+                          <object class="GtkTreeSelection" id="treeview-selection1"/>
+                        </child>
                       </object>
                     </child>
                   </object>
@@ -68,12 +90,11 @@
             <property name="row_spacing">6</property>
             <child>
               <object class="GtkButton" id="button_del_object">
-                <property name="label">gtk-remove</property>
+                <property name="label" translatable="yes">Remove</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <property name="use_action_appearance">False</property>
-                <property name="use_stock">True</property>
+                <property name="image">img_del</property>
                 <signal name="clicked" handler="on_del_object_clicked" swapped="no"/>
               </object>
               <packing>
@@ -85,12 +106,11 @@
             </child>
             <child>
               <object class="GtkButton" id="button_add_object">
-                <property name="label">gtk-add</property>
+                <property name="label" translatable="yes">Add</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <property name="use_action_appearance">False</property>
-                <property name="use_stock">True</property>
+                <property name="image">img_add</property>
                 <signal name="clicked" handler="on_add_object_clicked" swapped="no"/>
               </object>
               <packing>
@@ -99,13 +119,12 @@
             </child>
             <child>
               <object class="GtkButton" id="button_save_object">
-                <property name="label">Export</property>
+                <property name="label" translatable="yes">Export</property>
                 <property name="visible">True</property>
                 <property name="sensitive">False</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <property name="use_action_appearance">False</property>
-                <property name="image">img_save2</property>
+                <property name="image">img_export</property>
                 <signal name="clicked" handler="on_save_object_clicked" swapped="no"/>
               </object>
               <packing>
@@ -118,12 +137,11 @@
             </child>
             <child>
               <object class="GtkButton" id="button_load_object">
-                <property name="label">Import</property>
+                <property name="label" translatable="yes">Import</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <property name="use_action_appearance">False</property>
-                <property name="image">img_load2</property>
+                <property name="image">img_import</property>
                 <property name="use_underline">True</property>
                 <signal name="clicked" handler="on_load_object_clicked" swapped="no"/>
               </object>
@@ -190,35 +208,5 @@
         <property name="shrink">False</property>
       </packing>
     </child>
-  </object>
-  <object class="GtkImage" id="img_load">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="stock">gtk-open</property>
-  </object>
-  <object class="GtkImage" id="img_load1">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="stock">gtk-open</property>
-  </object>
-  <object class="GtkImage" id="img_load2">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="stock">gtk-open</property>
-  </object>
-  <object class="GtkImage" id="img_save">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="stock">gtk-save</property>
-  </object>
-  <object class="GtkImage" id="img_save1">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="stock">gtk-save</property>
-  </object>
-  <object class="GtkImage" id="img_save2">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="stock">gtk-save</property>
   </object>
 </interface>

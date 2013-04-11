@@ -57,7 +57,7 @@ class AppController (BaseController, DialogMixin):
         return
 
     def register_view(self, view):
-        self.view['statistics_expander'].connect("notify::expanded", self.on_statistics_expand)
+        #self.view['statistics_expander'].connect("notify::expanded", self.on_statistics_expand)
         if self.model.current_project != None:
             self.reset_project_controller ()
             self.update_project_sensitivities ()
@@ -79,7 +79,7 @@ class AppController (BaseController, DialogMixin):
         self.specimen = SpecimenController(model=self.model.current_specimen, view=self.view.reset_specimen_view(), parent=self)
         if self.model.current_specimen != None:
             self.markers = MarkersController(model=self.model.current_specimen, view=self.view.reset_markers_view(), parent=self)    
-            self.statistics = StatisticsController(model=self.model.current_specimen.statistics, view=self.view.reset_statistics_view(), parent=self)
+            #self.statistics = StatisticsController(model=self.model.current_specimen.statistics, view=self.view.reset_statistics_view(), parent=self)
         else:
             self.markers = None
             self.statistics = None
@@ -107,10 +107,10 @@ class AppController (BaseController, DialogMixin):
         self.redraw_plot()
         return
     
-    @Controller.observe("statistics_visible", assign=True, after=True)
-    def notif_statistics_toggle(self, model, prop_name, info):
-        self.redraw_plot()
-        return
+    #@Controller.observe("statistics_visible", assign=True, after=True)
+    #def notif_statistics_toggle(self, model, prop_name, info):
+    #    self.redraw_plot()
+    #    return
 
     # ------------------------------------------------------------
     #      View updating
@@ -125,9 +125,10 @@ class AppController (BaseController, DialogMixin):
             single = self.model.single_specimen_selected
         
             # check if we should display statistics:
+            # FIXME displa these directly on the plot, make it a specimen setting
             stats = (False, None)
-            if single and self.model.statistics_visible:
-                stats = (True, self.model.current_specimen.statistics.residual_pattern)
+            #if single and self.model.statistics_visible:
+            #    stats = (True, self.model.current_specimen.statistics.residual_pattern)
       
             # let the plot controller update this:
             self.plot_controller.update(
@@ -156,8 +157,8 @@ class AppController (BaseController, DialogMixin):
     def update_specimen_sensitivities(self):
         sensitive = (self.model.current_specimen != None)
         self.view["specimen_actions"].set_sensitive(sensitive)
-        self.view["statistics_expander"].set_sensitive(sensitive)
-        self.view['statistics_expander'].set_expanded(self.model.statistics_visible)
+        #self.view["statistics_expander"].set_sensitive(sensitive)
+        ##self.view['statistics_expander'].set_expanded(self.model.statistics_visible)
         sensitive = sensitive or (self.model.current_specimens is not None and len(self.model.current_specimens) >= 1)      
         self.view["specimens_actions"].set_sensitive(sensitive)
         
@@ -206,9 +207,9 @@ class AppController (BaseController, DialogMixin):
             pass #ignore errors
         return True
     
-    def on_statistics_expand(self, widget, param_spec, data=None):
-        self.model.statistics_visible = widget.get_expanded()
-        self.view['statistics_expander'].set_expanded(self.model.statistics_visible)
+    #def on_statistics_expand(self, widget, param_spec, data=None):
+    #    self.model.statistics_visible = widget.get_expanded()
+    #    self.view['statistics_expander'].set_expanded(self.model.statistics_visible)
     
     def on_main_window_delete_event(self, widget, event):
         def on_accept(dialog):

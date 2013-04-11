@@ -41,11 +41,9 @@ class EditPhaseView(BaseView, HasChildView):
             self._add_child_view(view.get_top_widget(), self[self.probabilities_view_container])
         return view
         
-    def remove_probabilities(self):
-        table =self[self.top]
-        table.remove(self["hbox_prob"])
-        newtop = table.child_get_property(self["hbox_comp"], "top-attach") - 1
-        table.child_set_property(self["hbox_comp"], "top-attach", newtop)
+    def remove_probabilities(self):       
+        num = self["book_wrapper"].page_num(self["prob_container"])
+        self["book_wrapper"].remove_page(num)
         
     def set_components_view(self, view):
         self.components_view = view

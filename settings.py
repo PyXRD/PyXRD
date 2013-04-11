@@ -1,3 +1,7 @@
+# Copyright (c) 2013, Mathijs Dumon
+# All rights reserved.
+# Complete license can be found in the LICENSE file.
+
 ### General Information ###
 VERSION = "0.4.2"
 

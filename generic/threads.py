@@ -3,9 +3,9 @@
 
 # Author: Mathijs Dumon
 # Based on code from Rick Spencer
-# This work is licensed under the Creative Commons Attribution-ShareAlike 3.0 Unported License. 
-# To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/3.0/ or send
-# a letter to Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
+# Copyright (c) 2013, Mathijs Dumon, Rick Spencer
+# All rights reserved.
+# Complete license can be found in the LICENSE file.
 
 import time
 import gtk

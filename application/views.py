@@ -37,8 +37,6 @@ class AppView(BaseView):
         "tbtn_edit_mixtures",
         "tbtn_separator1",
         "btn_sample",
-        "btn_view_statistics",
-        "seperator2",
         "separator3",
         "separator4",
         "separator5",

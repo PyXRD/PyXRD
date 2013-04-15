@@ -3,10 +3,10 @@
 # Complete license can be found in the LICENSE file.
 
 ### General Information ###
-VERSION = "0.4.2"
+VERSION = "0.4.3"
 
 DEBUG = False
-VIEW_MODE = False
+VIEW_MODE = True
 BGSHIFT = True
 
 LOG_FILENAME = 'errors.log'

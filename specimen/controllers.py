@@ -573,7 +573,6 @@ class MarkersController(ObjectListStoreController):
                             marker.label += ", %s" % abbreviation
     
         def close_cb():
-            self.model.mineral_preview = None
             self.model.needs_update.emit()
             self.view.show()
         
@@ -703,11 +702,13 @@ class MatchMineralController(DialogController):
     
     def on_apply_clicked(self, event):
         if self.apply_callback != None and callable(self.apply_callback):
+            self.model.specimen.mineral_preview = None
             self.apply_callback(self.model.matches)
         self.view.hide()
     
     def on_cancel(self):
         if self.close_callback != None and callable(self.close_callback):
+            self.model.specimen.mineral_preview = None
             self.close_callback()        
         self.view.hide()
     

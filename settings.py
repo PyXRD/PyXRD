@@ -3,7 +3,7 @@
 # Complete license can be found in the LICENSE file.
 
 ### General Information ###
-VERSION = "0.4.3"
+VERSION = "0.4.4"
 
 DEBUG = False
 VIEW_MODE = True

@@ -16,7 +16,10 @@ from matplotlib.text import Text
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanvasGTK
 from matplotlib.font_manager import FontProperties
-from pyparsing import ParseFatalException
+try:
+    from matplotlib.pyparsing import ParseFatalException
+except ImportError:
+    from pyparsing import ParseFatalException
 
 from mpl_toolkits.axisartist import Subplot
 

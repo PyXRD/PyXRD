@@ -691,7 +691,7 @@ class MatchMineralController(DialogController):
         if selection.count_selected_rows() >= 1:
             model, paths = selection.get_selected_rows()
             itr = model.get_iter(paths[0])
-            name, abbreviation, peaks = model.get(itr, 0, 1)
+            name, abbreviation, peaks = model.get(itr, 0, 1, 2)
             self.model.add_match(name, abbreviation, peaks)
     
     def on_del_match_clicked(self, event):

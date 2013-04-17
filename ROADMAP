@@ -1,4 +1,7 @@
 Feature-wise:
+0.5 - Add more 'default' marker properties (and specimen properties?) to the project level.
+0.5 - Move 'label position' in glade layout file
+0.5 - Clean-up utils and peakdetection in generic module
 0.5 - Sybilla Support:
         - integrate XML file import
         - direct import of calculated csv files (from sybilla)
@@ -22,4 +25,3 @@ Code-Wise:
 0.5 - check for file extension registers on windows (using exec assoc & ftype) & linux (pyxdg)
 0.6 - export to Sybilla's XML format?
 0.7 - most of the default dialog actions (confirmation ,information etc.) could also be usefull as decorators.
-

@@ -312,7 +312,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</property>
     <property name="authors">Mathijs Dumon
 Rick Spencer
 Johan Van Der Wauw</property>
-    <property name="logo_icon_name">pyxrd</property>
     <property name="license_type">custom</property>
     <child internal-child="vbox">
       <object class="GtkBox" id="aboutdialog-vbox1">
@@ -336,6 +335,16 @@ Johan Van Der Wauw</property>
         </child>
       </object>
     </child>
+  </object>
+  <object class="GtkImage" id="image2">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">071-book</property>
+  </object>
+  <object class="GtkImage" id="image3">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">049-star</property>
   </object>
   <object class="GtkWindow" id="main_window">
     <property name="width_request">900</property>
@@ -598,12 +607,38 @@ Johan Van Der Wauw</property>
               </object>
             </child>
             <child>
-              <object class="GtkMenuItem" id="Manual">
+              <object class="GtkMenuItem" id="main_menu_item_help">
                 <property name="visible">True</property>
                 <property name="can_focus">False</property>
-                <property name="label" translatable="yes">Manual</property>
+                <property name="label" translatable="yes">Help</property>
                 <property name="use_underline">True</property>
-                <signal name="activate" handler="on_manual_activate" swapped="no"/>
+                <child type="submenu">
+                  <object class="GtkMenu" id="menu_help">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <child>
+                      <object class="GtkImageMenuItem" id="main_menu_item_manual">
+                        <property name="label" translatable="yes">Manual</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="image">image2</property>
+                        <property name="use_stock">False</property>
+                        <property name="always_show_image">True</property>
+                        <signal name="activate" handler="on_manual_activate" swapped="no"/>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkImageMenuItem" id="main_menu_item_about">
+                        <property name="label" translatable="yes">About</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="image">image3</property>
+                        <property name="use_stock">False</property>
+                        <signal name="activate" handler="on_about_activate" swapped="no"/>
+                      </object>
+                    </child>
+                  </object>
+                </child>
               </object>
             </child>
           </object>

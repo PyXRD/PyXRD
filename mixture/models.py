@@ -591,7 +591,6 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
                     elif params["kill"]:                
                         raise GeneratorExit
                     elif params["stop"]:
-                        print self.best_x, self.best_rp
                         raise StopIteration
                         
                 try:
@@ -603,7 +602,6 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
                         lastx, lastR2, val_grid, rp_grid  = scipy.optimize.brute(fitness_func, ranges, Ns=10, full_output=1, finish=None)
                 except StopIteration:
                     lastx, lastR2 = self.best_x, self.best_rp
-                    print lastx, lastR2
                 except GeneratorExit:
                     pass #no action needed
                 except any as error:

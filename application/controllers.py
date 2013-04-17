@@ -206,10 +206,9 @@ class AppController (BaseController, DialogMixin):
         except:
             pass #ignore errors
         return True
-    
-    #def on_statistics_expand(self, widget, param_spec, data=None):
-    #    self.model.statistics_visible = widget.get_expanded()
-    #    self.view['statistics_expander'].set_expanded(self.model.statistics_visible)
+        
+    def on_about_activate(self, widget, data=None):
+        self._run_dialog(self.view["about_window"], destroy=False)
     
     def on_main_window_delete_event(self, widget, event):
         def on_accept(dialog):

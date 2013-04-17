@@ -99,8 +99,6 @@ class BaseOrganism(PGXmlMixin):
         Returns -1 if this organism loses, 0 if it's
         a tie, or 1 if this organism wins
         """
-        #print "BaseOrganism.duel: opponent=%s" % str(opponent)
-
         return cmp(self.get_fitness(), opponent.get_fitness())
 
     def __cmp__(self, other):
@@ -383,10 +381,6 @@ class Organism(BaseOrganism):
 
             # now write out genes
             gene = self.genes[name]
-            #print "self.genes[%s] = %s" % (
-            #    name,
-            #    pair.__class__
-            #    )
             gene.xmlDumpSelf(doc, pairtag)
 
 
@@ -589,7 +583,6 @@ class MendelOrganism(BaseOrganism):
             genes = self.genes[geneName]
             return genes[0] + genes[1]
         except:
-            #print "self.genes[%s] = %s" % (geneName, self.genes[geneName])
             raise
 
         # FIXME: There's an error here for sure. The code is unreachable
@@ -678,9 +671,5 @@ class MendelOrganism(BaseOrganism):
 
             # now write out genes
             pair = self.genes[name]
-            #print "self.genes[%s] = %s" % (
-            #    name,
-            #    pair.__class__
-            #    )
             for gene in pair:
                 gene.xmlDumpSelf(doc, pairtag)

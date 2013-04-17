@@ -203,7 +203,6 @@ def smooth(x,window_len=3,window='blackman'):
 
 
     s=np.r_[x[window_len-1:0:-1],x,x[-1:-window_len:-1]]
-    #print(len(s))
     if window == 'flat': #moving average
         w=np.ones(window_len,'d')
     else:
@@ -211,37 +210,7 @@ def smooth(x,window_len=3,window='blackman'):
 
     y=np.convolve(w/w.sum(),s,mode='valid')
     return y[half_len:-half_len]
-   
-"""def erf(x):
-    # constants
-    a1 =  0.254829592
-    a2 = -0.284496736
-    a3 =  1.421413741
-    a4 = -1.453152027
-    a5 =  1.061405429
-    p  =  0.3275911
-
-    # Save the sign of x
-    sign = 1
-    if x < 0:
-        sign = -1
-    x = abs(x)
-
-    # A&S formula 7.1.26
-    t = 1.0/(1.0 + p*x)
-    y = 1.0 - (((((a5*t + a4)*t) + a3)*t + a2)*t + a1)*t*exp(-x*x)
-    
-    return sign*y"""
-    
-#def erf(x, steps=1000):
-#    result = np.zeros(x.shape)
-#    dt = x / float(steps)
-#    for i in range(steps+1):
-#        t = float(i + 0.5)*dt
-#        result += np.exp(-(t**2))*dt
-#    result *= 2 / sqrtpi
-#    return result
-   
+     
 def repos(ln, old_pos, new_pos):
     lb = min(new_pos, old_pos)
     ub = max(new_pos, old_pos)
@@ -299,8 +268,7 @@ class DelayedProxy():
 def lognormal(T, a, b):
     return sqrt2pi * exp(-(log(T) - a)**2 / (2.0*(b**2))) / (abs(b)*T)
     
-    
-    
+   
 #
 # decorator used to create indexable properties (e.g. W[1,1])
 #

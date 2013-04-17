@@ -203,6 +203,5 @@ class ConfigLoader(object):
         for gene in self.require_genes:
             if gene not in self.genome:
                 raise LoaderError("Required gene '%s' was not found in the config" % gene)
-        #for gene in self.genome.itervalues():
-        #    print gene.__dict__
+        
         return self.genome

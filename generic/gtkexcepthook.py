@@ -84,7 +84,6 @@ def analyse (exctyp, value, tb):
                     name = tstr
                 if val is not None:
                     prev = val
-                #print '  found', scope, 'name', name, 'val', val, 'in', prev, 'for token', tstr
             elif tstr == '.':
                 if prev:
                     name += '.'

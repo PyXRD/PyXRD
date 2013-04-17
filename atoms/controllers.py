@@ -24,7 +24,6 @@ from atoms.views import EditAtomTypeView
 class EditAtomTypeController(BaseController):
 
     def register_adapters(self):
-        print "EditAtomTypeController.register_adapters()"
         if self.model is not None:
             for name in self.model.get_properties():
                 if name == "name":

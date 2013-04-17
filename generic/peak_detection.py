@@ -172,10 +172,8 @@ def multi_peakdetect(y_axis, x_axis = None, lookahead = 500, deltas = [0]):
         try:
             if dump[j][0]:
                 maxtab[j].pop(0)
-                #print "pop max"
             else:
                 mintab[j].pop(0)
-                #print "pop min"
             #del dump[j]
         except IndexError:
             #no peaks were found, should the function return empty lists?
@@ -296,7 +294,6 @@ def smooth(x,window_len=11,window='hanning'):
 
 
     s=np.r_[x[window_len-1:0:-1],x,x[-1:-window_len:-1]]
-    #print(len(s))
     if window == 'flat': #moving average
         w=np.ones(window_len,'d')
     else:

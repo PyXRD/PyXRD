@@ -29,6 +29,10 @@ class ProjectView(DialogView):
         self["popup_menu_item_export_data"].set_related_action(self.parent["export_specimen_data"])
         self["popup_menu_item_del_specimen"].set_related_action(self.parent["del_specimen"])
         
+    def present(self, *args, **kwargs):
+        super(ProjectView, self).present(*args, **kwargs)
+        self["nbk_edit_project"].set_current_page(0)    
+        
     def specimens_popup(self, event):
         self["specimen_popup"].popup(None, None, None, event.button, event.time)     
         

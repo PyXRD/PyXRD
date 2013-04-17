@@ -31,7 +31,6 @@ class AppView(BaseView):
     mixtures = None
     
     __widgets_to_hide__ = (
-        "statistics_container",
         "tbtn_edit_phases",
         "tbtn_edit_atom_types",
         "tbtn_edit_mixtures",
@@ -46,6 +45,12 @@ class AppView(BaseView):
     
     def __init__(self, *args, **kwargs):
         BaseView.__init__(self, *args, **kwargs)
+
+        #Setup about window:
+        self["about_window"].set_version(settings.VERSION)
+        pixbuf = gtk.gdk.pixbuf_new_from_file("application/icons/pyxrd.png")
+        scaled_buf = pixbuf.scale_simple(212,160,gtk.gdk.INTERP_BILINEAR)
+        self["about_window"].set_logo(scaled_buf)
 
         self.reset_all_views()
         if not settings.DEBUG:

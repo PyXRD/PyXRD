@@ -57,14 +57,17 @@ class DialogMixin():
             yield ffilter
 
     def _run_dialog(self, 
-            dialog, on_accept_callback=None, on_reject_callback=None):
+            dialog, on_accept_callback=None, on_reject_callback=None, destroy=True):
         response = dialog.run()
         retval = None
         if response in self.accept_responses and on_accept_callback is not None:
             retval = on_accept_callback(dialog)
         elif on_reject_callback is not None:
             retval = on_reject_callback(dialog)
-        dialog.destroy() 
+        if destroy:
+            dialog.destroy() 
+        else:
+            dialog.hide()
         return retval
 
     def run_file_dialog(self, 

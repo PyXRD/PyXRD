@@ -5,16 +5,14 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-import json
-
 from traceback import print_exc
 
-import gtk, gobject
+import gobject
 
 from gtkmvc import Observer
 
 from generic.io import Storable, PyXRDDecoder, get_json_type, json_type
-from generic.utils import smart_repos
+from .utils import smart_repos
 
 from base_models import BaseObjectListStore
 

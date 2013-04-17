@@ -16,11 +16,11 @@ from gtkmvc.adapters import Adapter
 
 from generic.plot.controllers import DraggableVLine, EyedropperCursorPlot
 from generic.models.treemodels import XYListStore
-from generic.controllers import DialogController, DialogMixin, BaseController, ObjectListStoreController, ObjectTreeviewMixin, ctrl_setup_combo_with_list
+from generic.controllers import DialogController, DialogMixin, BaseController, ObjectListStoreController, ObjectTreeviewMixin
 from generic.controllers.handlers import get_color_val
 from generic.views.validators import FloatEntryValidator
 from generic.views.treeview_tools import setup_treeview, new_text_column, new_toggle_column
-from generic.utils import get_case_insensitive_glob
+from generic.controllers.utils import get_case_insensitive_glob, ctrl_setup_combo_with_list
 
 from specimen.models import Specimen, Marker, ThresholdSelector, MineralScorer
 from specimen.views import (

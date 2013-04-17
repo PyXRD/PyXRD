@@ -13,7 +13,9 @@ from gtkmvc import Controller
 
 import settings
 
-from generic.utils import create_treestore_from_directory, create_valuestore_from_file, get_case_insensitive_glob
+from generic.models.treemodels.utils import create_valuestore_from_file, create_treestore_from_directory
+
+from generic.controllers.utils import get_case_insensitive_glob
 from generic.views.validators import FloatEntryValidator
 from generic.controllers import DialogController, DialogMixin
 

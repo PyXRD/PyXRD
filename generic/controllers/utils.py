@@ -11,7 +11,6 @@ from gtkmvc import Controller
 from gtkmvc.adapters import Adapter
 
 from generic.views.treeview_tools import new_text_column, setup_treeview
-from generic.utils import retreive_lowercase_extension
 from handlers import default_widget_handler, widget_handlers
 import settings 
 
@@ -46,3 +45,11 @@ def ctrl_setup_combo_with_list(ctrl, combo, prop_name, list_prop_name=None, list
         if store.get_value(row.iter, 0) == str(getattr(ctrl.model, prop_name)):
             combo.set_active_iter(row.iter)
             break
+            
+def get_case_insensitive_glob(*strings):
+    '''Ex: '*.ora' => '*.[oO][rR][aA]' '''
+    return ['*.%s' % ''.join(["[%s%s]" % (c.lower(), c.upper()) for c in string.split('.')[1]]) for string in strings]
+    
+def retrieve_lowercase_extension(glob):
+    '''Ex: '*.[oO][rR][aA]' => '*.ora' '''
+    return ''.join([ c.replace("[", "").replace("]", "")[:-1] for c in glob.split('][')])

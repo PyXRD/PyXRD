@@ -6,7 +6,7 @@
 # Complete license can be found in the LICENSE file.
 
 from collections import OrderedDict
-from math import sin, cos, pi, sqrt, exp, radians, log
+from math import sqrt, log
 
 from gtkmvc.model import Signal
 
@@ -14,12 +14,10 @@ import numpy as np
 
 import settings
 
-from generic.utils import lognormal, sqrt2pi, sqrt8, print_timing, get_md5_hash, recgetattr, recsetattr
-from generic.io import Storable, PyXRDDecoder
+from generic.custom_math import lognormal
 from generic.models import ChildModel, PropIntel
+from generic.io import Storable
 
-from atoms.models import Atom
-from probabilities.models import get_correct_probability_model
 from mixture.refinement import RefinementGroup, RefinementValue
 
 class _AbstractCSDSDistribution(ChildModel, Storable):

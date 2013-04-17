@@ -7,7 +7,6 @@
 
 from gtkmvc.model import Model, Observer, Signal
 
-from generic.utils import recgetattr, recsetattr
 from generic.models import ChildModel, PropIntel
 from generic.models.metaclasses import pyxrd_object_pool
 from generic.models.mixins import ObjectListStoreChildMixin

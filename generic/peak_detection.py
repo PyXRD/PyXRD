@@ -9,6 +9,8 @@ import numpy as np
 from scipy import stats
 from math import sqrt
 
+from generic.custom_math import smooth
+
 def find_closest(value, array, col=0):
     """
         Find closest value to another value in an array 
@@ -77,6 +79,7 @@ def score_minerals(peak_list, minerals):
     return scores
 
 def peakdetect(y_axis, x_axis = None, lookahead = 500, delta = 0):
+    """ single run of multi_peakdetect """
     mintabs, maxtabs = multi_peakdetect(y_axis, x_axis, lookahead, [delta])
     return mintabs[0], maxtabs[0]
 
@@ -181,8 +184,6 @@ def multi_peakdetect(y_axis, x_axis = None, lookahead = 500, deltas = [0]):
     
     return maxtab, mintab
 
-
-
 def peakdetect_zero_crossing(y_axis, x_axis = None, window = 49):
     """
     Algorithm for detecting local maximas and minmias in a signal.
@@ -244,66 +245,8 @@ def peakdetect_zero_crossing(y_axis, x_axis = None, window = 49):
     mintab = [(x,y) for x,y in zip(lo_peaks, lo_peaks_x)]
     
     return maxtab, mintab
-        
-
-
-def smooth(x,window_len=11,window='hanning'):
-    """
-    smooth the data using a window with requested size.
-    
-    This method is based on the convolution of a scaled window with the signal.
-    The signal is prepared by introducing reflected copies of the signal 
-    (with the window size) in both ends so that transient parts are minimized
-    in the begining and end part of the output signal.
-    
-    input:
-        x: the input signal 
-        window_len: the dimension of the smoothing window; should be an odd integer
-        window: the type of window from 'flat', 'hanning', 'hamming', 'bartlett', 'blackman'
-            flat window will produce a moving average smoothing.
-
-    output:
-        the smoothed signal
-        
-    example:
-
-    t=linspace(-2,2,0.1)
-    x=sin(t)+randn(len(t))*0.1
-    y=smooth(x)
-    
-    see also: 
-    
-    numpy.hanning, numpy.hamming, numpy.bartlett, numpy.blackman, numpy.convolve
-    scipy.signal.lfilter
- 
-    TODO: the window parameter could be the window itself if an array instead of a string   
-    """
-    if x.ndim != 1:
-        raise ValueError, "smooth only accepts 1 dimension arrays."
-
-    if x.size < window_len:
-        raise ValueError, "Input vector needs to be bigger than window size."
-
-
-    if window_len<3:
-        return x
-
-
-    if not window in ['flat', 'hanning', 'hamming', 'bartlett', 'blackman']:
-        raise ValueError, "Window is on of 'flat', 'hanning', 'hamming', 'bartlett', 'blackman'"
-
-
-    s=np.r_[x[window_len-1:0:-1],x,x[-1:-window_len:-1]]
-    if window == 'flat': #moving average
-        w=np.ones(window_len,'d')
-    else:
-        w=eval('np.'+window+'(window_len)')
-
-    y=np.convolve(w/w.sum(),s,mode='valid')
-    return y
-    
      
-def zero_crossings(y_axis, x_axis = None, window = 49):
+def zero_crossings(y_axis, x_axis = None, window = 24):
     """
     Algorithm to find zero crossings. Smoothens the curve and finds the
     zero-crossings by looking for a sign change.
@@ -314,8 +257,8 @@ def zero_crossings(y_axis, x_axis = None, window = 49):
     x_axis -- A x-axis whose values correspond to the 'y_axis' list and is used
         in the return to specify the postion of the zero-crossings. If omitted
         then the indice of the y_axis is used. (default: None)
-    window -- the dimension of the smoothing window; should be an odd integer
-        (default: 49)
+    window -- half of the dimension of the smoothing window;
+        (default: 24)
     
     return -- the x_axis value or the indice for each zero-crossing
     """
@@ -326,7 +269,7 @@ def zero_crossings(y_axis, x_axis = None, window = 49):
     
     x_axis = np.asarray(x_axis)
     
-    y_axis = smooth(y_axis, window)[:length]
+    y_axis = smooth(y_axis, window)
     zero_crossings = np.where(np.diff(np.sign(y_axis)))[0]
     times = [x_axis[indice] for indice in zero_crossings]
     

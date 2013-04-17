@@ -17,8 +17,9 @@ from gtkmvc.adapters import Adapter
 
 import settings
 
-from generic.utils import get_case_insensitive_glob, delayed
+from generic.utils import delayed
 from generic.controllers import BaseController, DialogMixin
+from generic.controllers.utils import get_case_insensitive_glob
 from generic.plot.controllers import MainPlotController, EyedropperCursorPlot
 
 from project.controllers import ProjectController

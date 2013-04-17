@@ -10,7 +10,7 @@ import gtk
  
 from gtkmvc import Controller
 
-from generic.utils import retreive_lowercase_extension
+from .utils import retrieve_lowercase_extension
 from handlers import default_widget_handler, widget_handlers
 import settings 
 
@@ -42,7 +42,7 @@ class DialogMixin():
         selected_name = filter.get_name()
         for name, globs in (filters or self.file_filters):
             if selected_name==name:
-                return retreive_lowercase_extension(globs[0])
+                return retrieve_lowercase_extension(globs[0])
 
     def _get_object_file_filters(self, filters=None):
         filters = filters or self.file_filters

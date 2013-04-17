@@ -14,9 +14,9 @@ from gtkmvc.adapters import Adapter
 
 from generic.views.treeview_tools import new_text_column, new_pb_column, new_toggle_column
 from generic.mathtext_support import create_pb_from_mathtext
-from generic.controllers import DialogController, BaseController, ObjectListStoreController, ctrl_setup_combo_with_list
+from generic.controllers import DialogController, BaseController, ObjectListStoreController
+from generic.controllers.utils import ctrl_setup_combo_with_list
 from generic.views.validators import FloatEntryValidator #FIXME use handlers!
-from generic.utils import get_case_insensitive_glob
 
 from phases.models import Phase, Component
 

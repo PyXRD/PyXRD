@@ -13,8 +13,7 @@ from gtkmvc.model import Signal
 
 from generic.io import Storable
 from generic.models import ChildModel
-from generic.models.properties import PropIntel
-from generic.utils import indexproperty
+from generic.models.properties import PropIntel, IndexProperty
 
 from mixture.refinement import RefinementGroup
 
@@ -59,7 +58,7 @@ class _AbstractProbability(ChildModel, Storable, RefinementGroup):
     _W = None
     _P = None
     
-    @indexproperty
+    @IndexProperty
     def mP(self, indeces):
         r, ind = self._get_Pxy_from_indeces(indeces)
         return self._lP[r][ind]
@@ -68,7 +67,7 @@ class _AbstractProbability(ChildModel, Storable, RefinementGroup):
         r, ind = self._get_Pxy_from_indeces(indeces)
         self._lP[r][ind] = value
     
-    @indexproperty
+    @IndexProperty
     def mW(self, indeces):
         r, ind = self._get_Wxy_from_indeces(indeces)
         return self._lW[r][ind]

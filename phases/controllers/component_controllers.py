@@ -10,10 +10,10 @@ from gtkmvc import Controller
 
 import settings
 
-from generic.utils import get_case_insensitive_glob
 from generic.views import InlineObjectListStoreView
 from generic.views.combobox_tools import add_combo_text_column
 from generic.controllers import BaseController, ChildObjectListStoreController
+from generic.controllers.utils import get_case_insensitive_glob
 
 from phases.controllers import EditLayerController, EditAtomRelationsController, EditUnitCellPropertyController
 from phases.views import EditComponentView, EditUnitCellPropertyView

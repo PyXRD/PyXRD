@@ -5,21 +5,7 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from traceback import print_exc
-
-from collections import namedtuple
-from generic.utils import whoami, smart_repos
-
-import numpy as np
-from scipy.interpolate import interp1d
-
-from generic.io import Storable, PyXRDDecoder, get_json_type, json_type
-
-from gtkmvc import Model, Observer
-
 import gtk
-import gobject
-import json
 
 class BaseObjectListStore(gtk.GenericTreeModel):
     """

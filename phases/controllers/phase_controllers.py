@@ -12,11 +12,12 @@ from gtkmvc.adapters import Adapter
 
 import settings
 
-from generic.utils import create_treestore_from_directory, get_case_insensitive_glob
 from generic.views import ChildObjectListStoreView
 from generic.views.treeview_tools import new_text_column, new_pb_column
 from generic.views.combobox_tools import add_combo_text_column
 from generic.controllers import DialogController, BaseController, ObjectListStoreController
+from generic.controllers.utils import get_case_insensitive_glob
+from generic.models.treemodels.utils import create_treestore_from_directory
 
 from probabilities.models import get_Gbounds_for_R, get_Rbounds_for_G
 from probabilities.controllers import EditProbabilitiesController

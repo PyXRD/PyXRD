@@ -9,9 +9,9 @@ from gtkmvc.model import Signal
 
 import numpy as np
 from scipy import stats
+from scipy.interpolate import interp1d
 
 import settings
-from generic.utils import interpolate
 from generic.io import unicode_open, Storable
 from generic.models import ChildModel, PropIntel, MultiProperty
 from generic.models.mixins import CSVMixin, ObjectListStoreChildMixin
@@ -143,8 +143,7 @@ class ThresholdSelector(ChildModel):
     def set_sel_threshold_value(self, value):
         if value != self._sel_threshold:
             self._sel_threshold = value
-            deltas, numpeaks = self.threshold_plot_data
-            self.sel_num_peaks = int(interpolate(zip(deltas, numpeaks), self._sel_threshold))
+            self.sel_num_peaks = int(interp1d(*self.threshold_plot_data)(self._sel_threshold))
     
     threshold_plot_data = None
    

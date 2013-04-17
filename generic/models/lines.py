@@ -14,7 +14,7 @@ import numpy as np
 from gtkmvc.model import Signal
 
 from generic.io import Storable, PyXRDDecoder
-from generic.utils import smooth
+from generic.custom_math import smooth
 
 from properties import PropIntel, MultiProperty
 from treemodels import XYListStore

@@ -16,7 +16,8 @@ from math import sin, cos, pi, sqrt, radians, degrees, asin, tan
 
 from generic.models import ChildModel, PropIntel
 from generic.models.mixins import CSVMixin
-from generic.utils import sqrt2pi, sqrt8, get_md5_hash
+from generic.custom_math import sqrt2pi, sqrt8
+from generic.utils import get_md5_hash
 from generic.io import Storable
        
 class Goniometer(ChildModel, Storable):

@@ -13,7 +13,7 @@ import matplotlib
 import matplotlib.transforms as transforms
 from matplotlib.text import Text
 
-from generic.utils import smooth
+from generic.custom_math import smooth
 
 def plot_marker_text(marker, offset, marker_scale, base_y, axes):
     """

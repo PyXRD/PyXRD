@@ -13,7 +13,7 @@ import numpy as np
 from gtkmvc import Controller, Observer
 from gtkmvc.adapters import Adapter
 
-
+from generic.io.file_parsers import parsers, DATParser, RDParser
 from generic.plot.controllers import DraggableVLine, EyedropperCursorPlot
 from generic.models.treemodels import XYListStore
 from generic.controllers import DialogController, DialogMixin, BaseController, ObjectListStoreController, ObjectTreeviewMixin
@@ -34,10 +34,7 @@ from specimen.views import (
 
 class SpecimenController(DialogController, DialogMixin, ObjectTreeviewMixin):
 
-    file_filters = [("Data Files", get_case_insensitive_glob("*.DAT", "*.RD")),    
-                    ("ASCII Data", get_case_insensitive_glob("*.DAT")),
-                    ("Phillips Binary Data", get_case_insensitive_glob("*.RD")),
-                    ("All Files", "*.*")]
+    file_filters = [parser.file_filter for parser in parsers]
                     
     excl_filters = [("Exclusion range file", get_case_insensitive_glob("*.EXC")),
                     ("All Files", "*.*")]
@@ -237,10 +234,10 @@ class SpecimenController(DialogController, DialogMixin, ObjectTreeviewMixin):
     def on_replace_experimental_data(self, *args, **kwargs):
         def on_accept(dialog):
             filename = dialog.get_filename()
-            if filename[-3:].lower() == "dat":
-                self.model.experimental_pattern.load_data(filename, format="DAT", clear=True)
-            if filename[-2:].lower() == "rd":
-                self.model.experimental_pattern.load_data(filename, format="BIN", clear=True)
+            ffilter = dialog.get_filter()
+            parser = ffilter.get_data("parser")
+            self.model.experimental_pattern.load_data(parser, filename, clear=True)
+
         self.run_load_dialog(title="Open XRD file for import",
                             on_accept_callback=on_accept, 
                              parent=self.view.get_top_widget())
@@ -284,7 +281,16 @@ class SpecimenController(DialogController, DialogMixin, ObjectTreeviewMixin):
 
 class BackgroundController(DialogController):
 
-
+    def register_view(self, view):
+        super(BackgroundController, self).register_view(view)
+        view.set_file_dialog(
+            self.parent.get_load_dialog(
+                title="Open XRD file for import",
+                parent=view.get_top_widget()
+            ),
+            self.on_pattern_file_set
+        )
+        
     def register_adapters(self):
         if self.model is not None:
             for name in self.model.get_properties():
@@ -315,14 +321,10 @@ class BackgroundController(DialogController):
     # ------------------------------------------------------------
     def on_pattern_file_set(self, dialog):
         filename = dialog.get_filename()
+        parser = dialog.get_filter().get_data("parser")
+        generator = parser.parse(filename)
         
-        generator = None
-        if filename[-3:].lower() == "dat":
-             generator = XYListStore.parse_data(filename, format="DAT")
-        if filename[-2:].lower() == "rd":
-             generator = XYListStore.parse_data(filename, format="BIN")
-             
-        pattern = np.array([(x, y) for x, y in generator])
+        pattern = np.array([(vals[0], vals[1]) for vals in generator])
         bg_pattern_x = pattern[:,0].copy()
         bg_pattern_y = pattern[:,1].copy()
         del pattern

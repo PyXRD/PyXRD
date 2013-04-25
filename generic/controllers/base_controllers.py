@@ -46,17 +46,21 @@ class DialogMixin():
 
     def _get_object_file_filters(self, filters=None):
         filters = filters or self.file_filters
-        for name, re in filters:
-            ffilter = gtk.FileFilter()
-            ffilter.set_name(name)
-            if isinstance(re, (str, unicode)):
-                ffilter.add_pattern(re)
+        for obj in filters:
+            if isinstance(obj, gtk.FileFilter):
+                yield obj
             else:
-                for expr in re:
-                    ffilter.add_pattern(expr)
-            yield ffilter
+                name, re = obj
+                ffilter = gtk.FileFilter()
+                ffilter.set_name(name)
+                if isinstance(re, (str, unicode)):
+                    ffilter.add_pattern(re)
+                else:
+                    for expr in re:
+                        ffilter.add_pattern(expr)
+                yield ffilter
 
-    def _run_dialog(self, 
+    def run_dialog(self, 
             dialog, on_accept_callback=None, on_reject_callback=None, destroy=True):
         response = dialog.run()
         retval = None
@@ -70,8 +74,8 @@ class DialogMixin():
             dialog.hide()
         return retval
 
-    def run_file_dialog(self, 
-            action, title, on_accept_callback, on_reject_callback=None, 
+    ############################################################################
+    def get_file_dialog(self, action, title, 
             parent=None, suggest_name=None, suggest_folder=None, 
             extra_widget=None, multiple=False, filters=None):
         dialog = gtk.FileChooserDialog(
@@ -89,47 +93,80 @@ class DialogMixin():
         dialog.set_current_folder(suggest_folder or os.path.expanduser('~user'))
         for fltr in self._get_object_file_filters(filters):
             dialog.add_filter (fltr)
-        return self._run_dialog(dialog, on_accept_callback, on_reject_callback)
+        return dialog
+
+    def run_file_dialog(self, action, title,
+            on_accept_callback, on_reject_callback=None, 
+            parent=None, suggest_name=None, suggest_folder=None, 
+            extra_widget=None, multiple=False, filters=None):
+        dialog = self.get_file_dialog(*args, **kwargs)
+        return self.run_dialog(dialog, on_accept_callback, on_reject_callback)
+    ############################################################################
         
-    def run_save_dialog(self, 
-            title, on_accept_callback, on_reject_callback=None, parent=None,
+    ############################################################################
+    def get_save_dialog(self, title, parent=None,
             suggest_name=None, suggest_folder=None, 
             extra_widget=None, filters=None):
-        return self.run_file_dialog(
-            gtk.FILE_CHOOSER_ACTION_SAVE, title, 
-            on_accept_callback, on_reject_callback, parent, 
+        return self.get_file_dialog(
+            gtk.FILE_CHOOSER_ACTION_SAVE, title, parent, 
             suggest_name, suggest_folder, extra_widget, 
             multiple=False, filters=filters)
+               
+    def run_save_dialog(self, title,
+            on_accept_callback, on_reject_callback=None,
+            parent=None, suggest_name=None, suggest_folder=None, 
+            extra_widget=None, filters=None):
+        dialog = self.get_save_dialog(title, parent,
+            suggest_name, suggest_folder, 
+            extra_widget, filters)
+        return self.run_dialog(dialog, on_accept_callback, on_reject_callback)
+    ############################################################################
             
+    ############################################################################
+    def get_load_dialog(self, title, parent=None,
+            suggest_name=None, suggest_folder=None, 
+            extra_widget=None, multiple=False, filters=None):
+        return self.get_file_dialog(
+            gtk.FILE_CHOOSER_ACTION_OPEN, title, parent,
+            suggest_name, suggest_folder, extra_widget, 
+            multiple=multiple, filters=filters)
+    
     def run_load_dialog(self,
             title, on_accept_callback, on_reject_callback=None, parent=None,
             suggest_name=None, suggest_folder=None, extra_widget=None,
             multiple=False, filters=None):
-        return self.run_file_dialog(
-            gtk.FILE_CHOOSER_ACTION_OPEN, title, 
-            on_accept_callback, on_reject_callback, parent, 
-            suggest_name, suggest_folder, extra_widget, 
-            multiple=multiple, filters=filters)
+        dialog = self.get_load_dialog(title, parent, 
+            suggest_name, suggest_folder, 
+            extra_widget, multiple=multiple, filters=filters)
+        return self.run_dialog(dialog, on_accept_callback, on_reject_callback)
+    ############################################################################
 
-    def run_confirmation_dialog(self, 
-            message, on_accept_callback, on_reject_callback=None, parent=None):
+    ############################################################################
+    def get_message_dialog(self, message, type,  buttons=gtk.BUTTONS_YES_NO, parent=None):
         dialog = gtk.MessageDialog(
                     parent=parent,
                     flags=gtk.DIALOG_DESTROY_WITH_PARENT,
-                    type=gtk.MESSAGE_WARNING,
-                    buttons=gtk.BUTTONS_YES_NO)
+                    type=type,
+                    buttons=buttons)
         dialog.set_markup(message)
-        return self._run_dialog(dialog, on_accept_callback, on_reject_callback)
+        return dialog
             
-    def run_information_dialog(self, 
-            message, on_accept_callback=None, parent=None):
-        dialog = gtk.MessageDialog(
-                    parent=parent,
-                    flags=gtk.DIALOG_DESTROY_WITH_PARENT,
-                    type=gtk.MESSAGE_INFO,
-                    buttons=gtk.BUTTONS_OK)
-        dialog.set_markup(message)
-        return self._run_dialog(dialog, None, None)
+    def get_confirmation_dialog(self, message, parent=None):
+        return self.get_message_dialog(message, gtk.MESSAGE_WARNING, parent=parent)
+            
+    def run_confirmation_dialog(self, message,
+            on_accept_callback, on_reject_callback=None, parent=None):
+        dialog = self.get_confirmation_dialog(message, parent=parent)
+        return self.run_dialog(dialog, on_accept_callback, on_reject_callback)
+        
+    def get_information_dialog(self, message, parent=None):
+        return self.get_message_dialog(message, gtk.MESSAGE_INFO, buttons=gtk.BUTTONS_OK, parent=parent)
+            
+    def run_information_dialog(self, message,
+            on_accept_callback, on_reject_callback=None, parent=None):
+        dialog = self.get_information_dialog(message, parent)
+        return self.run_dialog(dialog, on_accept_callback, on_reject_callback)
+    ############################################################################
 
 
 class BaseController (Controller, DialogMixin):

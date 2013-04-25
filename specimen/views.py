@@ -68,6 +68,11 @@ class BackgroundView(DialogView):
         else:
             bg_view = self.def_bg_view
         self._add_child_view(self[bg_view], self[self.bg_view_cont])
+        
+    def set_file_dialog(self, dialog, callback):
+        fcb_bg_pattern = gtk.FileChooserButton(dialog)
+        fcb_bg_pattern.connect("file-set", callback)
+        self["fcb_bg_container"].add(fcb_bg_pattern)
       
 class SmoothDataView(DialogView):
     title = "Smooth Data"

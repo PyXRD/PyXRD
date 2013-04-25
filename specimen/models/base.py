@@ -356,36 +356,13 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
         return retval
               
     @staticmethod
-    def from_experimental_data(parent, format="DAT", filename=""):
+    def from_experimental_data(filename, parent, parser):
         specimens = list()
-        specimens.append(Specimen(parent=parent))
         
-        if format=="DAT":        
-            ays = None
-            with open(filename, 'r') as f:
-                header = f.readline().replace("\n", "")
-                ays = specimens[0].experimental_pattern.load_data(data=f, format=format, has_header=False, clear=True)            
-            name = u(os.path.basename(filename))
-            specimens[0].sample_name, sep, sample_names = map(lambda s: unicode(s, errors='replace'), header.partition("- columns: "))
-            if ays:
-                sample_names = sample_names.split(u", ")[1:]
-                for i, ay in enumerate(ays):
-                    spec = Specimen(parent=parent)
-                    spec.experimental_pattern.set_data(ay[:,0],ay[:,1])
-                    spec.name = name
-                    spec.sample_name = sample_names[i+1]
-                    specimens.append(spec)
-            specimens[0].name = name
-            
-        elif format=="BIN":
-            import struct
-            
-            f = open(filename, 'rb')
-            f.seek(146)
-            specimens[0].sample_name = u(str(f.read(16)).replace("\0", ""))
-            specimens[0].name = u(os.path.basename(filename))
-            specimens[0].experimental_pattern.load_data(data=f, format=format, clear=True)
-            f.close()
+        for name, sample, generator in parser.multi_parse(filename):
+            specimen = Specimen(parent=parent, name=name, sample_name=sample)
+            specimen.experimental_pattern.xy_store.load_data_from_generator(generator, clear=True)        
+            specimens.append(specimen)
         
         return specimens
         

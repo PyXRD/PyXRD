@@ -1,7 +1,6 @@
 Feature-wise:
 0.5 - Add more 'default' marker properties (and specimen properties?) to the project level.
 0.5 - Move 'label position' in glade layout file
-0.5 - Clean-up utils and peakdetection in generic module
 0.5 - Sybilla Support:
         - integrate XML file import
         - direct import of calculated csv files (from sybilla)

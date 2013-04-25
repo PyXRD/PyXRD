@@ -124,15 +124,10 @@ class ProjectController (DialogController, ObjectListStoreMixin, DialogMixin):
     def import_multiple_specimen(self):
         def on_accept(dialog):
             filenames = dialog.get_filenames()
+            parser = dialog.get_filter().get_data("parser")
             last_iter = None
             for filename in filenames:
-                specimen = None
-                if filename[-3:].lower() == "dat":
-                    print "Opening file %s for import using ASCII DAT format" % filename
-                    specimens = Specimen.from_experimental_data(parent=self.model, filename=filename, format="DAT")
-                if filename[-2:].lower() == "rd":
-                    print "Opening file %s for import using BINARY RD format" % filename
-                    specimens = Specimen.from_experimental_data(parent=self.model, filename=filename, format="BIN")
+                specimens = Specimen.from_experimental_data(filename=filename, parent=self.model, parser=parser)                
                 for specimen in specimens:
                     last_iter = self.model.specimens.append(specimen)
             if last_iter != None:

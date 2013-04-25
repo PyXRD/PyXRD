@@ -84,80 +84,22 @@ class XYListStore(BaseObjectListStore, Storable):
     def __reduce__(self):
         return (type(self), (), self.json_properties())
 
-    def save_data(self, header, filename):
+    def save_data(self, header, filename): #TODO move to parsers!
         f = open(filename, 'w')
         if self._model_data_y.shape[0] > 1:
-            names = u", ".join(self._y_names) if self._y_names!=None else "Phase intensities"
-            names = u"2θ, Int., " + names
-            header = u"%s - columns: %s" % (header, names)
+            names = (u"##" + u"##".join(self._y_names)) if self._y_names!=None else u""
+            header = u"2θ##%s%s" % (header, names)
         f.write(u"%s\n" % header)
         np.savetxt(f, np.insert(self._model_data_y, 0, self._model_data_x, axis=0).transpose(), fmt="%.8f")
         f.close()
         
-    @staticmethod
-    def parse_data(data, format="DAT", has_header=True):
-        f = None
-        close = False
-        if type(data) is file:
-            f = data
-        elif type(data) is str:
-            if format=="BIN":
-                f = open(data, 'rb')
-            else:
-                f = open(data, 'r')
-            close = True
-        else:
-            raise TypeError, "Wrong data type supplied for binary format, \
-                must be either file or string, but %s was given" % type(data)
-
-        if format=="DAT":
-            while True:
-                line = f.readline()
-                #for line in f:
-                if has_header:
-                    has_header=False #skip header
-                elif line != "":
-                    yield map(float, line.replace(",",".").split())
-                else:
-                    break
-        if format=="BIN":
-            if f != None:
-                import struct
-                #seek data limits
-                f.seek(214)
-                stepx, minx, maxx = struct.unpack("ddd", f.read(24))
-                nx = int((maxx-minx)/stepx)
-                #read values                          
-                f.seek(250)
-                n = 0
-                while n < nx:
-                    y, = struct.unpack("H", f.read(2))
-                    yield minx + stepx*n, float(y)
-                    n += 1
-                    
-        #close file
-        if close: f.close()
-
+    def load_data(self, filename, parser, clear=True):
+        return self.load_data_from_generator(parser.parse(filename))
         
-    def load_data(self, *args, **kwargs):
-        if kwargs.get("clear", True):
-            self.clear()
-        if "clear" in kwargs: del kwargs["clear"]
-        ays = None
-        for data in XYListStore.parse_data(*args, **kwargs):
-            if len(data) == 2:
-                x, y = data
-                self.append(x, y)
-            else:
-                if ays==None:
-                    ays = [ np.zeros(shape=(0,2)) for i in range(len(data)-2)]
-                x, y, ay = data[0], data[1], data[2:]
-                self.append(x, y)
-                for i, y in enumerate(ay):
-                    ays[i] = np.append(ays[i], [[x, y]], axis=0) #ays[0][:,1] = y waarden
-        return ays
-                
-        
+    def load_data_from_generator(self, generator, clear=True):
+        if clear: self.clear()
+        for x, y in generator:
+            self.append(x, y)
         
     # ------------------------------------------------------------
     #      Methods & Functions

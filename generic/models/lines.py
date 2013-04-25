@@ -127,7 +127,10 @@ class PyXRDLine(ChildModel, Storable):
     def get_plotted_y_at_x(self, x):
         try:
          xdata, ydata = getattr(self, "__plot_line").get_data()
-         return np.interp(x, xdata, ydata)   
+         if len(xdata) > 0 and len(ydata) > 0:
+             return np.interp(x, xdata, ydata)      
+         else:
+            return 0
         except AttributeError:
             from traceback import print_exc
             print_exc()

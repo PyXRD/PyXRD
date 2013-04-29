@@ -92,6 +92,15 @@ class ShiftDataView(DialogView):
 
     pass #end of class
       
+class StripPeakView(DialogView):
+    title = "Strip Peak"
+    subview_builder = "specimen/glade/strip_peak.glade"
+    subview_toplevel = "strip_peak"
+    modal = True
+    resizable = False
+    
+    pass #end of class
+
 class EditMarkersView(ObjectListStoreView):
     extra_widget_builder = "specimen/glade/find_peaks.glade"
     extra_widget_toplevel = "vbox_find_peaks"

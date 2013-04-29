@@ -182,6 +182,7 @@
         <property name="label" translatable="yes">Edit specimen</property>
         <property name="short_label" translatable="yes">Edit specimen</property>
         <property name="stock_id">150-edit</property>
+        <property name="always_show_image">True</property>
         <signal name="activate" handler="on_edit_specimen_activate" swapped="no"/>
       </object>
     </child>
@@ -222,6 +223,7 @@
         <property name="stock_id">gtk-about</property>
         <property name="is_important">True</property>
         <property name="sensitive">False</property>
+        <property name="always_show_image">True</property>
       </object>
     </child>
     <child>
@@ -229,6 +231,7 @@
         <property name="label" translatable="yes">Replace data</property>
         <property name="short_label" translatable="yes">Replace data</property>
         <property name="stock_id">358-file-import</property>
+        <property name="always_show_image">True</property>
         <signal name="activate" handler="on_replace_specimen_data_activate" swapped="no"/>
       </object>
     </child>
@@ -237,7 +240,17 @@
         <property name="label" translatable="yes">Export data</property>
         <property name="short_label" translatable="yes">Export data</property>
         <property name="stock_id">359-file-export</property>
+        <property name="always_show_image">True</property>
         <signal name="activate" handler="on_export_specimen_data_activate" swapped="no"/>
+      </object>
+    </child>
+    <child>
+      <object class="GtkAction" id="strip_peak">
+        <property name="label" translatable="yes">Strip peak</property>
+        <property name="short_label" translatable="yes">Strip peak</property>
+        <property name="stock_id">428-strip</property>
+        <property name="always_show_image">True</property>
+        <signal name="activate" handler="on_strip_peak" swapped="no"/>
       </object>
     </child>
   </object>
@@ -754,6 +767,19 @@ Johan Van Der Wauw</property>
                     <property name="related_action">shift_data</property>
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
+                    <property name="use_underline">True</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="homogeneous">True</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkToolButton" id="tbtn_strip_peak">
+                    <property name="related_action">strip_peak</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="label" translatable="yes">toolbutton3</property>
                     <property name="use_underline">True</property>
                   </object>
                   <packing>

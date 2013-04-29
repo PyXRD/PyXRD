@@ -247,29 +247,23 @@ class AppController (BaseController, DialogMixin):
             offset=self.model.current_project.display_plot_offset)
          
     def on_sample_point(self, event):
-        self.cid = -1
-        self.fig = self.plot_controller.figure
-        self.ret = self.view.get_toplevel()
-        
-        self.edc = EyedropperCursorPlot(self.plot_controller.canvas, self.plot_controller.canvas.get_window(), True, True)
-        
-        x_pos = -1
-        def onclick(event):
-            if event.inaxes:
-                x_pos = event.xdata
-            if self.cid != -1:
-                self.fig.canvas.mpl_disconnect(self.cid)
-            if self.edc != None:
-                self.edc.enabled = False
-                self.edc.disconnect()
-                
+        def onclick(edc, x_pos, event):            
+            if edc != None:
+                edc.enabled = False
+                edc.disconnect()
+            
             exp_y = self.model.current_specimen.experimental_pattern.xy_store.get_y_at_x(x_pos)
             calc_y = self.model.current_specimen.calculated_pattern.xy_store.get_y_at_x(x_pos)
-            
             self.run_information_dialog("Sampled point:\n\tExperimental data:\t( %.4f , %.4f )\n\tCalculated data:\t\t( %.4f , %.4f )" % (x_pos, exp_y, x_pos, calc_y), parent=self.view.get_toplevel())
-                
-            self.ret.present()
-        self.cid = self.fig.canvas.mpl_connect('button_press_event', onclick)
+            del self.edc
+        
+        self.edc = EyedropperCursorPlot(
+            self.plot_controller.figure,
+            self.plot_controller.canvas,
+            self.plot_controller.canvas.get_window(),
+            onclick,
+            True, True
+        )
 
     # ------------------------------------------------------------
     #      GTK Signal handlers - Project related
@@ -397,6 +391,11 @@ class AppController (BaseController, DialogMixin):
     def on_shift_data(self, event):
         if self.model.current_specimen != None:
             self.specimen.shift_data()
+        return True
+        
+    def on_strip_peak(self, event):
+        if self.model.current_specimen != None:
+            self.specimen.strip_peak()
         return True
 
     # ------------------------------------------------------------

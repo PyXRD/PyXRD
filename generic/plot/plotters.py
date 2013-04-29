@@ -285,6 +285,26 @@ def plot_specimen(project, specimen, labels, label_offset,
         pattern.__plot_reference_line = reference_line
         ########################################################################
         
+        ########################################################################
+        #plot the pattern after peak stripping:
+        stripped_line = getattr(pattern, "__plot_stripped_line", matplotlib.lines.Line2D([],[], c="#660099", lw="1"))
+        
+        if pattern.strip_startx!=0.0 and pattern.strip_endx!=0.0:
+            strip_xdata, strip_ydata = pattern.stripped_pattern
+            stripped_line.update(dict(
+                data=apply_transform((strip_xdata.copy(), strip_ydata.copy()), scale=scale, offset=offset),
+                visible=True
+            ))
+            if not stripped_line in axes.get_lines():
+                axes.add_line(stripped_line)
+        else:
+            stripped_line.set_data([],[])
+            stripped_line.set_visible(False)
+            try: stripped_line.remove()
+            except: pass
+            
+        pattern.__plot_stripped_line = stripped_line
+        
     if specimen.display_calculated:   
         pattern = specimen.calculated_pattern
         plot_pattern(pattern, axes, scale=scale, offset=offset)

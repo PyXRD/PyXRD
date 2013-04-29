@@ -29,7 +29,8 @@ from specimen.views import (
     MatchMineralsView,
     BackgroundView, 
     SmoothDataView, 
-    ShiftDataView
+    ShiftDataView,
+    StripPeakView
 )
 
 class SpecimenController(DialogController, DialogMixin, ObjectTreeviewMixin):
@@ -145,6 +146,11 @@ class SpecimenController(DialogController, DialogMixin, ObjectTreeviewMixin):
         sh_ctrl = ShiftDataController(self.model.experimental_pattern, sh_view, parent=self)
         sh_view.present()
         
+    def strip_peak(self):
+        st_view = StripPeakView(parent=self.view)
+        st_ctrl = StripPeakController(self.model.experimental_pattern, st_view, parent=self)
+        st_view.present()
+        
     # ------------------------------------------------------------
     #      Notifications of observable properties
     # ------------------------------------------------------------
@@ -164,7 +170,6 @@ class SpecimenController(DialogController, DialogMixin, ObjectTreeviewMixin):
     def on_btn_ok_clicked(self, event):
         self.parent.pop_status_msg('edit_specimen')
         return DialogController.on_btn_ok_clicked(self, event)
-
 
     def on_exclusion_ranges_tv_cursor_changed(self, tv):
         path, col = tv.get_cursor()
@@ -403,6 +408,62 @@ class ShiftDataController(DialogController):
         DialogController.on_cancel(self)
             
     pass #end of class
+    
+class StripPeakController(DialogController):
+
+    def register_adapters(self):
+        if self.model is not None:
+            for name in self.model.get_properties():
+                if name in ("strip_startx", "strip_endx", "noise_level"):
+                    FloatEntryValidator(self.view[name])
+                    self.adapt(name)                    
+            return
+            
+    # ------------------------------------------------------------
+    #      GTK Signal handlers
+    # ------------------------------------------------------------
+    def on_btn_ok_clicked(self, event):
+        self.model.strip_peak()
+        self.view.hide()
+        return True
+            
+    def on_cancel(self):
+        self.model._strip_start_x = 0.0
+        self.model._strip_pattern = None
+        self.model.end_start_x = 0.0         
+        DialogController.on_cancel(self)
+        
+    def on_sample_start_clicked(self, event):    
+        self.sample("strip_startx")
+        return True
+            
+    def on_sample_end_clicked(self, event):
+        self.sample("strip_endx")
+        return True
+        
+    def sample(self, attribute):
+    
+        def onclick(edc, x_pos, event):            
+            if edc != None:
+                edc.enabled = False
+                edc.disconnect()
+            if x_pos != -1:
+                setattr(self.model, attribute, x_pos)
+            self.view.get_toplevel().present()            
+            del self.edc
+        
+        self.edc = EyedropperCursorPlot(
+            self.parent.parent.plot_controller.figure,
+            self.parent.parent.plot_controller.canvas,
+            self.parent.parent.plot_controller.canvas.get_window(),
+            onclick,
+            True, True
+        )
+        
+        self.view.get_toplevel().hide()
+        self.parent.parent.view.get_toplevel().present()
+            
+    pass #end of class
    
 class StatisticsController(BaseController):
 
@@ -483,26 +544,23 @@ class EditMarkerController(BaseController):
             pass
         
     def on_sample_clicked(self, widget):
-        self.cid = -1
-        self.fig = self.parent.plot_controller.figure
-        self.ret = self.view.get_toplevel()
-        
-        self.edc = EyedropperCursorPlot(self.parent.plot_controller.canvas, self.parent.plot_controller.canvas.get_window(), True, True)
-        
-        def onclick(event):
-            x_pos = -1
-            if event.inaxes:
-                x_pos = event.xdata
-            if self.cid != -1:
-                self.fig.canvas.mpl_disconnect(self.cid)
-            if self.edc != None:
-                self.edc.enabled = False
-                self.edc.disconnect()
-            self.ret.present()
+    
+        def click_callback(edc, x_pos, event):
+            if edc != None:
+                edc.enabled = False
+                edc.disconnect()
+            self.view.get_toplevel().present()
             if x_pos != -1:
                 self.model.position = x_pos
                 
-        self.cid = self.fig.canvas.mpl_connect('button_press_event', onclick)
+        self.edc = EyedropperCursorPlot(
+            self.parent.plot_controller.figure,
+            self.parent.plot_controller.canvas,
+            self.parent.plot_controller.canvas.get_window(),
+            click_callback,
+            True, True
+        )
+        
         self.view.get_toplevel().hide()
         self.parent.view.get_toplevel().present()
 

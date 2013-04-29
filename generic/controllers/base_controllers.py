@@ -163,7 +163,7 @@ class DialogMixin():
         return self.get_message_dialog(message, gtk.MESSAGE_INFO, buttons=gtk.BUTTONS_OK, parent=parent)
             
     def run_information_dialog(self, message,
-            on_accept_callback, on_reject_callback=None, parent=None):
+            on_accept_callback=None, on_reject_callback=None, parent=None):
         dialog = self.get_information_dialog(message, parent)
         return self.run_dialog(dialog, on_accept_callback, on_reject_callback)
     ############################################################################

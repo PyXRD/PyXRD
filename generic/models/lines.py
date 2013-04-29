@@ -187,15 +187,15 @@ class ExperimentalLine(PyXRDLine):
         PropIntel(name="shift_value",       data_type=float),
         PropIntel(name="shift_position",    data_type=float),
         PropIntel(name="cap_value",         data_type=float),
+        PropIntel(name="strip_startx",      data_type=float),
+        PropIntel(name="strip_endx",        data_type=float),
+        PropIntel(name="noise_level",       data_type=float),        
+        PropIntel(name="stripped_pattern",  data_type=object),
     ]
     __store_id__ = "ExperimentalLine"
     __gtype_name__ = "PyXRDExperimentalLine"
     
     #PROPERTIES:
-    @property
-    def child_lines(self):
-        return [self.bg_line, self.smooth_line, self.shifted_line, self.reference_line]
-
     _cap_value = 0.0
     def get_cap_value_value(self): return self._cap_value
     def set_cap_value_value(self, value):
@@ -213,7 +213,6 @@ class ExperimentalLine(PyXRDLine):
         return max_value
 
     _bg_position = 0
-    bg_line = None
     def get_bg_position_value(self): return self._bg_position
     def set_bg_position_value(self, value):
         try:
@@ -244,7 +243,6 @@ class ExperimentalLine(PyXRDLine):
 
     _smooth_degree = 0
     smooth_pattern = None
-    smooth_line = None
     def get_smooth_degree_value(self): return self._smooth_degree
     def set_smooth_degree_value(self, value):
         self._smooth_degree = float(value)
@@ -254,8 +252,6 @@ class ExperimentalLine(PyXRDLine):
         self.needs_update.emit()
                 
     _shift_value = 0.0
-    shifted_line = None
-    reference_line = None
     def get_shift_value_value(self): return self._shift_value
     def set_shift_value_value(self, value):
         try:
@@ -266,7 +262,40 @@ class ExperimentalLine(PyXRDLine):
   
     def on_shift(self, prop_name, value):
         self.find_shift_value()
+       
+    _strip_startx = 0.0
+    def get_strip_startx_value(self): return self._strip_startx
+    def set_strip_startx_value(self, value):
+        try:
+            self._strip_startx = float(value)
+            if self._strip_endx < self._strip_startx:
+                self.strip_endx = self._strip_startx + 1.0
+            else: #update will be taken care of by endx's setter in the previous case
+                self.update_strip_pattern(new_pos=True)
+        except ValueError:
+            pass
     
+    _strip_endx = 0.0
+    def get_strip_endx_value(self): return self._strip_endx
+    def set_strip_endx_value(self, value):
+        try:
+            self._strip_endx = float(value)
+            self.update_strip_pattern(new_pos=True)
+        except ValueError:
+            pass
+            
+    _stripped_pattern = None
+    def get_stripped_pattern_value(self): return self._stripped_pattern
+    def set_stripped_pattern_value(self, value):
+        self._stripped_pattern = value
+        self.needs_update.emit()
+    
+    _noise_level = 0.0
+    def get_noise_level_value(self): return self._noise_level
+    def set_noise_level_value(self, value):
+        self._noise_level = value
+        self.update_strip_pattern()
+        
     shift_position = MultiProperty(0.42574, float, on_shift, { 
         0.42574: "Quartz    0.42574   SiO2",
         0.3134:  "Silicon   0.3134    Si",
@@ -336,5 +365,59 @@ class ExperimentalLine(PyXRDLine):
             actual_position = section_x[np.argmax(section_y)]
             self.shift_value = actual_position - position 
     pass #end of class
+    
+    # ------------------------------------------------------------
+    #       Peak stripping
+    # ------------------------------------------------------------
+    
+    def strip_peak(self):
+        #TODO
+        
+        x_data, y_data = self.xy_store.get_raw_model_data()
+        if self.stripped_pattern != None:
+            stripx, stripy = self.stripped_pattern
+            indeces = ((x_data>=self.strip_startx) & (x_data<=self.strip_endx)).nonzero()[0]
+            np.put(y_data, indeces, stripy)
+            self.set_data(x_data, y_data)
+        self._strip_startx = 0.0
+        self._stripped_pattern = None
+        self.strip_endx = 0.0
+        
+    strip_slope = 0.0
+    avg_starty = 0.0
+    avg_endy = 0.0
+    block_strip = False
+    def update_strip_pattern(self, new_pos=False):
+        if not self.block_strip:
+            self.block_strip = True
+            x_data, y_data = self.xy_store.get_raw_model_data()
+            
+            if new_pos:
+                #calculate average starting point y value
+                condition = (x_data>=self.strip_startx-0.1) & (x_data<=self.strip_startx+0.1)
+                section = np.extract(condition, y_data)
+                self.avg_starty = np.average(section)
+                noise_starty = 2*np.std(section) / self.avg_starty
+                
+                #calculate average ending point y value
+                condition = (x_data>=self.strip_endx-0.1) & (x_data<=self.strip_endx+0.1)
+                section = np.extract(condition, y_data)
+                self.avg_endy = np.average(section)
+                noise_endy = 2*np.std(section) / self.avg_starty
+
+                #Calcualte new slope and noise level
+                self.strip_slope = (self.avg_starty  - self.avg_endy) / (self.strip_startx -self.strip_endx)
+                self.noise_level = (noise_starty + noise_endy) * 0.5
+
+            #Get the x-values in between start and end point:
+            condition = (x_data>=self.strip_startx) & (x_data<=self.strip_endx)        
+            section_x = np.extract(condition, x_data)
+            
+            #Calculate the new y-values, add noise according to noise_level
+            noise = self.avg_endy * 2 * (np.random.rand(*section_x.shape)-0.5) * self.noise_level
+            section_y = (self.strip_slope * (section_x - self.strip_startx) + self.avg_starty) + noise
+            self.stripped_pattern = (section_x, section_y)
+            self.block_strip = False
+        
     
 ExperimentalLine.register_storable()

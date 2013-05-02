@@ -31,6 +31,8 @@ from specimen.views import (
     StripPeakView
 )
 
+print [parser.file_filter for parser in parsers]
+
 class SpecimenController(DialogController, DialogMixin, ObjectTreeviewMixin):
 
     file_filters = [parser.file_filter for parser in parsers]

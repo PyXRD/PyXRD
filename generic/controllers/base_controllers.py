@@ -48,6 +48,7 @@ class DialogMixin():
         filters = filters or self.file_filters
         for obj in filters:
             if isinstance(obj, gtk.FileFilter):
+                print obj.get_name()
                 yield obj
             else:
                 name, re = obj

@@ -106,14 +106,13 @@ class PyXRDLine(ChildModel, Storable):
     def save_data(self, filename):
         self.xy_store.save_data("%s %s" % (self.parent.name, self.parent.sample_name), filename)
         
-    def load_data(self, *args, **kwargs):   
+    def load_data(self, parser, filename, clear=True):   
         """
-            Loads data using passed args & kwargs, which are passed on to the
-            internal XYListStore's load_data method.
-            If the file contains additional y-value columns, they are returned
-            as a list of numpy 2D lists (X & Y columns).
+            Loads data using passed filename and parser, which are passed on to
+            the internal XYListStore's load_data_from_generator method.
+            If clear=True the xy_store data is cleared first.
         """ 
-        return self.xy_store.load_data(*args, **kwargs)
+        self.xy_store.load_data_from_generator(parser.parse(filename), clear=clear)
             
     # ------------------------------------------------------------
     #      Methods & Functions
@@ -122,6 +121,11 @@ class PyXRDLine(ChildModel, Storable):
         self.needs_update.emit()
     
     def set_data(self, x, *y, **kwargs):
+        """
+            Sets data using the supplied x, y1, ..., yn arrays.
+            You can also pass in an optional 'names' keyword, containing
+            the column names for y-value argument.
+        """
         self.xy_store.update_from_data(x, *y, **kwargs)
         
     def get_plotted_y_at_x(self, x):

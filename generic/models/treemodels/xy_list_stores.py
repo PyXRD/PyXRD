@@ -16,6 +16,7 @@ from scipy.interpolate import interp1d
 import gtk, gobject
 
 from generic.io import Storable, unicode_open as open
+from generic.io.file_parsers import DATParser
 from base_models import BaseObjectListStore
 
 
@@ -24,6 +25,13 @@ Point.__columns__ = [
     ('x', float),
     ('y', float)
 ]
+
+#TODO make handling multiple y-columns more transparent and consequent.
+# Some methods now include this option while other expect only a single y value.
+# The reason is mass-updating: if the data needs to be replaced with the same
+# length, it is often faster to just replace it and then call the signals for
+# each row or send a custom signal that allows to update the entire store...
+# needs some thinking and planning to change this
 
 class XYListStore(BaseObjectListStore, Storable):
     """
@@ -58,22 +66,35 @@ class XYListStore(BaseObjectListStore, Storable):
         self._iters = dict()
         
         if data!=None:
-            self._load_data(data)
+            self._deserialize(data)
         else:
             self.set_from_data(np.array([], dtype=float), np.array([], dtype=float))
            
-    def _load_data(self, data):
-        #data should be in this format:
-        #  [  (x1, y1, y2, ..., yn), (x2, y1, y2, ..., yn), ... ]
-        data = data.replace("nan", "0.0")
-        data = zip(*json.JSONDecoder().decode(data))
-        if data != []:
-            self.set_from_data(*data)
-                
     # ------------------------------------------------------------
     #      Input/Output stuff
     # ------------------------------------------------------------
     def json_properties(self):
+        return self._serialize()
+
+    def __reduce__(self):
+        return (type(self), (), self.json_properties())
+
+    def save_data(self, header, filename):
+        """
+            Exports the data inside the XYListStore to the file 'filename' with
+            the specified header in and ASCII format. Also includes column names.
+            Employs the DATParser's write method.
+        """
+        if self._model_data_y.shape[0] > 1:
+            names = (u"##" + u"##".join(self._y_names)) if self._y_names!=None else u""
+            header = u"2θ##%s%s" % (header, names)
+        DATParser.write(filename, header, self._model_data_x, self._model_data_y)
+
+    def _serialize(self):
+        """
+            Internal method, should normally not be used!
+            If you want to write data to a file, use the save_data method instead!
+        """
         conc = np.insert(self._model_data_y, 0, self._model_data_x, axis=0).transpose()
         return {
             "data": "[" + ",".join(
@@ -81,22 +102,26 @@ class XYListStore(BaseObjectListStore, Storable):
             ) + "]",
         }
 
-    def __reduce__(self):
-        return (type(self), (), self.json_properties())
-
-    def save_data(self, header, filename): #TODO move to parsers!
-        f = open(filename, 'w')
-        if self._model_data_y.shape[0] > 1:
-            names = (u"##" + u"##".join(self._y_names)) if self._y_names!=None else u""
-            header = u"2θ##%s%s" % (header, names)
-        f.write(u"%s\n" % header)
-        np.savetxt(f, np.insert(self._model_data_y, 0, self._model_data_x, axis=0).transpose(), fmt="%.8f")
-        f.close()
-        
-    def load_data(self, filename, parser, clear=True):
-        return self.load_data_from_generator(parser.parse(filename))
-        
+    def _deserialize(self, data):
+        """
+            Internal method, should normally not be used!
+            If you want to load data from a file, use the generic.io.file_parsers
+            classes in combination with the load_data_from_generator instead!
+            'data' argument should be a json string, containing a list of lists
+            of x and y values, i.e.:
+            [  [x1, x2, x3, ..., xn], [y11, y12, ..., y1n], ..., [ym1, ym2, ..., ymn] ]
+            If there are n data points and m+1 columns.
+        """
+        data = data.replace("nan", "0.0")
+        data = zip(*json.JSONDecoder().decode(data))
+        if data != []:
+            self.set_from_data(*data)
+               
     def load_data_from_generator(self, generator, clear=True):
+        """
+            Loads data from an x,y generator by appending the values.
+            This method does not allow to load multiple y values for now...
+        """
         if clear: self.clear()
         for x, y in generator:
             self.append(x, y)

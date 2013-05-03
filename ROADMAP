@@ -1,5 +1,4 @@
 Feature-wise:
-0.5 - Re-enable 'All Files' using parser objects filter (use GtkFilter filter function somehow)
 0.5 - Add more 'default' marker properties (and specimen properties?) to the project level.
 0.5 - Move 'label position' in glade layout file
 0.5 - Sybilla Support:

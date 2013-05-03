@@ -15,12 +15,17 @@ from matplotlib.text import Text
 
 from generic.custom_math import smooth
 
-def plot_marker_text(marker, offset, marker_scale, base_y, axes):
+def plot_marker_text(project, marker, offset, marker_scale, base_y, axes):
     """
         Plots a markers text using the given offset and scale
     """
     text = getattr(marker, "__plot_text", None)
-    if marker.visible and marker.style != "offset":
+    within_range = bool(
+        project.axes_xscale==0 or
+        (marker.position >= project.axes_xmin and
+        marker.position <= project.axes_xmax)
+    )
+    if marker.visible and marker.style != "offset" and within_range:
         kws = dict(text=marker.label,
                    x=float(marker.position)+float(marker.x_offset), y=settings.PLOT_TOP+float(marker.y_offset),
                    clip_on=False,
@@ -49,12 +54,17 @@ def plot_marker_text(marker, offset, marker_scale, base_y, axes):
         except: pass  
     marker.__plot_text = text
 
-def plot_marker_line(marker, offset, base_y, axes):
+def plot_marker_line(project, marker, offset, base_y, axes):
     """
         Plots a markers connector line using the given offset
     """
     line = getattr(marker, "__plot_line", None)
-    if marker.visible:
+    within_range = bool(
+        project.axes_xscale!=0 and
+        marker.position >= project.axes_xmin and
+        marker.position <= project.axes_xmax
+    )
+    if marker.visible and within_range:
         # We need to strip away the units for comparison with
         # non-unitized bounds
         trans = transforms.blended_transform_factory(axes.transData, axes.transAxes)
@@ -88,7 +98,7 @@ def plot_marker_line(marker, offset, base_y, axes):
         except: pass  
     marker.__plot_line = line
     
-def plot_markers(specimen, offset, scale, marker_scale, axes):
+def plot_markers(project, specimen, offset, scale, marker_scale, axes):
     """
         Plots a specimens markers using the given offset and scale
     """
@@ -111,11 +121,11 @@ def plot_markers(specimen, offset, scale, marker_scale, axes):
                 specimen.calculated_pattern.get_plotted_y_at_x(marker.position)
             )
             
-        plot_marker_line(marker, offset, base_y, axes)
-        plot_marker_text(marker, offset, marker_scale, base_y, axes)
+        plot_marker_line(project, marker, offset, base_y, axes)
+        plot_marker_text(project, marker, offset, marker_scale, base_y, axes)
 
 
-def plot_hatches(specimen, offset, scale, axes):
+def plot_hatches(project, specimen, offset, scale, axes):
     """
         Plots a specimens exclusion 'hatched' areas using the given offset and
         scale
@@ -360,9 +370,9 @@ def plot_specimen(project, specimen, labels, label_offset,
     
     
     # exclusion ranges;
-    plot_hatches(specimen, offset, scale, axes)
+    plot_hatches(project, specimen, offset, scale, axes)
     # markers;
-    plot_markers(specimen, offset, scale, marker_scale, axes)
+    plot_markers(project, specimen, offset, scale, marker_scale, axes)
     # & label:
     plot_label(specimen, labels, label_offset, axes)
             
@@ -401,11 +411,12 @@ def plot_specimens(project, specimens, axes):
         #plot it
 
         spec_scale *= specimen.display_vscale
-        #marker_scale *= specimen.display_vscale
     
         plot_specimen(
             project, specimen, labels,
-            spec_lbl_offset, spec_offset, spec_scale, marker_scale, 
+            spec_lbl_offset,
+            spec_offset, spec_scale, 
+            marker_scale,
             axes)
         #increase offsets:
         group_counter += 1

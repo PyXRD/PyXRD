@@ -60,9 +60,9 @@ def plot_marker_line(project, marker, offset, base_y, axes):
     """
     line = getattr(marker, "__plot_line", None)
     within_range = bool(
-        project.axes_xscale!=0 and
-        marker.position >= project.axes_xmin and
-        marker.position <= project.axes_xmax
+        project.axes_xscale==0 or
+        (marker.position >= project.axes_xmin and
+        marker.position <= project.axes_xmax)
     )
     if marker.visible and within_range:
         # We need to strip away the units for comparison with

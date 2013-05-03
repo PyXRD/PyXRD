@@ -50,15 +50,15 @@ class ProjectController (DialogController, ObjectListStoreMixin, DialogMixin):
                     self.adapt(name, "project_%s" % name)
                 elif name == "description":
                     pass
-                elif name in ("display_calc_color", "display_exp_color"):
+                elif name in ("display_calc_color", "display_exp_color", "display_marker_color"):
                     ad = Adapter(self.model, name)
                     ad.connect_widget(self.view["project_%s" % name], getter=get_color_val)
                     self.adapt(ad)
                 elif name in ("display_marker_angle", "display_plot_offset", "project_axes_xmin", "project_axes_xmax", "display_label_pos"):
                     FloatEntryValidator(self.view["project_%s" % name])
                     self.adapt(name)
-                elif name in ("axes_xscale", "axes_yscale"):
-                    ctrl_setup_combo_with_list(self, self.view["cmb_%s" % name], name, "_%ss"%name)
+                elif name in ("axes_xscale", "axes_yscale", "display_marker_align", "display_marker_style", "display_marker_base"):
+                    ctrl_setup_combo_with_list(self, self.view["project_%s" % name], name, "_%ss"%name)
                 elif name == "specimens":
                     # connects the treeview to the liststore
                     self.setup_treeview(self.parent.view["specimens_treeview"])

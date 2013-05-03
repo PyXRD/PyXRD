@@ -1,16 +1,15 @@
 Feature-wise:
-0.5 - Add more 'default' marker properties (and specimen properties?) to the project level.
-0.5 - Move 'label position' in glade layout file
-0.5 - Sybilla Support:
+0.6 - Sybilla Support:
         - integrate XML file import
         - direct import of calculated csv files (from sybilla)
-
-0.5 - add ability to spawn a second PyXRD from current project (e.g. save to temp location)
+0.6 - add ability to spawn a second PyXRD from current project (e.g. save to temp location)
   in a headless mode and refine that refinement setup, allowing for multiple processes to refine different parameters.
-0.5 - add manual Y limit option (in raw counts?)
-0.5 - add zip project files (*.zpd) (DONE)
+0.6 - add manual Y limit option (in raw counts?)
+0.6 - add zip project files (*.zpd) (DONE)
         - TODO: split large object stores in project zip file into separate files in the zip file
-0.5 - add refinement options (e.g. stagnation limits etc.) to the GUI -> requires some generalisation for future methods?
+0.6 - add refinement options (e.g. stagnation limits etc.) to the GUI -> requires some generalisation for future methods?
+0.6 - check for file extension registering on windows (using exec assoc & ftype) & linux (pyxdg)
+0.6 - export to Sybilla's XML format?
 0.8 - split layers and interlayers in two separate parts, each with their own
       atoms, dimensions and atom relations (usually the content of both are not related to one other, check this)
       this would allow chlorite interlayers to change their dimensions based on both the iron content in the
@@ -21,6 +20,4 @@ Code-Wise:
 0.x - check for backwards compatibility issues with pre-O.4 project files
 0.x - DOCUMENTATION!
 0.x - cleanse code from TODO & FIXME's
-0.5 - check for file extension registers on windows (using exec assoc & ftype) & linux (pyxdg)
-0.6 - export to Sybilla's XML format?
 0.7 - most of the default dialog actions (confirmation ,information etc.) could also be usefull as decorators.

@@ -76,7 +76,11 @@ class PyXRDMeta(ObservablePropertyMetaMT):
                 
                     set_attribute(pr_prop, attr.value)
                     set_attribute(pr_optn, attr.options)
-                    getter, setter = attr.create_accesors(pr_prop)
+                    
+                    existing_getter = getattr(cls, getter_name, None)
+                    existing_setter = getattr(cls, setter_name, None)
+                    
+                    getter, setter = attr.create_accesors(pr_prop, existing_getter, existing_setter)
                     set_attribute(getter_name, getter)
                     set_attribute(setter_name, setter)
                     del_attribute(prop.name)                  

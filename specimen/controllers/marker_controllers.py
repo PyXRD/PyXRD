@@ -59,7 +59,11 @@ class EditMarkerController(BaseController):
             return
             
     def update_sensitivities(self):
+        self.view["marker_style"].set_sensitive(not self.model.inherit_style)
+        self.view["marker_align"].set_sensitive(not self.model.inherit_align)
+        self.view["marker_base"].set_sensitive(not self.model.inherit_base)
         self.view["marker_angle"].set_sensitive(not self.model.inherit_angle)
+        self.view["marker_color"].set_sensitive(not self.model.inherit_color)
     
     # ------------------------------------------------------------
     #      Notifications of observable properties
@@ -69,7 +73,11 @@ class EditMarkerController(BaseController):
         if prop_name=="position":
             self.view["entry_nanometer"].set_text("%f" % self.model.get_nm_position())
 
+    @Controller.observe("inherit_style", assign=True)
+    @Controller.observe("inherit_align", assign=True)
+    @Controller.observe("inherit_base", assign=True)    
     @Controller.observe("inherit_angle", assign=True)
+    @Controller.observe("inherit_color", assign=True)
     def notif_angle_toggled(self, model, prop_name, info):
         self.update_sensitivities()
 

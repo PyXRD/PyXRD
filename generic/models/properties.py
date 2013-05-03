@@ -72,13 +72,19 @@ class MultiProperty(object):
         self.callback = callback
         self.options = options
         
-    def create_accesors(self, prop):
+    def create_accesors(self, prop, existing_getter=None, existing_setter=None):
         def getter(model):
-            return getattr(model, prop)
+            if callable(existing_getter):
+                return existing_getter(model)
+            else:
+                return getattr(model, prop)
         def setter(model, value):
             value = self.mapper(value)
             if value in self.options:
-                setattr(model, prop, value)
+                if callable(existing_setter):
+                    existing_setter(model, value)
+                else:
+                    setattr(model, prop, value)
                 if callable(self.callback):
                     self.callback(model, prop, value)
             else:

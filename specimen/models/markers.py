@@ -245,6 +245,28 @@ class ThresholdSelector(ChildModel):
                     self.sel_threshold = delta_x
     pass #end of class
 
+
+def get_inherit_attribute_pair(name, inherit_name, levels=1, parent_prefix="display_marker", signal=None):
+    def get_inherit_attribute_value(self):
+        return getattr(self, "_%s" % inherit_name)
+    def set_inherit_attribute_value(self, value):
+        setattr(self, "_%s" % inherit_name, bool(value))
+        if getattr(self, signal, None)!=None: getattr(self, signal, None).emit()
+
+    def get_attribute_value(self):
+        if getattr(self, inherit_name, False) and self.parent!=None and self.parent.parent!=None:
+            parent = self.parent
+            for level in range(levels-1):
+                parent = parent.parent
+            return getattr(parent, "%s_%s" % (parent_prefix, name))
+        else:
+            return getattr(self, "_%s" % name)
+    def set_attribute_value(self, value):
+        setattr(self, "_%s" % name, value)
+        if getattr(self, signal, None)!=None: getattr(self, signal, None).emit()
+    
+    return get_inherit_attribute_value, set_inherit_attribute_value, get_attribute_value, set_attribute_value
+
 class Marker(ChildModel, Storable, ObjectListStoreChildMixin, CSVMixin):
     
     #MODEL INTEL:
@@ -255,15 +277,19 @@ class Marker(ChildModel, Storable, ObjectListStoreChildMixin, CSVMixin):
         PropIntel(name="position",      data_type=float,   storable=True, has_widget=True),
         PropIntel(name="x_offset",      data_type=float,   storable=True, has_widget=True),
         PropIntel(name="y_offset",      data_type=float,   storable=True, has_widget=True),
-        PropIntel(name="align",         data_type=str,     storable=True, has_widget=True),
-        PropIntel(name="color",         data_type=float,   storable=True, has_widget=True),
-        PropIntel(name="base",          data_type=float,   storable=True, has_widget=True),
+        PropIntel(name="align",         data_type=str,     storable=True, has_widget=True, inh_name="inherit_align"),
+        PropIntel(name="inherit_align", data_type=bool,    storable=True, has_widget=True),
+        PropIntel(name="color",         data_type=str,     storable=True, has_widget=True, inh_name="inherit_color"),
+        PropIntel(name="inherit_color", data_type=bool,    storable=True, has_widget=True),
+        PropIntel(name="base",          data_type=int,     storable=True, has_widget=True, inh_name="inherit_base"),
+        PropIntel(name="inherit_base",  data_type=bool,    storable=True, has_widget=True),
         PropIntel(name="angle",         data_type=float,   storable=True, has_widget=True, inh_name="inherit_angle"),
         PropIntel(name="inherit_angle", data_type=bool,    storable=True, has_widget=True),
-        PropIntel(name="style",         data_type=str,     storable=True, has_widget=True),
+        PropIntel(name="style",         data_type=str,     storable=True, has_widget=True, inh_name="inherit_style"),
+        PropIntel(name="inherit_style", data_type=bool,    storable=True, has_widget=True),
         PropIntel(name="needs_update",  data_type=object),
     ]
-    __csv_storables__ = [ (prop.name, prop.name) for prop in __model_intel__ ]
+    __csv_storables__ = [ (prop.name, prop.name) for prop in __model_intel__ if not prop.name in ("needs_update",) ]
     __store_id__ = "Marker"
 
     #SIGNALS:
@@ -276,50 +302,83 @@ class Marker(ChildModel, Storable, ObjectListStoreChildMixin, CSVMixin):
         self._label = value
         self.liststore_item_changed()
         self.needs_update.emit()
+   
+    #Color:
+    _color = settings.MARKER_COLOR
+    _inherit_color = True
+    (get_inherit_color_value,
+    set_inherit_color_value,
+    get_color_value,
+    set_color_value) = get_inherit_attribute_pair(
+        "color", "inherit_color", 
+        levels=2, parent_prefix="display_marker", signal="needs_update"
+    )
     
+    #Angle:   
+    _angle = 0.0
+    _inherit_angle = True
+    (get_inherit_angle_value,
+    set_inherit_angle_value, 
+    get_angle_value, 
+    set_angle_value) = get_inherit_attribute_pair(
+        "angle", "inherit_angle", 
+        levels=2, parent_prefix="display_marker", signal="needs_update"
+    )
+
+    #Visible, position, X and Y offset:
     _visible = True
     _position = 0.0
     _x_offset = 0.0
     _y_offset = 0.05
-    _color = settings.MARKER_COLOR
-    @ChildModel.getter("visible", "position", "x_offset", "y_offset", "color")
+    @ChildModel.getter("visible", "position", "x_offset", "y_offset")
     def get_plot_value(self, prop_name):
         return getattr(self, "_%s" % prop_name)
-    @ChildModel.setter("visible", "position", "x_offset", "y_offset", "color")
+    @ChildModel.setter("visible", "position", "x_offset", "y_offset")
     def set_plot_value(self, prop_name, value):
         setattr(self, "_%s" % prop_name, value)
-        self.needs_update.emit()
-
-    _inherit_angle = True
-    def get_inherit_angle_value(self): return self._inherit_angle
-    def set_inherit_angle_value(self, value):
-        self._inherit_angle = bool(value)
-        self.needs_update.emit()
-            
-    _angle = 0.0
-    def get_angle_value(self):
-        if self.inherit_angle and self.parent!=None and self.parent.parent!=None:
-            return self.parent.parent.display_marker_angle
-        else:
-            return self._angle
-    def set_angle_value(self, value):
-        self._angle = value
         self.needs_update.emit()
      
     def cbb_callback(self, prop_name, value):
         self.needs_update.emit() 
     
+    #Alignment:
+    _inherit_align = True
+    (get_inherit_align_value,
+    set_inherit_align_value, 
+    get_align_value, 
+    set_align_value) = get_inherit_attribute_pair(
+        "align", "inherit_align", 
+        levels=2, parent_prefix="display_marker", signal="needs_update"
+    )
     align = MultiProperty(settings.MARKER_ALIGN, lambda i: i, cbb_callback, { 
         "left": "Left align", 
         "center": "Centered", 
         "right": "Right align"
-    })  
+    })
     
+    #Connection point:
+    _inherit_base = True
+    (get_inherit_base_value,
+    set_inherit_base_value, 
+    get_base_value, 
+    set_base_value) = get_inherit_attribute_pair(
+        "base", "inherit_base", 
+        levels=2, parent_prefix="display_marker", signal="needs_update"
+    )
     _bases = { 0: "X-axis", 1: "Experimental profile" }
     if not settings.VIEW_MODE:
         _bases.update({ 2: "Calculated profile", 3: "Lowest of both", 4: "Highest of both" })
     base = MultiProperty(settings.MARKER_BASE, int, cbb_callback, _bases)
     
+    #Line style:
+    _inherit_style = True
+    (get_inherit_style_value,
+    set_inherit_style_value, 
+    get_style_value, 
+    set_style_value) = get_inherit_attribute_pair(
+        "style", "inherit_style", 
+        levels=2, parent_prefix="display_marker", signal="needs_update"
+    )
     style = MultiProperty(settings.MARKER_STYLE, lambda i: i, cbb_callback, { 
         "none": "Display at base", "solid": "Solid", 
         "dashed": "Dash", "dotted": "Dotted", 
@@ -331,8 +390,9 @@ class Marker(ChildModel, Storable, ObjectListStoreChildMixin, CSVMixin):
     # ------------------------------------------------------------
     def __init__(self, label=None, visible=None, position=None, 
              x_offset=None, y_offset=None, 
-             color=None, base=None, angle=None,
-             inherit_angle=True, align=None, style=None, parent=None, **kwargs):
+             color=None, base=None, angle=None, align=None, style=None, 
+             inherit_color=True, inherit_base=True, inherit_align=True,
+             inherit_angle=True, inherit_style=True, parent=None, **kwargs):
         ChildModel.__init__(self, parent=parent)
         Storable.__init__(self)
         
@@ -345,10 +405,14 @@ class Marker(ChildModel, Storable, ObjectListStoreChildMixin, CSVMixin):
         self.y_offset = float(y_offset or self.get_depr(kwargs, 0.05, "data_y_offset"))
         self.color = color or self.get_depr(kwargs, settings.MARKER_COLOR, "data_color")
         self.base = int(base if base!=None else self.get_depr(kwargs, settings.MARKER_BASE, "data_base"))
-        self.inherit_angle = inherit_angle
         self.angle = float(angle or self.get_depr(kwargs, 0.0, "data_angle"))
         self.align = align or settings.MARKER_ALIGN        
         self.style = style or self.get_depr(kwargs, settings.MARKER_STYLE, "data_style")
+        self.inherit_align = inherit_align
+        self.inherit_color = inherit_color
+        self.inherit_base = inherit_base
+        self.inherit_angle = inherit_angle
+        self.inherit_style = inherit_style
         
     # ------------------------------------------------------------
     #      Methods & Functions

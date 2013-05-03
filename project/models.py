@@ -34,7 +34,11 @@ class Project(ChildModel, Storable, ObjectListStoreParentMixin):
         PropIntel(name="date",                     data_type=str,    storable=True,  has_widget=True),
         PropIntel(name="description",              data_type=str,    storable=True,  has_widget=True),
         PropIntel(name="author",                   data_type=str,    storable=True,  has_widget=True),
+        PropIntel(name="display_marker_align",     data_type=str,    storable=True,  has_widget=True),
+        PropIntel(name="display_marker_color",     data_type=str,    storable=True,  has_widget=True),
+        PropIntel(name="display_marker_base",      data_type=int,    storable=True,  has_widget=True),
         PropIntel(name="display_marker_angle",     data_type=float,  storable=True,  has_widget=True),
+        PropIntel(name="display_marker_style",     data_type=str,    storable=True,  has_widget=True),
         PropIntel(name="display_calc_color",       data_type=str,    storable=True,  has_widget=True),
         PropIntel(name="display_exp_color",        data_type=str,    storable=True,  has_widget=True),
         PropIntel(name="display_calc_lw",          data_type=float,  storable=True,  has_widget=True),
@@ -75,6 +79,7 @@ class Project(ChildModel, Storable, ObjectListStoreParentMixin):
     _axes_yvisible = False
     _display_plot_offset = 0.75
     _display_group_by = 1
+       
     _display_marker_angle = 0.0
     _display_label_pos = 0.35
     @Model.getter("axes_xmin", "axes_xmax", "axes_xstretch", "axes_yvisible",
@@ -86,7 +91,7 @@ class Project(ChildModel, Storable, ObjectListStoreParentMixin):
             "display_plot_offset", "display_group_by", "display_marker_angle",
             "display_label_pos")
     def set_axes_value(self, prop_name, value):
-        if prop_name == "axes_xmin": value = max(value, 0.0)
+        if prop_name in ("axes_xmin", "axes_xmax"): value = max(value, 0.0)
         if prop_name == "display_group_by": value = max(value, 1)
         setattr(self, "_%s" % prop_name, value)
         self.needs_update.emit()
@@ -100,23 +105,33 @@ class Project(ChildModel, Storable, ObjectListStoreParentMixin):
         2: "Unchanged raw counts"
     })
   
+    display_marker_align = MultiProperty(settings.MARKER_ALIGN, lambda i: i, cbb_callback, { 
+        "left": "Left align", 
+        "center": "Centered", 
+        "right": "Right align"
+    })
+    
+    _bases = { 0: "X-axis", 1: "Experimental profile" }
+    if not settings.VIEW_MODE:
+        _bases.update({ 2: "Calculated profile", 3: "Lowest of both", 4: "Highest of both" })
+    display_marker_base = MultiProperty(settings.MARKER_BASE, int, cbb_callback, _bases)
+    
+    display_marker_style = MultiProperty(settings.MARKER_STYLE, lambda i: i, cbb_callback, { 
+        "none": "Display at base", "solid": "Solid", 
+        "dashed": "Dash", "dotted": "Dotted", 
+        "dashdot": "Dash-Dotted", "offset": "Display at Y-offset" 
+    })
     
     _display_calc_color = settings.CALCULATED_COLOR
     _display_exp_color = settings.EXPERIMENTAL_COLOR   
-    @Model.getter("display_calc_color", "display_exp_color")
+    _display_marker_color = settings.MARKER_COLOR    
+    @Model.getter("display_calc_color", "display_exp_color", "display_marker_color")
     def get_color(self, prop_name):
         return getattr(self, "_%s" % prop_name)
-    @Model.setter("display_calc_color", "display_exp_color")
+    @Model.setter("display_calc_color", "display_exp_color", "display_marker_color")
     def set_color(self, prop_name, value):
         if value != getattr(self, "_%s" % prop_name):
             setattr(self, "_%s" % prop_name, value)
-            calc = ("calc" in prop_name)
-            if self.specimens:
-                for specimen in self.specimens.iter_objects():
-                    if calc and specimen.inherit_calc_color:
-                        specimen.calculated_pattern.color = value
-                    elif not calc and specimen.inherit_exp_color:
-                        specimen.experimental_pattern.color = value
             self.needs_update.emit()
 
     _display_calc_lw = settings.CALCULATED_LINEWIDTH

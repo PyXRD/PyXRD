@@ -31,8 +31,6 @@ from specimen.views import (
     StripPeakView
 )
 
-print [parser.file_filter for parser in parsers]
-
 class SpecimenController(DialogController, DialogMixin, ObjectTreeviewMixin):
 
     file_filters = [parser.file_filter for parser in parsers]
@@ -260,11 +258,13 @@ class SpecimenController(DialogController, DialogMixin, ObjectTreeviewMixin):
             filename = self.extract_filename(dialog)
             if filename[-3:].lower() == "dat":
                 self.model.experimental_pattern.save_data(filename)
-            if filename[-2:].lower() == "rd":
+            elif filename[-2:].lower() == "rd":
                 self.run_information_dialog("RD file format not supported (yet)!", parent=self.view.get_top_widget())
+            
         self.run_save_dialog(title="Select file for export",
                              on_accept_callback=on_accept, 
-                             parent=self.view.get_top_widget())
+                             parent=self.view.get_top_widget(),
+                             suggest_name=self.model.name)
         return True
         
     def on_btn_export_experimental_data_clicked(self, widget, data=None):

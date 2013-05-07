@@ -318,8 +318,10 @@ class AppController (BaseController, DialogMixin):
             print "Saving project..."
             filename = self.extract_filename(dialog)
             self.save_project(filename=filename)
-        suggest_name = basename(self.model.current_filename) if self.model.current_filename!=None else None
-        suggest_folder = dirname(self.model.current_filename) if self.model.current_filename!=None else None
+        suggest_name, suggest_folder = None, None
+        if self.model.current_filename!=None:
+            suggest_name = basename(self.model.current_filename)
+            suggest_folder = dirname(self.model.current_filename)
         self.run_save_dialog(title=title,
                              suggest_name=suggest_name,
                              suggest_folder=suggest_folder,

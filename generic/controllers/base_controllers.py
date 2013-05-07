@@ -20,6 +20,8 @@ class DialogMixin():
         dialogs, e.g. information, warnings, opening & saving files, ...
     """
     
+    suggest_folder = os.path.expanduser('~')
+    
     accept_responses = (
         gtk.RESPONSE_ACCEPT,
         gtk.RESPONSE_YES,
@@ -91,7 +93,8 @@ class DialogMixin():
         dialog.set_do_overwrite_confirmation(True)
         if suggest_name:
             dialog.set_current_name(suggest_name)
-        dialog.set_current_folder(suggest_folder or os.path.expanduser('~user'))
+        DialogMixin.suggest_folder = suggest_folder or DialogMixin.suggest_folder
+        dialog.set_current_folder(DialogMixin.suggest_folder)
         for fltr in self._get_object_file_filters(filters):
             dialog.add_filter (fltr)
         return dialog

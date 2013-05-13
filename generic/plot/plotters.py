@@ -26,7 +26,10 @@ def plot_marker_text(project, marker, offset, marker_scale, base_y, axes):
         marker.position <= project.axes_xmax)
     )
     if marker.visible and marker.style != "offset" and within_range:
-        kws = dict(text=marker.label,
+        #prevent empty $$ from causing an error:
+        save_label = marker.label.replace("$$", "")
+    
+        kws = dict(text=save_label,
                    x=float(marker.position)+float(marker.x_offset), y=settings.PLOT_TOP+float(marker.y_offset),
                    clip_on=False,
                    transform=transforms.blended_transform_factory(axes.transData, axes.get_figure().transFigure),
@@ -157,8 +160,12 @@ def plot_hatches(project, specimen, offset, scale, axes):
 
 def plot_label(specimen, labels, label_offset, axes):
     text = getattr(specimen, "__plot_label_artist", None)
+    
+    #prevent empty $$ from causing an error:
+    save_label = specimen.label.replace("$$", "")
+    
     props = dict(
-        text=specimen.label, 
+        text=save_label, 
         x=settings.PLOT_LEFT-0.05, 
         y=label_offset, 
         clip_on=False,

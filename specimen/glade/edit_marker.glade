@@ -5,7 +5,7 @@
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="border_width">5</property>
-    <property name="n_rows">14</property>
+    <property name="n_rows">16</property>
     <property name="n_columns">6</property>
     <property name="column_spacing">5</property>
     <property name="row_spacing">5</property>
@@ -31,8 +31,8 @@
         <property name="label" translatable="yes">Colour</property>
       </object>
       <packing>
-        <property name="top_attach">10</property>
-        <property name="bottom_attach">11</property>
+        <property name="top_attach">12</property>
+        <property name="bottom_attach">13</property>
         <property name="x_options">GTK_FILL</property>
         <property name="y_options"/>
       </packing>
@@ -42,7 +42,7 @@
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">1</property>
-        <property name="label" translatable="yes">Connect with</property>
+        <property name="label" translatable="yes">Line base</property>
         <property name="justify">right</property>
       </object>
       <packing>
@@ -108,9 +108,10 @@
       </object>
       <packing>
         <property name="left_attach">2</property>
-        <property name="right_attach">3</property>
+        <property name="right_attach">5</property>
         <property name="top_attach">2</property>
         <property name="bottom_attach">3</property>
+        <property name="x_options">GTK_FILL</property>
         <property name="y_options"/>
       </packing>
     </child>
@@ -122,7 +123,7 @@
         <property name="label" translatable="yes">°2θ</property>
       </object>
       <packing>
-        <property name="left_attach">3</property>
+        <property name="left_attach">5</property>
         <property name="right_attach">6</property>
         <property name="top_attach">2</property>
         <property name="bottom_attach">3</property>
@@ -167,11 +168,10 @@
         <property name="draw_indicator">True</property>
       </object>
       <packing>
-        <property name="left_attach">3</property>
+        <property name="left_attach">5</property>
         <property name="right_attach">6</property>
         <property name="top_attach">6</property>
         <property name="bottom_attach">7</property>
-        <property name="x_options">GTK_FILL</property>
         <property name="y_options"/>
       </packing>
     </child>
@@ -206,9 +206,10 @@
       </object>
       <packing>
         <property name="left_attach">1</property>
-        <property name="right_attach">3</property>
-        <property name="top_attach">10</property>
-        <property name="bottom_attach">11</property>
+        <property name="right_attach">5</property>
+        <property name="top_attach">12</property>
+        <property name="bottom_attach">13</property>
+        <property name="x_options">GTK_FILL</property>
         <property name="y_options"/>
       </packing>
     </child>
@@ -232,7 +233,7 @@
       </object>
       <packing>
         <property name="left_attach">1</property>
-        <property name="right_attach">3</property>
+        <property name="right_attach">6</property>
         <property name="top_attach">1</property>
         <property name="bottom_attach">2</property>
         <property name="x_options">GTK_FILL</property>
@@ -284,7 +285,7 @@
       </object>
       <packing>
         <property name="left_attach">1</property>
-        <property name="right_attach">3</property>
+        <property name="right_attach">5</property>
         <property name="top_attach">9</property>
         <property name="bottom_attach">10</property>
         <property name="x_options">GTK_FILL</property>
@@ -307,9 +308,10 @@
       </object>
       <packing>
         <property name="left_attach">1</property>
-        <property name="right_attach">3</property>
+        <property name="right_attach">5</property>
         <property name="top_attach">8</property>
         <property name="bottom_attach">9</property>
+        <property name="x_options">GTK_FILL</property>
         <property name="y_options"/>
       </packing>
     </child>
@@ -320,8 +322,8 @@
       </object>
       <packing>
         <property name="right_attach">6</property>
-        <property name="top_attach">11</property>
-        <property name="bottom_attach">12</property>
+        <property name="top_attach">13</property>
+        <property name="bottom_attach">14</property>
         <property name="x_options">GTK_FILL</property>
         <property name="y_options"/>
       </packing>
@@ -335,8 +337,8 @@
         <property name="use_markup">True</property>
       </object>
       <packing>
-        <property name="top_attach">12</property>
-        <property name="bottom_attach">13</property>
+        <property name="top_attach">14</property>
+        <property name="bottom_attach">15</property>
         <property name="x_options">GTK_FILL</property>
         <property name="y_options"/>
       </packing>
@@ -350,8 +352,8 @@
         <property name="use_markup">True</property>
       </object>
       <packing>
-        <property name="top_attach">13</property>
-        <property name="bottom_attach">14</property>
+        <property name="top_attach">15</property>
+        <property name="bottom_attach">16</property>
         <property name="x_options">GTK_FILL</property>
         <property name="y_options"/>
       </packing>
@@ -364,27 +366,10 @@
         <property name="label" translatable="yes">°2θ</property>
       </object>
       <packing>
-        <property name="left_attach">3</property>
+        <property name="left_attach">5</property>
         <property name="right_attach">6</property>
-        <property name="top_attach">12</property>
-        <property name="bottom_attach">13</property>
-        <property name="x_options">GTK_FILL</property>
-        <property name="y_options"/>
-      </packing>
-    </child>
-    <child>
-      <object class="GtkLabel" id="lbl_degrees2">
-        <property name="width_request">25</property>
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="xalign">0</property>
-      </object>
-      <packing>
-        <property name="left_attach">3</property>
-        <property name="right_attach">6</property>
-        <property name="top_attach">13</property>
-        <property name="bottom_attach">14</property>
-        <property name="x_options">GTK_FILL</property>
+        <property name="top_attach">14</property>
+        <property name="bottom_attach">15</property>
         <property name="y_options"/>
       </packing>
     </child>
@@ -419,9 +404,10 @@
       </object>
       <packing>
         <property name="left_attach">1</property>
-        <property name="right_attach">3</property>
+        <property name="right_attach">5</property>
         <property name="top_attach">7</property>
         <property name="bottom_attach">8</property>
+        <property name="x_options">GTK_FILL</property>
         <property name="y_options"/>
       </packing>
     </child>
@@ -438,10 +424,10 @@
       </object>
       <packing>
         <property name="left_attach">2</property>
-        <property name="right_attach">3</property>
+        <property name="right_attach">5</property>
         <property name="top_attach">3</property>
         <property name="bottom_attach">4</property>
-        <property name="x_options">GTK_SHRINK | GTK_FILL</property>
+        <property name="x_options">GTK_FILL</property>
         <property name="y_options"/>
       </packing>
     </child>
@@ -454,7 +440,7 @@
         <property name="use_markup">True</property>
       </object>
       <packing>
-        <property name="left_attach">3</property>
+        <property name="left_attach">5</property>
         <property name="right_attach">6</property>
         <property name="top_attach">3</property>
         <property name="bottom_attach">4</property>
@@ -464,10 +450,12 @@
     </child>
     <child>
       <object class="GtkAlignment" id="algn_sample_button">
+        <property name="width_request">50</property>
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">0</property>
         <property name="yalign">0</property>
+        <property name="xscale">0</property>
         <property name="yscale">0</property>
         <child>
           <object class="GtkButton" id="cmd_sample">
@@ -478,6 +466,7 @@
             <property name="tooltip_text" translatable="yes">Select the position directly on the pattern</property>
             <property name="image">img_sample_graph</property>
             <property name="image_position">right</property>
+            <property name="always_show_image">True</property>
             <signal name="clicked" handler="on_sample_clicked" swapped="no"/>
           </object>
         </child>
@@ -489,33 +478,6 @@
         <property name="bottom_attach">5</property>
         <property name="x_options">GTK_FILL</property>
         <property name="y_options">GTK_FILL</property>
-      </packing>
-    </child>
-    <child>
-      <object class="GtkAlignment" id="algn_offset_x">
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="xalign">0</property>
-        <property name="xscale">0</property>
-        <child>
-          <object class="GtkEntry" id="marker_x_offset">
-            <property name="width_request">200</property>
-            <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="invisible_char">•</property>
-            <property name="invisible_char_set">True</property>
-            <property name="primary_icon_activatable">False</property>
-            <property name="secondary_icon_activatable">False</property>
-          </object>
-        </child>
-      </object>
-      <packing>
-        <property name="left_attach">1</property>
-        <property name="right_attach">3</property>
-        <property name="top_attach">12</property>
-        <property name="bottom_attach">13</property>
-        <property name="x_options">GTK_FILL</property>
-        <property name="y_options"/>
       </packing>
     </child>
     <child>
@@ -538,9 +500,9 @@
       </object>
       <packing>
         <property name="left_attach">1</property>
-        <property name="right_attach">3</property>
-        <property name="top_attach">13</property>
-        <property name="bottom_attach">14</property>
+        <property name="right_attach">6</property>
+        <property name="top_attach">15</property>
+        <property name="bottom_attach">16</property>
         <property name="x_options">GTK_FILL</property>
         <property name="y_options"/>
       </packing>
@@ -560,22 +522,6 @@
       </packing>
     </child>
     <child>
-      <object class="GtkLabel" id="position_lbl2">
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="xalign">1</property>
-        <property name="use_markup">True</property>
-      </object>
-      <packing>
-        <property name="left_attach">3</property>
-        <property name="right_attach">6</property>
-        <property name="top_attach">1</property>
-        <property name="bottom_attach">2</property>
-        <property name="x_options">GTK_FILL</property>
-        <property name="y_options">GTK_FILL</property>
-      </packing>
-    </child>
-    <child>
       <object class="GtkCheckButton" id="marker_inherit_align">
         <property name="label" translatable="yes">default</property>
         <property name="visible">True</property>
@@ -586,11 +532,10 @@
         <property name="draw_indicator">True</property>
       </object>
       <packing>
-        <property name="left_attach">3</property>
+        <property name="left_attach">5</property>
         <property name="right_attach">6</property>
         <property name="top_attach">7</property>
         <property name="bottom_attach">8</property>
-        <property name="x_options">GTK_FILL</property>
         <property name="y_options"/>
       </packing>
     </child>
@@ -603,9 +548,10 @@
       </object>
       <packing>
         <property name="left_attach">2</property>
-        <property name="right_attach">3</property>
+        <property name="right_attach">5</property>
         <property name="top_attach">6</property>
         <property name="bottom_attach">7</property>
+        <property name="x_options">GTK_FILL</property>
         <property name="y_options"/>
       </packing>
     </child>
@@ -620,11 +566,10 @@
         <property name="draw_indicator">True</property>
       </object>
       <packing>
-        <property name="left_attach">3</property>
+        <property name="left_attach">5</property>
         <property name="right_attach">6</property>
         <property name="top_attach">8</property>
         <property name="bottom_attach">9</property>
-        <property name="x_options">GTK_FILL</property>
         <property name="y_options"/>
       </packing>
     </child>
@@ -639,11 +584,10 @@
         <property name="draw_indicator">True</property>
       </object>
       <packing>
-        <property name="left_attach">3</property>
+        <property name="left_attach">5</property>
         <property name="right_attach">6</property>
         <property name="top_attach">9</property>
         <property name="bottom_attach">10</property>
-        <property name="x_options">GTK_FILL</property>
         <property name="y_options"/>
       </packing>
     </child>
@@ -658,11 +602,169 @@
         <property name="draw_indicator">True</property>
       </object>
       <packing>
-        <property name="left_attach">3</property>
+        <property name="left_attach">5</property>
         <property name="right_attach">6</property>
+        <property name="top_attach">12</property>
+        <property name="bottom_attach">13</property>
+        <property name="y_options"/>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkAlignment" id="algn_offset_x">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="xalign">0</property>
+        <property name="xscale">0</property>
+        <child>
+          <object class="GtkEntry" id="marker_x_offset">
+            <property name="width_request">200</property>
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="invisible_char">•</property>
+            <property name="invisible_char_set">True</property>
+            <property name="primary_icon_activatable">False</property>
+            <property name="secondary_icon_activatable">False</property>
+          </object>
+        </child>
+      </object>
+      <packing>
+        <property name="left_attach">1</property>
+        <property name="right_attach">5</property>
+        <property name="top_attach">14</property>
+        <property name="bottom_attach">15</property>
+        <property name="x_options">GTK_FILL</property>
+        <property name="y_options"/>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkLabel" id="top_lbl">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="xalign">1</property>
+        <property name="label" translatable="yes">Line top</property>
+        <property name="justify">right</property>
+      </object>
+      <packing>
         <property name="top_attach">10</property>
         <property name="bottom_attach">11</property>
         <property name="x_options">GTK_FILL</property>
+        <property name="y_options"/>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkAlignment" id="top_algn">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="xalign">0</property>
+        <property name="xscale">0</property>
+        <child>
+          <object class="GtkComboBox" id="marker_top">
+            <property name="width_request">200</property>
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+          </object>
+        </child>
+      </object>
+      <packing>
+        <property name="left_attach">1</property>
+        <property name="right_attach">5</property>
+        <property name="top_attach">10</property>
+        <property name="bottom_attach">11</property>
+        <property name="x_options">GTK_FILL</property>
+        <property name="y_options"/>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkCheckButton" id="marker_inherit_top">
+        <property name="label" translatable="yes">default</property>
+        <property name="visible">True</property>
+        <property name="can_focus">True</property>
+        <property name="receives_default">False</property>
+        <property name="xalign">0</property>
+        <property name="active">True</property>
+        <property name="draw_indicator">True</property>
+      </object>
+      <packing>
+        <property name="left_attach">5</property>
+        <property name="right_attach">6</property>
+        <property name="top_attach">10</property>
+        <property name="bottom_attach">11</property>
+        <property name="y_options"/>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkLabel" id="empty_lbl">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="xalign">1</property>
+        <property name="justify">right</property>
+      </object>
+      <packing>
+        <property name="top_attach">11</property>
+        <property name="bottom_attach">12</property>
+        <property name="x_options">GTK_FILL</property>
+        <property name="y_options"/>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkLabel" id="offset_lbl">
+        <property name="width_request">50</property>
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="xalign">0</property>
+        <property name="label" translatable="yes">Offset from base</property>
+        <property name="max_width_chars">5</property>
+      </object>
+      <packing>
+        <property name="left_attach">1</property>
+        <property name="right_attach">3</property>
+        <property name="top_attach">11</property>
+        <property name="bottom_attach">12</property>
+        <property name="x_options">GTK_FILL</property>
+        <property name="y_options"/>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkAlignment" id="algn_offset_top">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="xalign">0</property>
+        <child>
+          <object class="GtkEntry" id="marker_top_offset">
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="invisible_char">•</property>
+            <property name="width_chars">5</property>
+            <property name="invisible_char_set">True</property>
+            <property name="primary_icon_activatable">False</property>
+            <property name="secondary_icon_activatable">False</property>
+          </object>
+        </child>
+      </object>
+      <packing>
+        <property name="left_attach">3</property>
+        <property name="right_attach">5</property>
+        <property name="top_attach">11</property>
+        <property name="bottom_attach">12</property>
+        <property name="x_options">GTK_FILL</property>
+        <property name="y_options"/>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkCheckButton" id="marker_inherit_top_offset">
+        <property name="label" translatable="yes">default</property>
+        <property name="visible">True</property>
+        <property name="can_focus">True</property>
+        <property name="receives_default">False</property>
+        <property name="xalign">0</property>
+        <property name="active">True</property>
+        <property name="draw_indicator">True</property>
+      </object>
+      <packing>
+        <property name="left_attach">5</property>
+        <property name="right_attach">6</property>
+        <property name="top_attach">11</property>
+        <property name="bottom_attach">12</property>
         <property name="y_options"/>
       </packing>
     </child>

@@ -33,10 +33,9 @@ from specimen.views import (
 
 class SpecimenController(DialogController, DialogMixin, ObjectTreeviewMixin):
 
-    file_filters = [parser.file_filter for parser in parsers]
-                    
-    excl_filters = [("Exclusion range file", get_case_insensitive_glob("*.EXC")),
-                    ("All Files", "*.*")]
+    file_filters   = [parser.file_filter for parser in parsers["xrd"]]
+    export_filters = [parser.file_filter for parser in parsers["xrd"] if parser.can_write]
+    excl_filters   = [parser.file_filter for parser in parsers["exc"]]
     
     def update_calc_treeview(self):
         tv = self.view['calculated_data_tv']
@@ -264,6 +263,7 @@ class SpecimenController(DialogController, DialogMixin, ObjectTreeviewMixin):
         self.run_save_dialog(title="Select file for export",
                              on_accept_callback=on_accept, 
                              parent=self.view.get_top_widget(),
+                             filters=self.export_filters,
                              suggest_name=self.model.name)
         return True
         

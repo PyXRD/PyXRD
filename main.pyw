@@ -18,11 +18,6 @@ import generic.gtkexcepthook
 from generic.loggers import PyXRDLogger
 from generic.update import update
 
-from project.models import Project
-from application.models import AppModel
-from application.views import AppView
-from application.controllers import AppController
-
 if __name__ == "__main__":
 
     #setup & parse keyword arguments:
@@ -40,6 +35,12 @@ if __name__ == "__main__":
 
     #apply settings
     settings.apply_runtime_settings(args.script)
+    
+    #now we can load these:    
+    from project.models import Project
+    from application.models import AppModel
+    from application.views import AppView
+    from application.controllers import AppController
 
     if args.script: #SCRIPT
         try:

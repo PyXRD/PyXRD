@@ -30,27 +30,36 @@ class DialogMixin():
     )
     
     def extract_filename(self, dialog, filters=None):
-        filename = self._adjust_filename(dialog.get_filename(), self.get_selected_glob(dialog.get_filter(), filters=filters))
+        glob = self.get_selected_glob(dialog.get_filter(), filters=filters)
+        filename = self._adjust_filename(dialog.get_filename(), glob)
         dialog.set_filename(filename)
         return filename
 
     def _adjust_filename(self, filename, glob):
-        extension = glob[1:]
-        if filename[len(filename)-len(extension):] != extension:
-            filename = "%s%s" % (filename, glob[1:])
+        if glob:
+            extension = glob[1:]
+            if filename[len(filename)-len(extension):] != extension:
+                filename = "%s%s" % (filename, glob[1:])
         return filename
 
     def get_selected_glob(self, filter, filters=None):
         selected_name = filter.get_name()
-        for name, globs in (filters or self.file_filters):
+        for filter in (filters or self.file_filters):
+            try:
+                name, globs = filter
+            except TypeError: #filter is not a tuple, perhaps it is a FileFilter from a parser
+                parser = filter.get_data("parser")
+                name, globs = parser.description, parser.extensions
             if selected_name==name:
-                return retrieve_lowercase_extension(globs[0])
+                if len(globs) and globs[0]!="*.*":
+                    return retrieve_lowercase_extension(globs[0])
+                else:
+                    return None
 
     def _get_object_file_filters(self, filters=None):
         filters = filters or self.file_filters
         for obj in filters:
             if isinstance(obj, gtk.FileFilter):
-                print obj.get_name()
                 yield obj
             else:
                 name, re = obj

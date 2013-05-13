@@ -5,13 +5,6 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-
-#
-# If we register a parser it should include:
-# - information on the extensions this format can have as included in the controllers
-# - a general name (crf above)
-#
-
 import os, sys, struct, fnmatch
 
 import numpy as np
@@ -20,29 +13,60 @@ import gtk, gio
 from generic.controllers.utils import get_case_insensitive_glob
 from generic.utils import u
 
-parsers = [] # list of subclasses
+parsers = {} # dict with lists of BaseParser subclasses, keys are namespaces
 
-class BaseParserMeta(type):
-    def __init__(cls, name, bases, dict):
-        type.__init__(cls, name, bases, dict)
-        
-        #Register parser:
-        if name!="BaseParser":
-            cls.setup_file_filter()
-            parsers.append(cls)
+def register_parser(first=False):
+    """
+        Decorator that can be used to register parser sub-classes.       
+        If the first argument is set to True, to parser will be inserted
+        at the beginning of the namespace list instead of the end.
 
+        Parsers are grouped in a lists using their 'namespace' class attribute.
+        The registered classes can be accesed by importing the 'parsers' dict
+        from the file_parsers module.
+    """
+    def wrapped_register(cls):
+        global parsers
+        if not cls.namespace in parsers:
+            parsers[cls.namespace] = []
+        if first:
+            parsers[cls.namespace].insert(0, cls)
+        else:
+            parsers[cls.namespace].append(cls)
+        return cls
+    return wrapped_register
+   
+#TODO 
+# - Generalize the parse and meta_parse methods (common output signature)
+# - ...
+   
+class MetaParser(type):
+    def __new__(meta, name, bases, attrs):
+        res = super(MetaParser, meta).__new__(meta, name, bases, attrs)
+        res.setup_file_filter()
+        return res
+   
 class BaseParser(object):
-
-    __metaclass__ = BaseParserMeta
+    """
+        Base class providing some common attributes and functions.
+        Do not register this class or subclasses without overriding the
+        following functions:
+            - parse
+            - multi_parse
+            - setup_file_filter
+    """
+    
+    __metaclass__ = MetaParser
 
     #This should be changed by sub-classes    
     description = ""
+    namespace = "generic"
     extensions  = []
     mimetypes   = []
+    can_write   = False
     
     #This should be changed by sub-classes
     __file_mode__ = "r"
-    
     
     file_filter = None
     
@@ -62,7 +86,7 @@ class BaseParser(object):
             This method should be implemented by sub-classes. It should return a
             generator returning a lists containing the values for each data row.
             This method is the most basic parser. For retrieving more information
-            from a file use the multi_parse method, which has a slightly more
+            from a file, use the multi_parse method. It has a slightly more
             complex output, but can be more useful.
         """
         #This should be implemented by sub-classes
@@ -75,7 +99,9 @@ class BaseParser(object):
             generator retuning 3-tuples containing:
                 - filename
                 - sample name
-                - (n,2) numpy array with n rows of x,y values for that sample
+                - splitted data generator, e.g. a (n,2) numpy array with n rows 
+                  of x,y values. This differs from the parse method in that it
+                  does not return rows if there are multiple columns.
             That way this method allows to generate multiple specimens from
             either multiple filenames (by calling the method several times with
             different filenames), but also to generate multiple specimens
@@ -94,7 +120,7 @@ class BaseParser(object):
             it will also set these. If additional properties are needed, this function
             should be overriden by subclasses.
         """
-        if cls.file_filter==None:
+        if cls.file_filter==None and cls.description!="" and cls.extensions:
             #Init file filter:        
             cls.file_filter = gtk.FileFilter()
             cls.file_filter.set_name(cls.description)
@@ -155,7 +181,7 @@ class BaseGroupBarser(BaseParser):
             it will also set these. If additional properties are needed, this function
             should be overriden by subclasses.
         """
-        if cls.file_filter==None:
+        if cls.file_filter==None and cls.description and cls.parsers:
             cls.file_filter = gtk.FileFilter()            
             cls.file_filter.set_name(cls.description)
             for parser in cls.parsers:
@@ -165,34 +191,28 @@ class BaseGroupBarser(BaseParser):
                 for expr in parser.extensions:
                     cls.file_filter.add_pattern(expr)
             cls.file_filter.set_data("parser", cls)
-            
-    class __metaclass__(BaseParserMeta):
-        def __init__(cls, name, bases, dict):
-            type.__init__(cls, name, bases, dict)
-            
-            #Register parser:
-            if name!="BaseGroupBarser":
-                cls.setup_file_filter()
-                parsers.insert(0, cls) #put up front
 
     pass #end of class
     
 def create_group_parser(name, *parsers, **kwargs):
     description = kwargs.pop("description", "All supported files")
+    namespace = kwargs.pop("namespace", "generic")
 
-    group_parser_type = type(name, (BaseGroupBarser,), dict(
+    group_parser_type = register_parser(first=True)(type(name, (BaseGroupBarser,), dict(
+         namespace = namespace,
          description = description,
          parsers = parsers
-    ))   
+    )))
     return group_parser_type
 
-class DATParser(BaseParser):
-
-    #TODO add more options for CSV files (separator, decimal field, ...)
-
+class BaseCSVParser(BaseParser):
+    """
+        Base ASCII CSV Parser
+    """
+    
     description = "ASCII data"
-    extensions  = get_case_insensitive_glob("*.DAT")
     mimetypes   = ["text/plain",]
+    can_write   = True
     
     @classmethod
     def parse(cls, data, has_header=True):
@@ -242,9 +262,10 @@ class DATParser(BaseParser):
                 try:sample_name = sample_names[i]
                 except IndexError: pass
                 yield name, sample_name, ay
-    
+        
         if close: f.close()
         
+    @classmethod
     def write(cls, filename, header, x, ys):
         """
             Writes the header to the first line, and will write x, y1, ..., yn
@@ -257,44 +278,3 @@ class DATParser(BaseParser):
         f.close()
         
     pass #end of class
-    
-class RDParser(BaseParser):
-
-    description = "Phillips Binary Data"
-    extensions  = get_case_insensitive_glob("*.RD")
-    mimetypes   = ["application/octet-stream",]
-
-    __file_mode__ = "rb"
-
-    @classmethod
-    def parse(cls, data):
-        close, f = cls._get_file(data)
-        if f != None:
-            #seek data limits
-            f.seek(214)
-            stepx, minx, maxx = struct.unpack("ddd", f.read(24))
-            nx = int((maxx-minx)/stepx)
-            #read values                          
-            f.seek(250)
-            n = 0
-            while n < nx:
-                y, = struct.unpack("H", f.read(2))
-                yield minx + stepx*n, float(y)
-                n += 1
-
-        if close: f.close()
-        
-    @classmethod     
-    def multi_parse(cls, filename):
-        close, f = cls._get_file(filename)
-        if f!= None:
-            f.seek(146)
-            sample_name = u(str(f.read(16)).replace("\0", ""))
-            name = u(os.path.basename(filename))
-            yield name, sample_name, cls.parse(f)
-    
-        if close: f.close()
-        
-    pass #end of class
-    
-XRDParser = create_group_parser("XRDParser", RDParser, DATParser)

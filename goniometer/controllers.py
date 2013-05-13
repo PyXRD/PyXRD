@@ -47,7 +47,10 @@ class GoniometerController(DialogController, DialogMixin):
 
     def generate_import_combo(self):
         self.view.import_combo_box.clear()
-        cmb_model = create_treestore_from_directory(settings.get_def_dir("DEFAULT_GONIOS"), ".gon")
+        cmb_model = create_treestore_from_directory(
+            settings.DATA_REG.get_directory_path("DEFAULT_GONIOS"),
+            ".gon"
+        )
         self.view.import_combo_box.set_model(cmb_model)
         cell = gtk.CellRendererText()
         self.view.import_combo_box.pack_start(cell, True)
@@ -56,7 +59,9 @@ class GoniometerController(DialogController, DialogMixin):
 
     def generate_wavelength_combo(self):
         self.view.wavelength_combo_box.clear()
-        cmb_model = create_valuestore_from_file(settings.get_def_file("WAVELENGTHS"))
+        cmb_model = create_valuestore_from_file(
+            settings.DATA_REG.get_file_path("WAVELENGTHS")
+        )
         self.view.wavelength_combo_box.set_model(cmb_model)
         cell = gtk.CellRendererText()
         self.view.wavelength_combo_box.pack_start(cell, True)

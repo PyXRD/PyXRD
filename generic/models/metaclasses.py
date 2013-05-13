@@ -11,13 +11,10 @@ from weakref import WeakValueDictionary
 
 from gtkmvc.support.metaclasses import ObservablePropertyMetaMT
 
+from generic.utils import get_unique_list
+
 def get_new_uuid():
     return unicode(get_uuid().hex)
-
-def get_unique_list(seq): #FIXME move to utils or something
-    seen = set()
-    seen_add = seen.add
-    return [ x for x in seq if x not in seen and not seen_add(x)]   
 
 class PyXRDMeta(ObservablePropertyMetaMT):
 

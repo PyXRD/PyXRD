@@ -45,6 +45,11 @@ def get_md5_hash(obj):
     hsh.update(obj)
     return hsh.digest()
 
+def get_unique_list(seq):
+    seen = set()
+    seen_add = seen.add
+    return [x for x in seq if x not in seen and not seen_add(x)]
+
 def u(string):
     return unicode(string, errors='replace', encoding='UTF-8')
 

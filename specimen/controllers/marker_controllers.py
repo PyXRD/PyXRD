@@ -37,19 +37,11 @@ class EditMarkerController(BaseController):
                     ad = Adapter(self.model, "color")
                     ad.connect_widget(self.view["marker_color"], getter=get_color_val)
                     self.adapt(ad)
-                elif name == "style":
+                elif name in ("style", "align", "base", "top"):
                     ctrl_setup_combo_with_list(self, 
-                        self.view["marker_style"],
-                        "style", "_styles")
-                elif name == "align":
-                    ctrl_setup_combo_with_list(self, 
-                        self.view["marker_align"],
-                        "align", "_aligns")
-                elif name == "base":
-                    ctrl_setup_combo_with_list(self,
-                        self.view["marker_base"],
-                        "base", "_bases")
-                elif name in ("position", "angle", "x_offset", "y_offset"):
+                        self.view["marker_%s" % name],
+                        name, "_%ss" % name)
+                elif name in ("position", "angle", "x_offset", "y_offset", "top_offset"):
                     FloatEntryValidator(self.view["marker_%s" % name])
                     self.adapt(name, "marker_%s" % name)
                 elif not name in self.model.__have_no_widget__:
@@ -59,11 +51,8 @@ class EditMarkerController(BaseController):
             return
             
     def update_sensitivities(self):
-        self.view["marker_style"].set_sensitive(not self.model.inherit_style)
-        self.view["marker_align"].set_sensitive(not self.model.inherit_align)
-        self.view["marker_base"].set_sensitive(not self.model.inherit_base)
-        self.view["marker_angle"].set_sensitive(not self.model.inherit_angle)
-        self.view["marker_color"].set_sensitive(not self.model.inherit_color)
+        for name in ("style", "align", "base", "top", "top_offset", "angle", "color"):
+            self.view["marker_%s" % name].set_sensitive(not getattr(self.model, "inherit_%s" % name))
     
     # ------------------------------------------------------------
     #      Notifications of observable properties
@@ -76,6 +65,8 @@ class EditMarkerController(BaseController):
     @Controller.observe("inherit_style", assign=True)
     @Controller.observe("inherit_align", assign=True)
     @Controller.observe("inherit_base", assign=True)    
+    @Controller.observe("inherit_top", assign=True)
+    @Controller.observe("inherit_top_offset", assign=True)
     @Controller.observe("inherit_angle", assign=True)
     @Controller.observe("inherit_color", assign=True)
     def notif_angle_toggled(self, model, prop_name, info):

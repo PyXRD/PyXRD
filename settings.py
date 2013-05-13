@@ -1,12 +1,17 @@
+# coding=UTF-8
+# ex:ts=4:sw=4:et=on
+
 # Copyright (c) 2013, Mathijs Dumon
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
+
+
 ### General Information ###
-VERSION = "0.4.4"
+VERSION = "0.4.5"
 
 DEBUG = False
-VIEW_MODE = False
+VIEW_MODE = True
 BGSHIFT = True
 
 LOG_FILENAME = 'errors.log'
@@ -25,6 +30,7 @@ CALCULATED_LINEWIDTH = 2.0
 
 MARKER_COLOR = "#000000"
 MARKER_BASE = 1
+MARKER_TOP = 0
 MARKER_STYLE = "none"
 MARKER_ALIGN = "left"
 
@@ -112,58 +118,27 @@ PRINT_MARGIN_HEIGHT = PRINT_BASE_HEIGHT*(1.0-PLOT_HEIGHT)
 PRINT_SINGLE_HEIGHT = PRINT_BASE_HEIGHT*PLOT_HEIGHT
 
 ### Default Directories & Files ###
-BASE_DIR = "" #is set runtime!
-DEFAULT_DATA_DIR = 'data/'
-DEFAULT_PHASES_DIR = '%sdefault phases/' % DEFAULT_DATA_DIR
-DEFAULT_COMPONENTS_DIR = '%sdefault components/' % DEFAULT_DATA_DIR
-DEFAULT_GONIOS_DIR = '%sdefault goniometers/' % DEFAULT_DATA_DIR
-APPLICATION_ICONS_DIR = "application/icons/"
+DATA_REG = None #set at run-time
+DATA_DIRS = [
+    ("DEFAULT_DATA",        "data/",                            None),
+    ("DEFAULT_PHASES",      "default phases/",                  "DEFAULT_DATA"),
+    ("DEFAULT_COMPONENTS",  "default components/",              "DEFAULT_DATA"),
+    ("DEFAULT_GONIOS",      "default goniometers/",             "DEFAULT_DATA"),
+    ("APPLICATION_ICONS",   "application/icons/",               None)
+]
+DATA_FILES = [
+    ("COMPOSITION_CONV",    "composition_conversion.csv",       "DEFAULT_DATA"),
+    ("ATOM_SCAT_FACTORS",   "atomic scattering factors.atl",    "DEFAULT_DATA"),
+    ("WAVELENGTHS",         "wavelengths.csv",                  "DEFAULT_DATA"),
+    ("MINERALS",            "mineral_references.csv",           "DEFAULT_DATA"),
+]
 
-COMPOSITION_CONV_FILE = "%scomposition_conversion.csv" % DEFAULT_DATA_DIR
-ATOM_SCAT_FACTORS_FILE = "%satomic scattering factors.atl" % DEFAULT_DATA_DIR
-WAVELENGTHS_FILE = "%swavelengths.csv" % DEFAULT_DATA_DIR
-MINERALS_FILE = "%smineral_references.csv" % DEFAULT_DATA_DIR
-
-def get_def_dir(name):
-    """Get absolute paths for default directories"""
-    if name=="DEFAULT_DATA":
-        global DEFAULT_DATA_DIR
-        return get_abs_dir(DEFAULT_DATA_DIR)
-    elif name=="DEFAULT_PHASES":
-        global DEFAULT_PHASES_DIR
-        return get_abs_dir(DEFAULT_PHASES_DIR)
-    elif name=="DEFAULT_COMPONENTS":
-        global DEFAULT_COMPONENTS_DIR
-        return get_abs_dir(DEFAULT_COMPONENTS_DIR)
-    elif name=="DEFAULT_GONIOS":
-        global DEFAULT_GONIOS_DIR
-        return get_abs_dir(DEFAULT_GONIOS_DIR)
-    elif name=="APPLICATION_ICONS_DIR":
-        global APPLICATION_ICONS_DIR
-        return get_abs_dir(APPLICATION_ICONS_DIR)
-    else:
-        return get_abs_dir("")
-        
-def get_def_file(name):
-    """Get absolute paths for default files"""
-    if name=="COMPOSITION_CONV":
-        global COMPOSITION_CONV_FILE    
-        return get_abs_dir(COMPOSITION_CONV_FILE)
-    elif name=="ATOM_SCAT_FACTORS":
-        global ATOM_SCAT_FACTORS_FILE
-        return get_abs_dir(ATOM_SCAT_FACTORS_FILE)
-    elif name=="WAVELENGTHS":
-        global WAVELENGTHS_FILE
-        return get_abs_dir(WAVELENGTHS_FILE)
-    elif name=="MINERALS":
-        global MINERALS_FILE
-        return get_abs_dir(MINERALS_FILE)
-    else:
-        return get_abs_dir("")
-    
-def get_abs_dir(rel_dir):
-    global BASE_DIR
-    return "%s/%s" % (BASE_DIR, rel_dir)
+### Parser module registration ###
+# Add your custom parser modules here, these should be absolute paths!
+PARSER_MODULES = [
+    'generic.io.file_parsers',
+    'specimen.parsers'
+]
 
 ### Runtime Settings Retrieval ###
 SETTINGS_APPLIED = False
@@ -171,11 +146,16 @@ def apply_runtime_settings(no_gui=False):
     """Apply runtime settings, can and needs to be called only once"""
     global SETTINGS_APPLIED
     global BASE_DIR
+    global DATA_REG, DATA_DIRS, DATA_FILES
     if not SETTINGS_APPLIED:
         import sys, os
         
-        BASE_DIR = os.path.abspath(os.path.dirname(sys.argv[0]))
+        #Setup data registry:
+        from generic.io.data_registry import DataRegistry
+        DATA_REG = DataRegistry(dirs=DATA_DIRS, files=DATA_FILES)
+        DATA_REG.set_base_directory(os.path.abspath(os.path.dirname(sys.argv[0])))
         
+        #If we are running in GUI mode, setup GUI stuff:
         if not no_gui:
             import matplotlib
             import gtk
@@ -195,21 +175,25 @@ def apply_runtime_settings(no_gui=False):
             
             # Load all additional icons
             iconfactory = gtk.IconFactory()
-            for root, dirnames, filenames in os.walk(get_def_dir("APPLICATION_ICONS_DIR")):
+            icons_path = DATA_REG.get_directory_path("APPLICATION_ICONS")
+            for root, dirnames, filenames in os.walk(icons_path):
                 for filename in filenames:
                     if filename.endswith(".png"):
                         stock_id = filename[:-4] #remove extensions
-                        pixbuf = gtk.gdk.pixbuf_new_from_file("%s%s" % (get_def_dir("APPLICATION_ICONS_DIR"), filename))
+                        pixbuf = gtk.gdk.pixbuf_new_from_file("%s%s" % (icons_path, filename))
                         iconset = gtk.IconSet(pixbuf)
                         iconfactory.add(stock_id, iconset)
             iconfactory.add_default()
         
-        #Check if the default directories exist,
-        #if not create them:
-        for dirname in ["DEFAULT_DATA", "DEFAULT_PHASES", "DEFAULT_COMPONENTS", "DEFAULT_GONIOS"]:
-            path = get_def_dir(dirname)
+        #Check if default directories exist, if not create them:
+        for path in DATA_REG.get_all_directories():
             if not os.path.exists(path):
                 os.makedirs(path)
+        
+        #Register file parsers:
+        for name in PARSER_MODULES:
+            if not name.startswith('.'): #do not import relative paths!
+                __import__(name)
         
         print "Runtime settings applied"
     SETTINGS_APPLIED = True

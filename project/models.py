@@ -37,6 +37,8 @@ class Project(ChildModel, Storable, ObjectListStoreParentMixin):
         PropIntel(name="display_marker_align",     data_type=str,    storable=True,  has_widget=True),
         PropIntel(name="display_marker_color",     data_type=str,    storable=True,  has_widget=True),
         PropIntel(name="display_marker_base",      data_type=int,    storable=True,  has_widget=True),
+        PropIntel(name="display_marker_top",       data_type=int,    storable=True,  has_widget=True),
+        PropIntel(name="display_marker_top_offset",data_type=float,  storable=True,  has_widget=True),
         PropIntel(name="display_marker_angle",     data_type=float,  storable=True,  has_widget=True),
         PropIntel(name="display_marker_style",     data_type=str,    storable=True,  has_widget=True),
         PropIntel(name="display_calc_color",       data_type=str,    storable=True,  has_widget=True),
@@ -81,15 +83,16 @@ class Project(ChildModel, Storable, ObjectListStoreParentMixin):
     _display_group_by = 1
        
     _display_marker_angle = 0.0
+    _display_marker_top_offset = 0.0
     _display_label_pos = 0.35
     @Model.getter("axes_xmin", "axes_xmax", "axes_xstretch", "axes_yvisible",
             "display_plot_offset", "display_group_by", "display_marker_angle",
-            "display_label_pos")
+            "display_label_pos", "display_marker_top_offset")
     def get_axes_value(self, prop_name):
         return getattr(self, "_%s" % prop_name)
     @Model.setter("axes_xmin", "axes_xmax", "axes_xstretch", "axes_yvisible",
             "display_plot_offset", "display_group_by", "display_marker_angle",
-            "display_label_pos")
+            "display_label_pos", "display_marker_top_offset")
     def set_axes_value(self, prop_name, value):
         if prop_name in ("axes_xmin", "axes_xmax"): value = max(value, 0.0)
         if prop_name == "display_group_by": value = max(value, 1)
@@ -116,8 +119,11 @@ class Project(ChildModel, Storable, ObjectListStoreParentMixin):
         _bases.update({ 2: "Calculated profile", 3: "Lowest of both", 4: "Highest of both" })
     display_marker_base = MultiProperty(settings.MARKER_BASE, int, cbb_callback, _bases)
     
+    _tops = { 0: "Relative to base", 1: "Top of plot" }
+    display_marker_top = MultiProperty(settings.MARKER_TOP, int, cbb_callback, _tops)
+    
     display_marker_style = MultiProperty(settings.MARKER_STYLE, lambda i: i, cbb_callback, { 
-        "none": "Display at base", "solid": "Solid", 
+        "none": "None", "solid": "Solid", 
         "dashed": "Dash", "dotted": "Dotted", 
         "dashdot": "Dash-Dotted", "offset": "Display at Y-offset" 
     })
@@ -174,7 +180,10 @@ class Project(ChildModel, Storable, ObjectListStoreParentMixin):
             description = "Project description", author = "Project author",
             goniometer = None, atom_types = None, phases = None, 
             specimens = None, mixtures = None,
-            display_marker_angle=None, display_plot_offset=None, display_group_by=None,
+            display_marker_align=None, display_marker_color=None, display_marker_base=None,
+            display_marker_top=None, display_marker_top_offset=None, 
+            display_marker_angle=None, display_marker_style=None,
+            display_plot_offset=None, display_group_by=None,
             display_calc_color=None, display_exp_color=None, display_label_pos=None,
             display_calc_lw=None, display_exp_lw=None,
             axes_xscale=None, axes_xmin=None, axes_xmax=None, 
@@ -187,7 +196,14 @@ class Project(ChildModel, Storable, ObjectListStoreParentMixin):
         self.before_needs_update_lock = False
         self.needs_update = DefaultSignal(before=self.before_needs_update)
 
+        self.display_marker_align = display_marker_align or self.display_marker_align
+        self.display_marker_color = display_marker_color or self.display_marker_color
+        self.display_marker_base = display_marker_base or self.display_marker_base
+        self.display_marker_top = display_marker_top or self.display_marker_top
+        self.display_marker_top_offset = display_marker_top_offset or self.display_marker_top_offset
         self.display_marker_angle = display_marker_angle or self.display_marker_angle
+        self.display_marker_style = display_marker_style or self.display_marker_style        
+        
         self.display_calc_color = display_calc_color or self.display_calc_color
         self.display_exp_color = display_exp_color or self.display_exp_color
         self.display_calc_lw = display_calc_lw or self.display_calc_lw
@@ -246,7 +262,9 @@ class Project(ChildModel, Storable, ObjectListStoreParentMixin):
         
     def load_default_data(self):
         AtomType.get_from_csv(
-            settings.get_def_file("ATOM_SCAT_FACTORS"), self.atom_types.append)
+            settings.DATA_REG.get_file_path("ATOM_SCAT_FACTORS"),
+            self.atom_types.append
+        )
             
     # ------------------------------------------------------------
     #      Notifications of observable properties

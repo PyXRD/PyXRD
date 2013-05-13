@@ -28,23 +28,24 @@ def plot_marker_text(project, marker, offset, marker_scale, base_y, axes):
     if marker.visible and marker.style != "offset" and within_range:
         #prevent empty $$ from causing an error:
         save_label = marker.label.replace("$$", "")
+        
+        #Calculate position and set transform:
+        x = float(marker.position)+float(marker.x_offset)
+        if marker.top == 0: #relative to base 
+            y = base_y + (marker.top_offset + marker.y_offset) * marker_scale
+            transform=axes.transData
+        elif marker.top == 1: #top of plot
+            y = settings.PLOT_TOP + float(marker.y_offset)
+            transform=transforms.blended_transform_factory(axes.transData, axes.get_figure().transFigure)
     
         kws = dict(text=save_label,
-                   x=float(marker.position)+float(marker.x_offset), y=settings.PLOT_TOP+float(marker.y_offset),
+                   x=x, y=y,
                    clip_on=False,
-                   transform=transforms.blended_transform_factory(axes.transData, axes.get_figure().transFigure),
+                   transform=transform,
                    horizontalalignment=marker.align, verticalalignment="center",
                    rotation=(90-marker.angle), rotation_mode="anchor",
                    color=marker.color,
                    weight="heavy")
-        
-        if marker.style == "none":
-            y = base_y + marker.y_offset * marker_scale
-            
-            kws.update(dict(
-                y=y,
-                transform=axes.transData,
-            ))
         
         if text:
             for key in kws: getattr(text, "set_%s"%key)(kws[key])
@@ -72,16 +73,22 @@ def plot_marker_line(project, marker, offset, base_y, axes):
         # non-unitized bounds
         trans = transforms.blended_transform_factory(axes.transData, axes.transAxes)
         
+        #Calculate top and bottom positions:
         ymin, ymax = axes.get_ybound()
         y = base_y
-        y0, y1 = (y - ymin) / (ymax - ymin), 1.0
+        y0 = (y - ymin) / (ymax - ymin)
+        if marker.top == 0: #relative to base 
+            y1 = y0 + (marker.top_offset - ymin) / (ymax - ymin)
+        elif marker.top == 1: #top of plot
+            y1 = 1.0
         
+        #If style is 'offset', re-calculate positions accordingly
         style = marker.style
         if style == "offset":
             style = "solid"
             y0 = (offset - ymin) / (ymax - ymin)
             y1 = y0 + (marker.y_offset - ymin) / (ymax - ymin)
-            
+                       
         data = [y0,y1]
             
         if line:

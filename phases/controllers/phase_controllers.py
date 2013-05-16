@@ -280,7 +280,7 @@ class AddPhaseController(DialogController):
         self.update_R_bounds()
         
     def generate_combo(self):        
-        cmb_model = create_treestore_from_directory(settings.get_def_dir("DEFAULT_PHASES"), ".phs")        
+        cmb_model = create_treestore_from_directory(settings.DATA_REG.get_directory_path("DEFAULT_PHASES"), ".phs")        
         self.view.phase_combo_box.set_model(cmb_model)
         add_combo_text_column(self.view.phase_combo_box, text_col=0, sensitive_col=2)
     

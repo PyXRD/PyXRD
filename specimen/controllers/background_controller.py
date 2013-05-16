@@ -58,9 +58,7 @@ class BackgroundController(DialogController):
     def on_pattern_file_set(self, dialog):
         filename = dialog.get_filename()
         parser = dialog.get_filter().get_data("parser")
-        generator = parser.parse(filename)
-        
-        pattern = np.array([(vals[0], vals[1]) for vals in generator])
+        pattern = parser.parse(filename)[0].data
         bg_pattern_x = pattern[:,0].copy()
         bg_pattern_y = pattern[:,1].copy()
         del pattern

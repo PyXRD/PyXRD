@@ -35,11 +35,28 @@ def register_parser(first=False):
             parsers[cls.namespace].append(cls)
         return cls
     return wrapped_register
-   
-#TODO 
-# - Generalize the parse and meta_parse methods (common output signature)
-# - ...
-   
+ 
+ 
+class DataObject(object):
+    """
+        A generic class holding all the information retrieved from a file
+        using a BaseParser class.
+    """
+    
+    #general information
+    filename = None
+    
+    def __init__(self, *args, **kwargs):
+        super(DataObject, self).__init__()
+        self.update(**kwargs)
+    
+    def update(self, **kwargs):
+        for key, value in kwargs.iteritems():
+            setattr(self, key, value)
+                
+    pass #end of class
+    
+  
 class MetaParser(type):
     def __new__(meta, name, bases, attrs):
         res = super(MetaParser, meta).__new__(meta, name, bases, attrs)
@@ -51,9 +68,10 @@ class BaseParser(object):
         Base class providing some common attributes and functions.
         Do not register this class or subclasses without overriding the
         following functions:
-            - parse
-            - multi_parse
-            - setup_file_filter
+            - parse_header
+            - parse_data
+            - parse (optional)
+            - setup_file_filter (optional)
     """
     
     __metaclass__ = MetaParser
@@ -64,6 +82,7 @@ class BaseParser(object):
     extensions  = []
     mimetypes   = []
     can_write   = False
+    data_object_type = DataObject
     
     #This should be changed by sub-classes
     __file_mode__ = "r"
@@ -71,45 +90,86 @@ class BaseParser(object):
     file_filter = None
     
     @classmethod
-    def _get_file(cls, data):
-        if type(data) is file:
-            return False, data
-        elif type(data) is str:
-            return True, open(data, cls.__file_mode__)
+    def _get_file(cls, filename, f=None, close=None):
+        """
+            Returns a three-tuple:
+            filename, file-object, close
+        """
+        if type(f) is file:
+            return filename, f, False if close==None else close
+        elif type(filename) is str:
+            return filename, open(filename, cls.__file_mode__), True if close==None else close
         else:
-            raise TypeError, "Wrong data type supplied for '%s' format, \
-                must be either file or string, but %s was given" % (cls.description, type(data))
+            raise TypeError, "Wrong argument: either a file object or a valid \
+                filename must be passed, not '%s' or '%s'" % (cls.description, filename, f)
     
     @classmethod
-    def parse(cls, data):
+    def _adapt_data_object_list(cls, data_objects, num_samples, only_extend=False):
+        # If not yet created, create data_objects list:
+        if data_objects==None:
+            data_objects = [None,]
+        # If not yet the same length, adapt:
+        num_data_objects = len(data_objects)
+        if num_data_objects < num_samples:
+            data_objects.extend([None]*int(num_samples - num_data_objects))
+        if not only_extend and num_data_objects > num_samples:
+            data_objects = data_objects[:num_samples]
+        # If not yet initialized, initialize:
+        for i in range(num_samples):
+            if not data_objects[i]:
+                data_objects[i] = cls.data_object_type()
+        return data_objects
+    
+    @classmethod
+    def parse_header(cls, filename, f=None, data_objects=None, close=False):
         """
-            This method should be implemented by sub-classes. It should return a
-            generator returning a lists containing the values for each data row.
-            This method is the most basic parser. For retrieving more information
-            from a file, use the multi_parse method. It has a slightly more
-            complex output, but can be more useful.
+            This method is implemented by sub-classes.
+            It should parse the file and returns a list of DataObjects 
+            with the header properties filled in accordingly.
+            The filename argument is always required. If no file object is passed
+            as keyword argument, it only serves as a label. Otherwise a new file
+            object is created. 
+            File objects are not closed unless close is set to True.
+            Existing DataObjects can be passed as well and will then 
+            be used instead of creating new ones.
         """
         #This should be implemented by sub-classes
         raise NotImplementedError
-
-    @classmethod     
-    def multi_parse(cls, filename):
+    
+    @classmethod
+    def parse_data(cls, filename, f=None, data_objects=None, close=False):
         """
-            This method should be implemented by sub-classes. It should return a
-            generator retuning 3-tuples containing:
-                - filename
-                - sample name
-                - splitted data generator, e.g. a (n,2) numpy array with n rows 
-                  of x,y values. This differs from the parse method in that it
-                  does not return rows if there are multiple columns.
-            That way this method allows to generate multiple specimens from
-            either multiple filenames (by calling the method several times with
-            different filenames), but also to generate multiple specimens
-            from a single data file having more then one y data column (e.g.
-            exported calculated data files).
+            This method is implemented by sub-classes.
+            It should parse the file and return a list of DataObjects
+            with the data properties filled in accordingly.
+            The filename argument is always required. If no file object is passed
+            as keyword argument, it only serves as a label. Otherwise a new file
+            object is created.
+            File objects are not closed unless close is set to True.
+            Existing DataObjects can be passed as well and will then 
+            be used instead of creating new ones.
         """
         #This should be implemented by sub-classes
         raise NotImplementedError
+        
+    
+    @classmethod
+    def parse(cls, filename, f=None, data_objects=None, close=True):
+        """
+            This method parses the file and return a list of DataObjects
+            with both header and data properties filled in accordingly.
+            The filename argument is always required. If no file object is passed
+            as keyword argument, it only serves as a label. Otherwise a new file
+            object is created.
+            File objects are closed unless close is set to False.
+            Existing DataObjects can be passed as well and will then 
+            be used instead of creating new ones.
+        """
+        filename, f, close = cls._get_file(filename, f=f, close=close)
+        data_objects = cls.parse_header(filename, f=f, data_objects=data_objects)
+        data_objects = cls.parse_data(filename, f=f, data_objects=data_objects)        
+        if close: f.close()
+        return data_objects
         
     @classmethod
     def setup_file_filter(cls):
@@ -138,14 +198,16 @@ class BaseGroupBarser(BaseParser):
     parsers = None
 
     @classmethod
-    def get_parser(cls, data):
-        if not type(data) is str:
-            raise TypeError, "Wrong data type supplied for '%s' format, must be a string, but %s was given" % (cls.description, type(data))
+    def get_parser(cls, filename, f=None):
+        #FIXME make this work with file objects and a filename str as well
+        if not type(filename) is str:
+            raise TypeError, "Wrong data type supplied for '%s' format, must be a string, but %s was given" % (cls.description, type(filename))
         else:
-            giof = gio.File(data)
+            giof = gio.File(filename)
+            file_mime = giof.query_info('standard::content-type').get_content_type()
+            del giof
             for parser in cls.parsers:
                 passed = False
-                file_mime = giof.query_info('standard::content-type').get_content_type()
                 for mime in parser.mimetypes:
                     if file_mime.split('/')[0] == mime.split('/')[0]: #TODO if an exact match can be made, even better
                         passed = True
@@ -153,7 +215,7 @@ class BaseGroupBarser(BaseParser):
                     else:
                         passed = False
                 for extension in parser.extensions:
-                    if fnmatch.fnmatch(data, extension):
+                    if fnmatch.fnmatch(filename, extension):
                         passed = True
                         break
                     else:
@@ -163,14 +225,19 @@ class BaseGroupBarser(BaseParser):
                     break #just for the sake of clarity
 
     @classmethod
-    def parse(cls, data):
-        parser = cls.get_parser(data)
-        return parser.parse(data)
-        
-    @classmethod     
-    def multi_parse(cls, filename):
-        parser = cls.get_parser(filename)
-        return parser.multi_parse(filename)
+    def parse_header(cls, filename, f=None, data_objects=None, close=False):
+        parser = cls.get_parser(filename, f=f)
+        return parser.parse_header(filename, f=f, data_objects=data_objects, close=close)
+    
+    @classmethod
+    def parse_data(cls, filename, f=None, data_objects=None, close=False):
+        parser = cls.get_parser(filename, f=f)
+        return parser.parse_data(filename, f=f, data_objects=data_objects, close=close)
+    
+    @classmethod
+    def parse(cls, filename, f=None, data_objects=None, close=True):
+        parser = cls.get_parser(filename, f=f)
+        return parser.parse(filename, data_objects=data_objects, close=close)
         
     @classmethod
     def setup_file_filter(cls):
@@ -195,6 +262,13 @@ class BaseGroupBarser(BaseParser):
     pass #end of class
     
 def create_group_parser(name, *parsers, **kwargs):
+    """
+        Factory function for creating BaseGroupParser sub-classes,
+        pass it a class name and a list of parser classes as arguments.
+        Optional key-word arguments are a description and namespace argument,
+        which will be set as class attributes. Default values are "All supported files"
+        and "generic" respectively.
+    """
     description = kwargs.pop("description", "All supported files")
     namespace = kwargs.pop("namespace", "generic")
 
@@ -205,68 +279,24 @@ def create_group_parser(name, *parsers, **kwargs):
     )))
     return group_parser_type
 
-class BaseCSVParser(BaseParser):
+class ASCIIParser(BaseParser):
     """
-        Base ASCII CSV Parser
+        ASCII Parser
     """
-    
     description = "ASCII data"
     mimetypes   = ["text/plain",]
     can_write   = True
     
     @classmethod
-    def parse(cls, data, has_header=True):
-        close, f = cls._get_file(data)
-        if f != None:
-            while True:
-                line = f.readline()
-                if has_header:
-                    has_header=False #skip header
-                elif line != "":
-                    yield map(float, line.replace(",",".").split())
-                else:
-                    break
-                
-        if close: f.close()
-           
-    @classmethod     
-    def multi_parse(cls, filename):
-        close, f = cls._get_file(filename)
-                
-        header = f.readline().replace("\n", "")
-        sample_names = header.split(u"##")
-        if len(sample_names) > 1:
-            sample_names = [sample_names[0] + sample_names[1],] + sample_names[2:]
-        name = u(os.path.basename(filename))
+    def get_last_line(cls, f):
+        #TODO move to ASCII parser
+        i = -1
+        for i, l in enumerate(f):
+            pass
+        return i + 1, l    
 
-        #TODO make this return real generators!
-        ays = None
-        for data in cls.parse(f, has_header=False):
-            x, ay = data[0], data[1:] #ay contains columns with y values
-            if ays==None: #setup ays if not yet done,
-                # this will be a list of numpy arrays, for each sample one array,
-                # in which rows are data points and columns are x and y
-                # zodoende:
-                # ays[i][:,0] = x waarden voor staal i
-                # ays[i][:,1] = y waarden voor staal i
-                ays = [ np.zeros(shape=(0,2)) for i in range(len(data)-1) ]
-            for i, y in enumerate(ay):
-                # go over each y value and append it to the correct ays together with
-                # the x value
-                # This way the 2D array is being built
-                ays[i] = np.append(ays[i], [[x, y]], axis=0)
-        
-        if ays:
-            for i, ay in enumerate(ays):
-                sample_name = "#%s" % i
-                try:sample_name = sample_names[i]
-                except IndexError: pass
-                yield name, sample_name, ay
-        
-        if close: f.close()
-        
     @classmethod
-    def write(cls, filename, header, x, ys):
+    def write(cls, filename, header, x, ys, delimiter=","):
         """
             Writes the header to the first line, and will write x, y1, ..., yn
             rows for each column inside the x and ys arguments.
@@ -274,7 +304,7 @@ class BaseCSVParser(BaseParser):
         """
         f = open(filename, 'w')
         f.write(u"%s\n" % header)
-        np.savetxt(f, np.insert(ys, 0, x, axis=0).transpose(), fmt="%.8f")
+        np.savetxt(f, np.insert(ys, 0, x, axis=0).transpose(), fmt="%.8f", delimiter=delimiter)
         f.close()
-        
+
     pass #end of class

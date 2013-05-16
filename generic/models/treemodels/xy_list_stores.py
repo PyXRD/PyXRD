@@ -16,7 +16,7 @@ from scipy.interpolate import interp1d
 import gtk, gobject
 
 from generic.io import Storable, unicode_open as open
-from generic.io.file_parsers import BaseCSVParser
+from generic.io.file_parsers import ASCIIParser
 from base_models import BaseObjectListStore
 
 
@@ -82,13 +82,13 @@ class XYListStore(BaseObjectListStore, Storable):
     def save_data(self, header, filename):
         """
             Exports the data inside the XYListStore to the file 'filename' with
-            the specified header in and ASCII format. Also includes column names.
-            Employs the BaseCSVParser's write method.
+            the specified header in CSV format. Also includes column names.
+            Employs the ASCIIParser's write method.
         """
         if self._model_data_y.shape[0] > 1:
-            names = (u"##" + u"##".join(self._y_names)) if self._y_names!=None else u""
-            header = u"2θ##%s%s" % (header, names)
-        BaseCSVParser.write(filename, header, self._model_data_x, self._model_data_y)
+            names = ["2θ", header] + (self._y_names or [])
+            header = u",".join(names)
+        ASCIIParser.write(filename, header, self._model_data_x, self._model_data_y)
 
     def _serialize(self):
         """

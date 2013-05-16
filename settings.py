@@ -137,6 +137,7 @@ DATA_FILES = [
 # Add your custom parser modules here, these should be absolute paths!
 PARSER_MODULES = [
     'generic.io.file_parsers',
+    'generic.io.xrd_parsers',
     'specimen.parsers'
 ]
 

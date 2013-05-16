@@ -112,7 +112,8 @@ class PyXRDLine(ChildModel, Storable):
             the internal XYListStore's load_data_from_generator method.
             If clear=True the xy_store data is cleared first.
         """ 
-        self.xy_store.load_data_from_generator(parser.parse(filename), clear=clear)
+        xrdfiles = parser.parse(filename)
+        self.xy_store.load_data_from_generator(xrdfiles[0].data, clear=clear)
             
     # ------------------------------------------------------------
     #      Methods & Functions

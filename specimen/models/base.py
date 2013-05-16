@@ -358,8 +358,9 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
     @staticmethod
     def from_experimental_data(filename, parent, parser):
         specimens = list()
-        
-        for name, sample, generator in parser.multi_parse(filename):
+        xrdfiles = parser.parse(filename)
+        for xrdfile in xrdfiles:
+            name, sample, generator = xrdfile.filename, xrdfile.name, xrdfile.data
             specimen = Specimen(parent=parent, name=name, sample_name=sample)
             specimen.experimental_pattern.xy_store.load_data_from_generator(generator, clear=True)        
             specimens.append(specimen)

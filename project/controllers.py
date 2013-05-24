@@ -1,11 +1,11 @@
-# coding=UTF-8
+    # coding=UTF-8
 # ex:ts=4:sw=4:et=on
 
 # Copyright (c) 2013, Mathijs Dumon
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-import locale
+import os, locale
 
 import pango
 import gtk
@@ -131,9 +131,19 @@ class ProjectController (DialogController, ObjectListStoreMixin, DialogMixin):
             parser = dialog.get_filter().get_data("parser")
             last_iter = None
             for filename in filenames:
-                specimens = Specimen.from_experimental_data(filename=filename, parent=self.model, parser=parser)                
-                for specimen in specimens:
-                    last_iter = self.model.specimens.append(specimen)
+                try:
+                    specimens = Specimen.from_experimental_data(filename=filename, parent=self.model, parser=parser)                
+                except Exception as msg:
+                    message = "An unexpected error has occured when trying to parse %s:\n\n<i>"  % os.path.basename(filename)
+                    message += str(msg) + "</i>\n\n"
+                    message += "This is most likely caused by an invalid or unsupported file format."
+                    self.run_information_dialog(
+                        message=message,
+                        parent=self.view.get_top_widget()
+                    )
+                else:
+                    for specimen in specimens:
+                        last_iter = self.model.specimens.append(specimen)
             if last_iter != None:
                 self.parent.view["specimens_treeview"].set_cursor(last_iter)
         

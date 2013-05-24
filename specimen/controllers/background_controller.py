@@ -5,6 +5,8 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
+import os
+
 import numpy as np
 
 from gtkmvc import Controller
@@ -58,16 +60,27 @@ class BackgroundController(DialogController):
     def on_pattern_file_set(self, dialog):
         filename = dialog.get_filename()
         parser = dialog.get_filter().get_data("parser")
-        pattern = parser.parse(filename)[0].data
-        bg_pattern_x = pattern[:,0].copy()
-        bg_pattern_y = pattern[:,1].copy()
-        del pattern
-        
-        if bg_pattern_x.shape != self.model.xy_store._model_data_x.shape:
-            raise ValueError, "Shape mismatch: background pattern (shape = %s) and experimental data (shape = %s) need to have the same length!" % (bg_pattern_x.shape, self.model.xy_store._model_data_x.shape)
-            dialog.unselect_filename(filename)
-        else:
-            self.model.bg_pattern = bg_pattern_y
+        data_objects = None
+        try:
+            data_objects = parser.parse(filename)
+            pattern = data_objects[0].data
+            bg_pattern_x = pattern[:,0].copy()
+            bg_pattern_y = pattern[:,1].copy()
+            del pattern
+
+            if bg_pattern_x.shape != self.model.xy_store._model_data_x.shape:
+                raise ValueError, "Shape mismatch: background pattern (shape = %s) and experimental data (shape = %s) need to have the same length!" % (bg_pattern_x.shape, self.model.xy_store._model_data_x.shape)
+                dialog.unselect_filename(filename)
+            else:
+                self.model.bg_pattern = bg_pattern_y
+        except Exception as msg:
+            message = "An unexpected error has occured when trying to parse %s:\n\n<i>"  % os.path.basename(filename)
+            message += str(msg) + "</i>\n\n"
+            message += "This is most likely caused by an invalid or unsupported file format."
+            self.run_information_dialog(
+                message=message,
+                parent=self.view.get_top_widget()
+            )
 
     def on_btn_ok_clicked(self, event):
         self.model.remove_background()

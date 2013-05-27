@@ -21,7 +21,7 @@ class BrkRAWParser(XRDParserMixin, BaseParser):
         Bruker *.RAW format parser
     """
 
-    description = "Bruker/Siemens Binary *.RAW"
+    description = "Bruker/Siemens Binary V1/V2/V3 *.RAW"
     namespace = "xrd"
     extensions  = get_case_insensitive_glob("*.RAW")
     mimetypes   = ["application/octet-stream",]
@@ -43,7 +43,6 @@ class BrkRAWParser(XRDParserMixin, BaseParser):
         if version=="RAW ":                             version = "RAW1"
         elif version=="RAW2":                           version = "RAW2"
         elif version=="RAW1" and str(f.read(3))==".01": version = "RAW3"
-           
            
         if version=="RAW1":
             

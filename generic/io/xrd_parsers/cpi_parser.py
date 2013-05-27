@@ -53,6 +53,7 @@ class CPIParser(XRDParserMixin, BaseParser):
         while True:
             line = f.readline().strip()
             if line=="SCANDATA" or line=="":
+                data_start = f.tell()
                 break;
             else:
                 name = line
@@ -65,7 +66,8 @@ class CPIParser(XRDParserMixin, BaseParser):
             twotheta_min=twotheta_min,
             twotheta_max=twotheta_max,
             twotheta_step=twotheta_step,
-            twotheta_count=twotheta_count
+            twotheta_count=twotheta_count,
+            data_start=data_start,
         )
         
         if close: f.close()
@@ -78,11 +80,12 @@ class CPIParser(XRDParserMixin, BaseParser):
         data_objects = cls.parse_header(filename, f=f, data_objects=data_objects)
         
         #CPI files are singletons, so no need to iterate over the list,
-        #there is only one XRDFile instance:
+        #there is only one data object instance:
         if data_objects[0].data == None:
             data_objects[0].data = []            
             
         if f!=None:
+            f.seek(data_objects[0].data_start)
             n = 0
             while n <= data_objects[0].twotheta_count:
                 line = f.readline().strip("\n").replace(",",".")

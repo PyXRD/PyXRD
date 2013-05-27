@@ -12,13 +12,14 @@ from generic.io.file_parsers import create_group_parser
 ################################################################################
 
 from rd_parser import RDParser
+from udf_parser import UDFParser
 from csv_parser import CSVParser
 from brk_raw_parser import BrkRAWParser
 from cpi_parser import CPIParser
 
 XRDParser = create_group_parser(
     "XRDParser",
-    RDParser, CSVParser, BrkRAWParser, CPIParser,
+    RDParser, UDFParser, CSVParser, BrkRAWParser, CPIParser,
     namespace="xrd"
 )
 

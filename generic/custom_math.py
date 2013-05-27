@@ -42,6 +42,12 @@ def round_sig(x, sig=1):
         return 0
     else:
         return round(x, sig-int(floor(log10(abs(x))))-1)
+       
+def capint(lower, value, upper, out=None):
+    if value < lower or value > upper:
+        return out if out!=None else min(max(value, lower), upper)
+    else:
+        return value
         
 def lognormal(T, a, b):
     return sqrt2pi * exp(-(log(T) - a)**2 / (2.0*(b**2))) / (abs(b)*T)

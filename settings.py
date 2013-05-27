@@ -8,7 +8,7 @@
 
 
 ### General Information ###
-VERSION = "0.4.5"
+VERSION = "0.4.6"
 
 DEBUG = False
 VIEW_MODE = True

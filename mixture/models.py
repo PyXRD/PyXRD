@@ -279,7 +279,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         tot_rp = 0.0
         fractions, scales, bgshifts = self._parse_x(x, n, m)
         for i in range(n):
-            if calculated[i]!=None:
+            if calculated[i]!=None and experimental[i].size > 0:
                 calc = (scales[i] * np.sum(calculated[i]*fractions, axis=0)) 
                 if settings.BGSHIFT:
                     calc += bgshifts[i]
@@ -431,7 +431,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         # create an atom nr -> (atom name, conversion) mapping
         # this is used to transform most of the elements into their oxides
         atom_conv = OrderedDict()
-        with open(settings.get_def_file("COMPOSITION_CONV"), 'r') as f:
+        with open(settings.DATA_REG.get_file_path("COMPOSITION_CONV"), 'r') as f:
             reader = csv.reader(f)
             reader.next() #skip header
             for row in reader:

@@ -339,21 +339,23 @@ def plot_specimen(project, specimen, labels, label_offset,
         lw = pattern.lw
         
         #setup or update the calculated lines (phases)
-        for i, phase in enumerate(pattern.phases):
-            phase_line = getattr(phase, "__plot_phase_lines", dict()).get(
-                specimen,
-                matplotlib.lines.Line2D([],[])
-            )
-            phase_line.update(dict(
-                data=apply_transform((x_data, y_data_n[i+1]), scale=scale, offset=offset),
-                color=phase.display_color,
-                linewidth=lw
-            ))
-            if not hasattr(phase, "__plot_phase_lines"):
-                phase.__plot_phase_lines = dict() #TODO this should probably be a sort of cache (limit number of entries to 10 or so)
-            if not phase_line in axes.get_lines():
-                axes.add_line(phase_line)
-            phase.__plot_phase_lines[specimen] = phase_line
+        if specimen.display_phases:
+            for i, phase in enumerate(pattern.phases):
+                if phase!=None:
+                    phase_line = getattr(phase, "__plot_phase_lines", dict()).get(
+                        specimen,
+                        matplotlib.lines.Line2D([],[])
+                    )
+                    phase_line.update(dict(
+                        data=apply_transform((x_data, y_data_n[i+1]), scale=scale, offset=offset),
+                        color=phase.display_color,
+                        linewidth=lw
+                    ))
+                    if not hasattr(phase, "__plot_phase_lines"):
+                        phase.__plot_phase_lines = dict() #TODO this should probably be a sort of cache (limit number of entries to 10 or so)
+                    if not phase_line in axes.get_lines():
+                        axes.add_line(phase_line)
+                    phase.__plot_phase_lines[specimen] = phase_line
     
     # mineral preview sticks
     if hasattr(specimen, "mineral_preview") and specimen.mineral_preview!=None:

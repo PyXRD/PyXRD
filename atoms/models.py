@@ -132,6 +132,7 @@ class AtomType(ChildModel, ObjectListStoreChildMixin, Storable, CSVMixin):
         """
             Calculates the atomic scatter factor for a given range of 
             2*sin(θ) / λ values.
+            Expects λ to be in nanometers, not Angström!
         """
         f = np.zeros(stl_range.shape)
         #if self.cache and self.cache.has_key(stl): #TODO: check if this would be an improvement or not
@@ -184,13 +185,13 @@ class Atom(ChildModel, ObjectListStoreChildMixin, Storable):
             self.liststore_item_changed()
     
     def get_z_value(self):
-        if self._stretch_values:
-            sfactors = self.component.get_interlayer_stretch_factors()
-            if sfactors:
-                lattice_d, factor = sfactors
-                return lattice_d + (self.default_z - lattice_d) * factor
+        if self._stretch_values and self.component!=None:
+            lattice_d, factor = self.component.get_interlayer_stretch_factors()
+            return lattice_d + (self.default_z - lattice_d) * factor
         return self.default_z
     def set_z_value(self, value):
+        warn("The z property currently sets the default_z property, \
+        but this might change in the future!", DeprecationWarning)
         self.default_z = value
     
     _pn = 0

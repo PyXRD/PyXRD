@@ -24,63 +24,72 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("filename", nargs="?", default="", help="A PyXRD project filename", )
     parser.add_argument("-s", "--script", default="", help="Can be used to pass a script containing a run() function")
+    parser.add_argument("-t", "--test", dest='test', action='store_const',
+        const=True, default=False,
+        help='Runs the tests for PyXRD')
     args = parser.parse_args()
     del parser #free some memory
 
-    #start our logging service, prints to stdout and errors.log file
-    PyXRDLogger.start_logging()
-
-    #check for updates
-    update()
-
-    #apply settings
-    settings.apply_runtime_settings(args.script)
+    if args.test:
+        #run the test framework and leave:
+        del sys.argv[1]
+        from tests import run_all_tests
+        run_all_tests()
+    else:
+        #start our logging service, prints to stdout and errors.log file
+        PyXRDLogger.start_logging()
     
-    #now we can load these:    
-    from project.models import Project
-    from application.models import AppModel
-    from application.views import AppView
-    from application.controllers import AppController
+        #check for updates
+        update()
 
-    if args.script: #SCRIPT
-        try:
-            import imp
-            user_script = imp.load_source('user_script', args.script)
-        except:
-            if settings.DEBUG: print_exc()
-            raise ImportError, "Error when trying to import %s" % args.script
-        user_script.run(args)
-    else: #GUI
-    
-        #check if a filename was passed, if so try to load it
-        project = None
-        if args.filename!="":
+        #apply settings
+        settings.apply_runtime_settings(args.script)
+        
+        #now we can load these:    
+        from project.models import Project
+        from application.models import AppModel
+        from application.views import AppView
+        from application.controllers import AppController
+
+        if args.script: #SCRIPT
             try:
-                print "Opening: %s" % args.filename
-                project = Project.load_object(args.filename)
-            except IOError:
-                print 'Could not load file %s: IOError' % args.filename
-    
-        #disable unity overlay scrollbars as they cause bugs with modal windows
-        os.environ['LIBOVERLAY_SCROLLBAR'] = '0'
-        os.environ['UBUNTU_MENUPROXY'] = ""
-            
-        if not settings.DEBUG:
-            warnings.simplefilter('ignore', Warning)            
-            
-        #init threads
-        gtk.gdk.threads_init()
+                import imp
+                user_script = imp.load_source('user_script', args.script)
+            except:
+                if settings.DEBUG: print_exc()
+                raise ImportError, "Error when trying to import %s" % args.script
+            user_script.run(args)
+        else: #GUI
+        
+            #check if a filename was passed, if so try to load it
+            project = None
+            if args.filename!="":
+                try:
+                    print "Opening: %s" % args.filename
+                    project = Project.load_object(args.filename)
+                except IOError:
+                    print 'Could not load file %s: IOError' % args.filename
+        
+            #disable unity overlay scrollbars as they cause bugs with modal windows
+            os.environ['LIBOVERLAY_SCROLLBAR'] = '0'
+            os.environ['UBUNTU_MENUPROXY'] = ""
+                
+            if not settings.DEBUG:
+                warnings.simplefilter('ignore', Warning)            
+                
+            #init threads
+            gtk.gdk.threads_init()
 
-        #setup MVC:
-        m = AppModel(project=project)
-        v = AppView()
-        c = AppController(m, v)
-        del project
+            #setup MVC:
+            m = AppModel(project=project)
+            v = AppView()
+            c = AppController(m, v)
+            del project
+            
+            #lets get this show on the road:
+            gtk.gdk.threads_enter()
+            gtk.main()
+            gtk.gdk.threads_leave()
         
-        #lets get this show on the road:
-        gtk.gdk.threads_enter()
-        gtk.main()
-        gtk.gdk.threads_leave()
-        
-    #stop the logger:
-    PyXRDLogger.stop_logging()
+        #stop the logger:
+        PyXRDLogger.stop_logging()

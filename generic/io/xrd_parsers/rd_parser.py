@@ -49,6 +49,7 @@ class RDParser(XRDParserMixin, BaseParser):
         
             #Read diffractometer, target and focus type:
             f.seek(84, FROM_START)
+            diffractomer_type, target_type, focus_type = struct.unpack("bbb", f.read(3))
             diffractomer_type = {
                 0: "PW1800",
                 1: "PW1710 based system",
@@ -56,21 +57,21 @@ class RDParser(XRDParserMixin, BaseParser):
                 3: "PW3710 based system",
                 4: "Undefined",
                 5: "X'Pert MPD"
-            }[cap(0, int(f.read(1)), 5, 4)]
+            }[cap(0, diffractomer_type, 5, 4)]
             target_type = {
                 0: "Cu",
                 1: "Mo",
                 2: "Fe",
                 3: "Cr",
                 4: "Other"
-            }[cap(0, int(f.read(1)), 3, 4)]
+            }[cap(0, target_type, 3, 4)]
             focus_type = {
                 0: "BF",
                 1: "NF",
                 2: "FF",
                 3: "LFF",
                 4: "Unkown",
-            }[cap(0, int(f.read(1)), 3, 4)]
+            }[cap(0, focus_type, 3, 4)]
            
             #Read wavelength information:        
             f.seek(94, FROM_START)

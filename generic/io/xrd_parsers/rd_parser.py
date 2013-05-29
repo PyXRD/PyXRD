@@ -6,6 +6,7 @@
 # Complete license can be found in the LICENSE file.
 
 import os, struct
+from io import SEEK_SET, SEEK_CUR, SEEK_END
 
 import numpy as np
 
@@ -36,11 +37,8 @@ class RDParser(XRDParserMixin, BaseParser):
         # Adapt XRDFile list
         data_objects = cls._adapt_data_object_list(data_objects, num_samples=1)
            
-        # For clarity:
-        FROM_START, OFFSET, FROM_END = 0, 1, 2
-           
         # Go to the start of the file
-        f.seek(0, FROM_START)
+        f.seek(0, SEEK_SET)
         
         # Read file format version:
         version = str(f.read(2))
@@ -48,7 +46,7 @@ class RDParser(XRDParserMixin, BaseParser):
         if version in ("V3", "V5"):
         
             #Read diffractometer, target and focus type:
-            f.seek(84, FROM_START)
+            f.seek(84, SEEK_SET)
             diffractomer_type, target_type, focus_type = struct.unpack("bbb", f.read(3))
             diffractomer_type = {
                 0: "PW1800",
@@ -74,10 +72,10 @@ class RDParser(XRDParserMixin, BaseParser):
             }[cap(0, focus_type, 3, 4)]
            
             #Read wavelength information:        
-            f.seek(94, FROM_START)
+            f.seek(94, SEEK_SET)
             alpha1, alpha2, alpha_factor = struct.unpack("ddd", f.read(24))
             #Read sample name:
-            f.seek(146, FROM_START)
+            f.seek(146, SEEK_SET)
             sample_name = u(str(f.read(16)).replace("\0", ""))
 
             #Read data limits:

@@ -66,7 +66,7 @@ class UDFParser(XRDParserMixin, BaseParser):
                 #TODO extract other keys and replace with default names
                 header_dict[parts[0]] = ','.join(parts[1:-1])
                 
-            twotheta_count = int((twotheta_max - twotheta_min) / twotheta_step)
+        twotheta_count = int((twotheta_max - twotheta_min) / twotheta_step)
                
         data_objects[0].update(
             filename=u(os.path.basename(filename)),

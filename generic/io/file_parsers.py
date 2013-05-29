@@ -77,7 +77,7 @@ class BaseParser(object):
     __metaclass__ = MetaParser
 
     #This should be changed by sub-classes    
-    description = ""
+    description = "Base Parser"
     namespace = "generic"
     extensions  = []
     mimetypes   = []
@@ -95,7 +95,7 @@ class BaseParser(object):
             Returns a three-tuple:
             filename, file-object, close
         """
-        if type(f) is file:
+        if hasattr(f, "read"):
             return filename, f, False if close==None else close
         elif type(filename) is str:
             return filename, open(filename, cls.__file_mode__), True if close==None else close

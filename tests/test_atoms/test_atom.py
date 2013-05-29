@@ -14,10 +14,10 @@ from tests.utils import create_object_attribute_test
 from atoms.models import Atom
 
 __all__ = [
-    'TestAtomType',
+    'TestAtom',
 ]
 
-class TestAtomType(unittest.TestCase):
+class TestAtom(unittest.TestCase):
 
     atom_type = None
 

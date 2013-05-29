@@ -11,14 +11,15 @@ import gobject
 
 from gtkmvc import Observer
 
-from generic.io import Storable, PyXRDDecoder, get_json_type, json_type
+from generic.io import storables, Storable, PyXRDDecoder
 from .utils import smart_repos
 
 from base_models import BaseObjectListStore
 
+@storables.register()
 class ObjectListStore(BaseObjectListStore, Storable):
     """
-        GenericTreeModel implementation that holds a list with objects.
+        GenericTreeModel implementation that holds a list with storable objects.
         Has support for some extra signals (pass the actual object instead of
         an iter). This ListStore does not require the objects to be unique.
     """
@@ -40,7 +41,7 @@ class ObjectListStore(BaseObjectListStore, Storable):
     # ------------------------------------------------------------
     def __init__(self, class_type, model_data=None, parent=None):
         if isinstance(class_type, basestring):
-            class_type = get_json_type(class_type)
+            class_type = storables[class_type]
         BaseObjectListStore.__init__(self, class_type)
         Storable.__init__(self)
         self._model_data = list()
@@ -54,7 +55,7 @@ class ObjectListStore(BaseObjectListStore, Storable):
     #      Input/Output stuff
     # ------------------------------------------------------------
     def json_properties(self):
-        return { 'class_type': json_type(self._class_type),
+        return { 'class_type': self._class_type.__store_id__,
                  'model_data': self._model_data }
                  
     def __reduce__(self):
@@ -219,8 +220,8 @@ class ObjectListStore(BaseObjectListStore, Storable):
     pass #end of class
 
 gobject.type_register(ObjectListStore)
-ObjectListStore.register_storable()
 
+@storables.register()
 class IndexListStore(ObjectListStore):
     """
         GenericTreeModel implementation that holds a list with objects.
@@ -263,7 +264,7 @@ class IndexListStore(ObjectListStore):
     # ------------------------------------------------------------
     def __init__(self, class_type, **kwargs):
         if isinstance(class_type, basestring):
-            class_type = get_json_type(class_type)
+            class_type = storables[class_type]
         if not hasattr(class_type, '__index_column__'):
             raise TypeError, "class_type should have an __index_column__ \
                 attribute, but %s has not" % class_type
@@ -327,4 +328,3 @@ class IndexListStore(ObjectListStore):
     pass #end of class
 
 gobject.type_register(IndexListStore)
-IndexListStore.register_storable()

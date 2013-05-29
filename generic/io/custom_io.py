@@ -6,11 +6,17 @@
 # Complete license can be found in the LICENSE file.
 
 import sys
-if sys.version_info[0] < 3:
+
+# Small workaround to provide a unicode-aware open method for PyXRD:
+if sys.version_info[0] < 3: #Pre Python 3.0
     import codecs
     _open_func_bak = open # Make a back up, just in case
     open = codecs.open
 def unicode_open(*args, **kwargs):
+    """
+        Opens files in UTF-8 encoding by default, unless an 'encoding'
+        keyword argument is passed. Returns a file object.
+    """
     if not "encoding" in kwargs:
         kwargs["encoding"] = "utf-8"
     return open(*args, **kwargs)
@@ -25,65 +31,94 @@ import settings
 
 from gtk import TextBuffer
        
-#For backwards compatibility:
-aliases = {
-    'generic.treemodels/XYListStore': 'XYListStore',
-    'generic.treemodels/ObjectListStore': 'ObjectListStore',
-    'generic.treemodels/ObjectTreeStore': 'ObjectTreeStore',
-    'generic.treemodels/IndexListStore': 'IndexListStore',
-    'generic.models.treemodels/ObjectListStore': 'ObjectListStore',
-    'generic.models.treemodels/ObjectTreeStore': 'ObjectTreeStore',
-    'generic.models.treemodels/IndexListStore': 'IndexListStore',
-    'generic.models.treemodels/XYListStore': 'XYListStore',
-    'generic.models/PyXRDLine': 'PyXRDLine',
-    'generic.models/CalculatedLine': 'CalculatedLine',
-    'generic.models/ExperimentalLine': 'ExperimentalLine',
-    'goniometer.models/Goniometer': 'Goniometer',
-    'specimen.models/Specimen': 'Specimen',
-    'specimen.models/Marker': 'Marker',
-    'mixture.models/Mixture': 'Mixture',
-    'atoms.models/AtomType': 'AtomType',
-    'atoms.models/Atom': 'Atom',
-    'probabilities.R0models/R0G1Model': 'R0G1Model',
-    'probabilities.R0models/R0G2Model': 'R0G2Model',
-    'probabilities.R0models/R0G3Model': 'R0G3Model',
-    'probabilities.R0models/R0G4Model': 'R0G4Model',
-    'probabilities.R0models/R0G5Model': 'R0G5Model',
-    'probabilities.R0models/R0G6Model': 'R0G6Model',
-    'probabilities.R1models/R1G2Model': 'R1G2Model',
-    'probabilities.R1models/R1G3Model': 'R1G3Model',
-    'probabilities.R1models/R1G4Model': 'R1G4Model',
-    'probabilities.R2models/R2G2Model': 'R2G2Model',
-    'probabilities.R2models/R2G3Model': 'R2G3Model',
-    'probabilities.R3models/R3G2Model': 'R3G2Model',
-    'phases.CSDS_models/LogNormalCSDSDistribution': 'LogNormalCSDSDistribution',
-    'phases.CSDS_models/DritsCSDSDistribution': 'DritsCSDSDistribution',
-    'phases.atom_relations/AtomRelation': 'AtomRelation',
-    'phases.atom_relations/AtomRatio': 'AtomRatio',
-    'phases.atom_relations/AtomContents': 'AtomContents',
-    'phases.models/UnitCellProperty': 'UnitCellProperty',
-    'phases.models/Component': 'Component',
-    'phases.models/Phase': 'Phase',
-    'project.models/Project': 'Project',
-}
+class StorableRegistry(dict):
+    """
+        Basically a dict which maps class names to the actual
+        class types. This relies on the classes being registered using
+        the 'register' decorator provided in this class type.
+        It also has a number of aliases, for backwards-compatibility.
+    """
 
-#This is filled dynamically using the __store_id__ properties from storables
-storables = {
-}
+    #For backwards compatibility:
+    aliases = {
+        'generic.treemodels/XYListStore': 'XYListStore',
+        'generic.treemodels/ObjectListStore': 'ObjectListStore',
+        'generic.treemodels/ObjectTreeStore': 'ObjectTreeStore',
+        'generic.treemodels/IndexListStore': 'IndexListStore',
+        'generic.models.treemodels/ObjectListStore': 'ObjectListStore',
+        'generic.models.treemodels/ObjectTreeStore': 'ObjectTreeStore',
+        'generic.models.treemodels/IndexListStore': 'IndexListStore',
+        'generic.models.treemodels/XYListStore': 'XYListStore',
+        'generic.models/PyXRDLine': 'PyXRDLine',
+        'generic.models/CalculatedLine': 'CalculatedLine',
+        'generic.models/ExperimentalLine': 'ExperimentalLine',
+        'goniometer.models/Goniometer': 'Goniometer',
+        'specimen.models/Specimen': 'Specimen',
+        'specimen.models/Marker': 'Marker',
+        'mixture.models/Mixture': 'Mixture',
+        'atoms.models/AtomType': 'AtomType',
+        'atoms.models/Atom': 'Atom',
+        'probabilities.R0models/R0G1Model': 'R0G1Model',
+        'probabilities.R0models/R0G2Model': 'R0G2Model',
+        'probabilities.R0models/R0G3Model': 'R0G3Model',
+        'probabilities.R0models/R0G4Model': 'R0G4Model',
+        'probabilities.R0models/R0G5Model': 'R0G5Model',
+        'probabilities.R0models/R0G6Model': 'R0G6Model',
+        'probabilities.R1models/R1G2Model': 'R1G2Model',
+        'probabilities.R1models/R1G3Model': 'R1G3Model',
+        'probabilities.R1models/R1G4Model': 'R1G4Model',
+        'probabilities.R2models/R2G2Model': 'R2G2Model',
+        'probabilities.R2models/R2G3Model': 'R2G3Model',
+        'probabilities.R3models/R3G2Model': 'R3G2Model',
+        'phases.CSDS_models/LogNormalCSDSDistribution': 'LogNormalCSDSDistribution',
+        'phases.CSDS_models/DritsCSDSDistribution': 'DritsCSDSDistribution',
+        'phases.atom_relations/AtomRelation': 'AtomRelation',
+        'phases.atom_relations/AtomRatio': 'AtomRatio',
+        'phases.atom_relations/AtomContents': 'AtomContents',
+        'phases.models/UnitCellProperty': 'UnitCellProperty',
+        'phases.models/Component': 'Component',
+        'phases.models/Phase': 'Phase',
+        'project.models/Project': 'Project',
+    }
 
-def register_storable(type, store_id):
-    if settings.DEBUG: print "'%s' registering as storage type with id '%s'" % (json_type(type), store_id)
-    storables[store_id] = type        
+    def __getitem__(self, key):
+        key = self.aliases.get(key, key)
+        return super(StorableRegistry, self).__getitem__(key)
+        
+    def register(self):
+        """
+            Returns a decorator that will register Storable sub-classes.
+        """
+        def wrapped_register(cls):
+            if hasattr(cls, '__store_id__'):
+                if settings.DEBUG: print "'%s' registering as storage type with id '%s'" % (cls.__store_id__, store_id)
+                self[cls.__store_id__] = cls
+            else:
+                raise TypeError, "Cannot register an object as storable when it does not have a __store_id__ attribute."
+            return cls
+        return wrapped_register
 
-def get_json_type(store_id):
-    store_id = aliases.get(store_id, store_id)
-    type = storables.get(store_id, None)
-    return type
-
-def json_type(type):
-    return type.__store_id__
+    pass #end of class
+    
+#This is filled using register decorator
+storables = StorableRegistry()
 
 class PyXRDEncoder(json.JSONEncoder):
+    """
+        A custom JSON encoder that checks if:
+            - the object is a gtk.TextBuffer, if so the encodcer translates the
+              object to a string containing the text in the buffer
+            - the object has a to_json callable method, if so it is called to
+              convert the object to a dict object. This dict object should have:
+               - a 'type' key mapped to the storage type id of the storable class
+               - a 'properties' key mapped to a dict of name-values for each
+                 property that needs to be stored in order to be able to 
+                 recreate the object.
+              The user needs to register the class type as storable
+              (see the 'registes_storable' method or the Storable class)
+            - fall back to the default JSONEncoder methods
+    """
+    
     def default(self, obj):
         if type(obj) is TextBuffer:
             return obj.get_text(*obj.get_bounds())
@@ -93,6 +128,17 @@ class PyXRDEncoder(json.JSONEncoder):
         return json.JSONEncoder(self).default(obj)
             
 class PyXRDDecoder(json.JSONDecoder):
+    """
+        A custom JSON decoder that can decode objects, following these steps:
+            - decode the JSON object at once using the default decoder
+            - the resulting dict is then parsed:
+               - if a valid 'type' and a 'properties' key is given,
+                 the object is translated using the mapped class type's 
+                 'from_json' method.
+               - parent keyword arguments are passed on (e.g. a project) to
+                 the from_json method as well
+    """
+
     def __init__(self, parent=None, **kwargs):
         json.JSONDecoder.__init__(self, **kwargs)
         self.parent = parent
@@ -103,7 +149,7 @@ class PyXRDDecoder(json.JSONDecoder):
     
     def __pyxrd_decode__(self, obj, **kwargs):
         if "type" in obj:
-            objtype = get_json_type(obj["type"])
+            objtype = storables[obj["type"]]
             if "properties" in obj and hasattr(objtype, "from_json"):
                 if self.parent!=None and not "parent" in kwargs:
                     kwargs["parent"] = self.parent
@@ -111,22 +157,46 @@ class PyXRDDecoder(json.JSONDecoder):
         raise Warning, "__pyxrd_decode__ will return None for %s!" % str(obj)[:30]+"..."+str(obj)[:-30]
         return None
     
-def __map_reduce__(json_obj):
-    decoder = PyXRDDecoder()
-    return decoder.decode(json_obj)
-        
 class Storable(object):
+    """
+        A class with a number of default implementations to serialize objects
+        to JSON strings. It used the PyXRDDecoder en PyXRDEncoder.
+        Subclasses should override the '__store_id__' property
+        and register themsevels by calling the storables.register method
+        and applying it as decorator to the subclass:
+        
+         @storables.register()
+         class StorableSubclass(Storable, ...):
+            ...
+            
+        Sub-classes can optionally implement the following methods:
+         - 'json_properties' or for more fine-grained control 'to_json'
+         - 'from_json'
+         
+    """
     __storables__ = []
 
     __store_id__ = None
 
+    ###########################################################################
+    # High-level JSON (de)serialisiation related methods & functions:
+    ###########################################################################
     def dump_object(self):
+        """
+        Returns this object serialized as a JSON string
+        """
         return json.dumps(self, indent = 4, cls=PyXRDEncoder)
 
     def print_object(self):
+        """
+        Prints the output from dump_object().
+        """
         print self.dump_object()
 
     def save_object(self, filename, zipped=False):
+        """
+        Saves the output from dump_object() to a filename, optionally zipping it.
+        """
         if zipped:
             f = ZipFile(filename, mode="w", compression=ZIP_DEFLATED)
             f.writestr('content', json.dumps(self, indent = 4, cls=PyXRDEncoder))
@@ -135,15 +205,10 @@ class Storable(object):
             with unicode_open(filename, 'w') as f:
                 json.dump(self, f, indent = 4, cls=PyXRDEncoder)
     
-    @classmethod
-    def register_storable(type):
-        if type.__store_id__:
-            register_storable(type, type.__store_id__)
-    
     @staticmethod
     def load_object(filename, parent=None):
         """
-        Tries to create an object from the file 'filename' (see below).
+        Tries to create an instance from the file 'filename' (see below).
         
         *filename* the actual filename or a file-like object
         
@@ -168,18 +233,31 @@ class Storable(object):
             except:
                 print tb
                 raise #re-raise last error
+    
+    ###########################################################################
+    # Low-level JSON (de)serialisiation related methods & functions:
+    ###########################################################################
+    def to_json(self):
+        """
+        Method that should return a dict containing two keys:
+         - 'type' -> registered class __store_id__
+         - 'properties' -> a dict containg all the properties neccesary to 
+           re-create the object when serialized as JSON.
+        """
+        return { 
+            "type": self.__store_id__,
+            "properties": self.json_properties()
+        }
                 
     def json_properties(self):
+        """
+        Method that should return a dict containg all the properties neccesary to 
+        re-create the object when serialized as JSON.
+        """
         retval = OrderedDict()
         for name in self.__storables__:
             retval[name] = getattr(self, name)
         return retval
-    
-    def to_json(self):
-        return { 
-            "type": json_type(type(self)),
-            "properties": self.json_properties()
-        }
     
     def parse_init_arg(self, arg, default, child=False, **kwargs):
         """
@@ -212,13 +290,18 @@ class Storable(object):
     @classmethod
     def from_json(type, *args, **kwargs):
         """
-            Method transforming JSON kw-args into __init__ kwargs.
-            Ideally this is a 1-in-1 mapping and no transformation is needed,
-            q.e. the __init__ function can handle JSON kw-args.
+            Class method transforming JSON kwargs into an instance of this class.
+            By default this assumes a 1-on-1 mapping to the __init__ method.
         """
         return type(*args, **kwargs)
 
+    ###########################################################################
+    # Others:
+    ###########################################################################
     def __reduce__(self):
+        def __map_reduce__(json_obj):
+            decoder = PyXRDDecoder()
+            return decoder.decode(json_obj)
         props = self.dump_object()
         return __map_reduce__, (props,), None
 

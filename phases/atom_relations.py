@@ -10,7 +10,7 @@ from gtkmvc.model import Model, Observer, Signal
 from generic.models import ChildModel, PropIntel
 from generic.models.metaclasses import pyxrd_object_pool
 from generic.models.mixins import ObjectListStoreChildMixin
-from generic.io import Storable
+from generic.io import storables, Storable
 
 from atoms.models import Atom
 from mixture.refinement import RefinementGroup, RefinementValue
@@ -41,6 +41,7 @@ class ComponentPropMixin(object):
         else:
             return self.component, attr
 
+@storables.register()
 class AtomRelation(ChildModel, Storable, ObjectListStoreChildMixin, ComponentPropMixin, RefinementValue):
 
     #MODEL INTEL:
@@ -148,8 +149,7 @@ class AtomRelation(ChildModel, Storable, ObjectListStoreChildMixin, ComponentPro
     
     pass #end of class
     
-AtomRelation.register_storable()
-    
+@storables.register()
 class AtomRatio(AtomRelation):
     
     #MODEL INTEL:
@@ -233,8 +233,7 @@ class AtomRatio(AtomRelation):
         
     pass #end of class
     
-AtomRatio.register_storable()
-    
+@storables.register()
 class AtomContents(AtomRelation):
     
     #MODEL INTEL:
@@ -306,5 +305,3 @@ class AtomContents(AtomRelation):
                     setattr(atom, prop, amount*self.value)
         
     pass #end of class
-    
-AtomContents.register_storable()

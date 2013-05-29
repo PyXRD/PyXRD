@@ -19,7 +19,7 @@ from scipy.special import erf
 
 from generic.utils import print_timing, get_md5_hash
 from generic.custom_math import mmult, mdot, mtim, solve_division
-from generic.io import Storable, PyXRDDecoder
+from generic.io import storables, Storable, PyXRDDecoder
 from generic.models import ChildModel, PropIntel
 from generic.models.mixins import ObjectListStoreChildMixin, ObjectListStoreParentMixin
 from generic.models.treemodels import ObjectListStore
@@ -31,6 +31,7 @@ from phases.CSDS_models import DritsCSDSDistribution
 from phases.atom_relations import AtomRelation, AtomRatio, AtomContents, ComponentPropMixin
 from mixture.refinement import RefinementGroup, RefinementValue
 
+@storables.register()
 class UnitCellProperty(ChildModel, Storable, ComponentPropMixin, RefinementValue):
     
     #MODEL INTEL:
@@ -167,8 +168,7 @@ class UnitCellProperty(ChildModel, Storable, ComponentPropMixin, RefinementValue
         
     pass #end of class
 
-UnitCellProperty.register_storable()
-
+@storables.register()
 class Component(ChildModel, Storable, ObjectListStoreChildMixin,
         ObjectListStoreParentMixin, RefinementGroup):
 
@@ -561,8 +561,7 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin,
             weight += atom.weight
         return weight
 
-Component.register_storable()
-
+@storables.register()
 class Phase(ChildModel, Storable, ObjectListStoreParentMixin,
         ObjectListStoreChildMixin, RefinementGroup):
 
@@ -1010,5 +1009,3 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin,
         return mean_d001 / (real_mean *  mean_volume**2 * mean_density)
 
     pass #end of class
-    
-Phase.register_storable()

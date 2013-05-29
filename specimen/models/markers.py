@@ -12,7 +12,7 @@ from scipy import stats
 from scipy.interpolate import interp1d
 
 import settings
-from generic.io import unicode_open, Storable
+from generic.io import unicode_open, storables, Storable
 from generic.models import ChildModel, PropIntel, MultiProperty
 from generic.models.mixins import CSVMixin, ObjectListStoreChildMixin
 from generic.peak_detection import multi_peakdetect, score_minerals
@@ -98,7 +98,6 @@ class MineralScorer(ChildModel):
          
     pass #end of class
     
-
 class ThresholdSelector(ChildModel):
     
     #MODEL INTEL:
@@ -267,6 +266,7 @@ def get_inherit_attribute_pair(name, inherit_name, levels=1, parent_prefix="disp
     
     return get_inherit_attribute_value, set_inherit_attribute_value, get_attribute_value, set_attribute_value
 
+@storables.register()
 class Marker(ChildModel, Storable, ObjectListStoreChildMixin, CSVMixin):
     
     #MODEL INTEL:
@@ -468,7 +468,4 @@ class Marker(ChildModel, Storable, ObjectListStoreChildMixin, CSVMixin):
         else:
             self.position = 0.0
         
-    pass #end of class
-        
-Marker.register_storable()
-    
+    pass #end of class    

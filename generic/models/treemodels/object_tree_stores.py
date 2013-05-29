@@ -10,7 +10,7 @@ from traceback import print_exc
 
 import gtk, gobject
 
-from generic.io import Storable #FIXME, PyXRDDecoder, get_json_type, json_type
+from generic.io import storables, Storable #FIXME, PyXRDDecoder
 
 from base_models import BaseObjectListStore
 
@@ -122,6 +122,7 @@ class ObjectTreeNode(object):
     def __repr__(self):
         return '%s(%s - %s)' % (type(self).__name__, self.object, "%d child nodes"%len(self._children))
         
+@storables.register()
 class ObjectTreeStore(BaseObjectListStore, Storable):
     """
         GenericTreeModel implementation that holds a tree with objects.
@@ -148,7 +149,7 @@ class ObjectTreeStore(BaseObjectListStore, Storable):
     # ------------------------------------------------------------
     def __init__(self, class_type, model_data=None, parent=None):
         if isinstance(class_type, basestring):
-            class_type = get_json_type(class_type)
+            class_type = storables[class_type]
         BaseObjectListStore.__init__(self, class_type)
         Storable.__init__(self)
         self._model_data = ObjectTreeNode()
@@ -163,7 +164,7 @@ class ObjectTreeStore(BaseObjectListStore, Storable):
     #      Input/Output stuff
     # ------------------------------------------------------------
     def json_properties(self):
-        return { 'class_type': json_type(self._class_type),
+        return { 'class_type': self._class_type.__store_id__,
                  'model_data': self._model_data }
                  
     def __reduce__(self):
@@ -296,4 +297,3 @@ class ObjectTreeStore(BaseObjectListStore, Storable):
     pass #end of class
 
 gobject.type_register(ObjectTreeStore)
-ObjectTreeStore.register_storable()

@@ -14,7 +14,7 @@ import numpy as np
 
 import settings
 from generic.utils import print_timing, u
-from generic.io import Storable
+from generic.io import storables, Storable
 from generic.models import ExperimentalLine, CalculatedLine, ChildModel, PropIntel
 from generic.models.mixins import ObjectListStoreChildMixin, ObjectListStoreParentMixin
 from generic.models.treemodels import ObjectListStore, XYListStore
@@ -23,6 +23,7 @@ from generic.peak_detection import peakdetect
 from markers import Marker
 from statistics import Statistics
 
+@storables.register()
 class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStoreChildMixin):
     #MODEL INTEL:
     __parent_alias__ = 'project'
@@ -519,5 +520,3 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
         return "<'%s' Specimen>" % self.name
     
     pass #end of class
-    
-Specimen.register_storable()

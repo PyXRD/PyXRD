@@ -6,7 +6,7 @@
 # Complete license can be found in the LICENSE file.
 
 from generic.models import PyXRDMeta, PyXRDModel, PropIntel
-from generic.io import Storable
+from generic.io import storables, Storable
 
 class _RefinementBase(object):
     """
@@ -106,6 +106,7 @@ class RefinementValue(_RefinementBase):
         
     pass #end of class
 
+@storables.register()
 class RefinementInfo(PyXRDModel, Storable):
     """
         A model that is used to store the refinement information for each
@@ -175,7 +176,6 @@ class RefinementInfo(PyXRDModel, Storable):
         
     pass #end of class
     
-RefinementInfo.register_storable()
 PyXRDMeta.register_hook(
     RefinementInfo.setup_ref_info,
     RefinementInfo.get_ref_info,

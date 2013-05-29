@@ -18,8 +18,9 @@ from generic.models import ChildModel, PropIntel
 from generic.models.mixins import CSVMixin
 from generic.custom_math import sqrt2pi, sqrt8
 from generic.utils import get_md5_hash
-from generic.io import Storable
+from generic.io import storables, Storable
        
+@storables.register()
 class Goniometer(ChildModel, Storable):
     #MODEL INTEL:
     __parent_alias__ = 'project'
@@ -190,5 +191,3 @@ class Goniometer(ChildModel, Storable):
             self.ads_phase_fact, self.ads_phase_shift, self.ads_const)
        
     pass #end of class
-    
-Goniometer.register_storable()

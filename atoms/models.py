@@ -17,12 +17,13 @@ from gtkmvc.model import Signal, Observer
 import numpy as np
 
 
-from generic.io import Storable, PyXRDDecoder
+from generic.io import storables, Storable, PyXRDDecoder
 from generic.models import ChildModel, PropIntel
 from generic.models.mixins import CSVMixin, ObjectListStoreChildMixin
 from generic.models.metaclasses import pyxrd_object_pool
 from generic.models.treemodels import XYListStore
 
+@storables.register()
 class AtomType(ChildModel, ObjectListStoreChildMixin, Storable, CSVMixin):
     """
         AtomTypes contain all physical & chemical information for one element 
@@ -149,8 +150,7 @@ class AtomType(ChildModel, ObjectListStoreChildMixin, Storable, CSVMixin):
        
     pass #end of class
        
-AtomType.register_storable()  
-
+@storables.register()
 class Atom(ChildModel, ObjectListStoreChildMixin, Storable):
     """
         Atoms have an atom type plus structural parameters (position and proportion)
@@ -345,6 +345,4 @@ class Atom(ChildModel, ObjectListStoreChildMixin, Storable):
                 atl_writer.writerow([item.name, item.z, item.default_z, item.pn, item.atom_type.name])
             
     pass #end of class
-    
-Atom.register_storable() 
 

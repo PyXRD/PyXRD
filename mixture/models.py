@@ -19,7 +19,7 @@ import scipy
 
 import settings
 
-from generic.io import Storable
+from generic.io import storables, Storable
 from generic.utils import print_timing, delayed
 from generic.models import ChildModel, PropIntel, MultiProperty
 from generic.models.mixins import ObjectListStoreChildMixin
@@ -31,6 +31,7 @@ from specimen.models import Statistics
 from mixture.genetics import run_genetic_algorithm
 from mixture.refinement import _RefinementBase, RefinementValue, RefinementGroup
 
+@storables.register()
 class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
     #MODEL INTEL:
     __parent_alias__ = "project"
@@ -631,8 +632,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
                 
     pass #end of class
     
-Mixture.register_storable()  
-    
+#@storables.register()    
 class RefinableProperty(ChildModel, ObjectListStoreChildMixin, Storable):
     """
         Wrapper class for refinable properties easing the retrieval of certain

@@ -11,9 +11,10 @@ from gtkmvc.model import Model
 
 from generic.mathtext_support import mt_range
 from generic.models import PropIntel
-
+from generic.io import storables
 from probabilities.base_models import _AbstractProbability
 
+@storables.register()
 class R3G2Model(_AbstractProbability):
 	"""
 	Reichweite = 3 / Components = 2
@@ -138,5 +139,3 @@ class R3G2Model(_AbstractProbability):
         self.updated.emit()
     
     pass #end of class
-    
-R3G2Model.register_storable()

@@ -13,7 +13,7 @@ import numpy as np
 
 from gtkmvc.model import Signal
 
-from generic.io import Storable, PyXRDDecoder
+from generic.io import storables, Storable, PyXRDDecoder
 from generic.custom_math import smooth
 
 from properties import PropIntel, MultiProperty
@@ -21,6 +21,7 @@ from treemodels import XYListStore
 
 from base import ChildModel
 
+@storables.register()
 class PyXRDLine(ChildModel, Storable):
 
     #MODEL INTEL:
@@ -147,8 +148,7 @@ class PyXRDLine(ChildModel, Storable):
             
     pass #end of class
 
-PyXRDLine.register_storable()
-
+@storables.register()
 class CalculatedLine(PyXRDLine):
 
     #MODEL INTEL:
@@ -176,8 +176,7 @@ class CalculatedLine(PyXRDLine):
 
     pass #end of class
     
-CalculatedLine.register_storable()
-
+@storables.register()
 class ExperimentalLine(PyXRDLine):
 
     #MODEL INTEL:
@@ -423,6 +422,5 @@ class ExperimentalLine(PyXRDLine):
             section_y = (self.strip_slope * (section_x - self.strip_startx) + self.avg_starty) + noise
             self.stripped_pattern = (section_x, section_y)
             self.block_strip = False
-        
-    
-ExperimentalLine.register_storable()
+
+    pass #end of class

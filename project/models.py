@@ -17,7 +17,7 @@ from generic.models import ChildModel, DefaultSignal
 from generic.models.mixins import ObjectListStoreParentMixin
 from generic.models.properties import PropIntel, MultiProperty
 from generic.models.treemodels import ObjectListStore, IndexListStore
-from generic.io import Storable
+from generic.io import storables, Storable
 
 from goniometer.models import Goniometer
 from specimen.models import Specimen
@@ -25,9 +25,8 @@ from mixture.models import Mixture
 from phases.models import Phase
 from atoms.models import Atom, AtomType
 
+@storables.register()
 class Project(ChildModel, Storable, ObjectListStoreParentMixin):
-
-
     #MODEL INTEL:
     __model_intel__ = [ #TODO add labels
         PropIntel(name="name",                     data_type=str,    storable=True,  has_widget=True),
@@ -336,10 +335,7 @@ class Project(ChildModel, Storable, ObjectListStoreParentMixin):
         return project
                 
     def save_object(self, filename):
-        #if filename.endswith(".pyxrd"):
         Storable.save_object(self, filename, zipped = True)
-        #elif filename.endswith(".zpd"):
-        #TODO
         self.needs_saving = False
     
     # ------------------------------------------------------------
@@ -368,6 +364,3 @@ class Project(ChildModel, Storable, ObjectListStoreParentMixin):
         return max_intensity
 
     pass #end of class
-    
-Project.register_storable()   
-

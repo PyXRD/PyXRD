@@ -15,7 +15,7 @@ from scipy.interpolate import interp1d
 
 import gtk, gobject
 
-from generic.io import Storable, unicode_open as open
+from generic.io import storables, Storable, unicode_open as open
 from generic.io.file_parsers import ASCIIParser
 from base_models import BaseObjectListStore
 
@@ -33,6 +33,7 @@ Point.__columns__ = [
 # each row or send a custom signal that allows to update the entire store...
 # needs some thinking and planning to change this
 
+@storables.register()
 class XYListStore(BaseObjectListStore, Storable):
     """
         GenericTreeModel implementation that holds a list with X,Y values.
@@ -324,5 +325,4 @@ class XYListStore(BaseObjectListStore, Storable):
         
     pass #end of class
     
-XYListStore.register_storable()
 gobject.type_register(XYListStore)

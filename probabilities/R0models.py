@@ -9,10 +9,12 @@ import numpy as np
 from gtkmvc.model import Model
 
 from generic.models import PropIntel
+from generic.io import storables
 from probabilities.base_models import _AbstractProbability
 
 def R0_model_generator(pasG):
-             
+           
+    @storables.register()  
     class R0Model(_AbstractProbability):
         """
         Reichweite = 0
@@ -109,7 +111,6 @@ def R0_model_generator(pasG):
         
         pass #end of class
     cls = type("R0G%dModel" % pasG, (R0Model,), dict())
-    cls.register_storable()
     return cls 
 
 R0G1Model = R0_model_generator(1)

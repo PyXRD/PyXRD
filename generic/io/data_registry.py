@@ -5,6 +5,8 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.  
 
+from os.path import normpath
+
 from generic.exceptions import AlreadyRegistered, NotRegistered
 
 class DataRegistry(object):
@@ -118,9 +120,9 @@ class DataRegistry(object):
         if name in self.__data_directories:
             path = self.__data_directories[name]
             if path.startswith("/"):
-                return path
+                return normpath(path)
             else:
-                return "%s/%s" % (self._base_dir, path)
+                return normpath("%s/%s" % (self._base_dir, path))
         elif name == "BASE":
             return self._base_dir
         else:
@@ -132,7 +134,7 @@ class DataRegistry(object):
             excluding the project path.
         """
         for path in self.__data_directories.values():
-            yield "%s/%s" % (self._base_dir, path)
+            yield normpath("%s/%s" % (self._base_dir, path))
             
     def get_file_path(self, name):
         """
@@ -141,9 +143,9 @@ class DataRegistry(object):
         if name in self.__data_files:
             path = self.__data_files[name]
             if path.startswith("/"):
-                return path
+                return normpath(path)
             else:
-                return "%s/%s" % (self._base_dir, path)
+                return normpath("%s/%s" % (self._base_dir, path))
         else:
             raise NotRegistered, "the data file named '%s' was not found in the registry" % name
             
@@ -153,4 +155,6 @@ class DataRegistry(object):
             excluding the project path.
         """
         for path in self.__data_directories:
-            yield "%s/%s" % (self._base_dir, path)
+            yield normpath("%s/%s" % (self._base_dir, path))
+            
+    pass #end of class

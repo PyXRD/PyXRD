@@ -206,9 +206,11 @@ class Storable(object):
                 json.dump(self, f, indent = 4, cls=PyXRDEncoder)
     
     @staticmethod
-    def load_object(filename, parent=None):
+    def load_object(filename, data=None, parent=None):
         """
-        Tries to create an instance from the file 'filename' (see below).
+        Tries to create an instance from the file 'filename' (see below), or
+        from the JSON string 'data'. If data is passed, filename should be None,
+        or it will be ignored
         
         *filename* the actual filename or a file-like object
         
@@ -216,23 +218,26 @@ class Storable(object):
                 
         :rtype: the loaded object instance
         """
-        try:
-            if is_zipfile(filename):
-                with ZipFile(filename, 'r') as zf:
-                    with zf.open('content') as cf:
-                        jcontent = json.load(cf, cls=PyXRDDecoder, parent=parent)
-                        return jcontent
-            else:
-                with unicode_open(filename, 'r') as f:
-                    return json.load(f, cls=PyXRDDecoder, parent=parent)
-        except TypeError as error:
-            if settings.DEBUG: print "Handling run-time error: %s" % error
-            tb = format_exc()
+        if filename != None:
             try:
-                return json.load(filename, cls=PyXRDDecoder, parent=parent)
-            except:
-                print tb
-                raise #re-raise last error
+                if is_zipfile(filename): #ZIP files
+                    with ZipFile(filename, 'r') as zf:
+                        with zf.open('content') as cf:
+                            return json.load(cf, cls=PyXRDDecoder, parent=parent)
+                else: #REGULAR files
+                    with unicode_open(filename, 'r') as f:
+                        return json.load(f, cls=PyXRDDecoder, parent=parent)
+            except Exception as error:
+                if settings.DEBUG: print "Handling run-time error: %s" % error
+                tb = format_exc()
+                try:
+                    return json.load(filename, cls=PyXRDDecoder, parent=parent)
+                except:
+                    print tb
+                    raise #re-raise last error
+        elif data != None: #STRINGS:
+            return json.loads(data, cls=PyXRDDecoder, parent=parent)
+
     
     ###########################################################################
     # Low-level JSON (de)serialisiation related methods & functions:

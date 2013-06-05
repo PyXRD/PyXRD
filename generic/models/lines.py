@@ -23,6 +23,15 @@ from base import ChildModel
 
 @storables.register()
 class PyXRDLine(ChildModel, Storable):
+    """
+        A PyXRDLine is an attribute holder for a real 'Line' object, whatever the
+        plotting library used may be. Internally it used an XYListStore to store
+        the x-y values (xy_store attribute). Other attributes are linewidth and
+        color. More attributes may be added in the future.
+        
+        The object also has a 'needs_update' signal, which is called whenever
+        the presentation of the object should be updated.
+    """
 
     #MODEL INTEL:
     __model_intel__ = [
@@ -170,7 +179,7 @@ class CalculatedLine(PyXRDLine):
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------  
-    def set_data(self, x, y, phase_patterns=None, phases=None):
+    def set_data(self, x, y, phase_patterns=[], phases=[]):
         self.phases = phases
         super(CalculatedLine, self).set_data(x, y, *phase_patterns, names=[phase.name if phase!=None else "NOT SET" for phase in phases])
 
@@ -375,8 +384,6 @@ class ExperimentalLine(PyXRDLine):
     # ------------------------------------------------------------
     
     def strip_peak(self):
-        #TODO
-        
         x_data, y_data = self.xy_store.get_raw_model_data()
         if self.stripped_pattern != None:
             stripx, stripy = self.stripped_pattern

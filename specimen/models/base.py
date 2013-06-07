@@ -426,7 +426,7 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
     #      Intensity calculations:
     # ------------------------------------------------------------
     @print_timing
-    def update_pattern(self, phases, fractions, lpf_callback, steps=2500):
+    def update_pattern(self, phases, fractions, lpf_callback=None, steps=2500):
         """
         Recalculate pattern intensities using the provided phases
         and their relative fractions
@@ -435,7 +435,9 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
         
         *fractions* a list with phase fractions, also length N
         
-        *lpf_callback* a callback providing the Lorentz polarisation factor
+        *lpf_callback* a callback providing the Lorentz polarisation factor or None
+        if we should try to get it from the project (will raise an AssertionError
+        if both are not set)
         
         :rtype: a 3-tuple containing 2-theta values, phase intensities and the
         total intensity, or None if the length of *phases* is 0
@@ -445,6 +447,10 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
             self.statistics.update_statistics()
             return None
         else:
+            assert lpf_callback!=None or self.project!=None, "Cannot update the pattern of specimens without a Lorentz-Polarisation factor!"
+            if lpf_callback==None:
+                lpf_callback = self.project.goniometer.get_lorentz_polarisation_factor
+        
             #Get 2-theta values and phase intensities
             theta_range, intensities = self.get_phase_intensities(phases, lpf_callback, steps=steps)
             theta_range = theta_range * 360.0 / pi

@@ -32,9 +32,9 @@ class RefinementView(DialogView):
         self._builder.add_from_file(self.refine_status_builder)
         self._add_child_view(self[self.refine_status_toplevel], self[self.refine_status_container])
         
-    def show_refinement_info(self, refine_function, gui_callback, complete_callback, initial_rp):
+    def show_refinement_info(self, refine_function, gui_callback, complete_callback, initial_residual):
         self["hbox_actions"].set_sensitive(False)
-        self["lbl_rp_initial"].set_text("%.2f" % initial_rp)
+        self["lbl_rp_initial"].set_text("%.2f" % initial_residual)
         self["tv_param_selection"].set_visible(False)
         self["tv_param_selection"].set_no_show_all(True)
                

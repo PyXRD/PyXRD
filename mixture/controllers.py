@@ -101,7 +101,7 @@ class RefinementController(DialogController):
     #      GTK Signal handlers
     # ------------------------------------------------------------
     def on_cancel(self):
-        if not self.model.refine_lock:
+        if not self.model.refiner.refine_lock:
             self.view.hide()
         else:
             return True #do nothing
@@ -118,22 +118,38 @@ class RefinementController(DialogController):
     @DialogController.status_message("Refining mixture...", "refine_mixture")
     def on_refine_clicked(self, event):
         self.view.show_refinement_info(
-            self.model.refine, self.update_last_rp, 
-            self.on_complete, self.model.current_rp)
+            self.model.refiner.refine, self.update_residual, 
+            self.on_complete, self.model.optimizer.get_current_residual())
         
-    def on_complete(self, data):
-        x0, initialR2, lastx, lastR2, apply_solution = data
-        def on_accept(dialog):
-            apply_solution(lastx)
-        def on_reject(dialog):
-            apply_solution(x0)
-        self.run_confirmation_dialog(
-            "Do you want to keep the found solution?\n" + \
-            "Initial Rp: %.2f\nFinal Rp: %.2f\n" % (initialR2, lastR2),
-            on_accept, on_reject, parent=self.view.get_toplevel())
+    def on_complete(self, context):
+        if context != None:
+            message  = "Which solution do you want to keep?\n"
+            message += "Initial solution's residual: %.2f\n" % context.initial_residual
+            message += "Final solution's residual: %.2f\n" % context.last_residual
+            message += "Best solution's residual: %.2f" % context.best_residual
+                
+            dialog = self.get_message_dialog(
+                message, type=gtk.MESSAGE_INFO,
+                parent=self.view.get_toplevel(),
+                buttons=gtk.BUTTONS_NONE
+            )
+            dialog.add_buttons(
+                "Initial", gtk.RESPONSE_CANCEL,
+                "Best", gtk.RESPONSE_OK,
+                "Last", gtk.RESPONSE_CLOSE
+            )
+            response = dialog.run()
+            {
+                gtk.RESPONSE_CANCEL: context.apply_initial_solution,
+                gtk.RESPONSE_OK: context.apply_best_solution,
+                gtk.RESPONSE_CLOSE: context.apply_last_solution
+            }[response]()
+            dialog.destroy() 
         
-    def update_last_rp(self):
-        self.view.update_refinement_info(self.model.last_refine_rp)
+    def update_residual(self):
+        context = getattr(self.model.refiner, "context", None)
+        if context:
+            self.view.update_refinement_info(context.last_residual)
         
     pass #end of class
         
@@ -241,13 +257,9 @@ class EditMixtureController(BaseController):
         self.chicken_egg = False
     
     def on_optimize_clicked(self, widget, *args):
-        self.model.optimize()
+        self.model.optimizer.optimize()
         return
-    
-    def on_apply_result(self, widget, *args):
-        self.model.apply_result()
-        return True
-    
+
     def on_refine_clicked(self, widget, *args):
         self.model.update_refinement_treestore()
         if self.ref_view!=None: 

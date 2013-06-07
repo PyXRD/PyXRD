@@ -16,11 +16,6 @@
     <property name="can_focus">False</property>
     <property name="stock">212-down-arrow</property>
   </object>
-  <object class="GtkImage" id="img_apply">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="stock">206-ok-2</property>
-  </object>
   <object class="GtkImage" id="img_composition">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
@@ -115,22 +110,6 @@
         <property name="can_focus">False</property>
         <property name="spacing">10</property>
         <child>
-          <object class="GtkButton" id="btn_apply_result">
-            <property name="label" translatable="yes">Apply</property>
-            <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="receives_default">True</property>
-            <property name="image">img_apply</property>
-            <property name="always_show_image">True</property>
-            <signal name="clicked" handler="on_apply_result" swapped="no"/>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">0</property>
-          </packing>
-        </child>
-        <child>
           <object class="GtkButton" id="btn_optimize">
             <property name="label" translatable="yes">Optimize</property>
             <property name="visible">True</property>
@@ -145,6 +124,9 @@
             <property name="fill">True</property>
             <property name="position">0</property>
           </packing>
+        </child>
+        <child>
+          <placeholder/>
         </child>
         <child>
           <object class="GtkButton" id="btn_refine">
@@ -269,6 +251,9 @@
                           <placeholder/>
                         </child>
                         <child>
+                          <placeholder/>
+                        </child>
+                        <child>
                           <object class="GtkLabel" id="lbl_bgshifts">
                             <property name="visible">True</property>
                             <property name="can_focus">False</property>
@@ -359,6 +344,15 @@
                             <property name="x_options">GTK_FILL</property>
                             <property name="y_options"/>
                           </packing>
+                        </child>
+                        <child>
+                          <placeholder/>
+                        </child>
+                        <child>
+                          <placeholder/>
+                        </child>
+                        <child>
+                          <placeholder/>
                         </child>
                         <child>
                           <placeholder/>

@@ -43,4 +43,4 @@ class RefinementInfo(PyXRDModel, Storable):
     def json_properties(self):
         return [self.minimum, self.maximum, self.refine]
               
-    pass #end of class
+    pass #end of class   

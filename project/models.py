@@ -313,7 +313,7 @@ class Project(ChildModel, Storable, ObjectListStoreParentMixin):
             self.before_needs_update_lock = True
             t1 = time.time()
             for mixture in self.mixtures.iter_objects():
-                mixture.apply_result()
+                mixture.apply_current_solution()
             t2 = time.time()
             if settings.DEBUG: print '%s took %0.3f ms' % ("before_needs_update", (t2-t1)*1000.0)
             after()

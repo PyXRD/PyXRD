@@ -27,10 +27,284 @@ from generic.models.metaclasses import pyxrd_object_pool
 from generic.models.treemodels import ObjectTreeStore
 
 from generic.refinement.mixins import _RefinementBase, RefinementValue, RefinementGroup
+from generic.refinement.wrapper import RefinableWrapper
 
 from specimen.models import Statistics
 
 from mixture.genetics import run_genetic_algorithm
+
+
+class RefineContext(ChildModel):
+    __parent_alias__ = "mixture"
+    
+    objective_function = None
+    initial_solution = None
+    initial_residual = None
+
+    last_solution = None
+    last_residual = None
+    
+    best_solution = None
+    best_residual = None
+    
+    ref_props = None
+    values = None
+    ranges = None
+
+    def __init__(self, parent=None, **kwargs):
+        super(RefineContext, self).__init__(parent=parent)
+        for key, value in kwargs.iteritems():
+            setattr(self, key, value)
+            
+        if self.initial_solution == None:
+            self.initial_solution = np.array(self.values, dtype=float)    
+        if self.last_solution == None:
+            self.last_solution = np.array(self.values, dtype=float)        
+        if self.last_residual == None:
+            self.last_residual = self.initial_residual
+            
+        self.status = "created"
+
+    def apply_solution(self, solution):
+        for i, ref_prop in enumerate(self.ref_props):
+            if not (solution.shape==()):
+                ref_prop.value = solution[i]
+            else:
+                ref_prop.value = solution[()]
+        return self.mixture.optimizer.optimize(silent=True, method=0)
+
+    def update(self, solution):
+        residual = self.apply_solution(solution)   
+        if self.best_residual==None or self.best_residual > residual:
+            self.best_residual = residual
+            self.best_solution = solution
+            
+    def apply_best_solution(self):
+        self.apply_solution(self.best_solution)
+
+    def apply_last_solution(self):
+        self.apply_solution(self.last_solution)
+
+    def apply_initial_solution(self):
+        self.apply_solution(self.initial_solution)
+            
+    pass #end of class
+
+def refine_lbfgsb_run(context):
+    context.last_solution, context.last_residual, d = scipy.optimize.fmin_l_bfgs_b(
+        context.objective_function,
+        context.initial_solution,
+        approx_grad=True, 
+        bounds=context.ranges, 
+        args=[],
+        factr=1e6,
+        iprint=-1
+    )
+
+class Refiner(ChildModel):
+    __parent_alias__ = "mixture"
+
+    refine_methods = [
+        (0, "L BFGS B algorithm", "refine_lbfgsb_run"), 
+        (1, "Genetic algorithm", ""), #FIXME TODO
+        (100, "Brute force algorithm", ""), #FIXME TODO
+    ]
+
+    def get_context(self):
+        ref_props = []
+        values = []
+        ranges = tuple()
+    
+        for ref_prop in self.mixture.refinables.iter_objects():
+            if ref_prop.refine and ref_prop.refinable:
+                ref_props.append(ref_prop)
+                values.append(ref_prop.value)
+                ranges = ranges + ((ref_prop.value_min, ref_prop.value_max),)
+        initial_residual = self.mixture.optimizer.get_current_residual()
+
+        return RefineContext(
+            parent=self.parent,
+            ref_props = ref_props,
+            values = values,
+            ranges = ranges,
+            initial_residual = initial_residual
+        )
+
+    refine_lock = False
+    def refine(self, params):
+        """
+            This refines the selected properties using the selected algorithm.
+            This should be run asynchronously to keep the GUI from blocking.
+        """
+        if not self.refine_lock:
+            # Set lock
+            self.refine_lock = True            
+        
+            # Suppres updates:
+            self.mixture.project.freeze_updates()
+                       
+            # Extract the info we need from our mixture, and create a context:
+            if getattr(self, "context", None) != None:
+                self.context.parent = None
+                del self.context
+            self.context = self.get_context()
+              
+            # If something has been selected: continue...                      
+            if len(self.context.ref_props) > 0:
+                self.context.best_residual, self.context.best_solution = None, None
+                
+                # The objective function:
+                # needs to be declared inline as it needs acces to the params
+                # dict.
+                def get_residual_from_solution(solution):
+                    if not (params["kill"] or params["stop"]):
+                        self.context.update(solution)
+                        time.sleep(0.05)
+                        return self.context.last_residual
+                    elif params["kill"]:
+                        raise GeneratorExit
+                    elif params["stop"]:
+                        raise StopIteration
+    
+                self.context.objective_function = get_residual_from_solution
+                       
+                #Run until it ends or it raises an exception:     
+                try:
+                    if self.mixture.refine_method==0: #L BFGS B
+                        refine_lbfgsb_run(self.context)
+                    elif self.mixture.refine_method==1: #GENETIC ALGORITHM
+                        run_genetic_algorithm(self.context) #FIXME TODO
+                    elif self.mixture.refine_method==100: #BRUTE FORCE, only for scripting FIXME TODO
+                        last_solution, last_residual, val_grid, residual_grid  = scipy.optimize.brute(
+                            get_residual_from_solution,
+                            ranges,
+                            Ns=10,
+                            full_output=1,
+                            finish=None
+                        )
+                except StopIteration:
+                    self.context.last_solution, self.context.last_residual = self.best_solution, self.best_residual
+                    self.context.status = "stopped"
+                except GeneratorExit:
+                    pass #no action needed
+                    self.context.status = "finished"
+                except any as error:
+                    print "Handling run-time error: %s" % error
+                    print format_exc()
+                    self.context.status = "error"
+            else: #nothing selected for refinement
+                self.context.status = "error"
+                
+            #Unluck the GUI & this method
+            self.refine_lock = False
+            self.mixture.project.thaw_updates()
+                
+            #Return the context to whatever called this
+            return self.context
+
+    pass #end of class
+
+class Optimizer(ChildModel):
+    __parent_alias__ = "mixture"
+    
+    def get_current_residual(self):
+        return self.get_residual(
+            self.mixture.get_current_solution(), 
+            self.get_residual_parts()
+        )
+        
+    def get_residual_parts(self):
+        """
+            Returns a tuple containing:
+             - current number of phases `n`
+             - current number of specimens `m`
+             - a list of `m` numpy arrays containing `n` calculated phase patterns
+             - a list of `m`experimental patterns
+             - a list of `m` selectors (based on exclusion ranges)
+            Using this information, it is possible to calculate the residual for
+            any bg_shift or scales value.
+        """
+        #1 get the different intensities for each phase for each specimen 
+        #  -> each specimen gets a 2D np-array of size m,t with:
+        #         m the number of phases        
+        #         t the number of data points for that specimen
+        n, m = self.mixture.phase_matrix.shape
+        calculated = [None]*n
+        experimental = [None]*n
+        selectors = [None]*n
+        todeg = 360.0 / pi
+        for i in range(n):
+            phases = self.mixture.phase_matrix[i]
+            specimen = self.mixture.specimens[i]
+            if specimen!=None:
+                theta_range, calc = specimen.get_phase_intensities(phases, self.mixture.project.goniometer.get_lorentz_polarisation_factor)
+                calculated[i] = calc.copy()
+                experimental[i] = specimen.experimental_pattern.xy_store.get_raw_model_data()[1].copy()
+                selectors[i] = specimen.get_exclusion_selector(theta_range*todeg)
+        return n, m, calculated, experimental, selectors
+    
+    def get_residual(self, solution, residual_parts=None):
+        """
+            Calculates the residual for the given solution in combination with
+            the given residual parts. If residual_parts is None,
+            the method calls get_residual_parts.
+        """
+        tot_rp = 0.0
+        n, m, calculated, experimental, selectors = residual_parts if residual_parts else self.get_residual_parts()
+        fractions, scales, bgshifts = self.mixture.parse_solution(solution, n, m)
+        for i in range(n):
+            if calculated[i]!=None and experimental[i].size > 0:
+                calc = (scales[i] * np.sum(calculated[i]*fractions, axis=0)) 
+                if settings.BGSHIFT:
+                    calc += bgshifts[i]
+                exp = experimental[i][selectors[i]]
+                cal = calc[selectors[i]]
+                tot_rp += Statistics._calc_Rp(exp, cal)
+        return tot_rp
+
+    def optimize(self, silent=False, method=0):
+        """
+            Optimizes the mixture fractions, scales and bg shifts.
+        """
+        #1. get stuff that doesn't change:
+        residual_parts = self.get_residual_parts()
+        n, m, calculated, experimental, selectors = residual_parts
+
+        #2. define the objective function:
+        def get_residual_from_solution(solution, *args):
+            return self.get_residual(solution, residual_parts)
+            
+        #3. optimize the fractions:         
+        x0 = self.mixture.get_current_solution()
+        bounds = [(0,None) for el in x0]
+        lastx, lastR2 = None, None
+        if method == 0: #L BFGS B
+            iprint = -1 # if not settings.DEBUG else 0
+            lastx, lastR2, info = scipy.optimize.fmin_l_bfgs_b(get_residual_from_solution, x0, approx_grad=True, factr=1000, bounds=bounds, iprint=iprint)
+        elif method == 1: #SIMPLEX
+            disp = 0
+            lastx, lastR2, itr, funcalls, warnflag = scipy.optimize.fmin(get_residual_from_solution, x0, disp=disp, full_output=True)
+        elif method == 3: #truncated Newton algorithm
+             disp = 0
+             lastx, nfeval, rc = scipy.optimize.fmin_tnc(get_residual_from_solution, x0, approx_grad=True, epsilon=0.05, bounds=bounds, disp=disp)
+       
+        #rescale scales and fractions so they fit into [0-1] range, and round them to have 6 digits max:
+        fractions, scales, bgshifts = self.mixture.parse_solution(lastx, n, m)
+        fractions = fractions.flatten()
+        scales = scales.round(6)
+        if settings.BGSHIFT:
+            bgshifts = bgshifts.round(6)
+        
+        sum_frac = np.sum(fractions)
+        fractions = np.around((fractions / sum_frac), 6)
+        scales *= sum_frac
+
+        #set model properties:        
+        self.mixture.set_solution(fractions, scales, bgshifts)
+                
+        return lastR2
+
+    pass #end of class
 
 
 @storables.register()
@@ -61,8 +335,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
     
     refinables = None
     auto_run = False
-    refine_method = MultiProperty(0, int, None, 
-        { 0: "L BFGS B algorithm", 1: "Genetic algorithm", 100: "Brute force algorithm" })
+    refine_method = MultiProperty(0, int, None, { value: name for value, name, func in Refiner.refine_methods })
     
     #Lists and matrices:
     phase_matrix = None
@@ -73,10 +346,6 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
     
     phases = None
     fractions = None
-
-    @property
-    def current_rp(self):
-        return self._calculate_total_rp(self._get_x0(), *self._get_rp_statics())
 
     # ------------------------------------------------------------
     #      Initialisation and other internals
@@ -119,7 +388,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         #list with phase fractions, indexes match with cols in phase_matrix
         self.fractions = fractions or self.get_depr(kwargs, [0.0]*len(self.phases), "data_fractions")
         
-        self.refinables = refinables or self.get_depr(kwargs, ObjectTreeStore(RefinableProperty), "data_refinables")
+        self.refinables = refinables or self.get_depr(kwargs, ObjectTreeStore(RefinableWrapper), "data_refinables")
         self.refine_method = refine_method or self.get_depr(kwargs, self.refine_method, "data_refine_method")
         
         #sanity check:
@@ -128,6 +397,9 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
             raise IndexError, "Shape mismatch: scales, background shifts or specimens lists do not match with row count of phase matrix"
         if len(self.phases) != m or len(self.fractions) != m:
             raise IndexError, "Shape mismatch: fractions or phases lists do not match with column count of phase matrix"
+    
+        self.optimizer = Optimizer(parent=self)
+        self.refiner = Refiner(parent=self)
     
     # ------------------------------------------------------------
     #      Input/Output stuff
@@ -233,112 +505,54 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
     
     # ------------------------------------------------------------
     #      Refinement stuff:
-    # ------------------------------------------------------------ 
-    def _get_x0(self):
+    # ------------------------------------------------------------
+    def get_current_solution(self):
         """ 
             Compiles an initial solution (x0) using the current fractions, 
             scales and background shifts.
         """
         return np.array(self.fractions + self.scales + self.bgshifts)
-    
-    def _parse_x(self, x, n, m): #returns: fractions | scales | bgshifts
+
+    def parse_solution(self, solution, n, m):
         """ 
             Decompiles a solution into m fractions, n scales and n bgshifts,
             m and n being the number of phases and specimens respectively.
         """
-        return x[:m][:,np.newaxis], x[m:m+n], x[-n:] if settings.BGSHIFT else np.zeros(shape=(n,))
-   
-    def _get_rp_statics(self):
-        """
-            Returns the current number of phases (n), number of specimens (m),
-            m times n number of calculated phase patterns, m number of
-            experimental patterns, and m selectors.
-        """
-        #1 get the different intensities for each phase for each specimen 
-        #  -> each specimen gets a 2D np-array of size m,t with:
-        #         m the number of phases        
-        #         t the number of data points for that specimen
-        n, m = self.phase_matrix.shape
-        calculated = [None]*n
-        experimental = [None]*n
-        selectors = [None]*n
-        todeg = 360.0 / pi
-        for i in range(n):
-            phases = self.phase_matrix[i]
-            specimen = self.specimens[i]
-            if specimen!=None:
-                theta_range, calc = specimen.get_phase_intensities(phases, self.parent.goniometer.get_lorentz_polarisation_factor)
-                calculated[i] = calc.copy()
-                experimental[i] = specimen.experimental_pattern.xy_store.get_raw_model_data()[1].copy()
-                selectors[i] = specimen.get_exclusion_selector(theta_range*todeg)
-        return n, m, calculated, experimental, selectors
-   
-    def _calculate_total_rp(self, x, n, m, calculated, experimental, selectors):
-        """
-            Returns the Rp for a given solution (x), number of phases (n),
-            number of specimens (m), m times n number of calculated phase patterns
-            and m number of experimental patterns using the passed m selectors.
-        """
-        tot_rp = 0.0
-        fractions, scales, bgshifts = self._parse_x(x, n, m)
-        for i in range(n):
-            if calculated[i]!=None and experimental[i].size > 0:
-                calc = (scales[i] * np.sum(calculated[i]*fractions, axis=0)) 
-                if settings.BGSHIFT:
-                    calc += bgshifts[i]
-                exp = experimental[i][selectors[i]]
-                cal = calc[selectors[i]]
-                tot_rp += Statistics._calc_Rp(exp, cal)
-        return tot_rp
+        fractions =  solution[:m][:,np.newaxis]
+        scales = solution[m:m+n]
+        bgshifts = solution[-n:] if settings.BGSHIFT else np.zeros(shape=(n,))
+        return fractions, scales, bgshifts
     
-    #@print_timing
-    def optimize(self, silent=False, method=0):
+    def set_solution(self, fractions=None, scales=None, bgshifts=None, solution=None, m=None, n=None, apply=True):
         """
-            Optimizes the current mixture fractions, scales and bg shifts.
+            Sets the fractions, scales and bgshifts of this mixture and emits
+            a signal indicating they have changed.
+            You can choose to pass either the fractions, scales and bgshifts as
+            separate lists or to pass a solution array with the m and n values.
         """
-        #1. get stuff that doesn't change:
-        n, m, calculated, experimental, selectors = self._get_rp_statics()
-
-        #2. define the objective function:
-        def calculate_total_R2(x, *args):
-            return self._calculate_total_rp(x, n, m, calculated, experimental, selectors)
-            
-        #3. optimize the fractions:         
-        x0 = self._get_x0()
-        bounds = [(0,None) for el in x0]
-        lastx, lastR2 = None, None
-        if method == 0: #L BFGS B
-            iprint = -1 # if not settings.DEBUG else 0
-            lastx, lastR2, info = scipy.optimize.fmin_l_bfgs_b(calculate_total_R2, x0, approx_grad=True, factr=1000, bounds=bounds, iprint=iprint)
-        elif method == 1: #SIMPLEX
-            disp = 0
-            lastx, lastR2, itr, funcalls, warnflag = scipy.optimize.fmin(calculate_total_R2, x0, disp=disp, full_output=True)
-        elif method == 2: #L BFGS B: FAST WIDE + SLOW NARROW
-            lastx, lastR2 = Mixture.mod_l_bfgs_b(calculate_total_R2, x0, bounds)
-        elif method == 3: #truncated Newton algorithm
-             disp = 0
-             lastx, nfeval, rc = scipy.optimize.fmin_tnc(calculate_total_R2, x0, approx_grad=True, epsilon=0.05, bounds=bounds, disp=disp)
-            
-       
-        #rescale scales and fractions so they fit into [0-1] range, and round them to have 6 digits max:
-        fractions, scales, bgshifts = self._parse_x(lastx, n, m)
-        fractions = fractions.flatten()
-        scales = scales.round(6)
-        if settings.BGSHIFT:
-            bgshifts = bgshifts.round(6)
+        if solution!=None:
+            assert m!=None, "If you pass the solution keyword, you need to pass the m keyword argument as well!"
+            assert n!=None, "If you pass the solution keyword, you need to pass the n keyword argument as well!"
+            fractions, scales, bgshifts = self.parse_solution(solution, m, n)
         
-        sum_frac = np.sum(fractions)
-        fractions = np.around((fractions / sum_frac), 6)
-        scales *= sum_frac
-        
-        #set model properties:
         self.fractions = list(fractions)
         self.scales = list(scales)
         self.bgshifts = list(bgshifts) if settings.BGSHIFT else [0]*n
         
-        if not silent: self.has_changed.emit()
+        if apply:
+            self.apply_current_solution()
         
-        return lastR2
+        self.has_changed.emit()
+       
+    def apply_current_solution(self):
+        for i, specimen in enumerate(self.specimens):
+            if specimen!=None:
+                specimen.abs_scale = self.scales[i]
+                specimen.bg_shift = self.bgshifts[i]
+                specimen.update_pattern(
+                    self.phase_matrix[i,:],
+                    self.fractions
+                )
        
     def get_result_description(self):
         n, m = self.phase_matrix.shape
@@ -470,26 +684,6 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
                 final_comps[i+1,j+1] = ("%.1f" % wt).ljust(15)[:15]
                     
         return final_comps
-                      
-    @staticmethod
-    def mod_l_bfgs_b(func, x0, init_bounds, args=[], f1=1e12, f2=10):
-        """
-            Dual L BFGS B method. First a loose target is set with the bounds given by the user.
-            Then a slower, but more constrained run is made with the previously found solution.
-        """
-        iprint = -1
-        lastx, lastR2, info = scipy.optimize.fmin_l_bfgs_b(func, x0, approx_grad=True, factr=f1, bounds=init_bounds, args=args, iprint=iprint)
-        lastx = np.array(lastx)        
-        lowerx = lastx*0.95
-        upperx = lastx*1.05
-        bounds = np.zeros(shape=lowerx.shape + (2,))
-        for i, (minx, maxx) in enumerate(init_bounds):
-            maxx = maxx if maxx!=None else upperx[i]
-            minx = minx if minx!=None else lowerx[i]
-            bounds[i, 0] = max(lowerx[i], minx)
-            bounds[i, 1] = min(upperx[i], maxx)
-        lastx, lastR2, info = scipy.optimize.fmin_l_bfgs_b(func, lastx, approx_grad=True, factr=f2, args=args, bounds=bounds, iprint=iprint)
-        return lastx, lastR2
        
     def update_refinement_treestore(self):
         """
@@ -502,7 +696,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         self.refinables.clear()
          
         def add_property(parent_itr, obj, prop):            
-            rp = RefinableProperty(obj, prop, sensitivity=0, refine=False, parent=self)
+            rp = RefinableWrapper(obj, prop, sensitivity=0, refine=False, parent=self)
             return self.refinables.append(parent_itr, rp)
             
         def parse_attribute(obj, attr, root_itr):
@@ -532,10 +726,8 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
             
         for phase in self.parent.phases.iter_objects():
             if phase in self.phase_matrix: parse_attribute(phase, None, None)
-    
-    last_refine_rp = 0.0
         
-    def auto_restrict(self):
+    def auto_restrict(self): #TODO FIXME
         """
             Convenience function that restricts the selected properties 
             automatically by setting their minimum and maximum values.
@@ -545,229 +737,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
                 ref_prop.value_min = ref_prop.value * 0.95
                 ref_prop.value_max = ref_prop.value * 1.05
         return
-        
-    refine_lock = False
-    def refine(self, params): #, gui_callback):
-        """
-            This refines the selected properties using the selected algorithm.
-            The method can be passes a callback to periodically update the gui.
-            This should be run asynchronously...
-        """
-        if not self.refine_lock:
-            self.refine_lock = True            
-            ref_props = []
-            values = []
-            ranges = tuple()
-        
-            self.parent.freeze_updates()
-                       
-            for ref_prop in self.refinables.iter_objects():
-                if ref_prop.refine and ref_prop.refinable:
-                    ref_props.append(ref_prop)
-                    values.append(ref_prop.value)
-                    ranges = ranges + ((ref_prop.value_min, ref_prop.value_max),)
-            x0 = np.array(values, dtype=float)
-            initialR2 = self.current_rp
-            
-            lastx = np.array(values, dtype=float)
-            lastR2 = initialR2            
-                        
-            if len(ref_props) > 0:      
-                self.best_rp, self.best_x = None, None
-                
-                def apply_solution(new_values):
-                    for i, ref_prop in enumerate(ref_props):
-                        if not (new_values.shape==()):
-                            ref_prop.value = new_values[i]
-                        else:
-                            ref_prop.value = new_values[()]
-                    self.last_refine_rp = self.optimize(silent=True, method=0)
-                
-                def fitness_func(new_values):
-                    if not (params["kill"] or params["stop"]):
-                        apply_solution(new_values)
-                        time.sleep(0.05)
-                        if self.best_rp==None or self.best_rp > self.last_refine_rp:
-                            self.best_rp = self.last_refine_rp
-                            self.best_x = new_values
-                        return self.last_refine_rp
-                    elif params["kill"]:                
-                        raise GeneratorExit
-                    elif params["stop"]:
-                        raise StopIteration
-                        
-                try:
-                    if self.refine_method==0: #L BFGS B                                           
-                        lastx, lastR2 = Mixture.mod_l_bfgs_b(fitness_func, x0, ranges, args=[], f2=1e6)
-                    elif self.refine_method==1: #GENETIC ALGORITHM
-                        lastx, lastR2 = run_genetic_algorithm(ref_props, x0, ranges, fitness_func)
-                    elif self.refine_method==100: #BRUTE FORCE, only for scripting
-                        lastx, lastR2, val_grid, rp_grid  = scipy.optimize.brute(fitness_func, ranges, Ns=10, full_output=1, finish=None)
-                except StopIteration:
-                    lastx, lastR2 = self.best_x, self.best_rp
-                except GeneratorExit:
-                    pass #no action needed
-                except any as error:
-                    print "Handling run-time error: %s" % error
-                    print format_exc()
-                finally:
-                    del self.best_x
-                    del self.best_rp
-            self.refine_lock = False
-            self.parent.thaw_updates()
-            if self.refine_method != 100:
-                return x0, initialR2, lastx, lastR2, apply_solution
-            else:
-                return x0, initialR2, lastx, lastR2, apply_solution, val_grid, rp_grid
-                                    
-    def apply_result(self):
-        """
-            Applies the result of the optimization (phase fractions, bgshifts
-            and absolute scales) to the specimens in the mixture.
-        """
-        if self.auto_run: self.optimize()
-        for i, specimen in enumerate(self.specimens):
-            if specimen!=None:
-                specimen.abs_scale = self.scales[i]
-                specimen.bg_shift = self.bgshifts[i]
-                specimen.update_pattern(self.phase_matrix[i,:], self.fractions, self.project.goniometer.get_lorentz_polarisation_factor)
                 
     pass #end of class
     
-#@storables.register()    
-class RefinableProperty(ChildModel, ObjectListStoreChildMixin, Storable):
-    """
-        Wrapper class for refinable properties easing the retrieval of certain
-        properties for the different types of refinable properties.
-    """
-    
-    #MODEL INTEL:
-    __parent_alias__ = "mixture"
-    __index_column__ = "index"
-    __model_intel__ = [ #TODO add labels
-        PropIntel(name="title",             inh_name=None,         label="", minimum=None,  maximum=None,  is_column=True,  data_type=str,    refinable=False, storable=False, observable=True,  has_widget=True),
-        PropIntel(name="refine",            inh_name=None,         label="", minimum=None,  maximum=None,  is_column=True,  data_type=bool,   refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="refinable",         inh_name=None,         label="", minimum=None,  maximum=None,  is_column=True,  data_type=bool,   refinable=False, storable=False, observable=True,  has_widget=False),
-        PropIntel(name="prop",              inh_name=None,         label="", minimum=None,  maximum=None,  is_column=True,  data_type=str,    refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="inh_prop",          inh_name=None,         label="", minimum=None,  maximum=None,  is_column=True,  data_type=str,    refinable=False, storable=False, observable=True,  has_widget=True),        
-        PropIntel(name="value",             inh_name=None,         label="", minimum=None,  maximum=None,  is_column=True,  data_type=float,  refinable=False, storable=False, observable=True,  has_widget=False),
-        PropIntel(name="value_min",         inh_name=None,         label="", minimum=None,  maximum=None,  is_column=True,  data_type=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="value_max",         inh_name=None,         label="", minimum=None,  maximum=None,  is_column=True,  data_type=float,  refinable=False, storable=True,  observable=True,  has_widget=True),
-        PropIntel(name="obj",               inh_name=None,         label="", minimum=None,  maximum=None,  is_column=True,  data_type=object, refinable=False, storable=False, observable=True,  has_widget=False),
-        PropIntel(name="index",             inh_name=None,         label="", minimum=None,  maximum=None,  is_column=True,  data_type=object, refinable=False, storable=False, observable=True,  has_widget=False),
-        PropIntel(name="prop_intel",        inh_name=None,         label="", minimum=None,  maximum=None,  is_column=True,  data_type=object, refinable=False, storable=False, observable=True,  has_widget=False),
-    ]
-    
-    #PROPERTIES:
-    obj = None
-    
-    _prop = ""
-    _prop_intel = None
-    def get_prop_intel_value(self):
-        if isinstance(self.obj, _RefinementBase) and self.prop==None:
-            return None
-        else:           
-            if not self._prop_intel:
-                self._prop_intel = self.obj.get_prop_intel_by_name(self.prop)
-            return self._prop_intel
-        
-    def get_prop_value(self):
-        return self._prop
-    def set_prop_value(self, value):
-        self._prop = value
-    
-    def get_inh_prop_value(self):
-        return self.prop_intel.inh_name if self.prop_intel else None
-    
-    last_lbl=None
-    last_pb=None
-    def get_title_value(self):
-        if isinstance(self.obj, _RefinementBase) and self.prop_intel==None:
-            return self.obj.refine_title
-        else:
-            return self.prop_intel.label
 
-    def get_value_value(self):
-        if isinstance(self.obj, RefinementValue):
-            return self.obj.refine_value
-        elif self.prop!=None:
-            return getattr(self.obj, self.prop)
-        else:
-            return None
-    def set_value_value(self, value):
-        value = max(min(value, self.value_max), self.value_min)
-        if isinstance(self.obj, RefinementValue):
-            self.obj.refine_value = value
-        else:
-            setattr(self.obj, self.prop, value)
-      
-    @property
-    def inherited(self):
-        return self.inh_prop!=None and hasattr(self.obj, self.inh_prop) and getattr(self.obj, self.inh_prop)
-        
-    @property
-    def refinable(self):
-        if isinstance(self.obj, RefinementGroup) and self.prop_intel!=None:
-            return self.obj.children_refinable and not self.inherited
-        if isinstance(self.obj, _RefinementBase) and self.prop_intel==None:
-            return self.obj.is_refinable
-        else:
-            return (not self.inherited)
-    
-    @property
-    def ref_info(self):
-        name = self.prop_intel.name if self.prop_intel else self.prop
-        if hasattr(self.obj, "%s_ref_info" % name):
-            return getattr(self.obj, "%s_ref_info" % name)
-        elif isinstance(self.obj, _RefinementBase) and self.prop_intel==None:
-            return self.obj.refine_info
-    
-    def get_value_min_value(self):        
-        return self.ref_info.minimum if self.ref_info else None
-    def set_value_min_value(self, value):
-        if self.ref_info:
-            self.ref_info.minimum = value
-            self.liststore_item_changed()
-    def get_value_max_value(self):
-        return self.ref_info.maximum if self.ref_info else None
-    def set_value_max_value(self, value):
-        if self.ref_info:
-            self.ref_info.maximum = value
-            self.liststore_item_changed()
-
-    def get_refine_value(self):
-        return self.ref_info.refine if self.ref_info else False
-    def set_refine_value(self, value):
-        if self.ref_info:
-            self.ref_info.refine = value and self.refinable
-            self.liststore_item_changed()
-
-    def get_index_value(self):
-       return (self.obj, self.prop)
-
-    # ------------------------------------------------------------
-    #      Initialisation and other internals
-    # ------------------------------------------------------------
-    def __init__(self, obj=None, prop=None, obj_uuid=None, parent=None, **kwargs):
-        ChildModel.__init__(self, parent=parent)
-        Storable.__init__(self)
-
-        if obj==None:
-            if obj_uuid:
-                obj = pyxrd_object_pool.get_object(obj_uuid)
-            else:
-                raise RuntimeError, "Object UUIDs are used for storage since version 0.4!"
-                
-        self.obj = obj
-        self.prop = prop
-        
-    # ------------------------------------------------------------
-    #      Input/Output stuff
-    # ------------------------------------------------------------   
-    def json_properties(self):
-        assert(self.parent!=None)
-        retval = Storable.json_properties(self)
-        retval["obj_uuid"] = self.obj.uuid
-        return retval
-        
-    pass #end of class    

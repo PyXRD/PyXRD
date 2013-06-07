@@ -16,6 +16,7 @@ __all__ = [
     "DefaultSignal",
     "PropIntel",
     "MultiProperty",
+    "BasePyXRDModel",
     "PyXRDModel",
     "ChildModel",
     "PyXRDLine",

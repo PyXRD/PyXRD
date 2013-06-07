@@ -18,7 +18,7 @@ from generic.custom_math import lognormal
 from generic.models import ChildModel, PropIntel
 from generic.io import storables, Storable
 
-from mixture.refinement import RefinementGroup, RefinementValue
+from generic.refinement.mixins import RefinementGroup, RefinementValue
 
 class _AbstractCSDSDistribution(ChildModel, Storable):
 
@@ -171,7 +171,7 @@ class _LogNormalMixin():
     pass #end of class
 
 @storables.register()
-class LogNormalCSDSDistribution(_LogNormalMixin, _AbstractCSDSDistribution, RefinementGroup):
+class LogNormalCSDSDistribution(RefinementGroup, _LogNormalMixin, _AbstractCSDSDistribution):
 
     #MODEL INTEL:
     __description__ = "Generic log-normal CSDS distr. (Eberl et al. 1990)"
@@ -195,7 +195,7 @@ class LogNormalCSDSDistribution(_LogNormalMixin, _AbstractCSDSDistribution, Refi
     pass #end of class
     
 @storables.register()    
-class DritsCSDSDistribution(_LogNormalMixin, _AbstractCSDSDistribution, RefinementValue):
+class DritsCSDSDistribution(RefinementValue, _LogNormalMixin, _AbstractCSDSDistribution):
 
     #MODEL INTEL:
     __description__ = "Log-normal CSDS distr. (Drits et. al, 1997)"

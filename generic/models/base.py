@@ -14,6 +14,10 @@ from metaclasses import PyXRDMeta, get_new_uuid, pyxrd_object_pool
 from properties import PropIntel
 
 class PyXRDModel(ModelMT):
+    """
+       Standard model for PyXRD models, with support for refinable properties.
+    """
+    
     __metaclass__ = PyXRDMeta
     __model_intel__ = [
         PropIntel(name="uuid", data_type=str,  storable=True, observable=False),

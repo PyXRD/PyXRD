@@ -15,7 +15,7 @@ from generic.io import Storable
 from generic.models import ChildModel
 from generic.models.properties import PropIntel, IndexProperty
 
-from mixture.refinement import RefinementGroup
+from generic.refinement.mixins import RefinementGroup, RefinementValue
 
 class _AbstractProbability(ChildModel, Storable, RefinementGroup):
 

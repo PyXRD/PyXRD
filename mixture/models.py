@@ -26,10 +26,12 @@ from generic.models.mixins import ObjectListStoreChildMixin
 from generic.models.metaclasses import pyxrd_object_pool
 from generic.models.treemodels import ObjectTreeStore
 
+from generic.refinement.mixins import _RefinementBase, RefinementValue, RefinementGroup
+
 from specimen.models import Statistics
 
 from mixture.genetics import run_genetic_algorithm
-from mixture.refinement import _RefinementBase, RefinementValue, RefinementGroup
+
 
 @storables.register()
 class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):

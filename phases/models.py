@@ -25,11 +25,12 @@ from generic.models.mixins import ObjectListStoreChildMixin, ObjectListStorePare
 from generic.models.treemodels import ObjectListStore
 from generic.models.metaclasses import pyxrd_object_pool
 
+from generic.refinement.mixins import RefinementGroup, RefinementValue
+
 from atoms.models import Atom
 from probabilities.models import get_correct_probability_model
 from phases.CSDS_models import DritsCSDSDistribution
 from phases.atom_relations import AtomRelation, AtomRatio, AtomContents, ComponentPropMixin
-from mixture.refinement import RefinementGroup, RefinementValue
 
 @storables.register()
 class UnitCellProperty(ChildModel, Storable, ComponentPropMixin, RefinementValue):

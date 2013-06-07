@@ -181,7 +181,7 @@ def apply_runtime_settings(no_gui=False):
                 for filename in filenames:
                     if filename.endswith(".png"):
                         stock_id = filename[:-4] #remove extensions
-                        pixbuf = gtk.gdk.pixbuf_new_from_file("%s%s" % (icons_path, filename))
+                        pixbuf = gtk.gdk.pixbuf_new_from_file("%s/%s" % (icons_path, filename))
                         iconset = gtk.IconSet(pixbuf)
                         iconfactory.add(stock_id, iconset)
             iconfactory.add_default()

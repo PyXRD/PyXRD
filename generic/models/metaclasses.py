@@ -18,70 +18,32 @@ def get_new_uuid():
 
 class PyXRDMeta(ObservablePropertyMetaMT):
 
-    hooks = []
-    @staticmethod
-    def register_hook(class_handler, pre_handler, post_handler):
-        PyXRDMeta.hooks.append((class_handler, pre_handler, post_handler))
+    extra_key_names = [
+        "storables",
+        "columns",
+        "inheritables",
+        "have_no_widget"
+    ]
 
-    def __init__(cls, name, bases, d):
+    # ------------------------------------------------------------
+    #      Type initialisation:
+    # ------------------------------------------------------------
+    def __init__(cls, name, bases, d):    
         #get the model intel for this class type (excluding bases for now):        
-        __model_intel__ = get_unique_list(d.get("__model_intel__", list()))
-    
-        #First execute any class hooks that might have been registered,
-        # They can alter the arguments passed to the init function,
-        # so they can alter a lot ;-)
-        for handlers in PyXRDMeta.hooks:
-            class_handler, pre_handler, post_handler = handlers
-            if callable(post_handler): 
-                class_handler(cls, name, bases, d, __model_intel__)    
+        model_intel = get_unique_list(d.get("__model_intel__", list()))   
 
-        #properties to be generated base on model intel named tuples:
-        keys = [
-            "__observables__", 
-            "__storables__", 
-            "__columns__",
-            "__inheritables__",
-            "__refinables__", 
-            "__have_no_widget__"
-        ]
-    
-        #Helper functions to to set or delete extra attributes on the class
-        def set_attribute(name, value):
-            d[name] = value
-            setattr(cls, name, value)
-        def del_attribute(name):
-            del d[name]
-            delattr(cls, name)
-    
-        #loop over the variables and fetch any custom values for this class (if present):
-        for key in keys:
-            d[key] = get_unique_list(d[key]) if key in d else list()
+        #Properties to be generated base on model intel named tuples:
+        keys = cls.extra_key_names
+        
+        #Loop over the variables and fetch any custom values for this class (if present):
+        for key in keys + ["observables",]:
+            key_name = "__%s__" % key
+            d[key_name] = get_unique_list(d[key_name]) if key_name in d else list()
                 
-        #loop over the model intel and generate observables list:
-        for prop in __model_intel__:
-            if prop.observable: 
-                d["__observables__"].append(prop.name)
-            if hasattr(cls, prop.name):
-                from properties import MultiProperty
-                attr = getattr(cls, prop.name)
-                if isinstance(attr, MultiProperty):
-                        
-                    pr_prop = "_%s" % prop.name
-                    pr_optn = "_%ss" % prop.name
-                    getter_name = "get_%s_value" % prop.name
-                    setter_name = "set_%s_value" % prop.name
-                
-                    set_attribute(pr_prop, attr.value)
-                    set_attribute(pr_optn, attr.options)
-                    
-                    existing_getter = getattr(cls, getter_name, None)
-                    existing_setter = getattr(cls, setter_name, None)
-                    
-                    getter, setter = attr.create_accesors(pr_prop, existing_getter, existing_setter)
-                    set_attribute(getter_name, getter)
-                    set_attribute(setter_name, setter)
-                    del_attribute(prop.name)                  
-            
+        #Add 'new' observables before we update the model intel with values from base classes
+        for prop in model_intel:
+            name, bases, d = cls.__generate_observables__(name, bases, d, prop)
+                   
         # Add model intel from the base classes to generate the remaining 
         # properties, without overriding intels already present,
         # replace the variable by a set including the complete model intel for
@@ -89,28 +51,28 @@ class PyXRDMeta(ObservablePropertyMetaMT):
         for base in bases: 
             base_intel = getattr(base, "__model_intel__", list())
             for prop in base_intel: 
-                if not prop in __model_intel__:
-                    __model_intel__.append(prop)
-        setattr(cls, "__model_intel__", get_unique_list(__model_intel__))            
-            
-        #generate remaining properties based on model intel (including bases):
-        for prop in __model_intel__:
-            if prop.storable:   
-                d["__storables__"].append(prop.name)
-            if prop.is_column:
-                # replace unicodes with strs for PyGtk
-                data_type = prop.data_type if prop.data_type != unicode else str
-                d["__columns__"].append((prop.name, data_type))
-            if prop.inh_name:   d["__inheritables__"].append(prop.name)
-            if prop.refinable:  d["__refinables__"].append(prop.name)
-            if not prop.has_widget: d["__have_no_widget__"].append(prop.name)                
+                if not prop in model_intel:
+                    model_intel.append(prop)
+        setattr(cls, "__model_intel__", get_unique_list(model_intel))            
+
+        #Generate remaining properties based on model intel (including bases):
+        def dummy(*args):
+            return tuple(args[:-1])
+        for prop in model_intel:
+            for key in keys:
+                func = getattr(cls, "__generate_%s__" % key, dummy)
+                name, bases, d = func(name, bases, d, prop)
                 
         #apply properties:
-        for key in keys:
-            setattr(cls, key, list(d[key]))
+        for key in keys + ["observables",]:
+            key_name = "__%s__" % key
+            setattr(cls, key_name, list(d[key_name  ]))
 
         return ObservablePropertyMetaMT.__init__(cls, name, bases, d)
-                
+        
+    # ------------------------------------------------------------
+    #      Instance creation:
+    # ------------------------------------------------------------
     def __call__(cls, *args, **kwargs):
         #Check if uuid has been passed (e.g. when restored from disk)
         # if not generate a new one and set it on the instance
@@ -119,36 +81,80 @@ class PyXRDMeta(ObservablePropertyMetaMT):
             del kwargs["uuid"]
         else:
             uuid = get_new_uuid()
-
-        # Call any hooks that are registered at this point, store return value
-        # so we can pass it back to any       
-        hook_retvals = dict()
-        for handlers in PyXRDMeta.hooks:
-            class_handler, pre_handler, post_handler = handlers
-            if callable(pre_handler): 
-                hook_retvals[handlers] = pre_handler(cls, args, kwargs)
-        
+    
         #Create instance & set the uuid:
         instance = ObservablePropertyMetaMT.__call__(cls, *args, **kwargs)
         instance.__uuid__ = uuid
         
         #Add a reference to the instance for each model intel, 
-        # so function calls (e.g. labels) work as expected,
-        # and set the ref info attributes
-        # Additionally call any hooks that are registered at this point
+        # so function calls (e.g. labels) work as expected
         for prop_intel in instance.__model_intel__:
             prop_intel.container = instance            
-        for handlers in PyXRDMeta.hooks:
-            class_handler, pre_handler, post_handler = handlers
-            if callable(post_handler): 
-                post_handler(instance, hook_retvals[handlers])
-        
-        del hook_retvals
         
         #Add object to the object pool so other objects can 
         # retrieve it when restored from disk:
         pyxrd_object_pool.add_object(instance)
         return instance
+        
+    # ------------------------------------------------------------
+    #      Other methods & functions:
+    # ------------------------------------------------------------
+        
+    def set_attribute(cls, d, name, value):
+        d[name] = value
+        setattr(cls, name, value)
+        
+    def del_attribute(cls, d, name):
+        del d[name]
+        delattr(cls, name)
+    
+    def __generate_observables__(cls, name, bases, d, prop):
+        #loop over the model intel and generate observables list:
+        if prop.observable: 
+            d["__observables__"].append(prop.name)
+        if hasattr(cls, prop.name):
+            from properties import MultiProperty
+            attr = getattr(cls, prop.name)
+            if isinstance(attr, MultiProperty):
+                pr_prop = "_%s" % prop.name
+                pr_optn = "_%ss" % prop.name
+                getter_name = "get_%s_value" % prop.name
+                setter_name = "set_%s_value" % prop.name
+            
+                cls.set_attribute(d, pr_prop, attr.value)
+                cls.set_attribute(d, pr_optn, attr.options)
+                
+                existing_getter = getattr(cls, getter_name, None)
+                existing_setter = getattr(cls, setter_name, None)
+                
+                getter, setter = attr.create_accesors(pr_prop, existing_getter, existing_setter)
+                cls.set_attribute(d, getter_name, getter)
+                cls.set_attribute(d, setter_name, setter)
+                cls.del_attribute(d, prop.name)
+        return name, bases, d
+
+    def __generate_storables__(cls, name, bases, d, prop):
+        if prop.storable:   
+            d["__storables__"].append(prop.name)
+        return name, bases, d
+
+    def __generate_columns__(cls, name, bases, d, prop):
+        if prop.is_column:
+            # replace unicodes with strs for PyGtk
+            data_type = prop.data_type if prop.data_type != unicode else str
+            d["__columns__"].append((prop.name, data_type))
+        return name, bases, d
+
+    def __generate_inheritables__(cls, name, bases, d, prop):
+        if prop.inh_name:   d["__inheritables__"].append(prop.name)
+        return name, bases, d
+    
+    def __generate_have_no_widget__(cls, name, bases, d, prop):
+        if not prop.has_widget: d["__have_no_widget__"].append(prop.name) 
+        return name, bases, d
+        
+    pass #end of class
+
         
 class ObjectPool(object):
     

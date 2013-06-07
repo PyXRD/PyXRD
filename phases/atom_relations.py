@@ -13,7 +13,7 @@ from generic.models.mixins import ObjectListStoreChildMixin
 from generic.io import storables, Storable
 
 from atoms.models import Atom
-from mixture.refinement import RefinementGroup, RefinementValue
+from generic.refinement.mixins import RefinementGroup, RefinementValue
 
 from gtk import ListStore
 

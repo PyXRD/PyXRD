@@ -19,7 +19,6 @@ from generic.loggers import PyXRDLogger
 from generic.update import update
 
 if __name__ == "__main__":
-
     #setup & parse keyword arguments:
     parser = argparse.ArgumentParser()
     parser.add_argument("filename", nargs="?", default="", help="A PyXRD project filename", )
@@ -27,6 +26,8 @@ if __name__ == "__main__":
     parser.add_argument("-t", "--test", dest='test', action='store_const',
         const=True, default=False,
         help='Runs the tests for PyXRD')
+    parser.add_argument("-c", "--clear-cache", dest='clear_cache', action='store_const',
+        const=True, default=False, help='Clear the cache (only relevant if using filesystem cache)')
     args = parser.parse_args()
     del parser #free some memory
 
@@ -44,6 +45,18 @@ if __name__ == "__main__":
 
         #apply settings
         settings.apply_runtime_settings(args.script)
+        
+        #clean out the file cache if asked and from time to time:
+        if settings.CACHE == "FILE":
+            from generic.caching import memory        
+            if args.clear_cache:
+                memory.clear()
+            else:
+                from generic.io import get_size, sizeof_fmt
+                size = get_size(memory.cachedir)
+                print "Cache size is:", sizeof_fmt(size)
+                if size > settings.CACHE_SIZE:
+                    memory.clear()
         
         #now we can load these:    
         from project.models import Project

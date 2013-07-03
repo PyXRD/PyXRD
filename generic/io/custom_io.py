@@ -5,7 +5,7 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-import sys
+import os, sys
 
 # Small workaround to provide a unicode-aware open method for PyXRD:
 if sys.version_info[0] < 3: #Pre Python 3.0
@@ -24,12 +24,30 @@ def unicode_open(*args, **kwargs):
 from collections import OrderedDict
 from traceback import format_exc
 
+try:
+    from cStringIO import StringIO
+except:
+    from StringIO import StringIO
 from zipfile import ZipFile, ZIP_DEFLATED, is_zipfile
 
 import json
 import settings
 
 from gtk import TextBuffer
+       
+def sizeof_fmt(num):
+    for x in ['bytes','kB','MB','GB','TB']:
+        if num < 1024.0:
+            return "%3.1f %s" % (num, x)
+        num /= 1024.0
+       
+def get_size(path = '.'):
+    total_size = 0
+    for dirpath, dirnames, filenames in os.walk(path):
+        for f in filenames:
+            fp = os.path.join(dirpath, f)
+            total_size += os.path.getsize(fp)
+    return total_size
        
 class StorableRegistry(dict):
     """
@@ -157,6 +175,11 @@ class PyXRDDecoder(json.JSONDecoder):
         raise Warning, "__pyxrd_decode__ will return None for %s!" % str(obj)[:30]+"..."+str(obj)[:-30]
         return None
     
+#needs to be importable:
+def __map_reduce__(json_obj):
+    decoder = PyXRDDecoder()
+    return decoder.decode(json_obj)
+    
 class Storable(object):
     """
         A class with a number of default implementations to serialize objects
@@ -181,11 +204,18 @@ class Storable(object):
     ###########################################################################
     # High-level JSON (de)serialisiation related methods & functions:
     ###########################################################################
-    def dump_object(self):
+    def dump_object(self, zipped=False):
         """
         Returns this object serialized as a JSON string
         """
-        return json.dumps(self, indent = 4, cls=PyXRDEncoder)
+        if zipped:
+            f = StringIO()
+            z = ZipFile(f, mode="w", compression=ZIP_DEFLATED)
+            z.writestr('content', json.dumps(self, indent = 4, cls=PyXRDEncoder))
+            z.close()
+            return f #return unclosed, users need to worry about this...
+        else:
+            return json.dumps(self, indent = 4, cls=PyXRDEncoder)
 
     def print_object(self):
         """
@@ -304,9 +334,6 @@ class Storable(object):
     # Others:
     ###########################################################################
     def __reduce__(self):
-        def __map_reduce__(json_obj):
-            decoder = PyXRDDecoder()
-            return decoder.decode(json_obj)
         props = self.dump_object()
         return __map_reduce__, (props,), None
 

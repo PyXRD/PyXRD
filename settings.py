@@ -21,6 +21,9 @@ MANUAL_URL = UPDATE_URL
 ### Factor to multiply the CSDS average with to obtain the maximum CSDS ###
 LOG_NORMAL_MAX_CSDS_FACTOR = 2.5
 
+CACHE = "FILE" # one of "FILE" (recomended), "MEMORY" (not advisable) or None
+CACHE_SIZE = 500 * (1024 * 1024) #size of file cache in bytes (10 Mb)
+
 ### Default Styles & Colors ###
 EXPERIMENTAL_COLOR = "#000000"
 CALCULATED_COLOR = "#FF0000"
@@ -124,7 +127,8 @@ DATA_DIRS = [
     ("DEFAULT_PHASES",      "default phases/",                  "DEFAULT_DATA"),
     ("DEFAULT_COMPONENTS",  "default components/",              "DEFAULT_DATA"),
     ("DEFAULT_GONIOS",      "default goniometers/",             "DEFAULT_DATA"),
-    ("APPLICATION_ICONS",   "application/icons/",               None)
+    ("APPLICATION_ICONS",   "application/icons/",               None),
+    ("CACHE_DIR",           "CACHE/",                           "DEFAULT_DATA")
 ]
 DATA_FILES = [
     ("COMPOSITION_CONV",    "composition_conversion.csv",       "DEFAULT_DATA"),

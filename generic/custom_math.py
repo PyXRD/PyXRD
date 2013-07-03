@@ -14,7 +14,7 @@ from numpy.core.umath_tests import matrix_multiply as mmultr
 
 sqrtpi = sqrt(pi)
 sqrt2pi = sqrt(2*pi)
-sqrt8 = sqrt(8) 
+sqrt8 = sqrt(8)
 
 def mmult(A, B):
     return np.sum(np.transpose(A,(0,2,1))[:,:,:,np.newaxis]*B[:,:,np.newaxis,:],-3)
@@ -51,6 +51,10 @@ def capint(lower, value, upper, out=None):
         
 def lognormal(T, a, b):
     return sqrt2pi * exp(-(log(T) - a)**2 / (2.0*(b**2))) / (abs(b)*T)
+      
+def add_noise(x, noise_fraction=0.05):
+    abs_value = noise_fraction * np.amax(x)
+    return x + np.random.standard_normal(x.shape) * abs_value
         
 def smooth(x, half_window_len=3,window='blackman'):
     """smooth the data using a window with requested size.

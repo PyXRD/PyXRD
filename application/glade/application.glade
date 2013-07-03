@@ -253,6 +253,16 @@
         <signal name="activate" handler="on_strip_peak" swapped="no"/>
       </object>
     </child>
+    <child>
+      <object class="GtkAction" id="add_noise">
+        <property name="label" translatable="yes">Add noise</property>
+        <property name="short_label" translatable="yes">Noise</property>
+        <property name="tooltip" translatable="yes">Add noise</property>
+        <property name="stock_id">429-noisify</property>
+        <property name="icon_name">429-noisify</property>
+        <signal name="activate" handler="on_add_noise" swapped="no"/>
+      </object>
+    </child>
   </object>
   <object class="GtkActionGroup" id="specimens_actions">
     <property name="sensitive">False</property>
@@ -755,6 +765,20 @@ Johan Van Der Wauw</property>
                     <property name="related_action">smooth_data</property>
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
+                    <property name="use_underline">True</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="homogeneous">True</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkToolButton" id="tbtn_add_noise">
+                    <property name="related_action">add_noise</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="tooltip_text" translatable="yes">Add noise to experimental data</property>
+                    <property name="label" translatable="yes">Add noise</property>
                     <property name="use_underline">True</property>
                   </object>
                   <packing>

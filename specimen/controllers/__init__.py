@@ -16,6 +16,7 @@ from .marker_controllers import (
 
 from .background_controller import BackgroundController
 from .smooth_data_controller import SmoothDataController
+from .add_noise_controller import AddNoiseController
 from .shift_data_controller import ShiftDataController
 from .strip_peak_controller import StripPeakController
 
@@ -28,6 +29,7 @@ __all__ = [
     "ThresholdController",
     "BackgroundController",
     "SmoothDataController",
+    "AddNoiseController",
     "ShiftDataController",
     "StripPeakController",
 ]

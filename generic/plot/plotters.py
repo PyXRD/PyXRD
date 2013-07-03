@@ -13,7 +13,7 @@ import matplotlib
 import matplotlib.transforms as transforms
 from matplotlib.text import Text
 
-from generic.custom_math import smooth
+from generic.custom_math import smooth, add_noise
 
 def plot_marker_text(project, marker, offset, marker_scale, base_y, axes):
     """
@@ -275,6 +275,26 @@ def plot_specimen(project, specimen, labels, label_offset,
             try: smooth_line.remove()
             except: pass
         pattern.__plot_smooth_line = smooth_line
+        ########################################################################
+            
+        ########################################################################
+        #plot the noisified pattern:        
+        noise_line = getattr(pattern, "__plot_noise_line", matplotlib.lines.Line2D([],[], c="#660099", lw="2"))
+        
+        if pattern.noise_fraction > 0.0:
+            data = x_data, add_noise(y_data, pattern.noise_fraction)
+        else:
+            data = [],[]
+        noise_line.update(dict(
+            data = apply_transform(data, scale=scale, offset=offset),
+            visible = bool(pattern.noise_fraction > 0.0)
+        ))
+        if noise_line.get_visible() and not noise_line in axes.get_lines():
+            axes.add_line(noise_line)
+        elif not noise_line.get_visible():
+            try: noise_line.remove()
+            except: pass
+        pattern.__plot_noise_line = noise_line
         ########################################################################
             
         ########################################################################

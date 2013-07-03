@@ -74,6 +74,15 @@ class BackgroundView(DialogView):
         fcb_bg_pattern.connect("file-set", callback)
         self["fcb_bg_container"].add(fcb_bg_pattern)
       
+class AddNoiseView(DialogView):
+    title = "Add Noise"
+    subview_builder = "specimen/glade/add_noise.glade"
+    subview_toplevel = "add_noise"
+    modal = True
+    resizable = False
+     
+    pass #end of class
+      
 class SmoothDataView(DialogView):
     title = "Smooth Data"
     subview_builder = "specimen/glade/smoothing.glade"

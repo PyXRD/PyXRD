@@ -14,7 +14,7 @@ import numpy as np
 from gtkmvc.model import Signal
 
 from generic.io import storables, Storable, PyXRDDecoder
-from generic.custom_math import smooth
+from generic.custom_math import smooth, add_noise
 
 from properties import PropIntel, MultiProperty
 from treemodels import XYListStore
@@ -197,6 +197,7 @@ class ExperimentalLine(PyXRDLine):
         PropIntel(name="bg_type",           data_type=int),
         PropIntel(name="smooth_degree",     data_type=int),
         PropIntel(name="smooth_type",       data_type=int),
+        PropIntel(name="noise_fraction",    data_type=float),
         PropIntel(name="shift_value",       data_type=float),
         PropIntel(name="shift_position",    data_type=float),
         PropIntel(name="cap_value",         data_type=float),
@@ -263,6 +264,15 @@ class ExperimentalLine(PyXRDLine):
         
     def on_sdtype(self, prop_name, value):
         self.needs_update.emit()
+        
+    _noise_fraction = 0.0
+    def get_noise_fraction_value(self): return self._noise_fraction
+    def set_noise_fraction_value(self, value):
+        try:
+            self._noise_fraction = max(float(value),0.0)
+            self.needs_update.emit()
+        except ValueError:
+            pass
                 
     _shift_value = 0.0
     def get_shift_value_value(self): return self._shift_value
@@ -352,6 +362,17 @@ class ExperimentalLine(PyXRDLine):
             smoothed = smooth(y_data, degree)
             self.set_data(x_data, smoothed)
         self.smooth_degree = 0.0
+        self.needs_update.emit()
+            
+    # ------------------------------------------------------------
+    #       Noise adding
+    # ------------------------------------------------------------
+    def add_noise(self):
+        x_data, y_data = self.xy_store.get_raw_model_data()
+        if self.noise_fraction > 0:
+            noisified = add_noise(y_data, self.noise_fraction)
+            self.set_data(x_data, noisified)
+        self.noise_fraction = 0.0
         self.needs_update.emit()
             
     # ------------------------------------------------------------

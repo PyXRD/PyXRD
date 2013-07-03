@@ -21,12 +21,14 @@ from generic.controllers.utils import get_case_insensitive_glob, ctrl_setup_comb
 
 from .background_controller import BackgroundController
 from .smooth_data_controller import SmoothDataController
+from .add_noise_controller import AddNoiseController
 from .shift_data_controller import ShiftDataController
 from .strip_peak_controller import StripPeakController
 
 from specimen.views import (
     BackgroundView,
     SmoothDataView,
+    AddNoiseView,
     ShiftDataView,
     StripPeakView
 )
@@ -132,6 +134,11 @@ class SpecimenController(DialogController, DialogMixin, ObjectTreeviewMixin):
         bg_view = BackgroundView(parent=self.view)
         bg_ctrl = BackgroundController(self.model.experimental_pattern, bg_view, parent=self)
         bg_view.present()
+
+    def add_noise(self):
+        an_view = AddNoiseView(parent=self.view)
+        an_ctrl = AddNoiseController(self.model.experimental_pattern, an_view, parent=self)
+        an_view.present()
 
     def smooth_data(self):
         sd_view = SmoothDataView(parent=self.view)

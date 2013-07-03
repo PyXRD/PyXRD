@@ -389,6 +389,11 @@ class AppController (BaseController, DialogMixin):
         if self.model.current_specimen != None:
             self.specimen.smooth_data()
         return True
+
+    def on_add_noise(self, event):
+        if self.model.current_specimen != None:
+            self.specimen.add_noise()
+        return True
         
     def on_shift_data(self, event):
         if self.model.current_specimen != None:

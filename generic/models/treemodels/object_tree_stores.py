@@ -94,7 +94,10 @@ class ObjectTreeNode(object):
     def get_child_node(self, *indeces):
         node = self
         for index in indeces:
-            node = node._children[index]
+            try:
+                node = node._children[index]
+            except IndexError:
+                return None
         return node
         
     def get_first_child_node(self):
@@ -201,7 +204,6 @@ class ObjectTreeStore(BaseObjectListStore, Storable):
         self.row_changed(self.get_path(itr), itr)
 
     def on_get_value(self, node, column):
-        
         return getattr(node.object, self._columns[column][0])
 
     def on_iter_next(self, node):

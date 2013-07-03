@@ -182,7 +182,7 @@ class ObjectListStore(BaseObjectListStore, Storable):
         self.remove_item(old_item)
         self.insert(index, new_item)
         
-    def get_user_data_from_index(self, index):
+    def get_item_by_index(self, index):
         return self._model_data[index]
         
     def reposition_item(self, item, new_pos):

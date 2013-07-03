@@ -56,7 +56,7 @@ def run(args):
                     #parse components:
                     for i, layer in enumerate(xmlPhase.findall("./layer_and_edge/layer")):
                     
-                        component = phase.components.get_user_data_from_index(i)
+                        component = phase.components.get_item_by_index(i)
                         component.name = layer.attrib['name']
                         
                         component.d001 = save_float(layer.attrib['d_spacing'])/10.0

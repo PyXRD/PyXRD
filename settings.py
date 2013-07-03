@@ -5,13 +5,11 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-
-
 ### General Information ###
-VERSION = "0.4.7.1"
+VERSION = "0.4.8"
 
 DEBUG = False
-VIEW_MODE = True
+VIEW_MODE = False
 BGSHIFT = True
 
 LOG_FILENAME = 'errors.log'
@@ -21,6 +19,10 @@ MANUAL_URL = UPDATE_URL
 ### Factor to multiply the CSDS average with to obtain the maximum CSDS ###
 LOG_NORMAL_MAX_CSDS_FACTOR = 2.5
 
+### Multiprocessing settings ###
+MULTI_CORES = None # if None this will be set to multiprocessing.cpu_count()
+# if None, this will be set to True if on a multi-core PC, False otherwise
+MULTI_USE_PROCESSES = True #TODO this should really be implemented?
 CACHE = "FILE" # one of "FILE" (recomended), "MEMORY" (not advisable) or None
 CACHE_SIZE = 500 * (1024 * 1024) #size of file cache in bytes (10 Mb)
 
@@ -152,9 +154,16 @@ def apply_runtime_settings(no_gui=False):
     global SETTINGS_APPLIED
     global BASE_DIR
     global DATA_REG, DATA_DIRS, DATA_FILES
-    if not SETTINGS_APPLIED:
-        import sys, os
+    global MULTI_USE_PROCESSES, MULTI_CORES
+    if not SETTINGS_APPLIED:    
+        import sys, os, multiprocessing
         
+        #Setup multi processing environment variables:
+        if MULTI_CORES == None:
+            MULTI_CORES = multiprocessing.cpu_count()
+        if MULTI_USE_PROCESSES == None:
+            MULTI_USE_PROCESSES = bool(MULTI_CORES > 1)        
+            
         #Setup data registry:
         from generic.io.data_registry import DataRegistry
         DATA_REG = DataRegistry(dirs=DATA_DIRS, files=DATA_FILES)

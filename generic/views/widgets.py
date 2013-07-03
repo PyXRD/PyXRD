@@ -225,14 +225,14 @@ class ThreadedTaskBox(gtk.Table):
 
         #enable the button so the user can try to kill the task
         self.cancel_button.set_sensitive(True)
-        self.stop_button.set_sensitive(True)        
+        self.stop_button.set_sensitive(True)
   
     #call back function for after run_function returns
     def __on_complete(self, data):
         gtk.gdk.threads_enter()
         if callable(self.complete_callback): self.complete_callback(data)
         gtk.gdk.threads_leave()
-        self.emit("complete", data)        
+        self.emit("complete", data)      
         self.kill()
 
     #call back function for cancel button
@@ -255,6 +255,7 @@ class ThreadedTaskBox(gtk.Table):
             else:
                 self.emit("stoprequested", self)
             self.stopping = False
+        self.emit("complete", None)
 
     def gui_function(self):
         if callable(self.gui_callback): self.gui_callback()
@@ -264,12 +265,6 @@ class ThreadedTaskBox(gtk.Table):
             Stops spinning the spinner and sets the value of 'stop' to True in
             the run_function.
         """
-
-        #stop the pulse_thread and remove a reference to it if there is one
-        if self.pulse_thread != None:
-            self.pulse_thread.kill()
-            self.pulse_thread = None
-
         #disable the cancel button since the task is about to be told to stop
         self.cancel_button.set_sensitive(False)
         self.stop_button.set_sensitive(False)  
@@ -279,6 +274,11 @@ class ThreadedTaskBox(gtk.Table):
                 self.work_thread.kill()
             else:
                 self.work_thread.stop()
+           
+        #stop the pulse_thread and remove a reference to it if there is one
+        if self.pulse_thread != None:
+            self.pulse_thread.kill()
+            self.pulse_thread = None
             
         self.spinner.stop()
         self.label.set_text(caption)

@@ -184,7 +184,7 @@ class Population(PGXmlMixin):
         if self.numNewOrganisms:
             #print "adding %d new organisms" % self.numNewOrganisms
             for i in xrange(self.numNewOrganisms):
-                self.add(self.__class__())
+                self.add(self.species())
 
         # we use square root to skew the selection probability to
         # the fittest

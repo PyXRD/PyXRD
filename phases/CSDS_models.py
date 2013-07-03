@@ -5,16 +5,11 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from collections import OrderedDict
-from math import sqrt, log
-
 from gtkmvc.model import Signal
-
-import numpy as np
 
 import settings
 
-from generic.custom_math import lognormal
+from generic.calculations.CSDS import calculate_distribution
 from generic.models import ChildModel, PropIntel
 from generic.io import storables, Storable
 
@@ -64,7 +59,7 @@ class _AbstractCSDSDistribution(ChildModel, Storable):
 
     pass #end of class   
 
-class _LogNormalMixin():
+class _LogNormalMixin(object):
     
     #PROPERTIES:
     def get_maximum_value(self): return int(settings.LOG_NORMAL_MAX_CSDS_FACTOR * self.average)
@@ -113,61 +108,22 @@ class _LogNormalMixin():
         self._alpha_offset = alpha_offset or self._alpha_offset
         self._beta_scale = beta_scale or self._beta_scale
         self._beta_offset = beta_offset or self._beta_offset
-        
         self.update_distribution()
 
     # ------------------------------------------------------------
     #      Methods & Functions
-    # ------------------------------------------------------------
-    
-    _distribution_cache = OrderedDict()
-    @classmethod
-    def get_distribution(cls, Tmean, Tmax, Tmin, alpha_scale, alpha_offset, beta_scale, beta_offset):
-        args = (Tmean, Tmax, Tmin, 
-                alpha_scale, alpha_offset, 
-                beta_scale, beta_offset)
-        if not args in cls._distribution_cache:
-            if len(cls._distribution_cache) == 100:
-                cls._distribution_cache.popitem(last=False)
-            cls._distribution_cache[args] = cls._calculate_distribution(*args)
-        return cls._distribution_cache[args]
-        
-    @classmethod
-    def _calculate_distribution(cls, Tmean, Tmax, Tmin, alpha_scale, alpha_offset, beta_scale, beta_offset):
-        a = alpha_scale * log(Tmean) + alpha_offset
-        b = sqrt(beta_scale * log(Tmean) + beta_offset)
-            
-        steps = int(Tmax - Tmin) + 1
-        
-        smq = 0
-        q_log_distr = []
-        TQDistr = dict()
-        for i in range(steps):
-            T = max(Tmin + i, 1e-50)
-            q = lognormal(T, a, b)
-            smq += q
-            
-            TQDistr[int(T)] = q
-            
-        Rmean = 0
-        for T,q in TQDistr.iteritems():
-            TQDistr[T] = q / smq
-            Rmean += T*q
-        Rmean /= smq
-            
-        return (TQDistr.items(), TQDistr, Rmean)
-    
-    _update_lock = False
+    # ------------------------------------------------------------            
     def update_distribution(self):
-        if not self._update_lock:
-            self._update_lock = True
-            self._distrib = LogNormalCSDSDistribution.get_distribution(
-                self.average, self.maximum, self.minimum, 
-                self.alpha_scale, self.alpha_offset, 
-                self.beta_scale, self.beta_offset
-            )
-            self.updated.emit()
-            self._update_lock = False
+        self._distrib = calculate_distribution(*self.get_distr_args())
+        self.updated.emit()
+        
+    def get_distr_args(self):
+        return (
+            self.average, self.maximum, self.minimum, 
+            self.alpha_scale, self.alpha_offset, 
+            self.beta_scale, self.beta_offset
+        )
+        
     pass #end of class
 
 @storables.register()
@@ -248,8 +204,7 @@ class DritsCSDSDistribution(RefinementValue, _LogNormalMixin, _AbstractCSDSDistr
     #      Initialisation and other internals
     # ------------------------------------------------------------
     def setup(self, average=10):
-        self._average = average or self._average
-        
+        super(DritsCSDSDistribution, self).setup(average=average)
         self.update_distribution()
        
     pass #end of class

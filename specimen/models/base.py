@@ -19,6 +19,7 @@ from generic.models import ExperimentalLine, CalculatedLine, ChildModel, PropInt
 from generic.models.mixins import ObjectListStoreChildMixin, ObjectListStoreParentMixin
 from generic.models.treemodels import ObjectListStore, XYListStore
 from generic.peak_detection import peakdetect
+from generic.calculations.specimen import get_phase_intensities, get_calculated_pattern
 
 from markers import Marker
 from statistics import Statistics
@@ -425,8 +426,8 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
     # ------------------------------------------------------------
     #      Intensity calculations:
     # ------------------------------------------------------------
-    @print_timing
-    def update_pattern(self, phases, fractions, lpf_callback=None, steps=2500):
+    #@print_timing
+    def update_pattern(self, phases, fractions):
         """
         Recalculate pattern intensities using the provided phases
         and their relative fractions
@@ -435,10 +436,6 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
         
         *fractions* a list with phase fractions, also length N
         
-        *lpf_callback* a callback providing the Lorentz polarisation factor or None
-        if we should try to get it from the project (will raise an AssertionError
-        if both are not set)
-        
         :rtype: a 3-tuple containing 2-theta values, phase intensities and the
         total intensity, or None if the length of *phases* is 0
         """
@@ -446,22 +443,11 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
             self.calculated_pattern.clear()
             self.statistics.update_statistics()
             return None
-        else:
-            assert lpf_callback!=None or self.project!=None, "Cannot update the pattern of specimens without a Lorentz-Polarisation factor!"
-            if lpf_callback==None:
-                lpf_callback = self.project.goniometer.get_lorentz_polarisation_factor
-        
-            #Get 2-theta values and phase intensities
-            theta_range, intensities = self.get_phase_intensities(phases, lpf_callback, steps=steps)
-            theta_range = theta_range * 360.0 / pi
-            
-            #Apply fractions and absolute scale
-            fractions = np.array(fractions)[:,np.newaxis]
-            phase_intensities = fractions*intensities*self.abs_scale
-                        
-            #Sum the phase intensities and apply the background shift
-            total_intensity = np.sum(phase_intensities, axis=0) + self.bg_shift
-            phase_intensities += self.bg_shift
+        else:        
+            pi_args = self.get_pi_args(phases)
+            theta_range, total_intensity, phase_intensities = get_calculated_pattern(
+                pi_args, fractions, self.abs_scale, self.bg_shift
+            )
 
             #Update the pattern data:            
             self.calculated_pattern.set_data(
@@ -476,51 +462,36 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
             #Return what we just calculated for anyone interested
             return (theta_range, phase_intensities, total_intensity)
         
-    #@print_timing
-    def get_phase_intensities(self, phases, lpf_callback, steps=2500):
+    def get_phase_intensities(self, phases):
         """
         Gets phase intensities for the provided phases
         
         *phases* a list of phases with length N
         
-        *lpf_callback* a callback providing the Lorentz polarisation factor
-        
-        *steps* the number of data points to calculate in the range specified 
-        in the project's :class:`~goniometer.models.Goniometer` object. This is
-        used only if no experimental data is loaded in the specimen
-        
-        :rtype: a 2-tuple containing 2-theta values and phase intensities or
-        None if the length of *phases* is 0
+        :rtype: a 2-tuple containing 2-theta values and phase intensities
         """
-        if phases!=None: #TODO cache correction range!
-        
-            l = self.parent.goniometer.wavelength
-            theta_range = None
-            if self.experimental_pattern.xy_store._model_data_x.size <= 1:
-                theta_range = self.parent.goniometer.get_default_theta_range()
-            else:
-                theta_range = np.radians(self.experimental_pattern.xy_store._model_data_x * 0.5)
-            sin_range = np.sin(theta_range)
-            stl_range = 2 * sin_range / l
-            
-            correction_range = self.parent.goniometer.get_machine_correction_range(
-                theta_range, self.sample_length, self.absorption)            
-            #absorption = float(self.absorption)
-            #if absorption > 0.0:
-            #    correction_range *= (1.0 - np.exp(-2.0*absorption / sin_range))
-            
-            intensities = np.array([
-                   phase.get_diffracted_intensity(
-                        theta_range,
-                        stl_range,
-                        lpf_callback,
-                        1.0,
-                        correction_range
-                    ) if phase else
-                    np.zeros(shape=theta_range.shape) for phase in phases],
-                dtype=np.float_)
-            
-            return (theta_range, intensities)
+        return get_phase_intensities(*self.get_pi_args(phases))
+    
+    def get_pi_args(self, phases): #TODO move the goniometer down to the specimen level!
+        wavelength = self.parent.goniometer.wavelength
+        range_theta = None
+        if self.experimental_pattern.xy_store._model_data_x.size <= 1:
+            range_theta = self.parent.goniometer.get_default_theta_range().copy()
+        else:
+            range_theta = np.radians(self.experimental_pattern.xy_store._model_data_x * 0.5)
+    
+        di_args_list = [
+            phase.get_di_args() for phase in phases
+        ]
+    
+        mcr_args = (self.sample_length, self.absorption) + self.parent.goniometer.get_mcr_args()
+    
+        lpf_args = self.parent.goniometer.get_lpf_args() #FIXME
+    
+        return (
+            range_theta, lpf_args, di_args_list,
+            wavelength, mcr_args
+        )
     
     def __str__(self):
         return "<'%s' Specimen>" % self.name

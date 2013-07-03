@@ -1,9 +1,6 @@
 Feature-wise:
 0.6 - Sybilla Support:
         - integrate XML file import
-        - direct import of calculated csv files (from sybilla)
-0.6 - add ability to spawn a second PyXRD from current project (e.g. save to temp location)
-  in a headless mode and refine that refinement setup, allowing for multiple processes to refine different parameters.
 0.6 - add manual Y limit option (in raw counts?)
 0.6 - add zip project files (*.zpd) (DONE)
         - TODO: split large object stores in project zip file into separate files in the zip file
@@ -17,7 +14,8 @@ Feature-wise:
       Would require some sort of definition of how these units are stacked
     
 Code-Wise:
+0.4.8 - Fix bugs in inheriting Unit Cell Properties and displaying of atom names
 0.x - check for backwards compatibility issues with pre-O.4 project files
 0.x - DOCUMENTATION!
 0.x - cleanse code from TODO & FIXME's
-0.7 - most of the default dialog actions (confirmation ,information etc.) could also be usefull as decorators.
+0.5 - most of the default dialog actions (confirmation ,information etc.) could also be usefull as decorators.

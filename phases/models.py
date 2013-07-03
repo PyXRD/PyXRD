@@ -10,12 +10,12 @@ import zipfile
 import time
 from warnings import warn
 from math import sin, cos, pi, sqrt, exp, radians, log
+from collections import OrderedDict
 
 from gtkmvc.model import Model, Observer, Signal
 
 import numpy as np
 from scipy.special import erf
-
 
 from generic.utils import print_timing, get_md5_hash
 from generic.custom_math import mmult, mdot, mtim, solve_division
@@ -24,7 +24,8 @@ from generic.models import ChildModel, PropIntel
 from generic.models.mixins import ObjectListStoreChildMixin, ObjectListStoreParentMixin
 from generic.models.treemodels import ObjectListStore
 from generic.models.metaclasses import pyxrd_object_pool
-
+from generic.calculations.phases import get_diffracted_intensity, get_structure_factors
+from generic.calculations.components import get_factors
 from generic.refinement.mixins import RefinementGroup, RefinementValue
 
 from atoms.models import Atom
@@ -205,13 +206,15 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin,
     #PROPERTIES:
     name = "Name of this component"
        
-    _dirty = True
-    def get_dirty_value(self): return (self._dirty)
+    _dirty = True #FIXME
+    def get_dirty_value(self): 
+        if self.linked_with is not None:
+            return bool(self.linked_with.dirty or self._dirty)
+        else:
+            return self._dirty
     def set_dirty_value(self, value):
         if value!=self._dirty: 
             self._dirty = value
-            if self._dirty:
-                self._cached_factors = dict()
     
     
     @property
@@ -313,7 +316,6 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin,
 
         self.needs_update = Signal()
         self.dirty = True
-        self._cached_factors = dict()
         
         layer_atoms = layer_atoms or self.get_depr(kwargs, None, "data_layer_atoms")
         self._layer_atoms = self.parse_liststore_arg(layer_atoms, ObjectListStore, Atom)
@@ -516,16 +518,15 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin,
     #      Methods & Functions
     # ------------------------------------------------------------  
     def get_factors(self, range_stl):
-        hsh = get_md5_hash(range_stl)
-        if self.dirty or not hsh in self._cached_factors:
-            sf_tot = np.zeros(range_stl.shape, dtype=np.complex_)
-            for atom in self.layer_atoms._model_data:
-                sf_tot += atom.get_structure_factors(range_stl)
-            for atom in self.interlayer_atoms._model_data:
-                sf_tot += atom.get_structure_factors(range_stl)
-            self._cached_factors[hsh] = sf_tot, np.exp(2*pi*range_stl * (self.d001*1j - pi*self.delta_c*range_stl))
-            self.dirty = False
-        return self._cached_factors[hsh]
+        return get_factors(range_stl, *self.get_f_args())
+
+    def get_f_args(self):
+        args_list = []
+        for atom in self.layer_atoms._model_data:
+            args_list.append(atom.get_sf_args())
+        for atom in self.interlayer_atoms._model_data:
+            args_list.append(atom.get_sf_args())
+        return self.d001, self.delta_c, args_list
 
     def _update_lattice_d(self):
         self._lattice_d = 0.0
@@ -594,7 +595,12 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin,
     name = "Name of this phase"
     
     _dirty = True
-    def get_dirty_value(self): return self._dirty
+    def get_dirty_value(self):
+        #return True #FIXME
+        if self.based_on is not None:
+            return bool(self.based_on.dirty or self._dirty)
+        else:
+            return self._dirty
     def set_dirty_value(self, value):
         if value!=self._dirty:
             self._dirty = value
@@ -749,7 +755,6 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin,
         super(Phase, self).__init__(parent=parent)
         
         self._dirty = True
-        self._cached_diffracted_intensities = dict()  
         
         self.needs_update = Signal()
         
@@ -801,7 +806,7 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin,
         
     @Observer.observe("dirty", assign=True)
     def notify_dirty_changed(self, model, prop_name, info):
-        if model.dirty: self.dirty = True
+        self.dirty = self.dirty or model.dirty
         pass
 
     @Observer.observe("updated", signal=True)
@@ -902,15 +907,53 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin,
     def _update_interference_distributions(self):
         return self.CSDS_distribution.distrib
        
-    def get_Q_matrices(self, Q):
-        Qn = np.empty((self.CSDS_distribution.maximum+1,), dtype=object)
-        Qn[1] = np.copy(Q)
-        for n in range(2, int(self.CSDS_distribution.maximum+1)):
-            Qn[n] = mmult(Qn[n-1], Q)
-        return Qn
-       
-    _cached_diffracted_intensities = None
-    def get_diffracted_intensity(self, range_theta, range_stl, lpf_callback, quantity, correction_range):
+    def get_absolute_scale(self, CSDS_real_mean=None):
+        W = self.probabilities.get_distribution_array()
+        if CSDS_real_mean == None:
+            CSDS_real_mean = self._update_interference_distributions()[-1]
+        
+        mean_d001 = 0
+        mean_volume = 0
+        mean_density = 0
+        
+        for wtfraction, component in zip(W, self.components._model_data):
+            mean_d001 += (component.d001 * wtfraction)
+            volume = component.get_volume()
+            mean_volume += (volume * wtfraction)
+            mean_density +=  (component.get_weight() * wtfraction / volume)
+        return mean_d001 / (CSDS_real_mean *  mean_volume**2 * mean_density)
+        
+    def get_di_args(self):
+        #Check probability model, if invalid return zeros instead of the actual pattern:
+        valid_probs = (all(self.probabilities.P_valid) and all(self.probabilities.W_valid))
+    
+        if not valid_probs:
+            return (
+                valid_probs, None, None,
+                None, None, None, None,
+                None, None, None, None
+            )
+        else:
+            distr, CSDS_arr, CSDS_real_mean = self.CSDS_distribution.distrib
+            CSDS_max = int(self.CSDS_distribution.maximum) + 1
+            CSDS_min = int(self.CSDS_distribution.minimum)
+            
+            W, P = self.probabilities.get_distribution_matrix(), self.probabilities.get_probability_matrix()    
+            G = self.G
+                   
+            sf_args_list = []
+            for component in self.components._model_data:
+                sf_args_list.append(component.get_f_args())
+                
+            abs_scale = self.get_absolute_scale(CSDS_real_mean=CSDS_real_mean)
+                        
+            return (
+                valid_probs, self.sigma_star, abs_scale,
+                CSDS_arr, CSDS_real_mean, CSDS_max, CSDS_min,
+                G, W, P, sf_args_list
+            )
+        
+    def get_diffracted_intensity(self, range_theta, range_stl, lpf_args, correction_range):
         """
             Calculates the diffracted intensity (relative scale) for a given
             theta-range, a matching sin(theta)/lambda range, phase quantity,
@@ -919,94 +962,17 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin,
             
             Will return zeros when the probability of this model is invalid
             
-            Caches the result to improve speed, to force an update, set the 
-            dirty flag of this phase to True.
-            
             Reference: X-Ray Diffraction by Disordered Lamellar Structures,
             V. Drits, C. Tchoubar - Springer-Verlag Berlin 1990
         """
-        hsh = get_md5_hash(range_theta)
-        if self.dirty:
-            self._cached_diffracted_intensities = dict()
-        if not hsh in self._cached_diffracted_intensities:
-            #Check probability model, if invalid return zeros instead of the actual pattern:
-            if not (all(self.probabilities.P_valid) and all(self.probabilities.W_valid)):
-                self._cached_diffracted_intensities[hsh] = np.zeros_like(range_theta)
-            else:
-                #Create a helper function to 'expand' certain arrays, for 
-                # results which are independent of the 2-theta range
-                stl_dim = range_stl.shape[0]
-                repeat_to_stl = lambda arr: np.repeat(arr[np.newaxis,...], stl_dim, axis=0)
-                
-                #Get interference (log-normal) distribution:
-                distr, ddict, real_mean = self._update_interference_distributions()
-                
-                #Get junction probabilities & weight fractions
-                W, P = self.probabilities.get_distribution_matrix(), self.probabilities.get_probability_matrix()
-                
-                W = repeat_to_stl(W).astype(np.complex_)
-                P = repeat_to_stl(P).astype(np.complex_)
-                G = self.G
+        di_args = self.get_di_args()
+        if di_args[0]:
+            return get_diffracted_intensity.func(
+                range_theta, range_stl, lpf_args, correction_range, 
+                *di_args
+            )
+        else:
+            return get_diffracted_intensity.func(None, None, None, None, *di_args)
 
-                #get structure factors and phase factors for individual components:
-                #        components
-                #       .  .  .  .  .  .
-                #  stl  .  .  .  .  .  .
-                #       .  .  .  .  .  .
-                #
-                shape = range_stl.shape + (G,)
-                SF = np.zeros(shape, dtype=np.complex_)
-                PF = np.zeros(shape, dtype=np.complex_)
-                for i, component in enumerate(self.components._model_data):
-                    SF[:,i], PF[:,i] = component.get_factors(range_stl)
-                intensity = np.zeros(range_stl.size, dtype=np.complex_)
-                first = True
-
-                rank = P.shape[1]
-                reps = rank / G
-                            
-                #Create Phi & F matrices:        
-                SFa = np.repeat(SF[...,np.newaxis,:], SF.shape[1], axis=1)
-                SFb = np.transpose(np.conjugate(SFa), axes=(0,2,1))
-                       
-                F = np.repeat(np.repeat(np.multiply(SFb, SFa), reps, axis=2), reps, axis=1)
-
-                #Create Q matrices:
-                PF = np.repeat(PF[...,np.newaxis,:], reps, axis=1)
-                Q = np.multiply(np.repeat(np.repeat(PF, reps, axis=2), reps, axis=1), P)
-                                  
-                #Calculate the intensity:
-                Qn = self.get_Q_matrices(Q)
-                sub_total = np.zeros(Q.shape, dtype=np.complex)
-                CSDS_I = repeat_to_stl(np.identity(rank, dtype=np.complex) * real_mean)
-                for n in range(self.CSDS_distribution.minimum, int(self.CSDS_distribution.maximum)+1):
-                    progression_factor = 0
-                    for m in range(n+1, int(self.CSDS_distribution.maximum)+1):
-                        progression_factor += (m-n) * ddict[m]
-                    sub_total += 2 * progression_factor * Qn[n]
-                sub_total = (CSDS_I + sub_total)
-                sub_total = mmult(mmult(F, W), sub_total)
-                intensity = np.real(np.trace(sub_total,  axis1=2, axis2=1))
-                    
-                lpf = lpf_callback(range_theta, self.sigma_star)
-                
-                scale = self.get_absolute_scale() * quantity
-                self.dirty = False
-                self._cached_diffracted_intensities[hsh] = intensity * correction_range * scale * lpf
-
-        return self._cached_diffracted_intensities[hsh]
-
-    def get_absolute_scale(self):
-        mean_d001 = 0
-        mean_volume = 0
-        mean_density = 0
-        W = self.probabilities.get_distribution_array()
-        for wtfraction, component in zip(W, self.components._model_data):
-            mean_d001 += (component.d001 * wtfraction)
-            volume = component.get_volume()
-            mean_volume += (volume * wtfraction)
-            mean_density +=  (component.get_weight() * wtfraction / volume)
-        distr, ddict, real_mean = self._update_interference_distributions()
-        return mean_d001 / (real_mean *  mean_volume**2 * mean_density)
 
     pass #end of class

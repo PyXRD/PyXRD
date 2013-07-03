@@ -21,16 +21,6 @@
     <property name="can_focus">False</property>
     <property name="stock">323-calculator</property>
   </object>
-  <object class="GtkImage" id="img_optimize">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="stock">040-stats</property>
-  </object>
-  <object class="GtkImage" id="img_refine">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="stock">009-magic</property>
-  </object>
   <object class="GtkVBox" id="edit_mixture">
     <property name="width_request">380</property>
     <property name="visible">True</property>
@@ -69,34 +59,6 @@
             <property name="position">1</property>
           </packing>
         </child>
-        <child>
-          <object class="GtkCheckButton" id="mixture_auto_run">
-            <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="receives_default">False</property>
-            <property name="xalign">1</property>
-            <property name="draw_indicator">True</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">False</property>
-            <property name="pack_type">end</property>
-            <property name="position">2</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkLabel" id="lbl_auto">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="xalign">1</property>
-            <property name="label" translatable="yes">Auto adjust</property>
-          </object>
-          <packing>
-            <property name="expand">True</property>
-            <property name="fill">True</property>
-            <property name="position">3</property>
-          </packing>
-        </child>
       </object>
       <packing>
         <property name="expand">False</property>
@@ -108,25 +70,68 @@
       <object class="GtkHBox" id="box_actions">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="spacing">10</property>
         <child>
-          <object class="GtkButton" id="btn_optimize">
-            <property name="label" translatable="yes">Optimize</property>
+          <object class="GtkCheckButton" id="mixture_auto_run">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
-            <property name="receives_default">True</property>
-            <property name="image">img_optimize</property>
-            <property name="always_show_image">True</property>
-            <signal name="clicked" handler="on_optimize_clicked" swapped="no"/>
+            <property name="receives_default">False</property>
+            <property name="has_tooltip">True</property>
+            <property name="tooltip_markup" translatable="yes">Run automatically when patterns have updated.</property>
+            <property name="tooltip_text" translatable="yes">Run automatically when patterns have updated.</property>
+            <property name="xalign">0</property>
+            <property name="draw_indicator">True</property>
           </object>
           <packing>
             <property name="expand">False</property>
-            <property name="fill">True</property>
+            <property name="fill">False</property>
             <property name="position">0</property>
           </packing>
         </child>
         <child>
-          <placeholder/>
+          <object class="GtkButton" id="btn_optimize">
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="receives_default">True</property>
+            <property name="always_show_image">True</property>
+            <signal name="clicked" handler="on_optimize_clicked" swapped="no"/>
+            <child>
+              <object class="GtkHBox" id="hbox_optimize">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="spacing">10</property>
+                <child>
+                  <object class="GtkImage" id="img_optimize">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="stock">040-stats</property>
+                  </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">0</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkLabel" id="lbl_auto1">
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="xalign">1</property>
+                    <property name="label" translatable="yes">Optimize</property>
+                  </object>
+                  <packing>
+                    <property name="expand">True</property>
+                    <property name="fill">True</property>
+                    <property name="position">3</property>
+                  </packing>
+                </child>
+              </object>
+            </child>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="position">1</property>
+          </packing>
         </child>
         <child>
           <object class="GtkButton" id="btn_refine">
@@ -141,6 +146,7 @@
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
+            <property name="padding">10</property>
             <property name="position">2</property>
           </packing>
         </child>
@@ -157,6 +163,7 @@
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
+            <property name="pack_type">end</property>
             <property name="position">3</property>
           </packing>
         </child>
@@ -235,6 +242,9 @@
                         <property name="n_columns">4</property>
                         <property name="column_spacing">5</property>
                         <property name="row_spacing">5</property>
+                        <child>
+                          <placeholder/>
+                        </child>
                         <child>
                           <placeholder/>
                         </child>
@@ -405,6 +415,15 @@
                         <child>
                           <placeholder/>
                         </child>
+                        <child>
+                          <placeholder/>
+                        </child>
+                        <child>
+                          <placeholder/>
+                        </child>
+                        <child>
+                          <placeholder/>
+                        </child>
                       </object>
                     </child>
                   </object>
@@ -448,5 +467,10 @@
         <property name="position">2</property>
       </packing>
     </child>
+  </object>
+  <object class="GtkImage" id="img_refine">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">009-magic</property>
   </object>
 </interface>

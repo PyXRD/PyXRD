@@ -7,9 +7,11 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
+from traceback import format_exc
+
 import time
 import gtk
-from threading import Thread
+from threading import Thread, Event
 
 class GUIThread(Thread):
     """
@@ -19,15 +21,15 @@ class GUIThread(Thread):
         Thread.__init__(self)
         self.setDaemon(True)
         self.gui_callback = gui_callback
-        self.__kill = False
+        self.__kill = Event()
 
     def kill(self):
-        self.__kill = True
+        self.__kill.set()
 
     #As a subclass of Thread, this function runs when start() is called
     #It will cause the spinner to pulse, showing that a task is running
     def run(self):
-        while not self.__kill:
+        while not self.__kill.is_set():
             time.sleep(.1)
             gtk.gdk.threads_enter()
             self.gui_callback()
@@ -51,15 +53,22 @@ class KillableThread(Thread):
     #As a subclass of Thread, this function runs when start() is called
     #It will run the user's function on this thread
     def run(self):
-        #set up params and include the kill flag
-        if self.params == None:
-            self.params = {}
-        self.params["kill"] = False
-        self.params["stop"] = False
-        #tell the function to run
-        data = self.run_function(self.params)
-        #return any data from the function so it can be sent in the complete signal
-        self.on_complete(data)
+        try:
+            #set up params and include the kill flag
+            if self.params == None:
+                self.params = {}
+            self.params["kill"] = False
+            self.params["stop"] = False
+            #tell the function to run
+            data = self.run_function(self.params) #TODO pass this a 'stop' event!!
+            #return any data from the function so it can be sent in the complete signal
+            self.on_complete(data)
+        except: #catch any errors
+            self.params["kill"] = True
+            self.params["stop"] = True
+            print "Unhandled exception in thread:"
+            print format_exc()
+            pass
 
     #Tell the user's function that it should stop
     #Note the user's function may not check this

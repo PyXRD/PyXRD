@@ -163,14 +163,14 @@ class EditCSDSDistributionView(BaseView):
         
     def update_figure(self, distr_dict):
         self.plot.cla()
-        keys, vals = distr_dict.keys(), distr_dict.values()
+        """keys, vals = distr_dict.keys(), distr_dict.values()
         self.plot.hist(keys, len(keys), weights=vals, normed=1, ec='b', histtype='stepfilled')
         self.plot.set_ylabel('')
         self.plot.set_xlabel('CSDS', size=14, weight="heavy")
         self.plot.relim()
         self.plot.autoscale_view()
         if self.matlib_canvas != None:
-            self.matlib_canvas.draw()
+            self.matlib_canvas.draw()"""
     
     def reset_params(self):
         tbl = self["tbl_params"]

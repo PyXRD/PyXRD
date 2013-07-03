@@ -143,7 +143,8 @@ def mt_frac(val):
 def mt_range(lower, name, upper):
     return r"\left({ %s \leq %s \leq %s }\right)" % (mt_frac(lower), name, mt_frac(upper))
     
-
+def get_plot_safe(expression):
+    return r"".join(_handle_customs(expression)[0])
 
 
 

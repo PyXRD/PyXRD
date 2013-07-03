@@ -38,6 +38,9 @@ class PyXRDLogger(object):
         os.fsync(self.logfile.fileno())
         self.logfile.close()
     
+    def flush(self):
+        self.logfile.flush()
+    
     def restore(self):
         sys.stdout = self.saveout
         sys.stderr = self.saveerr

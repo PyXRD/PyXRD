@@ -5,7 +5,6 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from collections import OrderedDict
 import numpy as np
 
 from gtkmvc.model import Model
@@ -19,6 +18,11 @@ from generic.models.mixins import CSVMixin
 from generic.custom_math import sqrt2pi, sqrt8
 from generic.utils import get_md5_hash
 from generic.io import storables, Storable
+       
+from generic.calculations.goniometer import (
+    get_lorentz_polarisation_factor,
+    get_machine_correction_range
+)
        
 @storables.register()
 class Goniometer(ChildModel, Storable):
@@ -107,20 +111,14 @@ class Goniometer(ChildModel, Storable):
         for prop in self.__model_intel__:
             if prop.storable and prop.name!="uuid":
                 setattr(self, prop.name, getattr(new_gonio, prop.name))
-    
-    def get_S(self):
-        if self._dirty_cache:
-            self._S = sqrt((self.soller1 * 0.5)**2 + (self.soller2 * 0.5)**2)
-            self._S1S2 = self.soller1 * self.soller2
-            self._dirty_cache = False
-        return self._S, self._S1S2
        
-    def get_lorentz_polarisation_factor(self, range_theta, ss):
-        ss = float(max(ss, 0.0000000000001))
-        S, S1S2 = self.get_S()
-        Q = S / (sqrt8 * np.sin(range_theta) * ss)
-        T = erf(Q) * sqrt2pi / (2.0*ss * S) - 2.0*np.sin(range_theta) * (1.0- np.exp(-(Q**2.0))) / (S**2.0)
-        return (1.0 + np.cos(2.0*range_theta)**2) * T / np.sin(range_theta)
+    def get_lorentz_polarisation_factor(self, range_theta, sigma_star):
+        return get_lorentz_polarisation_factor(
+            range_theta, sigma_star, *self.get_lpf_args()
+        )
+       
+    def get_lpf_args(self):
+        return self.soller1, self.soller2
        
     def get_nm_from_t(self, theta):
         return self.get_nm_from_2t(2*theta)
@@ -150,44 +148,25 @@ class Goniometer(ChildModel, Storable):
         max_theta = torad(self.max_2theta*0.5)
         delta_theta = float(max_theta - min_theta) / float(self.steps-1)
         theta_range = (min_theta + delta_theta * np.arange(0,self.steps-1, dtype=float))
-        return theta_range
-        
-    _mc_cache = OrderedDict()
-    @classmethod
-    def _get_mc_range(cls, theta_range, sample_length, absorption, radius, 
-            divergence, has_ads, ads_fact, 
-            ads_phase_fact, ads_phase_shift, ads_const):
-        args = (get_md5_hash(theta_range), sample_length, absorption, radius, 
-            divergence, has_ads, ads_fact, 
-            ads_phase_fact, ads_phase_shift, ads_const)
-        if not args in cls._mc_cache:
-            if len(cls._mc_cache) == 10:
-                cls._mc_cache.popitem(last=False)
-            sin_range = np.sin(theta_range)
-            correction_range = np.ones_like(theta_range)
-            #Correct for automatic divergence slits first:
-            if has_ads:
-                test = (divergence * ads_fact / (np.sin(ads_phase_fact*theta_range + radians(ads_phase_shift)) - ads_const))
-                correction_range /= test
-            #Then correct for sample absorption:
-            if absorption > 0.0:
-                correction_range *= np.minimum(1.0 - np.exp(-2.0*absorption / sin_range), 1.0)
-            #And finally correct for sample length
-            if not has_ads:
-                L_Rta =  sample_length / (radius * tan(radians(divergence)))
-                correction_range *= np.minimum(sin_range * L_Rta, 1)
-            #Store calculated correction
-            cls._mc_cache[args] = correction_range
-        return cls._mc_cache[args]
+        return theta_range       
     
-    def get_machine_correction_range(self, theta_range, sample_length, absorption):
+    def get_machine_correction_range(self, range_theta, sample_length, absorption):
         """
             Calculates correction factors for the given theta range, sample
             length and absorption using the information about the machine's
             geometry.
         """
-        return Goniometer._get_mc_range(theta_range, sample_length, absorption,
-            self.radius, self.divergence, self.has_ads, self.ads_fact,
-            self.ads_phase_fact, self.ads_phase_shift, self.ads_const)
+        return get_machine_correction_range(
+            range_theta,
+            sample_length, absorption,
+            *self.get_mcr_args()
+        )
+       
+    def get_mcr_args(self):
+        return (
+            self.radius, self.divergence, 
+            self.has_ads, self.ads_fact, self.ads_phase_fact, 
+            self.ads_phase_shift, self.ads_const
+        )
        
     pass #end of class

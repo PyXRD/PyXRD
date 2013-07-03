@@ -8,6 +8,7 @@
 import gtk
  
 from gtkmvc import Controller
+from gtkmvc.observer import Observer
 from gtkmvc.adapters import Adapter
 
 from generic.views.treeview_tools import new_text_column, setup_treeview
@@ -41,10 +42,26 @@ def ctrl_setup_combo_with_list(ctrl, combo, prop_name, list_prop_name=None, list
             setattr(ctrl.model, prop_name, val)
     combo.connect('changed', on_changed)
 
-    for row in store:
-        if store.get_value(row.iter, 0) == str(getattr(ctrl.model, prop_name)):
-            combo.set_active_iter(row.iter)
-            break
+    def update_combo():
+        for row in store:
+            if store.get_value(row.iter, 0) == str(getattr(ctrl.model, prop_name)):
+                combo.set_active_iter(row.iter)
+                break
+
+    class ComboObserver(Observer):
+        @Observer.observe(prop_name, assign=True)
+        def on_prop_changed(self, model, prop_name, info):
+            update_combo()
+    
+    obs_name = "__combo_observer_%s__" % prop_name
+    setattr(ctrl, obs_name, getattr(
+        ctrl, 
+        obs_name,
+        ComboObserver(model=ctrl.model)
+    ))
+    
+    update_combo()
+
             
 def get_case_insensitive_glob(*strings):
     '''Ex: '*.ora' => '*.[oO][rR][aA]' '''

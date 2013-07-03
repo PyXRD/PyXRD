@@ -10,6 +10,10 @@ import gtk
 from math import isnan
 import numpy as np
 
+import matplotlib
+from matplotlib.figure import Figure
+from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanvasGTK, NavigationToolbar2GTKAgg as NavigationToolbar
+
 from generic.views import BaseView, DialogView
 from generic.views.widgets import ThreadedTaskBox
 from generic.views.validators import FloatEntryValidator
@@ -26,15 +30,24 @@ class RefinementView(DialogView):
     
     refine_spin_container = "refine_spin_box"
     refine_spin_box = None
+
+    refine_method_builder = "mixture/glade/refine_method.glade"
+    refine_method_toplevel = "tbl_refine_method"
+    refine_method_container = "refine_method_box"
     
     def _before_hide_widgets(self):
         DialogView._before_hide_widgets(self)
         self._builder.add_from_file(self.refine_status_builder)
         self._add_child_view(self[self.refine_status_toplevel], self[self.refine_status_container])
+        self._builder.add_from_file(self.refine_method_builder)
+        self._add_child_view(self[self.refine_method_toplevel], self[self.refine_method_container])
         
-    def show_refinement_info(self, refine_function, gui_callback, complete_callback, initial_residual):
+        self.hide_refinement_info()
+        
+    def show_refinement_info(self, refine_function, gui_callback, complete_callback):
         self["hbox_actions"].set_sensitive(False)
-        self["lbl_rp_initial"].set_text("%.2f" % initial_residual)
+        self["btn_auto_restrict"].set_sensitive(False)
+        self[self.refine_method_toplevel].set_sensitive(False)
         self["tv_param_selection"].set_visible(False)
         self["tv_param_selection"].set_no_show_all(True)
                
@@ -54,10 +67,13 @@ class RefinementView(DialogView):
        
     def hide_refinement_info(self):
         self[self.refine_status_toplevel].hide()
-        self.refine_spin_box.set_no_show_all(True)
         if self.refine_spin_box != None:
-            self.refine_spin_box.cancel()
+            self.refine_spin_box.set_no_show_all(True)
+            if self.refine_spin_box != None:
+                self.refine_spin_box.cancel()
         self["hbox_actions"].set_sensitive(True)
+        self["btn_auto_restrict"].set_sensitive(True)
+        self[self.refine_method_toplevel].set_sensitive(True)
         self["tv_param_selection"].set_visible(True)
         self["tv_param_selection"].set_no_show_all(False)
        
@@ -71,8 +87,54 @@ class RefinementView(DialogView):
     def canceled_function(self, widget, data=None):
         self.hide_refinement_info()
         
+    pass #end of class
+    
+class RefinementResultView(BaseView):
+    builder = "mixture/glade/refine_results.glade"
+    top = "window_refine_results"
+    modal = True
+    
+    graph_parent = "plot_box"
+    
+    def __init__(self, *args, **kwargs):
+        BaseView.__init__(self, *args, **kwargs)
+        
+        self.graph_parent = self[self.graph_parent]
+        
+        self.get_toplevel().set_transient_for(self.parent.get_toplevel())
+        
+        self.setup_matplotlib_widget()
+        
+    def setup_matplotlib_widget(self):
+        #TODO Create a mixin for this kind of thing!!
+        style = gtk.Style()
+        self.figure = Figure(dpi=72, edgecolor=str(style.bg[2]), facecolor=str(style.bg[2]))
+           
+        self.figure.subplots_adjust(bottom=0.20)
+        
+        self.canvas = FigureCanvasGTK(self.figure)
 
-class EditMixtureView(BaseView): #TODO add delete buttons as well!
+        box = gtk.VBox()
+        box.pack_start(NavigationToolbar(self.canvas, self.get_top_widget()), expand=False)
+        box.pack_start(self.canvas)
+        self.graph_parent.add(box)
+        self.graph_parent.show_all()
+        
+        cdict = {'red': ((0.0, 0.0, 0.0),
+                         (0.5, 1.0, 1.0),
+                         (1.0, 0.0, 0.0)),
+                'green': ((0.0, 0.0, 0.0),
+                         (0.5, 1.0, 1.0),
+                         (1.0, 0.0, 0.0)),
+                'blue': ((0.0, 0.0, 0.0),
+                         (0.5, 1.0, 1.0),
+                         (1.0, 0.0, 0.0))}
+        self.wbw_cmap = matplotlib.colors.LinearSegmentedColormap('WBW',cdict,256)
+        
+    pass #end of class
+    
+
+class EditMixtureView(BaseView):
     builder = "mixture/glade/edit_mixture.glade"
     top = "edit_mixture"
     

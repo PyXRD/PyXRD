@@ -186,9 +186,6 @@ class ComplexGene(BaseGene):
 
         Override as needed
         """
-        min = self.randMin
-        range = self.randMax - min
-
         real = uniform(self.randMin, self.randMax)
         imag = uniform(self.randMin, self.randMax)
 

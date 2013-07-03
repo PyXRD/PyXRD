@@ -1,32 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
   <!-- interface-requires gtk+ 3.0 -->
+  <object class="GtkImage" id="img_randomize">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="xpad">5</property>
+    <property name="stock">241-flash</property>
+  </object>
   <object class="GtkImage" id="img_refine">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
-    <property name="stock">gtk-find</property>
-  </object>
-  <object class="GtkImage" id="img_refine1">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="stock">gtk-find</property>
+    <property name="xpad">5</property>
+    <property name="stock">027-search</property>
   </object>
   <object class="GtkImage" id="img_restrict">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
-    <property name="stock">gtk-dialog-question</property>
-  </object>
-  <object class="GtkImage" id="img_sens">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="stock">gtk-color-picker</property>
+    <property name="xpad">5</property>
+    <property name="stock">429-restrict</property>
   </object>
   <object class="GtkTable" id="refine_params">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
-    <property name="border_width">10</property>
-    <property name="n_rows">4</property>
-    <property name="n_columns">2</property>
+    <property name="border_width">5</property>
+    <property name="n_rows">7</property>
+    <property name="n_columns">3</property>
     <property name="column_spacing">5</property>
     <property name="row_spacing">5</property>
     <child>
@@ -57,13 +55,14 @@
           <object class="GtkLabel" id="lbl_title">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
+            <property name="ypad">3</property>
             <property name="label" translatable="yes">&lt;b&gt;Parameter selection:&lt;/b&gt;</property>
             <property name="use_markup">True</property>
           </object>
         </child>
       </object>
       <packing>
-        <property name="right_attach">2</property>
+        <property name="right_attach">3</property>
       </packing>
     </child>
     <child>
@@ -71,29 +70,6 @@
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="spacing">10</property>
-        <child>
-          <object class="GtkLabel" id="lblmethod">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="label" translatable="yes">Method:</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">0</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkComboBox" id="cmb_data_refine_method">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="position">1</property>
-          </packing>
-        </child>
         <child>
           <object class="GtkButton" id="btn_refine">
             <property name="label" translatable="yes">Refine</property>
@@ -106,30 +82,15 @@
           <packing>
             <property name="expand">False</property>
             <property name="fill">True</property>
-            <property name="position">2</property>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkButton" id="btn_auto_restrict">
-            <property name="label" translatable="yes">Restrict values</property>
-            <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="receives_default">True</property>
-            <property name="image_position">right</property>
-            <signal name="clicked" handler="on_auto_restrict_clicked" swapped="no"/>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">False</property>
             <property name="pack_type">end</property>
-            <property name="position">3</property>
+            <property name="position">2</property>
           </packing>
         </child>
       </object>
       <packing>
-        <property name="right_attach">2</property>
-        <property name="top_attach">2</property>
-        <property name="bottom_attach">3</property>
+        <property name="right_attach">3</property>
+        <property name="top_attach">3</property>
+        <property name="bottom_attach">5</property>
         <property name="x_options">GTK_FILL</property>
         <property name="y_options"/>
       </packing>
@@ -146,10 +107,10 @@
         </attributes>
       </object>
       <packing>
-        <property name="right_attach">2</property>
         <property name="top_attach">1</property>
         <property name="bottom_attach">2</property>
         <property name="y_options"/>
+        <property name="x_padding">5</property>
       </packing>
     </child>
     <child>
@@ -161,11 +122,77 @@
         </child>
       </object>
       <packing>
-        <property name="right_attach">2</property>
-        <property name="top_attach">3</property>
-        <property name="bottom_attach">4</property>
+        <property name="right_attach">3</property>
+        <property name="top_attach">6</property>
+        <property name="bottom_attach">7</property>
         <property name="x_options">GTK_FILL</property>
         <property name="y_options"/>
+        <property name="x_padding">5</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkEventBox" id="refine_method_box">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <child>
+          <placeholder/>
+        </child>
+      </object>
+      <packing>
+        <property name="right_attach">3</property>
+        <property name="top_attach">2</property>
+        <property name="bottom_attach">3</property>
+        <property name="x_padding">5</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkHSeparator" id="hseparator1">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+      </object>
+      <packing>
+        <property name="right_attach">3</property>
+        <property name="top_attach">5</property>
+        <property name="bottom_attach">6</property>
+        <property name="y_options"/>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkButton" id="btn_auto_restrict">
+        <property name="label" translatable="yes">Restrict values</property>
+        <property name="visible">True</property>
+        <property name="can_focus">True</property>
+        <property name="receives_default">True</property>
+        <property name="image">img_restrict</property>
+        <signal name="clicked" handler="on_auto_restrict_clicked" swapped="no"/>
+      </object>
+      <packing>
+        <property name="left_attach">2</property>
+        <property name="right_attach">3</property>
+        <property name="top_attach">1</property>
+        <property name="bottom_attach">2</property>
+        <property name="x_options">GTK_FILL</property>
+        <property name="y_options">GTK_FILL</property>
+        <property name="x_padding">5</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkButton" id="btn_randomize">
+        <property name="label" translatable="yes">Randomize</property>
+        <property name="visible">True</property>
+        <property name="can_focus">True</property>
+        <property name="receives_default">True</property>
+        <property name="image">img_randomize</property>
+        <signal name="clicked" handler="on_btn_randomize_clicked" swapped="no"/>
+      </object>
+      <packing>
+        <property name="left_attach">1</property>
+        <property name="right_attach">2</property>
+        <property name="top_attach">1</property>
+        <property name="bottom_attach">2</property>
+        <property name="x_options">GTK_FILL</property>
+        <property name="y_options">GTK_FILL</property>
+        <property name="x_padding">5</property>
       </packing>
     </child>
   </object>

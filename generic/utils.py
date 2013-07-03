@@ -7,6 +7,7 @@
 
 import time
 import hashlib
+from uuid import uuid4 as get_uuid
 
 import gobject
    
@@ -44,6 +45,15 @@ def get_md5_hash(obj):
     hsh = hashlib.md5()
     hsh.update(obj)
     return hsh.digest()
+
+def get_md5_hash_for_args(args):
+    hsh = hashlib.md5()
+    for arg in args:
+        hsh.update(arg)
+    return hsh.digest()
+
+def get_new_uuid():
+    return unicode(get_uuid().hex)
 
 def get_unique_list(seq):
     seen = set()

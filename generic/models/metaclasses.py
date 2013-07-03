@@ -5,16 +5,14 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from uuid import uuid1 as get_uuid
+import threading
+import multiprocessing
 
 from weakref import WeakValueDictionary
 
 from gtkmvc.support.metaclasses import ObservablePropertyMetaMT
 
-from generic.utils import get_unique_list
-
-def get_new_uuid():
-    return unicode(get_uuid().hex)
+from generic.utils import get_unique_list, get_new_uuid
 
 class PyXRDMeta(ObservablePropertyMetaMT):
 
@@ -191,4 +189,48 @@ class ObjectPool(object):
     def clear(self):
         self._objects.clear()
     
-pyxrd_object_pool = ObjectPool()
+class ThreadedObjectPool(object):
+    
+    def __init__(self, *args, **kwargs):
+        object.__init__(self)
+        self.pools = {}
+        
+    def clean_pools(self):
+        for ptkey in self.pools.keys():
+            if (ptkey==(None,None) or not ptkey[0].is_alive() or not ptkey[1].is_alive()):
+                del self.pools[ptkey] #clear this sucker
+       
+    def get_pool(self):
+        process = multiprocessing.current_process()
+        thread = threading.current_thread()
+        pool = self.pools.get((process, thread), ObjectPool())
+        self.pools[(process, thread)] = pool
+        return pool
+       
+    def add_object(self, *args, **kwargs):
+        pool = self.get_pool()
+        return pool.add_object(*args, **kwargs)
+
+    def stack_uuids(self, *args, **kwargs):
+        pool = self.get_pool()
+        return pool.stack_uuids(*args, **kwargs)
+        
+    def restore_uuids(self, *args, **kwargs):
+        pool = self.get_pool()
+        return pool.restore_uuids(*args, **kwargs)
+        
+    def remove_object(self, *args, **kwargs):
+        pool = self.get_pool()
+        return pool.remove_object(*args, **kwargs)
+        
+    def get_object(self, *args, **kwargs):
+        pool = self.get_pool()
+        return pool.get_object(*args, **kwargs)
+        
+    def clear(self, *args, **kwargs):
+        pool = self.get_pool()
+        return pool.clear(*args, **kwargs)
+
+    pass #end of class
+    
+pyxrd_object_pool = ThreadedObjectPool()

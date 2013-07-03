@@ -22,6 +22,10 @@ from generic.models import ChildModel, PropIntel
 from generic.models.mixins import CSVMixin, ObjectListStoreChildMixin
 from generic.models.metaclasses import pyxrd_object_pool
 from generic.models.treemodels import XYListStore
+from generic.calculations.atoms import (
+    get_atomic_scattering_factor,
+    get_structure_factor
+)
 
 @storables.register()
 class AtomType(ChildModel, ObjectListStoreChildMixin, Storable, CSVMixin):
@@ -40,7 +44,7 @@ class AtomType(ChildModel, ObjectListStoreChildMixin, Storable, CSVMixin):
         PropIntel(name="weight",              is_column=True, data_type=float,   storable=True, has_widget=True),
         PropIntel(name="debye",               is_column=True, data_type=float,   storable=True, has_widget=True),
         PropIntel(name="par_c",               is_column=True, data_type=float,   storable=True, has_widget=True),
-        PropIntel(name="parameters_changed",  is_column=True, data_type=float),
+        PropIntel(name="parameters_changed"),
     ] + [
         PropIntel(name="par_a%d" % i,         is_column=True, data_type=float, storable=True, has_widget=True) for i in [1,2,3,4,5]
     ] + [
@@ -129,24 +133,11 @@ class AtomType(ChildModel, ObjectListStoreChildMixin, Storable, CSVMixin):
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------
-    def get_atomic_scattering_factors(self, stl_range): 
-        """
-            Calculates the atomic scatter factor for a given range of 
-            2*sin(θ) / λ values.
-            Expects λ to be in nanometers, not Angström!
-        """
-        f = np.zeros(stl_range.shape)
-        #if self.cache and self.cache.has_key(stl): #TODO: check if this would be an improvement or not
-        #    return self.cache[stl]
-        angstrom_range = stl_range*0.05
-        for i in range(0,5):
-             f += self._a[i] * np.exp(-self._b[i]*(angstrom_range)**2)
-        f += self._c
-        b = self.debye
-        f = f * np.exp(-float(b) * (angstrom_range)**2)
-        #if self.cache:
-        #    self.cache[stl] = f
-        return f
+    def get_atomic_scattering_factors(self, stl_range):
+        return get_atomic_scattering_factor(stl_range, *self.get_asf_args())
+       
+    def get_asf_args(self):
+        return self._a, self._b, self._c, self.debye
        
     pass #end of class
        
@@ -263,14 +254,17 @@ class Atom(ChildModel, ObjectListStoreChildMixin, Storable):
     
     # ------------------------------------------------------------
     #      Methods & Functions
-    # ------------------------------------------------------------    
+    # ------------------------------------------------------------     
     def get_structure_factors(self, stl_range):
         if self.atom_type!=None:
-            asf = self.atom_type.get_atomic_scattering_factors(stl_range)
+            return get_structure_factor(stl_range, *self.get_sf_args())
         else:
-            asf = 0.0
-        return asf * self.pn * np.exp(2 * pi * self.z * stl_range * 1j)
+            return 0.0
     
+    def get_sf_args(self):
+        assert self.atom_type!=None, "The Atom's atom_type has not been set!"
+        return self.atom_type.get_asf_args() + (self.z, self.pn)
+                
     # ------------------------------------------------------------
     #      Input/Output stuff
     # ------------------------------------------------------------

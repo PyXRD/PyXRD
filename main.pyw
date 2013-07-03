@@ -69,11 +69,11 @@ if __name__ == "__main__":
                 import imp
                 user_script = imp.load_source('user_script', args.script)
             except:
-                if settings.DEBUG: print_exc()
+                if settings.DEBUG: pass
+                print_exc()
                 raise ImportError, "Error when trying to import %s" % args.script
             user_script.run(args)
         else: #GUI
-        
             #check if a filename was passed, if so try to load it
             project = None
             if args.filename!="":
@@ -97,6 +97,9 @@ if __name__ == "__main__":
             m = AppModel(project=project)
             v = AppView()
             c = AppController(m, v)
+            
+            #Free this before continuing
+            del args 
             del project
             
             #lets get this show on the road:

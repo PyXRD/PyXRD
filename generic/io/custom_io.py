@@ -7,6 +7,8 @@
 
 import os, sys
 
+import numpy as np
+
 # Small workaround to provide a unicode-aware open method for PyXRD:
 if sys.version_info[0] < 3: #Pre Python 3.0
     import codecs
@@ -41,12 +43,16 @@ def sizeof_fmt(num):
             return "%3.1f %s" % (num, x)
         num /= 1024.0
        
-def get_size(path = '.'):
+def get_size(path = '.', maxsize=None):
     total_size = 0
     for dirpath, dirnames, filenames in os.walk(path):
         for f in filenames:
             fp = os.path.join(dirpath, f)
             total_size += os.path.getsize(fp)
+            if maxsize!=None and total_size > maxsize:
+                break
+        if maxsize!=None and total_size > maxsize:
+            break
     return total_size
        
 class StorableRegistry(dict):
@@ -107,14 +113,15 @@ class StorableRegistry(dict):
         """
             Returns a decorator that will register Storable sub-classes.
         """
-        def wrapped_register(cls):
-            if hasattr(cls, '__store_id__'):
-                if settings.DEBUG: print "'%s' registering as storage type with id '%s'" % (cls.__store_id__, store_id)
-                self[cls.__store_id__] = cls
-            else:
-                raise TypeError, "Cannot register an object as storable when it does not have a __store_id__ attribute."
-            return cls
-        return wrapped_register
+        return self.register_decorator
+
+    def register_decorator(self, cls):
+        if hasattr(cls, '__store_id__'):
+            if settings.DEBUG: print "Registering %s as storage type with id '%s'" % (cls, cls.__store_id__)
+            self[cls.__store_id__] = cls
+        else:
+            raise TypeError, "Cannot register an object as storable when it does not have a __store_id__ attribute."
+        return cls       
 
     pass #end of class
     
@@ -142,8 +149,11 @@ class PyXRDEncoder(json.JSONEncoder):
             return obj.get_text(*obj.get_bounds())
         if hasattr(obj, "to_json") and callable(getattr(obj, "to_json")):
             return obj.to_json()
+        if isinstance(obj, np.ndarray):
+            return json.dumps(obj.tolist())
         #fallback:
         return json.JSONEncoder(self).default(obj)
+
             
 class PyXRDDecoder(json.JSONDecoder):
     """

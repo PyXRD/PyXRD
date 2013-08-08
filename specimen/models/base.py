@@ -19,7 +19,8 @@ from generic.models import ExperimentalLine, CalculatedLine, ChildModel, PropInt
 from generic.models.mixins import ObjectListStoreChildMixin, ObjectListStoreParentMixin
 from generic.models.treemodels import ObjectListStore, XYListStore
 from generic.peak_detection import peakdetect
-from generic.calculations.specimen import get_phase_intensities, get_calculated_pattern
+from generic.calculations.specimen import get_phase_intensities
+from generic.calculations.data_objects import SpecimenData
 
 from markers import Marker
 from statistics import Statistics
@@ -59,6 +60,16 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
         PropIntel(name="needs_update",                                                     data_type=object),
     ]
     __store_id__ = "Specimen"
+
+    _data_object = None
+    @property
+    def data_object(self):  
+        #self._data_object.phases = None #clear this
+        self._data_object.goniometer = self.parent.goniometer.data_object #FIXME move goniometer to specimen level!!
+        self._data_object.range_theta = self.__get_range_theta()
+        self._data_object.selected_range = self.get_exclusion_selector(self._data_object.range_theta)
+        self._data_object.observed_intensity = self.experimental_pattern.xy_store._model_data_y[0]
+        return self._data_object
 
     #SIGNALS:
     needs_update = None
@@ -121,14 +132,21 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
             if self._exclusion_ranges!=None:
                 pass
     
-    _sample_length = 1.25
+    @ChildModel.getter("sample_length", "absorption")
+    def get_sample_length_value(self, prop_name):
+        return getattr(self._data_object, prop_name)
+    @ChildModel.setter("sample_length", "absorption")
+    def set_sample_length_value(self, prop_name, value):
+        setattr(self._data_object, prop_name, value)
+        self.needs_update.emit()    
+    
+    
     _abs_scale = 1.0
     _bg_shift = 0.0
-    _absorption = 0.9
-    @ChildModel.getter("sample_length", "abs_scale", "bg_shift", "absorption")
+    @ChildModel.getter("abs_scale", "bg_shift")
     def get_sample_length_value(self, prop_name):
         return getattr(self, "_%s" % prop_name)
-    @ChildModel.setter("sample_length", "abs_scale", "bg_shift", "absorption")
+    @ChildModel.setter("abs_scale", "bg_shift")
     def set_sample_length_value(self, prop_name, value):
         setattr(self, "_%s" % prop_name, value)
         if self.parent:
@@ -239,7 +257,7 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def __init__(self, name=u"", sample_name=u"", sample_length=0.0, abs_scale=1.0,
+    def __init__(self, name=u"", sample_name=u"", sample_length=None, abs_scale=1.0,
                  bg_shift=0.0, absorption = 0.9, display_calculated=True,
                  display_experimental=True, display_phases=False, display_stats_in_lbl=True,
                  display_vshift=0.0, display_vscale=1.0, 
@@ -249,8 +267,10 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
                  inherit_calc_color=True, inherit_exp_color=True, parent=None, **kwargs):
         super(Specimen, self).__init__(parent=parent)
                
-        self.needs_update = Signal()
+        self._data_object = SpecimenData()
                
+        self.needs_update = Signal()
+
         self.name = name or self.get_depr(kwargs, u"", "data_name")
         self.sample_name = sample_name or self.get_depr(kwargs, u"", "data_sample")
         self.sample_length = float(sample_length or self.get_depr(kwargs, 1.25, "data_sample_length"))
@@ -399,13 +419,14 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
         """
         Get the numpy selector array for non-excluded data
         
-        *x* a numpy ndarray containing the 2-theta values
+        *x* a numpy ndarray containing the 2-theta values (in radians)
         
         :rtype: a numpy ndarray
         """
         if x != None:
+            x = x * 360.0 / pi
             selector = np.ones(x.shape, dtype=bool)
-            for x0,x1 in zip(*np.sort(np.array(self.exclusion_ranges.get_raw_model_data()), axis=0)):
+            for x0,x1 in zip(*np.sort(np.asarray(self.exclusion_ranges.get_raw_model_data()), axis=0)):
                 new_selector = ((x < x0) | (x > x1))
                 selector = selector & new_selector
             return selector
@@ -427,41 +448,21 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
     #      Intensity calculations:
     # ------------------------------------------------------------
     #@print_timing
-    def update_pattern(self, phases, fractions):
+    def update_pattern(self, total_intensity, phase_intensities, phases):
         """
-        Recalculate pattern intensities using the provided phases
-        and their relative fractions
-        
-        *phases* a list of phases with length N
-        
-        *fractions* a list with phase fractions, also length N
-        
-        :rtype: a 3-tuple containing 2-theta values, phase intensities and the
-        total intensity, or None if the length of *phases* is 0
+        Update calculated patterns using the provided total and phase intensities
         """
         if len(phases) == 0:
             self.calculated_pattern.clear()
-            self.statistics.update_statistics()
-            return None
-        else:        
-            pi_args = self.get_pi_args(phases)
-            theta_range, total_intensity, phase_intensities = get_calculated_pattern(
-                pi_args, fractions, self.abs_scale, self.bg_shift
-            )
-
-            #Update the pattern data:            
+        else:
             self.calculated_pattern.set_data(
-                theta_range,
+                self.__get_range_theta()*360./pi,
                 total_intensity,
                 phase_intensities, 
-                phases)
-            
-            #update stats:
-            self.statistics.update_statistics()
-            
-            #Return what we just calculated for anyone interested
-            return (theta_range, phase_intensities, total_intensity)
-        
+                phases
+            )
+        self.statistics.update_statistics() #FIXME
+                
     def get_phase_intensities(self, phases):
         """
         Gets phase intensities for the provided phases
@@ -470,28 +471,13 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
         
         :rtype: a 2-tuple containing 2-theta values and phase intensities
         """
-        return get_phase_intensities(*self.get_pi_args(phases))
+        return get_phase_intensities(self.data_object, phases)
     
-    def get_pi_args(self, phases): #TODO move the goniometer down to the specimen level!
-        wavelength = self.parent.goniometer.wavelength
-        range_theta = None
+    def __get_range_theta(self):
         if self.experimental_pattern.xy_store._model_data_x.size <= 1:
-            range_theta = self.parent.goniometer.get_default_theta_range().copy()
+            return self.parent.goniometer.get_default_theta_range()
         else:
-            range_theta = np.radians(self.experimental_pattern.xy_store._model_data_x * 0.5)
-    
-        di_args_list = [
-            phase.get_di_args() for phase in phases
-        ]
-    
-        mcr_args = (self.sample_length, self.absorption) + self.parent.goniometer.get_mcr_args()
-    
-        lpf_args = self.parent.goniometer.get_lpf_args() #FIXME
-    
-        return (
-            range_theta, lpf_args, di_args_list,
-            wavelength, mcr_args
-        )
+            return np.radians(self.experimental_pattern.xy_store._model_data_x * 0.5)
     
     def __str__(self):
         return "<'%s' Specimen>" % self.name

@@ -11,21 +11,19 @@ from math import pi
 from generic.caching import cache
 
 @cache(64)
-def get_atomic_scattering_factor(stl_range, a, b, c, deb): 
+def get_structure_factor(stl_range, atoms_array):
     """
         Calculates the atomic scatter factor for a given range of 
         2*sin(θ) / λ values.
         Expects λ to be in nanometers, not Angström!
     """
-    f = np.zeros(stl_range.shape)
-    angstrom_range = stl_range*0.05
-    for i in range(0,5):
-         f += a[i] * np.exp(-b[i]*(angstrom_range)**2)
-    f += c
-    f = f * np.exp(-float(deb) * (angstrom_range)**2)
-    return f
-
-@cache(64)
-def get_structure_factor(stl_range, a, b, c, deb, z, pn):
-    asf = get_atomic_scattering_factor.func(stl_range, a, b, c, deb)
-    return asf * pn * np.exp(2 * pi * z * stl_range * 1j)
+    #atoms_array.shape = (M,)    
+        
+    angstrom_range = ((stl_range*0.05)**2)[...,np.newaxis]
+    #angstrom_range.shape = (N,1)
+     
+    asf = np.sum(atoms_array.par_a * np.exp(-atoms_array.par_b * angstrom_range[...,np.newaxis]), axis=2) + atoms_array.par_c
+    asf = asf * np.exp(-atoms_array.debye * angstrom_range)
+    # asf.shape = (N,M,)
+              
+    return np.sum(asf * atoms_array.pn * np.exp(2 * pi * atoms_array.z * stl_range[...,np.newaxis] * 1j), axis=1)

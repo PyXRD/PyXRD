@@ -42,7 +42,7 @@ class EditAtomTypeController(BaseController):
         x, y = (),()
         if self.model is not None:
             x = np.arange(0,90.0,90.0/100.0)
-            y = self.model.get_atomic_scattering_factors(2*np.sin(np.radians(x/2)) / self.model.project.goniometer.wavelength)
+            y = np.zeros_like(x) #self.model.get_atomic_scattering_factors(2*np.sin(np.radians(x/2)) / self.model.project.goniometer.wavelength)
         self.view.update_figure(x, y)
 
     # ------------------------------------------------------------

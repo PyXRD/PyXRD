@@ -14,10 +14,13 @@ from gtk import Entry, HScale, HBox
 
 from gtkmvc.adapters.default import add_adapter
 
+import threading
+from threading import Lock
+
 from generic.views.validators import FloatEntryValidator
 from generic.custom_math import round_sig
 from generic.utils import delayed
-from generic.threads import KillableThread, GUIThread
+from generic.threads import CancellableThread
 
 class ScaleEntry(HBox):
     """
@@ -144,30 +147,29 @@ class ThreadedTaskBox(gtk.Table):
         'stoprequested' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,))        
     }
     
-    def __init__(self, run_function, gui_callback, complete_callback, params=None, cancelable=True):
+    def __init__(self, run_function, gui_callback, params=None, cancelable=True):
         """
             Create a ThreadedTaskBox
 
             Keyword arguments:
             run_function -- the function to run in threaded mode
             gui_callback -- a callback that handles the GUI updating
-            complete_callback -- callback called when the job is finished, 
-                gets the return value of the run_function as parameter
             params -- optional dictionary of parameters to be pass into run_function
             cancelable -- optional value to determine whether to show cancel button. Defaults to True.
-            Do not use a value with the key of 'kill' in the params dictionary
+            Do not use a value with the key of 'stop' in the params dictionary
         """
         self.setup_ui(cancelable=cancelable)
 
         self.run_function = run_function
         self.gui_callback = gui_callback
-        self.complete_callback = complete_callback
-        self.pulse_thread = None
+        self.gui_timeout_id = None
         self.work_thread = None
         self.params = params
 
-        self.connect("destroy", self.__destroy)
+        self.stop_lock = Lock()
+        self.stopped = False
 
+        self.connect("destroy", self.__destroy)
  
     def setup_ui(self, cancelable=True, stoppable=True):
         gtk.Table.__init__(self, 3, 3)
@@ -208,7 +210,7 @@ class ThreadedTaskBox(gtk.Table):
             caption -- optional text to display in the label
         """
         #Throw an exception if the user tries to start an operating thread
-        if self.pulse_thread != None:
+        if self.gui_timeout_id != None:
             raise RuntimeError("ThreadedTaskBox already started.")
 
         self.label.set_text(caption)
@@ -216,83 +218,70 @@ class ThreadedTaskBox(gtk.Table):
 
         #Create and start a thread to run the users task
         #pass in a callback and the user's params
-        self.work_thread = KillableThread(self.run_function, self.__on_complete, self.params)
+        self.work_thread = CancellableThread(self.run_function, self.__on_complete, self.params)
         self.work_thread.start()
   
         #create a thread to display the user feedback
-        self.pulse_thread = GUIThread(self.gui_function)
-        self.pulse_thread.start()
+        self.gui_timeout_id = gobject.timeout_add(250, self.__gui_function)
 
-        #enable the button so the user can try to kill the task
+        #enable the button so the user can try to cancel the task
         self.cancel_button.set_sensitive(True)
         self.stop_button.set_sensitive(True)
-  
-    #call back function for after run_function returns
-    def __on_complete(self, data):
-        gtk.gdk.threads_enter()
-        if callable(self.complete_callback): self.complete_callback(data)
-        gtk.gdk.threads_leave()
-        self.emit("complete", data)      
-        self.kill()
 
-    #call back function for cancel button
-    def __cancel_clicked(self, widget, data = None):
-        self.cancel()
+    def set_status(self, caption):
+        self.label.set_text(caption)
 
-    def __stop_clicked(self, widget, data = None):
-        self.stop()
-
-    def cancel(self):
-        self.stop(kill=True)
-
-    stopping = False
-    def stop(self, kill=False):
-        if not self.stopping: #prevents endless cancel loops
-            self.stopping = True        
-            self.stop(kill=kill)
-            if kill:
-                self.emit("cancelrequested", self)
-            else:
-                self.emit("stoprequested", self)
-            self.stopping = False
-        self.emit("complete", None)
-
-    def gui_function(self):
-        if callable(self.gui_callback): self.gui_callback()
-
-    def stop(self, kill=False, caption="Done"):
+    def stop(self, join=False, cancel=False):
         """
             Stops spinning the spinner and sets the value of 'stop' to True in
             the run_function.
         """
-        #disable the cancel button since the task is about to be told to stop
-        self.cancel_button.set_sensitive(False)
-        self.stop_button.set_sensitive(False)  
-        #tell the users function tostop if it's thread exists
-        if self.work_thread != None:
-            if kill:
-                self.work_thread.kill()
-            else:
-                self.work_thread.stop()
-           
-        #stop the pulse_thread and remove a reference to it if there is one
-        if self.pulse_thread != None:
-            self.pulse_thread.kill()
-            self.pulse_thread = None
-            
-        self.spinner.stop()
-        self.label.set_text(caption)
+        if self.stop_lock.acquire(False):
+            #disable the cancel button since the task is about to be told to stop
+            self.cancel_button.set_sensitive(False)
+            self.stop_button.set_sensitive(False)  
+            #tell the users function tostop if it's thread exists
+            if self.work_thread != None:
+                if cancel:
+                    self.work_thread.cancel()
+                else:
+                    self.work_thread.stop()
+                if join: self.work_thread.join()
+                self.work_thread = None
 
-    def kill(self, caption="Done"):
-        self.stop(kill=True, caption=caption)
+            if cancel:
+                self.emit("cancelrequested", self)
+            else:
+                self.emit("stoprequested", self)
+                
+            self.spinner.stop()
+            self.label.set_text("Done")
+            
+            self.stopped = True
+            self.stop_lock.release()
+
+    def cancel(self):
+        self.stop(cancel=True, join=True)
+  
+    def __gui_function(self):
+        if callable(self.gui_callback): self.gui_callback()
+        return not self.stopped
+  
+    def __on_complete(self, data):
+        self.stop()
+        self.emit("complete", data)
+
+    def __cancel_clicked(self, widget):
+        self.cancel()
+
+    def __stop_clicked(self, widget):
+        self.stop(join=True)
 
     def __destroy(self, widget, data = None):
         #called when the widget is destroyed, attempts to clean up
         #the work thread and the pulse thread
         if self.work_thread != None:
-            self.work_thread.kill()
-        if self.pulse_thread != None:
-            self.pulse_thread.kill()
+            self.work_thread.cancel()
             
     pass #end of class
             

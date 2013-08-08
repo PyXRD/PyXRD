@@ -5,79 +5,101 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-import numpy as np
+import time
+from itertools import izip
 from math import pi
-from generic.caching import cache
 
-from generic.calculations.phases import get_calculated_pattern
+import numpy as np
+from scipy.optimize import fmin_l_bfgs_b
+
 import settings
+if not settings.SETTINGS_APPLIED:
+    settings.apply_runtime_settings()
 
+from generic.caching import cache
+from .specimen import get_phase_intensities
+from .exceptions import wrap_exceptions
+
+def calc_Rp(exp, calc):
+    return np.sum(np.abs(exp - calc)) / np.sum(np.abs(exp)) * 100
 
 def parse_solution(x, n, m):
-    fractions = x[:m][:,np.newaxis]
-    scales = x[m:m+n]
-    bgshifts = x[-n:] if settings.BGSHIFT else np.zeros(shape=(n,))
+    fractions = np.asanyarray(x[:m])[:,np.newaxis]
+    scales = np.asanyarray(x[m:m+n])
+    bgshifts = np.asanyarray(x[-n:] if settings.BGSHIFT else np.zeros(shape=(n,)))
     return fractions, scales, bgshifts
 
-def get_optimized_mixture(pi_args_list, observed_intensities, selected_ranges):
+def _get_residual(x, mixture):
+    fractions, scales, bgshifts = parse_solution(x, mixture.n, mixture.m)
+    tot_rp = 0.0
+    for scale, bgshift, specimen in izip(scales, bgshifts, mixture.specimens):
+        if specimen!=None:
+            if specimen.phase_intensities!=None:
+                calc = (scale * np.sum(specimen.phase_intensities*fractions, axis=0)) 
+                if settings.BGSHIFT:
+                    calc += bgshift
+            else:
+                calc = np.zeros_like(specimen.observed_intensity)
+            if specimen.observed_intensity.size > 0:
+                exp = specimen.observed_intensity[specimen.selected_range]
+                cal = calc[specimen.selected_range]
+                tot_rp += calc_Rp(exp, cal)
+    return tot_rp
+
+def get_residual(mixture, parsed=False):
+    parse_mixture(mixture, parsed=parsed)
+    x = np.concatenate((mixture.fractions, mixture.scales, mixture.bgshifts))
+    return _get_residual(x, mixture)
+
+def parse_mixture(mixture, parsed=False):
+    if not parsed:
+        # Sanity check:    
+        n = len(mixture.specimens)
+        assert n > 0, "Need at least 1 specimen to optimize phase fractions, scales and background."
+        m = len(mixture.specimens[0].phases)
+        assert m > 0, "Need at least 1 phase in each specimen to optimize phase fractions, scales and background."
+            
+        mixture.n = n
+        mixture.m = m
+        
+        for specimen in mixture.specimens:
+            if specimen!=None:
+                specimen.phase_intensities = get_phase_intensities(specimen)
+
+@wrap_exceptions
+def optimize_mixture(mixture, parsed=False):
     """
         Optimizes the mixture fractions, scales and bg shifts.
-            pi_args_list is a n x m-length list of phase intensity arguments
-            observed_intensities is a n-length list of arrays of shape (2, x)
-            and selected_ranges is a n-length list of arrays of shape (n, x)
-            
-            with m the number of phases, n the number of specimens and x
-            the number of data points
-    """
-    # Sanity check:    
-    n = len(observed_intensities)
-    assert n > 0, "Need at least 1 array of observed data points to optimize phase fractions, scales and background."
-    
-    # Get phase intensities:
-    phase_intensities = []
-    for pi_args_sublist in pi_args_list:
-        sub = []
-        for pi_args in pi_args_sublist:
-            sub.append(get_phase_intensities(*pi_args))
-        phase_intensities.append(sub)
-    
-    # More sanity checks:
-    assert len(phase_intensities) == n, "There is a mismatch in the number of phase intensity arrays and the number of observed intensities."
-    assert len(selected_ranges) == n, "There is a mismatch in the selected ranges length and the observed intensities length."
+        Returns the mixture data object.
+    """        
+    # 0. Calculate phase intensitites
+    parse_mixture(mixture, parsed=parsed)
     
     # 1. setup start point:
-    m = phase_intensities.shape[0].shape[0]
-    bounds = [(0,None) for i in range(m)] + [(0, None) for i in range(n*2)]
-    x0 = np.ones(shape=(m+n+n,))
-    x0[-n:] = 0.0 #set bg at zero
+    bounds = [(0,None) for i in range(mixture.m)] + [(0, None) for i in range(mixture.n*2)]
+    x0 = np.ones(shape=(mixture.m+mixture.n*2,))
+    x0[-mixture.n:] = 0.0 #set bg at zero        
     
     # 2. Optimize:
-    def get_residual(x):
-        tot_rp = 0.0
-        fractions, scales, bgshifts = parse_solution(x, n, m)
-        for i in range(n):
-            if phase_intensities[i]!=None and experimental[i].size > 0:
-                calc = (scales[i] * np.sum(phase_intensities[i]*fractions, axis=0)) 
-                if settings.BGSHIFT:
-                    calc += bgshifts[i]
-                exp = experimental[i][selected_ranges[i]]
-                cal = calc[selected_ranges[i]]
-                tot_rp += Statistics._calc_Rp(exp, cal)
-        return tot_rp
-    
-    lastx, residual, info = scipy.optimize.fmin_l_bfgs_b(
-        get_residual,
+    t1 = time.time()    
+    lastx, residual, info = fmin_l_bfgs_b(
+        _get_residual,
         x0,
-        factr=1e-12,
-        pgtol=1e-3,
+        args=(mixture,),
+        factr=1e3*np.finfo(np.float).eps,
+        pgtol=0.01,
+        epsilon=1e-5,
         approx_grad=True,
         bounds=bounds,
         iprint=-1
     )
     
+    t2 = time.time()
+    if settings.DEBUG: print '%s took %0.3f ms' % ("optimize_mixture", (t2-t1)*1000.0)
+    
     # 3. rescale scales and fractions so they fit into [0-1] range, 
     #    and round them to have 6 digits max:
-    fractions, scales, bgshifts = parse_solution(lastx, n, m)
+    fractions, scales, bgshifts = parse_solution(lastx, mixture.n, mixture.m)
     fractions = fractions.flatten()
     if settings.BGSHIFT:
         bgshifts = bgshifts.round(6)
@@ -90,13 +112,46 @@ def get_optimized_mixture(pi_args_list, observed_intensities, selected_ranges):
     scales *= sum_frac
     scales = scales.round(6)
     
-    # 4. Calculate the total intensities
-    total_intensities = [None] * n
-    for i in range(n):
-        calc = (scales[i] * np.sum(phase_intensities[i]*fractions, axis=0)) 
-        if settings.BGSHIFT:
-            calc += bgshifts[i]
-        total_intensities[i] = calc
-                
-    return fractions, scales, bgshifts, phase_intensities, total_intensities, residual
+    mixture.fractions = fractions
+    mixture.scales = scales
+    mixture.bgshifts = bgshifts
+    mixture.residual = residual
+    
+    return mixture
 
+@wrap_exceptions
+def calculate_mixture(mixture, parsed=False):
+    """
+        Calculates total intensities for the current mixture, without optimizing
+        fractions, scales & background shifts.
+        Returns the mixture data object.
+    """
+    parse_mixture(mixture, parsed=parsed)
+    fractions = np.asanyarray(mixture.fractions)
+    
+    for scale, bgshift, specimen in izip(mixture.scales, mixture.bgshifts, mixture.specimens):
+        specimen.total_intensity = scale * np.sum(fractions[:,np.newaxis]*specimen.phase_intensities, axis=0) + (bgshift if settings.BGSHIFT else 0.0)
+
+    return mixture
+
+@wrap_exceptions
+def get_optimized_mixture(mixture):
+    """
+        Calculates total intensities for the current mixture, after optimizing
+        fractions, scales & background shifts.
+        Returns the mixture data object.
+    """
+    parse_mixture(mixture)
+    optimize_mixture(mixture, parsed=True)
+    calculate_mixture(mixture, parsed=True)
+    return mixture
+
+@wrap_exceptions
+def get_optimized_residual(mixture):
+    """
+        Calculates total intensities for the current mixture, after optimizing
+        fractions, scales & background shifts.
+        Returns the residual instead of the mixture data object.
+    """
+    return get_optimized_mixture(mixture).residual
+    

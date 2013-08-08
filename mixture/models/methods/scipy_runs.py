@@ -20,7 +20,7 @@ class RefineLBFGSBRun(RefineRun):
             Refinement using the L BFGS B algorithm
         """
         context.last_solution, context.last_residual, d = scipy.optimize.fmin_l_bfgs_b(
-            context.objective_function,
+            context.get_residual_for_solution,
             context.initial_solution,
             approx_grad=True, 
             bounds=context.ranges, 
@@ -43,7 +43,7 @@ class RefineBruteForceRun(RefineRun):
             Refinement using a Brute Force algorithm
         """
         vals = scipy.optimize.brute(
-            context.objective_function,
+            context.get_residual_for_solution,
             context.ranges,
             Ns=num_samples,
             full_output=True,
@@ -72,7 +72,7 @@ class RefineBasinHoppingRun(RefineRun):
             Refinement using a Basin Hopping Algorithm
         """
         vals = scipy.optimize.basinhopping(
-            context.objective_function,
+            context.get_residual_for_solution,
             context.initial_solution,
             niter=niter,
             T=T, #this can be quite large

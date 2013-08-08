@@ -159,7 +159,6 @@ class ObjectPool(object):
     def __init__(self, *args, **kwargs):
         object.__init__(self)
         self._objects = WeakValueDictionary()
-        self.__stored_dicts__ = list()
     
     def add_object(self, obj, force=False, silent=True):
         if not obj.uuid in self._objects or force:

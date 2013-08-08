@@ -265,7 +265,7 @@ class XYListStore(BaseObjectListStore, Storable):
         tempx = np.array(data_x)
         tempy = np.array(data_y, ndmin=2)
         if tempx.shape[0] != tempy.shape[-1]:
-            raise ValueError, "Shape mismatch: x and y data need to have compatible shapes!"
+            raise ValueError, "Shape mismatch: x (shape = %s) and y (shape = %s) data need to have compatible shapes!" % (tempx.shape, tempy.shape)
         self.clear()
         self._model_data_x = tempx
         self._model_data_y = tempy

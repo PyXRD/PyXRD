@@ -35,23 +35,23 @@ def ctrl_setup_combo_with_list(ctrl, combo, prop_name, list_prop_name=None, list
     cell.set_property('family', 'Monospace')
     cell.set_property('size-points', 10)
     
-    def on_changed(combo, user_data=None):
+    def on_changed(combo, contrl):
         itr = combo.get_active_iter()
         if itr != None:
             val = combo.get_model().get_value(itr, 0)
-            setattr(ctrl.model, prop_name, val)
-    combo.connect('changed', on_changed)
+            setattr(contrl.model, prop_name, val)
+    changed_id = combo.connect('changed', on_changed, ctrl)
 
-    def update_combo():
+    def update_combo(model):
         for row in store:
-            if store.get_value(row.iter, 0) == str(getattr(ctrl.model, prop_name)):
+            if store.get_value(row.iter, 0) == str(getattr(model, prop_name)):
                 combo.set_active_iter(row.iter)
                 break
 
-    class ComboObserver(Observer):
+    class ComboObserver(Observer):    
         @Observer.observe(prop_name, assign=True)
         def on_prop_changed(self, model, prop_name, info):
-            update_combo()
+            update_combo(model)
     
     obs_name = "__combo_observer_%s__" % prop_name
     setattr(ctrl, obs_name, getattr(
@@ -60,7 +60,9 @@ def ctrl_setup_combo_with_list(ctrl, combo, prop_name, list_prop_name=None, list
         ComboObserver(model=ctrl.model)
     ))
     
-    update_combo()
+    update_combo(ctrl.model)
+    
+    return changed_id
 
             
 def get_case_insensitive_glob(*strings):

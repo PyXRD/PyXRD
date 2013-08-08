@@ -19,11 +19,11 @@ MANUAL_URL = UPDATE_URL
 ### Factor to multiply the CSDS average with to obtain the maximum CSDS ###
 LOG_NORMAL_MAX_CSDS_FACTOR = 2.5
 
-### Multiprocessing settings ###
-MULTI_CORES = None # if None this will be set to multiprocessing.cpu_count()
-# if None, this will be set to True if on a multi-core PC, False otherwise
-MULTI_USE_PROCESSES = True #TODO this should really be implemented?
-CACHE = "FILE" # one of "FILE" (recomended), "MEMORY" (not advisable) or None
+### This is the global multiprocessing pool: ###
+POOL = None
+
+### Cache settings ###
+CACHE = None #"FILE" # one of "FILE" (recomended), "MEMORY" (not advisable) or None
 CACHE_SIZE = 500 * (1024 * 1024) #size of file cache in bytes (10 Mb)
 
 ### Default Styles & Colors ###
@@ -149,22 +149,22 @@ PARSER_MODULES = [
 
 ### Runtime Settings Retrieval ###
 SETTINGS_APPLIED = False
-def apply_runtime_settings(no_gui=False):
+def apply_runtime_settings(no_gui=True, debug=False, pool=None):
     """Apply runtime settings, can and needs to be called only once"""
+    
     global SETTINGS_APPLIED
-    global BASE_DIR
-    global DATA_REG, DATA_DIRS, DATA_FILES
-    global MULTI_USE_PROCESSES, MULTI_CORES
     if not SETTINGS_APPLIED:    
-        import sys, os, multiprocessing
+        global DEBUG
+        global POOL
+        global BASE_DIR
+        global DATA_REG, DATA_DIRS, DATA_FILES
         
-        #Setup multi processing environment variables:
-        if MULTI_CORES == None:
-            MULTI_CORES = multiprocessing.cpu_count()
-        if MULTI_USE_PROCESSES == None:
-            MULTI_USE_PROCESSES = bool(MULTI_CORES > 1)        
-            
+        #Set debug flag
+        DEBUG = debug
+        POOL = pool
+                    
         #Setup data registry:
+        import sys, os
         from generic.io.data_registry import DataRegistry
         DATA_REG = DataRegistry(dirs=DATA_DIRS, files=DATA_FILES)
         DATA_REG.set_base_directory(os.path.abspath(os.path.dirname(sys.argv[0])))
@@ -173,21 +173,20 @@ def apply_runtime_settings(no_gui=False):
         if not no_gui:
             import matplotlib
             import gtk
-
+            
+            #Setup matplotlib fonts:
             font = {
                 'weight' : 'heavy', 'size': 14,
                 'family' : 'sans-serif',
             }
-            
             if sys.platform == "win32":
                font['sans-serif'] = 'Verdana, Arial, Helvetica, sans-serif' 
-            
             matplotlib.rc('font', **font)
             mathtext = {'default': 'regular', 'fontset': 'stixsans'}
             matplotlib.rc('mathtext', **mathtext)
             #matplotlib.rc('text', **{'usetex':True})
             
-            # Load all additional icons
+            # Load our own icons:
             iconfactory = gtk.IconFactory()
             icons_path = DATA_REG.get_directory_path("APPLICATION_ICONS")
             for root, dirnames, filenames in os.walk(icons_path):
@@ -208,6 +207,10 @@ def apply_runtime_settings(no_gui=False):
         for name in PARSER_MODULES:
             if not name.startswith('.'): #do not import relative paths!
                 __import__(name)
+        
+        #Free some memory at this point:
+        import gc
+        gc.collect()
         
         print "Runtime settings applied"
     SETTINGS_APPLIED = True

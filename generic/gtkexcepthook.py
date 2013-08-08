@@ -215,19 +215,3 @@ def _dialog_response_cb(dialog, resp, trace):
 original_excepthook = sys.excepthook
 sys.excepthook = _info
 exception_dialog_active = False
-
-if __name__ == '__main__':
-    import sys, os
-    def _test_button_clicked_cb(*a):
-        class _TestException (Exception):
-            pass
-        raise _TestException, "That was supposed to happen."
-    win = gtk.Window()
-    win.set_size_request(200, 150)
-    win.set_title(os.path.basename(sys.argv[0]))
-    btn = gtk.Button("Break it")
-    btn.connect("clicked", _test_button_clicked_cb)
-    win.add(btn)
-    win.connect("destroy", lambda *a: gtk.main_quit())
-    win.show_all()
-    gtk.main()

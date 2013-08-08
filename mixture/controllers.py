@@ -23,15 +23,15 @@ from generic.mathtext_support import get_plot_safe
 from gtkmvc import Controller, Observer
 from gtkmvc.adapters import Adapter
 
-from generic.sorted_collection import SortedCollection
 from generic.views.treeview_tools import new_text_column, new_pb_column, new_toggle_column
 from generic.mathtext_support import create_pb_from_mathtext
 from generic.controllers import DialogController, BaseController, ObjectListStoreController
 from generic.controllers.utils import ctrl_setup_combo_with_list
 from generic.views.validators import FloatEntryValidator #FIXME use handlers!
 
-from phases.models import Phase, Component
+from phases.models import Phase
 
+from mixture.models.parspace import ParameterSpaceGenerator
 from mixture.models import Mixture
 from mixture.views import EditMixtureView, RefinementView, RefinementResultView
 
@@ -48,6 +48,10 @@ class RefinementResultsController(DialogController):
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------        
+    def __init__(self, *args, **kwargs):
+        super(RefinementResultsController, self).__init__(*args, **kwargs)
+        self.parspace_gen = ParameterSpaceGenerator()
+    
     def register_adapters(self):
         if self.model is not None:
             for name in ("initial_residual", "last_residual", "best_residual"):
@@ -59,7 +63,7 @@ class RefinementResultsController(DialogController):
     @Controller.observe("solution_added", signal=True)
     def notif_solution_added(self, model, prop_name, info):
         new_solution, new_residual = info.arg
-        self.record(new_solution, new_residual)
+        self.parspace_gen.record(new_solution, new_residual)
                 
     # ------------------------------------------------------------
     #      GTK Signal handlers
@@ -85,265 +89,17 @@ class RefinementResultsController(DialogController):
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------
-    def record(self, solution, residual):
-        """
-            Add a new solution to the list of solutions
-        """
-        try: 
-            new_record = list(solution)
-        except TypeError: #not an iterable
-            new_record = [solution,]
-        if self.solutions==None:
-            self.solutions = SortedCollection(key=lambda s: s[0], max_items=2000)
-        self.solutions.insert((residual, new_record))
-        
-    def get_extents(self, centroid, mins, maxs, density=10):
-        """
-            Calculates extents for the given minimum and maximum values so
-            the centroid coordinates falls on the grid. This ensures the
-            minimum point can be acurately represented on the plot.
-            
-            This is achieved by slightly shifting the grid, or with other words,
-            the minimum and maximum values
-        """
-        slices = []
-        rmins = []
-        rmaxs = []
-        centroid_indexes = []
-        for c, mn, mx in zip(centroid, mins, maxs):
-            #Correct small offsets from the centroid.
-            #This assumes the centroid to be in the min and max ranges
-            normal = np.linspace(mn, mx, density)
-            idx = (np.abs(normal-c)).argmin()
-            centroid_indexes.append(idx)
-            closest = normal[idx]
-            diff = c - closest
-            rmin = mn+diff
-            rmax = mx+diff
-            rmins.append(rmin)
-            rmaxs.append(rmax)
-            slices.append(slice(rmin,rmax,complex(density)))
-            
-        return np.array(centroid_indexes), np.array(rmins), np.array(rmaxs)
-        
-    def parse_solutions(self, centroid, density=10):
-        """
-            Returns a tuple containing:
-                - point array (Nsolutions, Nparams) : contains 'coordinates'
-                - value array (Nsolutions) : contains residuals
-                - centroid indeces in the final grid
-                - grid minimum and maximum values shifted as explained in get_extents
-        """
-        points = np.array([point for value, point in self.solutions])
-        values = np.array([value for value, point in self.solutions])
-                
-        mins = points.min(axis=0)
-        maxs = points.max(axis=0)
-                
-        return (points, values) + self.get_extents(
-            centroid=np.array(centroid),
-            mins=mins,
-            maxs=maxs,
-            density=density
-        )
-     
     def generate_images(self, output_dir="", density=200):
         """
             Generate the parameter space plots
         """
-        try:
-            #Central point:
-            centroid = self.model.best_solution
-            try: 
-                centroid = list(centroid)
-            except TypeError: #not an iterable:
-                centroid = [centroid,]
-
-            #Some information:            
-            points, values, centroid_indexes, mins, maxs = \
-                self.parse_solutions(centroid, density=density)
-                
-            #How many parameters?
-            dims = points.shape[1]
-
-            figure, canvas = self.view.figure, self.view.canvas
-
-            if dims == 1: #Only one parameter refined
-                points = points.flatten()
-                values = values.flatten()
-                ax = figure.add_subplot(1,1,1)
-                ax.plot(points, values)
-                ax.set_ylabel("Residual error")
-                ax.set_xlabel(self.model.ref_props[0].title)
-            else: #Multi-parameter space:
-                """
-                    An example of how grid, parameter and view numbers change
-                    for dims = 4
-                    
-                    The numbers in the grid are:
-                    
-                    parameter x, parameter y
-                    grid x, grid y
-                
-                    -----------------------------------------------------
-                    |            |            |            |            |
-                    |    0, 0    |    1, 0    |    2, 0    |    3, 0    |
-                    |    -, -    |    -, -    |    -, -    |    -, -    |
-                    |            |            |            |            |
-                    ==============------------|------------|------------|
-                    I            I            |            |            |
-                    I    0, 1    I    1, 1    |    2, 1    |    3, 1    |
-                    I    0, 0    I    1, 0    |    2, 0    |    -, -    |
-                    I            I            |            |            |
-                    I------------==============------------|------------|
-                    I            |            I            |            |
-                    I    0, 2    |    1, 2    I    2, 2    |    3, 2    |
-                    I    0, 1    |    1, 1    I    2, 1    |    -, -    |
-                    I            |            I            |            |
-                    I------------|------------==============------------|
-                    I            |            |            I            |
-                    I    0, 3    |    1, 3    |    2, 3    I    3, 3    |
-                    I    0, 2    |    1, 2    |    2, 2    I    -, -    |
-                    I            |            |            I            |
-                    I======================================I------------|
-                    From the above it should be clear that:
-                    
-                    parameter x = grid x
-                    parameter y = grid y + 1
-                    grid nr = grid y + grid x * (dims - 1)
-                    view nr = grid nr - (grid nr / dims) * ((grid nr / dims) +1) / 2
-                    
-
-                """
-
-                # Set up QHull triangulation and interpolator:
-                # If this fails, bail out and forget the rest...
-                try:
-                    triang = qhull.Delaunay(points)
-                    interp = scipy.interpolate.LinearNDInterpolator(triang, values)
-                except RuntimeError:
-                    return #ignore error and return
-                
-                grid = ImageGrid(
-                    figure, 111, 
-                    nrows_ncols = (dims-1, dims-1),
-                    cbar_location = "right",
-                    cbar_mode="single",
-                    #add_all=False,
-                    aspect=False,
-                    axes_pad=0.1,
-                    direction="column"
-                )
-
-                # Helper to get the axes from the image grid:               
-                def get_gridnr(gridx, gridy):
-                    #Plot number:
-                    return gridy + gridx * (dims-1)
-                
-                rect = (0.1, 0.1, 0.8, 0.8)
-                horiz = [Size.Fixed(.1)] + [Size.Scaled(1.), Size.Fixed(.1)]*max(dims-1, 1) + [Size.Fixed(0.15)]
-                vert = [Size.Fixed(.1)] + [Size.Scaled(1.), Size.Fixed(.1)]*max(dims-1, 1)
-                
-                # divide the axes rectangle into grid whose size is specified by horiz * vert
-                divider = Divider(figure, rect, horiz, vert) #, aspect=False)
-                
-                def get_locator(gridx, gridy):
-                    nx = 1 + gridx * 2
-                    ny = 1 + (dims-gridy-2) * 2
-                    return divider.new_locator(nx=nx, ny=ny)
-                
-                # Keep a reference to the images created,
-                # se we can add a scale bar for all images (and they have the same range)
-                ims = []
-                tvmin, tvmax = None, None
-                
-                for parx, pary in itertools.product(range(dims), range(dims)):
-                
-                    #Calculate these, so wo don't need to worry about them:
-                    gridx = parx
-                    gridy = pary - 1
-                    
-                    if pary > 0 and parx < (dims-1):
-                        gridnr = get_gridnr(gridx, gridy)                    
-                        ax = grid[gridnr]
-                    else:
-                        ax = None
-                
-                    if pary <= parx: #only show 'bottom triangle' plots, top is just a copy, but transposed
-                        if ax: ax.set_visible(False)
-                        continue
-                    
-                    #Calculate the view:
-                    coords = []
-                    mn, mx = min(parx, pary), max(parx, pary)
-                    for x,y in itertools.product(
-                            np.linspace(mins[mn],maxs[mn],density),
-                            np.linspace(mins[mx],maxs[mx],density)):
-                        coord = centroid[:mn]
-                        coord += [x,]
-                        coord += centroid[mn+1:mx]
-                        coord += [y,]
-                        coord += centroid[mx+1:]
-                        coords.append(coord)      
-                    view = interp(coords).reshape(density, density).transpose()
-                    
-                    if ax!=None:
-                        #Setup axes:
-                        ax.set_axes_locator(get_locator(gridx, gridy))
-                        ax.set_visible(True)
-                        extent = (mins[parx],maxs[parx],mins[pary],maxs[pary])
-
-                        #Plot the residual parameter space cross-section:
-                        aspect = 'auto' #abs((extent[1]-extent[0]) / (extent[3] - extent[2]))
-                        im = ax.imshow(view, origin='lower', aspect=aspect, extent=extent, alpha=0.75)
-                        #ax.set_aspect(aspect)
-                        im.set_cmap('gray_r')
-                        vmin, vmax = im.get_clim()
-                        if tvmin == None: tvmin = vmin
-                        if tvmax == None: tvmax = vmax                        
-                        tvmin, tvmax = min(tvmin, vmin), max(tvmax, vmax)
-                        
-                        ims.append(im)
-                        
-                        #Add a contour & labels:
-                        ct = ax.contour(view, colors='k', aspect=aspect, extent=extent, origin='lower')
-                        ax.clabel(ct, colors='k', fontsize=10, format="%1.2f")
-                        
-                        #Add a red cross where the 'best' solution is:
-                        ax.plot((centroid[parx],), (centroid[pary],), 'r+')
-                        
-                        #Rotate x labels
-                        for lbl in ax.get_xticklabels():
-                            lbl.set_rotation(90)
-                            
-                        #Reduce number of ticks:
-                        ax.locator_params(axis='both', nbins=5)
-                        
-                        #Set limits:
-                        ax.set_xlim(extent[0:2])
-                        ax.set_ylim(extent[2:4])
-
-                        #Add labels to the axes so the user knows which is which:
-                        # TODO add some flags/color/... indicating which phase & component each parameter belongs to...
-                        if parx==0:
-                            ax.set_ylabel(str("#%d " % (pary+1)) + get_plot_safe(self.model.ref_props[pary].title)) 
-                        if pary==(dims-1):
-                            ax.set_xlabel(str("#%d " % (parx+1)) + get_plot_safe(self.model.ref_props[parx].title))
-                            
-                #Set the data limits:
-                for im in ims:
-                    im.set_clim(tvmin, tvmax)
-
-                #Make it look PRO:
-                if im !=None:
-                    cbar_ax = grid.cbar_axes[0]
-                    nx = 1 + (dims-1)*2
-                    ny1 = (dims-1) * 2
-                    cbar_ax.set_axes_locator(divider.new_locator(nx=nx, ny=1, ny1=ny1))
-                    cb = cbar_ax.colorbar(im)
-        except:            
-            print "Unhandled exception while generating parameter space images:"
-            print format_exc()
+        self.parspace_gen.plot_images(
+            figure=self.view.figure,
+            centroid=self.model.best_solution,
+            labels=[ref_prop.title for ref_prop in self.model.ref_props],
+            density=density
+        )
+    
     pass #end of class
 
 class RefinementController(DialogController):
@@ -504,7 +260,7 @@ class RefinementController(DialogController):
                     visible_col=tv_model.c_refinable))
                        
             #Refine method combobox:
-            ctrl_setup_combo_with_list(self, 
+            self.changed_id = ctrl_setup_combo_with_list(self, 
                 self.view["cmb_data_refine_method"],
                 "refine_method", "_refine_methods")
             
@@ -550,8 +306,8 @@ class RefinementController(DialogController):
             self.model.refine_options[arg] = value
            
         #Setup context and results controller:
-        self.model.refiner.setup_context() 
-        self.results_view = RefinementResultView(parent=self.view)
+        self.model.refiner.setup_context(store=True) 
+        self.results_view = RefinementResultView(parent=self.view.parent)
         self.results_controller = RefinementResultsController(
             model=self.model.refiner.context,
             view=self.results_view,
@@ -565,12 +321,25 @@ class RefinementController(DialogController):
             self.on_complete           #ON COMPLETE CALLBACK
         )
         
-    def on_complete(self, *args, **kwargs):
+    def on_complete(self, context, *args, **kwargs):
         self.results_controller.generate_images()
         self.results_view.present()
+        self.view.hide()
         
     def update_residual(self):
         self.view.update_refinement_info(self.model.refiner.context.last_residual)
+        
+    def cleanup(self):
+        self.view["cmb_data_refine_method"].handler_disconnect(self.changed_id)
+        if hasattr(self, "view"):
+            del self.view
+        if hasattr(self, "results_view"):
+            del self.results_view
+        if hasattr(self, "results_controller"):            
+            del self.results_controller
+        if hasattr(self, "model"):
+            self.relieve_model(self.model)
+            del self.model
         
     pass #end of class
         
@@ -684,9 +453,9 @@ class EditMixtureController(BaseController):
         self.model.update_refinement_treestore()
         if self.ref_view!=None: 
             self.ref_view.hide()
-        else:
-            self.ref_view = RefinementView(parent=self.parent.view)
-            self.ref_ctrl = RefinementController(self.model, self.ref_view, parent=self)
+            self.ref_ctrl.cleanup()
+        self.ref_view = RefinementView(parent=self.parent.view)
+        self.ref_ctrl = RefinementController(self.model, self.ref_view, parent=self)
         self.ref_view.present()        
     
     def on_composition_clicked(self, widget, *args):

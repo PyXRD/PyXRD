@@ -10,38 +10,11 @@
 from traceback import format_exc
 
 import time
-import gtk
 from threading import Thread, Event
 
-class GUIThread(Thread):
+class CancellableThread(Thread):
     """
-        Class for use by ThreadedTaskBox. Not for general use.
-    """
-    def __init__(self, gui_callback):
-        Thread.__init__(self)
-        self.setDaemon(True)
-        self.gui_callback = gui_callback
-        self.__kill = Event()
-
-    def kill(self):
-        self.__kill.set()
-
-    #As a subclass of Thread, this function runs when start() is called
-    #It will cause the spinner to pulse, showing that a task is running
-    def run(self):
-        while not self.__kill.is_set():
-            time.sleep(.1)
-            gtk.gdk.threads_enter()
-            self.gui_callback()
-            while gtk.events_pending():
-                gtk.main_iteration(False)
-            gtk.gdk.threads_leave()
-        
-    pass #end of class
-
-class KillableThread(Thread):
-    """
-        Class for use by ThreadedTaskBox. Not for general use.
+        Class for use by ThreadedTaskBox.
     """
     def __init__(self, run_function, on_complete, params=None):
         Thread.__init__(self)
@@ -49,33 +22,40 @@ class KillableThread(Thread):
         self.run_function = run_function
         self.params = params
         self.on_complete = on_complete
+        # Shared flag, passed on to the run_function as 'stop' keyword
+        self.__stop = Event()
+        # Internal flag, for checking wether the user cancelled or stopped.
+        self.__cancel = Event()
 
-    #As a subclass of Thread, this function runs when start() is called
-    #It will run the user's function on this thread
     def run(self):
         try:
-            #set up params and include the kill flag
+            # Set up params and include the stop event
             if self.params == None:
                 self.params = {}
-            self.params["kill"] = False
-            self.params["stop"] = False
-            #tell the function to run
-            data = self.run_function(self.params) #TODO pass this a 'stop' event!!
-            #return any data from the function so it can be sent in the complete signal
-            self.on_complete(data)
-        except: #catch any errors
-            self.params["kill"] = True
-            self.params["stop"] = True
-            print "Unhandled exception in thread:"
+            self.params["stop"] = self.__stop
+            # Tell the function to run
+            data = self.run_function(**self.params)
+            # Return function results, if not cancelled
+            if not self.__cancel.is_set():
+                self.on_complete(data)
+        except KeyboardInterrupt:
+            self.cancel()
+        except:
+            print "Unhandled exception in CancellableThread run():"
             print format_exc()
-            pass
 
-    #Tell the user's function that it should stop
-    #Note the user's function may not check this
-    def kill(self):
-        self.params["kill"] = True
-        
     def stop(self):
-        self.params["stop"] = True
+        """
+            Stops the thread, and calls the on_complete callback
+        """
+        self.__stop.set()
+        
+    def cancel(self):
+        """
+            Stops the thread, and does not call the on_complete callback.
+        """
+        self.__cancel.set()
+        self.__stop.set()
+        
 
     pass #end of class

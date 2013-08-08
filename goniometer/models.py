@@ -23,6 +23,7 @@ from generic.calculations.goniometer import (
     get_lorentz_polarisation_factor,
     get_machine_correction_range
 )
+from generic.calculations.data_objects import GonioData
        
 @storables.register()
 class Goniometer(ChildModel, Storable):
@@ -45,36 +46,28 @@ class Goniometer(ChildModel, Storable):
     ]
     __store_id__ = "Goniometer"
         
-    #PROPERTIES:
-    radius = 24.0
-    divergence = 0.5
-    min_2theta = 3.0
-    max_2theta = 45.0
-    steps = 2500
-    wavelength = 0.154056
-    
-    has_ads = False
-    ads_fact = 1.0
-    ads_phase_fact = 1.0
-    ads_phase_shift = 0.0
-    ads_const = 0.0
-    
-    _dirty_cache = True
-    _S = 0
-    
-    _soller1 = 2.3
-    _soller2 = 2.3
-    @Model.getter("soller[12]")
-    def get_soller(self, prop_name):
-        prop_name = "_%s" % prop_name
-        return getattr(self, prop_name)
-    @Model.setter("soller[12]")
-    def set_soller(self, prop_name, value):
-        prop_name = "_%s" % prop_name
-        if value != getattr(self, prop_name):
-            setattr(self, prop_name, value)
-            self._dirty_cache = True
+    _data_object = None
+    @property
+    def data_object(self):           
+        return self._data_object
         
+    #PROPERTIES:
+    
+    @Model.getter(
+        'min_2theta', 'max_2theta', 'steps', 'wavelength', 'soller1',
+        'soller2', 'radius', 'divergence', 'has_ads', 'ads_fact',
+        'ads_phase_fact', 'ads_phase_shift', 'ads_const'
+    )
+    def get_mcr_arg(self, prop_name):
+        return getattr(self._data_object, prop_name)
+    @Model.setter(
+        'min_2theta', 'max_2theta', 'steps', 'wavelength', 'soller1',
+        'soller2', 'radius', 'divergence', 'has_ads', 'ads_fact',
+        'ads_phase_fact', 'ads_phase_shift', 'ads_const'
+    )
+    def set_mcr_arg(self, prop_name, value):
+        setattr(self._data_object, prop_name, float(value))
+                 
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
@@ -86,19 +79,24 @@ class Goniometer(ChildModel, Storable):
                  parent=None, **kwargs):
         ChildModel.__init__(self, parent=parent)
         Storable.__init__(self)
+        
+        self._data_object = GonioData()
+        
         self.radius = radius or self.get_depr(kwargs, 24.0, "data_radius")
         self.divergence = divergence or self.get_depr(kwargs, 0.5, "data_divergence")
-        self.soller1 = soller1 or self.get_depr(kwargs, 2.3, "data_soller1")
-        self.soller2 = soller2 or self.get_depr(kwargs, 2.3, "data_soller2")
-        self.min_2theta = min_2theta or self.get_depr(kwargs, 3.0, "data_min_2theta")
-        self.max_2theta = max_2theta or self.get_depr(kwargs, 45.0, "data_max_2theta")
-        self.steps = steps
-        self.wavelength = wavelength or self.get_depr(kwargs, 0.154056, "data_lambda")
-        self.has_ads = has_ads
+        self.has_ads = int(has_ads)
         self.ads_fact = ads_fact
         self.ads_phase_fact = ads_phase_fact
         self.ads_phase_shift = ads_phase_shift
         self.ads_const = ads_const
+
+        self.soller1 = soller1 or self.get_depr(kwargs, 2.3, "data_soller1")
+        self.soller2 = soller2 or self.get_depr(kwargs, 2.3, "data_soller2")
+        
+        self.min_2theta = min_2theta or self.get_depr(kwargs, 3.0, "data_min_2theta")
+        self.max_2theta = max_2theta or self.get_depr(kwargs, 45.0, "data_max_2theta")
+        self.steps = steps
+        self.wavelength = wavelength or self.get_depr(kwargs, 0.154056, "data_lambda")
         
     def __reduce__(self):
         return (type(self), ((),self.json_properties()))
@@ -111,14 +109,6 @@ class Goniometer(ChildModel, Storable):
         for prop in self.__model_intel__:
             if prop.storable and prop.name!="uuid":
                 setattr(self, prop.name, getattr(new_gonio, prop.name))
-       
-    def get_lorentz_polarisation_factor(self, range_theta, sigma_star):
-        return get_lorentz_polarisation_factor(
-            range_theta, sigma_star, *self.get_lpf_args()
-        )
-       
-    def get_lpf_args(self):
-        return self.soller1, self.soller2
        
     def get_nm_from_t(self, theta):
         return self.get_nm_from_2t(2*theta)
@@ -138,7 +128,7 @@ class Goniometer(ChildModel, Storable):
             twotheta = degrees(asin(max(-1.0, min(1.0, self.wavelength/(2.0*nm)))))*2.0
         return twotheta
         
-    def get_default_theta_range(self, as_radians=True): #TODO cache this
+    def get_default_theta_range(self, as_radians=True):
         def torad(val):
             if as_radians:
                 return radians(val)
@@ -153,20 +143,21 @@ class Goniometer(ChildModel, Storable):
     def get_machine_correction_range(self, range_theta, sample_length, absorption):
         """
             Calculates correction factors for the given theta range, sample
-            length and absorption using the information about the machine's
+            length and absorption using the information about the goniometer's
             geometry.
         """
         return get_machine_correction_range(
-            range_theta,
-            sample_length, absorption,
-            *self.get_mcr_args()
+            range_theta, sample_length, absorption, self.data_object
         )
-       
-    def get_mcr_args(self):
-        return (
-            self.radius, self.divergence, 
-            self.has_ads, self.ads_fact, self.ads_phase_fact, 
-            self.ads_phase_shift, self.ads_const
+        
+    def get_lorentz_polarisation_factor(self, range_theta, sigma_star):
+        """
+            Calculates Lorentz polarization factor for the given theta range
+            and sigma-star value using the information about the goniometer's
+            geometry.
+        """
+        return get_lorentz_polarisation_factor(
+            range_theta, sigma_star, self.data_object
         )
        
     pass #end of class

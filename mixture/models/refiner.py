@@ -5,6 +5,8 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
+from copy import deepcopy
+import random
 from traceback import format_exc
 import multiprocessing
 
@@ -16,16 +18,9 @@ import scipy
 from gtkmvc import Signal
 from generic.utils import print_timing
 from generic.models import ChildModel, PropIntel
+#from generic.calculations.pool import pooled
 
 import settings
-
-from .genetics import RefineGeneticsRun, RefineHybridRun
-from .scipy_runs import RefineLBFGSBRun, RefineBasinHoppingRun
-
-if settings.MULTI_USE_PROCESSES:
-    from .custom_brute import RefineBruteForceRun
-else:
-    from .scipy_runs import RefineBruteForceRun
 
 class RefineContext(ChildModel):
     """
@@ -50,7 +45,7 @@ class RefineContext(ChildModel):
     solution_added = None
     
     #OTHER:
-    objective_function = None
+    #objective_function = None
     options = None
     
     initial_solution = None
@@ -71,7 +66,7 @@ class RefineContext(ChildModel):
     record_header = None
     records = None
     
-    def __init__(self, parent=None, options={}):
+    def __init__(self, parent=None, store=False, options={}):
         super(RefineContext, self).__init__(parent=parent)
         self.options = options
                 
@@ -84,6 +79,8 @@ class RefineContext(ChildModel):
                     self.ref_props.append(ref_prop)
                     self.values.append(ref_prop.value)
                     self.ranges += ((ref_prop.value_min, ref_prop.value_max),)
+            
+        if store: self.store_project_state()
             
         self.initial_residual = self.mixture.optimizer.get_current_residual()
         self.initial_solution = np.array(self.values, dtype=float)    
@@ -98,27 +95,42 @@ class RefineContext(ChildModel):
             
         self.status = "created"
 
+    def store_project_state(self):
+        # Create this once, this is rather costly
+        # Any multithreaded/processed function that needs the project state
+        # can then reload the project and get the correct mixture, setup
+        # this context again... etc.
+        # Only do this for the main process though, otherwise memory usage will
+        # go through the roof.
+        self.project = self.mixture.project
+        self.project_dump = self.project.dump_object(zipped=True).getvalue()
+        self.mixture_index = self.project.mixtures.index(self.mixture)
+
     def apply_solution(self, solution):
         solution = np.asanyarray(solution)
         for i, ref_prop in enumerate(self.ref_props):
             if not (solution.shape==()):
-                ref_prop.value = solution[i]
+                ref_prop.value = float(solution[i])
             else:
-                ref_prop.value = solution[()]
-        residual = self.mixture.optimizer.optimize(silent=True)
-        return residual
+                ref_prop.value = float(solution[()])
 
-    def update(self, solution):
-        self.dry_update(solution, self.apply_solution(solution))
-            
-    def dry_update(self, solution, residual):
+    def get_data_object_for_solution(self, solution):
+        self.apply_solution(solution)
+        return deepcopy(self.mixture.data_object)
+        
+    def get_residual_for_solution(self, solution):
+        self.apply_solution(solution)
+        return self.mixture.optimizer.get_optimized_residual()
+
+    def update(self, solution, residual=None):
+        residual = residual if residual!=None else self.get_residual_for_solution(solution)
         self.last_solution = solution
         self.last_residual = residual
         if self.best_residual==None or self.best_residual > self.last_residual:
             self.best_residual = self.last_residual
             self.best_solution = self.last_solution
         self.solution_added.emit(arg=(self.last_solution, self.last_residual))
-            
+                        
     def apply_best_solution(self):
         self.apply_solution(self.best_solution)
 
@@ -133,7 +145,7 @@ class RefineContext(ChildModel):
         if self.record_header == None:
             self.record_header = keys
             self.records = []
-        self.records.append(record)
+        self.records.append(record)       
                     
     pass #end of class
 
@@ -143,19 +155,11 @@ class Refiner(ChildModel):
         the functionality related to refinement of parameters.
     """
     __parent_alias__ = "mixture"
-    
-    refine_methods = {
-        0: RefineLBFGSBRun(),
-        1: RefineGeneticsRun(),
-        2: RefineBruteForceRun(),
-        3: RefineHybridRun(),
-        4: RefineBasinHoppingRun(),
-    }
 
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------ 
-    def setup_context(self):
+    def setup_context(self, store=False):
         """
             Creates a RefineContext object filled with parameters based on the
             current state of the Mixture object.
@@ -163,7 +167,8 @@ class Refiner(ChildModel):
         self.parent.setup_refine_options()
         self.context = RefineContext(
             parent=self.parent,
-            options=self.parent.refine_options
+            options=self.parent.refine_options,
+            store=store
         )
         
     def delete_context(self):
@@ -173,65 +178,44 @@ class Refiner(ChildModel):
         self.context = None
 
     refine_lock = False
-    def refine(self, params):
+    def refine(self, stop, **kwargs):
         """
             This refines the selected properties using the selected algorithm.
             This should be run asynchronously to keep the GUI from blocking.
         """
         assert self.context!=None, "You need to setup the RefineContext before starting the refinement!"
-        
-        if not self.refine_lock:
+               
+        if not self.refine_lock: #TODO use a proper lock
             # Set lock
             self.refine_lock = True            
         
             # Suppres updates:
             self.mixture.project.freeze_updates()
               
-            # If something has been selected: continue...                      
-            if len(self.context.ref_props) > 0:               
-                # The objective function:
-                # needs to be declared inline as it needs acces to the params
-                # dict.
-                # FIXME this doesn't actually get called in multiprocessing mode
-                # for some refiners... we should always leave this to the refiners??
-                # and do some house-holding code to make them thread-process-friendly?
-                def get_residual_from_solution(solution):
-                    if not (params["kill"] or params["stop"]):
-                        self.context.update(solution)
-                        time.sleep(0.01) #What's this?
-                        return self.context.last_residual
-                    elif params["kill"]:
-                        raise GeneratorExit
-                    elif params["stop"]:
-                        raise StopIteration
-                self.context.best_residual, self.context.best_solution = None, None
-                self.context.objective_function = get_residual_from_solution
-                
-                self.context.run_params = params
-                
+            # If something has been selected: continue...
+            if len(self.context.ref_props) > 0:                
                 #Run until it ends or it raises an exception:
                 t1 = time.time()
                 try:
-                    self.mixture.get_refine_method()(self.context)
-                except StopIteration:
-                    self.context.last_solution, self.context.last_residual = self.context.best_solution, self.context.best_residual
-                    self.context.status = "stopped"
-                except GeneratorExit:
-                    pass #no action needed
+                    self.mixture.get_refine_method()(self.context, stop=stop)
                 except any as error:
                     print "Handling run-time error: %s" % error
                     print format_exc()
                     self.context.status = "error"
-                self.context.status = "finished"
+                else:
+                    if stop.is_set():
+                        self.context.status = "stopped"
+                    else:
+                        self.context.status = "finished"
                 t2 = time.time()
                 print '%s took %0.3f ms' % ("Total refinement", (t2-t1)*1000.0)
             else: #nothing selected for refinement
-                self.context.status = "error"          
+                self.context.status = "error"
                 
             #Unluck the GUI & this method
             self.refine_lock = False
             self.mixture.project.thaw_updates()
-               
+            
             #Return the context to whatever called this
             return self.context
 

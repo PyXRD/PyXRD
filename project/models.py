@@ -21,9 +21,9 @@ from generic.io import storables, Storable
 
 from goniometer.models import Goniometer
 from specimen.models import Specimen
-from mixture.models import Mixture
 from phases.models import Phase
 from atoms.models import Atom, AtomType
+from mixture.models.mixture import Mixture
 
 @storables.register()
 class Project(ChildModel, Storable, ObjectListStoreParentMixin):
@@ -313,8 +313,10 @@ class Project(ChildModel, Storable, ObjectListStoreParentMixin):
             self.before_needs_update_lock = True
             t1 = time.time()
             for mixture in self.mixtures.iter_objects():
-                mixture.apply_current_solution()
-                if mixture.auto_run: mixture.optimizer.optimize()
+                if mixture.auto_run: 
+                    mixture.optimize()
+                else:
+                    mixture.apply_current_data_object()
             t2 = time.time()
             if settings.DEBUG: print '%s took %0.3f ms' % ("before_needs_update", (t2-t1)*1000.0)
             after()

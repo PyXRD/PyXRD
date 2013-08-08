@@ -5,9 +5,8 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from refiner import RefineContext, Refiner
+from .phase import Phase
 
 __all__ = [
-    "RefineContext",
-    "Refiner"
+    "Phase",
 ]

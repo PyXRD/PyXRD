@@ -10,6 +10,7 @@ from gtkmvc.model import Signal
 import settings
 
 from generic.calculations.CSDS import calculate_distribution
+from generic.calculations.data_objects import CSDSData
 from generic.models import ChildModel, PropIntel
 from generic.io import storables, Storable
 
@@ -45,6 +46,7 @@ class _AbstractCSDSDistribution(ChildModel, Storable):
     def __init__(self, parent=None, **kwargs):
         ChildModel.__init__(self, parent=parent)
         Storable.__init__(self)
+                
         self.updated = Signal()
         self.setup(**kwargs)
         
@@ -60,6 +62,20 @@ class _AbstractCSDSDistribution(ChildModel, Storable):
     pass #end of class   
 
 class _LogNormalMixin(object):
+    
+    _data_object = None
+    @property
+    def data_object(self):    
+    
+        self._data_object.average = self.average
+        self._data_object.maximum = self.maximum
+        self._data_object.minimum= self.minimum
+        self._data_object.alpha_scale = self.alpha_scale
+        self._data_object.alpha_offset = self.alpha_offset
+        self._data_object.beta_scale = self.beta_scale
+        self._data_object.beta_offset = self.beta_offset
+      
+        return self._data_object
     
     #PROPERTIES:
     def get_maximum_value(self): return int(settings.LOG_NORMAL_MAX_CSDS_FACTOR * self.average)
@@ -103,6 +119,9 @@ class _LogNormalMixin(object):
     # ------------------------------------------------------------       
     def setup(self, average=10, alpha_scale=0.9485, alpha_offset=-0.0017,
             beta_scale=0.1032, beta_offset=0.0034):
+            
+        self._data_object = CSDSData()
+            
         self._average = average or self._average
         self._alpha_scale = alpha_scale or self._alpha_scale
         self._alpha_offset = alpha_offset or self._alpha_offset
@@ -114,16 +133,9 @@ class _LogNormalMixin(object):
     #      Methods & Functions
     # ------------------------------------------------------------            
     def update_distribution(self):
-        self._distrib = calculate_distribution(*self.get_distr_args())
+        self._distrib = calculate_distribution(self.data_object)
         self.updated.emit()
-        
-    def get_distr_args(self):
-        return (
-            self.average, self.maximum, self.minimum, 
-            self.alpha_scale, self.alpha_offset, 
-            self.beta_scale, self.beta_offset
-        )
-        
+                
     pass #end of class
 
 @storables.register()

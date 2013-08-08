@@ -1,15 +1,25 @@
 # coding=UTF-8
 # ex:ts=4:sw=4:et=on
 
-# Copyright (c) 2013, Mathijs Dumon
+# Copyright (c) 2013, Mathijs Dumon, Jason Yosinski
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
+from functools import wraps
 from collections import OrderedDict
 import settings
 
+import hashlib
+import marshal
+from numpy import *
+import types
+import inspect
+
 """
     A tiny but memory hungry custom caching lib
+    Based on: https://github.com/yosinski/python-numpy-cache/blob/master/cache.py
+    Modified to match my needs
+    All credits to Jason Yosinski
 """
 
 class CacheDict(OrderedDict):
@@ -90,11 +100,12 @@ def cache(maxsize=16):
             return func
         return dummy
     else:
-        def rcache(function):
+        def rcache(func):
+            @wraps(func)
             def wrapper(*args, **kwargs):
             
-                cached = getattr(function, '__cached', CacheDict(limit=maxsize))
-                function.__cached = cached
+                cached = getattr(func, '__cached', CacheDict(limit=maxsize))
+                func.__cached = cached
             
                 # Hash the args and kwargs
                 hasher = PersistentHasher()
@@ -104,9 +115,9 @@ def cache(maxsize=16):
                 digest = hasher.hexdigest()
                 
                 if not digest in cached:
-                    cached[digest] = function(*args, **kwargs)
+                    cached[digest] = func(*args, **kwargs)
                     
                 return cached[digest]
-            wrapper.func = function
+            wrapper.func = func
             return wrapper
         return rcache

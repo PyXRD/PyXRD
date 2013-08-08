@@ -5,10 +5,10 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-import csv
+import csv, copy
 import random
 from warnings import warn
-from itertools import chain
+from itertools import chain, izip
 from collections import OrderedDict
 
 from gtkmvc.model import Signal
@@ -24,9 +24,10 @@ from generic.models.treemodels import ObjectTreeStore
 
 from generic.refinement.mixins import RefinementValue, RefinementGroup
 from generic.refinement.wrapper import RefinableWrapper
+from generic.calculations.data_objects import MixtureData
 
+from .methods import get_all_refine_methods
 from .optimizers import Optimizer
-from .refiners import Refiner
 
 
 @storables.register()
@@ -50,6 +51,19 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
     ]
     __store_id__ = "Mixture"
 
+    _data_object = None
+    @property
+    def data_object(self):
+        self._data_object.specimens = [None] * len(self.specimens)
+        for i, specimen in enumerate(self.specimens):
+            data_object = specimen.data_object
+            data_object.phases = [None] * len(self.phases)
+            for j, phase in enumerate(self.phase_matrix[i,...].flatten()):
+                data_object.phases[j] = phase.data_object
+            self._data_object.specimens[i] = data_object
+       
+        return self._data_object
+
     #SIGNALS:
     has_changed = None
     needs_reset = None
@@ -64,19 +78,36 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
     
     refinables = None
     auto_run = False
-    refine_method = MultiProperty(0, int, None, { key: method.name for key, method in Refiner.refine_methods.iteritems() })
+    all_refine_methods = get_all_refine_methods()
+    refine_method = MultiProperty(0, int, None, { key: method.name for key, method in all_refine_methods.iteritems() })
     refine_options = None #TODO make this storable!
     
     #Lists and matrices:
-    phase_matrix = None
-    
+    phase_matrix = None   
     specimens = None
-    scales = None
-    bgshifts = None
-    
     phases = None
-    fractions = None
-
+    
+    @property
+    def scales(self):
+        return self._data_object.scales
+    @scales.setter
+    def scales(self, value):
+        self._data_object.scales = value
+        
+    @property
+    def bgshifts(self):
+        return self._data_object.bgshifts
+    @bgshifts.setter
+    def bgshifts(self, value):
+        self._data_object.bgshifts = value
+    
+    @property
+    def fractions(self):
+        return self._data_object.fractions
+    @fractions.setter
+    def fractions(self, value):
+        self._data_object.fractions = value
+    
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
@@ -86,6 +117,9 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
             scales=None, bgshifts=None, fractions=None, 
             refinables=None, refine_method=None, parent=None, **kwargs):
         ChildModel.__init__(self, parent=parent)
+        
+        self._data_object = MixtureData()
+        
         self.has_changed = Signal()
         self.needs_reset = Signal()
         self.name = name or self.get_depr(kwargs, "", "data_name")
@@ -108,27 +142,33 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
             self.specimens = [self.parent.specimens.get_user_data_from_index(index) if index!=-1 else None for index in specimen_indeces]
         else:
             self.specimens = list()
-        
-        #list with scale values, indexes match with rows in phase_matrix
-        self.scales = scales or self.get_depr(kwargs, list(), "data_scales")
-        #list with specimen background shift values, indexes match with rows in phase_matrix        
-        self.bgshifts = bgshifts or self.get_depr(kwargs, [0.0]*len(self.scales), "data_bgshifts")
+
         #list with mixture phase names, indexes match with cols in phase_matrix
         self.phases = phases or self.get_depr(kwargs, list(), "data_phases")
-        #list with phase fractions, indexes match with cols in phase_matrix
-        self.fractions = fractions or self.get_depr(kwargs, [0.0]*len(self.phases), "data_fractions")
-        
+                
+        #list with scale values, indexes match with rows in phase_matrix (= specimens)
+        self.scales = np.asarray(scales or self.get_depr(kwargs, [1.0]*max(len(self.specimens),1), "data_scales"))
+        #list with specimen background shift values, indexes match with rows in phase_matrix (=specimens)
+        self.bgshifts = np.asarray(bgshifts or self.get_depr(kwargs, [0.0]*max(len(self.specimens),1), "data_bgshifts"))
+        #list with phase fractions, indexes match with cols in phase_matrix (=phases)
+        self.fractions = np.asarray(fractions or self.get_depr(kwargs, [0.0]*max(len(self.phases),1), "data_fractions"))
+                
         self.refinables = refinables or self.get_depr(kwargs, ObjectTreeStore(RefinableWrapper), "data_refinables")
-        self.refine_method = refine_method or self.get_depr(kwargs, self.refine_method, "data_refine_method")
+        try:
+            self.refine_method = refine_method or self.get_depr(kwargs, self.refine_method, "data_refine_method")
+        except ValueError:
+            self.refine_method = self.refine_method
+            pass #ignore faulty values, these indeces change from time to time.
         
         #sanity check:
-        n, m = self.phase_matrix.shape
+        n,m = self.phase_matrix.shape
         if len(self.scales) != n or len(self.specimens) != n or len(self.bgshifts) != n:
-            raise IndexError, "Shape mismatch: scales, background shifts or specimens lists do not match with row count of phase matrix"
+            raise IndexError, "Shape mismatch: scales (%d), background shifts (%d) or specimens (%d) list lengths do not match with row count (%d) of phase matrix" % (len(self.scales), len(self.specimens), len(self.bgshifts), n)
         if len(self.phases) != m or len(self.fractions) != m:
             raise IndexError, "Shape mismatch: fractions or phases lists do not match with column count of phase matrix"
     
         self.optimizer = Optimizer(parent=self)
+        from refiner import Refiner
         self.refiner = Refiner(parent=self)
     
         self.update_refinement_treestore()
@@ -143,9 +183,9 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         retval["phase_uuids"] = [[item.uuid if item else "" for item in row] for row in map(list, self.phase_matrix)]            
         retval["specimen_uuids"] = [specimen.uuid if specimen else "" for specimen in self.specimens]
         retval["phases"] = self.phases
-        retval["fractions"] = self.fractions
-        retval["bgshifts"] = self.bgshifts
-        retval["scales"] = self.scales
+        retval["fractions"] = self.fractions.tolist()
+        retval["bgshifts"] = self.bgshifts.tolist()
+        retval["scales"] = self.scales.tolist()
         
         return retval
     
@@ -237,60 +277,45 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
     
     # ------------------------------------------------------------
     #      Refinement stuff:
-    # ------------------------------------------------------------
-    def get_current_solution(self):
-        """ 
-            Compiles an initial solution (x0) using the current fractions, 
-            scales and background shifts.
-        """
-        return np.array(self.fractions + self.scales + self.bgshifts)
-
-    @staticmethod
-    def parse_solution(solution, n, m):
-        """ 
-            Decompiles a solution into m fractions, n scales and n bgshifts,
-            m and n being the number of phases and specimens respectively.
-        """
-        fractions =  solution[:m][:,np.newaxis]
-        scales = solution[m:m+n]
-        bgshifts = solution[-n:] if settings.BGSHIFT else np.zeros(shape=(n,))
-        return fractions, scales, bgshifts
-    
-    def set_solution(self, fractions=None, scales=None, bgshifts=None, solution=None, m=None, n=None, apply=True, silent=False):
+    # ------------------------------------------------------------        
+    def set_data_object(self, mixture, calculate=False, apply=True, silent=False):
         """
             Sets the fractions, scales and bgshifts of this mixture and emits
             a signal indicating they have changed.
-            You can choose to pass either the fractions, scales and bgshifts as
-            separate lists or to pass a solution array with the m and n values.
-        """        
-        if solution!=None:
-            assert m!=None, "If you pass the solution keyword, you need to pass the m keyword argument as well!"
-            assert n!=None, "If you pass the solution keyword, you need to pass the n keyword argument as well!"
-            fractions, scales, bgshifts = self.parse_solution(solution, m, n)
-        
-        self.fractions[:] = list(fractions)
-        self.scales[:] = list(scales)
-        self.bgshifts[:] = list(bgshifts) if settings.BGSHIFT else [0]*n
+        """
+        self.fractions[:] = list(mixture.fractions)
+        self.scales[:] = list(mixture.scales)
+        self.bgshifts[:] = list(mixture.bgshifts)
+
+        if calculate: #(re-)calculate if requested:
+            mixture = self.optimizer.calculate(mixture)
         
         if apply:
-            self.apply_current_solution()
-        
+            for i, (specimen_data, specimen) in enumerate(izip(mixture.specimens, self.specimens)):
+                if specimen!=None:
+                    specimen.update_pattern(
+                        specimen_data.total_intensity,
+                        specimen_data.phase_intensities,
+                        self.phase_matrix[i,:]
+                    )
+            
         if not silent:
             self.has_changed.emit()
-       
-    def apply_current_solution(self):
+        
+    def optimize(self):  
         """
-            Applies the current solution to the specimens in the mixture.
+            Optimize the current solution (fractions, scales, bg shifts & calculate
+            phase intensities)
         """
-        for i, specimen in enumerate(self.specimens):
-            if specimen!=None:
-                specimen.abs_scale = float(self.scales[i])
-                specimen.bg_shift = float(self.bgshifts[i])
-                specimen.update_pattern(
-                    self.phase_matrix[i,:],
-                    self.fractions
-                )
-            
+        self.set_data_object(self.optimizer.optimize())
+
+    def apply_current_data_object(self):
+        """
+            Recalculates the intensities using the current fractions, scales
+            and bg shifts without optimization
+        """
+        self.set_data_object(self.data_object, calculate=True)
+        
     def get_composition_matrix(self):
         """
             Returns a matrix containing the oxide composition for each specimen 
@@ -377,7 +402,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
                     for new_attr in value.refinables: parse_attribute(value, new_attr, new_itr)
             else: #regular values
                 new_itr = add_property(root_itr, obj, attr)
-            
+                    
         for phase in self.parent.phases.iter_objects():
             if phase in self.phase_matrix: 
                 parse_attribute(phase, None, None)
@@ -405,7 +430,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         
     
     def get_refine_method(self):
-        return self.refiner.refine_methods[self.refine_method]
+        return self.all_refine_methods[self.refine_method]
              
     def setup_refine_options(self):
         if self.refine_options == None:

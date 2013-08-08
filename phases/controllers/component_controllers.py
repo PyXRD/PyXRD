@@ -17,7 +17,7 @@ from generic.controllers.utils import get_case_insensitive_glob
 
 from phases.controllers import EditLayerController, EditAtomRelationsController, EditUnitCellPropertyController
 from phases.views import EditComponentView, EditUnitCellPropertyView
-from phases.models import Component
+from phases.models.component import Component
 
 class EditComponentController(BaseController):
     """ 

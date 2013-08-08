@@ -12,11 +12,12 @@ from generic.custom_math import lognormal
 from generic.caching import cache
 
 @cache(64)
-def calculate_distribution(Tmean, Tmax, Tmin, alpha_scale, alpha_offset, beta_scale, beta_offset):
-    a = alpha_scale * log(Tmean) + alpha_offset
-    b = sqrt(beta_scale * log(Tmean) + beta_offset)
+def calculate_distribution(CSDS):
+
+    a = CSDS.alpha_scale * log(CSDS.average) + CSDS.alpha_offset
+    b = sqrt(CSDS.beta_scale * log(CSDS.average) + CSDS.beta_offset)
         
-    steps = int(Tmax - Tmin) + 1
+    steps = int(CSDS.maximum - CSDS.minimum) + 1
     
     maxT = 0
     
@@ -24,7 +25,7 @@ def calculate_distribution(Tmean, Tmax, Tmin, alpha_scale, alpha_offset, beta_sc
     q_log_distr = []
     TQDistr = dict()
     for i in range(steps):
-        T = max(Tmin + i, 1e-50)
+        T = max(CSDS.minimum + i, 1e-50)
         q = lognormal(T, a, b)
         smq += q
         
@@ -38,4 +39,4 @@ def calculate_distribution(Tmean, Tmax, Tmin, alpha_scale, alpha_offset, beta_sc
         Rmean += T*q
     Rmean /= smq
         
-    return (TQDistr.items(), TQarr, Rmean)
+    return TQarr, Rmean

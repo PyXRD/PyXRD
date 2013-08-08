@@ -22,10 +22,8 @@ from generic.models import ChildModel, PropIntel
 from generic.models.mixins import CSVMixin, ObjectListStoreChildMixin
 from generic.models.metaclasses import pyxrd_object_pool
 from generic.models.treemodels import XYListStore
-from generic.calculations.atoms import (
-    get_atomic_scattering_factor,
-    get_structure_factor
-)
+from generic.calculations.data_objects import AtomTypeData, AtomData
+from generic.calculations.atoms import get_structure_factor
 
 @storables.register()
 class AtomType(ChildModel, ObjectListStoreChildMixin, Storable, CSVMixin):
@@ -46,9 +44,9 @@ class AtomType(ChildModel, ObjectListStoreChildMixin, Storable, CSVMixin):
         PropIntel(name="par_c",               is_column=True, data_type=float,   storable=True, has_widget=True),
         PropIntel(name="parameters_changed"),
     ] + [
-        PropIntel(name="par_a%d" % i,         is_column=True, data_type=float, storable=True, has_widget=True) for i in [1,2,3,4,5]
+        PropIntel(name="par_a%d" % i,         is_column=True, data_type=float, storable=True, has_widget=True) for i in xrange(1,6)
     ] + [
-        PropIntel(name="par_b%d" % i,         is_column=True, data_type=float, storable=True, has_widget=True) for i in [1,2,3,4,5]
+        PropIntel(name="par_b%d" % i,         is_column=True, data_type=float, storable=True, has_widget=True) for i in xrange(1,6)
     ]
     __csv_storables__ = [(prop.name, prop.name) for prop in __model_intel__ if prop.storable]
     __store_id__ = "AtomType"
@@ -64,68 +62,90 @@ class AtomType(ChildModel, ObjectListStoreChildMixin, Storable, CSVMixin):
         self.liststore_item_changed()
      
     atom_nr = 0
-    weight = 0
-    debye = 0
-    charge = 0
-    
-    _a = None
+
+    _data_object = None
+    @property
+    def data_object(self):
+        return self._data_object
+
+    """_a = None
     _b = None
-    _c = 0
+    _c = None
+    _debye = None
+    _weight = None
+    _charge = None"""
     
-    @Model.getter("par_a*", "par_b*", "par_c")
+    @Model.getter("par_a*", "par_b*", "par_c", "debye", "charge", "weight")
     def get_atom_par(self, prop_name):
-        name = prop_name[4]
-        if name == "a":
-            index = int(prop_name[-1:])-1
-            return self._a[index]
-        elif name == "b":
-            index = int(prop_name[-1:])-1
-            return self._b[index]
-        elif name == "c":
-            return self._c
+        if prop_name.startswith("par_"):
+            name = prop_name[4]
+            if name == "a":
+                index = int(prop_name[-1:])-1
+                return self._data_object.par_a[index]
+            elif name == "b":
+                index = int(prop_name[-1:])-1
+                return self._data_object.par_b[index]
+            elif name == "c":
+                return self._data_object.par_c
+        elif prop_name == "debye":
+            return self._data_object.debye
+        elif prop_name == "charge":
+            return self._data_object.charge
+        elif prop_name == "weight":
+            return self._data_object.weight
         return None
         
-    @Model.setter("par_a*", "par_b*", "par_c")
+    @Model.setter("par_a*", "par_b*", "par_c", "debye", "charge", "weight")
     def set_atom_par(self, prop_name, value):
-        name = prop_name[4]
-        if name == "a":
-            index = int(prop_name[-1:])-1
-            self._a[index] = value
-            self.parameters_changed.emit()
-        elif name == "b":
-            index = int(prop_name[-1:])-1
-            self._b[index] = value
-            self.parameters_changed.emit()
-        elif name == "c":
-            self._c = value
-            self.parameters_changed.emit()            
+        if prop_name.startswith("par_"):
+            name = prop_name[4]
+            if name == "a":
+                index = int(prop_name[-1:])-1
+                self._data_object.par_a[index] = float(value)
+            elif name == "b":
+                index = int(prop_name[-1:])-1
+                self._data_object.par_b[index] = float(value)
+            elif name == "c":
+                self._data_object.par_c = value
+        elif prop_name == "debye":
+            self._data_object.par_c = float(value)
+        elif prop_name == "charge":
+            self._data_object.charge = float(value)
+        elif prop_name == "weight":
+            self._data_object.weight = float(value)
+        self.parameters_changed.emit()            
 
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
     
-    def __init__(self, name="", charge=0.0, debye=0.0, weight=0.0, atom_nr=0.0, par_c=0.0, 
+    def __init__(self, name="", charge=0.0, debye=0.0, weight=0.0, atom_nr=0, par_c=0.0, 
             par_a1=0.0, par_a2=0.0, par_a3=0.0, par_a4=0.0, par_a5=0.0, 
             par_b1=0.0, par_b2=0.0, par_b3=0.0, par_b4=0.0, par_b5=0.0, 
             parent=None, **kwargs):
         ChildModel.__init__(self, parent=parent)
         Storable.__init__(self)
         self.parameters_changed = Signal()
+        
+        #Set up data object
+        self._data_object = AtomTypeData(
+            par_a = np.zeros(shape=(5,), dtype=float),
+            par_b = np.zeros(shape=(5,), dtype=float),
+            par_c = 0.0,
+            debye = 0.0,
+            charge = 0.0,
+            weight = 0.0
+        )
                
+        #Set attributes:
         self.name = str(name or self.get_depr(kwargs, "", "data_name"))
         self.atom_nr = int(atom_nr or self.get_depr(kwargs, 0, "data_atom_nr") or 0)
         self.weight = float(weight or self.get_depr(kwargs, 0.0, "data_weight") or 0.0)
-        self.debye = float(debye or self.get_depr(kwargs, 0.0, "data_debye") or 0.0)
         self.charge = float(charge or self.get_depr(kwargs, 0.0, "data_charge") or 0.0)
+        self.debye = float(debye or self.get_depr(kwargs, 0.0, "data_debye") or 0.0)
         
-        self._c = float(par_c or self.get_depr(kwargs, 0.0, "data_par_c") or 0.0)
-
-        self._a = []
-        self._b = []
-        for name in ["par_a1", "par_a2", "par_a3", "par_a4", "par_a5"]:
-            self._a.append(float(locals()[name] or self.get_depr(kwargs, 0.0, "data_%s" % name) or 0.0))
-        for name in ["par_b1", "par_b2", "par_b3", "par_b4", "par_b5"]:
-            self._b.append(float(locals()[name] or self.get_depr(kwargs, 0.0, "data_%s" % name) or 0.0))
+        for name in ["par_a1", "par_a2", "par_a3", "par_a4", "par_a5", "par_b1", "par_b2", "par_b3", "par_b4", "par_b5", "par_c"]:
+            setattr(self, name, float(locals()[name] or self.get_depr(kwargs, 0.0, "data_%s" % name) or 0.0))
         
     def __str__(self):
         return "<AtomType %s (%s)>" % (self.name, id(self))
@@ -133,11 +153,8 @@ class AtomType(ChildModel, ObjectListStoreChildMixin, Storable, CSVMixin):
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------
-    def get_atomic_scattering_factors(self, stl_range):
-        return get_atomic_scattering_factor(stl_range, *self.get_asf_args())
-       
-    def get_asf_args(self):
-        return self._a, self._b, self._c, self.debye
+    """ FIXME def get_atomic_scattering_factors(self, stl_range):
+        return get_atomic_scattering_factor(stl_range, self.get_asf_args())"""
        
     pass #end of class
        
@@ -151,45 +168,53 @@ class Atom(ChildModel, ObjectListStoreChildMixin, Storable):
     __model_intel__ = [ #TODO add labels
         PropIntel(name="name",              data_type=unicode, is_column=True, storable=True, has_widget=True),
         PropIntel(name="default_z",         data_type=float,   is_column=True, storable=True, has_widget=True),
-        PropIntel(name="z",                 data_type=float,   is_column=True, storable=True, has_widget=True),
+        PropIntel(name="z",                 data_type=float,   is_column=True, storable=False, has_widget=True),
         PropIntel(name="pn",                data_type=float,   is_column=True, storable=True, has_widget=True),
         PropIntel(name="atom_type",         data_type=object,  is_column=True, has_widget=True),
         PropIntel(name="stretch_values",    data_type=bool),
     ]    
     __store_id__ = "Atom"
     
+    _data_object = None
+    @property
+    def data_object(self):
+        self._data_object.atom_type = self.atom_type.data_object
+        return self._data_object
+    
     #PROPERTIES:
     name = ""
     
-    _default_z = 0
-    def get_default_z_value(self): return self._default_z
+    _sf_array = None
+    _atom_array = None
+    
+    _default_z = None
+    def get_default_z_value(self):
+        return self._data_object.default_z
     def set_default_z_value(self, value):
-        if value != self._default_z:
-            self._default_z = value
+        if value != self._data_object.default_z:
+            self._data_object.default_z = float(value)
             self.liststore_item_changed()
 
-    _stretch_values = False
-    def get_stretch_values_value(self): return self._stretch_values
+    _stretch_z = False
+    def get_stretch_values_value(self): return bool(self._stretch_z)
     def set_stretch_values_value(self, value):
-        if value != self._stretch_values:
-            self._stretch_values = value
+        if value != self._stretch_z:
+            self._stretch_z = bool(value)
             self.liststore_item_changed()
     
     def get_z_value(self):
-        if self._stretch_values and self.component!=None:
+        if self.stretch_values and self.component!=None:
             lattice_d, factor = self.component.get_interlayer_stretch_factors()
-            return lattice_d + (self.default_z - lattice_d) * factor
+            return float(lattice_d + (self.default_z - lattice_d) * factor)
         return self.default_z
     def set_z_value(self, value):
-        warn("The z property currently sets the default_z property, \
-        but this might change in the future!", DeprecationWarning)
-        self.default_z = value
+        warn("The z property can not be set!", DeprecationWarning)
     
-    _pn = 0
-    def get_pn_value(self): return self._pn
+    _pn = None
+    def get_pn_value(self): return self._data_object.pn
     def set_pn_value(self, value):
-        if value != self._pn:
-            self._pn = value
+        if value != self._data_object.pn:
+            self._data_object.pn = float(value)
             self.liststore_item_changed()
     
     @property
@@ -217,17 +242,24 @@ class Atom(ChildModel, ObjectListStoreChildMixin, Storable):
     # ------------------------------------------------------------
     def __init__(self, name="", default_z=0.0, pn=0.0,
             atom_type=None, atom_type_index=-1, atom_type_uuid="", 
-            atom_type_name="", stretch_values=False, parent=None, **kwargs):  
+            atom_type_name="", stretch_values=False, parent=None, sf_view=None, **kwargs):  
         ChildModel.__init__(self, parent=parent)
         Storable.__init__(self)
+              
+        #Set up data object
+        self._data_object = AtomData(
+            default_z = 0.0,
+            pn = 0.0
+        )
                
+        #Set attributes               
         self.name = str(name or self.get_depr(kwargs, "", "data_name"))
         
         self.stretch_values = stretch_values
         self.default_z = float(default_z or self.get_depr(kwargs, 0.0, "data_z", "z"))
         self.pn = float(pn or self.get_depr(kwargs, 0.0, "data_pn"))
-        self.atom_type = atom_type or self.get_depr(kwargs, None, "data_atom_type")
         
+        self.atom_type = atom_type or self.get_depr(kwargs, None, "data_atom_type")
         self._atom_type_uuid = atom_type_uuid
         self._atom_type_name = atom_type_name
         self._atom_type_index = atom_type_index if atom_type_index > -1 else None
@@ -257,14 +289,10 @@ class Atom(ChildModel, ObjectListStoreChildMixin, Storable):
     # ------------------------------------------------------------     
     def get_structure_factors(self, stl_range):
         if self.atom_type!=None:
-            return get_structure_factor(stl_range, *self.get_sf_args())
+            return float(get_structure_factor(stl_range, self.data_object))
         else:
             return 0.0
-    
-    def get_sf_args(self):
-        assert self.atom_type!=None, "The Atom's atom_type has not been set!"
-        return self.atom_type.get_asf_args() + (self.z, self.pn)
-                
+
     # ------------------------------------------------------------
     #      Input/Output stuff
     # ------------------------------------------------------------
@@ -285,7 +313,7 @@ class Atom(ChildModel, ObjectListStoreChildMixin, Storable):
                 self.atom_type = self.component.phase.project.atom_types.get_user_data_from_path((self._atom_type_index,))
         self._atom_type_name = ""
         self._atom_type_uuid = ""
-        self._atom_type_index = None
+        self._atom_type_index = None        
 
     def json_properties(self):
         from phases.models import Phase

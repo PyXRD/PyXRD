@@ -67,13 +67,6 @@ class AtomType(ChildModel, ObjectListStoreChildMixin, Storable, CSVMixin):
     @property
     def data_object(self):
         return self._data_object
-
-    """_a = None
-    _b = None
-    _c = None
-    _debye = None
-    _weight = None
-    _charge = None"""
     
     @Model.getter("par_a*", "par_b*", "par_c", "debye", "charge", "weight")
     def get_atom_par(self, prop_name):
@@ -108,7 +101,7 @@ class AtomType(ChildModel, ObjectListStoreChildMixin, Storable, CSVMixin):
             elif name == "c":
                 self._data_object.par_c = value
         elif prop_name == "debye":
-            self._data_object.par_c = float(value)
+            self._data_object.debye = float(value)
         elif prop_name == "charge":
             self._data_object.charge = float(value)
         elif prop_name == "weight":
@@ -149,12 +142,6 @@ class AtomType(ChildModel, ObjectListStoreChildMixin, Storable, CSVMixin):
         
     def __str__(self):
         return "<AtomType %s (%s)>" % (self.name, id(self))
-        
-    # ------------------------------------------------------------
-    #      Methods & Functions
-    # ------------------------------------------------------------
-    """ FIXME def get_atomic_scattering_factors(self, stl_range):
-        return get_atomic_scattering_factor(stl_range, self.get_asf_args())"""
        
     pass #end of class
        

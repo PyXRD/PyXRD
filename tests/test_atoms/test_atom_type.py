@@ -51,12 +51,6 @@ class TestAtomType(unittest.TestCase):
         parent_atom_type = AtomType(name="Parent")
         self.atom_type.parent = parent_atom_type
         self.assertEqual(self.atom_type.parent, parent_atom_type)
-        
-    def test_scattering(self):
-        import numpy as np
-        rng = 2.0 * np.sin(np.arange(30)) / 0.154056
-        res = self.atom_type.get_atomic_scattering_factors(rng)
-        self.assertIsNotNone(res)
     
         
     pass #end of class

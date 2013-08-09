@@ -33,7 +33,6 @@ class TestAtom(unittest.TestCase):
     test_name       = create_object_attribute_test("atom", "name", "Test Name")
     test_pn         = create_object_attribute_test("atom", "pn", 3)    
     test_default_z  = create_object_attribute_test("atom", "default_z", 5.3)
-    test_z          = create_object_attribute_test("atom", "z", 9.0)
     test_stretch_values = create_object_attribute_test("atom", "stretch_values", True)
         
     def test_parent(self):

@@ -35,11 +35,11 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin,
     __model_intel__ = [
         PropIntel(name="name",                      data_type=unicode,label="Name",                   is_column=True, has_widget=True, storable=True),
         PropIntel(name="linked_with",               data_type=object, label="Linked with",            widget_type='combo', is_column=True, has_widget=True),
-        PropIntel(name="d001",                      data_type=float,  label="Cell length c [nm]",     is_column=True, has_widget=True, storable=True, refinable=True, minimum=0.0, maximum=5.0,  inh_name="inherit_d001"),
-        PropIntel(name="default_c",                 data_type=float,  label="Default c length [nm]",  is_column=True, has_widget=True, storable=True, minimum=0.0, maximum=5.0,  inh_name="inherit_default_c"),
-        PropIntel(name="delta_c",                   data_type=float,  label="C length dev. [nm]",     is_column=True, has_widget=True, storable=True, refinable=True, minimum=0.0, maximum=0.05, inh_name="inherit_delta_c"),
-        PropIntel(name="ucp_a",                     data_type=object, label="Cell length a [nm]",     is_column=True, has_widget=True, storable=True, refinable=True, inh_name="inherit_ucp_a"),
-        PropIntel(name="ucp_b",                     data_type=object, label="Cell length b [nm]",     is_column=True, has_widget=True, storable=True, refinable=True, inh_name="inherit_ucp_b"),
+        PropIntel(name="d001",                      data_type=float,  label="Cell length c [nm]",     is_column=True, has_widget=True, storable=True, refinable=True, minimum=0.0, maximum=5.0,  inh_name="inherit_d001", stor_name="_d001"),
+        PropIntel(name="default_c",                 data_type=float,  label="Default c length [nm]",  is_column=True, has_widget=True, storable=True, minimum=0.0, maximum=5.0,  inh_name="inherit_default_c", stor_name="_default_c"),
+        PropIntel(name="delta_c",                   data_type=float,  label="C length dev. [nm]",     is_column=True, has_widget=True, storable=True, refinable=True, minimum=0.0, maximum=0.05, inh_name="inherit_delta_c", stor_name="_delta_c"),
+        PropIntel(name="ucp_a",                     data_type=object, label="Cell length a [nm]",     is_column=True, has_widget=True, storable=True, refinable=True, inh_name="inherit_ucp_a", stor_name="_ucp_a"),
+        PropIntel(name="ucp_b",                     data_type=object, label="Cell length b [nm]",     is_column=True, has_widget=True, storable=True, refinable=True, inh_name="inherit_ucp_b", stor_name="_ucp_b"),
         PropIntel(name="inherit_d001",              data_type=bool,   label="Inh. cell length c",     is_column=True, has_widget=True, storable=True),
         PropIntel(name="inherit_ucp_b",             data_type=bool,   label="Inh. cell length b",     is_column=True, has_widget=True, storable=True),
         PropIntel(name="inherit_ucp_a",             data_type=bool,   label="Inh. cell length a",     is_column=True, has_widget=True, storable=True),
@@ -48,9 +48,9 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin,
         PropIntel(name="inherit_layer_atoms",       data_type=bool,   label="Inh. layer atoms",       is_column=True, has_widget=True, storable=True),
         PropIntel(name="inherit_interlayer_atoms",  data_type=bool,   label="Inh. interlayer atoms",  is_column=True, has_widget=True, storable=True),
         PropIntel(name="inherit_atom_relations",    data_type=bool,   label="Inh. atom relations",    is_column=True, has_widget=True, storable=True),
-        PropIntel(name="atom_relations",            data_type=object, label="Atom relations",         is_column=True, has_widget=True, storable=True, refinable=True, inh_name="inherit_atom_relations"),
-        PropIntel(name="layer_atoms",               data_type=object, label="Layer atoms",            is_column=True, has_widget=True, storable=True, inh_name="inherit_layer_atoms"),
-        PropIntel(name="interlayer_atoms",          data_type=object, label="Interlayer atoms",       is_column=True, has_widget=True, storable=True, inh_name="inherit_interlayer_atoms"),
+        PropIntel(name="atom_relations",            data_type=object, label="Atom relations",         is_column=True, has_widget=True, storable=True, refinable=True, inh_name="inherit_atom_relations", stor_name="_atom_relations"),
+        PropIntel(name="layer_atoms",               data_type=object, label="Layer atoms",            is_column=True, has_widget=True, storable=True, inh_name="inherit_layer_atoms", stor_name="_layer_atoms"),
+        PropIntel(name="interlayer_atoms",          data_type=object, label="Interlayer atoms",       is_column=True, has_widget=True, storable=True, inh_name="inherit_interlayer_atoms", stor_name="_interlayer_atoms"),
         PropIntel(name="needs_update",              data_type=object),
         PropIntel(name="dirty",                     data_type=bool),        
     ]
@@ -364,7 +364,7 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin,
         """
             Saves multiple components to a single file.
         """
-        pyxrd_object_pool.stack_uuids()
+        pyxrd_object_pool.change_all_uuids()
         Component.export_atom_types = True
         for comp in components:
             comp.save_links = False
@@ -374,25 +374,23 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin,
         for comp in components:
             comp.save_links = True
         Component.export_atom_types = False
-        pyxrd_object_pool.restore_uuids()
         
     @classmethod
     def load_components(cls, filename, parent=None):
         """
             Returns multiple components loaded from a single file.
         """
+        pyxrd_object_pool.change_all_uuids()
         if zipfile.is_zipfile(filename):
-            pyxrd_object_pool.stack_uuids()
             with zipfile.ZipFile(filename, 'r') as zfile:
                 for uuid in zfile.namelist():
                     yield cls.load_object(zfile.open(uuid), parent=parent)
-            pyxrd_object_pool.restore_uuids()
         else:
             yield cls.load_object(filename, parent=parent)
                         
     def json_properties(self):
-        retval = Storable.json_properties(self)
         if self.phase==None or not self.save_links:
+            retval = Storable.json_properties(self)
             for prop in self.__model_intel__:
                 if prop.inh_name:
                     retval[prop.inh_name] = False

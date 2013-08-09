@@ -266,8 +266,6 @@ class AtomContents(AtomRelation):
                 
         def on_change(*args):
             if self.enabled: #no need for updates in this case
-                from traceback import print_stack
-                print_stack()
                 self.changed.emit()
         self._atom_contents.connect("row-changed", on_change)
         self._atom_contents.connect("row-inserted", on_change)

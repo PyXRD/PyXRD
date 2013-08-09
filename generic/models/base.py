@@ -10,7 +10,7 @@ from warnings import warn
 from gtkmvc.model_mt import ModelMT
 from gtkmvc.model import Signal
 
-from metaclasses import PyXRDMeta, get_new_uuid, pyxrd_object_pool
+from metaclasses import PyXRDMeta, pyxrd_object_pool
 from properties import PropIntel
 
 class PyXRDModel(ModelMT):
@@ -52,27 +52,20 @@ class PyXRDModel(ModelMT):
                 warn("The use of the keyword '%s' is deprecated for %s!" % (key, type(self)), DeprecationWarning)
         return value
     
+    __uuid__ = None
     @property
-    def uuid(self): return self.__uuid__
+    def uuid(self): 
+        return self.__uuid__
+    @uuid.setter
+    def uuid(self, value):
+        pyxrd_object_pool.remove_object(self)        
+        self.__uuid__ = value
+        pyxrd_object_pool.add_object(self)        
     
     def __init__(self, *args, **kwargs):
         ModelMT.__init__(self, *args, **kwargs)
         self.__stored_uuids__ = list()
-    
-    def stack_uuid(self):
-        self.__stored_uuids__.append(self.__uuid__)
-        pyxrd_object_pool.remove_object(self)
-        self.__uuid__ = get_new_uuid()
-        pyxrd_object_pool.add_object(self)
-        
-    def restore_uuid(self):
-        pyxrd_object_pool.remove_object(self)
-        try:
-            self.__uuid__ = self.__stored_uuids__.pop()
-        except IndexError: #nothing to pop: create a new one!
-            self.__uuid__ = get_new_uuid()
-        pyxrd_object_pool.add_object(self)
-        
+               
     def get_prop_intel_by_name(self, name):
         for prop in self.__model_intel__:
             if prop.name == name:

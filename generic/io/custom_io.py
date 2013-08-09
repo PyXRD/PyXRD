@@ -300,8 +300,12 @@ class Storable(object):
         re-create the object when serialized as JSON.
         """
         retval = OrderedDict()
-        for name in self.__storables__:
-            retval[name] = getattr(self, name)
+        for val in self.__storables__:
+            try:
+                alias, attr = val
+            except ValueError:
+                alias, attr = val, val
+            retval[alias] = getattr(self, attr)
         return retval
     
     def parse_init_arg(self, arg, default, child=False, **kwargs):

@@ -33,74 +33,82 @@ from atoms.models import Atom
 from phases.views import EditUnitCellPropertyView, EditAtomRatioView, EditAtomContentsView
 from phases.atom_relations import AtomRatio, AtomContents
 
-class EditUnitCellPropertyController(BaseController):
+class AtomComboMixin(object):
+    
+    extra_props = []
+    custom_handler_names = []
+    
+    def reset_combo_box(self, name):
+        #Get store, reset combo
+        store = self.model.create_prop_store(self.extra_props)
+        combo = self.view[self.view.widget_format % name]
+        combo.clear()
+        combo.set_model(store)
+        
+        #Add text column:
+        def get_name(layout, cell, model, itr, data=None):
+            obj, lbl = model.get(itr, 0, 2)
+            if callable(lbl): lbl = lbl(obj)
+            cell.set_property("markup", lbl)
+        add_combo_text_column(combo, data_func=get_name)
+        
+        #Set the selected item to active:
+        prop = getattr(self.model, name)
+        if prop != None:
+            prop = tuple(prop)
+            for row in store:
+                if tuple(store.get(row.iter, 0, 1)) == prop:
+                    combo.set_active_iter(row.iter)
+                    break
+           
+        return combo, store
+        
+    @staticmethod
+    def custom_handler(controller, intel, prefix):
+        if intel.name in controller.custom_handler_names:
+            combo, store = controller.reset_combo_box(intel.name)
+            def on_changed(combo, user_data=None):
+                itr = combo.get_active_iter()
+                if itr != None:
+                    val = combo.get_model().get(itr, 0, 1)
+                    setattr(controller.model, combo.get_data('model_prop'), val)
+            combo.set_data('model_prop', intel.name)
+            combo.connect('changed', on_changed)
+            
+            def on_item_changed(*args):
+                controller.reset_combo_box(intel.name)
+            
+            #use private properties so we connect to the actual object stores and not the inherited ones
+            controller.model.parent._layer_atoms.connect("item-removed", on_item_changed)
+            controller.model.parent._interlayer_atoms.connect("item-removed", on_item_changed)
+            controller.model.parent._layer_atoms.connect("item-inserted", on_item_changed)
+            controller.model.parent._interlayer_atoms.connect("item-inserted", on_item_changed)
+            
+        else: return False
+        return True
+    
+
+class EditUnitCellPropertyController(BaseController, AtomComboMixin):
     """ 
         Controller for the UnitCellProperty models (a and b cell lengths)
     """
     
+    custom_handler_names = ["prop",]
     widget_handlers = {
-        'combo': 'combo_handler',
+        'combo': 'custom_handler',
         'check': 'check_handler',
     }
-    
-    def reset_prop_store(self):
-        combo = self.view[self.view.widget_format % "prop"]
-        #object, property, label(-callback)
-        store = gtk.ListStore(object, str, object)
-        for i, atom in enumerate(self.model.parent._layer_atoms._model_data):
-            store.append([atom, "pn", lambda o: o.name])
-        for i, atom in enumerate(self.model.parent._interlayer_atoms._model_data):
-            store.append([atom, "pn", lambda o: o.name])
-        for prop in self.extra_props:
-            store.append(prop)
-        combo.set_model(store)
-
-        for row in store:
-            if list(store.get(row.iter, 0, 1)) == self.model.prop:
-                combo.set_active_iter(row.iter)
-                break
-        return store
 
     def __init__(self, extra_props, **kwargs):
         BaseController.__init__(self, **kwargs)
         self.extra_props = extra_props
-
-    @staticmethod
-    def combo_handler(self, intel, prefix):
-        if intel.name == "prop":
-            combo = self.view[self.view.widget_format % intel.name]
-            store = self.reset_prop_store()
-            
-            def on_changed(combo, user_data=None):
-                itr = combo.get_active_iter()
-                if itr != None:
-                    obj, prop = combo.get_model().get(itr, 0, 1)
-                    self.model.prop = (obj, prop)
-            combo.connect('changed', on_changed)
-            
-            def get_name(layout, cell, model, itr, data=None):
-                obj, lbl = model.get(itr, 0, 2)
-                if callable(lbl): lbl = lbl(obj)
-                cell.set_property("markup", lbl)
-            add_combo_text_column(combo, data_func=get_name)
-            
-            def on_item_changed(*args):
-                self.reset_prop_store()
-            
-            #use private properties so we connect to the actual object stores and not the inherited ones
-            self.model.parent._layer_atoms.connect("item-removed", on_item_changed)
-            self.model.parent._interlayer_atoms.connect("item-removed", on_item_changed)
-            self.model.parent._layer_atoms.connect("item-inserted", on_item_changed)
-            self.model.parent._interlayer_atoms.connect("item-inserted", on_item_changed)
-        else: return False
-        return True
         
     @staticmethod
-    def check_handler(self, intel, prefix):
+    def check_handler(controller, intel, prefix):
         if intel.name == "enabled":
-            self.adapt(intel.name, self.view.widget_format % intel.name)
-            self.view["ucp_disabled"].set_active(not self.model.enabled)
-            self.view["ucp_enabled"].set_active(self.model.enabled)
+            controller.adapt(intel.name, controller.view.widget_format % intel.name)
+            controller.view["ucp_disabled"].set_active(not controller.model.enabled)
+            controller.view["ucp_enabled"].set_active(controller.model.enabled)
         else: return False
         return True
 
@@ -132,54 +140,15 @@ class EditUnitCellPropertyController(BaseController):
     
     pass #end of class
 
-class EditAtomRatioController(DialogController):
+class EditAtomRatioController(DialogController, AtomComboMixin):
     """ 
         Controller for the atom ratio edit dialog
     """
     
+    custom_handler_names = ["atom1", "atom2"]
     widget_handlers = {
         'custom': 'custom_handler',
     }
-    
-    def reset_combo_box(self, name):
-        if self.model is not None and self.model.parent is not None:
-            #TODO make this a more general function to be used by both AtomRatio's and UCP's
-            # problem: what to do with cell length parameters?
-            # part of the solution would be to let both of these models
-            # generate similar property stores (object, label/callable) tuples
-            store = self.model.create_prop_store()
-            combo = self.view[self.view.widget_format%name]
-            combo.set_model(store)
-
-            combo.clear()
-            def atom_renderer(column, cell, model, itr, col):
-                obj = model.get_value(itr, col)
-                if obj:
-                    cell.set_property('text', obj.name)
-                else:
-                    cell.set_property('text', '#NA#')
-            add_combo_text_column(combo, data_func=(atom_renderer, (0,)))
-
-            for row in store:
-                if list(store.get(row.iter, 0, 1)) == getattr(self.model, name):
-                    combo.set_active_iter(row.iter)
-                    break   
-                    
-            return combo, store
-    
-    @staticmethod
-    def custom_handler(self, intel, prefix):
-        if intel.name in ("atom1", "atom2"):                   
-            combo, store = self.reset_combo_box(intel.name)
-            def on_changed(combo, user_data=None):
-                itr = combo.get_active_iter()
-                if itr != None:
-                    val = combo.get_model().get(itr, 0, 1)
-                    setattr(self.model, combo.get_data('model_prop'), val)
-            combo.set_data('model_prop', intel.name)
-            combo.connect('changed', on_changed)
-        else: return False
-        return True
             
     pass #end of class
     
@@ -314,9 +283,9 @@ class EditAtomRelationsController(InlineObjectListStoreController):
             col = new_pb_column(" ", resizable=False, expand=False, stock_id=image)
             col.set_data("col_descr", colnr)
             tv.append_column(col)
-        setup_image_button(gtk.STOCK_GO_UP, "Up") #FIXME icons!
-        setup_image_button(gtk.STOCK_GO_DOWN, "Down") #FIXME icons!
-        setup_image_button(gtk.STOCK_EDIT, "Edit") #FIXME icons!
+        setup_image_button("213-up-arrow", "Up")
+        setup_image_button("212-down-arrow", "Down")
+        setup_image_button("030-pencil", "Edit")
                    
     def _setup_treeview(self, tv, model):   
         tv.connect('button-press-event', self.tv_button_press)

@@ -242,32 +242,41 @@ class BaseController (Controller, DialogMixin):
             
     def register_adapters(self):
         if self.model is not None:
+
+            # Order of handlers:
+            # 1. PropIntel handler (if set)
+            # 2. class handlers (if set)
+            # 3. default handlers
+            # Since handlers are stored as dictionaries, we use the 
+            # update method to override the keys in the reverse order as
+            # stated above. The result being that handlers not having 
+            # precedence over others, are no longer available.
+        
+            # Default handlers:
+            local_handlers = {}
+            local_handlers.update(widget_handlers) #default
+            
+            # Override with class instance handlers:
+            for widget_type, handler in self.widget_handlers.iteritems():
+                if isinstance(handler, basestring):
+                    self.widget_handlers[widget_type] = getattr(self, handler)
+            local_handlers.update(self.widget_handlers)
+        
             for intel in self.model.__model_intel__:
                 if intel.has_widget:
                     if settings.DEBUG: print "Adapting %s" % intel.name
                     handled = False
-                    # Order of handlers:
-                    # 1. PropIntel handler (if set)
-                    # 2. class handlers (if set)
-                    # 3. default handlers
-                    # Since handlers are stored as dictionaries, we use the 
-                    # update method to override the keys in the reverse order as
-                    # stated above. The result being that handlers not having 
-                    # precedence over others, are no longer available.
-                    local_handlers = {}
-                    local_handlers.update(widget_handlers) #default
-                    for widget_type, handler in self.widget_handlers.iteritems():
-                        if isinstance(handler, basestring):
-                            self.widget_handlers[widget_type] = getattr(self, handler)
-                    local_handlers.update(self.widget_handlers) #class
-                    if callable(intel.get_widget_handler()): #PropIntel
-                        local_handlers.update({ intel.widget_type: intel.get_widget_handler() })
-                    handler = local_handlers.get(intel.widget_type, default_widget_handler)
+
+                    # PropIntel has handler?
+                    if callable(intel.get_widget_handler()):
+                        handler = inter.get_widget_handler()
+                    else:
+                        handler = local_handlers.get(intel.widget_type, default_widget_handler)
+                        
                     if callable(handler):
                          handled = handler(self, intel, self.view.widget_format)
                     if not handled:
-                        # if after going through the above two steps the 
-                        # property still is not handled, raise an error:
+                        # if the property still is not handled, raise an error:
                         raise AttributeError, "Could not derive the widget handler for property '%s' of class '%s'" % (intel.name, type(self.model))
     pass #end of class
       

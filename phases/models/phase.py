@@ -34,17 +34,17 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin,
     __parent_alias__ = 'project'
     __model_intel__ = [
         PropIntel(name="name",                      data_type=unicode, label="Name",                is_column=True, has_widget=True, storable=True),
-        PropIntel(name="display_color",             data_type=str,     label="Display color",       is_column=True, has_widget=True, widget_type='color', storable=True, inh_name="inherit_display_color"),
+        PropIntel(name="display_color",             data_type=str,     label="Display color",       is_column=True, has_widget=True, widget_type='color', storable=True, inh_name="inherit_display_color", stor_name="_display_color"),
         PropIntel(name="based_on",                  data_type=object,  label="Based on phase",      is_column=True, has_widget=True, widget_type='combo'),
         PropIntel(name="G",                         data_type=int,     label="# of components",     is_column=True, has_widget=True, storable=True),
         PropIntel(name="R",                         data_type=int,     label="Reichweite",          is_column=True, has_widget=True),
-        PropIntel(name="CSDS_distribution",         data_type=object,  label="CSDS Distribution",   is_column=True, has_widget=True, storable=True, refinable=True, inh_name="inherit_CSDS_distribution"),
-        PropIntel(name="sigma_star",                data_type=float,   label="$\sigma^*$ [°]",      is_column=True, has_widget=True, storable=True, refinable=True, minimum=0.0,   maximum=90.0, inh_name="inherit_sigma_star"),
+        PropIntel(name="CSDS_distribution",         data_type=object,  label="CSDS Distribution",   is_column=True, has_widget=True, storable=True, refinable=True, inh_name="inherit_CSDS_distribution", stor_name="_CSDS_distribution"),
+        PropIntel(name="sigma_star",                data_type=float,   label="$\sigma^*$ [°]",      is_column=True, has_widget=True, storable=True, refinable=True, minimum=0.0, maximum=90.0, inh_name="inherit_sigma_star", stor_name="_sigma_star"),
         PropIntel(name="inherit_display_color",     data_type=bool,    label="Inh. display color",  is_column=True, has_widget=True, storable=True),
         PropIntel(name="inherit_CSDS_distribution", data_type=bool,    label="Inh. mean CSDS",      is_column=True, has_widget=True, storable=True),
         PropIntel(name="inherit_sigma_star",        data_type=bool,    label="Inh. sigma star",     is_column=True, has_widget=True, storable=True),
         PropIntel(name="inherit_probabilities",     data_type=bool,    label="Inh. probabilities",  is_column=True, has_widget=True, storable=True),
-        PropIntel(name="probabilities",             data_type=object,  label="Probabilities",       is_column=True, has_widget=True, storable=True, refinable=True, inh_name="inherit_probabilities",),
+        PropIntel(name="probabilities",             data_type=object,  label="Probabilities",       is_column=True, has_widget=True, storable=True, refinable=True, inh_name="inherit_probabilities", stor_name="_probabilities"),
         PropIntel(name="components",                data_type=object,  label="Components",          is_column=True, has_widget=True, storable=True, refinable=True),
         PropIntel(name="needs_update",              data_type=object),
         PropIntel(name="dirty",                     data_type=bool),
@@ -326,7 +326,7 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin,
         """
             Saves multiple phases to a single file.
         """
-        pyxrd_object_pool.stack_uuids()
+        pyxrd_object_pool.change_all_uuids()
         for phase in phases:
             if phase.based_on!="" and not phase.based_on in phases:
                 phase.save_links = False
@@ -352,21 +352,19 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin,
             for component in phase.components.iter_objects():
                 component.save_links = True
             Component.export_atom_types = False
-        pyxrd_object_pool.restore_uuids()
         
     @classmethod
     def load_phases(cls, filename, parent=None):
         """
             Returns multiple phases loaded from a single file.
         """
+        pyxrd_object_pool.change_all_uuids()
         if zipfile.is_zipfile(filename):
-            pyxrd_object_pool.stack_uuids()
             with zipfile.ZipFile(filename, 'r') as zfile:
                 for name in zfile.namelist():
                     #i, hs, uuid = name.partition("###")
                     #if uuid=='': uuid = i
                     yield cls.load_object(zfile.open(name), parent=parent)
-            pyxrd_object_pool.restore_uuids()
         else:
             yield cls.load_object(filename, parent=parent)
 

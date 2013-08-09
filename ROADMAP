@@ -15,7 +15,6 @@ Feature-wise:
     
 Code-Wise:
 
-0.4.8 - Fix bugs in inheriting Unit Cell Properties and displaying of atom names
 0.x - check for backwards compatibility issues with pre-O.4 project files
 0.x - DOCUMENTATION!
 0.x - cleanse code from TODO & FIXME's

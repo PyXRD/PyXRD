@@ -112,6 +112,7 @@ class PropIntel(object):
         self._label = value
 
     inh_name = None
+    stor_name = None
     
     minimum = None
     maximum = None

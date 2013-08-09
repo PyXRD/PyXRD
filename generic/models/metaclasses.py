@@ -5,6 +5,8 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
+from traceback import print_exc
+
 import threading
 import multiprocessing
 
@@ -13,6 +15,8 @@ from weakref import WeakValueDictionary
 from gtkmvc.support.metaclasses import ObservablePropertyMetaMT
 
 from generic.utils import get_unique_list, get_new_uuid
+
+import settings
 
 class PyXRDMeta(ObservablePropertyMetaMT):
 
@@ -72,26 +76,24 @@ class PyXRDMeta(ObservablePropertyMetaMT):
     #      Instance creation:
     # ------------------------------------------------------------
     def __call__(cls, *args, **kwargs):
-        #Check if uuid has been passed (e.g. when restored from disk)
-        # if not generate a new one and set it on the instance
-        uuid = kwargs.get("uuid", None)
-        if uuid!=None: 
-            del kwargs["uuid"]
-        else:
+        # Check if uuid has been passed (e.g. when restored from disk)
+        # if not, generate a new one
+        try:
+            uuid = kwargs.pop("uuid")
+        except KeyError:
             uuid = get_new_uuid()
     
-        #Create instance & set the uuid:
+        # Create instance:
         instance = ObservablePropertyMetaMT.__call__(cls, *args, **kwargs)
-        instance.__uuid__ = uuid
         
-        #Add a reference to the instance for each model intel, 
+        # Add a reference to the instance for each model intel, 
         # so function calls (e.g. labels) work as expected
         for prop_intel in instance.__model_intel__:
-            prop_intel.container = instance            
-        
-        #Add object to the object pool so other objects can 
-        # retrieve it when restored from disk:
-        pyxrd_object_pool.add_object(instance)
+            prop_intel.container = instance
+            
+        # Set the uuid:
+        instance.uuid = uuid
+            
         return instance
         
     # ------------------------------------------------------------
@@ -132,8 +134,11 @@ class PyXRDMeta(ObservablePropertyMetaMT):
         return name, bases, d
 
     def __generate_storables__(cls, name, bases, d, prop):
-        if prop.storable:   
-            d["__storables__"].append(prop.name)
+        if prop.storable:
+            if prop.stor_name!=None:
+                d["__storables__"].append((prop.name, prop.stor_name))
+            else:
+                d["__storables__"].append((prop.name, prop.name))
         return name, bases, d
 
     def __generate_columns__(cls, name, bases, d, prop):
@@ -160,24 +165,31 @@ class ObjectPool(object):
         object.__init__(self)
         self._objects = WeakValueDictionary()
     
-    def add_object(self, obj, force=False, silent=True):
+    def add_or_get_object(self, obj):
+        try: 
+            self.add_object(obj, force=False, silent=False)
+            return obj
+        except KeyError:
+            return self.get_object(obj.uuid)
+    
+    def add_object(self, obj, force=False, fail_on_duplicate=False):
         if not obj.uuid in self._objects or force:
             self._objects[obj.uuid] = obj
-        elif not silent:
+        elif fail_on_duplicate:
             raise KeyError, "UUID %s is already taken by another object %s, cannot add object %s" % (obj.uuid, self._objects[obj.uuid], obj)
+        else:
+            # Just change the objects uuid, will break refs, but
+            # it prevents issues with inherited properties etc.
+            if settings.DEBUG:
+                print "A duplicate UUID was passed to an ObjectPool for a %s object." % obj
+            obj.uuid = get_new_uuid()
     
-    def stack_uuids(self):
-        #first get all values & uuids:
+    def change_all_uuids(self):
+        #first get a copy of all objects & uuids:
         items = self._objects.items()
-        for key, value in items:
-            value.stack_uuid()
-            
-    def restore_uuids(self):
-        #first get all values & uuids:
-        items = self._objects.items()
-        for key, value in items:
-            value.restore_uuid()
-    
+        for uuid, obj in items:
+            obj.uuid = get_new_uuid()
+        
     def remove_object(self, obj):
         if obj.uuid in self._objects and self._objects[obj.uuid]==obj:
             del self._objects[obj.uuid]
@@ -206,17 +218,17 @@ class ThreadedObjectPool(object):
         self.pools[(process, thread)] = pool
         return pool
        
+    def add_or_get_object(self, *args, **kwargs):
+        pool = self.get_pool()
+        return pool.add_or_get_object(*args, **kwargs)
+       
     def add_object(self, *args, **kwargs):
         pool = self.get_pool()
         return pool.add_object(*args, **kwargs)
 
-    def stack_uuids(self, *args, **kwargs):
+    def change_all_uuids(self, *args, **kwargs):
         pool = self.get_pool()
-        return pool.stack_uuids(*args, **kwargs)
-        
-    def restore_uuids(self, *args, **kwargs):
-        pool = self.get_pool()
-        return pool.restore_uuids(*args, **kwargs)
+        return pool.change_all_uuids(*args, **kwargs)
         
     def remove_object(self, *args, **kwargs):
         pool = self.get_pool()

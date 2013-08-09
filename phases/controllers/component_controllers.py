@@ -56,10 +56,10 @@ class EditComponentController(BaseController):
         self.atom_relations_controller = EditAtomRelationsController("_atom_relations", model=self.model, view=self.atom_relations_view, parent=self)
         
         self.ucpa_view = EditUnitCellPropertyView(parent=self.view)
-        self.ucpa_controller = EditUnitCellPropertyController(extra_props=[(self.model, "cell_b", "B cell length"),], model=self.model.ucp_a, view=self.ucpa_view, parent=self)
+        self.ucpa_controller = EditUnitCellPropertyController(extra_props=[(self.model, "cell_b", "B cell length"),], model=self.model._ucp_a, view=self.ucpa_view, parent=self)
         
         self.ucpb_view = EditUnitCellPropertyView(parent=self.view)
-        self.ucpb_controller = EditUnitCellPropertyController(extra_props=[(self.model, "cell_a", "A cell length"),], model=self.model.ucp_b, view=self.ucpb_view, parent=self)
+        self.ucpb_controller = EditUnitCellPropertyController(extra_props=[(self.model, "cell_a", "A cell length"),], model=self.model._ucp_b, view=self.ucpb_view, parent=self)
 
     def reset_combo_box(self):
         if self.model is not None and self.model.parent is not None:

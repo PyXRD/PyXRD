@@ -5,6 +5,8 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
+from gtk import ListStore
+
 from generic.io import storables, Storable
 from generic.models import ChildModel, PropIntel
 from generic.models.metaclasses import pyxrd_object_pool
@@ -110,11 +112,17 @@ class UnitCellProperty(ChildModel, Storable, ComponentPropMixin, RefinementValue
     def json_properties(self):
         retval = Storable.json_properties(self)
         if retval["prop"]:
-            retval["prop"] = [retval["prop"][0].uuid if retval["prop"][0] else None, retval["prop"][1]]
+            #Try to replace objects with their uuid's:
+            try:
+                retval["prop"] = [getattr(retval["prop"][0], 'uuid', retval["prop"][0]), retval["prop"][1]]
+            except:
+                from traceback import print_exc
+                print_exc()
+                pass #ignore
         return retval
         
     def resolve_json_references(self):
-        if self._temp_prop:
+        if getattr(self, "_temp_prop", None):
             self._temp_prop = list(self._temp_prop)
             if isinstance(self._temp_prop[0], basestring):
                 obj = pyxrd_object_pool.get_object(self._temp_prop[0])
@@ -124,7 +132,7 @@ class UnitCellProperty(ChildModel, Storable, ComponentPropMixin, RefinementValue
                 else:
                     self._temp_prop = None
             self.prop = self._temp_prop
-        del self._temp_prop
+            del self._temp_prop
             
     # ------------------------------------------------------------
     #      Notifications of observable properties
@@ -134,7 +142,19 @@ class UnitCellProperty(ChildModel, Storable, ComponentPropMixin, RefinementValue
         
     # ------------------------------------------------------------
     #      Methods & Functions
-    # ------------------------------------------------------------
+    # ------------------------------------------------------------      
+    def create_prop_store(self, extra_props=[]):
+        assert(self.component != None)
+        store = ListStore(object, str, object)
+        #use private properties so we connect to the actual object stores and not the inherited ones
+        for i, atom in enumerate(self.component._layer_atoms.iter_objects()):
+            store.append([atom, "pn", lambda o: o.name])
+        for i, atom in enumerate(self.component._interlayer_atoms.iter_objects()):
+            store.append([atom, "pn", lambda o: o.name])
+        for prop in extra_props:
+            store.append(prop)
+        return store
+    
     def get_value_of_prop(self):
         try:
             return getattr(*self.prop)

@@ -109,8 +109,11 @@ class EditPhaseController(BaseController):
             self.view["phase_inherit_%s" % name].set_sensitive(can_inherit)
 
         for name in ("CSDS_distribution", "probabilities"):
-            sensitive = not (can_inherit and getattr(self.model, "inherit_%s" % name))            
-            #FIXME self.view["phase_%s" % name].set_sensitive(sensitive)
+            sensitive = not (can_inherit and getattr(self.model, "inherit_%s" % name))
+            if name == "CSDS_distribution":
+                self.view.set_csds_sensitive(sensitive)
+            elif name == "probabilities":
+                self.view.set_probabilities_sensitive(sensitive)
             self.view["phase_inherit_%s" % name].set_sensitive(can_inherit)
 
     # ------------------------------------------------------------

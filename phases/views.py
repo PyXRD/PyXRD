@@ -35,11 +35,17 @@ class EditPhaseView(BaseView, HasChildView):
             self._add_child_view(view.get_top_widget(), self[self.csds_view_container])
         return view
         
+    def set_csds_sensitive(self, sens):
+        self[self.csds_view_container].set_sensitive(sens)
+        
     def set_probabilities_view(self, view):
         self.probabilities_view = view
         if view != None:
             self._add_child_view(view.get_top_widget(), self[self.probabilities_view_container])
         return view
+        
+    def set_probabilities_sensitive(self, sens):
+        self[self.probabilities_view_container].set_sensitive(sens)
         
     def remove_probabilities(self):       
         num = self["book_wrapper"].page_num(self["prob_container"])

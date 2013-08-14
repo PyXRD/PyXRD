@@ -1,10 +1,10 @@
 Feature-wise:
+0.5 - distutils-support: see http://docs.python.org/2/distutils/setupscript.html
 0.6 - Sybilla Support:
         - integrate XML file import
 0.6 - add manual Y limit option (in raw counts?)
 0.6 - add zip project files (*.zpd) (DONE)
         - TODO: split large object stores in project zip file into separate files in the zip file
-0.6 - add refinement options (e.g. stagnation limits etc.) to the GUI -> requires some generalisation for future methods?
 0.6 - check for file extension registering on windows (using exec assoc & ftype) & linux (pyxdg)
 0.6 - export to Sybilla's XML format?
 0.8 - split layers and interlayers in two separate parts, each with their own
@@ -15,6 +15,16 @@ Feature-wise:
     
 Code-Wise:
 
+0.4 - Move the goniometer down to the specimen level:
+        - step 1: make the project goniometer argument optional
+        - step 2: add a specimen-level goniometer, do not save, do not load, copy from project-level for now
+        - step 2b: add GUI-related code (specimen view & controllers) -> Goniometer setup can be made a tab in the specimen view?
+        - step 3: change calculation code to use specimen-level goniometer
+        - step 4: make specimen accept project_goniometer kwarg, if goniometer kwarg is not set, this is used instead, should be json string?
+        - step 5:
+            make the specimen goniometer storable, check this works okay &
+            remove the project goniometer, pop it from kwargs if passed to __init__ and pass as project_goniometer kwarg to specimen
+        
 0.x - check for backwards compatibility issues with pre-O.4 project files
 0.x - DOCUMENTATION!
 0.x - cleanse code from TODO & FIXME's

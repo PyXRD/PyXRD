@@ -37,12 +37,13 @@ def R0_model_generator(pasG):
         __independent_label_map__ = [
             (
                 "F%d" % (g+1),
-                r"$\large\frac{W_{%(g)d}}{\sum_{i=%(g)d}^{%(G)d} W_i}$" % {'g':g+1, 'G':pasG }
+                r"$\large\frac{W_{%(g)d}}{\sum_{i=%(g)d}^{%(G)d} W_i}$" % {'g':g+1, 'G':pasG },
+                [0.0, 1.0,]
             ) for g in range(pasG-1)
         ]
         __model_intel__ = [
-            PropIntel(name=prop, label=label, minimum=0.0, maximum=1.0, data_type=float, refinable=True, storable=True, has_widget=True) \
-                for prop, label in __independent_label_map__
+            PropIntel(name=prop, label=label, minimum=rng[0], maximum=rng[1], data_type=float, refinable=True, storable=True, has_widget=True) \
+                for prop, label, rng in __independent_label_map__
         ]
         __store_id__ = "R0G%dModel" % pasG
 

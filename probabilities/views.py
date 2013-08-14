@@ -83,13 +83,11 @@ class IndependentsView(BaseView, HasChildView, ProbabilityViewMixin):
         
         def create_inputs(table):
             input_widgets = [None]*N
-            for i, (prop, lbl) in enumerate(labels):
-                prop, lbl = labels[i]
+            for i, (prop, lbl, rng) in enumerate(labels):
                 
                 new_lbl = self.create_mathtext_widget(lbl)
-                
-                #FIXME apply limits as in the model
-                new_inp = ScaleEntry(lower=0.0, upper=1.0, enforce_range=True) # gtk.Entry()
+                        
+                new_inp = ScaleEntry(lower=rng[0], upper=rng[1], enforce_range=True)
                 new_inp.set_tooltip_text(lbl)
                 new_inp.set_name(prop)                    
                 self["prob_%s" % prop] = new_inp
@@ -119,7 +117,7 @@ class IndependentsView(BaseView, HasChildView, ProbabilityViewMixin):
                 
     def update_matrices(self, model):
         for i, inp in enumerate(self.i_inputs):
-            prop, lbl = self.labels[i]
+            prop, lbl, rng = self.labels[i]
             inp.set_value(getattr(model, prop))
             
     pass #end of class

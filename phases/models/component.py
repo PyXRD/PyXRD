@@ -52,7 +52,6 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin,
         PropIntel(name="layer_atoms",               data_type=object, label="Layer atoms",            is_column=True, has_widget=True, storable=True, inh_name="inherit_layer_atoms", stor_name="_layer_atoms"),
         PropIntel(name="interlayer_atoms",          data_type=object, label="Interlayer atoms",       is_column=True, has_widget=True, storable=True, inh_name="inherit_interlayer_atoms", stor_name="_interlayer_atoms"),
         PropIntel(name="needs_update",              data_type=object),
-        PropIntel(name="dirty",                     data_type=bool),        
     ]
     __store_id__ = "Component"
 
@@ -84,18 +83,7 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin,
     needs_update = None
 
     #PROPERTIES:
-    name = "Name of this component"
-       
-    _dirty = True #FIXME
-    def get_dirty_value(self): 
-        if self.linked_with is not None:
-            return bool(self.linked_with.dirty or self._dirty)
-        else:
-            return self._dirty
-    def set_dirty_value(self, value):
-        if value!=self._dirty: 
-            self._dirty = value
-    
+    name = "Name of this component"  
     
     @property
     def _inherit_ucp_a(self):
@@ -121,7 +109,6 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin,
     @Model.setter(*[prop.inh_name for prop in __model_intel__ if prop.inh_name])
     def set_inherit_prop(self, prop_name, value):
         setattr(self, "_%s" % prop_name, value)
-        self.dirty = True
         self.liststore_item_changed()
         self.needs_update.emit()
 
@@ -140,7 +127,6 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin,
                 for prop in self.__inheritables__:
                     setattr(self, "inherit_%s" % prop, False)
             self.liststore_item_changed()
-            self.dirty = True
                       
     #INHERITABLE PROPERTIES:   
     _ucp_a = None
@@ -165,7 +151,6 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin,
             setattr(self, "_%s" % prop_name, float(value))
             for atom in self.interlayer_atoms.iter_objects():
                 atom.liststore_item_changed()
-        self.dirty = True
         self.liststore_item_changed()
         self.needs_update.emit()
     
@@ -202,7 +187,6 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin,
         self.name = name or self.get_depr(kwargs, self.name, "data_name")
 
         self.needs_update = Signal()
-        self.dirty = True
         
         layer_atoms = layer_atoms or self.get_depr(kwargs, None, "data_layer_atoms")
         self._layer_atoms = self.parse_liststore_arg(layer_atoms, ObjectListStore, Atom)
@@ -281,28 +265,20 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin,
 
     # ------------------------------------------------------------
     #      Notifications of observable properties
-    # ------------------------------------------------------------
-    @Observer.observe("dirty", assign=True)
-    def notify_dirty_changed(self, model, prop_name, info):
-        if model.dirty: self.dirty = True
-        pass
-        
+    # ------------------------------------------------------------        
     @Observer.observe("changed", signal=True)
     def notify_emit_changed(self, model, prop_name, info):
         if isinstance(model, AtomRelation) or isinstance(model, Atom):
             self._apply_atom_relations()
-        self.dirty = True
         self.needs_update.emit()
         
     @Observer.observe("removed", signal=True)
     def notify_emit_removed(self, model, prop_name, info):
         if model!=self and self.linked_with!=None and self.linked_with==model:
             self.linked_with=None
-            self.dirty = True
             self.needs_update.emit()
     
     def on_item_changed(self, *args):
-        self.dirty = True
         self.needs_update.emit()
     
     def on_layer_atom_changed(self, *args):

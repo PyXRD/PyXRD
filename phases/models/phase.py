@@ -47,7 +47,6 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin,
         PropIntel(name="probabilities",             data_type=object,  label="Probabilities",       is_column=True, has_widget=True, storable=True, refinable=True, inh_name="inherit_probabilities", stor_name="_probabilities"),
         PropIntel(name="components",                data_type=object,  label="Components",          is_column=True, has_widget=True, storable=True, refinable=True),
         PropIntel(name="needs_update",              data_type=object),
-        PropIntel(name="dirty",                     data_type=bool),
     ]
     __store_id__ = "Phase"
     
@@ -83,17 +82,6 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin,
     
     #PROPERTIES:
     name = "Name of this phase"
-    
-    _dirty = True
-    def get_dirty_value(self):
-        #return True #FIXME
-        if self.based_on is not None:
-            return bool(self.based_on.dirty or self._dirty)
-        else:
-            return self._dirty
-    def set_dirty_value(self, value):
-        if value!=self._dirty:
-            self._dirty = value
 
     @property
     def _inherit_CSDS_distribution(self):
@@ -109,7 +97,6 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin,
     @Model.setter(*[prop.inh_name for prop in __model_intel__ if prop.inh_name])
     def set_inherit_prop(self, prop_name, value):
         setattr(self, "_%s" % prop_name, value)
-        if not prop_name=="inherit_display_color": self.dirty = True
         self.needs_update.emit()
         self.liststore_item_changed()
                 
@@ -131,7 +118,6 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin,
         else:
             for prop in self.__model_intel__:
                 if prop.inh_name: setattr(self, prop.inh_name, False)
-        self.dirty = True
         self.needs_update.emit()
         self.liststore_item_changed()
     def get_based_on_root(self):
@@ -163,7 +149,6 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin,
             self._probabilities.update()
             self._probabilities.parent = self
             self.observe_model(self._probabilities)
-        self.dirty = True
         self.needs_update.emit()
         self.liststore_item_changed()
             
@@ -175,7 +160,6 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin,
         if self._CSDS_distribution:
             self._CSDS_distribution.parent = self
             self.observe_model(self._CSDS_distribution)
-        self.dirty = True
         self.needs_update.emit()
         self.liststore_item_changed()
             
@@ -189,7 +173,6 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin,
         value = float(value)
         if self._sigma_star != value:
             self._sigma_star = value
-            self.dirty = True
             self.needs_update.emit()
             self.liststore_item_changed()
     
@@ -201,7 +184,6 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin,
         self._components = value
         if self._components != None:
             for comp in self._components._model_data: self.observe_model(comp)
-        self.dirty = True
         self.liststore_item_changed()
     def get_G_value(self):
         if self.components != None:
@@ -243,8 +225,6 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin,
                  inherit_CSDS_distribution=False, inherit_probabilities=False, 
                  parent=None, **kwargs):
         super(Phase, self).__init__(parent=parent)
-        
-        self._dirty = True
         
         self._data_object = PhaseData()
         
@@ -293,17 +273,8 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin,
     #      Notifications of observable properties
     # ------------------------------------------------------------
     @Observer.observe("needs_update", signal=True)
+    @Observer.observe("updated", signal=True)    
     def notify_needs_update(self, model, prop_name, info):
-        self.needs_update.emit() #propagate signal
-        
-    @Observer.observe("dirty", assign=True)
-    def notify_dirty_changed(self, model, prop_name, info):
-        self.dirty = self.dirty or model.dirty
-        pass
-
-    @Observer.observe("updated", signal=True)
-    def notify_updated(self, model, prop_name, info):
-        self.dirty = True
         self.needs_update.emit() #propagate signal
 
     # ------------------------------------------------------------

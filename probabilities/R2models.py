@@ -47,20 +47,22 @@ class R2G2Model(_AbstractProbability):
 
     #MODEL INTEL:
     __independent_label_map__ = [
-        ("W1", r"$W_1$"),        
-        ("P112_or_P211", r"$P_{112} %s$ or $\newlineP_{211} %s$" % (
+        ("W1", r"$W_1$", [0.0,1.0]),        
+        ("P112_or_P211",
+         r"$P_{112} %s$ or $\newlineP_{211} %s$" % (
             mt_range(0.0, "W_1", 2.0/3.0),
-            mt_range(2.0/3.0, "W_1", 1.0))
-        ),
-        ("P21", r"$P_{21}$"),
-        ("P122_or_P221", r"$P_{122} %s$ or $\newlineP_{221} %s$" % (
+            mt_range(2.0/3.0, "W_1", 1.0)
+         ), [0.0,1.0]),
+        ("P21", r"$P_{21}$", [0.0,1.0]),
+        ("P122_or_P221", 
+         r"$P_{122} %s$ or $\newlineP_{221} %s$" % (
             mt_range(0.0, "W_1", 1.0/2.0),
-            mt_range(1.0/2.0, "W_1", 1.0))
-        ),
+            mt_range(1.0/2.0, "W_1", 1.0)
+         ), [0.0,1.0]),
     ]
     __model_intel__ = [
-        PropIntel(name=prop, label=label, minimum=0.0, maximum=1.0, data_type=float, refinable=True, storable=True, has_widget=True) \
-            for prop, label in __independent_label_map__
+        PropIntel(name=prop, label=label, minimum=rng[0], maximum=rng[1], data_type=float, refinable=True, storable=True, has_widget=True) \
+            for prop, label, rng in __independent_label_map__
     ]
     __store_id__ = "R2G2Model"
 
@@ -213,21 +215,22 @@ class R2G3Model(_AbstractProbability):
 
     #MODEL INTEL:
     __independent_label_map__ = [
-        ("W1", r"$W_1$"),   
-        ("P111_or_P212", r"$P_{111} %s$ or $\newline P_{212} %s$" % (
+        ("W1", r"$W_1$", [0.0,1.0]),   
+        ("P111_or_P212", 
+         r"$P_{111} %s$ or $\newline P_{212} %s$" % (
             mt_range(0.5, "W_1", 2.0/3.0),
-            mt_range(2.0/3.0, "W_1", 1.0))
-        ),
-        ("G1", r"$\large\frac{W_2}{W_3 + W_2}$"),
-        ("G2", r"$\large\frac{W_{212} + W_{213}}{W_{212} + W_{213} + W_{312} + W_{313}}$"),
-        ("G3", r"$\large\frac{W_{212}}{W_{212} + W_{213}}$"),
-        ("G4", r"$\large\frac{W_{312}}{W_{312} + W_{313}}$"),
+            mt_range(2.0/3.0, "W_1", 1.0)
+         ), [0.0,1.0]),
+        ("G1", r"$\large\frac{W_2}{W_3 + W_2}$", [0.0,1.0]),
+        ("G2", r"$\large\frac{W_{212} + W_{213}}{W_{212} + W_{213} + W_{312} + W_{313}}$", [0.0,1.0]),
+        ("G3", r"$\large\frac{W_{212}}{W_{212} + W_{213}}$", [0.0,1.0]),
+        ("G4", r"$\large\frac{W_{312}}{W_{312} + W_{313}}$", [0.0,1.0]),
 
 
     ]
     __model_intel__ = [
-        PropIntel(name=prop, label=label, minimum=0.0, maximum=1.0, data_type=float, refinable=True, storable=True, has_widget=True) \
-            for prop, label in __independent_label_map__
+        PropIntel(name=prop, label=label, minimum=rng[0], maximum=rng[1], data_type=float, refinable=True, storable=True, has_widget=True) \
+            for prop, label, rng in __independent_label_map__
     ]
     __store_id__ = "R2G3Model"
 

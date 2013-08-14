@@ -162,7 +162,6 @@ class MarkersController(ObjectListStoreController):
                 self.run_confirmation_dialog("Do you want to clear the current markers for this pattern?",
                                              on_accept, parent=self.view.get_top_widget())
             self.model.auto_add_peaks(threshold)
-            self.parent.redraw_plot() #FIXME emit signal instead -> forwarded to containing specimen (emits a signal) -> forwarded to Application Controller -> issues a redraw
 
         sel_model = ThresholdSelector(parent=self.model)
         sel_view = DetectPeaksView(parent=self.view)
@@ -217,12 +216,7 @@ class MatchMineralController(DialogController):
             self.reload_matches()
 
     def register_view(self, view):
-        if view is not None:
-            top = view.get_toplevel()
-            top.set_transient_for(self.parent.view.get_toplevel())
-            top.set_modal(True)
-            #FIXME DO WE STILL NEED THIS?
-            
+        if view is not None:            
             # MATCHES Treeview:
             tv = self.view['tv_matches']
             

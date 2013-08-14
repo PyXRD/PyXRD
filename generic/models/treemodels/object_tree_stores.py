@@ -10,7 +10,7 @@ from traceback import print_exc
 
 import gtk, gobject
 
-from generic.io import storables, Storable #FIXME, PyXRDDecoder
+from generic.io import storables
 
 from base_models import BaseObjectListStore
 
@@ -125,8 +125,7 @@ class ObjectTreeNode(object):
     def __repr__(self):
         return '%s(%s - %s)' % (type(self).__name__, self.object, "%d child nodes"%len(self._children))
         
-@storables.register()
-class ObjectTreeStore(BaseObjectListStore, Storable):
+class ObjectTreeStore(BaseObjectListStore):
     """
         GenericTreeModel implementation that holds a tree with objects.
         Has support for some extra signals (pass the actual object instead of
@@ -150,18 +149,12 @@ class ObjectTreeStore(BaseObjectListStore, Storable):
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def __init__(self, class_type, model_data=None, parent=None):
+    def __init__(self, class_type, parent=None):
         if isinstance(class_type, basestring):
             class_type = storables[class_type]
         BaseObjectListStore.__init__(self, class_type)
-        Storable.__init__(self)
         self._model_data = ObjectTreeNode()
         self._object_node_map = dict()
-        #if model_data!=None: FIXME!!
-        #    decoder = PyXRDDecoder(parent=parent)
-        #    for obj in model_data:
-        #        item = decoder.__pyxrd_decode__(obj, parent=parent)
-        #        self.append(item)
 
     # ------------------------------------------------------------
     #      Input/Output stuff

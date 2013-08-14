@@ -22,9 +22,7 @@ class EXCParser(ASCIIParser):
     """
         Exclusion range file parser
     """
-    
-    #        TODO FIXME
-    
+        
     description = "Exclusion range file"
     namespace = "exc"
     extensions  = get_case_insensitive_glob("*.EXC")

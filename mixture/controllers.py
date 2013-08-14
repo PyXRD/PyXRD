@@ -27,7 +27,6 @@ from generic.views.treeview_tools import new_text_column, new_pb_column, new_tog
 from generic.mathtext_support import create_pb_from_mathtext
 from generic.controllers import DialogController, BaseController, ObjectListStoreController
 from generic.controllers.utils import ctrl_setup_combo_with_list
-from generic.views.validators import FloatEntryValidator #FIXME use handlers!
 
 from phases.models import Phase
 
@@ -200,7 +199,7 @@ class RefinementController(DialogController):
                 expand=False
         ))    
 
-    def register_adapters(self):
+    def register_adapters(self): #TODO split this
         if self.model is not None:  
             tv_model = self.model.refinables
             tv = self.view['tv_param_selection']

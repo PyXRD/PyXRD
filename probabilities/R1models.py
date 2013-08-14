@@ -247,26 +247,26 @@ class R1G4Model(_AbstractProbability):
 	
     #MODEL INTEL:
     __independent_label_map__ = [
-        ("W1", r"$W_1$"),
-        ("R1", r"$\large\frac{W_2}{W_2 + W_3 + W_4}$"),
-        ("R2", r"$\large\frac{W_3}{W_3 + W_4}$"),
-                        
-        ("P11_or_P22", r"$P_{11} %s$ or $\newline P_{22} %s$" % (
+        ("W1", r"$W_1$", [0.0,1.0]),
+        ("R1", r"$\large\frac{W_2}{W_2 + W_3 + W_4}$", [0.0,1.0]),
+        ("R2", r"$\large\frac{W_3}{W_3 + W_4}$", [0.0,1.0]),   
+        ("P11_or_P22", 
+         r"$P_{11} %s$ or $\newline P_{22} %s$" % (
             mt_range(0.0, "W_1", 0.5),
-            mt_range(0.5, "W_1", 1.0))
-        ),
-        ("G1", r"$\large\frac{\sum_{j=2}^{4} W_{2j}}{\sum_{i=2}^{4} \sum_{j=2}^{4} W_{ij}}$"),
-        ("G2", r"$\large\frac{\sum_{j=2}^{4} W_{3j}}{\sum_{i=3}^{4} \sum_{j=2}^{4} W_{ij}}$"),
-        ("G11", r"$\large\frac{W_{22}}{\sum_{j=2}^{4} W_{2j}}$"),
-        ("G12", r"$\large\frac{W_{23}}{\sum_{j=3}^{4} W_{2j}}$"),
-        ("G21", r"$\large\frac{W_{32}}{\sum_{j=2}^{4} W_{3j}}$"),
-        ("G22", r"$\large\frac{W_{33}}{\sum_{j=3}^{4} W_{3j}}$"),
-        ("G31", r"$\large\frac{W_{42}}{\sum_{j=2}^{4} W_{4j}}$"),
-        ("G32", r"$\large\frac{W_{43}}{\sum_{j=3}^{4} W_{4j}}$"),
+            mt_range(0.5, "W_1", 1.0)
+         ), [0.0,1.0]),
+        ("G1", r"$\large\frac{\sum_{j=2}^{4} W_{2j}}{\sum_{i=2}^{4} \sum_{j=2}^{4} W_{ij}}$", [0.0,1.0]),
+        ("G2", r"$\large\frac{\sum_{j=2}^{4} W_{3j}}{\sum_{i=3}^{4} \sum_{j=2}^{4} W_{ij}}$", [0.0,1.0]),
+        ("G11", r"$\large\frac{W_{22}}{\sum_{j=2}^{4} W_{2j}}$", [0.0,1.0]),
+        ("G12", r"$\large\frac{W_{23}}{\sum_{j=3}^{4} W_{2j}}$", [0.0,1.0]),
+        ("G21", r"$\large\frac{W_{32}}{\sum_{j=2}^{4} W_{3j}}$", [0.0,1.0]),
+        ("G22", r"$\large\frac{W_{33}}{\sum_{j=3}^{4} W_{3j}}$", [0.0,1.0]),
+        ("G31", r"$\large\frac{W_{42}}{\sum_{j=2}^{4} W_{4j}}$", [0.0,1.0]),
+        ("G32", r"$\large\frac{W_{43}}{\sum_{j=3}^{4} W_{4j}}$", [0.0,1.0]),
     ]
     __model_intel__ = [
-        PropIntel(name=prop, label=label, minimum=0.0, maximum=1.0, data_type=float, refinable=True, storable=True, has_widget=True) \
-            for prop, label in __independent_label_map__
+        PropIntel(name=prop, label=label, minimum=rng[0], maximum=rng[1], data_type=float, refinable=True, storable=True, has_widget=True) \
+            for prop, label, rng in __independent_label_map__
     ]
     __store_id__ = "R1G4Model"
 

@@ -53,36 +53,39 @@ class R3G2Model(_AbstractProbability):
 	"""
 
     #MODEL INTEL:
-    #FIXME ENFORCE RANGES!
     __independent_label_map__ = [
-        ("W1", r"$W_1$"),
-        ("P1111_or_P2112", r"$P_{1111} %s$ or $\newline P_{2112} %s$" % (
+        ("W1", r"$W_1$", [2.0/3.0, 1.0]),
+        ("P1111_or_P2112", 
+         r"$P_{1111} %s$ or $\newline P_{2112} %s$" % (
             mt_range(2.0/3.0, "W_1", 3.0/4.0),
-            mt_range(3.0/4.0, "W_1", 1.0))
-        ),
+            mt_range(3.0/4.0, "W_1", 1.0)
+         ), [0.0, 1.0]),
     ]
     __model_intel__ = [
-        PropIntel(name=prop, label=label, minimum=0.0, maximum=1.0, data_type=float, refinable=True, storable=True, has_widget=True) \
-            for prop, label in __independent_label_map__
+        PropIntel(
+            name=prop, label=label, 
+            minimum=rng[0], maximum=rng[1], 
+            data_type=float, 
+            refinable=True, storable=True, has_widget=True
+        ) for prop, label, rng in __independent_label_map__
     ]
     __store_id__ = "R3G2Model"
 
     #PROPERTIES:
-    twothirds = 2.0/3.0
     
     _W0 = 0.0
     def get_W1_value(self): return self._W0
     def set_W1_value(self, value):
-        self._W0 = min(max(value, 0.5), 1.0)
+        self._W0 = min(max(value, 2.0/3.0), 1.0)
         self.update()
           
     def get_P1111_or_P2112_value(self):
-        if self._W0 <= self.twothirds:
+        if self._W0 <= 0.75:
             return self.mP[0,0,0,0]
         else:
             return self.mP[1,0,0,1]
     def set_P1111_or_P2112_value(self, value):
-        if self._W0 <= self.twothirds:
+        if self._W0 <= 0.75:
             self.mP[0,0,0,0] = value
         else:
             self.mP[1,0,0,1] = value
@@ -103,14 +106,18 @@ class R3G2Model(_AbstractProbability):
         W0 = self._W0
         W1 = 1.0 - W0
         
-        if W0 >= 0.75: #1,0,0,1 is given
-            self.mP[1,0,0,0] = 1.0 - self.mP[1,0,0,1]
-            self.mP[0,0,0,0] = 1.0 - self.mP[1,0,0,0] * W1/(W0-2*W1)
-            self.mP[0,0,0,1] = 1.0 - self.mP[0,0,0,0]
-        else: #0,0,0,0 is given
+        #TODO add some boundary checks (e.g. P0000 = 1.0 or 0.0)
+        # These make the calculations a lot simpler
+        # Now some calcs return NaNs!!
+        
+        if W0 <= 0.75: #0,0,0,0 is given
             self.mP[0,0,0,1] = 1.0 - self.mP[0,0,0,0]
             self.mP[1,0,0,0] = self.mP[0,0,0,1] * (W0-2*W1)/W1
             self.mP[1,0,0,1] = 1.0 - self.mP[1,0,0,0]
+        else: #1,0,0,1 is given
+            self.mP[1,0,0,0] = 1.0 - self.mP[1,0,0,1]
+            self.mP[0,0,0,0] = 1.0 - self.mP[1,0,0,0] * W1/(W0-2*W1)
+            self.mP[0,0,0,1] = 1.0 - self.mP[0,0,0,0]
 
         self.mP[0,0,1,0] = 1.0
         self.mP[0,1,0,0] = 1.0

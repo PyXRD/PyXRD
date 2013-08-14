@@ -407,7 +407,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
             if phase in self.phase_matrix: 
                 parse_attribute(phase, None, None)
         
-    def auto_restrict(self): #TODO FIXME
+    def auto_restrict(self): #TODO set a restrict range attribute on the PropIntels, so we can use custom ranges for each property
         """
             Convenience function that restricts the selected properties 
             automatically by setting their minimum and maximum values.

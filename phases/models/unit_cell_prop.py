@@ -164,6 +164,6 @@ class UnitCellProperty(ChildModel, Storable, ComponentPropMixin, RefinementValue
     def update_value(self):
         if self.enabled and self.ready:
             self.value = float(self.factor * self.get_value_of_prop() + self.constant)
-            self.component.dirty = True
+        self.component.needs_update.emit()
         
     pass #end of class   

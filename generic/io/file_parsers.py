@@ -194,14 +194,23 @@ class BaseParser(object):
     pass #end of class
 
 class BaseGroupBarser(BaseParser):
-
+    """
+        Base class for parsers that are composed of several sub-parsers (parsers
+        class attribute).
+        This allows to quickly find the correct parser based on the filename.
+        When a (python) file object is passed to the parse functions, the 'name'
+        attribute must be present on the object, otherwise an error is raised.
+        Alternatively, you can pass in a file object, together with a (fake)
+        filename argument.
+    """
     parsers = None
 
     @classmethod
     def get_parser(cls, filename, f=None):
-        #FIXME make this work with file objects and a filename str as well
+        if not type(filename) is str and hasattr(f, 'name'):
+            filename = f.name
         if not type(filename) is str:
-            raise TypeError, "Wrong data type supplied for '%s' format, must be a string, but %s was given" % (cls.description, type(filename))
+            raise TypeError, "Wrong type for filename (%s), must be a string, but %s was given" % (cls.description, type(filename))
         else:
             giof = gio.File(filename)
             file_mime = giof.query_info('standard::content-type').get_content_type()

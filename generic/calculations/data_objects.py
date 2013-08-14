@@ -5,6 +5,22 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
+"""
+    These are simple data-holders used in the calculation. They are not
+    meant to be used directly, rather you should create the corresponding
+    model instances and retrieve the DataObject from them.
+    
+    The rationale behind not using the model instances directly is that
+    they are a pain in the a** to serialize/pickle (memory-)efficiently.
+    This is mainly due to all of the boiler-plate code that takes care of
+    references, saving, loading, calculating properties from other properties
+    etc. These things do not matter to the actual calculation, only their output
+    does. 
+    The data objects below, on the other hand, do not contain these entanglements.
+    Propably these complications can be avoided partially by refactoring the code,
+    however, for now this is an easy and (fairly) clean solution.
+"""
+
 class DataObject(object):
 
     def __init__(self, **kwargs):

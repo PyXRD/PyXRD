@@ -147,11 +147,11 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         self.phases = phases or self.get_depr(kwargs, list(), "data_phases")
                 
         #list with scale values, indexes match with rows in phase_matrix (= specimens)
-        self.scales = np.asarray(scales or self.get_depr(kwargs, [1.0]*max(len(self.specimens),1), "data_scales"))
+        self.scales = np.asarray(scales or self.get_depr(kwargs, [1.0]*len(self.specimens), "data_scales"))
         #list with specimen background shift values, indexes match with rows in phase_matrix (=specimens)
-        self.bgshifts = np.asarray(bgshifts or self.get_depr(kwargs, [0.0]*max(len(self.specimens),1), "data_bgshifts"))
+        self.bgshifts = np.asarray(bgshifts or self.get_depr(kwargs, [0.0]*len(self.specimens), "data_bgshifts"))
         #list with phase fractions, indexes match with cols in phase_matrix (=phases)
-        self.fractions = np.asarray(fractions or self.get_depr(kwargs, [0.0]*max(len(self.phases),1), "data_fractions"))
+        self.fractions = np.asarray(fractions or self.get_depr(kwargs, [0.0]*len(self.phases), "data_fractions"))
                 
         self.refinables = refinables or self.get_depr(kwargs, ObjectTreeStore(RefinableWrapper), "data_refinables")
         try:
@@ -228,7 +228,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         n, m = self.phase_matrix.shape
         if n > 0:
             self.phases.append(phase_name)
-            self.fractions.append(fraction)
+            self.fractions = np.append(self.fractions, fraction)
             self.phase_matrix = np.concatenate([self.phase_matrix.copy(), [[None,] for n in range(n)]], axis=1)        
             self.update_refinement_treestore()
             self.has_changed.emit()
@@ -239,7 +239,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
     def _del_phase_by_index(self, index):
         """ Deletes a phase column using its index """
         del self.phases[index]
-        del self.fractions[index]
+        self.fractions = np.delete(self.fractions, index)
         self.phase_matrix = np.delete(self.phase_matrix, index, axis=1)
         self.update_refinement_treestore()
         self.needs_reset.emit()
@@ -252,8 +252,8 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         """ Adds a new specimen to the phase matrix (a row) and specimen list """
         index = len(self.specimens)
         self.specimens.append(specimen)
-        self.scales.append(scale)
-        self.bgshifts.append(bgs)
+        self.scales = np.append(self.scales, scale)
+        self.bgshifts = np.append(self.bgshifts, bgs)
         n, m = self.phase_matrix.shape
         self.phase_matrix = np.concatenate([self.phase_matrix.copy(), [[None]*m] ], axis=0)
         self.phase_matrix[n,:] = None
@@ -263,8 +263,8 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
     def _del_specimen_by_index(self, index):
         """ Deletes a specimen row using its index """
         del self.specimens[index]
-        del self.scales[index]
-        del self.bgshifts[index]
+        self.scales = np.delete(self.scales, index)
+        self.bgshifts = np.delete(self.bgshifts, index)
         self.phase_matrix = np.delete(self.phase_matrix, index, axis=0)
         self.needs_reset.emit()
 

@@ -68,7 +68,10 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
         self._data_object.goniometer = self.parent.goniometer.data_object #FIXME move goniometer to specimen level!!
         self._data_object.range_theta = self.__get_range_theta()
         self._data_object.selected_range = self.get_exclusion_selector(self._data_object.range_theta)
-        self._data_object.observed_intensity = self.experimental_pattern.xy_store._model_data_y[0]
+        try:
+            self._data_object.observed_intensity = self.experimental_pattern.xy_store._model_data_y[0]
+        except IndexError:
+            self._data_object.observed_intensity = np.array([], dtype=float)
         return self._data_object
 
     #SIGNALS:

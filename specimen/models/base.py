@@ -22,6 +22,7 @@ from generic.peak_detection import peakdetect
 from generic.calculations.specimen import get_phase_intensities
 from generic.calculations.data_objects import SpecimenData
 
+from goniometer.models import Goniometer
 from markers import Marker
 from statistics import Statistics
 
@@ -43,6 +44,7 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
         PropIntel(name="display_stats_in_lbl", label="Display Rp in label",                data_type=bool,   is_column=True,  storable=True,   has_widget=True),       
         PropIntel(name="display_vshift",       label="Vertical shift of the plot",         data_type=float,  is_column=True,  storable=True,   has_widget=True),        
         PropIntel(name="display_vscale",       label="Vertical scale of the plot",         data_type=float,  is_column=True,  storable=True,   has_widget=True),
+        PropIntel(name="goniometer",           label="Goniometer",                         data_type=object, is_column=True,  storable=True,   has_widget=True),
         PropIntel(name="calculated_pattern",   label="Calculated diffractogram",           data_type=object, is_column=True,  storable=True,   has_widget=True),
         PropIntel(name="experimental_pattern", label="Experimental diffractogram",         data_type=object, is_column=True,  storable=True,   has_widget=True),
         PropIntel(name="exclusion_ranges",     label="Excluded ranges",                    data_type=object, is_column=True,  storable=True,   has_widget=True),
@@ -65,7 +67,7 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
     @property
     def data_object(self):  
         #self._data_object.phases = None #clear this
-        self._data_object.goniometer = self.parent.goniometer.data_object #FIXME move goniometer to specimen level!!
+        self._data_object.goniometer = self.goniometer.data_object
         self._data_object.range_theta = self.__get_range_theta()
         self._data_object.selected_range = self.get_exclusion_selector(self._data_object.range_theta)
         try:
@@ -134,6 +136,15 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
             self._exclusion_ranges = value
             if self._exclusion_ranges!=None:
                 pass
+    
+    _goniometer = None
+    def get_goniometer_value(self): return self._goniometer
+    def set_goniometer_value(self, value):
+        if value != self._goniometer:
+            if self._goniometer!=None: self.relieve_model(self._goniometer)
+            self._goniometer = value
+            if self._goniometer!=None:
+                self.observe_model(self._goniometer)
     
     @ChildModel.getter("sample_length", "absorption")
     def get_sample_length_value(self, prop_name):
@@ -263,7 +274,7 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
     def __init__(self, name=u"", sample_name=u"", sample_length=None, abs_scale=1.0,
                  bg_shift=0.0, absorption = 0.9, display_calculated=True,
                  display_experimental=True, display_phases=False, display_stats_in_lbl=True,
-                 display_vshift=0.0, display_vscale=1.0, 
+                 display_vshift=0.0, display_vscale=1.0, goniometer = None,
                  experimental_pattern = None, calculated_pattern = None, exclusion_ranges = None, markers = None,
                  phase_indeces=None, phase_uuids=None, calc_color=None, exp_color=None, exp_cap_value=None,
                  calc_lw=None, exp_lw=None, inherit_calc_lw=True, inherit_exp_lw=True,
@@ -329,6 +340,10 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
         self.exclusion_ranges.connect("item-inserted", self.on_exclusion_range_changed)
         self.exclusion_ranges.connect("row-changed", self.on_exclusion_range_changed)
         
+        self.goniometer = self.parse_init_arg(
+            goniometer or self.get_depr(kwargs, None, "project_goniometer"), 
+            Goniometer(parent=self), child=True
+        )
         
         markers = markers or self.get_depr(kwargs, None, "data_markers")
         self._markers = self.parse_liststore_arg(markers, ObjectListStore, Marker)

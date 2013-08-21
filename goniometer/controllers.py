@@ -17,9 +17,9 @@ from generic.models.treemodels.utils import create_valuestore_from_file, create_
 
 from generic.controllers.utils import get_case_insensitive_glob
 from generic.views.validators import FloatEntryValidator
-from generic.controllers import DialogController, DialogMixin
+from generic.controllers import DialogController, BaseController
 
-class GoniometerController(DialogController, DialogMixin):
+class GoniometerControllerMixin(object):
 
     file_filters = [("Goniometer files", get_case_insensitive_glob("*.GON")),
                     ("All Files", "*.*")]
@@ -37,10 +37,7 @@ class GoniometerController(DialogController, DialogMixin):
                     self.adapt(name, "gonio_%s" % name)
                 elif not name in self.model.__have_no_widget__:
                     self.adapt(name)
-        
-    def __init__(self, *args, **kwargs):
-        DialogController.__init__(self, *args, **kwargs)
-            
+    
     def register_view(self, view):
         self.generate_import_combo()
         self.generate_wavelength_combo()
@@ -95,4 +92,15 @@ class GoniometerController(DialogController, DialogMixin):
         itr = combobox.get_active_iter()
         if itr:
             self.wavelength = float(model.get_value(itr, 1))
+            
+    pass #end of class
+
+class InlineGoniometerController(GoniometerControllerMixin, BaseController):
+    pass #end of class
+
+class GoniometerController(GoniometerControllerMixin, DialogController):
+        
+    def __init__(self, *args, **kwargs):
+        DialogController.__init__(self, *args, **kwargs)
+
     pass # end of class

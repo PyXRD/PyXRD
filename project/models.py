@@ -19,7 +19,6 @@ from generic.models.properties import PropIntel, MultiProperty
 from generic.models.treemodels import ObjectListStore, IndexListStore
 from generic.io import storables, Storable
 
-from goniometer.models import Goniometer
 from specimen.models import Specimen
 from phases.models import Phase
 from atoms.models import Atom, AtomType
@@ -53,7 +52,6 @@ class Project(ChildModel, Storable, ObjectListStoreParentMixin):
         PropIntel(name="axes_xstretch",            data_type=bool,   storable=True,  has_widget=True),
         PropIntel(name="axes_yscale",              data_type=int,    storable=True,  has_widget=True),
         PropIntel(name="axes_yvisible",            data_type=bool,   storable=True,  has_widget=True),
-        PropIntel(name="goniometer",               data_type=object, storable=True),
         PropIntel(name="specimens",                data_type=object, storable=True,  has_widget=True),
         PropIntel(name="phases",                   data_type=object, storable=True),
         PropIntel(name="mixtures",                 data_type=object, storable=True),
@@ -169,15 +167,13 @@ class Project(ChildModel, Storable, ObjectListStoreParentMixin):
     
     _mixtures = None
     def get_mixtures_value(self): return self._mixtures
-    
-    goniometer = None
            
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
     def __init__(self, name = "Project name", date = time.strftime("%d/%m/%Y"),
             description = "Project description", author = "Project author",
-            goniometer = None, atom_types = None, phases = None, 
+            atom_types = None, phases = None, 
             specimens = None, mixtures = None,
             display_marker_align=None, display_marker_color=None, display_marker_base=None,
             display_marker_top=None, display_marker_top_offset=None, 
@@ -189,7 +185,7 @@ class Project(ChildModel, Storable, ObjectListStoreParentMixin):
             axes_xstretch=None, axes_yscale=None, axes_yvisible=None,
             load_default_data=True, **kwargs):
         ChildModel.__init__(self, parent=kwargs.get("parent", None))
-        self.parent = kwargs.get("parent") #FIXME??? old project files seem to have an issue here?
+        self.parent = kwargs.get("parent") #FIXME ??? old project files seem to have an issue here?
         Storable.__init__(self)
         
         self.before_needs_update_lock = False
@@ -218,6 +214,11 @@ class Project(ChildModel, Storable, ObjectListStoreParentMixin):
         self.axes_yscale = axes_yscale or self.axes_yscale
         self.axes_yvisible = axes_yvisible or self.axes_yvisible
 
+        goniometer = None
+        goniometer_kwargs = self.get_depr(kwargs, None, "data_goniometer", "goniometer")
+        if goniometer_kwargs:
+            goniometer = self.parse_init_arg(goniometer_kwargs, None, child=True)
+
         atom_types = atom_types or self.get_depr(kwargs, None, "data_atom_types")
         phases = phases or self.get_depr(kwargs, None, "data_phases")
         specimens = specimens or self.get_depr(kwargs, None, "data_specimens")
@@ -231,6 +232,7 @@ class Project(ChildModel, Storable, ObjectListStoreParentMixin):
             phase.resolve_json_references()
             self.observe_model(phase)            
         for specimen in self._specimens.iter_objects():
+            if goniometer: specimen.goniometer = goniometer
             self.observe_model(specimen)
 
         self._atom_types.connect("item-removed", self.on_atom_type_item_removed)        
@@ -248,11 +250,7 @@ class Project(ChildModel, Storable, ObjectListStoreParentMixin):
         self.name = str(name or self.get_depr(kwargs, "", "data_name"))
         self.date = str(date or self.get_depr(kwargs, "", "data_date"))
         self.description.set_text(str(description or self.get_depr(kwargs, "", "data_description")))
-        self.author = str(author or self.get_depr(kwargs, "", "data_author"))
-        
-        self.goniometer = self.parse_init_arg(
-            goniometer or self.get_depr(kwargs, None, "data_goniometer"), 
-            Goniometer(parent=self), child=True)       
+        self.author = str(author or self.get_depr(kwargs, "", "data_author"))     
 
         if load_default_data and not settings.VIEW_MODE and \
             len(self._atom_types._model_data)==0: self.load_default_data()

@@ -14,7 +14,6 @@ import settings
 from generic.views import ObjectListStoreView, BaseView, DialogView
 
 from project.views import ProjectView
-from goniometer.views import GoniometerView
 from specimen.views import SpecimenView, EditMarkersView, StatisticsView
 
 class AppView(BaseView):
@@ -24,7 +23,6 @@ class AppView(BaseView):
     project = None
     specimen = None
     markers = None
-    goniometer = None
     phases = None
     atom_types = None
     statistics = None
@@ -78,7 +76,6 @@ class AppView(BaseView):
     
     def reset_all_views(self):
         self.reset_project_view()
-        self.reset_goniometer_view()
         self.reset_specimen_view()
         self.reset_statistics_view()
         self.reset_markers_view()
@@ -88,9 +85,6 @@ class AppView(BaseView):
 
     def reset_project_view(self):
         return self._reset_child_view("project", ProjectView)
-
-    def reset_goniometer_view(self):
-        return self._reset_child_view("goniometer", GoniometerView)
 
     def reset_specimen_view(self):
         return self._reset_child_view("specimen", SpecimenView)

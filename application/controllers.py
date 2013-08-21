@@ -28,7 +28,6 @@ from specimen.controllers import SpecimenController, MarkersController, Statisti
 from specimen.models import Specimen
 
 from mixture.controllers import MixturesController
-from goniometer.controllers import GoniometerController
 from phases.controllers import PhasesController
 from atoms.controllers import AtomTypesController
 
@@ -47,7 +46,6 @@ class AppController (BaseController, DialogMixin):
         view.setup_plot(self.plot_controller)
         
         self.project = None
-        self.goniometer = None
         self.specimen = None
         self.markers = None
         self.phases = None
@@ -71,7 +69,6 @@ class AppController (BaseController, DialogMixin):
     def reset_project_controller(self):
         self.view.reset_all_views()
         self.project = ProjectController(model=self.model.current_project, view=self.view.project, parent=self)
-        self.goniometer = GoniometerController(model=self.model.current_project.goniometer, view=self.view.goniometer, parent=self)
         self.phases = PhasesController(model=self.model.current_project, view=self.view.phases, parent=self)
         self.atom_types = AtomTypesController(model=self.model.current_project, view=self.view.atom_types, parent=self)
         self.mixtures = MixturesController(model=self.model.current_project, view=self.view.mixtures, parent=self)
@@ -431,13 +428,6 @@ class AppController (BaseController, DialogMixin):
         if self.model.current_specimen is not None:
             self.view.markers.present()
         return True
-
-    # ------------------------------------------------------------
-    #      GTK Signal handlers - Goniometer related
-    # ------------------------------------------------------------
-    @BaseController.status_message("Displaying goniometer data...", "edit_gonio")
-    def on_edit_gonio_activate(self, widget, data=None):
-        self.view.goniometer.present()
 
     pass # end of class
 

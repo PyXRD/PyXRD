@@ -15,17 +15,9 @@ Feature-wise:
     
 Code-Wise:
 
-0.4 - Move the goniometer down to the specimen level:
-        - step 1: make the project goniometer argument optional
-        - step 2: add a specimen-level goniometer, do not save, do not load, copy from project-level for now
-        - step 2b: add GUI-related code (specimen view & controllers) -> Goniometer setup can be made a tab in the specimen view?
-        - step 3: change calculation code to use specimen-level goniometer
-        - step 4: make specimen accept project_goniometer kwarg, if goniometer kwarg is not set, this is used instead, should be json string?
-        - step 5:
-            make the specimen goniometer storable, check this works okay &
-            remove the project goniometer, pop it from kwargs if passed to __init__ and pass as project_goniometer kwarg to specimen
-        
+0.4 - BUG: default phases script needs to be updated + default components are not part of the GIT repo       
 0.x - check for backwards compatibility issues with pre-O.4 project files
 0.x - DOCUMENTATION!
 0.x - cleanse code from TODO & FIXME's
 0.5 - most of the default dialog actions (confirmation ,information etc.) could also be usefull as decorators.
+0.6 - integrate the generic 'Gtkmvc' changes into gtkmvc.

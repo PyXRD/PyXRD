@@ -19,6 +19,8 @@ from generic.views.validators import FloatEntryValidator
 from generic.views.treeview_tools import setup_treeview, new_text_column
 from generic.controllers.utils import get_case_insensitive_glob, ctrl_setup_combo_with_list
 
+from goniometer.controllers import GoniometerController
+
 from .background_controller import BackgroundController
 from .smooth_data_controller import SmoothDataController
 from .add_noise_controller import AddNoiseController
@@ -62,6 +64,8 @@ class SpecimenController(DialogController, DialogMixin, ObjectTreeviewMixin):
                     ad = Adapter(self.model, "name")
                     ad.connect_widget(self.view["specimen_name"])
                     self.adapt(ad)
+                elif name == "goniometer":
+                    self.gonio_ctrl = GoniometerController(view=self.view.gonio_view, model=self.model.goniometer, parent=self)
                 elif name == "experimental_pattern":
                     #Setup treeview:
                     tv = self.view['experimental_data_tv']

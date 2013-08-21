@@ -11,14 +11,25 @@ import matplotlib
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_gtkcairo import FigureCanvasGTKCairo as FigureCanvasGTK
 
-from generic.views import ObjectListStoreView, DialogView, BaseView
+from generic.views import ObjectListStoreView, DialogView, BaseView, HasChildView
 
+from goniometer.views import InlineGoniometerView
 
-class SpecimenView(DialogView):
+class SpecimenView(DialogView, HasChildView):
     title = "Edit Specimen"
     subview_builder = "specimen/glade/specimen.glade"
     subview_toplevel = "edit_specimen"
     resizable = False
+    
+    gonio_container = "box_goniometer"
+    gonio_view = None
+    
+    def __init__(self, *args, **kwargs):
+        super(SpecimenView, self).__init__(*args, **kwargs)
+        
+        self.gonio_view = InlineGoniometerView(parent=self)
+        top = self.gonio_view.get_top_widget()
+        self._add_child_view(top, self[self.gonio_container])
     
     __widgets_to_hide__ = (
         "entry_align_absolute_scale",

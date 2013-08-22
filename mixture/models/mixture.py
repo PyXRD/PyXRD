@@ -56,12 +56,14 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
     def data_object(self):
         self._data_object.specimens = [None] * len(self.specimens)
         for i, specimen in enumerate(self.specimens):
-            data_object = specimen.data_object
-            data_object.phases = [None] * len(self.phases)
-            for j, phase in enumerate(self.phase_matrix[i,...].flatten()):
-                data_object.phases[j] = phase.data_object
-            self._data_object.specimens[i] = data_object
-       
+            if specimen!=None:
+                data_object = specimen.data_object
+                data_object.phases = [None] * len(self.phases)
+                for j, phase in enumerate(self.phase_matrix[i,...].flatten()):
+                    data_object.phases[j] = phase.data_object if phase!=None else None
+                self._data_object.specimens[i] = data_object
+            else:
+                self._data_object.specimens[i] = None
         return self._data_object
 
     #SIGNALS:

@@ -56,7 +56,11 @@ def parse_mixture(mixture, parsed=False):
         # Sanity check:    
         n = len(mixture.specimens)
         assert n > 0, "Need at least 1 specimen to optimize phase fractions, scales and background."
-        m = len(mixture.specimens[0].phases)
+        m = 0
+        for specimen in mixture.specimens:
+            if specimen!=None:
+                m = len(specimen.phases)
+                break
         assert m > 0, "Need at least 1 phase in each specimen to optimize phase fractions, scales and background."
             
         mixture.n = n
@@ -73,7 +77,10 @@ def optimize_mixture(mixture, parsed=False):
         Returns the mixture data object.
     """        
     # 0. Calculate phase intensitites
-    parse_mixture(mixture, parsed=parsed)
+    try:
+        parse_mixture(mixture, parsed=parsed)
+    except AssertionError:
+        return mixture #ignore and return the orignal object back
     
     # 1. setup start point:
     bounds = [(0,None) for i in range(mixture.m)] + [(0, None) for i in range(mixture.n*2)]
@@ -126,7 +133,13 @@ def calculate_mixture(mixture, parsed=False):
         fractions, scales & background shifts.
         Returns the mixture data object.
     """
-    parse_mixture(mixture, parsed=parsed)
+    try:
+        parse_mixture(mixture, parsed=parsed)
+    except AssertionError:
+        for specimen in mixture.specimens:
+            if specimen!=None:
+                specimen.total_intensity = None #clear pattern
+        return mixture
     fractions = np.asanyarray(mixture.fractions)
     
     for scale, bgshift, specimen in izip(mixture.scales, mixture.bgshifts, mixture.specimens):

@@ -228,7 +228,10 @@ class RefinementController(DialogController):
                 return
             def on_float_edited(rend, path, new_text, col):
                 itr = tv_model.get_iter(path)
-                tv_model.set_value(itr, col, float(new_text))
+                try:
+                    tv_model.set_value(itr, col, float(new_text))
+                except ValueError:
+                    return False
                 return True
                 
             def_float_args = {

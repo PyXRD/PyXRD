@@ -44,7 +44,7 @@ def _get_residual(x, mixture):
                 exp = specimen.observed_intensity[specimen.selected_range]
                 cal = calc[specimen.selected_range]
                 tot_rp += calc_Rp(exp, cal)
-    return tot_rp
+    return tot_rp / float(len(mixture.specimens)) #average this out
 
 def get_residual(mixture, parsed=False):
     parse_mixture(mixture, parsed=parsed)

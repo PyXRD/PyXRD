@@ -65,53 +65,45 @@ class _LogNormalMixin(object):
     
     _data_object = None
     @property
-    def data_object(self):    
-    
-        self._data_object.average = self.average
-        self._data_object.maximum = self.maximum
-        self._data_object.minimum= self.minimum
-        self._data_object.alpha_scale = self.alpha_scale
-        self._data_object.alpha_offset = self.alpha_offset
-        self._data_object.beta_scale = self.beta_scale
-        self._data_object.beta_offset = self.beta_offset
-      
+    def data_object(self):
         return self._data_object
     
     #PROPERTIES:
-    def get_maximum_value(self): return int(settings.LOG_NORMAL_MAX_CSDS_FACTOR * self.average)
-    def get_minimum_value(self): return 1
+    def get_maximum_value(self): return self._data_object.maximum
+    def get_minimum_value(self): return self._data_object.minimum
     
-    _average = 10.0
-    def get_average_value(self): return self._average
+    def get_average_value(self): return self._data_object.average
     def set_average_value(self, value):
         if value < 1.0:
-            self.average = 1.0  #re-apply
+            self._data_object.average = 1.0  #re-apply
+            self._data_object.maximum = int(settings.LOG_NORMAL_MAX_CSDS_FACTOR * self.average)
+            self.update_distribution()
             return
-        self._average = value
-        self.update_distribution()
-    
-    _alpha_scale = 0.9485
-    def get_alpha_scale_value(self): return self._alpha_scale
+        try:
+            self._data_object.average = float(value)
+            self._data_object.maximum = int(settings.LOG_NORMAL_MAX_CSDS_FACTOR * self.average)
+            self.update_distribution()
+        except ValueError:
+            pass
+            
+    def get_alpha_scale_value(self): return self._data_object.alpha_scale
     def set_alpha_scale_value(self, value):
-        self._alpha_scale = float(value)
+        self._data_object.alpha_scale = float(value)
         self.update_distribution()
     
-    _alpha_offset = -0.017
-    def get_alpha_offset_value(self): return self._alpha_offset
+    def get_alpha_offset_value(self): return self._data_object.alpha_offset
     def set_alpha_offset_value(self, value):
-        self._alpha_offset = float(value)
+        self._data_object.alpha_offset = float(value)
         self.update_distribution()
         
-    _beta_scale = 0.1032
-    def get_beta_scale_value(self): return self._beta_scale
+    def get_beta_scale_value(self): return self._data_object.beta_scale
     def set_beta_scale_value(self, value):
-        self._beta_scale = float(value)
+        self._data_object.beta_scale = float(value)
         self.update_distribution()
         
-    _beta_offset = 0.0034
-    def get_beta_offset_value(self): return self._beta_offset
+    def get_beta_offset_value(self): return self._data_object.beta_offset
     def set_beta_offset_value(self, value):
-        self._beta_offset = float(value)
+        self._data_object.beta_offset = float(value)
         self.update_distribution()
         
     # ------------------------------------------------------------
@@ -122,11 +114,13 @@ class _LogNormalMixin(object):
             
         self._data_object = CSDSData()
             
-        self._average = average or self._average
-        self._alpha_scale = alpha_scale or self._alpha_scale
-        self._alpha_offset = alpha_offset or self._alpha_offset
-        self._beta_scale = beta_scale or self._beta_scale
-        self._beta_offset = beta_offset or self._beta_offset
+        self._data_object.average = average
+        self._data_object.maximum = int(settings.LOG_NORMAL_MAX_CSDS_FACTOR * average)        
+        self._data_object.minimum = 1
+        self._data_object.alpha_scale = alpha_scale
+        self._data_object.alpha_offset = alpha_offset
+        self._data_object.beta_scale = beta_scale
+        self._data_object.beta_offset = beta_offset
         self.update_distribution()
 
     # ------------------------------------------------------------

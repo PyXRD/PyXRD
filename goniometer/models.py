@@ -136,8 +136,8 @@ class Goniometer(ChildModel, Storable):
                 return val
         min_theta = torad(self.min_2theta*0.5)
         max_theta = torad(self.max_2theta*0.5)
-        delta_theta = float(max_theta - min_theta) / float(self.steps-1)
-        theta_range = (min_theta + delta_theta * np.arange(0,self.steps-1, dtype=float))
+        delta_theta = float(max_theta - min_theta) / float(self.steps)
+        theta_range = (min_theta + delta_theta * np.arange(0,self.steps, dtype=float)) + delta_theta*0.5
         return theta_range       
     
     def get_machine_correction_range(self, range_theta, sample_length, absorption):

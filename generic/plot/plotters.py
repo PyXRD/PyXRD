@@ -5,12 +5,16 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
+from itertools import izip
+
 import settings
 
 import numpy as np
 
 import matplotlib
 import matplotlib.transforms as transforms
+from matplotlib.patches import Rectangle, FancyBboxPatch
+from matplotlib.offsetbox import VPacker, HPacker, AnchoredOffsetbox, TextArea, AuxTransformBox
 from matplotlib.text import Text
 
 from generic.custom_math import smooth, add_noise
@@ -157,7 +161,7 @@ def plot_hatches(project, specimen, offset, scale, axes):
         except: pass  
     
     #Create & add new hatches:
-    for i, (x0, x1) in enumerate(zip(*specimen.exclusion_ranges.get_raw_model_data())):
+    for i, (x0, x1) in enumerate(izip(*specimen.exclusion_ranges.get_raw_model_data())):
         leftborder = axes.axvline(x0, y0, y1, c=settings.EXCLUSION_LINES)
         hatch = axes.axvspan(
             x0, x1, y0, y1, fill=True, hatch="/", 
@@ -462,27 +466,73 @@ def plot_specimens(project, specimens, axes):
             label_offset += base_offset
         
     return labels
-    
+
 def plot_mixtures(project, mixtures, axes):
-    text = getattr(project, "__plot_mixture_text", None)
+    legend = getattr(project, "__plot_mixture_legend", None)
+    if legend:
+        try: legend.remove()
+        except ValueError: pass
+
+    figure = axes.get_figure()
+    trans = figure.transFigure
     
-    str_text = u""
+    def create_rect_patch(ec="#000000", fc=None):
+        _box = AuxTransformBox(transforms.IdentityTransform())
+        rect = FancyBboxPatch(
+            xy = (0,0),
+            width = 0.02,
+            height = 0.02,
+            boxstyle='square',
+            ec = ec,
+            fc = fc,
+            mutation_scale=14, #font size
+            transform = trans,
+            alpha = 1.0 if (ec!=None or fc!=None) else 0.0
+        )
+        _box.add_artist(rect)
+        return _box
+    
+    legends = []
     for mixture in mixtures:
-        str_text += u"%s:\n" % mixture.name
-        str_text += u"\n".join([u"{}: {:>5.1f}".format(phase, fraction*100.0) for phase, fraction in zip(mixture.phases, mixture.fractions)])
-        str_text += u"\n"
+        legend_items = []
+        
+        # Add title:
+        title = TextArea(mixture.name)
+        title_children = [create_rect_patch(ec=None) for spec in mixture.specimens] 
+        title_children.insert(0, title)
+        title_box = HPacker(children=title_children, align="center", pad=5, sep=3)
+        legend_items.append(title_box)
+        
+        # Add phase labels & boxes
+        for i, (phase, fraction) in enumerate(izip(mixture.phases, mixture.fractions)):
+            label_text = u"{}: {:>5.1f}".format(phase, fraction*100.0)
+            label = TextArea(label_text)
+            phase_children = [
+                create_rect_patch(fc = mixture.phase_matrix[j,i].display_color)
+                for j, specimen in enumerate(mixture.specimens)
+            ]
+            phase_children.insert(0, label)
+            legend_items.append(
+                HPacker(children=phase_children, align="center", pad=0, sep=3)
+            )
+        
+        # Add created legend to the list:
+        legends.append(
+            VPacker(children=legend_items, align="right", pad=0, sep=3)
+        )
+        
+    #Only add this if there's something to add!
+    if legends:
+        # Pack legends & plot:
+        legend = AnchoredOffsetbox(
+            loc=1,
+            pad=0.1,
+            borderpad=0.1,
+            frameon=False,
+            child=VPacker(children=legends, align="right", pad=0, sep=5)
+        )
+
+        axes.add_artist(legend)
+        setattr(project, "__plot_mixture_legend", legend)
+
     
-    props = dict(x=1.0, y=1.0,
-        text=str_text,
-        multialignment='right',
-        horizontalalignment='right',
-        verticalalignment='top',
-        transform = axes.transAxes
-    )
-    if text:
-        for key in props: getattr(text, "set_%s"%key)(props[key])
-    else:
-        text = Text(**props)
-    if not text in axes.get_children():
-        axes.add_artist(text)
-    project.__plot_mixture_text = text

@@ -297,7 +297,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
                 if specimen!=None:
                     specimen.update_pattern(
                         specimen_data.total_intensity,
-                        specimen_data.phase_intensities,
+                        specimen_data.phase_intensities * self.fractions[:,np.newaxis] * self.scales[i],
                         self.phase_matrix[i,:]
                     )
             

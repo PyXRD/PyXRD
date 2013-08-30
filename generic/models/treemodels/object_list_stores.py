@@ -7,7 +7,7 @@
 
 from traceback import print_exc
 
-import gobject
+import gtk, gobject
 
 from gtkmvc import Observer
 
@@ -65,7 +65,7 @@ class ObjectListStore(BaseObjectListStore, Storable):
 
     # ------------------------------------------------------------
     #      Methods & Functions
-    # ------------------------------------------------------------
+    # ------------------------------------------------------------        
     def on_get_iter(self, path):
         try:
             return self._model_data[path[0]]
@@ -155,6 +155,7 @@ class ObjectListStore(BaseObjectListStore, Storable):
         if hasattr(item, "__list_store__"):
             item.__list_store__ = None
         self.emit('item-removed', item)
+        self.invalidate_iters()
         self.row_deleted((index,))
 
     def clear(self, callback=None):
@@ -203,6 +204,7 @@ class ObjectListStore(BaseObjectListStore, Storable):
             new_pos = old_pos + 1            
             if new_pos < len(self._model_data):
                 self.reposition_item(item, new_pos)
+    
     def move_item_up(self, item):
         if item!=None:
             old_pos = self._model_data.index(item)

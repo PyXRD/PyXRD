@@ -42,7 +42,7 @@ class BaseObjectListStore(gtk.GenericTreeModel):
     #      Methods & Functions
     # ------------------------------------------------------------
     def on_get_flags(self):
-        return gtk.TREE_MODEL_LIST_ONLY | gtk.TREE_MODEL_ITERS_PERSIST
+        return gtk.TREE_MODEL_LIST_ONLY
 
     def on_get_n_columns(self):
         return len(self._columns)

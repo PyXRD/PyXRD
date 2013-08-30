@@ -21,7 +21,6 @@ from generic.io import storables, Storable, PyXRDDecoder
 from generic.models import ChildModel, PropIntel
 from generic.models.mixins import CSVMixin, ObjectListStoreChildMixin
 from generic.models.metaclasses import pyxrd_object_pool
-from generic.models.treemodels import XYListStore
 from generic.calculations.data_objects import AtomTypeData, AtomData
 from generic.calculations.atoms import get_structure_factor
 

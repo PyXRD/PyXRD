@@ -6,7 +6,9 @@
 # Complete license can be found in the LICENSE file.
 
 from .phase import Phase
+from .component import Component
 
 __all__ = [
     "Phase",
+    "Component",
 ]

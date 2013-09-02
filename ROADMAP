@@ -1,5 +1,6 @@
 Feature-wise:
 0.5 - distutils-support: see http://docs.python.org/2/distutils/setupscript.html
+0.5 - after distutils: add after-install generation of default phases
 0.6 - Sybilla Support:
         - integrate XML file import
 0.6 - add manual Y limit option (in raw counts?)
@@ -15,7 +16,6 @@ Feature-wise:
     
 Code-Wise:
 
-0.4 - BUG: default phases script needs to be updated + default components are not part of the GIT repo       
 0.x - check for backwards compatibility issues with pre-O.4 project files
 0.x - DOCUMENTATION!
 0.x - cleanse code from TODO & FIXME's

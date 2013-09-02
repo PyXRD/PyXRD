@@ -107,8 +107,7 @@ def run(args):
         'dS0w': dict(linked_with='dS0w', **inherit_S),
     })
 
-    default_phases += [
-        ( '%sSmectites/Di-Smectite Ca.phs', [
+    default_phases += [        ( '%sSmectites/Di-Smectite Ca.phs', [
                 ( dict(R=0, name='S R0 Ca-AD'), S_code_AD, {} ),
                 ( dict(R=0, name='S R0 Ca-EG', based_on='S R0 Ca-AD', **inherit_phase), S_code_EG, S_inh_comp_args )
         ]),
@@ -565,9 +564,8 @@ def run(args):
     """
     ### Actual object generation routine:
     """
-    project = Project()
     for phases_path, phase_descr in default_phases:
-        
+        project = Project()        
         phase_lookup = {}
         component_lookup = {}
         
@@ -593,7 +591,7 @@ def run(args):
             phase.components.clear()
             for ll, ul in limits:
                 part = code[ll: ul]
-                for component in Component.load_components(aliases[part] % settings.DEFAULT_COMPONENTS_DIR, parent=phase):
+                for component in Component.load_components(aliases[part] % (settings.DATA_REG.get_directory_path("DEFAULT_COMPONENTS") + "/"), parent=phase):
                     component.resolve_json_references()
                     phase.components.append(component)
                     props = comp_props.get(part, {})
@@ -606,7 +604,7 @@ def run(args):
                     print "     component %s added" % component
 
         #save phases:
-        phases_path = phases_path % settings.DEFAULT_PHASES_DIR
+        phases_path = phases_path % (settings.DATA_REG.get_directory_path("DEFAULT_PHASES") + "/")
         create_dir_recursive(phases_path)
         Phase.save_phases(phase_lookup.values(), phases_path)
     pass #end of run

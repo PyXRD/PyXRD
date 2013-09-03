@@ -12,7 +12,7 @@ from generic.models import ChildModel, PropIntel
 from generic.models.metaclasses import pyxrd_object_pool
 from generic.refinement.mixins import RefinementValue
 
-from phases.atom_relations import ComponentPropMixin
+from .atom_relations import ComponentPropMixin
 
 @storables.register()
 class UnitCellProperty(ChildModel, Storable, ComponentPropMixin, RefinementValue):

@@ -23,7 +23,7 @@ from generic.calculations.data_objects import PhaseData
 from generic.refinement.mixins import RefinementGroup
 
 from probabilities.models import get_correct_probability_model
-from phases.CSDS_models import DritsCSDSDistribution
+from .CSDS import DritsCSDSDistribution
 from .component import Component
 
 @storables.register()

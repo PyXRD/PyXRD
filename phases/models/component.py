@@ -23,7 +23,7 @@ from generic.calculations.data_objects import ComponentData
 from generic.refinement.mixins import RefinementGroup
 
 from atoms.models import Atom
-from phases.atom_relations import AtomRelation, AtomRatio
+from .atom_relations import AtomRelation, AtomRatio
 from .unit_cell_prop import UnitCellProperty
 
 @storables.register()

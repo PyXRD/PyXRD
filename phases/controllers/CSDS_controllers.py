@@ -17,7 +17,7 @@ import settings
 from generic.controllers import BaseController
 
 from phases.views import EditCSDSDistributionView
-from phases.CSDS_models import CSDS_distribution_types
+from phases.models.CSDS import CSDS_distribution_types
 
 class EditCSDSTypeController(BaseController):
     """ 

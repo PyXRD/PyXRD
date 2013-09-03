@@ -31,7 +31,7 @@ from generic.controllers import (
 from atoms.models import Atom
 
 from phases.views import EditUnitCellPropertyView, EditAtomRatioView, EditAtomContentsView
-from phases.atom_relations import AtomRatio, AtomContents
+from phases.models.atom_relations import AtomRatio, AtomContents
 
 class AtomComboMixin(object):
     

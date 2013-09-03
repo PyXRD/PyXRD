@@ -5,30 +5,38 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-import time
 from warnings import warn
 
-from math import sin, cos, pi, sqrt, exp
-
-import gtk
 from gtkmvc.model import Model
 from gtkmvc.model import Signal, Observer
 
 import numpy as np
 
-
-from generic.io import storables, Storable, PyXRDDecoder
+from generic.io import storables, Storable
 from generic.models import ChildModel, PropIntel
 from generic.models.mixins import CSVMixin, ObjectListStoreChildMixin
 from generic.models.metaclasses import pyxrd_object_pool
 from generic.calculations.data_objects import AtomTypeData, AtomData
-from generic.calculations.atoms import get_structure_factor
+from generic.calculations.atoms import get_atomic_scattering_factor, get_structure_factor
 
 @storables.register()
 class AtomType(ChildModel, ObjectListStoreChildMixin, Storable, CSVMixin):
     """
-        AtomTypes contain all physical & chemical information for one element 
+        AtomType models contain all physical & chemical information for one element 
         in a certain state (e.g. Fe3+ & Fe2+ are two different AtomTypes)
+        
+        AtomTypes have built-in support for `generic.models.treemodels.ObjectIndexStore`
+        
+        Attributes:
+            atom_nr: integer, the atomic number or a unique number if a compound
+            name: string, the atom type name (e.g. Al3+)
+            charge: integer, the charge of the 'atom' (eg. 3 for Al3+)
+            weight: float, the atomic weight
+            debye: float, Debye-Waller scattering factor
+            par_aN, par_bN and par_c: the atomic scattering factor parameters with N=[0:5]
+            parameters_changed: signal indicating the parameters have changed
+            data_object: the internal data object that is used in the
+                calculations framework (see `generic.calculations.atoms`) 
     """
 
     #MODEL INTEL:
@@ -141,6 +149,10 @@ class AtomType(ChildModel, ObjectListStoreChildMixin, Storable, CSVMixin):
         
     def __str__(self):
         return "<AtomType %s (%s)>" % (self.name, id(self))
+       
+    def get_atomic_scattering_factors(self, stl_range):
+        angstrom_range = ((stl_range*0.05)**2)
+        return get_atomic_scattering_factor(angstrom_range, self.data_object)
        
     pass #end of class
        
@@ -302,7 +314,6 @@ class Atom(ChildModel, ObjectListStoreChildMixin, Storable):
         self._atom_type_index = None        
 
     def json_properties(self):
-        from phases.models import Phase
         retval = Storable.json_properties(self)
         if self.component==None or self.component.export_atom_types:
             retval["atom_type_name"] = self.atom_type.name if self.atom_type else ""

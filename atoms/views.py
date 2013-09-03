@@ -7,7 +7,6 @@
 
 import gtk
 
-import matplotlib
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_gtkcairo import FigureCanvasGTKCairo as FigureCanvasGTK
 
@@ -17,6 +16,9 @@ class EditAtomTypeView(BaseView):
     builder = "atoms/glade/atoms.glade"
     top = "edit_atom_type"
     
+    # ------------------------------------------------------------
+    #      Initialisation and other internals
+    # ------------------------------------------------------------
     def __init__(self, *args, **kwargs):
         BaseView.__init__(self, *args, **kwargs)
         
@@ -37,6 +39,9 @@ class EditAtomTypeView(BaseView):
         self.graph_parent.add(self.matlib_canvas)
         self.graph_parent.show_all()
         
+    # ------------------------------------------------------------
+    #      Methods & Functions
+    # ------------------------------------------------------------ 
     def update_figure(self, x, y):
         self.plot.cla()
         self.plot.plot(x, y, 'k-', aa=True)

@@ -5,11 +5,7 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-import locale
-
 import gtk
-
-from gtkmvc import Controller
 
 import settings
 
@@ -17,13 +13,20 @@ from generic.models.treemodels.utils import create_valuestore_from_file, create_
 
 from generic.controllers.utils import get_case_insensitive_glob
 from generic.views.validators import FloatEntryValidator
-from generic.controllers import DialogController, BaseController
+from generic.controllers import BaseController
 
-class GoniometerControllerMixin(object):
+class InlineGoniometerController(BaseController):
+    """
+        Goniometer controller. Is not expected to be used with a dialog view,
+        but rather in another view. 
+    """
 
     file_filters = [("Goniometer files", get_case_insensitive_glob("*.GON")),
                     ("All Files", "*.*")]
 
+    # ------------------------------------------------------------
+    #      Initialisation and other internals
+    # ------------------------------------------------------------
     def register_adapters(self):
         if self.model is not None:
             for name in self.model.get_properties():
@@ -94,13 +97,3 @@ class GoniometerControllerMixin(object):
             self.wavelength = float(model.get_value(itr, 1))
             
     pass #end of class
-
-class InlineGoniometerController(GoniometerControllerMixin, BaseController):
-    pass #end of class
-
-class GoniometerController(GoniometerControllerMixin, DialogController):
-        
-    def __init__(self, *args, **kwargs):
-        DialogController.__init__(self, *args, **kwargs)
-
-    pass # end of class

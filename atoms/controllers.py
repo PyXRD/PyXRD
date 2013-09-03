@@ -5,11 +5,6 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-import locale
-
-import gtk
-
-from math import pi
 import numpy as np
 
 from gtkmvc import Controller
@@ -21,8 +16,16 @@ from generic.controllers import BaseController, ObjectListStoreController
 from atoms.models import AtomType
 from atoms.views import EditAtomTypeView
 
-class EditAtomTypeController(BaseController):
+import settings
 
+class EditAtomTypeController(BaseController):
+    """
+        The controller for the AtomType model and EditAtomTypeView view.
+    """
+    
+    # ------------------------------------------------------------
+    #      Initialisation and other internals
+    # ------------------------------------------------------------
     def register_adapters(self):
         if self.model is not None:
             for name in self.model.get_properties():
@@ -38,11 +41,14 @@ class EditAtomTypeController(BaseController):
             self.update_plot()
             return
 
+    # ------------------------------------------------------------
+    #      Methods & Functions
+    # ------------------------------------------------------------ 
     def update_plot(self):
         x, y = (),()
         if self.model is not None:
             x = np.arange(0,90.0,90.0/100.0)
-            y = np.zeros_like(x) #self.model.get_atomic_scattering_factors(2*np.sin(np.radians(x/2)) / self.model.project.goniometer.wavelength)
+            y = self.model.get_atomic_scattering_factors(2*np.sin(np.radians(x/2)) / settings.DEFAULT_LAMBDA)
         self.view.update_figure(x, y)
 
     # ------------------------------------------------------------
@@ -52,19 +58,24 @@ class EditAtomTypeController(BaseController):
     def notif_parameter_changed(self, model, prop_name, info):
         self.update_plot()
 
-
-    # ------------------------------------------------------------
-    #      GTK Signal handlers
-    # ------------------------------------------------------------
-
+    pass #end of class
 
 class AtomTypesController(ObjectListStoreController):
+    """
+        Controller for an AtomType ObjectListStore model and view.
+        
+        Attributes:
+            
+    """
     file_filters = ("Single atom type file", "*.sat"), ("Atom types list file", "*.atl")
     model_property_name = "atom_types"
     columns = [ ("Atom type name", "c_name") ]
     delete_msg = "Deleting an atom type is irreverisble!\nAre You sure you want to continue?"
     title="Edit Atom Types"
 
+    # ------------------------------------------------------------
+    #      Methods & Functions
+    # ------------------------------------------------------------ 
     def get_new_edit_view(self, obj):
         if isinstance(obj, AtomType):
             return EditAtomTypeView(parent=self.view)
@@ -76,6 +87,13 @@ class AtomTypesController(ObjectListStoreController):
             return EditAtomTypeController(obj, view, parent=parent)
         else:
             return ObjectListStoreController.get_new_edit_controller(self, obj, view, parent=parent)
+
+         
+    def create_new_object_proxy(self):
+        #new_atom_type = 
+        #self.model.add_atom_type(new_atom_type)
+        #self.select_object(new_atom_type)
+        return AtomType("New Atom Type", parent=self.model)
 
     def open_atom_type(self, filename):
         self.model.append(AtomType.load_object(filename))
@@ -115,12 +133,6 @@ class AtomTypesController(ObjectListStoreController):
                     filename = "%s%s" % (filename, self.file_filters[1][1][1:])
                 AtomType.save_as_csv(filename, self.get_selected_objects())
         self.run_save_dialog("Export atom types", on_accept, parent=self.view.get_top_widget())
-        
-    def create_new_object_proxy(self):
-        #new_atom_type = 
-        #self.model.add_atom_type(new_atom_type)
-        #self.select_object(new_atom_type)
-        return AtomType("New Atom Type", parent=self.model)
         
     pass #end of class
         

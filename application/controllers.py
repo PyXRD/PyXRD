@@ -6,14 +6,12 @@
 # Complete license can be found in the LICENSE file.
 
 import os, sys
-import locale
 from shutil import copy2 as copy, move
 from os.path import basename, dirname
 
 import gtk
 
 from gtkmvc import Controller
-from gtkmvc.adapters import Adapter
 
 import settings
 
@@ -24,7 +22,7 @@ from generic.plot.controllers import MainPlotController, EyedropperCursorPlot
 
 from project.controllers import ProjectController
 from project.models import Project
-from specimen.controllers import SpecimenController, MarkersController, StatisticsController
+from specimen.controllers import SpecimenController, MarkersController
 from specimen.models import Specimen
 
 from mixture.controllers import MixturesController
@@ -32,7 +30,10 @@ from phases.controllers import PhasesController
 from atoms.controllers import AtomTypesController
 
 class AppController (BaseController, DialogMixin):
-
+    """
+        Controller handling the main application interface.
+    """
+    
     file_filters = [("PyXRD Project files", get_case_insensitive_glob("*.pyxrd", "*.zpd")),
                     ("All Files", "*.*")]
 
@@ -40,7 +41,8 @@ class AppController (BaseController, DialogMixin):
     #      Initialisation and other internals
     # ------------------------------------------------------------
     def __init__(self, model, view, spurious=False, auto_adapt=False, parent=None):
-        BaseController.__init__(self, model, view, spurious=spurious, auto_adapt=auto_adapt, parent=parent)
+        """ Initializes an AppController with the given arguments. """
+        super(AppController, self).__init__(model, view, spurious=spurious, auto_adapt=auto_adapt, parent=parent)
         
         self.plot_controller = MainPlotController(self)
         view.setup_plot(self.plot_controller)
@@ -104,21 +106,16 @@ class AppController (BaseController, DialogMixin):
         self.update_specimen_sensitivities()
         self.redraw_plot()
         return
-    
-    #@Controller.observe("statistics_visible", assign=True, after=True)
-    #def notif_statistics_toggle(self, model, prop_name, info):
-    #    self.redraw_plot()
-    #    return
 
     # ------------------------------------------------------------
     #      View updating
     # ------------------------------------------------------------
-    in_update_cycle = False
-    @delayed(lock="in_update_cycle")
+    _in_update_cycle = False
+    @delayed(lock="_in_update_cycle")
     @BaseController.status_message("Updating display...")
     def redraw_plot(self):
-        if not self.in_update_cycle: #prevent never-ending update loops
-            self.in_update_cycle = True
+        if not self._in_update_cycle: #prevent never-ending update loops
+            self._in_update_cycle = True
             
             single = self.model.single_specimen_selected
         
@@ -136,7 +133,7 @@ class AppController (BaseController, DialogMixin):
                 project=self.model.current_project,
                 specimens=self.model.current_specimens[::-1])
             
-            self.in_update_cycle = False
+            self._in_update_cycle = False
         
     def update_title(self):
         self.view.get_top_widget().set_title("PyXRD - %s" % self.model.current_project.name)        

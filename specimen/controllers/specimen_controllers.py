@@ -17,9 +17,8 @@ from generic.controllers import BaseController, DialogController, DialogMixin, O
 from generic.controllers.handlers import get_color_val
 from generic.views.validators import FloatEntryValidator
 from generic.views.treeview_tools import setup_treeview, new_text_column
-from generic.controllers.utils import get_case_insensitive_glob, ctrl_setup_combo_with_list
 
-from goniometer.controllers import GoniometerController
+from goniometer.controllers import InlineGoniometerController
 
 from .background_controller import BackgroundController
 from .smooth_data_controller import SmoothDataController
@@ -36,27 +35,21 @@ from specimen.views import (
 )
 
 class SpecimenController(DialogController, DialogMixin, ObjectTreeviewMixin):
+    """
+        Specimen controller.
+        
+        Attributes:
+            export_filters: the file filter tuples for exporting XRD patterns
+            excl_filters: the file filter tuples for exporting exclusion ranges
+    """
 
-    file_filters   = [parser.file_filter for parser in parsers["xrd"]]
+    file_filters = [parser.file_filter for parser in parsers["xrd"]]
     export_filters = [parser.file_filter for parser in parsers["xrd"] if parser.can_write]
-    excl_filters   = [parser.file_filter for parser in parsers["exc"]]
-    
-    def update_calc_treeview(self):
-        tv = self.view['calculated_data_tv']
-        model = self.model.calculated_pattern.xy_store
-        
-        for column in tv.get_columns():
-            tv.remove_column(column)
-        
-        def get_num(column, cell, model, itr, *data):
-            cell.set_property('text', '%.3f' % model.get_value(itr, column.get_col_attr('text')))
-        
-        tv.append_column(new_text_column(u'2θ', text_col=model.c_x, data_func=get_num))
-        tv.append_column(new_text_column(u'Cal', text_col=model.c_x, data_func=get_num))        
-        for i in range(model.get_n_columns()-3):
-            tv.append_column(new_text_column(
-                model.get_y_name(i), text_col=i+2, data_func=get_num))
-    
+    excl_filters = [parser.file_filter for parser in parsers["exc"]]
+
+    # ------------------------------------------------------------
+    #      Initialisation and other internals
+    # ------------------------------------------------------------
     def register_adapters(self):
         if self.model is not None:
             for name in self.model.get_properties():
@@ -65,19 +58,19 @@ class SpecimenController(DialogController, DialogMixin, ObjectTreeviewMixin):
                     ad.connect_widget(self.view["specimen_name"])
                     self.adapt(ad)
                 elif name == "goniometer":
-                    self.gonio_ctrl = GoniometerController(view=self.view.gonio_view, model=self.model.goniometer, parent=self)
+                    self.gonio_ctrl = InlineGoniometerController(view=self.view.gonio_view, model=self.model.goniometer, parent=self)
                 elif name == "experimental_pattern":
-                    #Setup treeview:
+                    # Setup treeview:
                     tv = self.view['experimental_data_tv']
                     model = self.model.experimental_pattern.xy_store
                     setup_treeview(tv, model,
                         on_cursor_changed=self.on_exp_data_tv_cursor_changed,
                         sel_mode=gtk.SELECTION_MULTIPLE)
-                    #X Column:
+                    # X Column:
                     tv.append_column(new_text_column(
                         u'°2θ', text_col=model.c_x, editable=True,
                         edited_callback=(self.on_xy_data_cell_edited, (model, model.c_x))))
-                    #Y Column:
+                    # Y Column:
                     tv.append_column(new_text_column(
                         u'Intensity', text_col=model.c_y, editable=True,
                         edited_callback=(self.on_xy_data_cell_edited, (model, model.c_y))))
@@ -97,7 +90,7 @@ class SpecimenController(DialogController, DialogMixin, ObjectTreeviewMixin):
                         sel_mode=gtk.SELECTION_MULTIPLE)
                     tv.append_column(new_text_column(
                         u'From [°2θ]', text_col=model.c_x, editable=True,
-                        edited_callback=(self.on_xy_data_cell_edited, (model, model.c_x)), 
+                        edited_callback=(self.on_xy_data_cell_edited, (model, model.c_x)),
                         resizable=True, expand=True))
                     tv.append_column(new_text_column(
                         u'To [°2θ]', text_col=model.c_y, editable=True,
@@ -117,13 +110,35 @@ class SpecimenController(DialogController, DialogMixin, ObjectTreeviewMixin):
             self.update_sensitivities()
             return
 
+    # ------------------------------------------------------------
+    #      Methods & Functions
+    # ------------------------------------------------------------
+    def update_calc_treeview(self):
+        tv = self.view['calculated_data_tv']
+        model = self.model.calculated_pattern.xy_store
+
+        for column in tv.get_columns():
+            tv.remove_column(column)
+
+        def get_num(column, cell, model, itr, *data):
+            cell.set_property('text', '%.3f' % model.get_value(itr, column.get_col_attr('text')))
+
+        tv.append_column(new_text_column(u'2θ', text_col=model.c_x, data_func=get_num))
+        tv.append_column(new_text_column(u'Cal', text_col=model.c_x, data_func=get_num))
+        for i in range(model.get_n_columns() - 3):
+            tv.append_column(new_text_column(
+                model.get_y_name(i), text_col=i + 2, data_func=get_num))
+
     def set_exp_data_sensitivites(self, val):
         self.view["btn_del_experimental_data"].set_sensitive(val)
-        
+
     def set_exclusion_ranges_sensitivites(self, val):
         self.view["btn_del_exclusion_ranges"].set_sensitive(val)
 
     def update_sensitivities(self):
+        """
+            Updates the views sensitivities according to the model state.
+        """
         self.view["specimen_exp_color"].set_sensitive(not self.model.inherit_exp_color)
         if not self.model.inherit_exp_color:
             self.view["specimen_exp_color"].set_color(gtk.gdk.color_parse(self.model.exp_color))
@@ -131,34 +146,49 @@ class SpecimenController(DialogController, DialogMixin, ObjectTreeviewMixin):
         if not self.model.inherit_calc_color:
             self.view["specimen_calc_color"].set_color(gtk.gdk.color_parse(self.model.calc_color))
 
-        self.view["spb_calc_lw"].set_sensitive(not self.model.inherit_calc_lw)           
+        self.view["spb_calc_lw"].set_sensitive(not self.model.inherit_calc_lw)
         self.view["spb_exp_lw"].set_sensitive(not self.model.inherit_exp_lw)
 
     def remove_background(self):
+        """
+            Opens the 'remove background' dialog.
+        """
         bg_view = BackgroundView(parent=self.view)
-        bg_ctrl = BackgroundController(self.model.experimental_pattern, bg_view, parent=self)
+        BackgroundController(self.model.experimental_pattern, bg_view, parent=self)
         bg_view.present()
 
     def add_noise(self):
+        """
+            Opens the 'add noise' dialog.
+        """
         an_view = AddNoiseView(parent=self.view)
-        an_ctrl = AddNoiseController(self.model.experimental_pattern, an_view, parent=self)
+        AddNoiseController(self.model.experimental_pattern, an_view, parent=self)
         an_view.present()
 
     def smooth_data(self):
+        """
+            Opens the 'smooth data' dialog.
+        """
         sd_view = SmoothDataView(parent=self.view)
-        sd_ctrl = SmoothDataController(self.model.experimental_pattern, sd_view, parent=self)
+        SmoothDataController(self.model.experimental_pattern, sd_view, parent=self)
         sd_view.present()
-        
+
     def shift_data(self):
+        """
+            Opens the 'shift data' dialog.
+        """
         sh_view = ShiftDataView(parent=self.view)
-        sh_ctrl = ShiftDataController(self.model.experimental_pattern, sh_view, parent=self)
+        ShiftDataController(self.model.experimental_pattern, sh_view, parent=self)
         sh_view.present()
-        
+
     def strip_peak(self):
+        """
+            Opens the 'strip peak' dialog.
+        """
         st_view = StripPeakView(parent=self.view)
-        st_ctrl = StripPeakController(self.model.experimental_pattern, st_view, parent=self)
+        StripPeakController(self.model.experimental_pattern, st_view, parent=self)
         st_view.present()
-        
+
     # ------------------------------------------------------------
     #      Notifications of observable properties
     # ------------------------------------------------------------
@@ -173,11 +203,11 @@ class SpecimenController(DialogController, DialogMixin, ObjectTreeviewMixin):
     #      GTK Signal handlers
     # ------------------------------------------------------------
     def on_calc_treestore_changed(self, *args, **kwargs):
-        self.update_calc_treeview()    
-    
+        self.update_calc_treeview()
+
     def on_btn_ok_clicked(self, event):
         self.parent.pop_status_msg('edit_specimen')
-        return DialogController.on_btn_ok_clicked(self, event)
+        return super(SpecimenController, self).on_btn_ok_clicked(event)
 
     def on_exclusion_ranges_tv_cursor_changed(self, tv):
         path, col = tv.get_cursor()
@@ -191,15 +221,15 @@ class SpecimenController(DialogController, DialogMixin, ObjectTreeviewMixin):
 
     def on_add_experimental_data_clicked(self, widget):
         model = self.model.experimental_pattern.xy_store
-        path = model.append(0,0)
+        path = model.append(0, 0)
         self.set_selected_paths(self.view["experimental_data_tv"], (path,))
         return True
-        
+
     def on_add_exclusion_range_clicked(self, widget):
         model = self.model.exclusion_ranges
-        path = model.append(0,0)
+        path = model.append(0, 0)
         self.set_selected_paths(self.view["exclusion_ranges_tv"], (path,))
-        return True        
+        return True
 
     def on_del_experimental_data_clicked(self, widget):
         paths = self.get_selected_paths(self.view["experimental_data_tv"])
@@ -207,16 +237,16 @@ class SpecimenController(DialogController, DialogMixin, ObjectTreeviewMixin):
             model = self.model.experimental_pattern.xy_store
             model.remove_from_index(*paths)
         return True
-        
+
     def on_del_exclusion_ranges_clicked(self, widget):
         paths = self.get_selected_paths(self.view["exclusion_ranges_tv"])
         if paths != None:
             model = self.model.exclusion_ranges
             model.remove_from_index(*paths)
-        return True        
+        return True
 
     def on_xy_data_cell_edited(self, cell, path, new_text, model, col):
-        #model, col = user_data
+        # model, col = user_data
         itr = model.get_iter(path)
         model.set_value(itr, col, model.convert(col, locale.atof(new_text)))
         return True
@@ -228,19 +258,19 @@ class SpecimenController(DialogController, DialogMixin, ObjectTreeviewMixin):
                 if filename[-3:].lower() == "exc":
                     self.model.exclusion_ranges.load_data(filename, format="DAT")
             self.run_load_dialog(title="Import exclusion ranges",
-                                 on_accept_callback=on_accept, 
+                                 on_accept_callback=on_accept,
                                  parent=self.view.get_top_widget(),
                                  filters=self.excl_filters)
         self.run_confirmation_dialog("Importing exclusion ranges will erase all current data.\nAre you sure you want to continue?",
                                      on_confirm, parent=self.view.get_top_widget())
-        
+
     def on_export_exclusion_ranges_clicked(self, widget, data=None):
         def on_accept(dialog):
             filename = self.extract_filename(dialog, filters=self.excl_filters)
             if filename[-3:].lower() == "exc":
                 self.model.exclusion_ranges.save_data("%s %s" % (self.model.name, self.model.sample_name), filename)
         self.run_save_dialog(title="Select file for exclusion ranges export",
-                             on_accept_callback=on_accept, 
+                             on_accept_callback=on_accept,
                              parent=self.view.get_top_widget(),
                              filters=self.excl_filters)
 
@@ -252,7 +282,7 @@ class SpecimenController(DialogController, DialogMixin, ObjectTreeviewMixin):
             try:
                 self.model.experimental_pattern.load_data(parser, filename, clear=True)
             except Exception as msg:
-                message = "An unexpected error has occured when trying to parse %s:\n\n<i>"  % os.path.basename(filename)
+                message = "An unexpected error has occured when trying to parse %s:\n\n<i>" % os.path.basename(filename)
                 message += str(msg) + "</i>\n\n"
                 message += "This is most likely caused by an invalid or unsupported file format."
                 self.run_information_dialog(
@@ -260,7 +290,7 @@ class SpecimenController(DialogController, DialogMixin, ObjectTreeviewMixin):
                     parent=self.view.get_top_widget()
                 )
         self.run_load_dialog(title="Open XRD file for import",
-                            on_accept_callback=on_accept, 
+                            on_accept_callback=on_accept,
                              parent=self.view.get_top_widget())
         return True
 
@@ -270,7 +300,7 @@ class SpecimenController(DialogController, DialogMixin, ObjectTreeviewMixin):
         self.run_confirmation_dialog("Importing a new experimental file will erase all current data.\nAre you sure you want to continue?",
                                      on_confirm, parent=self.view.get_top_widget())
         return True
-        
+
     def on_export_experimental_data(self, *args, **kwargs):
         def on_accept(dialog):
             filename = self.extract_filename(dialog)
@@ -278,17 +308,17 @@ class SpecimenController(DialogController, DialogMixin, ObjectTreeviewMixin):
                 self.model.experimental_pattern.save_data(filename)
             elif filename[-2:].lower() == "rd":
                 self.run_information_dialog("RD file format not supported (yet)!", parent=self.view.get_top_widget())
-            
+
         self.run_save_dialog(title="Select file for export",
-                             on_accept_callback=on_accept, 
+                             on_accept_callback=on_accept,
                              parent=self.view.get_top_widget(),
                              filters=self.export_filters,
                              suggest_name=self.model.name)
         return True
-        
+
     def on_btn_export_experimental_data_clicked(self, widget, data=None):
         return self.on_export_experimental_data()
-        
+
     def on_btn_export_calculated_data_clicked(self, widget, data=None):
         def on_accept(dialog):
             filename = self.extract_filename(dialog)
@@ -297,12 +327,12 @@ class SpecimenController(DialogController, DialogMixin, ObjectTreeviewMixin):
             if filename[-2:].lower() == "rd":
                 self.run_information_dialog("RD file format not supported (yet)!", parent=self.view.get_top_widget())
         self.run_save_dialog(title="Select file for export",
-                             on_accept_callback=on_accept, 
+                             on_accept_callback=on_accept,
                              parent=self.view.get_top_widget())
-        return True        
+        return True
 
-    pass #end of class
-    
+    pass # end of class
+
 class StatisticsController(BaseController):
 
     def register_adapters(self):
@@ -313,5 +343,5 @@ class StatisticsController(BaseController):
                 else:
                     self.adapt(name)
             return
-        
-    pass #end of class
+
+    pass # end of class

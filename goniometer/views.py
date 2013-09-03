@@ -5,10 +5,16 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-import gtk
-from generic.views import DialogView, BaseView
+from generic.views import BaseView
 
-class GoniometerViewMixin(object):
+class InlineGoniometerView(BaseView):
+    """
+        The inline Goniometer view.
+    """
+
+    builder = "goniometer/glade/goniometer.glade"
+    top = "edit_goniometer"
+
     @property
     def import_combo_box(self):
         return self["cmb_import_gonio"]
@@ -17,20 +23,4 @@ class GoniometerViewMixin(object):
     def wavelength_combo_box(self):
         return self["wavelength_combo_box"]
 
-    pass #end of class
-
-class GoniometerView(GoniometerViewMixin, DialogView):
-    subview_builder = "goniometer/glade/goniometer.glade"
-    subview_toplevel = "edit_goniometer"
-    
-    title = "Edit Goniometer"
-    resizable = False
-    model = True    
-    
-    pass #end of class
-        
-class InlineGoniometerView(GoniometerViewMixin, BaseView):
-    builder = "goniometer/glade/goniometer.glade"
-    top = "edit_goniometer"
-    
-    pass #end of class
+    pass # end of class

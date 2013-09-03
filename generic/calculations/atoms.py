@@ -8,22 +8,22 @@
 import numpy as np
 from math import pi
 
-from generic.caching import cache
+def get_atomic_scattering_factor(angstrom_range, atom_type):
+    """
+        Calculates the atomic scatter factor for a given range of sin(θ) / λ values.
+        Expects λ to be in Angström!
+    """
+    return np.sum(atom_type.par_a * np.exp(-atom_type.par_b * angstrom_range[...,np.newaxis]), axis=1) + atom_type.par_c
 
-@cache(64)
-def get_structure_factor(stl_range, atoms_array):
+def get_structure_factor(stl_range, atom):
     """
-        Calculates the atomic scatter factor for a given range of 
-        2*sin(θ) / λ values.
-        Expects λ to be in nanometers, not Angström!
+        Calculates the atom's structure factor for a given range of 2*sin(θ) / λ values.
+        Expects λ to be in nanometers!
     """
-    #atoms_array.shape = (M,)    
         
-    angstrom_range = ((stl_range*0.05)**2)[...,np.newaxis]
-    #angstrom_range.shape = (N,1)
+    angstrom_range = ((stl_range*0.05)**2)
      
-    asf = np.sum(atoms_array.par_a * np.exp(-atoms_array.par_b * angstrom_range[...,np.newaxis]), axis=2) + atoms_array.par_c
-    asf = asf * np.exp(-atoms_array.debye * angstrom_range)
-    # asf.shape = (N,M,)
+    asf = get_atomic_scattering_factor(angstrom_range, atom.atom_type)
+    asf = asf * np.exp(-atom.atom_type.debye * angstrom_range)
               
-    return np.sum(asf * atoms_array.pn * np.exp(2 * pi * atoms_array.z * stl_range[...,np.newaxis] * 1j), axis=1)
+    return asf * atom.pn * np.exp(2 * pi * atom.z * stl_range * 1j)

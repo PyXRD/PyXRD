@@ -18,8 +18,16 @@ class DialogMixin():
     """
         Generic mixin that provides some functions and methods for handling
         dialogs, e.g. information, warnings, opening & saving files, ...
+        
+        Attributes:
+            suggest_folder: the path at which the file dialogs are opened
+            accept_responses: a list of GtkResponseCodes that 'accept' the action 
+                of the dialog
+            file_filters: A list of two-tuples containing the description of the
+                file format and the file extensions 'glob' pattern.
     """
     
+    file_filters = []
     suggest_folder = os.path.expanduser('~')
     
     accept_responses = (
@@ -30,19 +38,22 @@ class DialogMixin():
     )
     
     def extract_filename(self, dialog, filters=None):
+        """ Extracts the selected filename from a gtk.Dialog """
         glob = self.get_selected_glob(dialog.get_filter(), filters=filters)
         filename = self._adjust_filename(dialog.get_filename(), glob)
         dialog.set_filename(filename)
         return filename
 
     def _adjust_filename(self, filename, glob):
+        """ Adjusts a given filename so it ends with the proper extension """
         if glob:
             extension = glob[1:]
-            if filename[len(filename)-len(extension):] != extension:
+            if filename[len(filename)-len(extension):].lower() != extension.lower():
                 filename = "%s%s" % (filename, glob[1:])
         return filename
 
     def get_selected_glob(self, filter, filters=None):
+        """ """
         selected_name = filter.get_name()
         for filter in (filters or self.file_filters):
             try:
@@ -282,7 +293,7 @@ class BaseController (Controller, DialogMixin):
       
 class DialogController(BaseController):
     """
-        Simple controller which is the child of a dialog.
+        Simple controller which has a DialogView subclass instance as view.
     """
     
     # ------------------------------------------------------------

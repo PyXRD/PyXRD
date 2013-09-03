@@ -6,13 +6,32 @@
 # Complete license can be found in the LICENSE file.
 
 import settings
-from gtkmvc.model import Model, Observer, Signal
+from gtkmvc.model import Observer, Signal
 
 from generic.models import PyXRDModel
 from generic.models.metaclasses import pyxrd_object_pool
     
 class AppModel(PyXRDModel):
-
+    """
+        Simple model that stores the state of the application window.
+        Should never be made persistent.
+        
+        Attributes:
+            needs_plot_update: a gtkmvc.Signal to indicate the plot needs an
+                update. This models listens for the 'needs_update' signal on the
+                loaded project and propagates this accordingly.
+            current_project: the currently loaded project
+            statistics_visble: a boolean indicating whether or not statistic
+                should be visible
+            current_specimen: the currently selected specimen, is None if more
+                than one specimen is selected.
+            current_specimens: a list of currently selected specimens, is never
+                None, even if only one specimen is selected.
+            single_specimen_selected: a boolean indicating whether or not a
+                single specimen is selected
+            multiple_specimen_selected: a boolean indicating whether or not
+                multiple specimen are selected
+    """
     #MODEL INTEL:
     __observables__ = ( 
         "current_project",
@@ -71,7 +90,8 @@ class AppModel(PyXRDModel):
     #      Initialisation and other internals
     # ------------------------------------------------------------
     def __init__(self, project = None):
-        PyXRDModel.__init__(self)
+        """ Initializes the AppModel with the given Project. """
+        super(AppModel, self).__init__()
         self.needs_plot_update = Signal()
         self.current_project = project
         self._statistics_visible = False

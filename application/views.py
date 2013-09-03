@@ -5,18 +5,31 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-import os
 import gtk
 from matplotlib.backends.backend_gtkagg import NavigationToolbar2GTKAgg as NavigationToolbar
 
 import settings
 
-from generic.views import ObjectListStoreView, BaseView, DialogView
+from generic.views import ObjectListStoreView, BaseView
 
 from project.views import ProjectView
-from specimen.views import SpecimenView, EditMarkersView, StatisticsView
+from specimen.views import SpecimenView, EditMarkersView
 
 class AppView(BaseView):
+    """
+        The main application interface view.
+        
+        Attributes:
+            project: the project view
+            specimen: the specimen view
+            markers: the markers view
+            phases: the phases view
+            atom_types: the atom_types view
+            statistics: the statistics view
+            mixtures: the mixtures view
+            
+        
+    """
     builder = "application/glade/application.glade"
     
     top = "main_window"
@@ -47,7 +60,7 @@ class AppView(BaseView):
         #Setup about window:
         self["about_window"].set_version(settings.VERSION)
         pixbuf = gtk.gdk.pixbuf_new_from_file("application/icons/pyxrd.png")
-        scaled_buf = pixbuf.scale_simple(212,160,gtk.gdk.INTERP_BILINEAR)
+        scaled_buf = pixbuf.scale_simple(212, 160, gtk.gdk.INTERP_BILINEAR)
         self["about_window"].set_logo(scaled_buf)
 
         self.reset_all_views()
@@ -58,7 +71,7 @@ class AppView(BaseView):
 
         return
 
-    def setup_plot(self, plot_controller): 
+    def setup_plot(self, plot_controller):
         self.plot_controller = plot_controller
         self["matplotlib_box"].add(self.plot_controller.canvas)
         self["matplotlib_box"].show_all()
@@ -120,3 +133,4 @@ class AppView(BaseView):
     def get_toplevel(self):
         return self["main_window"]
         
+    pass #end of class

@@ -19,6 +19,9 @@ MANUAL_URL = UPDATE_URL
 ### Factor to multiply the CSDS average with to obtain the maximum CSDS ###
 LOG_NORMAL_MAX_CSDS_FACTOR = 2.5
 
+### Default wavelength if no Goniometer is available ###
+DEFAULT_LAMBDA = 0.154056
+
 ### This is the global multiprocessing pool: ###
 POOL = None
 

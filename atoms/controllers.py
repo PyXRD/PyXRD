@@ -22,33 +22,21 @@ class EditAtomTypeController(BaseController):
     """
         The controller for the AtomType model and EditAtomTypeView view.
     """
-    
+
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
     def register_adapters(self):
-        if self.model is not None:
-            for name in self.model.get_properties():
-                if name == "name":
-                    ad = Adapter(self.model, "name")
-                    ad.connect_widget(self.view["atom_name"])
-                    self.adapt(ad)
-                elif name in ("atom_nr", "debye", "weight", "par_a1", "par_a2", "par_a3", "par_a4", "par_a5", "par_b1", "par_b2", "par_b3", "par_b4", "par_b5", "par_c"):
-                    FloatEntryValidator(self.view["atom_%s" % name])
-                    self.adapt(name)                
-                elif not name in ("parameters_changed", "atom_nr", "parent", "added", "removed"):
-                    self.adapt(name)
-            self.update_plot()
-            return
+        self.update_plot()
 
     # ------------------------------------------------------------
     #      Methods & Functions
-    # ------------------------------------------------------------ 
+    # ------------------------------------------------------------
     def update_plot(self):
-        x, y = (),()
+        x, y = (), ()
         if self.model is not None:
-            x = np.arange(0,90.0,90.0/100.0)
-            y = self.model.get_atomic_scattering_factors(2*np.sin(np.radians(x/2)) / settings.DEFAULT_LAMBDA)
+            x = np.arange(0, 90.0, 90.0 / 100.0)
+            y = self.model.get_atomic_scattering_factors(2 * np.sin(np.radians(x / 2)) / settings.DEFAULT_LAMBDA)
         self.view.update_figure(x, y)
 
     # ------------------------------------------------------------
@@ -58,46 +46,33 @@ class EditAtomTypeController(BaseController):
     def notif_parameter_changed(self, model, prop_name, info):
         self.update_plot()
 
-    pass #end of class
+    pass # end of class
 
 class AtomTypesController(ObjectListStoreController):
     """
         Controller for an AtomType ObjectListStore model and view.
-        
-        Attributes:
-            
     """
     file_filters = ("Single atom type file", "*.sat"), ("Atom types list file", "*.atl")
     model_property_name = "atom_types"
     columns = [ ("Atom type name", "c_name") ]
     delete_msg = "Deleting an atom type is irreverisble!\nAre You sure you want to continue?"
-    title="Edit Atom Types"
+    obj_type_map = [
+        (AtomType, EditAtomTypeView, EditAtomTypeController),
+    ]
+    title = "Edit Atom Types"
 
     # ------------------------------------------------------------
     #      Methods & Functions
-    # ------------------------------------------------------------ 
-    def get_new_edit_view(self, obj):
-        if isinstance(obj, AtomType):
-            return EditAtomTypeView(parent=self.view)
-        else:
-            return ObjectListStoreController.get_new_edit_view(self, obj)
-        
-    def get_new_edit_controller(self, obj, view, parent=None):
-        if isinstance(obj, AtomType):
-            return EditAtomTypeController(obj, view, parent=parent)
-        else:
-            return ObjectListStoreController.get_new_edit_controller(self, obj, view, parent=parent)
-
-         
+    # ------------------------------------------------------------
     def create_new_object_proxy(self):
-        #new_atom_type = 
-        #self.model.add_atom_type(new_atom_type)
-        #self.select_object(new_atom_type)
+        # new_atom_type =
+        # self.model.add_atom_type(new_atom_type)
+        # self.select_object(new_atom_type)
         return AtomType("New Atom Type", parent=self.model)
 
     def open_atom_type(self, filename):
         self.model.append(AtomType.load_object(filename))
-          
+
     # ------------------------------------------------------------
     #      GTK Signal handlers
     # ------------------------------------------------------------
@@ -113,7 +88,7 @@ class AtomTypesController(ObjectListStoreController):
                         self.model.atom_types.append(*args)
                     except AssertionError:
                         print "AssertionError raised when trying to add %s: most likely there is already an AtomType with this name!" % args
-                AtomType.get_from_csv(open_dialog.get_filename(), save_append) #self.model.atom_types.append)
+                AtomType.get_from_csv(open_dialog.get_filename(), save_append) # self.model.atom_types.append)
         self.run_load_dialog("Import atom types", on_accept, parent=self.view.get_top_widget())
 
 
@@ -123,16 +98,16 @@ class AtomTypesController(ObjectListStoreController):
             fltr = save_dialog.get_filter()
             filename = save_dialog.get_filename()
             if fltr.get_name() == self.file_filters[0][0]:
-                if filename[len(filename)-4:] != self.file_filters[0][1][1:]:
+                if filename[len(filename) - 4:] != self.file_filters[0][1][1:]:
                     filename = "%s%s" % (filename, self.file_filters[0][1][1:])
                 atom_type = self.get_selected_object()
                 if atom_type is not None:
                     atom_type.save_object(filename=filename)
             elif fltr.get_name() == self.file_filters[1][0]:
-                if filename[len(filename)-4:] != self.file_filters[1][1][1:]:
+                if filename[len(filename) - 4:] != self.file_filters[1][1][1:]:
                     filename = "%s%s" % (filename, self.file_filters[1][1][1:])
                 AtomType.save_as_csv(filename, self.get_selected_objects())
         self.run_save_dialog("Export atom types", on_accept, parent=self.view.get_top_widget())
-        
-    pass #end of class
-        
+
+    pass # end of class
+

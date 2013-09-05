@@ -35,34 +35,34 @@ def register_parser(first=False):
             parsers[cls.namespace].append(cls)
         return cls
     return wrapped_register
- 
- 
+
+
 class DataObject(object):
     """
         A generic class holding all the information retrieved from a file
         using a BaseParser class.
     """
-    
-    #general information
+
+    # general information
     filename = None
-    
+
     def __init__(self, *args, **kwargs):
         super(DataObject, self).__init__()
         self.update(**kwargs)
-    
+
     def update(self, **kwargs):
         for key, value in kwargs.iteritems():
             setattr(self, key, value)
-                
-    pass #end of class
-    
-  
+
+    pass # end of class
+
+
 class MetaParser(type):
     def __new__(meta, name, bases, attrs):
         res = super(MetaParser, meta).__new__(meta, name, bases, attrs)
         res.setup_file_filter()
         return res
-   
+
 class BaseParser(object):
     """
         Base class providing some common attributes and functions.
@@ -73,22 +73,22 @@ class BaseParser(object):
             - parse (optional)
             - setup_file_filter (optional)
     """
-    
+
     __metaclass__ = MetaParser
 
-    #This should be changed by sub-classes    
+    # This should be changed by sub-classes
     description = "Base Parser"
     namespace = "generic"
-    extensions  = []
-    mimetypes   = []
-    can_write   = False
+    extensions = []
+    mimetypes = []
+    can_write = False
     data_object_type = DataObject
-    
-    #This should be changed by sub-classes
+
+    # This should be changed by sub-classes
     __file_mode__ = "r"
-    
+
     file_filter = None
-    
+
     @classmethod
     def _get_file(cls, filename, f=None, close=None):
         """
@@ -96,22 +96,22 @@ class BaseParser(object):
             filename, file-object, close
         """
         if hasattr(f, "read"):
-            return filename, f, False if close==None else close
+            return filename, f, False if close == None else close
         elif type(filename) is str:
-            return filename, open(filename, cls.__file_mode__), True if close==None else close
+            return filename, open(filename, cls.__file_mode__), True if close == None else close
         else:
             raise TypeError, "Wrong argument: either a file object or a valid \
                 filename must be passed, not '%s' or '%s'" % (cls.description, filename, f)
-    
+
     @classmethod
     def _adapt_data_object_list(cls, data_objects, num_samples, only_extend=False):
         # If not yet created, create data_objects list:
-        if data_objects==None:
-            data_objects = [None,]
+        if data_objects == None:
+            data_objects = [None, ]
         # If not yet the same length, adapt:
         num_data_objects = len(data_objects)
         if num_data_objects < num_samples:
-            data_objects.extend([None]*int(num_samples - num_data_objects))
+            data_objects.extend([None] * int(num_samples - num_data_objects))
         if not only_extend and num_data_objects > num_samples:
             data_objects = data_objects[:num_samples]
         # If not yet initialized, initialize:
@@ -119,7 +119,7 @@ class BaseParser(object):
             if not data_objects[i]:
                 data_objects[i] = cls.data_object_type()
         return data_objects
-    
+
     @classmethod
     def parse_header(cls, filename, f=None, data_objects=None, close=False):
         """
@@ -133,9 +133,9 @@ class BaseParser(object):
             Existing DataObjects can be passed as well and will then 
             be used instead of creating new ones.
         """
-        #This should be implemented by sub-classes
+        # This should be implemented by sub-classes
         raise NotImplementedError
-    
+
     @classmethod
     def parse_data(cls, filename, f=None, data_objects=None, close=False):
         """
@@ -149,10 +149,10 @@ class BaseParser(object):
             Existing DataObjects can be passed as well and will then 
             be used instead of creating new ones.
         """
-        #This should be implemented by sub-classes
+        # This should be implemented by sub-classes
         raise NotImplementedError
-        
-    
+
+
     @classmethod
     def parse(cls, filename, f=None, data_objects=None, close=True):
         """
@@ -167,10 +167,10 @@ class BaseParser(object):
         """
         filename, f, close = cls._get_file(filename, f=f, close=close)
         data_objects = cls.parse_header(filename, f=f, data_objects=data_objects)
-        data_objects = cls.parse_data(filename, f=f, data_objects=data_objects)        
+        data_objects = cls.parse_data(filename, f=f, data_objects=data_objects)
         if close: f.close()
         return data_objects
-        
+
     @classmethod
     def setup_file_filter(cls):
         """
@@ -180,18 +180,18 @@ class BaseParser(object):
             it will also set these. If additional properties are needed, this function
             should be overriden by subclasses.
         """
-        if cls.file_filter==None and cls.description!="" and cls.extensions:
-            #Init file filter:        
+        if cls.file_filter == None and cls.description != "" and cls.extensions:
+            # Init file filter:
             cls.file_filter = gtk.FileFilter()
             cls.file_filter.set_name(cls.description)
             for mtpe in cls.mimetypes:
-                #cls.file_filter.add_mime_type(mtpe)
+                # cls.file_filter.add_mime_type(mtpe)
                 pass
             for expr in cls.extensions:
                 cls.file_filter.add_pattern(expr)
             cls.file_filter.set_data("parser", cls)
-    
-    pass #end of class
+
+    pass # end of class
 
 class BaseGroupBarser(BaseParser):
     """
@@ -218,7 +218,7 @@ class BaseGroupBarser(BaseParser):
             for parser in cls.parsers:
                 passed = False
                 for mime in parser.mimetypes:
-                    if file_mime.split('/')[0] == mime.split('/')[0]: #TODO if an exact match can be made, even better
+                    if file_mime.split('/')[0] == mime.split('/')[0]: # TODO if an exact match can be made, even better
                         passed = True
                         break
                     else:
@@ -231,23 +231,23 @@ class BaseGroupBarser(BaseParser):
                         passed = False
                 if passed:
                     return parser
-                    break #just for the sake of clarity
+                    break # just for the sake of clarity
 
     @classmethod
     def parse_header(cls, filename, f=None, data_objects=None, close=False):
         parser = cls.get_parser(filename, f=f)
         return parser.parse_header(filename, f=f, data_objects=data_objects, close=close)
-    
+
     @classmethod
     def parse_data(cls, filename, f=None, data_objects=None, close=False):
         parser = cls.get_parser(filename, f=f)
         return parser.parse_data(filename, f=f, data_objects=data_objects, close=close)
-    
+
     @classmethod
     def parse(cls, filename, f=None, data_objects=None, close=True):
         parser = cls.get_parser(filename, f=f)
         return parser.parse(filename, data_objects=data_objects, close=close)
-        
+
     @classmethod
     def setup_file_filter(cls):
         """
@@ -257,19 +257,19 @@ class BaseGroupBarser(BaseParser):
             it will also set these. If additional properties are needed, this function
             should be overriden by subclasses.
         """
-        if cls.file_filter==None and cls.description and cls.parsers:
-            cls.file_filter = gtk.FileFilter()            
+        if cls.file_filter == None and cls.description and cls.parsers:
+            cls.file_filter = gtk.FileFilter()
             cls.file_filter.set_name(cls.description)
             for parser in cls.parsers:
                 for mtpe in parser.mimetypes:
-                    #cls.file_filter.add_mime_type(mtpe)    
-                    pass        
+                    # cls.file_filter.add_mime_type(mtpe)
+                    pass
                 for expr in parser.extensions:
                     cls.file_filter.add_pattern(expr)
             cls.file_filter.set_data("parser", cls)
 
-    pass #end of class
-    
+    pass # end of class
+
 def create_group_parser(name, *parsers, **kwargs):
     """
         Factory function for creating BaseGroupParser sub-classes,
@@ -282,9 +282,9 @@ def create_group_parser(name, *parsers, **kwargs):
     namespace = kwargs.pop("namespace", "generic")
 
     group_parser_type = register_parser(first=True)(type(name, (BaseGroupBarser,), dict(
-         namespace = namespace,
-         description = description,
-         parsers = parsers
+         namespace=namespace,
+         description=description,
+         parsers=parsers
     )))
     return group_parser_type
 
@@ -293,16 +293,16 @@ class ASCIIParser(BaseParser):
         ASCII Parser
     """
     description = "ASCII data"
-    mimetypes   = ["text/plain",]
-    can_write   = True
-    
+    mimetypes = ["text/plain", ]
+    can_write = True
+
     @classmethod
     def get_last_line(cls, f):
-        #TODO move to ASCII parser
+        # TODO move to ASCII parser
         i = -1
         for i, l in enumerate(f):
             pass
-        return i + 1, l    
+        return i + 1, l
 
     @classmethod
     def write(cls, filename, header, x, ys, delimiter=","):
@@ -316,4 +316,4 @@ class ASCIIParser(BaseParser):
         np.savetxt(f, np.insert(ys, 0, x, axis=0).transpose(), fmt="%.8f", delimiter=delimiter)
         f.close()
 
-    pass #end of class
+    pass # end of class

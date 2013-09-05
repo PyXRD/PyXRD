@@ -10,7 +10,7 @@ from gtkmvc.model import Observer, Signal
 
 from generic.models import PyXRDModel
 from generic.models.metaclasses import pyxrd_object_pool
-    
+
 class AppModel(PyXRDModel):
     """
         Simple model that stores the state of the application window.
@@ -32,19 +32,19 @@ class AppModel(PyXRDModel):
             multiple_specimen_selected: a boolean indicating whether or not
                 multiple specimen are selected
     """
-    #MODEL INTEL:
-    __observables__ = ( 
+    # MODEL INTEL:
+    __observables__ = (
         "current_project",
         "current_specimen",
         "current_specimens",
         "statistics_visible",
-        "needs_plot_update",
+        "needs_plot_update"
     )
 
-    #SIGNALS:
+    # SIGNALS:
     needs_plot_update = None
 
-    #PROPERTIES:
+    # PROPERTIES:
     _current_project = None
     def get_current_project_value(self):
         return self._current_project
@@ -54,18 +54,18 @@ class AppModel(PyXRDModel):
         pyxrd_object_pool.clear()
         if self._current_project != None: self.observe_model(self._current_project)
     current_filename = None
-    
+
     _statistics_visible = None
     def set_statistics_visible_value(self, value): self._statistics_visible = value
     def get_statistics_visible_value(self):
-        return self._statistics_visible and (self.current_specimen != None) and (not settings.VIEW_MODE)
-    
+        return self._statistics_visible and self.current_specimen != None and self.current_project.layout_mode != 1
+
     _current_specimen = None
     def get_current_specimen_value(self): return self._current_specimen
     def set_current_specimen_value(self, value):
         self._current_specimens = [value]
         self._current_specimen = value
-    
+
     _current_specimens = []
     def get_current_specimens_value(self): return self._current_specimens
     def set_current_specimens_value(self, value):
@@ -76,31 +76,31 @@ class AppModel(PyXRDModel):
             self._current_specimen = self._current_specimens[0]
         else:
             self._current_specimen = None
-    
+
     @property
     def single_specimen_selected(self):
         return bool(self.current_specimen != None or self.current_specimens == [])
-    
+
     @property
     def multiple_specimens_selected(self):
-        return bool(len(self.current_specimens)>1)
+        return bool(len(self.current_specimens) > 1)
 
 
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def __init__(self, project = None):
+    def __init__(self, project=None):
         """ Initializes the AppModel with the given Project. """
         super(AppModel, self).__init__()
         self.needs_plot_update = Signal()
         self.current_project = project
         self._statistics_visible = False
-        
+
     # ------------------------------------------------------------
     #      Notifications of observable properties
     # ------------------------------------------------------------
     @Observer.observe("needs_update", signal=True)
     def notify_needs_update(self, model, prop_name, info):
         self.needs_plot_update.emit()
-        
-    pass #end of class
+
+    pass # end of class

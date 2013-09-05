@@ -1,23 +1,10 @@
 Feature-wise:
-0.5 - distutils-support: see http://docs.python.org/2/distutils/setupscript.html
-0.5 - after distutils: add after-install generation of default phases
-0.5 - add manual Y limit option (in raw counts?)
 0.6 - Sybilla Support:
         - integrate XML file import
         - export to Sybilla's XML format?
-0.6 - add zip project files (*.zpd) (DONE)
-        - TODO: split large object stores in project zip file into separate files in the zip file
-0.6 - check for file extension registering on windows (using exec assoc & ftype) & linux (pyxdg)
 0.7 - split layers and interlayers in two separate parts, each with their own
       atoms, dimensions and atom relations (usually the content of both are not related to one other, check this)
       this would allow chlorite interlayers to change their dimensions based on both the iron content in the
       interlayer sheet as well as the silica sheet.
       Would require some sort of definition of how these units are stacked
 0.8 - implement new 'charge unit' algorithm
-    
-Code-Wise:
-0.x - DOCUMENTATION!
-0.x - cleanse code from TODO & FIXME's
-0.5 - integrate the generic 'Gtkmvc' changes into gtkmvc.
-0.5 - most of the default dialog actions (confirmation ,information etc.) could also be usefull as decorators.
-

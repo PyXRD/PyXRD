@@ -1,13 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
   <!-- interface-requires gtk+ 3.0 -->
-  <object class="GtkAdjustment" id="gonio_steps">
-    <property name="lower">1</property>
-    <property name="upper">5000</property>
-    <property name="value">2500</property>
-    <property name="step_increment">1</property>
-    <property name="page_increment">10</property>
-  </object>
   <object class="GtkTable" id="edit_goniometer">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
@@ -25,7 +18,7 @@
       </object>
       <packing>
         <property name="x_options">GTK_FILL</property>
-        <property name="y_options"></property>
+        <property name="y_options"/>
       </packing>
     </child>
     <child>
@@ -40,7 +33,7 @@
         <property name="top_attach">1</property>
         <property name="bottom_attach">2</property>
         <property name="x_options">GTK_FILL</property>
-        <property name="y_options"></property>
+        <property name="y_options"/>
       </packing>
     </child>
     <child>
@@ -55,7 +48,7 @@
         <property name="top_attach">2</property>
         <property name="bottom_attach">3</property>
         <property name="x_options">GTK_FILL</property>
-        <property name="y_options"></property>
+        <property name="y_options"/>
       </packing>
     </child>
     <child>
@@ -304,7 +297,7 @@
         <property name="right_attach">3</property>
         <property name="top_attach">9</property>
         <property name="bottom_attach">10</property>
-        <property name="y_options"></property>
+        <property name="y_options"/>
         <property name="y_padding">5</property>
       </packing>
     </child>
@@ -350,20 +343,18 @@
     <child>
       <object class="GtkButton" id="btn_export_gonio">
         <property name="label" translatable="yes">Store setup</property>
-        <property name="use_action_appearance">False</property>
         <property name="visible">True</property>
         <property name="can_focus">True</property>
         <property name="receives_default">True</property>
         <property name="tooltip_text" translatable="yes">Stores the current goniometer setup as a default.</property>
-        <property name="use_action_appearance">False</property>
         <property name="image">img_export</property>
         <signal name="clicked" handler="on_btn_export_gonio_clicked" swapped="no"/>
       </object>
       <packing>
         <property name="top_attach">10</property>
         <property name="bottom_attach">11</property>
-        <property name="x_options"></property>
-        <property name="y_options"></property>
+        <property name="x_options"/>
+        <property name="y_options"/>
       </packing>
     </child>
     <child>
@@ -514,13 +505,11 @@
       </packing>
     </child>
     <child>
-      <object class="GtkCheckButton" id="chk_has_ads">
+      <object class="GtkCheckButton" id="gonio_has_ads">
         <property name="label" translatable="yes">ADS correction</property>
-        <property name="use_action_appearance">False</property>
         <property name="visible">True</property>
         <property name="can_focus">True</property>
         <property name="receives_default">False</property>
-        <property name="use_action_appearance">False</property>
         <property name="xalign">0.5</property>
         <property name="draw_indicator">True</property>
       </object>
@@ -575,6 +564,13 @@
         <property name="y_options">GTK_FILL</property>
       </packing>
     </child>
+  </object>
+  <object class="GtkAdjustment" id="gonio_steps">
+    <property name="lower">1</property>
+    <property name="upper">5000</property>
+    <property name="value">2500</property>
+    <property name="step_increment">1</property>
+    <property name="page_increment">10</property>
   </object>
   <object class="GtkImage" id="img_export">
     <property name="visible">True</property>

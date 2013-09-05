@@ -9,7 +9,6 @@
 VERSION = "0.4.8"
 
 DEBUG = False
-VIEW_MODE = False
 BGSHIFT = True
 
 LOG_FILENAME = 'errors.log'
@@ -26,10 +25,16 @@ DEFAULT_LAMBDA = 0.154056
 POOL = None
 
 ### Cache settings ###
-CACHE = None #"FILE" # one of "FILE" (recomended), "MEMORY" (not advisable) or None
-CACHE_SIZE = 500 * (1024 * 1024) #size of file cache in bytes (10 Mb)
+CACHE = None # "FILE" # one of "FILE" (recomended), "MEMORY" (not advisable) or None
+CACHE_SIZE = 500 * (1024 * 1024) # size of file cache in bytes (10 Mb)
 
 ### Default Styles & Colors ###
+DEFAULT_LAYOUT = "FULL" # one of "FULL" or "VIEW-MODE"
+DEFAULT_LAYOUTS = {
+    "FULL": "Full",
+    "VIEWER": "View-mode"
+}
+
 EXPERIMENTAL_COLOR = "#000000"
 CALCULATED_COLOR = "#FF0000"
 
@@ -94,7 +99,7 @@ def get_plot_stats_position(angle, stretch=False, plot_left=PLOT_LEFT):
     plot_left -- the left side of the plot (used for label-width correction
     """
     PLOT_WIDTH = _get_ratio(angle, stretch=stretch, plot_left=plot_left)
-    return [plot_left, PLOT_BOTTOM+PLOT_STATS_OFFSET, PLOT_WIDTH, PLOT_HEIGHT-PLOT_STATS_OFFSET]
+    return [plot_left, PLOT_BOTTOM + PLOT_STATS_OFFSET, PLOT_WIDTH, PLOT_HEIGHT - PLOT_STATS_OFFSET]
 
 def get_stats_plot_position(angle, stretch=False, plot_left=PLOT_LEFT):
     """Get the position of the statistics plot
@@ -107,7 +112,7 @@ def get_stats_plot_position(angle, stretch=False, plot_left=PLOT_LEFT):
     """
     PLOT_WIDTH = _get_ratio(angle, stretch=stretch, plot_left=plot_left)
     return [plot_left, STATS_PLOT_BOTTOM, PLOT_WIDTH, PLOT_STATS_OFFSET]
-    
+
 def get_plot_right(angle, stretch=False, plot_left=PLOT_LEFT):
     """Get the rightmost position of plots
     
@@ -119,27 +124,27 @@ def get_plot_right(angle, stretch=False, plot_left=PLOT_LEFT):
     """
     PLOT_WIDTH = _get_ratio(angle, stretch=stretch, plot_left=plot_left)
     return plot_left + PLOT_WIDTH
-    
+
 PRINT_WIDTH = 1800
 PRINT_BASE_HEIGHT = 1200
-PRINT_MARGIN_HEIGHT = PRINT_BASE_HEIGHT*(1.0-PLOT_HEIGHT)
-PRINT_SINGLE_HEIGHT = PRINT_BASE_HEIGHT*PLOT_HEIGHT
+PRINT_MARGIN_HEIGHT = PRINT_BASE_HEIGHT * (1.0 - PLOT_HEIGHT)
+PRINT_SINGLE_HEIGHT = PRINT_BASE_HEIGHT * PLOT_HEIGHT
 
 ### Default Directories & Files ###
-DATA_REG = None #set at run-time
+DATA_REG = None # set at run-time
 DATA_DIRS = [
-    ("DEFAULT_DATA",        "data/",                            None),
-    ("DEFAULT_PHASES",      "default phases/",                  "DEFAULT_DATA"),
-    ("DEFAULT_COMPONENTS",  "default components/",              "DEFAULT_DATA"),
-    ("DEFAULT_GONIOS",      "default goniometers/",             "DEFAULT_DATA"),
-    ("APPLICATION_ICONS",   "application/icons/",               None),
-    ("CACHE_DIR",           "CACHE/",                           "DEFAULT_DATA")
+    ("DEFAULT_DATA", "data/", None),
+    ("DEFAULT_PHASES", "default phases/", "DEFAULT_DATA"),
+    ("DEFAULT_COMPONENTS", "default components/", "DEFAULT_DATA"),
+    ("DEFAULT_GONIOS", "default goniometers/", "DEFAULT_DATA"),
+    ("APPLICATION_ICONS", "application/icons/", None),
+    ("CACHE_DIR", "CACHE/", "DEFAULT_DATA")
 ]
 DATA_FILES = [
-    ("COMPOSITION_CONV",    "composition_conversion.csv",       "DEFAULT_DATA"),
-    ("ATOM_SCAT_FACTORS",   "atomic scattering factors.atl",    "DEFAULT_DATA"),
-    ("WAVELENGTHS",         "wavelengths.csv",                  "DEFAULT_DATA"),
-    ("MINERALS",            "mineral_references.csv",           "DEFAULT_DATA"),
+    ("COMPOSITION_CONV", "composition_conversion.csv", "DEFAULT_DATA"),
+    ("ATOM_SCAT_FACTORS", "atomic scattering factors.atl", "DEFAULT_DATA"),
+    ("WAVELENGTHS", "wavelengths.csv", "DEFAULT_DATA"),
+    ("MINERALS", "mineral_references.csv", "DEFAULT_DATA"),
 ]
 
 ### Parser module registration ###
@@ -154,68 +159,68 @@ PARSER_MODULES = [
 SETTINGS_APPLIED = False
 def apply_runtime_settings(no_gui=True, debug=False, pool=None):
     """Apply runtime settings, can and needs to be called only once"""
-    
+
     global SETTINGS_APPLIED
-    if not SETTINGS_APPLIED:    
+    if not SETTINGS_APPLIED:
         global DEBUG
         global POOL
         global BASE_DIR
         global DATA_REG, DATA_DIRS, DATA_FILES
-        
-        #Set debug flag
+
+        # Set debug flag
         DEBUG = debug
         POOL = pool
-                    
-        #Setup data registry:
+
+        # Setup data registry:
         import sys, os
         from generic.io.data_registry import DataRegistry
         DATA_REG = DataRegistry(dirs=DATA_DIRS, files=DATA_FILES)
         DATA_REG.set_base_directory(os.path.abspath(os.path.dirname(sys.argv[0])))
-        
-        #If we are running in GUI mode, setup GUI stuff:
+
+        # If we are running in GUI mode, setup GUI stuff:
         if not no_gui:
             import matplotlib
             import gtk
-            
-            #Setup matplotlib fonts:
+
+            # Setup matplotlib fonts:
             font = {
                 'weight' : 'heavy', 'size': 14,
                 'family' : 'sans-serif',
             }
             if sys.platform == "win32":
-               font['sans-serif'] = 'Verdana, Arial, Helvetica, sans-serif' 
+               font['sans-serif'] = 'Verdana, Arial, Helvetica, sans-serif'
             matplotlib.rc('font', **font)
             mathtext = {'default': 'regular', 'fontset': 'stixsans'}
             matplotlib.rc('mathtext', **mathtext)
-            #matplotlib.rc('text', **{'usetex':True})
-            
+            # matplotlib.rc('text', **{'usetex':True})
+
             # Load our own icons:
             iconfactory = gtk.IconFactory()
             icons_path = DATA_REG.get_directory_path("APPLICATION_ICONS")
             for root, dirnames, filenames in os.walk(icons_path):
                 for filename in filenames:
                     if filename.endswith(".png"):
-                        stock_id = filename[:-4] #remove extensions
+                        stock_id = filename[:-4] # remove extensions
                         pixbuf = gtk.gdk.pixbuf_new_from_file("%s/%s" % (icons_path, filename))
                         iconset = gtk.IconSet(pixbuf)
                         iconfactory.add(stock_id, iconset)
             iconfactory.add_default()
-        
-        #Check if default directories exist, if not create them:
+
+        # Check if default directories exist, if not create them:
         for path in DATA_REG.get_all_directories():
             if not os.path.exists(path):
                 os.makedirs(path)
-        
-        #Register file parsers:
+
+        # Register file parsers:
         for name in PARSER_MODULES:
-            if not name.startswith('.'): #do not import relative paths!
+            if not name.startswith('.'): # do not import relative paths!
                 __import__(name)
-        
-        #Free some memory at this point:
+
+        # Free some memory at this point:
         import gc
         gc.collect()
-        
+
         print "Runtime settings applied"
     SETTINGS_APPLIED = True
-    
-### end of settings
+
+# ## end of settings

@@ -10,23 +10,23 @@ import os, locale
 import gtk
 
 from gtkmvc import Controller
-from gtkmvc.adapters import Adapter
 
 from generic.io.file_parsers import parsers
 from generic.controllers import BaseController, DialogController, DialogMixin, ObjectTreeviewMixin
-from generic.controllers.handlers import get_color_val
-from generic.views.validators import FloatEntryValidator
+from generic.controllers.utils import DummyAdapter
 from generic.views.treeview_tools import setup_treeview, new_text_column
 
 from goniometer.controllers import InlineGoniometerController
 
-from .background_controller import BackgroundController
-from .smooth_data_controller import SmoothDataController
-from .add_noise_controller import AddNoiseController
-from .shift_data_controller import ShiftDataController
-from .strip_peak_controller import StripPeakController
+from generic.controllers.line_controllers import (
+    BackgroundController,
+    SmoothDataController,
+    AddNoiseController,
+    ShiftDataController,
+    StripPeakController
+)
 
-from specimen.views import (
+from generic.views.line_views import (
     BackgroundView,
     SmoothDataView,
     AddNoiseView,
@@ -47,74 +47,79 @@ class SpecimenController(DialogController, DialogMixin, ObjectTreeviewMixin):
     export_filters = [parser.file_filter for parser in parsers["xrd"] if parser.can_write]
     excl_filters = [parser.file_filter for parser in parsers["exc"]]
 
+    widget_handlers = {
+        'custom':  'custom_handler',
+    }
+
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
+    @staticmethod
+    def custom_handler(self, intel, widget):
+        if intel.name in ("goniometer"):
+            self.gonio_ctrl = InlineGoniometerController(view=self.view.gonio_view, model=self.model.goniometer, parent=self)
+            ad = DummyAdapter(intel.name)
+            return ad
+
     def register_adapters(self):
-        if self.model is not None:
-            for name in self.model.get_properties():
-                if name == "name":
-                    ad = Adapter(self.model, "name")
-                    ad.connect_widget(self.view["specimen_name"])
-                    self.adapt(ad)
-                elif name == "goniometer":
-                    self.gonio_ctrl = InlineGoniometerController(view=self.view.gonio_view, model=self.model.goniometer, parent=self)
-                elif name == "experimental_pattern":
-                    # Setup treeview:
-                    tv = self.view['experimental_data_tv']
-                    model = self.model.experimental_pattern.xy_store
-                    setup_treeview(tv, model,
-                        on_cursor_changed=self.on_exp_data_tv_cursor_changed,
-                        sel_mode=gtk.SELECTION_MULTIPLE)
-                    # X Column:
-                    tv.append_column(new_text_column(
-                        u'°2θ', text_col=model.c_x, editable=True,
-                        edited_callback=(self.on_xy_data_cell_edited, (model, model.c_x))))
-                    # Y Column:
-                    tv.append_column(new_text_column(
-                        u'Intensity', text_col=model.c_y, editable=True,
-                        edited_callback=(self.on_xy_data_cell_edited, (model, model.c_y))))
-                elif name == "calculated_pattern":
-                    tv = self.view['calculated_data_tv']
-                    model = self.model.calculated_pattern.xy_store
-                    setup_treeview(tv, model,
-                        on_cursor_changed=self.on_exp_data_tv_cursor_changed,
-                        on_columns_changed=self.on_calc_treestore_changed,
-                        sel_mode=gtk.SELECTION_NONE)
-                    self.update_calc_treeview()
-                elif name == "exclusion_ranges":
-                    tv = self.view['exclusion_ranges_tv']
-                    model = self.model.exclusion_ranges
-                    setup_treeview(tv, model,
-                        on_cursor_changed=self.on_exclusion_ranges_tv_cursor_changed,
-                        sel_mode=gtk.SELECTION_MULTIPLE)
-                    tv.append_column(new_text_column(
-                        u'From [°2θ]', text_col=model.c_x, editable=True,
-                        edited_callback=(self.on_xy_data_cell_edited, (model, model.c_x)),
-                        resizable=True, expand=True))
-                    tv.append_column(new_text_column(
-                        u'To [°2θ]', text_col=model.c_y, editable=True,
-                        edited_callback=(self.on_xy_data_cell_edited, (model, model.c_y)),
-                        resizable=True, expand=True))
-                elif name in ["calc_color", "exp_color"]:
-                    ad = Adapter(self.model, name)
-                    ad.connect_widget(self.view["specimen_%s" % name], getter=get_color_val)
-                    self.adapt(ad)
-                elif name in ["calc_lw", "exp_lw", "exp_cap_value"]:
-                    self.adapt(name, "specimen_%s" % name)
-                elif name in ("sample_length", "abs_scale", "bg_shift"):
-                    FloatEntryValidator(self.view["specimen_%s" % name])
-                    self.adapt(name)
-                elif not name in self.model.__have_no_widget__:
-                    self.adapt(name)
-            self.update_sensitivities()
-            return
+        super(SpecimenController, self).register_adapters()
+        self.update_sensitivities()
+
+    def setup_experimental_pattern_tree_view(self, store, widget):
+        """
+            Creates the experimental data TreeView layout and behavior
+        """
+        setup_treeview(widget, store,
+            on_cursor_changed=self.on_exp_data_tv_cursor_changed,
+            sel_mode=gtk.SELECTION_MULTIPLE)
+        # X Column:
+        widget.append_column(new_text_column(
+            u'°2θ', text_col=store.c_x, editable=True,
+            edited_callback=(self.on_xy_data_cell_edited, (store, store.c_x))))
+        # Y Column:
+        widget.append_column(new_text_column(
+            u'Intensity', text_col=store.c_y, editable=True,
+            edited_callback=(self.on_xy_data_cell_edited, (store, store.c_y))))
+
+    def setup_calculated_pattern_tree_view(self, store, widget):
+        """
+            Creates the calculated data TreeView layout and behavior
+        """
+        setup_treeview(widget, store,
+            on_cursor_changed=self.on_exp_data_tv_cursor_changed,
+            on_columns_changed=self.on_calc_treestore_changed,
+            sel_mode=gtk.SELECTION_NONE)
+        self.update_calc_treeview(widget)
+
+    def setup_exclusion_ranges_tree_view(self, store, widget):
+        """
+            Creates the exclusion ranges TreeView layout and behavior
+        """
+        setup_treeview(widget, store,
+            on_cursor_changed=self.on_exclusion_ranges_tv_cursor_changed,
+            sel_mode=gtk.SELECTION_MULTIPLE)
+        widget.append_column(new_text_column(
+            u'From [°2θ]', text_col=store.c_x, editable=True,
+            edited_callback=(self.on_xy_data_cell_edited, (store, store.c_x)),
+            resizable=True, expand=True))
+        widget.append_column(new_text_column(
+            u'To [°2θ]', text_col=store.c_y, editable=True,
+            edited_callback=(self.on_xy_data_cell_edited, (store, store.c_y)),
+            resizable=True, expand=True))
 
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------
-    def update_calc_treeview(self):
-        tv = self.view['calculated_data_tv']
+    def _line_store_getter(self, model, prop_name):
+        """ Returns the actual XYListStore from a line model """
+        return getattr(model, prop_name).xy_store
+    get_experimental_pattern_tree_model = _line_store_getter
+    get_calculated_pattern_tree_model = _line_store_getter
+
+    def update_calc_treeview(self, tv):
+        """
+            Updates the calculated pattern TreeView layout
+        """
         model = self.model.calculated_pattern.xy_store
 
         for column in tv.get_columns():
@@ -129,22 +134,17 @@ class SpecimenController(DialogController, DialogMixin, ObjectTreeviewMixin):
             tv.append_column(new_text_column(
                 model.get_y_name(i), text_col=i + 2, data_func=get_num))
 
-    def set_exp_data_sensitivites(self, val):
-        self.view["btn_del_experimental_data"].set_sensitive(val)
-
-    def set_exclusion_ranges_sensitivites(self, val):
-        self.view["btn_del_exclusion_ranges"].set_sensitive(val)
-
     def update_sensitivities(self):
         """
             Updates the views sensitivities according to the model state.
         """
+        print self, self.model, self.view
         self.view["specimen_exp_color"].set_sensitive(not self.model.inherit_exp_color)
-        if not self.model.inherit_exp_color:
-            self.view["specimen_exp_color"].set_color(gtk.gdk.color_parse(self.model.exp_color))
+        # if not self.model.inherit_exp_color:
+        #    self.view["specimen_exp_color"].set_color(gtk.gdk.color_parse(self.model.exp_color))
         self.view["specimen_calc_color"].set_sensitive(not self.model.inherit_calc_color)
-        if not self.model.inherit_calc_color:
-            self.view["specimen_calc_color"].set_color(gtk.gdk.color_parse(self.model.calc_color))
+        # if not self.model.inherit_calc_color:
+        #    self.view["specimen_calc_color"].set_color(gtk.gdk.color_parse(self.model.calc_color))
 
         self.view["spb_calc_lw"].set_sensitive(not self.model.inherit_calc_lw)
         self.view["spb_exp_lw"].set_sensitive(not self.model.inherit_exp_lw)
@@ -203,7 +203,7 @@ class SpecimenController(DialogController, DialogMixin, ObjectTreeviewMixin):
     #      GTK Signal handlers
     # ------------------------------------------------------------
     def on_calc_treestore_changed(self, *args, **kwargs):
-        self.update_calc_treeview()
+        self.update_calc_treeview(self.view["specimen_calculated_pattern"])
 
     def on_btn_ok_clicked(self, event):
         self.parent.pop_status_msg('edit_specimen')
@@ -211,35 +211,35 @@ class SpecimenController(DialogController, DialogMixin, ObjectTreeviewMixin):
 
     def on_exclusion_ranges_tv_cursor_changed(self, tv):
         path, col = tv.get_cursor()
-        self.set_exclusion_ranges_sensitivites(path != None)
+        self.view["btn_del_exclusion_ranges"].set_sensitive(path != None)
         return True
 
     def on_exp_data_tv_cursor_changed(self, tv):
         path, col = tv.get_cursor()
-        self.set_exp_data_sensitivites(path != None)
+        self.view["btn_del_experimental_data"].set_sensitive(path != None)
         return True
 
     def on_add_experimental_data_clicked(self, widget):
         model = self.model.experimental_pattern.xy_store
         path = model.append(0, 0)
-        self.set_selected_paths(self.view["experimental_data_tv"], (path,))
+        self.set_selected_paths(self.view["specimen_experimental_pattern"], (path,))
         return True
 
     def on_add_exclusion_range_clicked(self, widget):
         model = self.model.exclusion_ranges
         path = model.append(0, 0)
-        self.set_selected_paths(self.view["exclusion_ranges_tv"], (path,))
+        self.set_selected_paths(self.view["specimen_exclusion_ranges"], (path,))
         return True
 
     def on_del_experimental_data_clicked(self, widget):
-        paths = self.get_selected_paths(self.view["experimental_data_tv"])
+        paths = self.get_selected_paths(self.view["specimen_experimental_pattern"])
         if paths != None:
             model = self.model.experimental_pattern.xy_store
             model.remove_from_index(*paths)
         return True
 
     def on_del_exclusion_ranges_clicked(self, widget):
-        paths = self.get_selected_paths(self.view["exclusion_ranges_tv"])
+        paths = self.get_selected_paths(self.view["specimen_exclusion_ranges"])
         if paths != None:
             model = self.model.exclusion_ranges
             model.remove_from_index(*paths)
@@ -255,8 +255,12 @@ class SpecimenController(DialogController, DialogMixin, ObjectTreeviewMixin):
         def on_confirm(dialog):
             def on_accept(dialog):
                 filename = dialog.get_filename()
+                ffilter = dialog.get_filter()
+                parser = ffilter.get_data("parser")
                 if filename[-3:].lower() == "exc":
-                    self.model.exclusion_ranges.load_data(filename, format="DAT")
+                    # self.model.exclusion_ranges.load_data(filename, format="DAT")
+                    exclfiles = parser.parse(filename)
+                    self.model.exclusion_ranges.load_data_from_generator(exclfiles[0].data, clear=True)
             self.run_load_dialog(title="Import exclusion ranges",
                                  on_accept_callback=on_accept,
                                  parent=self.view.get_top_widget(),

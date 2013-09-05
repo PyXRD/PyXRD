@@ -15,6 +15,8 @@ class InlineGoniometerView(BaseView):
     builder = "goniometer/glade/goniometer.glade"
     top = "edit_goniometer"
 
+    widget_format = "gonio_%s"
+
     @property
     def import_combo_box(self):
         return self["cmb_import_gonio"]

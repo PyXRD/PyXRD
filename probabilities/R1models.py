@@ -31,22 +31,22 @@ class R1G2Model(_AbstractProbability):
 	"""
 
     #MODEL INTEL:
-    __independent_label_map__ = [
-        ("W1", r"$W_1$"),
+	__independent_label_map__ = [
+        ("W1", r"$W_1$", [0.0, 1.0,]),
         ("P11_or_P22", r"$P_{11} %s$ or $\newline P_{22} %s$" % (
             mt_range(0.0, "W_1", 0.5),
-            mt_range(0.5, "W_1", 1.0))
-        ),
-    ]
-    __model_intel__ = [
+            mt_range(0.5, "W_1", 1.0)
+         ), [0.0, 1.0,]),
+	 ]
+	__model_intel__ = [
         PropIntel(name=prop, label=label, minimum=0.0, maximum=1.0, data_type=float, refinable=True, storable=True, has_widget=True) \
-            for prop, label in __independent_label_map__
+            for prop, label, range in __independent_label_map__
     ]
-    __store_id__ = "R1G2Model"
+	__store_id__ = "R1G2Model"
 
     #PROPERTIES:
-    def get_W1_value(self): return self.mW[0]
-    def set_W1_value(self, value):
+	def get_W1_value(self): return self.mW[0]
+	def set_W1_value(self, value):
         self.mW[0] = min(max(value, 0.0), 1.0)
         self.update()
                     

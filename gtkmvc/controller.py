@@ -21,6 +21,7 @@
 #  or email to the author Roberto Cavada <roboogle@gmail.com>.
 #  Please report bugs to <roboogle@gmail.com>.
 
+import gtk
 
 from gtkmvc.observer import Observer
 from gtkmvc.support.log import logger
@@ -28,9 +29,28 @@ from gtkmvc.support.exceptions import TooManyCandidatesError
 
 import types
 import gobject
-import sys
 
 class Controller (Observer):
+
+    ___user_props = None
+    _controller_scope_aplied = False
+    @property
+    def __user_props(self):
+        assert(not (self.auto_adapt_included != None and self.auto_adapt_excluded != None))
+        if not self._controller_scope_aplied:
+            props = self.model.get_properties()
+            if self.auto_adapt_included != None:
+                self.___user_props = self.___user_props.union(set(filter(lambda p: p not in self.auto_adapt_included, props)))
+            elif self.auto_adapt_excluded != None:
+                self.___user_props = self.___user_props.union(set(filter(lambda p: p in self.auto_adapt_excluded, props)))
+            self._controller_scope_aplied = True
+        return self.___user_props
+
+    @__user_props.setter
+    def __user_props(self, value):
+        return # ignore
+        self.___user_props = set(value)
+
     def __init__(self, model, view, spurious=False, auto_adapt=False):
         """
         Two positional and two optional keyword arguments.
@@ -65,9 +85,9 @@ class Controller (Observer):
         self.view = None
         self.__adapters = []
         # set of properties explicitly adapted by the user:
-        self.__user_props = set()
+        self.___user_props = set()
         self.__auto_adapt = auto_adapt
-        
+
         gobject.idle_add(self._idle_register_view, view, priority=gobject.PRIORITY_HIGH)
         return
 
@@ -144,12 +164,12 @@ class Controller (Observer):
            
            *wid_name* has to exist in the view.
         """
-        
+
         # checks arguments
         n = len(args)
         if n not in range(3): raise TypeError("adapt() takes 0, 1 or 2 arguments (%d given)" % n)
 
-        if n==0:
+        if n == 0:
             adapters = []
             props = self.model.get_properties()
             # matches all properties not previoulsy adapter by the user:
@@ -158,7 +178,7 @@ class Controller (Observer):
                 except TooManyCandidatesError, e:
                     # multiple candidates, gives up
                     raise e
-                except ValueError, e: 
+                except ValueError, e:
                     # no widgets found for given property, continue after emitting a warning
                     if e.args:
                         logger.warn(e[0])
@@ -168,13 +188,13 @@ class Controller (Observer):
                 else:
                     logger.debug("Auto-adapting property %s and widget %s" % \
                                      (prop_name, wid_name))
-                    adapters += self.__create_adapters__(prop_name, wid_name)                
+                    adapters += self.__create_adapters__(prop_name, wid_name)
                     pass
                 pass
-            
-        elif n == 1: #one argument
+
+        elif n == 1: # one argument
             from gtkmvc.adapters.basic import Adapter
-            
+
             if isinstance(args[0], Adapter): adapters = (args[0],)
 
             elif isinstance(args[0], types.StringType):
@@ -185,8 +205,7 @@ class Controller (Observer):
             else: raise TypeError("Argument of adapt() must be either an Adapter or a string")
 
         else: # two arguments
-            if not (isinstance(args[0], types.StringType) and
-                    isinstance(args[1], types.StringType)):
+            if not (isinstance(args[0], types.StringType) and isinstance(args[1], types.StringType)):
                 raise TypeError("Arguments of adapt() must be two strings")
 
             # retrieves both property and widget, and creates an adapter
@@ -199,7 +218,7 @@ class Controller (Observer):
             # remember properties added by the user
             if n > 0: self.__user_props.add(ad.get_property_name())
             pass
-        
+
         return
 
     def _find_widget_match(self, prop_name):
@@ -231,10 +250,10 @@ class Controller (Observer):
         if len(names) > 1:
             raise TooManyCandidatesError("%d widget candidates match property '%s': %s" % \
                                              (len(names), prop_name, names))
-        
+
         return names[0]
 
-        
+
     # performs Controller's signals auto-connection:
     def __autoconnect_signals(self):
         """This is called during view registration, to autoconnect
@@ -254,10 +273,10 @@ class Controller (Observer):
         if self.view._builder is not None:
             self.view._builder.connect_signals(dic)
             pass
-        
+
         return
 
-    
+
     def __create_adapters__(self, prop_name, wid_name):
         """
         Private service that looks at property and widgets types,
@@ -266,7 +285,6 @@ class Controller (Observer):
         """
         from gtkmvc.adapters.basic import Adapter, RoUserClassAdapter
         from gtkmvc.adapters.containers import StaticContainerAdapter
-        import gtk
 
         res = []
 
@@ -278,39 +296,39 @@ class Controller (Observer):
             # calendar creates three adapter for year, month and day
             ad = RoUserClassAdapter(self.model, prop_name,
                                     lambda d: d.year,
-                                    lambda d,y: d.replace(year=y),
+                                    lambda d, y: d.replace(year=y),
                                     spurious=self.accepts_spurious_change())
             ad.connect_widget(wid, lambda c: c.get_date()[0],
-                              lambda c,y: c.select_month(c.get_date()[1], y),
+                              lambda c, y: c.select_month(c.get_date()[1], y),
                               "day-selected")
             res.append(ad) # year
-            
+
             ad = RoUserClassAdapter(self.model, prop_name,
                                     lambda d: d.month,
-                                    lambda d,m: d.replace(month=m),
+                                    lambda d, m: d.replace(month=m),
                                     spurious=self.accepts_spurious_change())
-            ad.connect_widget(wid, lambda c: c.get_date()[1]+1,
-                              lambda c,m: c.select_month(m-1, c.get_date()[0]),
+            ad.connect_widget(wid, lambda c: c.get_date()[1] + 1,
+                              lambda c, m: c.select_month(m - 1, c.get_date()[0]),
                               "day-selected")
             res.append(ad) # month
 
             ad = RoUserClassAdapter(self.model, prop_name,
                                     lambda d: d.day,
-                                    lambda d,v: d.replace(day=v),
+                                    lambda d, v: d.replace(day=v),
                                     spurious=self.accepts_spurious_change())
             ad.connect_widget(wid, lambda c: c.get_date()[2],
-                              lambda c,d: c.select_day(d),
+                              lambda c, d: c.select_day(d),
                               "day-selected")
             res.append(ad) # day
             return res
 
-            
+
         try: # tries with StaticContainerAdapter
             ad = StaticContainerAdapter(self.model, prop_name,
                                         spurious=self.accepts_spurious_change())
             ad.connect_widget(wid)
             res.append(ad)
-            
+
         except TypeError:
             # falls back to a simple adapter
             ad = Adapter(self.model, prop_name,
@@ -321,5 +339,5 @@ class Controller (Observer):
 
         return res
 
-                            
+
     pass # end of class Controller

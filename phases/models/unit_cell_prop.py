@@ -21,9 +21,9 @@ class UnitCellProperty(ChildModel, Storable, ComponentPropMixin, RefinementValue
     __parent_alias__ = "component"
     __model_intel__ = [
         PropIntel(name="name",       label="Name",      data_type=unicode, is_column=True),
-        PropIntel(name="value",      label="Value",     data_type=float,   widget_type='float_input', storable=True, has_widget=True, refinable=True),
-        PropIntel(name="factor",     label="Factor",    data_type=float,   widget_type='float_input', storable=True, has_widget=True),
-        PropIntel(name="constant",   label="Constant",  data_type=float,   widget_type='float_input', storable=True, has_widget=True),
+        PropIntel(name="value",      label="Value",     data_type=float,   widget_type='float_entry', storable=True, has_widget=True, refinable=True),
+        PropIntel(name="factor",     label="Factor",    data_type=float,   widget_type='float_entry', storable=True, has_widget=True),
+        PropIntel(name="constant",   label="Constant",  data_type=float,   widget_type='float_entry', storable=True, has_widget=True),
         PropIntel(name="prop",       label="Property",  data_type=object,  widget_type='combo', storable=True, has_widget=True),
         PropIntel(name="enabled",    label="Enabled",   data_type=bool,    storable=True, has_widget=True),
         PropIntel(name="inherited",  label="Inherited", data_type=bool)

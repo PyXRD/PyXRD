@@ -5,23 +5,13 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from math import pi
-
-from gtkmvc.model import Model, Signal
-import numpy as np
-import scipy
-
-import settings
-
-from generic.utils import print_timing
 from generic.models import ChildModel
 
-from specimen.models import Statistics
 from generic.pool import create_async
 from generic.calculations.mixture import (
-    get_optimized_mixture, 
-    calculate_mixture, 
-    get_residual, 
+    get_optimized_mixture,
+    calculate_mixture,
+    get_residual,
     get_optimized_residual
 )
 
@@ -33,7 +23,7 @@ class Optimizer(ChildModel):
         and background shifts and residual calculation for the phases.
     """
     __parent_alias__ = "mixture"
-    
+
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------
@@ -43,15 +33,15 @@ class Optimizer(ChildModel):
             Convenience function.
         """
         return self.get_residual()
-    
-    get_optimized_residual_async = create_async(get_optimized_residual, "get_data_object")    
+
+    get_optimized_residual_async = create_async(get_optimized_residual, "get_data_object")
     def get_optimized_residual(self, data_object=None):
         """
             Gets an optimized residual for the current mixture setup. If no
             data_object is passed it is retrieved from the mixture.
         """
         return get_optimized_residual(*self.get_data_object(data_object))
-    
+
     get_residual_async = create_async(get_residual, "get_data_object")
     def get_residual(self, data_object=None):
         """
@@ -76,9 +66,12 @@ class Optimizer(ChildModel):
             optimized result. If no data_object is passed it is retrieved from
             the mixture.
         """
-        return get_optimized_mixture(*self.get_data_object(data_object))
+        try:
+            return get_optimized_mixture(*self.get_data_object(data_object))
+        except AssertionError:
+            return None
 
     def get_data_object(self, data_object=None):
-        return (data_object if data_object!=None else self.parent.data_object,)
-        
-    pass #end of class
+        return (data_object if data_object != None else self.parent.data_object,)
+
+    pass # end of class

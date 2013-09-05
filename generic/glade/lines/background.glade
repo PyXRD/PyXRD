@@ -152,7 +152,7 @@
       </packing>
     </child>
     <child>
-      <object class="GtkComboBox" id="cmb_bg_type">
+      <object class="GtkComboBox" id="bg_type">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
       </object>

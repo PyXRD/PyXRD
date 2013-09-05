@@ -18,7 +18,7 @@ import scipy
 from gtkmvc import Signal
 from generic.utils import print_timing
 from generic.models import ChildModel, PropIntel
-#from generic.calculations.pool import pooled
+# from generic.calculations.pool import pooled
 
 import settings
 
@@ -32,31 +32,31 @@ class RefineContext(ChildModel):
         ranges and initial values.
     """
     __parent_alias__ = "mixture"
-    
-    __model_intel__ = [ #TODO add labels
+
+    __model_intel__ = [ # TODO add labels
         PropIntel(name="solution_added"),
-        PropIntel(name="status",               column=True, data_type=str,   has_widget=False),
-        PropIntel(name="initial_residual",     column=True, data_type=float, has_widget=True),
-        PropIntel(name="last_residual",        column=True, data_type=float, has_widget=True),
-        PropIntel(name="best_residual",        column=True, data_type=float, has_widget=True),        
+        PropIntel(name="status", column=True, data_type=str, has_widget=False),
+        PropIntel(name="initial_residual", column=True, data_type=float, has_widget=True),
+        PropIntel(name="last_residual", column=True, data_type=float, has_widget=True),
+        PropIntel(name="best_residual", column=True, data_type=float, has_widget=True),
     ]
-    
-    #SIGNALS:
+
+    # SIGNALS:
     solution_added = None
-    
-    #OTHER:
-    #objective_function = None
+
+    # OTHER:
+    # objective_function = None
     options = None
-    
+
     initial_solution = None
     initial_residual = None
 
     last_solution = None
     last_residual = None
-    
+
     best_solution = None
     best_residual = None
-    
+
     ref_props = None
     values = None
     ranges = None
@@ -65,12 +65,12 @@ class RefineContext(ChildModel):
 
     record_header = None
     records = None
-    
+
     def __init__(self, parent=None, store=False, options={}):
         super(RefineContext, self).__init__(parent=parent)
         self.options = options
-                
-        if parent!=None:
+
+        if parent != None:
             self.ref_props = []
             self.values = []
             self.ranges = ()
@@ -79,20 +79,20 @@ class RefineContext(ChildModel):
                     self.ref_props.append(ref_prop)
                     self.values.append(ref_prop.value)
                     self.ranges += ((ref_prop.value_min, ref_prop.value_max),)
-            
+
         if store: self.store_project_state()
-            
+
         self.initial_residual = self.mixture.optimizer.get_current_residual()
-        self.initial_solution = np.array(self.values, dtype=float)    
+        self.initial_solution = np.array(self.values, dtype=float)
 
         self.best_solution = self.initial_solution
         self.best_residual = self.initial_residual
-        
+
         self.last_solution = self.initial_solution
         self.last_residual = self.initial_residual
-            
+
         self.solution_added = Signal()
-            
+
         self.status = "created"
 
     def store_project_state(self):
@@ -109,7 +109,7 @@ class RefineContext(ChildModel):
     def apply_solution(self, solution):
         solution = np.asanyarray(solution)
         for i, ref_prop in enumerate(self.ref_props):
-            if not (solution.shape==()):
+            if not (solution.shape == ()):
                 ref_prop.value = float(solution[i])
             else:
                 ref_prop.value = float(solution[()])
@@ -117,20 +117,20 @@ class RefineContext(ChildModel):
     def get_data_object_for_solution(self, solution):
         self.apply_solution(solution)
         return deepcopy(self.mixture.data_object)
-        
+
     def get_residual_for_solution(self, solution):
         self.apply_solution(solution)
         return self.mixture.optimizer.get_optimized_residual()
 
     def update(self, solution, residual=None):
-        residual = residual if residual!=None else self.get_residual_for_solution(solution)
+        residual = residual if residual != None else self.get_residual_for_solution(solution)
         self.last_solution = solution
         self.last_residual = residual
-        if self.best_residual==None or self.best_residual > self.last_residual:
+        if self.best_residual == None or self.best_residual > self.last_residual:
             self.best_residual = self.last_residual
             self.best_solution = self.last_solution
         self.solution_added.emit(arg=(self.last_solution, self.last_residual))
-                        
+
     def apply_best_solution(self):
         self.apply_solution(self.best_solution)
 
@@ -139,15 +139,15 @@ class RefineContext(ChildModel):
 
     def apply_initial_solution(self):
         self.apply_solution(self.initial_solution)
-        
+
     def record_state_data(self, state_data):
-        keys, record = zip(*state_data)    
+        keys, record = zip(*state_data)
         if self.record_header == None:
             self.record_header = keys
             self.records = []
-        self.records.append(record)       
-                    
-    pass #end of class
+        self.records.append(record)
+
+    pass # end of class
 
 class Refiner(ChildModel):
     """
@@ -158,7 +158,7 @@ class Refiner(ChildModel):
 
     # ------------------------------------------------------------
     #      Methods & Functions
-    # ------------------------------------------------------------ 
+    # ------------------------------------------------------------
     def setup_context(self, store=False):
         """
             Creates a RefineContext object filled with parameters based on the
@@ -170,7 +170,7 @@ class Refiner(ChildModel):
             options=self.parent.refine_options,
             store=store
         )
-        
+
     def delete_context(self):
         """
             Removes the RefineContext
@@ -183,18 +183,18 @@ class Refiner(ChildModel):
             This refines the selected properties using the selected algorithm.
             This should be run asynchronously to keep the GUI from blocking.
         """
-        assert self.context!=None, "You need to setup the RefineContext before starting the refinement!"
-               
-        if not self.refine_lock: #TODO use a proper lock
+        assert self.context != None, "You need to setup the RefineContext before starting the refinement!"
+
+        if not self.refine_lock: # TODO use a proper lock
             # Set lock
-            self.refine_lock = True            
-        
+            self.refine_lock = True
+
             # Suppres updates:
             self.mixture.project.freeze_updates()
-              
+
             # If something has been selected: continue...
-            if len(self.context.ref_props) > 0:                
-                #Run until it ends or it raises an exception:
+            if len(self.context.ref_props) > 0:
+                # Run until it ends or it raises an exception:
                 t1 = time.time()
                 try:
                     self.mixture.get_refine_method()(self.context, stop=stop)
@@ -208,15 +208,15 @@ class Refiner(ChildModel):
                     else:
                         self.context.status = "finished"
                 t2 = time.time()
-                print '%s took %0.3f ms' % ("Total refinement", (t2-t1)*1000.0)
-            else: #nothing selected for refinement
+                print '%s took %0.3f ms' % ("Total refinement", (t2 - t1) * 1000.0)
+            else: # nothing selected for refinement
                 self.context.status = "error"
-                
-            #Unluck the GUI & this method
+
+            # Unluck the GUI & this method
             self.refine_lock = False
             self.mixture.project.thaw_updates()
-            
-            #Return the context to whatever called this
+
+            # Return the context to whatever called this
             return self.context
 
-    pass #end of class
+    pass # end of class

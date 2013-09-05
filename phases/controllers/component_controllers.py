@@ -13,7 +13,7 @@ import settings
 from generic.views import InlineObjectListStoreView
 from generic.views.combobox_tools import add_combo_text_column
 from generic.controllers import BaseController, ChildObjectListStoreController
-from generic.controllers.utils import get_case_insensitive_glob
+from generic.controllers.utils import get_case_insensitive_glob, DummyAdapter
 
 from phases.controllers import EditLayerController, EditAtomRelationsController, EditUnitCellPropertyController
 from phases.views import EditComponentView, EditUnitCellPropertyView
@@ -25,43 +25,45 @@ class EditComponentController(BaseController):
     """
     layer_view = None
     layer_controller = None
-    
+
     interlayer_view = None
     interlayer_controller = None
-    
+
     atom_relations_view = None
     atom_relations_controller = None
-    
+
     ucpa_view = None
     ucpa_controller = None
-    
+
     ucpb_view = None
     ucpb_controller = None
 
-    widget_handlers = { 
+    widget_handlers = {
         'custom': 'custom_handler',
-        'combo':  'combo_handler' 
     }
 
     def __init__(self, *args, **kwargs):
         BaseController.__init__(self, *args, **kwargs)
-        
+
         self.layer_view = InlineObjectListStoreView(parent=self.view)
         self.layer_controller = EditLayerController("_layer_atoms", model=self.model, view=self.layer_view, parent=self)
-        
+
         self.interlayer_view = InlineObjectListStoreView(parent=self.view)
         self.interlayer_controller = EditLayerController("_interlayer_atoms", model=self.model, view=self.interlayer_view, parent=self)
-        
+
         self.atom_relations_view = InlineObjectListStoreView(parent=self.view)
         self.atom_relations_controller = EditAtomRelationsController("_atom_relations", model=self.model, view=self.atom_relations_view, parent=self)
-        
+
         self.ucpa_view = EditUnitCellPropertyView(parent=self.view)
-        self.ucpa_controller = EditUnitCellPropertyController(extra_props=[(self.model, "cell_b", "B cell length"),], model=self.model._ucp_a, view=self.ucpa_view, parent=self)
-        
+        self.ucpa_controller = EditUnitCellPropertyController(extra_props=[(self.model, "cell_b", "B cell length"), ], model=self.model._ucp_a, view=self.ucpa_view, parent=self)
+
         self.ucpb_view = EditUnitCellPropertyView(parent=self.view)
-        self.ucpb_controller = EditUnitCellPropertyController(extra_props=[(self.model, "cell_a", "A cell length"),], model=self.model._ucp_b, view=self.ucpb_view, parent=self)
+        self.ucpb_controller = EditUnitCellPropertyController(extra_props=[(self.model, "cell_a", "A cell length"), ], model=self.model._ucp_b, view=self.ucpb_view, parent=self)
 
     def reset_combo_box(self):
+        """
+            Reset the `linked_with` combo box.
+        """
         if self.model is not None and self.model.parent is not None:
             combo = self.view["component_linked_with"]
             combo.clear()
@@ -69,7 +71,7 @@ class EditComponentController(BaseController):
                 tv_model = self.model.parent.based_on.components
                 combo.set_model(tv_model)
                 add_combo_text_column(combo, text_col=tv_model.c_name)
-                
+
                 for row in tv_model:
                     if tv_model.get_user_data(row.iter) == self.model.linked_with:
                         combo.set_active_iter (row.iter)
@@ -78,28 +80,21 @@ class EditComponentController(BaseController):
                 combo.set_model(None)
 
     @staticmethod
-    def combo_handler(self, intel, prefix):
-        if intel.name == "linked_with":
-            self.reset_combo_box()
-        else: return False
-        return True
-         
-    @staticmethod
-    def custom_handler(self, intel, prefix):
+    def custom_handler(self, intel, widget):
         if intel.name == "layer_atoms":
             self.view.set_layer_view(self.layer_view.get_top_widget())
         elif intel.name == "interlayer_atoms":
             self.view.set_interlayer_view(self.interlayer_view.get_top_widget())
-        elif intel.name ==  "atom_relations":
+        elif intel.name == "atom_relations":
             self.view.set_atom_relations_view(self.atom_relations_view.get_top_widget())
         elif intel.name in ("ucp_a", "ucp_b"):
             self.view.set_ucpa_view(self.ucpa_view.get_top_widget())
             self.view.set_ucpb_view(self.ucpb_view.get_top_widget())
-        else: return False
-        return True
-         
+        elif intel.name == "linked_with":
+            self.reset_combo_box()
+        return DummyAdapter(intel.name)
+
     def register_adapters(self):
-        BaseController.register_adapters(self)
         self.update_sensitivities()
 
     def update_sensitivities(self):
@@ -109,10 +104,10 @@ class EditComponentController(BaseController):
             self.view[widget].set_sensitive(not (can_inherit and getattr(self.model, "inherit_%s" % name)))
             self.view[widget].set_visible(not (can_inherit and getattr(self.model, "inherit_%s" % name)))
             self.view["component_inherit_%s" % name].set_sensitive(can_inherit)
-        for name in ("d001", "default_c", "delta_c"):
-            update("container_%s" % name, name.replace("data_", "", 1))
-        for name in ("interlayer_atoms", "layer_atoms", "atom_relations", "ucp_a", "ucp_b"):
+        for name in ("default_c", "delta_c", "d001"):
             update("container_%s" % name, name)
+        for name in ("interlayer_atoms", "layer_atoms", "atom_relations", "ucp_a", "ucp_b"):
+            update(self.view.widget_format % name, name)
 
 
     # ------------------------------------------------------------
@@ -128,7 +123,7 @@ class EditComponentController(BaseController):
     @Controller.observe("inherit_delta_c", assign=True)
     def notif_change_inherit(self, model, prop_name, info):
         self.update_sensitivities()
-    
+
     @Controller.observe("name", assign=True)
     def notif_name_changed(self, model, prop_name, info):
         self.model.parent.components.on_item_changed(self.model)
@@ -158,20 +153,11 @@ class ComponentsController(ChildObjectListStoreController):
     """
     model_property_name = "components"
     columns = [ ("Component name", "c_name") ]
-    delete_msg = "Deleting a component is irreverisble!\nAre You sure you want to continue?"
-    file_filters = [("Component file", get_case_insensitive_glob("*.CMP")),]
-
-    def get_new_edit_view(self, obj):
-        if isinstance(obj, Component):
-            return EditComponentView(parent=self.view)
-        else:
-            return ChildObjectListStoreController.get_new_edit_view(self, obj)
-        
-    def get_new_edit_controller(self, obj, view, parent=None):
-        if isinstance(obj, Component):
-            return EditComponentController(model=obj, view=view, parent=parent)
-        else:
-            return ChildObjectListStoreController.get_new_edit_controller(self, obj, view, parent=parent)
+    delete_msg = "Deleting a component is irreversible!\nAre You sure you want to continue?"
+    file_filters = [("Component file", get_case_insensitive_glob("*.CMP")), ]
+    obj_type_map = [
+        (Component, EditComponentView, EditComponentController),
+    ]
 
     def load_components(self, filename):
         old_comps = self.get_selected_objects()
@@ -188,10 +174,10 @@ class ComponentsController(ChildObjectListStoreController):
             else:
                 self.select_object(None)
                 print "Importing components..."
-                #replace component(s):
+                # replace component(s):
                 for old_comp, new_comp in zip(old_comps, new_comps):
                     self.liststore.replace_item(old_comp, new_comp)
-                    #this will break any links as well with other components:
+                    # this will break any links as well with other components:
                     old_comp.parent = None
         else:
             self.run_information_dialog("No components selected to replace!")
@@ -206,7 +192,7 @@ class ComponentsController(ChildObjectListStoreController):
             Component.save_components(self.get_selected_objects(), filename=filename)
         self.run_save_dialog("Export components", on_accept, parent=self.view.get_toplevel())
         return True
-        
+
     def on_load_object_clicked(self, event):
         def on_accept(dialog):
             self.load_components(dialog.get_filename())

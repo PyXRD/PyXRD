@@ -33,7 +33,7 @@ class AppController (BaseController, DialogMixin):
     """
         Controller handling the main application interface.
     """
-    
+
     file_filters = [("PyXRD Project files", get_case_insensitive_glob("*.pyxrd", "*.zpd")),
                     ("All Files", "*.*")]
 
@@ -43,24 +43,24 @@ class AppController (BaseController, DialogMixin):
     def __init__(self, model, view, spurious=False, auto_adapt=False, parent=None):
         """ Initializes an AppController with the given arguments. """
         super(AppController, self).__init__(model, view, spurious=spurious, auto_adapt=auto_adapt, parent=parent)
-        
+
         self.plot_controller = MainPlotController(self)
         view.setup_plot(self.plot_controller)
-        
+
         self.project = None
         self.specimen = None
         self.markers = None
         self.phases = None
         self.atom_types = None
         self.mixtures = None
-        
+
         self.push_status_msg("Done.")
         return
 
     def register_view(self, view):
-        #self.view['statistics_expander'].connect("notify::expanded", self.on_statistics_expand)
+        # self.view['statistics_expander'].connect("notify::expanded", self.on_statistics_expand)
         if self.model.current_project != None:
-            self.reset_project_controller ()
+            # self.reset_project_controller ()
             self.update_project_sensitivities ()
 
     def set_model(self, model):
@@ -74,35 +74,38 @@ class AppController (BaseController, DialogMixin):
         self.phases = PhasesController(model=self.model.current_project, view=self.view.phases, parent=self)
         self.atom_types = AtomTypesController(model=self.model.current_project, view=self.view.atom_types, parent=self)
         self.mixtures = MixturesController(model=self.model.current_project, view=self.view.mixtures, parent=self)
-        
+
     def reset_specimen_controller(self):
-        self.specimen = SpecimenController(model=self.model.current_specimen, view=self.view.reset_specimen_view(), parent=self)
         if self.model.current_specimen != None:
-            self.markers = MarkersController(model=self.model.current_specimen, view=self.view.reset_markers_view(), parent=self)    
-            #self.statistics = StatisticsController(model=self.model.current_specimen.statistics, view=self.view.reset_statistics_view(), parent=self)
+            view = self.view.reset_child_view("specimen")
+            print "SPECIMEN VIEW", view
+            self.specimen = SpecimenController(model=self.model.current_specimen, view=view, parent=self)
+            self.markers = MarkersController(model=self.model.current_specimen, view=self.view.reset_child_view("markers"), parent=self)
+            # self.statistics = StatisticsController(model=self.model.current_specimen.statistics, view=self.view.reset_statistics_view(), parent=self)
         else:
+            self.specimen = None
             self.markers = None
             self.statistics = None
 
     # ------------------------------------------------------------
     #      Notifications of observable properties
     # ------------------------------------------------------------
-    @Controller.observe("needs_plot_update", signal=True)        
+    @Controller.observe("needs_plot_update", signal=True)
     @Controller.observe("needs_update", signal=True)
     def notif_needs_update(self, model, prop_name, info):
         self.redraw_plot()
         return
-        
+
     @Controller.observe("current_project", assign=True, after=True)
     def notif_project_update(self, model, prop_name, info):
-        self.reset_project_controller ()
-        self.update_project_sensitivities ()
+        self.reset_project_controller()
+        self.update_project_sensitivities()
         return
 
     @Controller.observe("current_specimen", assign=True, after=True)
     @Controller.observe("current_specimens", assign=True, after=True)
     def notif_specimen_changed(self, model, prop_name, info):
-        self.reset_specimen_controller ()
+        self.reset_specimen_controller()
         self.update_specimen_sensitivities()
         self.redraw_plot()
         return
@@ -114,17 +117,17 @@ class AppController (BaseController, DialogMixin):
     @delayed(lock="_in_update_cycle")
     @BaseController.status_message("Updating display...")
     def redraw_plot(self):
-        if not self._in_update_cycle: #prevent never-ending update loops
+        if not self._in_update_cycle: # prevent never-ending update loops
             self._in_update_cycle = True
-            
+
             single = self.model.single_specimen_selected
-        
+
             # check if we should display statistics:
             # FIXME displa these directly on the plot, make it a specimen setting
             stats = (False, None)
-            #if single and self.model.statistics_visible:
+            # if single and self.model.statistics_visible:
             #    stats = (True, self.model.current_specimen.statistics.residual_pattern)
-      
+
             # let the plot controller update this:
             self.plot_controller.update(
                 clear=True,
@@ -132,57 +135,60 @@ class AppController (BaseController, DialogMixin):
                 stats=stats,
                 project=self.model.current_project,
                 specimens=self.model.current_specimens[::-1])
-            
+
             self._in_update_cycle = False
-        
+
     def update_title(self):
-        self.view.get_top_widget().set_title("PyXRD - %s" % self.model.current_project.name)        
-        
+        self.view.get_top_widget().set_title("PyXRD - %s" % self.model.current_project.name)
+
     def update_sensitivities(self):
         self.update_specimen_sensitivities()
         self.update_project_sensitivities()
-        
+
     def update_project_sensitivities(self):
         sensitive = (self.model.current_project != None)
         self.view["main_pained"].set_sensitive(sensitive)
         self.view["project_actions"].set_sensitive(sensitive)
         for action in self.view["project_actions"].list_actions():
             action.set_sensitive(sensitive)
-        
+
     def update_specimen_sensitivities(self):
         sensitive = (self.model.current_specimen != None)
         self.view["specimen_actions"].set_sensitive(sensitive)
-        #self.view["statistics_expander"].set_sensitive(sensitive)
-        ##self.view['statistics_expander'].set_expanded(self.model.statistics_visible)
-        sensitive = sensitive or (self.model.current_specimens is not None and len(self.model.current_specimens) >= 1)      
+        # self.view["statistics_expander"].set_sensitive(sensitive)
+        # #self.view['statistics_expander'].set_expanded(self.model.statistics_visible)
+        sensitive = sensitive or (self.model.current_specimens is not None and len(self.model.current_specimens) >= 1)
         self.view["specimens_actions"].set_sensitive(sensitive)
-        
+
+    def set_layout_mode(self, mode):
+        self.view.set_layout_mode(mode)
+
     # ------------------------------------------------------------
     #      Loading and saving of projects
     # ------------------------------------------------------------
     def save_project(self, filename=None):
         filename = filename or self.model.current_filename
-        
-        #create backup in case something goes wrong:
+
+        # create backup in case something goes wrong:
         try:
             backupfile = sys.path[0] + "/data/temp_backup.pyxrd"
             copy(filename, backupfile)
         except IOError:
             backupfile = None
-            
-        #try to save the project, if this fails, put the backup back
+
+        # try to save the project, if this fails, put the backup back
         try:
             self.model.current_project.save_object(filename)
             self.model.current_filename = filename
         except:
-            if backupfile: 
-                move(backupfile, self.model.current_filename) #move original file back
+            if backupfile:
+                move(backupfile, self.model.current_filename) # move original file back
                 backupfile = None
             self.run_information_dialog("An error has occured.\n Your project was not saved!", parent=self.view.get_top_widget())
             raise
         finally:
-            if backupfile: os.remove(backupfile) #remove backup file
-            
+            if backupfile: os.remove(backupfile) # remove backup file
+
     def open_project(self, filename):
         try:
             self.model.current_project = Project.load_object(filename, parent=self.model)
@@ -190,7 +196,7 @@ class AppController (BaseController, DialogMixin):
         except any as error:
             self.run_information_dialog("An error has occured.\n Your project was not loaded!", parent=self.view.get_top_widget())
             print error
-        
+
     # ------------------------------------------------------------
     #      GTK Signal handlers - general
     # ------------------------------------------------------------
@@ -199,12 +205,12 @@ class AppController (BaseController, DialogMixin):
             import webbrowser
             webbrowser.open(settings.MANUAL_URL)
         except:
-            pass #ignore errors
+            pass # ignore errors
         return True
-        
+
     def on_about_activate(self, widget, data=None):
         self._run_dialog(self.view["about_window"], destroy=False)
-    
+
     def on_main_window_delete_event(self, widget, event):
         def on_accept(dialog):
             gtk.main_quit()
@@ -235,22 +241,22 @@ class AppController (BaseController, DialogMixin):
         else:
             filename = self.model.current_project.name
         self.plot_controller.save(
-            parent=self.view.get_toplevel(), 
-            suggest_name=filename, 
-            num_specimens=len(self.model.current_specimens), 
+            parent=self.view.get_toplevel(),
+            suggest_name=filename,
+            num_specimens=len(self.model.current_specimens),
             offset=self.model.current_project.display_plot_offset)
-         
+
     def on_sample_point(self, event):
-        def onclick(edc, x_pos, event):            
+        def onclick(edc, x_pos, event):
             if edc != None:
                 edc.enabled = False
                 edc.disconnect()
-            
+
             exp_y = self.model.current_specimen.experimental_pattern.xy_store.get_y_at_x(x_pos)
             calc_y = self.model.current_specimen.calculated_pattern.xy_store.get_y_at_x(x_pos)
             self.run_information_dialog("Sampled point:\n\tExperimental data:\t( %.4f , %.4f )\n\tCalculated data:\t\t( %.4f , %.4f )" % (x_pos, exp_y, x_pos, calc_y), parent=self.view.get_toplevel())
             del self.edc
-        
+
         self.edc = EyedropperCursorPlot(
             self.plot_controller.figure,
             self.plot_controller.canvas,
@@ -286,7 +292,7 @@ class AppController (BaseController, DialogMixin):
         def on_open_project(dialog):
             def on_accept(dialog):
                 print "Opening project..."
-                self.open_project(dialog.get_filename())                    
+                self.open_project(dialog.get_filename())
             self.run_load_dialog(
                 title="Open project",
                 on_accept_callback=on_accept,
@@ -295,7 +301,7 @@ class AppController (BaseController, DialogMixin):
             self.run_confirmation_dialog(
                 "The current project has unsaved changes,\n"
                 "are you sure you want to load another project?",
-                on_open_project, 
+                on_open_project,
                 parent=self.view.get_top_widget())
         else:
             on_open_project(None)
@@ -313,7 +319,7 @@ class AppController (BaseController, DialogMixin):
             filename = self.extract_filename(dialog)
             self.save_project(filename=filename)
         suggest_name, suggest_folder = None, None
-        if self.model.current_filename!=None:
+        if self.model.current_filename != None:
             suggest_name = basename(self.model.current_filename)
             suggest_folder = dirname(self.model.current_filename)
         self.run_save_dialog(title=title,
@@ -325,7 +331,7 @@ class AppController (BaseController, DialogMixin):
     # ------------------------------------------------------------
     #      GTK Signal handlers - Mixtures related
     # -----------------------------------------------------------
-    @BaseController.status_message("Displaying mixtures view...", "edit_mixtures")    
+    @BaseController.status_message("Displaying mixtures view...", "edit_mixtures")
     def on_edit_mixtures(self, widget, data=None):
         if self.model.current_project is not None:
             self.view.mixtures.present()
@@ -334,11 +340,11 @@ class AppController (BaseController, DialogMixin):
     # ------------------------------------------------------------
     #      GTK Signal handlers - Specimen related
     # ------------------------------------------------------------
-    @BaseController.status_message("Displaying specimen...", "edit_specimen")    
+    @BaseController.status_message("Displaying specimen...", "edit_specimen")
     def on_edit_specimen_activate(self, event):
         self.view.specimen.present()
         return True
-        
+
     def on_specimens_treeview_popup_menu(self, widget, data=None):
         self.view["specimen_popup"].popup(None, None, None, 0, 0)
         return True
@@ -346,12 +352,12 @@ class AppController (BaseController, DialogMixin):
     @BaseController.status_message("Creating new specimen...", "add_specimen")
     def on_add_specimen_activate(self, event):
         specimen = Specimen(parent=self.model.current_project)
-        self.view["specimens_treeview"].set_cursor(self.model.current_project.specimens.append(specimen))
+        self.view.project.specimens_treeview.set_cursor(self.model.current_project.specimens.append(specimen))
         self.view.specimen.present()
         return True
 
-    def on_add_multiple_specimens(self, event):        
-        self.project.import_multiple_specimen()        
+    def on_add_multiple_specimens(self, event):
+        self.project.import_multiple_specimen()
         return True
 
     def on_replace_specimen_data_activate(self, event):
@@ -362,7 +368,7 @@ class AppController (BaseController, DialogMixin):
 
     @BaseController.status_message("Deleting specimen view...", "del_specimen")
     def on_del_specimen_activate(self, event):
-        tv = self.view['specimens_treeview']
+        tv = self.view.project.specimens_treeview
         selection = tv.get_selection()
         if selection.count_selected_rows() >= 1:
             def delete_objects(dialog):
@@ -370,7 +376,7 @@ class AppController (BaseController, DialogMixin):
                     self.model.current_project.specimens.remove_item(obj)
             self.run_confirmation_dialog(
                 message='Deleting a specimen is irreverisble!\nAre You sure you want to continue?',
-                on_accept_callback=delete_objects, 
+                on_accept_callback=delete_objects,
                 parent=self.view.get_top_widget())
         return True
 
@@ -388,12 +394,12 @@ class AppController (BaseController, DialogMixin):
         if self.model.current_specimen != None:
             self.specimen.add_noise()
         return True
-        
+
     def on_shift_data(self, event):
         if self.model.current_specimen != None:
             self.specimen.shift_data()
         return True
-        
+
     def on_strip_peak(self, event):
         if self.model.current_specimen != None:
             self.specimen.strip_peak()

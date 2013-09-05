@@ -5,12 +5,12 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from utils import ctrl_setup_combo_with_list
+from utils import ComboAdapter
 from objectliststore_controllers import (
     ObjectTreeviewMixin,
     ObjectListStoreMixin,
-    ObjectListStoreController, 
-    ChildObjectListStoreController, 
+    ObjectListStoreController,
+    ChildObjectListStoreController,
     InlineObjectListStoreController,
 )
 from base_controllers import (
@@ -20,11 +20,11 @@ from base_controllers import (
 )
 
 __all__ = [
-    "ctrl_setup_combo_with_list",
+    "ComboAdapter",
     "ObjectTreeviewMixin",
     "ObjectListStoreMixin",
-    "ObjectListStoreController", 
-    "ChildObjectListStoreController", 
+    "ObjectListStoreController",
+    "ChildObjectListStoreController",
     "InlineObjectListStoreController",
     "DialogMixin",
     "BaseController",

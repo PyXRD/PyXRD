@@ -46,7 +46,7 @@
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="border_width">10</property>
-        <property name="n_rows">4</property>
+        <property name="n_rows">5</property>
         <property name="n_columns">2</property>
         <property name="column_spacing">10</property>
         <property name="row_spacing">5</property>
@@ -91,7 +91,7 @@
           </packing>
         </child>
         <child>
-          <object class="GtkEntry" id="project_data_date">
+          <object class="GtkEntry" id="project_date">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="invisible_char">•</property>
@@ -108,7 +108,7 @@
           </packing>
         </child>
         <child>
-          <object class="GtkEntry" id="project_data_author">
+          <object class="GtkEntry" id="project_author">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="invisible_char">•</property>
@@ -170,7 +170,7 @@
             <property name="can_focus">True</property>
             <property name="shadow_type">in</property>
             <child>
-              <object class="GtkTextView" id="project_data_description">
+              <object class="GtkTextView" id="project_description">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="border_width">2</property>
@@ -185,6 +185,34 @@
             <property name="right_attach">2</property>
             <property name="top_attach">3</property>
             <property name="bottom_attach">4</property>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkLabel" id="layout_lbl">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="xalign">1</property>
+            <property name="label" translatable="yes">Layout mode</property>
+          </object>
+          <packing>
+            <property name="top_attach">4</property>
+            <property name="bottom_attach">5</property>
+            <property name="x_options">GTK_FILL</property>
+            <property name="y_options"/>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkComboBox" id="project_layout_mode">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+          </object>
+          <packing>
+            <property name="left_attach">1</property>
+            <property name="right_attach">2</property>
+            <property name="top_attach">4</property>
+            <property name="bottom_attach">5</property>
+            <property name="x_options">GTK_FILL</property>
+            <property name="y_options"/>
           </packing>
         </child>
       </object>
@@ -312,25 +340,6 @@
           </packing>
         </child>
         <child>
-          <object class="GtkEntry" id="project_display_group_by">
-            <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="invisible_char">•</property>
-            <property name="width_chars">5</property>
-            <property name="invisible_char_set">True</property>
-            <property name="primary_icon_activatable">False</property>
-            <property name="secondary_icon_activatable">False</property>
-          </object>
-          <packing>
-            <property name="left_attach">1</property>
-            <property name="right_attach">2</property>
-            <property name="top_attach">5</property>
-            <property name="bottom_attach">6</property>
-            <property name="x_options"/>
-            <property name="y_options"/>
-          </packing>
-        </child>
-        <child>
           <object class="GtkLabel" id="exp_lw_lbl">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
@@ -355,44 +364,6 @@
             <property name="top_attach">3</property>
             <property name="bottom_attach">4</property>
             <property name="x_options">GTK_FILL</property>
-            <property name="y_options"/>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkEntry" id="project_display_calc_lw">
-            <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="invisible_char">•</property>
-            <property name="width_chars">5</property>
-            <property name="invisible_char_set">True</property>
-            <property name="primary_icon_activatable">False</property>
-            <property name="secondary_icon_activatable">False</property>
-          </object>
-          <packing>
-            <property name="left_attach">1</property>
-            <property name="right_attach">2</property>
-            <property name="top_attach">3</property>
-            <property name="bottom_attach">4</property>
-            <property name="x_options"/>
-            <property name="y_options"/>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkEntry" id="project_display_exp_lw">
-            <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="invisible_char">•</property>
-            <property name="width_chars">5</property>
-            <property name="invisible_char_set">True</property>
-            <property name="primary_icon_activatable">False</property>
-            <property name="secondary_icon_activatable">False</property>
-          </object>
-          <packing>
-            <property name="left_attach">1</property>
-            <property name="right_attach">2</property>
-            <property name="top_attach">1</property>
-            <property name="bottom_attach">2</property>
-            <property name="x_options"/>
             <property name="y_options"/>
           </packing>
         </child>
@@ -429,6 +400,63 @@
             <property name="y_options"/>
           </packing>
         </child>
+        <child>
+          <object class="GtkSpinButton" id="spin_display_exp_lw">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="invisible_char">●</property>
+            <property name="width_chars">4</property>
+            <property name="adjustment">project_display_exp_lw</property>
+            <property name="digits">1</property>
+            <property name="numeric">True</property>
+          </object>
+          <packing>
+            <property name="left_attach">1</property>
+            <property name="right_attach">2</property>
+            <property name="top_attach">1</property>
+            <property name="bottom_attach">2</property>
+            <property name="x_options"/>
+            <property name="y_options"/>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkSpinButton" id="spin_display_calc_lw">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="invisible_char">●</property>
+            <property name="width_chars">4</property>
+            <property name="invisible_char_set">True</property>
+            <property name="adjustment">project_display_calc_lw</property>
+            <property name="digits">1</property>
+            <property name="numeric">True</property>
+          </object>
+          <packing>
+            <property name="left_attach">1</property>
+            <property name="right_attach">2</property>
+            <property name="top_attach">3</property>
+            <property name="bottom_attach">4</property>
+            <property name="x_options"/>
+            <property name="y_options"/>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkSpinButton" id="spin_display_group_by">
+            <property name="visible">True</property>
+            <property name="can_focus">False</property>
+            <property name="invisible_char">●</property>
+            <property name="width_chars">2</property>
+            <property name="invisible_char_set">True</property>
+            <property name="adjustment">project_display_group_by</property>
+          </object>
+          <packing>
+            <property name="left_attach">1</property>
+            <property name="right_attach">2</property>
+            <property name="top_attach">5</property>
+            <property name="bottom_attach">6</property>
+            <property name="x_options"/>
+            <property name="y_options"/>
+          </packing>
+        </child>
       </object>
       <packing>
         <property name="position">1</property>
@@ -452,13 +480,13 @@
         <property name="border_width">10</property>
         <property name="n_rows">7</property>
         <property name="n_columns">3</property>
-        <property name="column_spacing">10</property>
+        <property name="column_spacing">5</property>
         <property name="row_spacing">5</property>
         <child>
           <object class="GtkLabel" id="lbl_xaxislims">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="xalign">1</property>
+            <property name="xalign">0</property>
             <property name="label" translatable="yes">X scale</property>
           </object>
           <packing>
@@ -492,7 +520,6 @@
             <property name="right_attach">3</property>
             <property name="top_attach">4</property>
             <property name="bottom_attach">5</property>
-            <property name="x_options">GTK_FILL</property>
             <property name="y_options"/>
           </packing>
         </child>
@@ -500,46 +527,12 @@
           <object class="GtkLabel" id="lbl_yaxisscale">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="xalign">1</property>
+            <property name="xalign">0</property>
             <property name="label" translatable="yes">Y scale</property>
           </object>
           <packing>
             <property name="top_attach">5</property>
             <property name="bottom_attach">6</property>
-            <property name="x_options">GTK_FILL</property>
-            <property name="y_options"/>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkLabel" id="lbl_maxx">
-            <property name="visible">True</property>
-            <property name="sensitive">False</property>
-            <property name="can_focus">False</property>
-            <property name="xalign">1</property>
-            <property name="label" translatable="yes">max. [°2θ]</property>
-          </object>
-          <packing>
-            <property name="left_attach">1</property>
-            <property name="right_attach">2</property>
-            <property name="top_attach">2</property>
-            <property name="bottom_attach">3</property>
-            <property name="x_options">GTK_FILL</property>
-            <property name="y_options"/>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkLabel" id="lbl_minx">
-            <property name="visible">True</property>
-            <property name="sensitive">False</property>
-            <property name="can_focus">False</property>
-            <property name="xalign">1</property>
-            <property name="label" translatable="yes">min. [°2θ]</property>
-          </object>
-          <packing>
-            <property name="left_attach">1</property>
-            <property name="right_attach">2</property>
-            <property name="top_attach">1</property>
-            <property name="bottom_attach">2</property>
             <property name="x_options">GTK_FILL</property>
             <property name="y_options"/>
           </packing>
@@ -600,59 +593,101 @@
           </packing>
         </child>
         <child>
-          <object class="GtkAlignment" id="xmin_algn">
+          <object class="GtkTable" id="box_manual_xrange">
             <property name="visible">True</property>
+            <property name="sensitive">False</property>
             <property name="can_focus">False</property>
-            <property name="xalign">0</property>
-            <property name="xscale">0</property>
+            <property name="border_width">10</property>
+            <property name="n_rows">2</property>
+            <property name="n_columns">2</property>
+            <property name="column_spacing">10</property>
+            <property name="row_spacing">5</property>
             <child>
-              <object class="GtkEntry" id="project_axes_xmin">
-                <property name="width_request">50</property>
+              <object class="GtkLabel" id="lbl_maxx">
                 <property name="visible">True</property>
-                <property name="sensitive">False</property>
-                <property name="can_focus">True</property>
-                <property name="max_length">4</property>
-                <property name="invisible_char">•</property>
-                <property name="width_chars">5</property>
-                <property name="invisible_char_set">True</property>
-                <property name="primary_icon_activatable">False</property>
-                <property name="secondary_icon_activatable">False</property>
+                <property name="can_focus">False</property>
+                <property name="xalign">1</property>
+                <property name="label" translatable="yes">max. [°2θ]</property>
               </object>
+              <packing>
+                <property name="top_attach">1</property>
+                <property name="bottom_attach">2</property>
+                <property name="x_options">GTK_FILL</property>
+                <property name="y_options"/>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkLabel" id="lbl_minx">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="xalign">1</property>
+                <property name="label" translatable="yes">min. [°2θ]</property>
+              </object>
+              <packing>
+                <property name="x_options">GTK_FILL</property>
+                <property name="y_options"/>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkAlignment" id="xmin_algn">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="xalign">0</property>
+                <property name="xscale">0</property>
+                <child>
+                  <object class="GtkEntry" id="project_axes_xmin">
+                    <property name="width_request">50</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="max_length">4</property>
+                    <property name="invisible_char">•</property>
+                    <property name="width_chars">5</property>
+                    <property name="invisible_char_set">True</property>
+                    <property name="primary_icon_activatable">False</property>
+                    <property name="secondary_icon_activatable">False</property>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="right_attach">2</property>
+                <property name="y_options"/>
+              </packing>
+            </child>
+            <child>
+              <object class="GtkAlignment" id="xmax_algn">
+                <property name="visible">True</property>
+                <property name="can_focus">False</property>
+                <property name="xalign">0</property>
+                <property name="xscale">0</property>
+                <child>
+                  <object class="GtkEntry" id="project_axes_xmax">
+                    <property name="width_request">50</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                    <property name="invisible_char">•</property>
+                    <property name="width_chars">5</property>
+                    <property name="invisible_char_set">True</property>
+                    <property name="primary_icon_activatable">False</property>
+                    <property name="secondary_icon_activatable">False</property>
+                  </object>
+                </child>
+              </object>
+              <packing>
+                <property name="left_attach">1</property>
+                <property name="right_attach">2</property>
+                <property name="top_attach">1</property>
+                <property name="bottom_attach">2</property>
+                <property name="y_options"/>
+              </packing>
             </child>
           </object>
           <packing>
-            <property name="left_attach">2</property>
+            <property name="left_attach">1</property>
             <property name="right_attach">3</property>
             <property name="top_attach">1</property>
-            <property name="bottom_attach">2</property>
-            <property name="y_options"/>
-          </packing>
-        </child>
-        <child>
-          <object class="GtkAlignment" id="xmax_algn">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="xalign">0</property>
-            <property name="xscale">0</property>
-            <child>
-              <object class="GtkEntry" id="project_axes_xmax">
-                <property name="width_request">50</property>
-                <property name="visible">True</property>
-                <property name="sensitive">False</property>
-                <property name="can_focus">True</property>
-                <property name="invisible_char">•</property>
-                <property name="width_chars">5</property>
-                <property name="invisible_char_set">True</property>
-                <property name="primary_icon_activatable">False</property>
-                <property name="secondary_icon_activatable">False</property>
-              </object>
-            </child>
-          </object>
-          <packing>
-            <property name="left_attach">2</property>
-            <property name="right_attach">3</property>
-            <property name="top_attach">2</property>
             <property name="bottom_attach">3</property>
+            <property name="x_options"/>
             <property name="y_options"/>
           </packing>
         </child>
@@ -665,7 +700,7 @@
       <object class="GtkLabel" id="lbl_axes">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="label" translatable="yes">Axes</property>
+        <property name="label" translatable="yes">Plot</property>
       </object>
       <packing>
         <property name="position">2</property>
@@ -943,8 +978,28 @@
       </packing>
     </child>
   </object>
+  <object class="GtkAdjustment" id="project_display_calc_lw">
+    <property name="lower">1</property>
+    <property name="upper">100</property>
+    <property name="value">1</property>
+    <property name="step_increment">1</property>
+    <property name="page_increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="project_display_exp_lw">
+    <property name="lower">1</property>
+    <property name="upper">100</property>
+    <property name="value">1</property>
+    <property name="step_increment">1</property>
+    <property name="page_increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="project_display_group_by">
+    <property name="lower">1</property>
+    <property name="upper">100</property>
+    <property name="value">1</property>
+    <property name="step_increment">1</property>
+    <property name="page_increment">10</property>
+  </object>
   <object class="GtkMenu" id="specimen_popup">
-    <property name="visible">True</property>
     <property name="can_focus">False</property>
     <child>
       <object class="GtkImageMenuItem" id="popup_menu_item_add_specimen">
@@ -1019,6 +1074,52 @@
         <property name="use_stock">False</property>
         <property name="always_show_image">True</property>
       </object>
+    </child>
+  </object>
+  <object class="GtkVBox" id="vbox_specimens">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <child>
+      <object class="GtkLabel" id="lbl_specimens">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="xalign">0</property>
+        <property name="xpad">3</property>
+        <property name="ypad">3</property>
+        <property name="label" translatable="yes">&lt;b&gt;Specimens&lt;/b&gt;</property>
+        <property name="use_markup">True</property>
+      </object>
+      <packing>
+        <property name="expand">False</property>
+        <property name="fill">True</property>
+        <property name="position">0</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkScrolledWindow" id="scw_specimens_treeview">
+        <property name="visible">True</property>
+        <property name="can_focus">True</property>
+        <property name="hscrollbar_policy">never</property>
+        <property name="shadow_type">in</property>
+        <child>
+          <object class="GtkTreeView" id="project_specimens">
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="events">GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_STRUCTURE_MASK</property>
+            <property name="rules_hint">True</property>
+            <property name="enable_grid_lines">both</property>
+            <signal name="popup-menu" handler="on_specimens_treeview_popup_menu" swapped="no"/>
+            <child internal-child="selection">
+              <object class="GtkTreeSelection" id="treeview-selection"/>
+            </child>
+          </object>
+        </child>
+      </object>
+      <packing>
+        <property name="expand">True</property>
+        <property name="fill">True</property>
+        <property name="position">1</property>
+      </packing>
     </child>
   </object>
 </interface>

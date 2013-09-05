@@ -12,7 +12,6 @@ import settings
 from generic.models.treemodels.utils import create_valuestore_from_file, create_treestore_from_directory
 
 from generic.controllers.utils import get_case_insensitive_glob
-from generic.views.validators import FloatEntryValidator
 from generic.controllers import BaseController
 
 class InlineGoniometerController(BaseController):
@@ -27,20 +26,6 @@ class InlineGoniometerController(BaseController):
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def register_adapters(self):
-        if self.model is not None:
-            for name in self.model.get_properties():
-                if name in ("radius", "divergence", "soller1", 
-                        "wavelength", "soller2", "min_2theta", "max_2theta", 
-                        "ads_factor", "ads_phase_fact",
-                        "ads_phase_shift", "ads_const"):
-                    FloatEntryValidator(self.view["gonio_%s" % name])
-                    self.adapt(name)                   
-                elif name=="steps":
-                    self.adapt(name, "gonio_%s" % name)
-                elif not name in self.model.__have_no_widget__:
-                    self.adapt(name)
-    
     def register_view(self, view):
         self.generate_import_combo()
         self.generate_wavelength_combo()
@@ -67,19 +52,19 @@ class InlineGoniometerController(BaseController):
         self.view.wavelength_combo_box.pack_start(cell, True)
         self.view.wavelength_combo_box.add_attribute(cell, 'text', 0)
         self.view.wavelength_combo_box.set_entry_text_column(1)
-        
+
     # ------------------------------------------------------------
     #      GTK Signal handlers
     # ------------------------------------------------------------
-    def on_btn_export_gonio_clicked(self, widget, *args):    
+    def on_btn_export_gonio_clicked(self, widget, *args):
         def on_accept(dialog):
             filename = self.extract_filename(dialog)
             self.model.save_object(filename=filename)
         self.run_save_dialog(title="Select the goniometer setup file to save to",
-                             on_accept_callback=on_accept, 
-                             parent=self.view.get_top_widget())
-    
-    def on_cmb_import_gonio_changed(self, combobox, *args):    
+                             on_accept_callback=on_accept,
+                             parent=self.view.parent.get_top_widget())
+
+    def on_cmb_import_gonio_changed(self, combobox, *args):
         model = combobox.get_model()
         itr = combobox.get_active_iter()
         if itr:
@@ -88,12 +73,12 @@ class InlineGoniometerController(BaseController):
                 def on_accept(dialog):
                     self.model.reset_from_file(path)
                 self.run_confirmation_dialog("Are you sure?\nYou will loose the current settings!", on_accept, parent=self.view.get_toplevel())
-        combobox.set_active(-1) #deselect
-        
-    def on_cmb_wavelength_changed(self, combobox, *args):    
+        combobox.set_active(-1) # deselect
+
+    def on_cmb_wavelength_changed(self, combobox, *args):
         model = combobox.get_model()
         itr = combobox.get_active_iter()
         if itr:
             self.wavelength = float(model.get_value(itr, 1))
-            
-    pass #end of class
+
+    pass # end of class

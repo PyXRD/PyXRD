@@ -142,7 +142,7 @@
       </packing>
     </child>
     <child>
-      <object class="GtkCheckButton" id="chk_visible">
+      <object class="GtkCheckButton" id="marker_visible">
         <property name="label" translatable="yes">Visible</property>
         <property name="visible">True</property>
         <property name="can_focus">True</property>

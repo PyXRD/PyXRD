@@ -5,30 +5,14 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from traceback import format_exc
-import locale, itertools, sys
-
 import gtk
 
-import numpy as np
-import scipy
-import scipy.spatial.qhull as qhull
-
-import matplotlib
-from mpl_toolkits.axes_grid1 import ImageGrid
-import mpl_toolkits.axes_grid1.axes_size as Size
-from mpl_toolkits.axes_grid1 import Divider
-from generic.mathtext_support import get_plot_safe
-
 from gtkmvc import Controller, Observer
-from gtkmvc.adapters import Adapter
 
 from generic.views.treeview_tools import new_text_column, new_pb_column, new_toggle_column
 from generic.mathtext_support import create_pb_from_mathtext
 from generic.controllers import DialogController, BaseController, ObjectListStoreController
-from generic.controllers.utils import ctrl_setup_combo_with_list
-
-from phases.models import Phase
+from generic.controllers.utils import ComboAdapter, StoreAdapter, DummyAdapter
 
 from mixture.models.parspace import ParameterSpaceGenerator
 from mixture.models import Mixture
@@ -41,29 +25,24 @@ class RefinementResultsController(DialogController):
         algorithm. This allows to show a nice dialog with the end
         results and some graphs about the parameter space.
     """
-    
+
     solutions = None
-    
+
     # ------------------------------------------------------------
     #      Initialisation and other internals
-    # ------------------------------------------------------------        
+    # ------------------------------------------------------------
     def __init__(self, *args, **kwargs):
         super(RefinementResultsController, self).__init__(*args, **kwargs)
         self.parspace_gen = ParameterSpaceGenerator()
-    
-    def register_adapters(self):
-        if self.model is not None:
-            for name in ("initial_residual", "last_residual", "best_residual"):
-                self.adapt(name, "lbl_%s" % name)
-        
+
     # ------------------------------------------------------------
     #      Notifications of observable properties
-    # ------------------------------------------------------------   
+    # ------------------------------------------------------------
     @Controller.observe("solution_added", signal=True)
     def notif_solution_added(self, model, prop_name, info):
         new_solution, new_residual = info.arg
         self.parspace_gen.record(new_solution, new_residual)
-                
+
     # ------------------------------------------------------------
     #      GTK Signal handlers
     # ------------------------------------------------------------
@@ -72,19 +51,19 @@ class RefinementResultsController(DialogController):
         self.model.mixture.refiner.delete_context()
         self.on_cancel()
         return True
-        
+
     def on_btn_best_clicked(self, event):
         self.model.apply_best_solution()
         self.model.mixture.refiner.delete_context()
         self.on_cancel()
         return True
-        
+
     def on_btn_last_clicked(self, event):
         self.model.apply_last_solution()
         self.model.mixture.refiner.delete_context()
         self.on_cancel()
         return True
-        
+
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------
@@ -98,34 +77,124 @@ class RefinementResultsController(DialogController):
             labels=[ref_prop.title for ref_prop in self.model.ref_props],
             density=density
         )
-    
-    pass #end of class
+
+    pass # end of class
 
 class RefinementController(DialogController):
 
-    def update_method_options_store(self):
-        #1 get the method:
+    auto_adapt_included = [
+        "refine_method",
+        "refinables"
+    ]
+
+    def setup_refinables_tree_view(self, store, widget):
+        """
+            Setup refinables TreeView layout
+        """
+        widget.set_show_expanders(True)
+
+        # Labels are parsed for mathtext markup into pb's:
+        def get_pb(column, cell, model, itr, user_data=None):
+            ref_prop = model.get_user_data(itr)
+            if not hasattr(ref_prop, "pb") or not ref_prop.pb:
+                ref_prop.pb = create_pb_from_mathtext(
+                    ref_prop.title,
+                    align='left',
+                    weight='medium'
+                )
+            cell.set_property("pixbuf", ref_prop.pb)
+            return
+        widget.append_column(new_pb_column('Name/Prop', xalign=0.0, data_func=get_pb))
+
+        # Editable floats:
+        def get_value(column, cell, model, itr, *args):
+            value = model.get_value(itr, column.get_col_attr('markup'))
+            try: value = "%.5f" % value
+            except TypeError: value = ""
+            cell.set_property("markup", value)
+            return
+        def on_float_edited(rend, path, new_text, model, col):
+            itr = model.get_iter(path)
+            try:
+                model.set_value(itr, col, float(new_text))
+            except ValueError:
+                return False
+            return True
+
+        def_float_args = {
+            "sensitive_col": store.c_refinable,
+            "editable_col": store.c_refinable,
+            "visible_col": store.c_refinable,
+            "data_func": get_value
+        }
+
+        widget.append_column(new_text_column(
+            "Value", markup_col=store.c_value,
+            edited_callback=(
+                on_float_edited,
+                (store, store.c_value,)
+            ), **def_float_args
+        ))
+        widget.append_column(new_text_column(
+            "Min", markup_col=store.c_value_min,
+            edited_callback=(
+                on_float_edited,
+                (store, store.c_value_min,)
+            ), **def_float_args
+        ))
+        widget.append_column(new_text_column(
+            "Max", markup_col=store.c_value_max,
+            edited_callback=(
+                on_float_edited,
+                (store, store.c_value_max,)
+            ), **def_float_args
+        ))
+
+        # The 'refine' checkbox:
+        widget.append_column(new_toggle_column(
+            "Refine",
+            toggled_callback=(self.refine_toggled, (store,)),
+            resizable=False,
+            expand=False,
+            active_col=store.c_refine,
+            sensitive_col=store.c_refinable,
+            activatable_col=store.c_refinable,
+            visible_col=store.c_refinable
+        ))
+
+    def _update_method_options_store(self):
+        """
+            Update the method options tree store (when a new method is selected)
+        """
+        # 1 get the method:
         refine_method = self.model.get_refine_method()
-    
-        #2 get the options:
+
+        # 2 get the options:
         options = refine_method.options
-        
+
         tv = self.view['tv_method_options']
-        
-        #3 make a liststore
+
+        # 3 make a liststore
         store = gtk.ListStore(str, object, str, object, object, object)
         for name, arg, typ, default, limits in options:
             store.append([name, default, arg, typ, default, limits])
-            
+
         tv.set_model(store)
-        
+
         return tv
-        
-    def setup_method_options_treeview(self):
-        tv = self.update_method_options_store()
-    
+
+    def _setup_method_options_treeview(self):
+        """
+            Initial method options tree view layout & behavior setup
+        """
+        # Update the method options store to match the currently selected
+        # refinement method
+        tv = self._update_method_options_store()
+
+        # The name of the option:
         tv.append_column(new_text_column("Name", text_col=0))
-        
+
+        # The value of the option:
         def get_value(column, cell, model, itr, *args):
             name, value, arg, typ, default, limits = tv.get_model().get(itr, 0, 1, 2, 3, 4, 5)
             if typ in (int, float, str):
@@ -135,8 +204,8 @@ class RefinementController(DialogController):
             else:
                 value = ""
                 cell.set_property("sensitive", False)
-                cell.set_property("editable", False)                
-            cell.set_property("markup",  value)                    
+                cell.set_property("editable", False)
+            cell.set_property("markup", value)
             return
         def on_value_edited(rend, path, new_text, col):
             store = tv.get_model()
@@ -147,10 +216,10 @@ class RefinementController(DialogController):
                     value = typ(new_text)
                     if typ in (int, float,):
                         min_value, max_value = limits
-                        if min_value!=None: value = max(min_value, value)
-                        if max_value!=None: value = min(max_value, value)
-                        store.set_value(itr, col, value)                        
-                    elif limits!=None:
+                        if min_value != None: value = max(min_value, value)
+                        if max_value != None: value = min(max_value, value)
+                        store.set_value(itr, col, value)
+                    elif limits != None:
                         if value in limits:
                             store.set_value(itr, col, value)
                         else:
@@ -160,18 +229,18 @@ class RefinementController(DialogController):
             else:
                 pass
             return True
-                  
         tv.append_column(new_text_column(
-            "Value", text_col=1, 
+            "Value", text_col=1,
             data_func=get_value,
-            edited_callback=(on_value_edited, (1,)), 
+            edited_callback=(on_value_edited, (1,)),
         ))
-        
+
+        # An optional checkbox:
         def get_check_value(column, cell, model, itr, *args):
             name, value, arg, typ, default, limits = tv.get_model().get(itr, 0, 1, 2, 3, 4, 5)
             if typ in (bool,):
                 value = bool(value)
-                cell.set_property("active",  value)
+                cell.set_property("active", value)
                 cell.set_property("visible", True)
                 cell.set_property("sensitive", True)
                 cell.set_property("activatable", True)
@@ -189,95 +258,25 @@ class RefinementController(DialogController):
             else:
                 pass
             return True
-        
-        #An optional checkbox:
+
         tv.append_column(new_toggle_column(
                 "",
                 data_func=get_check_value,
                 toggled_callback=(on_value_toggled, (1,)),
                 resizable=False,
                 expand=False
-        ))    
-
-    def register_adapters(self): #TODO split this
-        if self.model is not None:  
-            tv_model = self.model.refinables
-            tv = self.view['tv_param_selection']
-            tv.set_show_expanders(True)
-            tv.set_model(tv_model)
-                          
-            #Labels are parsed for mathtext markup into pb's:                   
-            def get_pb(column, cell, model, itr, user_data=None):
-                ref_prop = model.get_user_data(itr)
-                if not hasattr(ref_prop, "pb") or not ref_prop.pb:
-                    ref_prop.pb = create_pb_from_mathtext(
-                        ref_prop.title,
-                        align='left', 
-                        weight='medium'
-                    )
-                cell.set_property("pixbuf", ref_prop.pb)
-                return       
-            tv.append_column(new_pb_column('Name/Prop', xalign=0.0, data_func=get_pb))
-
-            #Editable floats:
-            def get_value(column, cell, model, itr, *args):
-                value = model.get_value(itr, column.get_col_attr('markup'))
-                try: value = "%.5f" % value
-                except TypeError: value = ""
-                cell.set_property("markup",  value)                    
-                return
-            def on_float_edited(rend, path, new_text, col):
-                itr = tv_model.get_iter(path)
-                try:
-                    tv_model.set_value(itr, col, float(new_text))
-                except ValueError:
-                    return False
-                return True
-                
-            def_float_args = {
-                "sensitive_col": tv_model.c_refinable,
-                "editable_col": tv_model.c_refinable,
-                "visible_col": tv_model.c_refinable,
-                "data_func": get_value
-            }
-                
-            tv.append_column(new_text_column("Value", markup_col=tv_model.c_value,
-                    edited_callback=(on_float_edited, (tv_model.c_value,)), 
-                    **def_float_args))
-            tv.append_column(new_text_column("Min", markup_col=tv_model.c_value_min,
-                    edited_callback=(on_float_edited, (tv_model.c_value_min,)), 
-                    **def_float_args))
-            tv.append_column(new_text_column("Max", markup_col=tv_model.c_value_max,
-                    edited_callback=(on_float_edited, (tv_model.c_value_max,)), 
-                    **def_float_args))
-            
-            #The 'refine' checkbox:
-            tv.append_column(new_toggle_column("Refine",
-                    toggled_callback=(self.refine_toggled, (tv_model,)),
-                    resizable=False,
-                    expand=False,
-                    active_col=tv_model.c_refine,
-                    sensitive_col=tv_model.c_refinable,
-                    activatable_col=tv_model.c_refinable,
-                    visible_col=tv_model.c_refinable))
-                       
-            #Refine method combobox:
-            self.changed_id = ctrl_setup_combo_with_list(self, 
-                self.view["cmb_data_refine_method"],
-                "refine_method", "_refine_methods")
-            
-        return
+        ))
 
     def register_view(self, view):
-        self.setup_method_options_treeview()        
+        self._setup_method_options_treeview()
 
     # ------------------------------------------------------------
     #      Notifications of observable properties
     # ------------------------------------------------------------
     @Observer.observe("refine_method", assign=True)
     def on_prop_changed(self, model, prop_name, info):
-        self.update_method_options_store()
-            
+        self._update_method_options_store()
+
     # ------------------------------------------------------------
     #      GTK Signal handlers
     # ------------------------------------------------------------
@@ -285,137 +284,134 @@ class RefinementController(DialogController):
         if not self.model.refiner.refine_lock:
             self.view.hide()
         else:
-            return True #do nothing
-    
+            return True # do nothing
+
     def refine_toggled(self, cell, path, model):
         if model is not None:
             itr = model.get_iter(path)
             model.set_value(itr, model.c_refine, not cell.get_active())
         return True
-        
+
     def on_btn_randomize_clicked(self, event):
         self.model.randomize()
-        
+
     def on_auto_restrict_clicked(self, event):
         self.model.auto_restrict()
-        
+
     @DialogController.status_message("Refining mixture...", "refine_mixture")
     def on_refine_clicked(self, event):
-        #Setup mixture based on chosen refinement options:
+        # Setup mixture based on chosen refinement options:
         self.model.refine_options = {}
         option_store = self.view['tv_method_options'].get_model()
         for name, value, arg, typ, default, limits in option_store:
             self.model.refine_options[arg] = value
-           
-        #Setup context and results controller:
-        self.model.refiner.setup_context(store=True) 
+
+        # Setup context and results controller:
+        self.model.refiner.setup_context(store=True)
         self.results_view = RefinementResultView(parent=self.view.parent)
         self.results_controller = RefinementResultsController(
             model=self.model.refiner.context,
             view=self.results_view,
             parent=self
         )
-            
-        #Run the refinement thread:
+
+        # Run the refinement thread:
         self.view.show_refinement_info(
-            self.model.refiner.refine, #REFINE METHOD
-            self.update_residual,      #GUI UPDATER
-            self.on_complete           #ON COMPLETE CALLBACK
+            self.model.refiner.refine, # REFINE METHOD
+            self.update_residual,      # GUI UPDATER
+            self.on_complete           # ON COMPLETE CALLBACK
         )
-        
+
     def on_complete(self, context, *args, **kwargs):
         self.results_controller.generate_images()
         self.results_view.present()
         self.view.hide()
-        
+
     def update_residual(self):
         self.view.update_refinement_info(self.model.refiner.context.last_residual)
-        
+
     def cleanup(self):
-        self.view["cmb_data_refine_method"].handler_disconnect(self.changed_id)
         if hasattr(self, "view"):
             del self.view
         if hasattr(self, "results_view"):
             del self.results_view
-        if hasattr(self, "results_controller"):            
+        if hasattr(self, "results_controller"):
             del self.results_controller
         if hasattr(self, "model"):
             self.relieve_model(self.model)
             del self.model
-        
-    pass #end of class
-        
+
+    pass # end of class
+
 class EditMixtureController(BaseController):
+
+    auto_adapt_excluded = [
+        "refine_method",
+        "refinables"
+    ]
 
     chicken_egg = False
     ref_view = None
 
     def register_adapters(self):
-        if self.model is not None:
-            for name in self.model.get_properties():
-                if name == "name":
-                    self.adapt(name, "mixture_name")
-                elif not name in self.model.__have_no_widget__+  ["refinables", "refine_method"]:
-                    self.adapt(name)
-            self.create_ui()
-            return
-            
+        self.create_ui()
+
     def create_ui(self):
         self.view.reset_view()
-        for index, phase in enumerate(self.model.phases):
+        for index in range(len(self.model.phases)):
             self.add_phase_view(index)
-        for index, specimen in enumerate(self.model.specimens):
+        for index in range(len(self.model.specimens)):
             self.add_specimen_view(index)
-               
+
     def add_phase_view(self, index):
         def on_label_changed(editable):
             self.model.phases[index] = editable.get_text()
-        
+
         def on_fraction_changed(editable):
             try: self.model.fractions[index] = float(editable.get_text())
-            except ValueError: pass #ignore ValueErrors
-        
+            except ValueError: pass # ignore ValueErrors
+
         def on_phase_delete(widget):
             self.model._del_phase_by_index(index)
             widget.disconnect(widget.get_data("deleventid"))
-        
-        self.view.add_phase(self.model.parent.phases, 
-            on_phase_delete, on_label_changed, on_fraction_changed, 
-            self.on_combo_changed, label=self.model.phases[index], 
+
+        self.view.add_phase(self.model.parent.phases,
+            on_phase_delete, on_label_changed, on_fraction_changed,
+            self.on_combo_changed, label=self.model.phases[index],
             fraction=self.model.fractions[index], phases=self.model.phase_matrix)
-    
+
     def add_specimen_view(self, index):
         def on_scale_changed(editable):
             try: self.model.scales[index] = float(editable.get_text())
-            except ValueError: pass #ignore ValueErrors
+            except ValueError: pass # ignore ValueErrors
 
         def on_bgs_changed(editable):
             try: self.model.bgshifts[index] = float(editable.get_text())
-            except ValueError: pass #ignore ValueErrors
+            except ValueError: pass # ignore ValueErrors
 
         def on_specimen_changed(combobox):
             itr = combobox.get_active_iter()
-            specimen = self.model.parent.specimens.get_user_data(itr) if itr!=None else None
+            specimen = self.model.parent.specimens.get_user_data(itr) if itr != None else None
             self.model.specimens[index] = specimen
-        
+
         def on_specimen_delete(widget):
             self.model._del_specimen_by_index(index)
             widget.disconnect(widget.get_data("deleventid"))
-        
-        self.view.add_specimen(self.model.parent.phases, 
+
+        self.view.add_specimen(self.model.parent.phases,
             self.model.parent.specimens, on_specimen_delete, on_scale_changed,
-            on_bgs_changed, on_specimen_changed, self.on_combo_changed, 
+            on_bgs_changed, on_specimen_changed, self.on_combo_changed,
             scale=self.model.scales[index], bgs=self.model.bgshifts[index],
             specimen=self.model.specimens[index], phases=self.model.phase_matrix)
-    
+
     # ------------------------------------------------------------
     #      Notifications of observable properties
-    # ------------------------------------------------------------   
+    # ------------------------------------------------------------
     @Controller.observe("has_changed", signal=True)
     def notif_has_changed(self, model, prop_name, info):
         if not self.chicken_egg:
             self.view.update_all(self.model.fractions, self.model.scales, self.model.bgshifts)
-        
+
     @Controller.observe("needs_reset", signal=True)
     def notif_needs_reset(self, model, prop_name, info):
         self.create_ui()
@@ -425,52 +421,52 @@ class EditMixtureController(BaseController):
     # ------------------------------------------------------------
     def on_combo_changed(self, combobox, row, col):
         itr = combobox.get_active_iter()
-        phase = self.model.parent.phases.get_user_data(itr) if itr!=None else None
+        phase = self.model.parent.phases.get_user_data(itr) if itr != None else None
         self.model.phase_matrix[row, col] = phase
-    
+
     def on_add_phase(self, widget, *args):
         self.chicken_egg = True
         index = self.model.add_phase("New Phase", 1.0)
         if index != -1:
             self.add_phase_view(index)
         self.chicken_egg = False
-        
+
     def on_add_specimen(self, widget, *args):
         self.chicken_egg = True
         index = self.model.add_specimen(None, 1.0, 0.0)
         self.add_specimen_view(index)
         self.chicken_egg = False
-    
+
     def on_add_both(self, widget, *args):
         self.chicken_egg = True
         self.on_add_specimen(widget, *args)
         self.on_add_phase(widget, *args)
         self.chicken_egg = False
-    
+
     def on_optimize_clicked(self, widget, *args):
         self.model.optimizer.optimize()
         return
 
     def on_refine_clicked(self, widget, *args):
         self.model.update_refinement_treestore()
-        if self.ref_view!=None: 
+        if self.ref_view != None:
             self.ref_view.hide()
             self.ref_ctrl.cleanup()
         self.ref_view = RefinementView(parent=self.parent.view)
         self.ref_ctrl = RefinementController(self.model, self.ref_view, parent=self)
-        self.ref_view.present()        
-    
+        self.ref_view.present()
+
     def on_composition_clicked(self, widget, *args):
-        comp  = "The composition of the specimens in this mixture:\n\n\n"
+        comp = "The composition of the specimens in this mixture:\n\n\n"
         comp += "<span font-family=\"monospace\">"
-        #get the composition matrix (first columns contains strings with elements, others are specimen compositions)
+        # get the composition matrix (first columns contains strings with elements, others are specimen compositions)
         import re
         for row in self.model.get_composition_matrix():
             comp += "%s %s\n" % (re.sub(r'(\d+)', r'<sub>\1</sub>', row[0]), " ".join(row[1:]))
         comp += "</span>"
         self.run_information_dialog(comp, parent=self.view.get_toplevel())
-    
-    pass #end of class
+
+    pass # end of class
 
 class MixturesController(ObjectListStoreController):
 
@@ -483,22 +479,22 @@ class MixturesController(ObjectListStoreController):
             return EditMixtureView(parent=self.view)
         else:
             return ObjectListStoreController.get_new_edit_view(self, obj)
-        
+
     def get_new_edit_controller(self, obj, view, parent=None):
         if isinstance(obj, Mixture):
             return EditMixtureController(obj, view, parent=parent)
         else:
             return ObjectListStoreController.get_new_edit_controller(self, obj, view, parent=parent)
-    
+
     # ------------------------------------------------------------
     #      GTK Signal handlers
-    # ------------------------------------------------------------        
+    # ------------------------------------------------------------
     def on_load_object_clicked(self, event):
-        pass #cannot load mixtures
+        pass # cannot load mixtures
     def on_save_object_clicked(self, event):
-        pass #cannot save mixtures
-        
+        pass # cannot save mixtures
+
     def create_new_object_proxy(self):
         return Mixture(parent=self.model)
-        
-    pass #end of class
+
+    pass # end of class

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
   <!-- interface-requires gtk+ 3.0 -->
-  <object class="GtkAdjustment" id="adj_fraction">
+  <object class="GtkAdjustment" id="noise_fraction">
     <property name="upper">1</property>
     <property name="value">0.10000000000000001</property>
     <property name="step_increment">0.050000000000000003</property>
@@ -28,14 +28,14 @@
       </packing>
     </child>
     <child>
-      <object class="GtkSpinButton" id="noise_fraction">
+      <object class="GtkSpinButton" id="spin_fraction">
         <property name="visible">True</property>
         <property name="can_focus">True</property>
         <property name="invisible_char">•</property>
         <property name="xalign">0.5</property>
         <property name="invisible_char_set">True</property>
         <property name="progress_pulse_step">3.7252902984619141e-09</property>
-        <property name="adjustment">adj_fraction</property>
+        <property name="adjustment">noise_fraction</property>
         <property name="digits">3</property>
         <property name="numeric">True</property>
       </object>

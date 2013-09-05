@@ -6,7 +6,7 @@
 # Complete license can be found in the LICENSE file.
 
 import gtk
- 
+
 from generic.views.treeview_tools import new_text_column, setup_treeview
 from base_controllers import DialogController, BaseController
 
@@ -14,30 +14,30 @@ class ObjectTreeviewMixin():
     """
         Mixin that provides some generic methods to acces or set the objects selected in a treeview.
     """
-    
+
     def get_selected_object(self, tv):
         objects = ObjectTreeviewMixin.get_selected_objects(self, tv)
         if objects is not None and len(objects) == 1:
             return objects[0]
         return None
-        
+
     def get_selected_objects(self, tv):
         selection = tv.get_selection()
-        if selection.count_selected_rows() >= 1:      
+        if selection.count_selected_rows() >= 1:
             model, paths = selection.get_selected_rows()
             return map(model.get_user_data_from_path, paths)
         return None
-        
+
     def get_selected_paths(self, tv):
         selection = tv.get_selection()
-        if selection.count_selected_rows() >= 1:      
+        if selection.count_selected_rows() >= 1:
             model, paths = selection.get_selected_rows()
             return paths
         return None
-        
+
     def get_all_objects(self, tv):
         return tv.get_model().get_raw_model_data()
-        
+
     def set_selected_paths(self, tv, paths):
         selection = tv.get_selection()
         selection.unselect_all()
@@ -47,61 +47,89 @@ class ObjectTreeviewMixin():
 class ObjectListStoreMixin(ObjectTreeviewMixin):
     """
         Mixin that can be used for regular ObjectListStoreControllers (two-pane view).
+        
+        Attributes:
+            model_property_name: the property name in the model corresponding to
+             the ObjectListStore
+            multi_selection: whether or not to allow multiple items to be selected
+            columns: a list of tuples (name, column index or name) detailing which
+             columns should be added to the TreeView. If a column name is passed,
+             it is translated to the corresponding index.
+             By default a text column is added, for custom setups you can define
+             a custom method name according to this format: setup_treeview_col_name_%s
+             Replace the %s with the column name you specified in this list.
+            delete_msg: the default message to display when a user wants to delete one or more items.
+            obj_type_map: a list of three-tuples (object type, view type, controller type)
+             used to create the controller and view for editing a selected object.
     """
-    
+
     model_property_name = ""
     multi_selection = True
-    edit_controller = None
-    edit_view = None
     columns = [ ("Object name", 0) ]
-    delete_msg = "Deleting objects is irreverisble!\nAre You sure you want to continue?"
+    delete_msg = "Deleting objects is irreversible!\nAre You sure you want to continue?"
+    obj_type_map = [] # list of three-tuples (object type, view type, controller type)
+
+    _edit_controller = None
+    _edit_view = None
 
     def __init__(self, model_property_name="", multi_selection=None, columns=[], delete_msg=""):
         self.model_property_name = model_property_name or self.model_property_name
         self.multi_selection = multi_selection or self.multi_selection
-        
+
         self.liststore.connect("item-removed", self.on_item_removed)
         self.liststore.connect("item-inserted", self.on_item_inserted)
-        
+
         self.columns = columns or self.columns
         self.delete_msg = delete_msg or self.delete_msg
 
     @property
     def liststore(self):
-        if self.model!=None:
+        if self.model != None:
             return getattr(self.model, self.model_property_name)
         else:
             return None
 
     def get_new_edit_view(self, obj):
+        """
+            Gets a new 'edit object' view for the given obj, view and parent
+            view. Default implementation loops over the `obj_type_map` attribute
+            until it encounters a match.
+        """
         if obj == None:
             return self.view.none_view
         else:
+            for obj_tp, view_tp, ctrl_tp in self.obj_type_map:
+                if isinstance(obj, obj_tp):
+                    return view_tp(parent=self.view)
             raise NotImplementedError, ("Unsupported object type; subclasses of"
-                " ObjectListStoreMixin need to override get_new_edit_view for"
-                " objects not equalling None!")
-        
+                " ObjectListStoreMixin need to define an obj_type_map attribute!")
+
     def get_new_edit_controller(self, obj, view, parent=None):
+        """
+            Gets a new 'edit object' controller for the given obj, view and parent
+            controller. Default implementation loops over the `obj_type_map` attribute
+            until it encounters a match.
+        """
         if obj == None:
             return None
         else:
+            for obj_tp, view_tp, ctrl_tp in self.obj_type_map:
+                if isinstance(obj, obj_tp):
+                    return ctrl_tp(model=obj, view=view, parent=parent)
             raise NotImplementedError, ("Unsupported object type; subclasses of"
-                " ObjectListStoreMixin need to override get_new_edit_controller"
-                " for objects not equalling None!")
-    
+                " ObjectListStoreMixin need to define an obj_type_map attribute!")
+
     def edit_object(self, obj):
-        self.edit_view = self.get_new_edit_view(obj)
-        self.edit_controller =  self.get_new_edit_controller(obj, self.view.set_edit_view(self.edit_view), parent=self.parent)
+        self._edit_view = self.view.set_edit_view(self.get_new_edit_view(obj))
+        self._edit_controller = self.get_new_edit_controller(obj, self._edit_view, parent=self.parent)
+        self._edit_view.show_all()
         return True
 
     def register_adapters(self):
-        if self.model is not None:
-            # connects the treeview to the liststore
-            tv = self.view.treeview
-            self.setup_treeview(tv)
-            
-            self.set_object_sensitivities(False)
+        # connects the treeview to the liststore
+        self.setup_treeview(self.view.treeview)
         # we can now edit 'nothing':
+        self.view.set_selection_state(None)
         self.edit_object(None)
 
     def setup_treeview(self, tv):
@@ -118,26 +146,27 @@ class ObjectListStoreMixin(ObjectTreeviewMixin):
             def setup_treeview_col_c_name(self, treeview, name, col_descr, col_index, tv_col_nr):
                 ...
                 
-            The method should return True upon succes or False otherwise.
+            The method should return True upon success or False otherwise.
         """
         sel_mode = gtk.SELECTION_MULTIPLE if self.multi_selection else gtk.SELECTION_SINGLE
         setup_treeview(
-            tv, self.liststore, 
+            tv, self.liststore,
             sel_mode=sel_mode,
             on_selection_changed=self.objects_tv_selection_changed)
-        
-        #reset:
+        tv.set_model(self.liststore)
+
+        # reset:
         for col in tv.get_columns():
             tv.remove_column(col)
-        
-        #add columns
+
+        # add columns
         for tv_col_nr, (name, col_descr) in enumerate(self.columns):
             try:
-                col_index = int(colnr)
+                col_index = int(col_descr)
             except:
                 col_index = getattr(self.liststore, str(col_descr), col_descr)
-                
-            handled = False                
+
+            handled = False
             if hasattr(self, "setup_treeview_col_%s" % str(col_descr)):
                 handler = getattr(self, "setup_treeview_col_%s" % str(col_descr))
                 if callable(handler):
@@ -146,19 +175,15 @@ class ObjectListStoreMixin(ObjectTreeviewMixin):
             if not handled:
                 tv.append_column(new_text_column(
                     name, text_col=col_index,
-                    resizable=(tv_col_nr==0),
-                    expand=(tv_col_nr==0),
+                    resizable=(tv_col_nr == 0),
+                    expand=(tv_col_nr == 0),
                     xalign=0.0 if tv_col_nr == 0 else 0.5))
 
-    def set_object_sensitivities(self, value):
-        if self.view.edit_view != None:
-            self.view.edit_view.get_top_widget().set_sensitive(value)
-        self.view["button_del_object"].set_sensitive(value)
-        self.view["button_save_object"].set_sensitive(value)
+        return True
 
     def get_selected_object(self):
         return ObjectTreeviewMixin.get_selected_object(self, self.view.treeview)
-        
+
     def get_selected_objects(self):
         return ObjectTreeviewMixin.get_selected_objects(self, self.view.treeview)
 
@@ -170,35 +195,35 @@ class ObjectListStoreMixin(ObjectTreeviewMixin):
         if unselect_all: selection.unselect_all()
         if obj:
             path = self.liststore.on_get_path(obj)
-            if path!=None: selection.select_path(path)
-        
+            if path != None: selection.select_path(path)
+
     def select_objects(self, objs):
         for obj in objs: self.select_object(obj, False)
-        
+
     def add_object(self, new_object):
         if new_object:
             cur_obj = self.get_selected_object()
             if cur_obj:
                 index = self.liststore.index(cur_obj)
-                self.liststore.insert(index+1, new_object)
+                self.liststore.insert(index + 1, new_object)
             else:
                 self.liststore.append(new_object)
-        
+
     # ------------------------------------------------------------
     #      GTK Signal handlers
     # ------------------------------------------------------------
-    
+
     def on_item_removed(self, model, item):
         pass
-        
+
     def on_item_inserted(self, model, item):
         pass
-    
-    def objects_tv_selection_changed(self, selection):        
+
+    def objects_tv_selection_changed(self, selection):
         obj = self.get_selected_object()
         objs = self.get_selected_objects()
-        self.set_object_sensitivities((obj!=None or objs!=None))
-        if self.edit_controller==None or obj!=self.edit_controller.model:
+        self.view.set_selection_state(len(objs) if objs != None else None)
+        if self._edit_controller == None or obj != self._edit_controller.model:
             self.edit_object(obj)
 
     def on_load_object_clicked(self, event):
@@ -232,40 +257,40 @@ class ObjectListStoreMixin(ObjectTreeviewMixin):
                 self.edit_object(None)
             self.run_confirmation_dialog(message=self.delete_msg, on_accept_callback=delete_objects, parent=self.view.get_top_widget())
 
-        
+
 class ObjectListStoreController(DialogController, ObjectListStoreMixin):
     """
         A stand-alone, regular ObjectListStore controller (left pane with objects and right pane with object properties)
     """
-    title="Edit Dialog"
-  
+    title = "Edit Dialog"
+
     def __init__(self, model, view,
                  spurious=False, auto_adapt=False, parent=None,
                  model_property_name="", columns=[], delete_msg="", title=""):
         DialogController.__init__(self, model, view, spurious=spurious, auto_adapt=auto_adapt, parent=parent)
-        ObjectListStoreMixin.__init__(self, model_property_name=model_property_name, columns=columns, delete_msg=delete_msg)        
+        ObjectListStoreMixin.__init__(self, model_property_name=model_property_name, columns=columns, delete_msg=delete_msg)
         self.title = title or self.title
         view.set_title(self.title)
-        
+
     def register_adapters(self):
         ObjectListStoreMixin.register_adapters(self)
-            
+
 class ChildObjectListStoreController(BaseController, ObjectListStoreMixin):
     """
-        An embedable, regular ObjectListStore controller (left pane with objects and right pane with object properties)
+        An embeddable, regular ObjectListStore controller (left pane with objects and right pane with object properties)
     """
     def __init__(self, model, view,
                  spurious=False, auto_adapt=False, parent=None,
                  model_property_name="", columns=[], delete_msg=""):
         BaseController.__init__(self, model, view, spurious=spurious, auto_adapt=auto_adapt, parent=parent)
         ObjectListStoreMixin.__init__(self, model_property_name=model_property_name, columns=columns, delete_msg=delete_msg)
-        
+
     def register_adapters(self):
         ObjectListStoreMixin.register_adapters(self)
 
 class InlineObjectListStoreController(BaseController, ObjectTreeviewMixin):
     """
-        ObjectListStore controller that consists of a single listview, 
+        ObjectListStore controller that consists of a single TreeView, 
         with import & export and add & delete buttons and an optional combo box
         for type selection
         Subclasses should override the _setup_treeview method to setup their 
@@ -276,7 +301,7 @@ class InlineObjectListStoreController(BaseController, ObjectTreeviewMixin):
     enable_export = True
     model_property_name = ""
     add_types = list()
-    
+
     @property
     def liststore(self):
         return getattr(self.model, self.model_property_name)
@@ -284,7 +309,7 @@ class InlineObjectListStoreController(BaseController, ObjectTreeviewMixin):
     def _edit_item(self, item):
         item_type = type(item)
         for name, tpe, view, ctrl in self.add_types:
-            if tpe==item_type:
+            if tpe == item_type:
                 vw = view()
                 ct = ctrl(model=item, view=vw, parent=self)
                 vw.present()
@@ -292,16 +317,16 @@ class InlineObjectListStoreController(BaseController, ObjectTreeviewMixin):
 
     def _setup_combo_type(self, combo):
         if self.add_types:
-            store = gtk.ListStore(str, object, object, object)   
+            store = gtk.ListStore(str, object, object, object)
             for name, type, view, ctrl in self.add_types:
                 store.append([name, type, view, ctrl])
-                
+
             combo.set_model(store)
 
             cell = gtk.CellRendererText()
             combo.pack_start(cell, True)
             combo.add_attribute(cell, 'text', 0)
-            
+
             def on_changed(combo, user_data=None):
                 itr = combo.get_active_iter()
                 if itr != None:
@@ -336,27 +361,27 @@ class InlineObjectListStoreController(BaseController, ObjectTreeviewMixin):
         self.view.del_item_widget.set_sensitive((self.treeview.get_cursor() != (None, None)))
         self.view.add_item_widget.set_sensitive((self.liststore is not None))
         self.view.export_items_widget.set_visible(self.enable_export)
-        self.view.export_items_widget.set_sensitive(len(self.liststore) > 0)        
+        self.view.export_items_widget.set_sensitive(len(self.liststore) > 0)
         self.view.import_items_widget.set_visible(self.enable_import)
 
     def get_selected_object(self):
         return ObjectTreeviewMixin.get_selected_object(self, self.treeview)
-        
+
     def get_selected_objects(self):
         return ObjectTreeviewMixin.get_selected_objects(self, self.treeview)
-        
+
     def get_all_objects(self):
         return ObjectTreeviewMixin.get_all_objects(self, self.treeview)
-    
+
     def select_object(self, obj, unselect_all=True):
         selection = self.treeview.get_selection()
         if unselect_all: selection.unselect_all()
         if hasattr(self.liststore, "on_get_path"):
             selection.select_path(self.liststore.on_get_path(obj))
-    
+
     def create_new_object_proxy(self):
         raise NotImplementedError
-        
+
     # ------------------------------------------------------------
     #      GTK Signal handlers
     # ------------------------------------------------------------
@@ -381,12 +406,12 @@ class InlineObjectListStoreController(BaseController, ObjectTreeviewMixin):
 
     def on_export_item(self, widget, user_data=None):
         raise NotImplementedError
-        
-    def on_import_item(self, widget, user_data=None):        
+
+    def on_import_item(self, widget, user_data=None):
         raise NotImplementedError
 
     def on_item_cell_edited(self, cell, path, new_text, model, col):
         model.set_value(model.get_iter(path), col, model.convert(col, new_text))
         pass
-        
-    pass #end of class
+
+    pass # end of class

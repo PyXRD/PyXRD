@@ -11,16 +11,16 @@ from generic.io import get_size, sizeof_fmt
 
 # Apply settings
 import settings
-    
+
 if not settings.SETTINGS_APPLIED:
     settings.apply_runtime_settings()
 
 # Check what cache we're using and load it:
 if settings.CACHE == "FILE":
-    #best choice for numpy stuff:
+    # best choice for numpy stuff:
     print "Using joblib cache"
     from joblib import Memory
-    
+
     cachedir = settings.DATA_REG.get_directory_path("CACHE_DIR")
     verbose = 1 if settings.DEBUG else 0
 
@@ -42,15 +42,15 @@ if settings.CACHE == "FILE":
 elif settings.CACHE == "MEMORY":
     print "Using in-memory cache... (NOT RECOMMENDED)"
     from generic.cache_collection import cache
-    
+
 elif settings.CACHE == None:
     print "Not using cache"
     def cache(maxsize, cache=None, timeout=None):
-    
+
         def dummy(func):
             func.func = func
             return func
         return dummy
-    
+
 else:
     raise ValueError, "Unkown value for CACHE in settings.py!"

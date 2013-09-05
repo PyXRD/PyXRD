@@ -7,7 +7,6 @@
 
 import time
 from itertools import izip
-from math import pi
 
 import numpy as np
 from scipy.optimize import fmin_l_bfgs_b
@@ -16,7 +15,6 @@ import settings
 if not settings.SETTINGS_APPLIED:
     settings.apply_runtime_settings()
 
-from generic.caching import cache
 from .specimen import get_phase_intensities
 from .exceptions import wrap_exceptions
 
@@ -24,8 +22,8 @@ def calc_Rp(exp, calc):
     return np.sum(np.abs(exp - calc)) / np.sum(np.abs(exp)) * 100
 
 def parse_solution(x, n, m):
-    fractions = np.asanyarray(x[:m])[:,np.newaxis]
-    scales = np.asanyarray(x[m:m+n])
+    fractions = np.asanyarray(x[:m])[:, np.newaxis]
+    scales = np.asanyarray(x[m:m + n])
     bgshifts = np.asanyarray(x[-n:] if settings.BGSHIFT else np.zeros(shape=(n,)))
     return fractions, scales, bgshifts
 
@@ -33,9 +31,9 @@ def _get_residual(x, mixture):
     fractions, scales, bgshifts = parse_solution(x, mixture.n, mixture.m)
     tot_rp = 0.0
     for scale, bgshift, specimen in izip(scales, bgshifts, mixture.specimens):
-        if specimen!=None:
-            if specimen.phase_intensities!=None:
-                calc = (scale * np.sum(specimen.phase_intensities*fractions, axis=0)) 
+        if specimen != None:
+            if specimen.phase_intensities != None:
+                calc = (scale * np.sum(specimen.phase_intensities * fractions, axis=0))
                 if settings.BGSHIFT:
                     calc += bgshift
             else:
@@ -44,7 +42,7 @@ def _get_residual(x, mixture):
                 exp = specimen.observed_intensity[specimen.selected_range]
                 cal = calc[specimen.selected_range]
                 tot_rp += calc_Rp(exp, cal)
-    return tot_rp / float(len(mixture.specimens)) #average this out
+    return tot_rp / float(len(mixture.specimens)) # average this out
 
 def get_residual(mixture, parsed=False):
     parse_mixture(mixture, parsed=parsed)
@@ -53,21 +51,21 @@ def get_residual(mixture, parsed=False):
 
 def parse_mixture(mixture, parsed=False):
     if not parsed:
-        # Sanity check:    
+        # Sanity check:
         n = len(mixture.specimens)
         assert n > 0, "Need at least 1 specimen to optimize phase fractions, scales and background."
         m = 0
         for specimen in mixture.specimens:
-            if specimen!=None:
+            if specimen != None:
                 m = len(specimen.phases)
                 break
         assert m > 0, "Need at least 1 phase in each specimen to optimize phase fractions, scales and background."
-            
+
         mixture.n = n
         mixture.m = m
-        
+
         for specimen in mixture.specimens:
-            if specimen!=None:
+            if specimen != None:
                 specimen.phase_intensities = get_phase_intensities(specimen)
 
 @wrap_exceptions
@@ -75,55 +73,55 @@ def optimize_mixture(mixture, parsed=False):
     """
         Optimizes the mixture fractions, scales and bg shifts.
         Returns the mixture data object.
-    """        
+    """
     # 0. Calculate phase intensitites
     try:
         parse_mixture(mixture, parsed=parsed)
     except AssertionError:
-        return mixture #ignore and return the orignal object back
-    
+        return mixture # ignore and return the orignal object back
+
     # 1. setup start point:
-    bounds = [(0,None) for i in range(mixture.m)] + [(0, None) for i in range(mixture.n*2)]
-    x0 = np.ones(shape=(mixture.m+mixture.n*2,))
-    x0[-mixture.n:] = 0.0 #set bg at zero        
-    
+    bounds = [(0, None) for i in range(mixture.m)] + [(0, None) for i in range(mixture.n * 2)]
+    x0 = np.ones(shape=(mixture.m + mixture.n * 2,))
+    x0[-mixture.n:] = 0.0 # set bg at zero
+
     # 2. Optimize:
-    t1 = time.time()    
+    t1 = time.time()
     lastx, residual, info = fmin_l_bfgs_b(
         _get_residual,
         x0,
         args=(mixture,),
-        #factr=1e3*np.finfo(np.float).eps,
-        #pgtol=0.01,
-        #epsilon=1e-5,
+        # factr=1e3*np.finfo(np.float).eps,
+        # pgtol=0.01,
+        # epsilon=1e-5,
         approx_grad=True,
         bounds=bounds,
         iprint=-1
     )
-    
+
     t2 = time.time()
-    if settings.DEBUG: print '%s took %0.3f ms' % ("optimize_mixture", (t2-t1)*1000.0)
-    
-    # 3. rescale scales and fractions so they fit into [0-1] range, 
+    if settings.DEBUG: print '%s took %0.3f ms' % ("optimize_mixture", (t2 - t1) * 1000.0)
+
+    # 3. rescale scales and fractions so they fit into [0-1] range,
     #    and round them to have 6 digits max:
     fractions, scales, bgshifts = parse_solution(lastx, mixture.n, mixture.m)
     fractions = fractions.flatten()
     if settings.BGSHIFT:
         bgshifts = bgshifts.round(6)
-    
+
     sum_frac = np.sum(fractions)
-    if sum_frac == 0.0 and len(fractions) > 0: #prevent NaN errors
+    if sum_frac == 0.0 and len(fractions) > 0: # prevent NaN errors
         fractions[0] = 1.0
         sum_frac = 1.0
     fractions = np.around((fractions / sum_frac), 6)
     scales *= sum_frac
     scales = scales.round(6)
-    
+
     mixture.fractions = fractions
     mixture.scales = scales
     mixture.bgshifts = bgshifts
     mixture.residual = residual
-    
+
     return mixture
 
 @wrap_exceptions
@@ -137,13 +135,13 @@ def calculate_mixture(mixture, parsed=False):
         parse_mixture(mixture, parsed=parsed)
     except AssertionError:
         for specimen in mixture.specimens:
-            if specimen!=None:
-                specimen.total_intensity = None #clear pattern
+            if specimen != None:
+                specimen.total_intensity = None # clear pattern
         return mixture
     fractions = np.asanyarray(mixture.fractions)
-    
+
     for scale, bgshift, specimen in izip(mixture.scales, mixture.bgshifts, mixture.specimens):
-        specimen.total_intensity = scale * np.sum(fractions[:,np.newaxis]*specimen.phase_intensities, axis=0) + (bgshift if settings.BGSHIFT else 0.0)
+        specimen.total_intensity = scale * np.sum(fractions[:, np.newaxis] * specimen.phase_intensities, axis=0) + (bgshift if settings.BGSHIFT else 0.0)
 
     return mixture
 
@@ -167,4 +165,4 @@ def get_optimized_residual(mixture):
         Returns the residual instead of the mixture data object.
     """
     return get_optimized_mixture(mixture).residual
-    
+

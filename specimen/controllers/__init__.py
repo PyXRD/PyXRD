@@ -8,22 +8,24 @@
 from .specimen_controllers import SpecimenController, StatisticsController
 
 from .marker_controllers import (
-    MarkersController, 
+    MarkersController,
     EditMarkerController,
     MatchMineralController,
     ThresholdController
 )
 
-from .background_controller import BackgroundController
-from .smooth_data_controller import SmoothDataController
-from .add_noise_controller import AddNoiseController
-from .shift_data_controller import ShiftDataController
-from .strip_peak_controller import StripPeakController
+from generic.controllers.line_controllers import (
+    BackgroundController,
+    SmoothDataController,
+    AddNoiseController,
+    ShiftDataController,
+    StripPeakController
+)
 
 __all__ = [
     "SpecimenController",
     "StatisticsController",
-    "MarkersController", 
+    "MarkersController",
     "EditMarkerController",
     "MatchMineralController",
     "ThresholdController",

@@ -48,7 +48,7 @@ class AtomRelation(ChildModel, Storable, ObjectListStoreChildMixin, ComponentPro
     __parent_alias__ = "component"
     __model_intel__ = [
         PropIntel(name="name",    label="Name",    data_type=unicode,   is_column=True,  storable=True,  has_widget=True),
-        PropIntel(name="value",   label="Value",   data_type=float,     is_column=True,  storable=True,  has_widget=True, widget_type='float_input', refinable=True),
+        PropIntel(name="value",   label="Value",   data_type=float,     is_column=True,  storable=True,  has_widget=True, widget_type='float_entry', refinable=True),
         PropIntel(name="enabled", label="Enabled", data_type=bool,      is_column=True,  storable=True,  has_widget=True),
         
         PropIntel(name="changed", data_type=object),
@@ -155,7 +155,7 @@ class AtomRatio(AtomRelation):
     #MODEL INTEL:
     __parent_alias__ = "component"
     __model_intel__ = [
-        PropIntel(name="sum",       label="Sum",                     data_type=float,  widget_type='float_input', is_column=True,  storable=True,  has_widget=True, minimum=0.0),
+        PropIntel(name="sum",       label="Sum",                     data_type=float,  widget_type='float_entry', is_column=True,  storable=True,  has_widget=True, minimum=0.0),
         PropIntel(name="atom1",     label="Substituting Atom",       data_type=object, is_column=True,  storable=True,  has_widget=True),
         PropIntel(name="atom2",     label="Original Atom",           data_type=object, is_column=True,  storable=True,  has_widget=True),
     ]

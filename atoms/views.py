@@ -15,33 +15,34 @@ from generic.views import BaseView
 class EditAtomTypeView(BaseView):
     builder = "atoms/glade/atoms.glade"
     top = "edit_atom_type"
-    
+    widget_format = "atom_%s"
+
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
     def __init__(self, *args, **kwargs):
         BaseView.__init__(self, *args, **kwargs)
-        
+
         self.graph_parent = self["view_graph"]
         self.setup_matplotlib_widget()
-        
+
     def setup_matplotlib_widget(self):
         style = gtk.Style()
         self.figure = Figure(dpi=72, edgecolor=str(style.bg[2]), facecolor=str(style.bg[2]))
-           
-        self.plot = self.figure.add_subplot(111)       
+
+        self.plot = self.figure.add_subplot(111)
         self.figure.subplots_adjust(bottom=0.20)
-        
+
         self.matlib_canvas = FigureCanvasGTK(self.figure)
-    
+
         self.plot.autoscale_view()
-    
+
         self.graph_parent.add(self.matlib_canvas)
         self.graph_parent.show_all()
-        
+
     # ------------------------------------------------------------
     #      Methods & Functions
-    # ------------------------------------------------------------ 
+    # ------------------------------------------------------------
     def update_figure(self, x, y):
         self.plot.cla()
         self.plot.plot(x, y, 'k-', aa=True)

@@ -1,40 +1,40 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
   <!-- interface-requires gtk+ 3.0 -->
-  <object class="GtkImage" id="image1">
+  <object class="GtkImage" id="img_add_specimen">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="stock">190-circle-plus</property>
     <property name="icon-size">2</property>
   </object>
-  <object class="GtkImage" id="image2">
+  <object class="GtkImage" id="img_del_specimen">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
-    <property name="stock">358-file-import</property>
+    <property name="stock">192-circle-remove</property>
     <property name="icon-size">2</property>
   </object>
-  <object class="GtkImage" id="image3">
+  <object class="GtkImage" id="img_edit_specimen">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="stock">150-edit</property>
     <property name="icon-size">2</property>
   </object>
-  <object class="GtkImage" id="image4">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="stock">358-file-import</property>
-    <property name="icon-size">2</property>
-  </object>
-  <object class="GtkImage" id="image5">
+  <object class="GtkImage" id="img_export_data">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="stock">359-file-export</property>
     <property name="icon-size">2</property>
   </object>
-  <object class="GtkImage" id="image6">
+  <object class="GtkImage" id="img_import_specimen">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
-    <property name="stock">192-circle-remove</property>
+    <property name="stock">358-file-import</property>
+    <property name="icon-size">2</property>
+  </object>
+  <object class="GtkImage" id="img_replace_data">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">358-file-import</property>
     <property name="icon-size">2</property>
   </object>
   <object class="GtkNotebook" id="nbk_edit_project">
@@ -1007,7 +1007,7 @@
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="accel_path">&lt;Actions&gt;/project_actions/add_specimen</property>
-        <property name="image">image1</property>
+        <property name="image">img_add_specimen</property>
         <property name="use_stock">False</property>
         <property name="always_show_image">True</property>
       </object>
@@ -1018,7 +1018,7 @@
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="accel_path">&lt;Actions&gt;/project_actions/import_specimens</property>
-        <property name="image">image2</property>
+        <property name="image">img_import_specimen</property>
         <property name="use_stock">False</property>
       </object>
     </child>
@@ -1034,7 +1034,7 @@
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="accel_path">&lt;Actions&gt;/specimen_actions/edit_specimen</property>
-        <property name="image">image3</property>
+        <property name="image">img_edit_specimen</property>
         <property name="use_stock">False</property>
       </object>
     </child>
@@ -1044,7 +1044,7 @@
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="accel_path">&lt;Actions&gt;/specimen_actions/replace_specimen_data</property>
-        <property name="image">image4</property>
+        <property name="image">img_replace_data</property>
         <property name="use_stock">False</property>
       </object>
     </child>
@@ -1054,7 +1054,7 @@
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="accel_path">&lt;Actions&gt;/specimen_actions/export_specimen_data</property>
-        <property name="image">image5</property>
+        <property name="image">img_export_data</property>
         <property name="use_stock">False</property>
       </object>
     </child>
@@ -1070,7 +1070,7 @@
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="accel_path">&lt;Actions&gt;/specimens_actions/del_specimen</property>
-        <property name="image">image6</property>
+        <property name="image">img_del_specimen</property>
         <property name="use_stock">False</property>
         <property name="always_show_image">True</property>
       </object>

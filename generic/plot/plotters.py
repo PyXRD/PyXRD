@@ -422,6 +422,7 @@ def plot_statistics(project, specimen, stats_y_pos, stats_height, axes):
 
     # Scales & shifts the pattern so the zero line plots in the middle.
     def plot_pattern_middle(pattern, axes, height, max_I, offset, **kwargs):
+        max_I = max(max_I, 1)
         scale = height / (max_I * 2)
         offset = offset + max_I * scale
         plot_pattern(pattern, axes, scale=scale, offset=offset, **kwargs)

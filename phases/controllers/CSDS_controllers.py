@@ -10,13 +10,9 @@ from traceback import format_exc
 import gtk
 
 from gtkmvc import Controller
-from gtkmvc.adapters import Adapter
-
-import settings
 
 from generic.controllers import BaseController
 
-from phases.views import EditCSDSDistributionView
 from phases.models.CSDS import CSDS_distribution_types
 
 class EditCSDSTypeController(BaseController):
@@ -24,6 +20,7 @@ class EditCSDSTypeController(BaseController):
         Controller for the selection of the type of CSDS Model
     """
     auto_adapt = False
+
     distributions_controller = None
 
     def reset_type_store(self):
@@ -78,30 +75,31 @@ class EditCSDSDistributionController(BaseController):
         Handles the creation of widgets based on their PropIntel settings
     """
 
-    # FIXME make a CSDS Parameter Adapter of some sorts...
-    # Requires a controller that can auto-add 'parameter' widgets to the view
-    # in a generic way. Preferably shared by the probablities as well...
-
-    auto_adapt = False
+    # auto_adapt = False
 
     def reset_model(self, new_model):
         self.relieve_model(self.model)
         self.model = new_model
         self.observe_model(new_model)
-        self.register_adapters()
+        if self.view != None:
+            self.register_view(self.view)
+        # self.register_adapters()
 
-    def register_adapters(self):
+    def register_view(self, view):
         if self.model is not None:
-            self.view.reset_params()
+            view.reset_params()
             for intel in self.model.__model_intel__:
                 if intel.refinable:
-                    widget = self.view.add_param_widget(
-                        self.view.widget_format % intel.name, intel.label,
+                    widget = view.add_param_widget(
+                        view.widget_format % intel.name, intel.label,
                         intel.minimum, intel.maximum
                     )
-                    self.adapt(intel.name, widget.get_name())
+                    # FIXME for some reason this doesn't get connected using the regular adapters?
+                    def on_changed(widget, intel):
+                        setattr(self.model, intel.prop_name, widget.get_value())
+                    widget.connect('changed', on_changed, intel)
+            view.update_figure(self.model.distrib[0])
 
-            self.view.update_figure(self.model.distrib[1])
 
     # ------------------------------------------------------------
     #      Notifications of observable properties
@@ -109,7 +107,7 @@ class EditCSDSDistributionController(BaseController):
     @Controller.observe("updated", signal=True)
     def notif_updated(self, model, prop_name, info):
         if self.model.distrib != None and not self.model.phase.project.before_needs_update_lock:
-            try: self.view.update_figure(self.model.distrib[1])
+            try: self.view.update_figure(self.model.distrib[0])
             except any as error:
                 print "Caught unhandled exception: %s" % error
                 print format_exc()

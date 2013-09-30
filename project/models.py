@@ -73,15 +73,18 @@ class Project(ChildModel, Storable, ObjectListStoreParentMixin):
 
     needs_saving = True
 
-    _axes_xmin = 0.0
-    _axes_xmax = 70.0
-    _axes_xstretch = False
-    _axes_yvisible = False
+    def update_callback(self, prop_name, value):
+        self.needs_update.emit()
+    layout_mode = MultiProperty(settings.DEFAULT_LAYOUT, lambda i: i, update_callback, settings.DEFAULT_LAYOUTS)
+
+    _axes_xmin = settings.AXES_MANUAL_XMIN
+    _axes_xmax = settings.AXES_MANUAL_XMAX
+    _axes_xstretch = settings.AXES_XSTRETCH
+    _axes_yvisible = settings.AXES_YVISIBLE
     _display_plot_offset = 0.75
     _display_group_by = 1
-
-    _display_marker_angle = 0.0
-    _display_marker_top_offset = 0.0
+    _display_marker_angle = settings.MARKER_ANGLE
+    _display_marker_top_offset = settings.MARKER_TOP_OFFSET
     _display_label_pos = 0.35
     @Model.getter("axes_xmin", "axes_xmax", "axes_xstretch", "axes_yvisible",
             "display_plot_offset", "display_group_by", "display_marker_angle",
@@ -97,24 +100,22 @@ class Project(ChildModel, Storable, ObjectListStoreParentMixin):
         setattr(self, "_%s" % prop_name, value)
         self.needs_update.emit()
 
-    def cbb_callback(self, prop_name, value):
-        self.needs_update.emit()
-    axes_xscale = MultiProperty(0, int, cbb_callback, { 0: "Auto", 1: "Manual" })
-    axes_yscale = MultiProperty(0, int, cbb_callback, {
+    axes_xscale = MultiProperty(0, int, update_callback, { 0: "Auto", 1: "Manual" })
+    axes_yscale = MultiProperty(0, int, update_callback, {
         0: "Multi normalised",
         1: "Single normalised",
         2: "Unchanged raw counts"
     })
 
-    layout_mode = MultiProperty(settings.DEFAULT_LAYOUT, lambda i: i, cbb_callback, settings.DEFAULT_LAYOUTS)
 
-    display_marker_align = MultiProperty(settings.MARKER_ALIGN, lambda i: i, cbb_callback, {
+
+    display_marker_align = MultiProperty(settings.MARKER_ALIGN, lambda i: i, update_callback, {
         "left": "Left align",
         "center": "Centered",
         "right": "Right align"
     })
 
-    display_marker_base = MultiProperty(settings.MARKER_BASE, int, cbb_callback, {
+    display_marker_base = MultiProperty(settings.MARKER_BASE, int, update_callback, {
         0: "X-axis",
         1: "Experimental profile",
         2: "Calculated profile",
@@ -122,11 +123,11 @@ class Project(ChildModel, Storable, ObjectListStoreParentMixin):
         4: "Highest of both"
     })
 
-    display_marker_top = MultiProperty(settings.MARKER_TOP, int, cbb_callback, {
+    display_marker_top = MultiProperty(settings.MARKER_TOP, int, update_callback, {
          0: "Relative to base", 1: "Top of plot"
     })
 
-    display_marker_style = MultiProperty(settings.MARKER_STYLE, lambda i: i, cbb_callback, {
+    display_marker_style = MultiProperty(settings.MARKER_STYLE, lambda i: i, update_callback, {
         "none": "None", "solid": "Solid",
         "dashed": "Dash", "dotted": "Dotted",
         "dashdot": "Dash-Dotted", "offset": "Display at Y-offset"

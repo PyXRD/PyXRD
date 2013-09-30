@@ -7,11 +7,10 @@
 
 import gtk
 
-import matplotlib
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_gtkcairo import FigureCanvasGTKCairo as FigureCanvasGTK
 
-from generic.views import BaseView, HasChildView, DialogView, NoneView
+from generic.views import BaseView, HasChildView, DialogView
 from generic.views.widgets import ScaleEntry
 
 class EditPhaseView(BaseView, HasChildView):
@@ -167,16 +166,15 @@ class EditCSDSDistributionView(BaseView):
         self.graph_parent.add(self.matlib_canvas)
         self.graph_parent.show_all()
 
-    def update_figure(self, distr_dict):
+    def update_figure(self, distr):
         self.plot.cla()
-        """keys, vals = distr_dict.keys(), distr_dict.values()
-        self.plot.hist(keys, len(keys), weights=vals, normed=1, ec='b', histtype='stepfilled')
+        self.plot.hist(range(len(distr)), len(distr), weights=distr, normed=1, ec='b', histtype='stepfilled')
         self.plot.set_ylabel('')
         self.plot.set_xlabel('CSDS', size=14, weight="heavy")
         self.plot.relim()
         self.plot.autoscale_view()
         if self.matlib_canvas != None:
-            self.matlib_canvas.draw()"""
+            self.matlib_canvas.draw()
 
     def reset_params(self):
         tbl = self["tbl_params"]

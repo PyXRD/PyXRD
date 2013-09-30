@@ -1,6 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
   <!-- interface-requires gtk+ 3.0 -->
+  <object class="GtkImage" id="img_add_item">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">190-circle-plus</property>
+  </object>
+  <object class="GtkImage" id="img_del_item">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">192-circle-remove</property>
+  </object>
   <object class="GtkTable" id="edit_item">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
@@ -27,11 +37,11 @@
         </child>
         <child>
           <object class="GtkButton" id="btn_add_item">
-            <property name="label">gtk-add</property>
+            <property name="label">Add</property>
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="receives_default">True</property>
-            <property name="use_stock">True</property>
+            <property name="image">img_add_item</property>
             <signal name="clicked" handler="on_add_item" swapped="no"/>
           </object>
           <packing>
@@ -42,12 +52,12 @@
         </child>
         <child>
           <object class="GtkButton" id="btn_del_item">
-            <property name="label">gtk-remove</property>
+            <property name="label">Remove</property>
             <property name="visible">True</property>
             <property name="sensitive">False</property>
             <property name="can_focus">True</property>
             <property name="receives_default">True</property>
-            <property name="use_stock">True</property>
+            <property name="image">img_del_item</property>
             <signal name="clicked" handler="on_del_item" swapped="no"/>
           </object>
           <packing>
@@ -94,7 +104,7 @@
             <property name="can_focus">False</property>
             <property name="label" translatable="yes">Import items</property>
             <property name="use_underline">True</property>
-            <property name="stock_id">gtk-go-back</property>
+            <property name="stock_id">221-unshare</property>
             <signal name="clicked" handler="on_import_item" swapped="no"/>
           </object>
           <packing>
@@ -109,7 +119,7 @@
             <property name="can_focus">False</property>
             <property name="label" translatable="yes">Export items</property>
             <property name="use_underline">True</property>
-            <property name="stock_id">gtk-go-forward</property>
+            <property name="stock_id">222-share</property>
             <signal name="clicked" handler="on_export_item" swapped="no"/>
           </object>
           <packing>
@@ -138,5 +148,10 @@
         <property name="y_options"/>
       </packing>
     </child>
+  </object>
+  <object class="GtkImage" id="img_export_item">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">359-file-export</property>
   </object>
 </interface>

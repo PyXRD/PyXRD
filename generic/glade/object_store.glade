@@ -1,25 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
   <!-- interface-requires gtk+ 3.0 -->
-  <object class="GtkImage" id="img_del">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="stock">192-circle-remove</property>
-  </object>
-  <object class="GtkImage" id="img_export">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="stock">359-file-export</property>
-  </object>
   <object class="GtkImage" id="img_add">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="stock">190-circle-plus</property>
   </object>
+  <object class="GtkImage" id="img_del">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">192-circle-remove</property>
+  </object>
   <object class="GtkImage" id="img_import">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="stock">358-file-import</property>
+  </object>
+  <object class="GtkImage" id="img_export">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">359-file-export</property>
   </object>
   <object class="GtkHPaned" id="edit_object_store">
     <property name="visible">True</property>
@@ -189,6 +189,7 @@
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="border_width">5</property>
+            <property name="vscrollbar_policy">never</property>
             <child>
               <placeholder/>
             </child>

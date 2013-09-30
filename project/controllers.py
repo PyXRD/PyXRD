@@ -12,12 +12,12 @@ import gtk
 
 from gtkmvc import Controller
 
-import settings
-
 from generic.views.treeview_tools import new_text_column, new_toggle_column, new_pb_column
 from generic.controllers import BaseController, DialogController, ObjectListStoreMixin, DialogMixin
 from specimen.models import Specimen
 from specimen.controllers import SpecimenController
+
+import settings
 
 class ProjectController (DialogController, ObjectListStoreMixin, DialogMixin):
 
@@ -27,7 +27,7 @@ class ProjectController (DialogController, ObjectListStoreMixin, DialogMixin):
     file_filters = SpecimenController.file_filters
 
     def register_view(self, view):
-        # connects the buffer and the text view
+        # Connect the buffer and the text view
         if view is not None and self.model is not None:
             view["project_description"].set_buffer(self.model.description)
             if self.parent is not None:
@@ -53,7 +53,7 @@ class ProjectController (DialogController, ObjectListStoreMixin, DialogMixin):
         col.set_data("colnr", store.c_name)
         widget.append_column(col)
 
-        # Checkboxes:
+        # Check boxes:
         def toggle_renderer(column, cell, model, itr, data=None):
             col = column.get_col_attr("active")
             cell.set_property('active', model.get_value(itr, col))
@@ -79,8 +79,8 @@ class ProjectController (DialogController, ObjectListStoreMixin, DialogMixin):
             col = new_pb_column("", resizable=False, expand=False, stock_id=image)
             col.set_data("colnr", colnr)
             widget.append_column(col)
-        setup_image_button(gtk.STOCK_GO_UP, 501)
-        setup_image_button(gtk.STOCK_GO_DOWN, 502)
+        setup_image_button("213-up-arrow", 501)
+        setup_image_button("212-down-arrow", 502)
 
     def edit_object(self, obj):
         pass # clear this method, we're not having an 'edit' view pane...

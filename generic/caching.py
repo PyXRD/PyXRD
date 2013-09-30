@@ -5,8 +5,6 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-import multiprocessing
-
 from generic.io import get_size, sizeof_fmt
 
 # Apply settings
@@ -16,18 +14,22 @@ if not settings.SETTINGS_APPLIED:
     settings.apply_runtime_settings()
 
 # Check what cache we're using and load it:
-if settings.CACHE == "FILE":
+if settings.CACHE in ("FILE", "FILE_FETCH_ONLY"):
     # best choice for numpy stuff:
-    print "Using joblib cache"
+    print "Using joblib cache (%s)" % settings.CACHE
     from joblib import Memory
 
     cachedir = settings.DATA_REG.get_directory_path("CACHE_DIR")
     verbose = 1 if settings.DEBUG else 0
 
+    def get_active():
+        return bool(settings.CACHE == "FILE")
+
     memory = Memory(
         verbose=verbose,
         cachedir=cachedir,
         compress=True,
+        state_getter=get_active
     )
 
     def cache(maxsize, cache=None, timeout=None):

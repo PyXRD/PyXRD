@@ -8,7 +8,6 @@ is called with the same input arguments.
 # Copyright (c) 2009 Gael Varoquaux
 # License: BSD Style, 3 clauses.
 
-
 from __future__ import with_statement
 import os
 import shutil
@@ -99,7 +98,7 @@ class MemorizedFunc(Logger):
     #-------------------------------------------------------------------------
 
     def __init__(self, func, cachedir, ignore=None, mmap_mode=None,
-                 compress=False, verbose=1, timestamp=None):
+                 compress=False, verbose=1, timestamp=None, state_getter=lambda: True):
         """
             Parameters
             ----------
@@ -119,6 +118,10 @@ class MemorizedFunc(Logger):
             timestamp: float, optional
                 The reference time from which times in tracing messages
                 are reported.
+            state_getter: callable, optional
+                A callable returning a boolean indicating whether or not we
+                should still persist new calls (return True), or only fetch 
+                previously cached calls and calculate new calls (return False).
         """
         Logger.__init__(self)
         self._verbose = verbose
@@ -126,6 +129,8 @@ class MemorizedFunc(Logger):
         self.func = func
         self.mmap_mode = mmap_mode
         self.compress = compress
+        self.get_state = state_getter
+
         if compress and mmap_mode is not None:
             warnings.warn('Compressed results cannot be memmapped',
                           stacklevel=2)
@@ -314,8 +319,9 @@ class MemorizedFunc(Logger):
         if self._verbose:
             print(self.format_call(*args, **kwargs))
         output = self.func(*args, **kwargs)
-        self._persist_output(output, output_dir)
-        self._persist_input(output_dir, *args, **kwargs)
+        if self.get_state(): # only persist when needed
+            self._persist_output(output, output_dir)
+            self._persist_input(output_dir, *args, **kwargs)
         duration = time.time() - start_time
         if self._verbose:
             _, name = get_func_name(self.func)
@@ -333,7 +339,7 @@ class MemorizedFunc(Logger):
         msg = '%s\n[Memory] Calling %s...\n%s' % (80 * '_', path, signature)
         return msg
         # XXX: Not using logging framework
-        #self.debug(msg)
+        # self.debug(msg)
 
     def format_signature(self, func, *args, **kwds):
         # XXX: This should be moved out to a function
@@ -443,11 +449,12 @@ class Memory(Logger):
 
         see :ref:`memory_reference`
     """
+
     #-------------------------------------------------------------------------
     # Public interface
     #-------------------------------------------------------------------------
 
-    def __init__(self, cachedir, mmap_mode=None, compress=False, verbose=1):
+    def __init__(self, cachedir, mmap_mode=None, compress=False, verbose=1, state_getter=lambda: True):
         """
             Parameters
             ----------
@@ -465,6 +472,10 @@ class Memory(Logger):
             verbose: int, optional
                 Verbosity flag, controls the debug messages that are issued
                 as functions are revaluated.
+            state_getter: callable, optional
+                A callable returning a boolean indicating whether or not we
+                should still persist new calls (return True), or only fetch 
+                previously cached calls and calculate new calls (return False).
         """
         # XXX: Bad explaination of the None value of cachedir
         Logger.__init__(self)
@@ -472,6 +483,7 @@ class Memory(Logger):
         self.mmap_mode = mmap_mode
         self.timestamp = time.time()
         self.compress = compress
+        self.state_getter = state_getter
         if compress and mmap_mode is not None:
             warnings.warn('Compressed results cannot be memmapped',
                           stacklevel=2)
@@ -525,7 +537,8 @@ class Memory(Logger):
                                    ignore=ignore,
                                    compress=self.compress,
                                    verbose=verbose,
-                                   timestamp=self.timestamp)
+                                   timestamp=self.timestamp,
+                                   state_getter=self.state_getter)
 
     def clear(self, warn=True):
         """ Erase the complete cache directory.

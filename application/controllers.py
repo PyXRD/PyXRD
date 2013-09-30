@@ -58,13 +58,11 @@ class AppController (BaseController, DialogMixin):
         return
 
     def register_view(self, view):
-        # self.view['statistics_expander'].connect("notify::expanded", self.on_statistics_expand)
         if self.model.current_project != None:
-            # self.reset_project_controller ()
             self.update_project_sensitivities ()
 
     def set_model(self, model):
-        BaseController.set_model(self, model)
+        super(self, AppController).set_model(model)
         self.reset_project_controller()
         return
 
@@ -78,14 +76,11 @@ class AppController (BaseController, DialogMixin):
     def reset_specimen_controller(self):
         if self.model.current_specimen != None:
             view = self.view.reset_child_view("specimen")
-            print "SPECIMEN VIEW", view
             self.specimen = SpecimenController(model=self.model.current_specimen, view=view, parent=self)
             self.markers = MarkersController(model=self.model.current_specimen, view=self.view.reset_child_view("markers"), parent=self)
-            # self.statistics = StatisticsController(model=self.model.current_specimen.statistics, view=self.view.reset_statistics_view(), parent=self)
         else:
             self.specimen = None
             self.markers = None
-            self.statistics = None
 
     # ------------------------------------------------------------
     #      Notifications of observable properties
@@ -117,25 +112,14 @@ class AppController (BaseController, DialogMixin):
     @delayed(lock="_in_update_cycle")
     @BaseController.status_message("Updating display...")
     def redraw_plot(self):
-        if not self._in_update_cycle: # prevent never-ending update loops
+        if not self._in_update_cycle: # Prevent never-ending update loops
             self._in_update_cycle = True
-
-            single = self.model.single_specimen_selected
-
-            # check if we should display statistics:
-            # FIXME displa these directly on the plot, make it a specimen setting
-            stats = (False, None)
-            # if single and self.model.statistics_visible:
-            #    stats = (True, self.model.current_specimen.statistics.residual_pattern)
-
-            # let the plot controller update this:
+            # Let the plot controller update this:
             self.plot_controller.update(
                 clear=True,
-                single=single,
-                stats=stats,
                 project=self.model.current_project,
-                specimens=self.model.current_specimens[::-1])
-
+                specimens=self.model.current_specimens[::-1]
+            )
             self._in_update_cycle = False
 
     def update_title(self):
@@ -155,8 +139,6 @@ class AppController (BaseController, DialogMixin):
     def update_specimen_sensitivities(self):
         sensitive = (self.model.current_specimen != None)
         self.view["specimen_actions"].set_sensitive(sensitive)
-        # self.view["statistics_expander"].set_sensitive(sensitive)
-        # #self.view['statistics_expander'].set_expanded(self.model.statistics_visible)
         sensitive = sensitive or (self.model.current_specimens is not None and len(self.model.current_specimens) >= 1)
         self.view["specimens_actions"].set_sensitive(sensitive)
 
@@ -184,7 +166,7 @@ class AppController (BaseController, DialogMixin):
             if backupfile:
                 move(backupfile, self.model.current_filename) # move original file back
                 backupfile = None
-            self.run_information_dialog("An error has occured.\n Your project was not saved!", parent=self.view.get_top_widget())
+            self.run_information_dialog("An error has occurred.\n Your project was not saved!", parent=self.view.get_top_widget())
             raise
         finally:
             if backupfile: os.remove(backupfile) # remove backup file
@@ -194,7 +176,7 @@ class AppController (BaseController, DialogMixin):
             self.model.current_project = Project.load_object(filename, parent=self.model)
             self.model.current_filename = filename
         except any as error:
-            self.run_information_dialog("An error has occured.\n Your project was not loaded!", parent=self.view.get_top_widget())
+            self.run_information_dialog("An error has occurred.\n Your project was not loaded!", parent=self.view.get_top_widget())
             print error
 
     # ------------------------------------------------------------
@@ -209,7 +191,7 @@ class AppController (BaseController, DialogMixin):
         return True
 
     def on_about_activate(self, widget, data=None):
-        self._run_dialog(self.view["about_window"], destroy=False)
+        self.run_dialog(self.view["about_window"], destroy=False)
 
     def on_main_window_delete_event(self, widget, event):
         def on_accept(dialog):
@@ -247,6 +229,10 @@ class AppController (BaseController, DialogMixin):
             offset=self.model.current_project.display_plot_offset)
 
     def on_sample_point(self, event):
+        """
+            Sample a point on the plot and display the (calculated and)
+            experimental data values in an information dialog.
+        """
         def onclick(edc, x_pos, event):
             if edc != None:
                 edc.enabled = False
@@ -254,7 +240,12 @@ class AppController (BaseController, DialogMixin):
 
             exp_y = self.model.current_specimen.experimental_pattern.xy_store.get_y_at_x(x_pos)
             calc_y = self.model.current_specimen.calculated_pattern.xy_store.get_y_at_x(x_pos)
-            self.run_information_dialog("Sampled point:\n\tExperimental data:\t( %.4f , %.4f )\n\tCalculated data:\t\t( %.4f , %.4f )" % (x_pos, exp_y, x_pos, calc_y), parent=self.view.get_toplevel())
+            message = "Sampled point:\n"
+            message += "\tExperimental data:\t( %.4f , %.4f )\n"
+            if self.model.current_project.layout_mode == "FULL":
+                message += "\tCalculated data:\t\t( %.4f , %.4f )"
+            message = message % (x_pos, exp_y, x_pos, calc_y)
+            self.run_information_dialog(message, parent=self.view.get_toplevel())
             del self.edc
 
         self.edc = EyedropperCursorPlot(
@@ -313,6 +304,7 @@ class AppController (BaseController, DialogMixin):
         else:
             self.save_project()
 
+    @BaseController.status_message("Save project...", "save_project")
     def on_save_project_as_activate(self, widget, data=None, title="Save project as"):
         def on_accept(dialog):
             print "Saving project..."

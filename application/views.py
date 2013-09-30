@@ -107,7 +107,6 @@ class AppView(BaseView, HasChildView):
 
     def set_specimens_widget(self, widget):
         self._add_child_view(widget, self["specimens_container"])
-        print self["specimens_container"].get_child()
 
     def set_layout_mode(self, mode):
         super(AppView, self).set_layout_mode(mode)

@@ -5,13 +5,11 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-import multiprocessing, logging
-
-from itertools import izip
+from itertools import izip, imap
 
 import time
 import numpy as np
-from deap import creator, base, algorithms, cma, tools
+from deap import creator, base, cma, tools
 
 from settings import POOL as pool
 
@@ -31,7 +29,7 @@ STAGN_TOL = 0.5
 # Needs to be shared for multiprocessing to work properly
 creator.create("FitnessMin", base.Fitness, weights=(-1.0,))
 
-def eaGenerateUpdateStagn(toolbox, ngen, halloffame=None, stats=None, 
+def eaGenerateUpdateStagn(toolbox, ngen, halloffame=None, stats=None,
                      verbose=__debug__, stagn_ngen=10, stagn_tol=0.001, context=None):
     """This is algorithm implements the ask-tell model proposed in 
     [Colette2010]_, where ask is called `generate` and tell is called `update`.
@@ -65,39 +63,42 @@ def eaGenerateUpdateStagn(toolbox, ngen, halloffame=None, stats=None,
     column_names = ["gen", "evals"]
     if stats is not None:
         column_names += stats.functions.keys()
-    if verbose: 
+    if verbose:
         logger = tools.EvolutionLogger(column_names)
         logger.logHeader()
-    
+
     best_fitnesses = []
-        
+
     for gen in xrange(ngen):
+
         # Generate a new population
-        population = toolbox.generate()
-        
-        # Evaluate the individuals
-        time.sleep(0.25)
-        fitnesses = toolbox.map(toolbox.evaluate, population)
-        for ind, fit in zip(population, fitnesses):
-            ind.fitness.values = fit
-        
+        population = []
+        results = []
+        for ind in toolbox.generate():
+            result = pool.apply_async(toolbox.evaluate, (ind,))
+            population.append(ind)
+            results.append(result)
+
+        # Get the fitness results:
+        for ind, result in izip(population, results):
+            ind.fitness.values = result.get()
+
+        del results # clear some memory
+
         if halloffame is not None:
             halloffame.update(population)
-        
         # Update the strategy with the evaluated individuals
         toolbox.update(population)
-        
         if stats is not None:
             stats.update(population)
-        
         best = population[0]
         context.update(best, best.fitness.values[0])
-        
+
         best_fitnesses.append(best.fitness.values)
-        if len(best_fitnesses) > (stagn_ngen+1):
+        if len(best_fitnesses) > (stagn_ngen + 1):
             del best_fitnesses[0]
-        
-        if context!=None:
+
+        if context != None:
             context.record_state_data([
                 ("gen", gen),
                 ("pop", len(population)),
@@ -105,24 +106,38 @@ def eaGenerateUpdateStagn(toolbox, ngen, halloffame=None, stats=None,
                 ("avg", float(stats.avg[-1][-1][-1])),
                 ("max", float(stats.max[-1][-1][-1])),
                 ("std", float(stats.std[-1][-1][-1])),
-            ])
-        
+            ] + [ ("par%d" % i, float(val)) for i, val in enumerate(best)])
+
         if verbose:
             logger.logGeneration(evals=len(population), gen=gen, stats=stats)
-        
-        #Check for stagnation
+        # Check for stagnation
         if gen >= stagn_ngen: # 10
             stagnation = True
             last_fitn = np.array(best_fitnesses[-1])
-            for fitn in best_fitnesses[-(stagn_ngen-1):]:
+            for fitn in best_fitnesses[-(stagn_ngen - 1):]:
                 fitn = np.array(fitn)
-                if np.any(np.abs(fitn - last_fitn) > stagn_tol): #0.01
+                if np.any(np.abs(fitn - last_fitn) > stagn_tol): # 0.01
                     stagnation = False
                     break
             if stagnation:
                 break
 
     return population
+
+class CustomStrategy(cma.Strategy):
+
+    def generate(self, ind_init):
+        """Generate a population from the current strategy using the 
+        centroid individual as parent.
+        
+        :param ind_init: A function object that is able to initialize an
+                         individual from a list.
+        :returns: an iterator yielding the generated individuals.
+        """
+        arz = np.random.standard_normal((self.lambda_, self.dim))
+        arz = self.centroid + self.sigma * np.dot(arz, self.BD.T)
+        for arr in arz:
+            yield ind_init(arr)
 
 class RefineCMAESRun(RefineRun):
     """
@@ -131,68 +146,68 @@ class RefineCMAESRun(RefineRun):
     name = "CMA-ES refinement"
     description = "This algorithm uses the CMA-ES refinement strategy as implemented by DEAP"
 
-    options= [
-        ( 'Maximum # of generations', 'ngen', int, NGEN, [1, 10000] ),
-        ( 'Minimum # of generations', 'stagn_ngen', int, STAGN_NGEN, [1, 10000] ),
-        ( 'Fitness stagnation tolerance', 'stagn_tol', float, STAGN_TOL, [0., 100.] ),
-    
-        ( 'Lambda factor', 'factr_lambda', int, FACTR_LAMBDA, [1, 10000] ),
-        ( 'Init lambda factor',  'factr_init_lambda', int, FACTR_INIT_LAMBDA, [1, 10000] ),
-        ( 'Maximum init lambda', 'max_init_lambda',   int, MAX_INIT_LAMBDA, [1, 10000] ),
-        ( 'Minimum init lambda', 'min_init_lambda',   int, MIN_INIT_LAMBDA, [1, 10000] ),
+    options = [
+        ('Maximum # of generations', 'ngen', int, NGEN, [1, 10000]),
+        ('Minimum # of generations', 'stagn_ngen', int, STAGN_NGEN, [1, 10000]),
+        ('Fitness stagnation tolerance', 'stagn_tol', float, STAGN_TOL, [0., 100.]),
+
+        ('Lambda factor', 'factr_lambda', int, FACTR_LAMBDA, [1, 10000]),
+        ('Init lambda factor', 'factr_init_lambda', int, FACTR_INIT_LAMBDA, [1, 10000]),
+        ('Maximum init lambda', 'max_init_lambda', int, MAX_INIT_LAMBDA, [1, 10000]),
+        ('Minimum init lambda', 'min_init_lambda', int, MIN_INIT_LAMBDA, [1, 10000]),
     ]
-              
+
     def run(self, context, ngen=NGEN, stagn_ngen=STAGN_NGEN, stagn_tol=STAGN_TOL,
             factr_lambda=FACTR_LAMBDA, factr_init_lambda=FACTR_INIT_LAMBDA,
-            max_init_lambda=MAX_INIT_LAMBDA, min_init_lambda=MIN_INIT_LAMBDA, **kwargs):               
+            max_init_lambda=MAX_INIT_LAMBDA, min_init_lambda=MIN_INIT_LAMBDA, **kwargs):
 
-        N=len(context.ref_props)
-        init_lambda = max(min(N*factr_init_lambda, max_init_lambda), min_init_lambda)
-        lambda_ = min(N*factr_lambda, MAX_LAMBDA)
+        N = len(context.ref_props)
+        init_lambda = max(min(N * factr_init_lambda, max_init_lambda), min_init_lambda)
+        lambda_ = min(N * factr_lambda, MAX_LAMBDA)
 
         # Individual generation:
         bounds = np.array(context.ranges)
         creator.create(
-            "Individual", pyxrd_array, 
-            fitness=creator.FitnessMin, 
-            context=context, 
-            min_bounds=bounds[:,0].copy(),
-            max_bounds=bounds[:,1].copy(),
+            "Individual", pyxrd_array,
+            fitness=creator.FitnessMin,
+            context=context,
+            min_bounds=bounds[:, 0].copy(),
+            max_bounds=bounds[:, 1].copy(),
         )
-        
-        # Makes sure individuals stay in-bound:                       
+
+        # Makes sure individuals stay in-bound:
         def create_individual(lst):
-            arr = np.array(lst).clip(bounds[:,0], bounds[:,1])
+            arr = np.array(lst).clip(bounds[:, 0], bounds[:, 1])
             return creator.Individual(arr)
-        
+
         # Toolbox setup:
         toolbox = base.Toolbox()
         toolbox.register("evaluate", evaluate)
 
         # Setup strategy:
-        strategy = cma.Strategy(centroid=context.initial_solution, sigma=2, lambda_=lambda_)
+        strategy = CustomStrategy(centroid=context.initial_solution, sigma=2, lambda_=lambda_)
         # Pre-feed the strategy with a normal distributed population over the entire domain (large population):
         solutions = np.random.normal(size=(init_lambda, N))
-        solutions = (solutions - solutions.min()) / (solutions.max() - solutions.min()) #stretch to [0-1] interval
-        solutions = bounds[:,0] + solutions * (bounds[:,1] - bounds[:,0])
+        solutions = (solutions - solutions.min()) / (solutions.max() - solutions.min()) # stretch to [0-1] interval
+        solutions = bounds[:, 0] + solutions * (bounds[:, 1] - bounds[:, 0])
         strategy.update(map(create_individual, solutions))
         toolbox.register("update", strategy.update)
         toolbox.register("generate", strategy.generate, create_individual)
-    
+
         # Hall of fame:
         halloffame = tools.HallOfFame(1)
-        
+
         # Stats:
         stats = tools.Statistics(lambda ind: ind.fitness.values)
         stats.register("avg", tools.mean)
         stats.register("std", tools.std)
         stats.register("min", min)
         stats.register("max", max)
-        
-        #Get this show on the road:
-        if pool!=None:
-            toolbox.register("map", pool.map)
-        
+
+        # Get this show on the road:
+        if pool != None:
+            toolbox.register("map", lambda f, i: pool.map(f, i, 10))
+
         final = eaGenerateUpdateStagn(
             toolbox,
             ngen=ngen,
@@ -204,19 +219,17 @@ class RefineCMAESRun(RefineRun):
         )
 
         fitnesses = toolbox.map(evaluate, final)
-                        
+
         bestf = None
         besti = None
         for ind, fitness in izip(final, fitnesses):
             fitness, = fitness
-            if bestf==None or bestf > fitness:
+            if bestf == None or bestf > fitness:
                 bestf = float(fitness)
                 besti = ind
             context.update(ind, fitness)
-        
+
         context.last_residual = bestf
-        context.last_solution = np.array(besti, dtype=float)      
-            
-    pass #end of class
+        context.last_solution = np.array(besti, dtype=float)
 
-
+    pass # end of class

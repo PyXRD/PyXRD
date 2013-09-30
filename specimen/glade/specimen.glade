@@ -1,6 +1,26 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
   <!-- interface-requires gtk+ 3.0 -->
+  <object class="GtkImage" id="img_add_excl">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">190-circle-plus</property>
+  </object>
+  <object class="GtkImage" id="img_add_exp_data">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">190-circle-plus</property>
+  </object>
+  <object class="GtkImage" id="img_del_excl">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">191-circle-minus</property>
+  </object>
+  <object class="GtkImage" id="img_del_exp_data">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">191-circle-minus</property>
+  </object>
   <object class="GtkNotebook" id="edit_specimen">
     <property name="visible">True</property>
     <property name="can_focus">True</property>
@@ -752,11 +772,11 @@
             <property name="can_focus">False</property>
             <child>
               <object class="GtkButton" id="btn_add_experimental_data">
-                <property name="label">gtk-add</property>
+                <property name="label">Add</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <property name="use_stock">True</property>
+                <property name="image">img_add_exp_data</property>
                 <signal name="clicked" handler="on_add_experimental_data_clicked" swapped="no"/>
               </object>
               <packing>
@@ -776,10 +796,10 @@
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <child>
-                      <object class="GtkImage" id="img_hard_disk1">
+                      <object class="GtkImage" id="img_export_exp">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="stock">gtk-save</property>
+                        <property name="stock">359-file-export</property>
                       </object>
                       <packing>
                         <property name="expand">False</property>
@@ -811,11 +831,11 @@
             </child>
             <child>
               <object class="GtkButton" id="btn_del_experimental_data">
-                <property name="label">gtk-remove</property>
+                <property name="label">Remove</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <property name="use_stock">True</property>
+                <property name="image">img_del_exp_data</property>
                 <signal name="clicked" handler="on_del_experimental_data_clicked" swapped="no"/>
               </object>
               <packing>
@@ -838,10 +858,10 @@
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <child>
-                      <object class="GtkImage" id="img_hard_disk">
+                      <object class="GtkImage" id="img_import_file">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="stock">gtk-harddisk</property>
+                        <property name="stock">358-file-import</property>
                       </object>
                       <packing>
                         <property name="expand">False</property>
@@ -937,10 +957,10 @@
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <child>
-                      <object class="GtkImage" id="img_hard_disk4">
+                      <object class="GtkImage" id="img_export_calc">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="stock">gtk-save</property>
+                        <property name="stock">359-file-export</property>
                       </object>
                       <packing>
                         <property name="expand">False</property>
@@ -1028,11 +1048,11 @@
             <property name="can_focus">False</property>
             <child>
               <object class="GtkButton" id="btn_add_exclusion_range">
-                <property name="label">gtk-add</property>
+                <property name="label">Add</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <property name="use_stock">True</property>
+                <property name="image">img_add_excl</property>
                 <signal name="clicked" handler="on_add_exclusion_range_clicked" swapped="no"/>
               </object>
               <packing>
@@ -1055,7 +1075,7 @@
                       <object class="GtkImage" id="img_hard_disk2">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="stock">gtk-save</property>
+                        <property name="stock">359-file-export</property>
                       </object>
                       <packing>
                         <property name="expand">False</property>
@@ -1087,11 +1107,11 @@
             </child>
             <child>
               <object class="GtkButton" id="btn_del_exclusion_ranges">
-                <property name="label">gtk-remove</property>
+                <property name="label">Remove</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <property name="use_stock">True</property>
+                <property name="image">img_del_excl</property>
                 <signal name="clicked" handler="on_del_exclusion_ranges_clicked" swapped="no"/>
               </object>
               <packing>
@@ -1117,7 +1137,7 @@
                       <object class="GtkImage" id="img_hard_disk3">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
-                        <property name="stock">gtk-harddisk</property>
+                        <property name="stock">358-file-import</property>
                       </object>
                       <packing>
                         <property name="expand">False</property>

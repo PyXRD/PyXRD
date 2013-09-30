@@ -313,7 +313,7 @@ class Marker(ChildModel, Storable, ObjectListStoreChildMixin, CSVMixin):
 
     # Color:
     _color = settings.MARKER_COLOR
-    _inherit_color = True
+    _inherit_color = settings.MARKER_INHERIT_COLOR
     (get_inherit_color_value,
     set_inherit_color_value,
     get_color_value,
@@ -323,8 +323,8 @@ class Marker(ChildModel, Storable, ObjectListStoreChildMixin, CSVMixin):
     )
 
     # Angle:
-    _angle = 0.0
-    _inherit_angle = True
+    _angle = settings.MARKER_ANGLE
+    _inherit_angle = settings.MARKER_INHERIT_ANGLE
     (get_inherit_angle_value,
     set_inherit_angle_value,
     get_angle_value,
@@ -334,8 +334,8 @@ class Marker(ChildModel, Storable, ObjectListStoreChildMixin, CSVMixin):
     )
 
     # Angle:
-    _top_offset = 0.0
-    _inherit_top_offset = True
+    _top_offset = settings.MARKER_TOP_OFFSET
+    _inherit_top_offset = settings.MARKER_INHERIT_TOP_OFFSET
     (get_inherit_top_offset_value,
     set_inherit_top_offset_value,
     get_top_offset_value,
@@ -345,10 +345,10 @@ class Marker(ChildModel, Storable, ObjectListStoreChildMixin, CSVMixin):
     )
 
     # Visible, position, X and Y offset:
-    _visible = True
-    _position = 0.0
-    _x_offset = 0.0
-    _y_offset = 0.05
+    _visible = settings.MARKER_VISIBLE
+    _position = settings.MARKER_POSITION
+    _x_offset = settings.MARKER_X_OFFSET
+    _y_offset = settings.MARKER_Y_OFFSET
     @ChildModel.getter("visible", "position", "x_offset", "y_offset")
     def get_plot_value(self, prop_name):
         return getattr(self, "_%s" % prop_name)
@@ -361,7 +361,7 @@ class Marker(ChildModel, Storable, ObjectListStoreChildMixin, CSVMixin):
         self.needs_update.emit()
 
     # Alignment:
-    _inherit_align = True
+    _inherit_align = settings.MARKER_INHERIT_ALIGN
     (get_inherit_align_value,
     set_inherit_align_value,
     get_align_value,
@@ -376,7 +376,7 @@ class Marker(ChildModel, Storable, ObjectListStoreChildMixin, CSVMixin):
     })
 
     # Base connection point:
-    _inherit_base = True
+    _inherit_base = settings.MARKER_INHERIT_BASE
     (get_inherit_base_value,
     set_inherit_base_value,
     get_base_value,
@@ -393,7 +393,7 @@ class Marker(ChildModel, Storable, ObjectListStoreChildMixin, CSVMixin):
     })
 
     # Top connection point:
-    _inherit_top = True
+    _inherit_top = settings.MARKER_INHERIT_TOP
     (get_inherit_top_value,
     set_inherit_top_value,
     get_top_value,
@@ -405,7 +405,7 @@ class Marker(ChildModel, Storable, ObjectListStoreChildMixin, CSVMixin):
     top = MultiProperty(settings.MARKER_TOP, int, cbb_callback, _tops)
 
     # Line style:
-    _inherit_style = True
+    _inherit_style = settings.MARKER_INHERIT_STYLE
     (get_inherit_style_value,
     set_inherit_style_value,
     get_style_value,

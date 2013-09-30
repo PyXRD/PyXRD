@@ -322,7 +322,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</property>
     <property name="authors">Mathijs Dumon
-Rick Spencer
+Gael Varoquaux (joblib)
 Johan Van Der Wauw</property>
     <property name="license_type">custom</property>
     <child internal-child="vbox">
@@ -442,6 +442,7 @@ Johan Van Der Wauw</property>
                         <property name="related_action">edit_project</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                         <property name="always_show_image">True</property>
                       </object>
@@ -970,7 +971,7 @@ Johan Van Der Wauw</property>
                     </child>
                   </object>
                   <packing>
-                    <property name="resize">True</property>
+                    <property name="resize">False</property>
                     <property name="shrink">False</property>
                   </packing>
                 </child>

@@ -6,35 +6,30 @@
 # Complete license can be found in the LICENSE file.
 
 from traceback import format_exc
-from math import sqrt
 
-import gtk
-import gobject
-
-import numpy as np
-from scipy import stats
 
 from generic.models import PyXRDLine, ChildModel, PropIntel
+from generic.calculations.statistics import Rp, derive
 
 class Statistics(ChildModel):
 
-    #MODEL INTEL:
+    # MODEL INTEL:
     __parent_alias__ = 'specimen'
-    __model_intel__ = [ #TODO add labels
-        PropIntel(name="points",            data_type=int,   has_widget=True),
-        PropIntel(name="residual_pattern",  data_type=object),
-        PropIntel(name="Rp",                data_type=float, has_widget=True),
-        PropIntel(name="Rwp",               data_type=float, has_widget=True),
-        PropIntel(name="Re",                data_type=float, has_widget=True),
-        PropIntel(name="chi2",              data_type=float, has_widget=True),
-        PropIntel(name="R2",                data_type=float, has_widget=True),
+    __model_intel__ = [ # TODO add labels
+        PropIntel(name="points", data_type=int, has_widget=True),
+        PropIntel(name="residual_pattern", data_type=object),
+        PropIntel(name="der_exp_pattern", data_type=object),
+        PropIntel(name="der_calc_pattern", data_type=object),
+        PropIntel(name="der_residual_pattern", data_type=object),
+        PropIntel(name="Rp", data_type=float, has_widget=True),
+        PropIntel(name="Rpder", data_type=float, has_widget=True),
     ]
-    
-    #PROPERTIES:
+
+    # PROPERTIES:
     def set_parent_value(self, value):
         ChildModel.set_parent_value(self, value)
         self.update_statistics()
-       
+
     def get_points_value(self):
         try:
             e_ex, e_ey, e_cx, e_cy = self.specimen.get_exclusion_xy()
@@ -43,15 +38,15 @@ class Statistics(ChildModel):
         return 0
 
     Rp = None
-    Rwp = None
-    Re = None
-    chi2 = None      
-    R2 = None
+    Rpder = None
     residual_pattern = None
-         
+    der_exp_pattern = None
+    der_calc_pattern = None
+    der_residual_pattern = None
+
     # ------------------------------------------------------------
     #      Methods & Functions
-    # ------------------------------------------------------------ 
+    # ------------------------------------------------------------
     def _get_experimental(self):
         if self.specimen != None:
             x, y = self.specimen.experimental_pattern.xy_store.get_raw_model_data()
@@ -63,76 +58,61 @@ class Statistics(ChildModel):
             x, y = self.specimen.calculated_pattern.xy_store.get_raw_model_data()
             return x.copy(), y.copy()
         else:
-            return None, None 
-             
+            return None, None
+
     def scale_factor_y(self, offset):
         return self.specimen.scale_factor_y(offset) if self.specimen else (1.0, offset)
-      
+
     def update_statistics(self, num_params=0):
+        # Clear factors:
         self.Rp = 0
-        self.Rwp = 0
-        self.Re = 0
-        self.chi2 = 0        
-        self.R2 = 0
+        self.Rpder = 0
+
+        # Setup lines if not yet done:
         if self.residual_pattern == None:
-            self.residual_pattern = PyXRDLine(label="Residual Data", color="#000000", parent=self)
-        
+            self.residual_pattern = PyXRDLine(label="Residual", color="#000000", lw=0.5, parent=self)
+
+        if self.der_exp_pattern == None:
+            self.der_exp_pattern = PyXRDLine(label="Exp. 1st der.", color="#000000", lw=2, parent=self)
+
+        if self.der_calc_pattern == None:
+            self.der_calc_pattern = PyXRDLine(label="Calc. 1st der.", color="#AA0000", lw=2, parent=self)
+
+        if self.der_residual_pattern == None:
+            self.der_residual_pattern = PyXRDLine(label="1st der. residual", color="#AA00AA", lw=1, parent=self)
+
+        # Get data:
         exp_x, exp_y = self._get_experimental()
         cal_x, cal_y = self._get_calculated()
+        del cal_x # don't need this, is the same as exp_x
 
+        # Try to get statistics, if it fails, just clear and inform the user
         try:
             if cal_y != None and exp_y != None and cal_y.size > 0 and exp_y.size > 0:
+                # Get the selector for areas to consider in the statistics:
+                selector = self.specimen.get_exclusion_selector(exp_x)
+
+                # Calculate and set first derivate patterns:
+                der_exp_y, der_cal_y = derive(exp_y), derive(cal_y)
+                self.der_exp_pattern.set_data(exp_x, der_exp_y)
+                self.der_calc_pattern.set_data(exp_x, der_cal_y)
+
+                # Calculate and set residual pattern:
                 self.residual_pattern.set_data(exp_x, exp_y - cal_y)
+                self.der_residual_pattern.set_data(exp_x, der_exp_y - der_cal_y)
 
-                e_ex, e_ey, e_cx, e_cy = self.specimen.get_exclusion_xy()
-
-                #self.chi2 = stats.chisquare(e_ey, e_cy)[0]
-                #if exp.size > 0:
-                self.R2 = self._calc_R2(e_ey, e_cy)
-                self.Rp  = self._calc_Rp(e_ey, e_cy)
-                self.Rwp = self._calc_Rwp(e_ey, e_cy)
-                self.Re = self._calc_Re(e_ey, e_cy, num_params)                
-                self.chi2 = (self.Rwp / self.Re) ** 2
+                # Calculate 'included' R values:
+                self.Rp = Rp(exp_y[selector], cal_y[selector])
+                self.Rpder = Rp(der_exp_y[selector], der_cal_y[selector])
             else:
-                self.residual_pattern.clear()                    
-        except ValueError, ZeroDivisionError:
+                self.residual_pattern.clear()
+                self.der_exp_pattern.clear()
+                self.der_calc_pattern.clear()
+        except:
             self.residual_pattern.clear()
+            self.der_exp_pattern.clear()
+            self.der_calc_pattern.clear()
             print "Error occured when trying to calculate statistics, aborting calculation!"
             print format_exc()
-           
-       
-    @staticmethod
-    def _calc_R2(exp, calc):
-        avg = sum(exp)/exp.size
-        sserr = np.sum((exp - calc)**2)
-        sstot = np.sum((exp - avg)**2)
-        return 1 - (sserr / sstot)
-        
-    @staticmethod
-    def _calc_Rp(exp, calc):
-        return np.sum(np.abs(exp - calc)) / np.sum(np.abs(exp)) * 100
 
-    @staticmethod
-    def _calc_Rwp(exp, calc):
-        #weighted Rp:   
-        # Rwp = Sqrt ( Sum[w * (obs - calc)²] / Sum[w * obs²] )  w = 1 / Iobs
-        sm1 = 0
-        sm2 = 0
-        for i in range(exp.size):
-            t = (exp[i] - calc[i])**2 / exp[i]
-            if not (np.isnan(t) or np.isinf(t)):
-                sm1 += t        
-                sm2 += abs(exp[i])
-        try:
-            return sqrt(sm1 / sm2) * 100
-        except:
-            return 0
-
-    @staticmethod
-    def _calc_Re(exp, calc, num_params):
-        # R expected:
-        # Re = Sqrt( (Points - Params) / Sum[ w * obs² ] )    
-        num_points = exp.size
-        return np.sqrt( (num_points - num_params) / np.sum(exp**2) ) * 100
-    
-    pass #end of class
+    pass # end of class

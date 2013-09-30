@@ -75,6 +75,20 @@ class PyXRDLine(ChildModel, Storable):
         else:
             return 0
 
+    @property
+    def min_intensity(self):
+        if len(self.xy_store._model_data_x) > 1:
+            return np.min(self.xy_store._model_data_y)
+        else:
+            return 0
+
+    @property
+    def abs_max_intensity(self):
+        if len(self.xy_store._model_data_x) > 1:
+            return np.max(np.absolute(self.xy_store._model_data_y))
+        else:
+            return 0
+
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------

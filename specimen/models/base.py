@@ -44,6 +44,8 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
         PropIntel(name="display_stats_in_lbl", label="Display Rp in label", data_type=bool, is_column=True, storable=True, has_widget=True),
         PropIntel(name="display_vshift", label="Vertical shift of the plot", data_type=float, is_column=True, storable=True, has_widget=True, widget_type="float_entry"),
         PropIntel(name="display_vscale", label="Vertical scale of the plot", data_type=float, is_column=True, storable=True, has_widget=True, widget_type="float_entry"),
+        PropIntel(name="display_residuals", label="Display residual patterns", data_type=bool, is_column=True, storable=True, has_widget=True),
+        PropIntel(name="display_derivatives", label="Display derivative patterns", data_type=bool, is_column=True, storable=True, has_widget=True),
         PropIntel(name="goniometer", label="Goniometer", data_type=object, is_column=True, storable=True, has_widget=True, widget_type="custom"),
         PropIntel(name="calculated_pattern", label="Calculated diffractogram", data_type=object, is_column=True, storable=True, has_widget=True, widget_type="tree_view"),
         PropIntel(name="experimental_pattern", label="Experimental diffractogram", data_type=object, is_column=True, storable=True, has_widget=True, widget_type="tree_view"),
@@ -88,13 +90,17 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
     _display_vscale = 1.0
     _display_phases = False
     _display_stats_in_lbl = True
+    _display_residuals = True
+    _display_derivatives = True
     @ChildModel.getter("sample_name", "name", "display_vshift", "display_vscale",
          "display_phases", "display_stats_in_lbl",
+         "display_residuals", "display_derivatives",
          "display_calculated", "display_experimental")
     def get_name(self, prop_name):
         return getattr(self, "_%s" % prop_name)
     @ChildModel.setter("sample_name", "name", "display_vshift", "display_vscale",
         "display_phases", "display_stats_in_lbl",
+        "display_residuals", "display_derivatives",
         "display_calculated", "display_experimental")
     def set_name(self, prop_name, value):
         if self.get_prop_intel_by_name(prop_name).data_type == float:
@@ -106,7 +112,10 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
 
     def get_label_value(self):
         if self.project.layout_mode == "FULL" and self.display_stats_in_lbl:
-            return self.sample_name + "\nRp = %.1f%%" % self.statistics.Rp
+            label = self.sample_name
+            label += "\nRp = %.1f%%" % self.statistics.Rp
+            label += "\nRp' = %.1f%%" % self.statistics.Rpder
+            return label
         else:
             return self.sample_name
 
@@ -274,6 +283,7 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
     def __init__(self, name=u"", sample_name=u"", sample_length=None, abs_scale=1.0,
                  bg_shift=0.0, absorption=0.9, display_calculated=True,
                  display_experimental=True, display_phases=False, display_stats_in_lbl=True,
+                 display_residuals=True, display_derivatives=True,
                  display_vshift=0.0, display_vscale=1.0, goniometer=None,
                  experimental_pattern=None, calculated_pattern=None, exclusion_ranges=None, markers=None,
                  phase_indeces=None, phase_uuids=None, calc_color=None, exp_color=None, exp_cap_value=None,
@@ -356,6 +366,8 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
         self.display_vscale = float(display_vscale)
         self.display_calculated = bool(display_calculated)
         self.display_experimental = bool(display_experimental)
+        self.display_residuals = bool(display_residuals)
+        self.display_derivatives = bool(display_derivatives)
         self.display_phases = bool(display_phases)
         self.display_stats_in_lbl = bool(display_stats_in_lbl)
 

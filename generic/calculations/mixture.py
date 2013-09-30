@@ -17,9 +17,14 @@ if not settings.SETTINGS_APPLIED:
 
 from .specimen import get_phase_intensities
 from .exceptions import wrap_exceptions
+from .statistics import Rp, Rpder
 
-def calc_Rp(exp, calc):
-    return np.sum(np.abs(exp - calc)) / np.sum(np.abs(exp)) * 100
+from generic.custom_math import smooth
+
+__residual_method_map = {
+    "Rp" : Rp,
+    "Rpder": Rpder
+}
 
 def parse_solution(x, n, m):
     fractions = np.asanyarray(x[:m])[:, np.newaxis]
@@ -41,7 +46,7 @@ def _get_residual(x, mixture):
             if specimen.observed_intensity.size > 0:
                 exp = specimen.observed_intensity[specimen.selected_range]
                 cal = calc[specimen.selected_range]
-                tot_rp += calc_Rp(exp, cal)
+                tot_rp += __residual_method_map[settings.RESIDUAL_METHOD](exp, cal)
     return tot_rp / float(len(mixture.specimens)) # average this out
 
 def get_residual(mixture, parsed=False):

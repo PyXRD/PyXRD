@@ -39,6 +39,8 @@ class SpecimenView(DialogView, HasChildView):
             "general_separator",
             "spb_calc_lw",
             "specimen_inherit_calc_lw",
+            "specimen_display_residuals",
+            "specimen_display_derivatives"
         ]
     }
 

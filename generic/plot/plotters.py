@@ -13,7 +13,7 @@ import numpy as np
 
 import matplotlib
 import matplotlib.transforms as transforms
-from matplotlib.patches import Rectangle, FancyBboxPatch
+from matplotlib.patches import FancyBboxPatch
 from matplotlib.offsetbox import VPacker, HPacker, AnchoredOffsetbox, TextArea, AuxTransformBox
 from matplotlib.text import Text
 
@@ -201,11 +201,13 @@ def apply_transform(data, scale=1, offset=0, cap=0):
     data_y = data_y * scale + offset # scale and offset the capped data
     return data_x, data_y
 
-def plot_pattern(pattern, axes, scale=1, offset=0, cap=0):
+def plot_pattern(pattern, axes, scale=1, offset=0, cap=0, **kwargs):
     # setup or update the line
 
     line = getattr(pattern, "__plot_line", matplotlib.lines.Line2D([], []))
 
+    if kwargs:
+        line.update(kwargs)
     line.update(dict(
         data=apply_transform(pattern.xy_store.get_raw_model_data(), scale=scale, offset=offset, cap=cap),
         color=pattern.color,
@@ -416,63 +418,118 @@ def plot_specimen(project, specimen, labels, label_offset,
     # & label:
     plot_label(specimen, labels, label_offset, axes)
 
+def plot_statistics(project, specimen, stats_y_pos, stats_height, axes):
+
+    # Scales & shifts the pattern so the zero line plots in the middle.
+    def plot_pattern_middle(pattern, axes, height, max_I, offset, **kwargs):
+        scale = height / (max_I * 2)
+        offset = offset + max_I * scale
+        plot_pattern(pattern, axes, scale=scale, offset=offset, **kwargs)
+
+    if specimen.display_residuals:
+        plot_pattern_middle(
+            specimen.statistics.residual_pattern,
+            axes, height=stats_height,
+            max_I=specimen.statistics.residual_pattern.abs_max_intensity,
+            offset=stats_y_pos, alpha=0.65
+        )
+    if specimen.display_derivatives:
+        max_I = 0.0
+        for pattern in (
+                specimen.statistics.der_residual_pattern,
+                specimen.statistics.der_exp_pattern,
+                specimen.statistics.der_calc_pattern):
+            max_I = max(max_I, pattern.abs_max_intensity)
+        for pattern in (
+                specimen.statistics.der_residual_pattern,
+                specimen.statistics.der_exp_pattern,
+                specimen.statistics.der_calc_pattern):
+            plot_pattern_middle(pattern, axes, height=stats_height, max_I=max_I, offset=stats_y_pos, alpha=0.65)
+
+    pass # TODO
+
 def plot_specimens(project, specimens, axes):
     """
         Plots multiple specimens within the context of a project
     """
-    max_intensity = project.get_max_intensity()
 
     scale = 1.0
-    marker_scale = 1.0
-    if project.axes_yscale == 0:
-        scale = (1.0 / max_intensity) if max_intensity != 0 else 1.0
+    scale_unit = 1.0
 
     base_offset = project.display_plot_offset
+    base_height = 1.0
     label_offset = project.display_label_pos
-    if project.axes_yscale == 2:
-        base_offset *= max_intensity
-        label_offset *= max_intensity
+
+    max_intensity = project.get_max_intensity()
+    if project.axes_yscale == 0:
+        # Normalize all patterns using the global maximum intensity
+        scale = (1.0 / max_intensity) if max_intensity != 0 else 1.0
+        scale_unit = 1.0
+    elif project.axes_yscale == 1:
+        # Normalize all patterns using their own maximum intensity
+        # scale = ... to be calculated in the for loop
+        scale_unit = 1.0
+    elif project.axes_yscale == 2:
+        # Plot raw counts, no normalization
+        scale = 1.0
+        scale_unit = max_intensity
 
     labels = list()
-    offset = 0
-    group_counter = 0
+    current_y_pos = 0
+    lbl_y_offset = 0
+    group_counter = 0 # 'group by' specimen counter
 
-    ylim = 0
+    ylim = 0 # used to keep track of maximum y-value, for a tight y-axis
 
     for i, specimen in enumerate(specimens):
-        # adjust actual offsets using the specimen vertical shifts:
-        spec_offset = offset + base_offset * specimen.display_vshift
-        spec_lbl_offset = label_offset + base_offset * specimen.display_vshift * specimen.display_vscale
-        spec_scale = scale
 
-        # single specimen normalisation:
+        spec_max_intensity = specimen.max_intensity
+
+        # single specimen normalization:
         if project.axes_yscale == 1:
-            max_intensity = specimen.max_intensity
-            spec_scale = (1.0 / max_intensity) if max_intensity != 0 else 1.0
-        if project.axes_yscale == 2:
-            marker_scale = specimen.max_intensity
+            scale = (1.0 / spec_max_intensity) if spec_max_intensity != 0 else 1.0
 
-        # For the y-limits we do not add the specimens vscale yet:
-        if i + 1 == len(specimens):
-            ylim += specimen.max_intensity * spec_scale
-        elif len(specimens) > 1:
-            ylim += base_offset
+        spec_y_offset = specimen.display_vshift * scale_unit
+        spec_y_pos = current_y_pos * scale_unit + spec_y_offset
+        spec_alloc_height = base_height * scale_unit
+        spec_reqst_height = spec_alloc_height * specimen.display_vscale
 
-        # plot it
-        spec_scale *= specimen.display_vscale
+        lbl_y_offset = (label_offset + specimen.display_vshift) * scale_unit
+        lbl_y_pos = current_y_pos * scale_unit + lbl_y_offset
+
+        # For the y-limit we do not add the specimens vscale or vshift:
+        ylim = current_y_pos * scale_unit + spec_alloc_height
+
+        # Specimen scale = global scale, adjusted by specimen vscale
+        spec_scale = scale * specimen.display_vscale
+
+        # when statistics are plotted,
+        # 65% of the height goes to the actual specimen plots
+        # 35% goes to the statistics plot:
+        if project.layout_mode == "FULL" and (specimen.display_residuals or specimen.display_derivatives):
+            stats_y_pos = spec_y_pos
+            stats_height = 0.35 * spec_reqst_height
+
+            spec_y_pos = spec_y_pos + stats_height
+            spec_scale = spec_scale * 0.65
+
+            plot_statistics(
+                project, specimen,
+                stats_y_pos, stats_height,
+                axes
+            )
 
         plot_specimen(
             project, specimen, labels,
-            spec_lbl_offset,
-            spec_offset, spec_scale,
-            marker_scale,
-            axes)
+            lbl_y_pos, spec_y_pos, spec_scale, scale_unit,
+            axes
+        )
+
         # increase offsets:
         group_counter += 1
         if group_counter >= project.display_group_by:
             group_counter = 0
-            offset += base_offset
-            label_offset += base_offset
+            current_y_pos += base_offset
 
     axes.set_ylim(top=ylim)
 

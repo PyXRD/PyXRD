@@ -18,6 +18,12 @@ MANUAL_URL = UPDATE_URL
 ### Factor to multiply the CSDS average with to obtain the maximum CSDS ###
 LOG_NORMAL_MAX_CSDS_FACTOR = 2.5
 
+# ## What type of residual error we use:
+# ## "Rp" = 'standard' pattern Rp factor
+# ## "Rpder" = Rp factor of first-derivatives
+
+RESIDUAL_METHOD = "Rpder"
+
 ### Default wavelength if no Goniometer is available ###
 DEFAULT_LAMBDA = 0.154056
 

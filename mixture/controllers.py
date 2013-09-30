@@ -26,6 +26,7 @@ class RefinementResultsController(DialogController):
         results and some graphs about the parameter space.
     """
 
+    auto_adapt = False
     solutions = None
 
     # ------------------------------------------------------------

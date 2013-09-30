@@ -27,24 +27,24 @@ class DataObject(object):
         for key, val in kwargs.iteritems():
             setattr(self, key, val)
 
-    pass #end of class
+    pass # end of class
 
 class AtomTypeData(DataObject):
     par_a = None
     par_b = None
     par_c = None
     debye = None
-    
-    pass #end of class
+
+    pass # end of class
 
 class AtomData(DataObject):
     atom_type = None
     pn = None
     default_z = None
     z = None
-    
-    pass #end of class
-    
+
+    pass # end of class
+
 class ComponentData(DataObject):
     layer_atoms = None
     interlayer_atoms = None
@@ -56,8 +56,8 @@ class ComponentData(DataObject):
     lattice_d = None
     d001 = None
     delta_c = None
-    
-    pass #end of class
+
+    pass # end of class
 
 class CSDSData(DataObject):
     Tmean = None
@@ -67,9 +67,9 @@ class CSDSData(DataObject):
     alpha_offset = None
     beta_scale = None
     beta_offset = None
-    
-    pass #end of class
-    
+
+    pass # end of class
+
 class GonioData(DataObject):
     min_2theta = None
     max_2theta = None
@@ -84,24 +84,24 @@ class GonioData(DataObject):
     ads_const = None
     radius = None
     wavelength = None
-    
-    pass #end of class
-    
+
+    pass # end of class
+
 class ProbabilityData(DataObject):
     valid = None
     G = None
     W = None
     P = None
-    
-    pass #end of class
-        
+
+    pass # end of class
+
 class PhaseData(DataObject):
     components = None
     probability = None
     sigma_star = None
-    
-    pass #end of class    
-    
+
+    pass # end of class
+
 class SpecimenData(DataObject):
     goniometer = None
     sample_length = None
@@ -111,18 +111,18 @@ class SpecimenData(DataObject):
     observed_intensity = None
     total_intensity = None
     phase_intensities = None
-    
-    pass #end of class
-    
+
+    pass # end of class
+
 class MixtureData(DataObject):
 
     specimens = None
     fractions = None
     bgshifts = None
     scales = None
-    
+
     parsed = False
-    
-    n,m = 0,0
-    pass #end of class
-    
+
+    n, m = 0, 0
+    pass # end of class
+

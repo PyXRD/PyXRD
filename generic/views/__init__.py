@@ -82,7 +82,6 @@ class BaseView(View):
         self.current_layout_state = state
         for action in self.layout_state_actions.get(state, []):
             parts = tuple(action.split("::", 1))
-            print "PARTS: ", parts, action
             command, group_name = parts
             widgets = []
             if group_name != "all":

@@ -81,7 +81,7 @@ class RefinementView(DialogView):
 
     def update_refinement_info(self, current_rp=None):
         if not isnan(current_rp):
-            self["lbl_rp_current"].set_text("%.2f" % current_rp)
+            self["current_residual"].set_text("%.2f" % current_rp)
 
     def complete_function(self, widget, data=None):
         self.refine_spin_box.set_status("Processing...")

@@ -23,7 +23,7 @@ if sys.argv[1] == '-install':
         os.path.join(sys.prefix, 'Scripts/PyXRD-script.pyw'), # Arguments
         '', # Work dir
         resource_filename("pyxrd.application", "icons/pyxrd.ico") # icon path
-    )C:\Python27\pythonw.exe C:\python27\scripts\PyXRD-script.pyw
+    )
     # move shortcut from current directory to DESKTOP_FOLDER
     shutil.move(os.path.join(os.getcwd(), NAME),
                 os.path.join(DESKTOP_FOLDER, NAME))

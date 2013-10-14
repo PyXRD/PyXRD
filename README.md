@@ -36,7 +36,7 @@ Other features are (incomplete):
 INSTALLATION
 ============
 
-As of version 0.4.8 PyXRD (finally) supports standard python packaging, meaning 
+As of version 0.5.0 PyXRD (finally) supports standard python packaging, meaning 
 it is available from the [Python package index](https://pypi.python.org/pypi)
 and has become very easy to install for most Python users.
 
@@ -105,7 +105,7 @@ Once this has been completed, keep the terminal open and issue these commands:
 
 ```
 sudo easy_install pip
-pip install --user 'pyxrd>=0.4.8'
+pip install --user 'pyxrd>=0.5.0'
 ```
 
 This will install everyting under your '~/.local' folder.

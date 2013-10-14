@@ -68,7 +68,7 @@ just download and install these, in the order given:
  4. [Scipy 0.11.0](http://sourceforge.net/projects/scipy/files/scipy/0.11.0/scipy-0.11.0-win32-superpack-python2.7.exe/download)
  5. [Matplotlib 1.2.1](https://downloads.sourceforge.net/project/matplotlib/matplotlib/matplotlib-1.2.1/matplotlib-1.2.1.win32-py2.7.exe)
  6. [PyParsing 1.5.7](http://sourceforge.net/projects/pyparsing/files/pyparsing/pyparsing-1.5.7/pyparsing-1.5.7.win32-py2.7.exe/download)
- 7. [PyXRD](TODO)
+ 7. [PyXRD](https://github.com/mathijs-dumon/PyXRD/releases)
 
 At this point you should have a working version of PyXRD installed (with a desktop shortcut).
 

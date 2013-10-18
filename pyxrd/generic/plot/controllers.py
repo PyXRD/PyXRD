@@ -5,6 +5,8 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
+from pkg_resources import resource_filename # @UnresolvedImport
+
 import gtk
 
 import matplotlib
@@ -91,7 +93,7 @@ class PlotController(DialogMixin):
 
         # Load gui:
         builder = gtk.Builder()
-        builder.add_from_file("specimen/glade/save_graph_size.glade")
+        builder.add_from_file(resource_filename("pyxrd.specimen", "glade/save_graph_size.glade")) #FIXME move this to this namespace!!
         size_expander = builder.get_object("size_expander")
         cmb_presets = builder.get_object("cmb_presets")
 

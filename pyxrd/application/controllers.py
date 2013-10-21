@@ -17,7 +17,7 @@ from pyxrd.data import settings
 
 from pyxrd.generic.utils import delayed
 from pyxrd.generic.controllers import BaseController, DialogMixin
-from pyxrd.generic.controllers.utils import get_case_insensitive_glob
+from pyxrd.generic.io.utils import get_case_insensitive_glob
 from pyxrd.generic.plot.controllers import MainPlotController, EyedropperCursorPlot
 
 from pyxrd.project.controllers import ProjectController

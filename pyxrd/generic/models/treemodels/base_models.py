@@ -5,16 +5,19 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-import gtk
+try:
+    import gtk
+except ImportError:
+    from pyxrd.generic.models.treemodels import dummy_gtk as gtk
 
 class BaseObjectListStore(gtk.GenericTreeModel):
     """
         Base mixin for creating GenericTreeModel implementations for lists of
         objects. It maps the columns of the store with properties of the object.
     """
-    
-    #PROPERTIES
-    _columns = None #list of tuples (name, type)
+
+    # PROPERTIES
+    _columns = None # list of tuples (name, type)
     _class_type = None
 
     # ------------------------------------------------------------
@@ -52,15 +55,17 @@ class BaseObjectListStore(gtk.GenericTreeModel):
 
     def get_user_data_from_path(self, path):
         return self.on_get_iter(path)
-        
+
     def convert(self, col, new_val):
         return self._columns[col][1](new_val)
-        
+
     def get_objects(self):
         raise NotImplementedError
-        
+
     def iter_objects(self):
         raise NotImplementedError
-        
+
     def __reduce__(self):
         raise NotImplementedError
+
+    pass # end of class

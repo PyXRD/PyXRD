@@ -5,13 +5,9 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-import os, sys, struct, fnmatch
+import fnmatch
 
 import numpy as np
-import gtk, gio
-
-from pyxrd.generic.controllers.utils import get_case_insensitive_glob
-from pyxrd.generic.utils import u
 
 parsers = {} # dict with lists of BaseParser subclasses, keys are namespaces
 
@@ -58,7 +54,7 @@ class DataObject(object):
 
 
 class MetaParser(type):
-    def __new__(meta, name, bases, attrs):
+    def __new__(meta, name, bases, attrs): # @NoSelf
         res = super(MetaParser, meta).__new__(meta, name, bases, attrs)
         res.setup_file_filter()
         return res
@@ -181,15 +177,20 @@ class BaseParser(object):
             should be overriden by subclasses.
         """
         if cls.file_filter == None and cls.description != "" and cls.extensions:
-            # Init file filter:
-            cls.file_filter = gtk.FileFilter()
-            cls.file_filter.set_name(cls.description)
-            for mtpe in cls.mimetypes:
-                # cls.file_filter.add_mime_type(mtpe)
+            try:
+                import gtk
+            except ImportError:
                 pass
-            for expr in cls.extensions:
-                cls.file_filter.add_pattern(expr)
-            cls.file_filter.set_data("parser", cls)
+            else:
+                # Init file filter:
+                cls.file_filter = gtk.FileFilter()
+                cls.file_filter.set_name(cls.description)
+                for mtpe in cls.mimetypes:
+                    # cls.file_filter.add_mime_type(mtpe)
+                    pass
+                for expr in cls.extensions:
+                    cls.file_filter.add_pattern(expr)
+                cls.file_filter.set_data("parser", cls)
 
     pass # end of class
 
@@ -212,9 +213,16 @@ class BaseGroupBarser(BaseParser):
         if not type(filename) is str:
             raise TypeError, "Wrong type for filename (%s), must be a string, but %s was given" % (cls.description, type(filename))
         else:
-            giof = gio.File(filename)
-            file_mime = giof.query_info('standard::content-type').get_content_type()
-            del giof
+            try:
+                import gio
+                giof = gio.File(filename) # @UndefinedVariable
+                file_mime = giof.query_info('standard::content-type').get_content_type()
+                del giof
+            except ImportError:
+                file_mime = "NONE/NONE"
+                pass
+
+            # TODO init file_mime if importerror was raised...
             for parser in cls.parsers:
                 passed = False
                 for mime in parser.mimetypes:
@@ -257,16 +265,21 @@ class BaseGroupBarser(BaseParser):
             it will also set these. If additional properties are needed, this function
             should be overriden by subclasses.
         """
-        if cls.file_filter == None and cls.description and cls.parsers:
-            cls.file_filter = gtk.FileFilter()
-            cls.file_filter.set_name(cls.description)
-            for parser in cls.parsers:
-                for mtpe in parser.mimetypes:
-                    # cls.file_filter.add_mime_type(mtpe)
-                    pass
-                for expr in parser.extensions:
-                    cls.file_filter.add_pattern(expr)
-            cls.file_filter.set_data("parser", cls)
+        try:
+            import gtk
+        except ImportError:
+            pass
+        else:
+            if cls.file_filter == None and cls.description and cls.parsers:
+                cls.file_filter = gtk.FileFilter()
+                cls.file_filter.set_name(cls.description)
+                for parser in cls.parsers:
+                    for mtpe in parser.mimetypes:
+                        # cls.file_filter.add_mime_type(mtpe)
+                        pass
+                    for expr in parser.extensions:
+                        cls.file_filter.add_pattern(expr)
+                cls.file_filter.set_data("parser", cls)
 
     pass # end of class
 

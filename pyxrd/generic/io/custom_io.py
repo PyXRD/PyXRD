@@ -35,8 +35,6 @@ from zipfile import ZipFile, ZIP_DEFLATED, is_zipfile
 import json
 from pyxrd.data import settings
 
-from gtk import TextBuffer
-
 def sizeof_fmt(num):
     for x in ['bytes', 'kB', 'MB', 'GB', 'TB']:
         if num < 1024.0:
@@ -145,8 +143,6 @@ class PyXRDEncoder(json.JSONEncoder):
     """
 
     def default(self, obj):
-        if type(obj) is TextBuffer:
-            return obj.get_text(*obj.get_bounds())
         if hasattr(obj, "to_json") and callable(getattr(obj, "to_json")):
             return obj.to_json()
         if isinstance(obj, np.ndarray):

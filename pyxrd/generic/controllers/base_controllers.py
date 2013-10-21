@@ -10,7 +10,7 @@ import gtk
 
 from pyxrd.gtkmvc import Controller
 
-from .utils import retrieve_lowercase_extension
+from pyxrd.generic.io.utils import retrieve_lowercase_extension
 from handlers import widget_handlers
 
 class DialogMixin():

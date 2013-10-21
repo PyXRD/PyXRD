@@ -21,5 +21,8 @@
 #  or email to the author Roberto Cavada <roboogle@gmail.com>.
 #  Please report bugs to <roboogle@gmail.com>.
 
-from pyxrd.gtkmvc.adapters.basic import Adapter, UserClassAdapter, RoUserClassAdapter
-from pyxrd.gtkmvc.adapters.containers import StaticContainerAdapter
+try:
+    from pyxrd.gtkmvc.adapters.basic import Adapter, UserClassAdapter, RoUserClassAdapter
+    from pyxrd.gtkmvc.adapters.containers import StaticContainerAdapter
+except ImportError:
+    pass

@@ -11,7 +11,7 @@ from io import SEEK_SET, SEEK_CUR, SEEK_END
 import numpy as np
 
 from pyxrd.generic.io.file_parsers import BaseParser, register_parser
-from pyxrd.generic.controllers.utils import get_case_insensitive_glob
+from pyxrd.generic.io.utils import get_case_insensitive_glob
 from pyxrd.generic.utils import u
 
 from .xrd_parser_mixin import XRDParserMixin

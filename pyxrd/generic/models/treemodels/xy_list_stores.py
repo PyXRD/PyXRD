@@ -7,15 +7,21 @@
 
 import json
 
-from traceback import print_exc
 from collections import namedtuple
 
 import numpy as np
 from scipy.interpolate import interp1d
 
-import gtk, gobject
 
-from pyxrd.generic.io import storables, Storable, unicode_open as open
+try:
+    import gtk, gobject
+    INHIBIT_MASS_EMIT = False
+except ImportError:
+    INHIBIT_MASS_EMIT = True
+    from pyxrd.generic.models.treemodels import dummy_gtk as gtk
+    from pyxrd.generic.models.treemodels import dummy_gobject as gobject
+
+from pyxrd.generic.io import storables, Storable
 from pyxrd.generic.io.file_parsers import ASCIIParser
 from base_models import BaseObjectListStore
 
@@ -26,7 +32,7 @@ Point.__columns__ = [
     ('y', float)
 ]
 
-#TODO make handling multiple y-columns more transparent and consequent.
+# TODO make handling multiple y-columns more transparent and consequent.
 # Some methods now include this option while other expect only a single y value.
 # The reason is mass-updating: if the data needs to be replaced with the same
 # length, it is often faster to just replace it and then call the signals for
@@ -43,7 +49,7 @@ class XYListStore(BaseObjectListStore, Storable):
         of an iter.
     """
     __store_id__ = "XYListStore"
-    __gsignals__ = { 
+    __gsignals__ = {
         'item-removed' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
         'item-inserted' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
         'columns-changed' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, ())
@@ -61,16 +67,16 @@ class XYListStore(BaseObjectListStore, Storable):
         Storable.__init__(self)
         self.set_property("leak-references", False)
         self._model_data_x = np.array([], dtype=float)
-        self._model_data_y = np.zeros(shape=(0,0), dtype=float)
+        self._model_data_y = np.zeros(shape=(0, 0), dtype=float)
         self._y_names = []
-        
+
         self._iters = dict()
-        
-        if data!=None:
+
+        if data != None:
             self._deserialize(data)
         else:
             self.set_from_data(np.array([], dtype=float), np.array([], dtype=float))
-           
+
     # ------------------------------------------------------------
     #      Input/Output stuff
     # ------------------------------------------------------------
@@ -117,7 +123,7 @@ class XYListStore(BaseObjectListStore, Storable):
         data = zip(*json.JSONDecoder().decode(data))
         if data != []:
             self.set_from_data(*data)
-               
+
     def load_data_from_generator(self, generator, clear=True):
         """
             Loads data from an x,y generator by appending the values.
@@ -126,13 +132,13 @@ class XYListStore(BaseObjectListStore, Storable):
         if clear: self.clear()
         for x, y in generator:
             self.append(x, y)
-        
+
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------
     def on_get_flags(self):
         return gtk.TREE_MODEL_LIST_ONLY
-    
+
     _y_from_user = lambda self, y_value: np.array(y_value, ndmin=2)
     """def _y_to_user(self, y_value):
         try:
@@ -143,29 +149,29 @@ class XYListStore(BaseObjectListStore, Storable):
         x = self._model_data_x[index]
         y = tuple(self._y_to_user(self._model_data_y[:,index]))
         return (x,) + y"""
-    
-    def on_get_iter(self, path): #returns a rowref
+
+    def on_get_iter(self, path): # returns a rowref
         try:
             i = path[0]
-            if i >=0 and i < self._model_data_x.size:
+            if i >= 0 and i < self._model_data_x.size:
                 self._iters[i] = itr = self._iters.get(i, (i,))
                 return itr
             else:
                 return None
-        except IndexError, msg:
+        except IndexError:
             return None
-        
+
     def invalidate_iters(self):
         self._iters.clear()
         BaseObjectListStore.invalidate_iters(self)
-        
+
     def set_value(self, itr, column, value):
         i, = self.get_user_data(itr)
         if i < self._model_data_x.size:
             if column == self.c_x:
                 self._model_data_x[i] = value
             elif column >= self.c_y:
-                self._model_data_y[column-1, i] = np.array(value)
+                self._model_data_y[column - 1, i] = np.array(value)
             else:
                 raise AttributeError
         else:
@@ -176,15 +182,15 @@ class XYListStore(BaseObjectListStore, Storable):
         if column == self.c_x:
             return self._model_data_x[i]
         elif column >= self.c_y:
-            return self._model_data_y[column-1, i]
+            return self._model_data_y[column - 1, i]
         else:
             raise AttributeError
-                       
+
     def on_get_path(self, i):
         return i
 
     def on_iter_next(self, i):
-        return self.on_get_iter((i[0]+1,))
+        return self.on_get_iter((i[0] + 1,))
 
     def on_iter_children(self, i):
         if i is not None:
@@ -214,38 +220,37 @@ class XYListStore(BaseObjectListStore, Storable):
 
     def on_iter_parent(self, i):
         return None
-        
+
     def on_get_n_columns(self):
         return 1 + self._model_data_y.shape[0]
 
     def on_get_column_type(self, index):
         return float
-        
+
     def append(self, x, *y):
         self._model_data_x = np.append(self._model_data_x, x)
         if self._model_data_y.size == 0:
             self._model_data_y = self._y_from_user(y)
         else:
             self._model_data_y = np.append(self._model_data_y, self._y_from_user(y), axis=1)
-        path = (self._model_data_x.size-1,)
+        path = (self._model_data_x.size - 1,)
         self._emit_added(path)
         return path
-    
+
     def insert(self, pos, x, *y):
         self._model_data_x = np.insert(self._model_data_x, pos, x)
         self._model_data_y = np.insert(self._model_data_y, pos, self._y_from_user(y), axis=1)
         self._emit_added((pos,))
-      
+
     def _emit_added(self, path):
         index = int(path[0])
-        self.emit('item-inserted', (self._model_data_x[index], tuple(self._model_data_y[:,index])))
+        self.emit('item-inserted', (self._model_data_x[index], tuple(self._model_data_y[:, index])))
         itr = self.get_iter(path)
         self.row_inserted(path, itr)
 
     def remove_from_index(self, *indeces):
         if indeces != []:
             indeces = np.sort(indeces)[::-1]
-            shape = self._model_data_x.shape
             for index in indeces:
                 self.emit('item-removed', 0)
                 self._model_data_x = np.delete(self._model_data_x, index, axis=0)
@@ -271,10 +276,11 @@ class XYListStore(BaseObjectListStore, Storable):
         self._model_data_x = tempx
         self._model_data_y = tempy
         self._y_names = names
-        for index in range(self._model_data_x.shape[0]):
-            self._emit_added((index,))
+        if not INHIBIT_MASS_EMIT:
+            for index in range(self._model_data_x.shape[0]):
+                self._emit_added((index,))
         self.emit('columns-changed')
-        
+
     def update_from_data(self, data_x, *data_y, **kwargs):
         names = kwargs.get("names", None)
         tempx = np.array(data_x)
@@ -283,26 +289,26 @@ class XYListStore(BaseObjectListStore, Storable):
             self._model_data_x = tempx
             if tempy.shape[0] == 1:
                 self._model_data_y[0] = tempy[0]
-                if names!=None: self._y_names = names
+                if names != None: self._y_names = names
             else:
                 self._model_data_y = tempy
                 self._y_names = names
             self.emit('columns-changed')
         else:
             self.set_from_data(data_x, *data_y, **kwargs)
-        
+
     def get_y_name(self, col_index):
         try:
             return self._y_names[col_index]
         except:
             return ""
-        
+
     def get_raw_model_data(self):
         if self._model_data_x.size:
             return self._model_data_x, self._model_data_y[0]
         else:
             return np.array([], dtype=float), np.array([], dtype=float)
-                
+
     def get_y_at_x(self, x, column=0):
         """ 
             Get the (interpolated) value for the y-column 'column' for
@@ -312,12 +318,15 @@ class XYListStore(BaseObjectListStore, Storable):
             return np.interp(x, self._model_data_x, self._model_data_y[column])
         else:
             return 0
-                        
-    def interpolate(self, *x_vals):
+
+    def interpolate(self, *x_vals, **kwargs):
         column = kwargs.get("column", 0)
         f = interp1d(self._model_data_x, self._model_data_y.transpose()[column])
         return zip(x_vals, f(x_vals))
-        
-    pass #end of class
-    
+
+    def __len__(self):
+        return len(self._model_data_x)
+
+    pass # end of class
+
 gobject.type_register(XYListStore)

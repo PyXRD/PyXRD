@@ -47,7 +47,7 @@ The following two functions are not exported by default, you have to prefix
 identifiers with the module name:
 """
 
-__all__ = ["Model", "TreeStoreModel", "ListStoreModel", "TextBufferModel",
+__all__ = ["Model",
            "ModelMT",
            "Controller", "View", "Observer",
            "Observable",
@@ -57,10 +57,21 @@ __all__ = ["Model", "TreeStoreModel", "ListStoreModel", "TextBufferModel",
 __version = (1, 99, 1)
 
 # visible classes
-from .model import Model, TreeStoreModel, ListStoreModel, TextBufferModel
+from .model import Model
+try:
+    from .model import TreeStoreModel, ListStoreModel, TextBufferModel
+except ImportError:
+    pass
+else:
+    __all__ += [ "TreeStoreModel", "ListStoreModel", "TextBufferModel" ]
+
 from .model_mt import ModelMT
-from .controller import Controller
-from .view import View
+try:
+    from .controller import Controller
+    from .view import View
+except ImportError:
+    pass
+
 from .observer import Observer
 from .observable import Observable, Signal
 

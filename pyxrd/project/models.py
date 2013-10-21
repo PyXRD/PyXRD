@@ -7,7 +7,7 @@
 
 import time
 
-import gtk
+# import gtk
 from pyxrd.gtkmvc.model import Model, Observer
 
 from pyxrd.data import settings
@@ -30,7 +30,7 @@ class Project(ChildModel, Storable, ObjectListStoreParentMixin):
     __model_intel__ = [ # TODO add labels
         PropIntel(name="name", data_type=str, storable=True, has_widget=True),
         PropIntel(name="date", data_type=str, storable=True, has_widget=True),
-        PropIntel(name="description", data_type=object, storable=True, has_widget=True, widget_type="text_view"),
+        PropIntel(name="description", data_type=str, storable=True, has_widget=True, widget_type="text_view"),
         PropIntel(name="author", data_type=str, storable=True, has_widget=True),
         PropIntel(name="layout_mode", data_type=str, storable=True, has_widget=True, widget_type="combo"),
         PropIntel(name="display_marker_align", data_type=str, storable=True, has_widget=True, widget_type="combo"),
@@ -255,11 +255,11 @@ class Project(ChildModel, Storable, ObjectListStoreParentMixin):
         self._specimens.connect("item-inserted", self.on_specimen_item_inserted)
         self._mixtures.connect("item-inserted", self.on_mixture_item_inserted)
 
-        self.description = gtk.TextBuffer()
+        self.description = "" # gtk.TextBuffer()
 
         self.name = str(name or self.get_depr(kwargs, "", "data_name"))
         self.date = str(date or self.get_depr(kwargs, "", "data_date"))
-        self.description.set_text(str(description or self.get_depr(kwargs, "", "data_description")))
+        self.description = str(description or self.get_depr(kwargs, "", "data_description"))
         self.author = str(author or self.get_depr(kwargs, "", "data_author"))
 
         if load_default_data and self.layout_mode != 1 and \

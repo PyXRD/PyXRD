@@ -8,7 +8,7 @@
 import gtk
 
 from pyxrd.gtkmvc.adapters import Adapter
-from pyxrd.generic.controllers.utils import StoreAdapter, ComboAdapter
+from pyxrd.generic.controllers.utils import StoreAdapter, ComboAdapter, TextBufferAdapter
 from pyxrd.generic.views.validators import FloatEntryValidator
 from pyxrd.generic.views.widgets import ScaleEntry
 
@@ -119,7 +119,7 @@ def get_color_val(widget):
     return "#%02x%02x%02x" % (int(c.red_float * 255), int(c.green_float * 255), int(c.blue_float * 255))
 
 def set_color_val(widget, value):
-    col = gtk.gdk.color_parse(value)
+    col = gtk.gdk.color_parse(value) # @UndefinedVariable
     widget.set_color(col)
 
 def color_button_widget_handler(ctrl, intel, widget):
@@ -146,8 +146,13 @@ widget_handlers['color-selection'] = color_selection_widget_handler
 
 def text_view_handler(ctrl, intel, widget):
     """ Handler for gtk.TextView widgets """
-    ad = StoreAdapter(ctrl.model, intel.name, gtk.TextView.set_buffer)
-    ad.connect_widget(widget)
+    ad = None
+    if (intel.data_type == object): # assume TextBuffer
+        ad = StoreAdapter(ctrl.model, intel.name, gtk.TextView.set_buffer)
+        ad.connect_widget(widget)
+    else: # assume string type
+        ad = TextBufferAdapter(ctrl.model, intel.name)
+        ad.connect_widget(widget)
     return ad
 widget_handlers['text_view'] = text_view_handler
 

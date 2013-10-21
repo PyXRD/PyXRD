@@ -68,8 +68,8 @@ class AppView(BaseView, HasChildView):
 
         # Setup about window:
         self["about_window"].set_version(settings.VERSION)
-        pixbuf = gtk.gdk.pixbuf_new_from_file(resource_filename(__name__, "icons/pyxrd.png"))
-        scaled_buf = pixbuf.scale_simple(212, 160, gtk.gdk.INTERP_BILINEAR)
+        pixbuf = gtk.gdk.pixbuf_new_from_file(resource_filename(__name__, "icons/pyxrd.png")) # @UndefinedVariable
+        scaled_buf = pixbuf.scale_simple(212, 160, gtk.gdk.INTERP_BILINEAR) # @UndefinedVariable
         self["about_window"].set_logo(scaled_buf)
 
         # self.set_layout_modes()

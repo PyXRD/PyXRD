@@ -463,7 +463,7 @@ class ExperimentalLine(PyXRDLine):
                 self.avg_endy = np.average(section)
                 noise_endy = 2 * np.std(section) / self.avg_starty
 
-                # Calcualte new slope and noise level
+                # Calculate new slope and noise level
                 self.strip_slope = (self.avg_starty - self.avg_endy) / (self.strip_startx - self.strip_endx)
                 self.noise_level = (noise_starty + noise_endy) * 0.5
 

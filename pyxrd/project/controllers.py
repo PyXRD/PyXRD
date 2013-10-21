@@ -25,9 +25,7 @@ class ProjectController (DialogController, ObjectListStoreMixin, DialogMixin):
     file_filters = SpecimenController.file_filters
 
     def register_view(self, view):
-        # Connect the buffer and the text view
         if view is not None and self.model is not None:
-            view["project_description"].set_buffer(self.model.description)
             if self.parent is not None:
                 tv = self.view["project_specimens"]
                 tv.set_model(self.model.specimens)

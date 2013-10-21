@@ -11,7 +11,7 @@ from pyxrd.data import settings
 
 from pyxrd.generic.models.treemodels.utils import create_valuestore_from_file, create_treestore_from_directory
 
-from pyxrd.generic.controllers.utils import get_case_insensitive_glob
+from pyxrd.generic.io.utils import get_case_insensitive_glob
 from pyxrd.generic.controllers import BaseController
 
 class InlineGoniometerController(BaseController):

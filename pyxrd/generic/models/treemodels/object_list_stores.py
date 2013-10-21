@@ -7,14 +7,16 @@
 
 from traceback import print_exc
 
-import gtk, gobject
+from base_models import BaseObjectListStore
+
+try:
+    import gobject
+except ImportError:
+    from pyxrd.generic.models.treemodels import dummy_gobject as gobject
 
 from pyxrd.gtkmvc import Observer
-
 from pyxrd.generic.io import storables, Storable, PyXRDDecoder
 from .utils import smart_repos
-
-from base_models import BaseObjectListStore
 
 @storables.register()
 class ObjectListStore(BaseObjectListStore, Storable):
@@ -24,17 +26,17 @@ class ObjectListStore(BaseObjectListStore, Storable):
         an iter). This ListStore does not require the objects to be unique.
     """
 
-    #MODEL INTEL:
+    # MODEL INTEL:
     __store_id__ = "ObjectListStore"
 
-    #SIGNALS:
-    __gsignals__ = { 
+    # SIGNALS:
+    __gsignals__ = {
         'item-removed' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
         'item-inserted' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,))
     }
 
-    #PROPERTIES:
-    _model_data = None #list with class_type instances
+    # PROPERTIES:
+    _model_data = None # list with class_type instances
 
     # ------------------------------------------------------------
     #      Initialisation and other internals
@@ -45,7 +47,7 @@ class ObjectListStore(BaseObjectListStore, Storable):
         BaseObjectListStore.__init__(self, class_type)
         Storable.__init__(self)
         self._model_data = list()
-        if model_data!=None:
+        if model_data != None:
             decoder = PyXRDDecoder(parent=parent)
             for obj in model_data:
                 item = decoder.__pyxrd_decode__(obj, parent=parent)
@@ -57,19 +59,19 @@ class ObjectListStore(BaseObjectListStore, Storable):
     def json_properties(self):
         return { 'class_type': self._class_type.__store_id__,
                  'model_data': self._model_data }
-                 
+
     def __reduce__(self):
-        return (type(self), ((self._class_type,),{ 
+        return (type(self), ((self._class_type,), {
             "model_data": self._model_data,
         }))
 
     # ------------------------------------------------------------
     #      Methods & Functions
-    # ------------------------------------------------------------        
+    # ------------------------------------------------------------
     def on_get_iter(self, path):
         try:
             return self._model_data[path[0]]
-        except IndexError, msg:
+        except IndexError:
             return None
 
     def on_get_path(self, rowref):
@@ -91,8 +93,8 @@ class ObjectListStore(BaseObjectListStore, Storable):
     def on_iter_next(self, rowref):
         n, = self.on_get_path(rowref)
         try:
-            rowref = self._model_data[n+1]
-        except IndexError, msg:
+            rowref = self._model_data[n + 1]
+        except IndexError:
             rowref = None
         return rowref
 
@@ -124,13 +126,13 @@ class ObjectListStore(BaseObjectListStore, Storable):
 
     def on_iter_parent(self, rowref):
         return None
-        
+
     def append(self, item):
         if not isinstance(item, self._class_type):
             raise ValueError, 'Invalid type, must be %s but got %s instead' % (self._class_type, type(item))
         elif not self.item_in_model(item):
             self._model_data.append(item)
-            return self._emit_added(item)          
+            return self._emit_added(item)
     def insert(self, pos, item):
         if not isinstance(item, self._class_type):
             raise ValueError, 'Invalid type, must be %s but got %s instead' % (self._class_type, type(item))
@@ -145,7 +147,7 @@ class ObjectListStore(BaseObjectListStore, Storable):
         self.row_inserted(path, itr)
         self.emit('item-inserted', item)
         return path
-                
+
     def remove(self, itr):
         self.remove_item(self.get_user_data(itr))
     def remove_item(self, item):
@@ -159,10 +161,10 @@ class ObjectListStore(BaseObjectListStore, Storable):
         self.row_deleted((index,))
 
     def clear(self, callback=None):
-        data = list(self._model_data) #make a copy
+        data = list(self._model_data) # make a copy
         def reverse_enum(L):
-           for index in reversed(xrange(len(L))):
-              yield index, L[index]
+            for index in reversed(xrange(len(L))):
+                yield index, L[index]
         for i, item in reverse_enum(data):
             self.__remove_item_index(item, i)
             if callable(callback): callback(item)
@@ -177,49 +179,49 @@ class ObjectListStore(BaseObjectListStore, Storable):
 
     def index(self, item):
         return self._model_data.index(item)
-        
+
     def replace_item(self, old_item, new_item):
         index = self.index(old_item)
         self.remove_item(old_item)
         self.insert(index, new_item)
-        
+
     def get_item_by_index(self, index):
         return self._model_data[index]
-        
+
     def reposition_item(self, item, new_pos):
         old_pos = self._model_data.index(item)
         if old_pos != new_pos:
-            new_order = smart_repos(len(self._model_data), old_pos, new_pos)   
-            
+            new_order = smart_repos(len(self._model_data), old_pos, new_pos)
+
             self._model_data.remove(item)
             self._model_data.insert(new_pos, item)
-            
+
             itr = self.create_tree_iter(item)
             path = self.get_path(itr)
             self.rows_reordered(None, None, new_order)
-    
+
     def move_item_down(self, item):
-        if item!=None:
+        if item != None:
             old_pos = self._model_data.index(item)
-            new_pos = old_pos + 1            
+            new_pos = old_pos + 1
             if new_pos < len(self._model_data):
                 self.reposition_item(item, new_pos)
-    
+
     def move_item_up(self, item):
-        if item!=None:
+        if item != None:
             old_pos = self._model_data.index(item)
-            new_pos = old_pos - 1            
+            new_pos = old_pos - 1
             if new_pos >= 0:
-                self.reposition_item(item, new_pos) 
-                
+                self.reposition_item(item, new_pos)
+
     def get_raw_model_data(self):
         return self._model_data
-        
+
     def iter_objects(self):
         for item in self._model_data:
             yield item
 
-    pass #end of class
+    pass # end of class
 
 gobject.type_register(ObjectListStore)
 
@@ -234,19 +236,19 @@ class IndexListStore(ObjectListStore):
     __store_id__ = "IndexListStore"
     _index_column_name = None
     _index = None
-    
+
     _item_observer = None
     class ItemObserver(Observer):
         liststore = None
-        
+
         ignore_next_notification = False
-        
+
         def __init__(self, liststore, *args, **kwargs):
             self.liststore = liststore
             self.index_column_name = liststore._index_column_name
             Observer.__init__(self, *args, **kwargs)
             self.observe(self.notification, liststore._index_column_name, assign=True)
-        
+
         def notification(self, model, prop_name, info):
             if not self.ignore_next_notification:
                 if self.liststore.index_in_model(info["new"]):
@@ -260,7 +262,7 @@ class IndexListStore(ObjectListStore):
                     self.liststore._index[info["new"]] = model
                     del self.liststore._index[info["old"]]
             self.ignore_next_notification = False
-    
+
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
@@ -280,15 +282,15 @@ class IndexListStore(ObjectListStore):
         self._index_column_name = class_type.__index_column__
         self._item_observer = IndexListStore.ItemObserver(liststore=self)
         ObjectListStore.__init__(self, class_type, **kwargs)
-       
+
     def __reduce__(self):
-        return (type(self), ((self._class_type,),{ 
+        return (type(self), ((self._class_type,), {
             "model_data": self._model_data,
         }))
-       
+
     # ------------------------------------------------------------
     #      Methods & Functions
-    # ------------------------------------------------------------ 
+    # ------------------------------------------------------------
     def append(self, item):
         assert not self.item_in_model(item)
         return ObjectListStore.append(self, item)
@@ -310,23 +312,23 @@ class IndexListStore(ObjectListStore):
     def clear(self):
         self._index.clear()
         ObjectListStore.clear(self, self._item_observer.relieve_model)
-       
+
     def item_in_model(self, item):
         index = getattr(item, self._index_column_name)
         return index in self._index
 
     def index_in_model(self, index):
         return (index in self._index)
-        
+
     def get_item_by_index(self, index):
         if self.index_in_model(index):
             return self._index[index]
         else:
             return None
-            
+
     def get_raw_model_data(self):
         return self._index
 
-    pass #end of class
+    pass # end of class
 
 gobject.type_register(IndexListStore)

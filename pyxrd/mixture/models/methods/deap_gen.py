@@ -5,11 +5,10 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from itertools import izip
+from itertools import izip, imap
 
 import numpy as np
 from deap import creator, base, cma, tools
-    
 
 from pyxrd.data.settings import POOL as pool
 
@@ -186,11 +185,22 @@ class RefineCMAESRun(RefineRun):
 
         # Setup strategy:
         strategy = CustomStrategy(centroid=context.initial_solution, sigma=2, lambda_=lambda_)
+
         # Pre-feed the strategy with a normal distributed population over the entire domain (large population):
         solutions = np.random.normal(size=(init_lambda, N))
         solutions = (solutions - solutions.min()) / (solutions.max() - solutions.min()) # stretch to [0-1] interval
         solutions = bounds[:, 0] + solutions * (bounds[:, 1] - bounds[:, 0])
-        strategy.update(map(create_individual, solutions))
+        population = []
+        results = []
+        for ind in imap(create_individual, solutions):
+            result = pool.apply_async(toolbox.evaluate, (ind,))
+            population.append(ind)
+            results.append(result)
+        for ind, result in izip(population, results):
+            ind.fitness.values = result.get()
+        del results # clear some memory
+        strategy.update(population)
+
         toolbox.register("update", strategy.update)
         toolbox.register("generate", strategy.generate, create_individual)
 

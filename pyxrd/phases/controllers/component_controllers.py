@@ -10,7 +10,8 @@ from pyxrd.gtkmvc import Controller
 from pyxrd.generic.views import InlineObjectListStoreView
 from pyxrd.generic.views.combobox_tools import add_combo_text_column
 from pyxrd.generic.controllers import BaseController, ChildObjectListStoreController
-from pyxrd.generic.controllers.utils import get_case_insensitive_glob, DummyAdapter
+from pyxrd.generic.controllers.utils import DummyAdapter
+from pyxrd.generic.io.utils import get_case_insensitive_glob
 
 from pyxrd.phases.controllers import EditLayerController, EditAtomRelationsController, EditUnitCellPropertyController
 from pyxrd.phases.views import EditComponentView, EditUnitCellPropertyView

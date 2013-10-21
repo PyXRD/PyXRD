@@ -11,7 +11,7 @@ from io import SEEK_SET, SEEK_CUR, SEEK_END
 import numpy as np
 
 from pyxrd.generic.io.file_parsers import BaseParser, register_parser
-from pyxrd.generic.controllers.utils import get_case_insensitive_glob
+from pyxrd.generic.io.utils import get_case_insensitive_glob
 from pyxrd.generic.utils import u
 from pyxrd.generic.custom_math import capint as cap
 
@@ -25,8 +25,8 @@ class RDParser(XRDParserMixin, BaseParser):
 
     description = "Phillips Binary V3/V5 *.RD"
     namespace = "xrd"
-    extensions  = get_case_insensitive_glob("*.RD")
-    mimetypes   = ["application/octet-stream",]
+    extensions = get_case_insensitive_glob("*.RD")
+    mimetypes = ["application/octet-stream", ]
 
     __file_mode__ = "rb"
 
@@ -36,16 +36,16 @@ class RDParser(XRDParserMixin, BaseParser):
 
         # Adapt XRDFile list
         data_objects = cls._adapt_data_object_list(data_objects, num_samples=1)
-           
+
         # Go to the start of the file
         f.seek(0, SEEK_SET)
-        
+
         # Read file format version:
         version = str(f.read(2))
-           
+
         if version in ("V3", "V5"):
-        
-            #Read diffractometer, target and focus type:
+
+            # Read diffractometer, target and focus type:
             f.seek(84, SEEK_SET)
             diffractomer_type, target_type, focus_type = struct.unpack("bbb", f.read(3))
             diffractomer_type = {
@@ -70,25 +70,25 @@ class RDParser(XRDParserMixin, BaseParser):
                 3: "LFF",
                 4: "Unkown",
             }[cap(0, focus_type, 3, 4)]
-           
-            #Read wavelength information:        
+
+            # Read wavelength information:
             f.seek(94, SEEK_SET)
             alpha1, alpha2, alpha_factor = struct.unpack("ddd", f.read(24))
-            #Read sample name:
+            # Read sample name:
             f.seek(146, SEEK_SET)
             sample_name = u(str(f.read(16)).replace("\0", ""))
 
-            #Read data limits:
+            # Read data limits:
             f.seek(214)
             twotheta_step, twotheta_min, twotheta_max = struct.unpack("ddd", f.read(24))
             twotheta_count = int((twotheta_max - twotheta_min) / twotheta_step)
-           
-            #Set data start:
+
+            # Set data start:
             data_start = {
                 "V3": 250,
                 "V5": 810
             }[version]
-            
+
             data_objects[0].update(
                 filename=u(os.path.basename(filename)),
                 name=sample_name,
@@ -106,40 +106,40 @@ class RDParser(XRDParserMixin, BaseParser):
 
         else:
             raise IOError, "Only V3 and V5 *.RD files are supported!"
-        
+
         if close: f.close()
         return data_objects
-    
+
     @classmethod
     def parse_data(cls, filename, f=None, data_objects=None, close=False):
         filename, f, close = cls._get_file(filename, f=f, close=close)
-                
+
         data_objects = cls.parse_header(filename, f=f, data_objects=data_objects)
-        
-        #RD files are singletons, so no need to iterate over the list,
-        #there is only one XRDFile instance:
+
+        # RD files are singletons, so no need to iterate over the list,
+        # there is only one XRDFile instance:
         if data_objects[0].data == None:
             data_objects[0].data = []
-            
-        #Parse data:
+
+        # Parse data:
         if f != None:
             if data_objects[0].version in ("V3", "V5"):
-                #Move to start of data:
+                # Move to start of data:
                 f.seek(data_objects[0].data_start)
                 n = 0
                 while n < data_objects[0].twotheta_count:
                     y, = struct.unpack("H", f.read(2))
                     data_objects[0].data.append([
-                        data_objects[0].twotheta_min + data_objects[0].twotheta_step*float(n + 0.5),
+                        data_objects[0].twotheta_min + data_objects[0].twotheta_step * float(n + 0.5),
                         float(y)
                     ])
                     n += 1
             else:
                 raise IOError, "Only V3 and V5 *.RD files are supported!"
-                    
+
         data_objects[0].data = np.array(data_objects[0].data)
-                    
+
         if close: f.close()
         return data_objects
-        
-    pass #end of class
+
+    pass # end of class

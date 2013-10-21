@@ -23,16 +23,16 @@ def get_factors(range_stl, component):
         2*sin(θ) / λ values and the given component's layer and interlayer atoms.
     """
 
-    z_factor = (component.d001 - component.lattice_d) / (component.default_c - component.lattice_d)    
+    z_factor = (component.d001 - component.lattice_d) / (component.default_c - component.lattice_d)
 
-    num_layer_atoms= len(component.layer_atoms)
+    num_layer_atoms = len(component.layer_atoms)
 
-    sf_tot = 0.0
+    sf_tot = 0.0 + 0.0j
     for i, atom in enumerate(chain(component.layer_atoms, component.interlayer_atoms)):
-        atom.z = atom.default_z    
+        atom.z = atom.default_z
         if i >= num_layer_atoms:
-            atom.z = calculate_z(atom.z, component.lattice_d, z_factor)      
+            atom.z = calculate_z(atom.z, component.lattice_d, z_factor)
         sf_tot += get_structure_factor(range_stl, atom)
-        
-    phi_tot = np.exp(2.*pi*range_stl * (component.d001*1j - pi*component.delta_c*range_stl))
+
+    phi_tot = np.exp(2.*pi * range_stl * (component.d001 * 1j - pi * component.delta_c * range_stl))
     return sf_tot, phi_tot

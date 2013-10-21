@@ -10,7 +10,7 @@ import os, csv
 import numpy as np
 
 from pyxrd.generic.io.file_parsers import ASCIIParser, register_parser
-from pyxrd.generic.controllers.utils import get_case_insensitive_glob
+from pyxrd.generic.io.utils import get_case_insensitive_glob
 from pyxrd.generic.utils import u
 
 ################################################################################

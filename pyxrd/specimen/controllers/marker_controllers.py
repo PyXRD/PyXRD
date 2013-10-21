@@ -13,7 +13,7 @@ from pyxrd.generic.plot.controllers import DraggableVLine, EyedropperCursorPlot
 from pyxrd.generic.controllers import DialogController, BaseController, ObjectListStoreController
 from pyxrd.generic.views.validators import FloatEntryValidator
 from pyxrd.generic.views.treeview_tools import setup_treeview, new_text_column, new_toggle_column
-from pyxrd.generic.controllers.utils import get_case_insensitive_glob
+from pyxrd.generic.io.utils import get_case_insensitive_glob
 
 from pyxrd.specimen.models import Marker, ThresholdSelector, MineralScorer
 from pyxrd.specimen.views import (

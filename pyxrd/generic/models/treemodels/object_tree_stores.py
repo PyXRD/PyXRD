@@ -5,10 +5,14 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-import json
 from traceback import print_exc
 
-import gtk, gobject
+try:
+    import gtk, gobject
+except ImportError:
+    GOBJECT_AVAILABLE = False
+else:
+    GOBJECT_AVAILABLE = True
 
 from pyxrd.generic.io import storables
 
@@ -47,7 +51,7 @@ class ObjectTreeNode(object):
     @property
     def has_children(self):
         return bool(self._children)
-        
+
     @property
     def child_count(self):
         return len(self._children)
@@ -57,40 +61,40 @@ class ObjectTreeNode(object):
         self.object = obj
         self._children = list()
         for child in children: self.append(child)
-               
+
     def get_child_node_index(self, child_node):
         return self._children.index(child_node)
-        
+
     def get_root_node(self):
         parent = self.parent
-        while parent.parent!=None:
+        while parent.parent != None:
             parent = parent.parent
         return parent
-        
+
     def get_next_node(self):
         try:
             return self.parent.get_child_node(
-                self.parent.get_child_node_index(self)+1)
+                self.parent.get_child_node_index(self) + 1)
         except IndexError:
             return None
-        
+
     def get_prev_node(self):
         try:
             return self.parent.get_child_node(
-                self.parent.get_child_node_index(self)-1)
+                self.parent.get_child_node_index(self) - 1)
         except IndexError:
-            return None            
-        
+            return None
+
     def get_indeces(self):
         parent = self.parent
         node = self
         indeces = tuple()
-        while parent!=None:
+        while parent != None:
             indeces += (parent.get_child_node_index(node),)
             node = parent
             parent = parent.parent
         return indeces[::-1] or None
-        
+
     def get_child_node(self, *indeces):
         node = self
         for index in indeces:
@@ -99,21 +103,21 @@ class ObjectTreeNode(object):
             except IndexError:
                 return None
         return node
-        
+
     def get_first_child_node(self):
         try:
             return self._children[0]
         except IndexError:
             return None
-        
+
     def get_child_object(self, *indeces):
         return self.get_child_node(*indeces).object
-        
+
     def clear(self):
         for c in self.iter_children(reverse=True, recursive=True):
             yield c
-            c.parent=None
-        
+            c.parent = None
+
     def iter_children(self, reverse=False, recursive=False):
         children = self._children if not reverse else self._children[::-1]
         for child_node in children:
@@ -121,10 +125,10 @@ class ObjectTreeNode(object):
                 for c in child_node.iter_children(reverse=reverse, recursive=recursive):
                     yield c
             yield child_node
-        
+
     def __repr__(self):
-        return '%s(%s - %s)' % (type(self).__name__, self.object, "%d child nodes"%len(self._children))
-        
+        return '%s(%s - %s)' % (type(self).__name__, self.object, "%d child nodes" % len(self._children))
+
 class ObjectTreeStore(BaseObjectListStore):
     """
         GenericTreeModel implementation that holds a tree with objects.
@@ -132,17 +136,18 @@ class ObjectTreeStore(BaseObjectListStore):
         an iter). This TreeStore does not require the objects to be unique.
     """
 
-    #MODEL INTEL:
+    # MODEL INTEL:
     __store_id__ = "ObjectTreeStore"
 
-    #SIGNALS:
-    __gsignals__ = { 
-        'item-removed' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
-        'item-inserted' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,))
-    }
+    # SIGNALS:
+    if GOBJECT_AVAILABLE:
+        __gsignals__ = {
+            'item-removed' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
+            'item-inserted' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,))
+        }
 
-    #PROPERTIES:
-    # An object tree node with obj = None  
+    # PROPERTIES:
+    # An object tree node with obj = None
     _model_data = None
     _object_node_map = None
 
@@ -162,18 +167,19 @@ class ObjectTreeStore(BaseObjectListStore):
     def json_properties(self):
         return { 'class_type': self._class_type.__store_id__,
                  'model_data': self._model_data }
-                 
+
     def __reduce__(self):
-        return (type(self), ((self._class_type,),{ 
+        return (type(self), ((self._class_type,), {
             "model_data": self._model_data,
         }))
 
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------
-    def on_get_flags(self):
-        return gtk.TREE_MODEL_ITERS_PERSIST
-        
+    if GOBJECT_AVAILABLE:
+        def on_get_flags(self):
+            return gtk.TREE_MODEL_ITERS_PERSIST
+
     def on_get_iter(self, path):
         try:
             if hasattr(path, 'split'): path = map(int, path.split(":"))
@@ -185,7 +191,7 @@ class ObjectTreeStore(BaseObjectListStore):
 
     def on_get_path(self, node):
         try:
-            return ":".join(map(str,node.get_indeces()))
+            return ":".join(map(str, node.get_indeces()))
         except ValueError:
             print "ValueError in on_get_path of %s caused by %s" % (self, node)
             print_exc()
@@ -198,11 +204,11 @@ class ObjectTreeStore(BaseObjectListStore):
 
     def on_get_value(self, node, column):
         try:
-            return getattr(node.object, self._columns[column][0])   
+            return getattr(node.object, self._columns[column][0])
         except:
             print node, column, self._columns[column][0]
             return ""
-            
+
 
     def on_iter_next(self, node):
         return node.get_next_node()
@@ -228,14 +234,14 @@ class ObjectTreeStore(BaseObjectListStore):
 
     def on_iter_parent(self, node):
         return node.parent
-        
+
     def append(self, parent, item):
         if not isinstance(item, self._class_type):
             raise ValueError, 'Invalid type, must be %s but got %s instead' % (self._class_type, type(item))
         else:
             parent = parent or self._model_data
             node = parent.append(item)
-            return self._emit_added(node)          
+            return self._emit_added(node)
     def insert(self, parent, pos, item):
         if not isinstance(item, self._class_type):
             raise ValueError, 'Invalid type, must be %s but got %s instead' % (self._class_type, type(item))
@@ -250,18 +256,20 @@ class ObjectTreeStore(BaseObjectListStore):
         itr = self.create_tree_iter(node)
         path = self.get_path(itr)
         self.row_inserted(path, itr)
-        self.emit('item-inserted', node.object)
+        if GOBJECT_AVAILABLE:
+            self.emit('item-inserted', node.object)
         return node
-                
+
     def remove(self, itr):
         self.remove_item(self.get_tree_node(itr))
     def remove_item(self, node):
         indeces = node.get_indeces()
-        node.parent = None #break link
+        node.parent = None # break link
         del self._object_node_map[node.object]
         if hasattr(node.object, "__list_store__"):
             node.object.__list_store__ = None
-        self.emit('item-removed', node.object)
+        if GOBJECT_AVAILABLE:
+            self.emit('item-removed', node.object)
         self.row_deleted(indeces)
 
     def clear(self, callback=None):
@@ -274,10 +282,10 @@ class ObjectTreeStore(BaseObjectListStore):
         itr = self.create_tree_iter(node)
         path = self.get_path(itr)
         self.row_changed(path, itr)
-               
+
     def get_raw_model_data(self):
         return self._model_data
-        
+
     def iter_objects(self):
         for node in self._model_data.iter_children(recursive=True):
             yield node.object
@@ -290,10 +298,11 @@ class ObjectTreeStore(BaseObjectListStore):
 
     def get_user_data(self, itr):
         return BaseObjectListStore.get_user_data(self, itr).object
-        
+
     def get_user_data_from_path(self, path):
         return BaseObjectListStore.get_user_data_from_path(self, path).object
 
-    pass #end of class
+    pass # end of class
 
-gobject.type_register(ObjectTreeStore)
+if GOBJECT_AVAILABLE:
+    gobject.type_register(ObjectTreeStore)

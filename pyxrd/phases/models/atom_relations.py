@@ -8,13 +8,14 @@
 from pyxrd.gtkmvc.model import Signal
 
 from pyxrd.generic.models import ChildModel, PropIntel
+from pyxrd.generic.models.treemodels import ObjectListStore
 from pyxrd.generic.models.metaclasses import pyxrd_object_pool
 from pyxrd.generic.models.mixins import ObjectListStoreChildMixin
 from pyxrd.generic.io import storables, Storable
 
 from pyxrd.generic.refinement.mixins import RefinementValue
 
-from gtk import ListStore
+# from gtk import ListStore
 
 class ComponentPropMixin(object):
     """
@@ -131,7 +132,8 @@ class AtomRelation(ChildModel, Storable, ObjectListStoreChildMixin, ComponentPro
     # ------------------------------------------------------------
     def create_prop_store(self, prop=None):
         if self.component != None:
-            store = ListStore(object, str, object)
+            import gtk
+            store = gtk.ListStore(object, str, object)
             for atom in self.component._layer_atoms.iter_objects():
                 store.append([atom, "pn", lambda o: o.name])
             for atom in self.component._interlayer_atoms.iter_objects():
@@ -232,6 +234,29 @@ class AtomRatio(AtomRelation):
 
     pass # end of class
 
+
+class AtomContentObject():
+    """
+        Wrapper around an atom object used in the AtomContents model.
+        Stores the atom, the property to set and it's default amount.
+    """
+    __columns__ = [
+        ("atom", object),
+        ("prop", object),
+        ("amount", float)
+    ]
+
+    def __init__(self, atom, prop, amount):
+        self.atom = atom
+        self.prop = prop
+        self.amount = amount
+
+    def update_atom(self, value):
+        if not (self.atom == "" or self.atom == None or self.prop == None):
+            setattr(self.atom, self.prop, self.amount * value);
+
+    pass
+
 @storables.register()
 class AtomContents(AtomRelation):
 
@@ -257,11 +282,11 @@ class AtomContents(AtomRelation):
     # ------------------------------------------------------------
     def __init__(self, atom_contents=None, name="New Contents", **kwargs):
         AtomRelation.__init__(self, name=name, **kwargs)
-        self._atom_contents = ListStore(object, object, float)
+        self._atom_contents = ObjectListStore(AtomContentObject)
 
         if atom_contents:
-            for row in atom_contents:
-                self._atom_contents.append(row)
+            for uuid, prop, amount in atom_contents: # uuids are resolved by calling resolve_relations!
+                self._atom_contents.append(AtomContentObject(uuid, prop, amount))
 
         def on_change(*args):
             if self.enabled: # no need for updates in this case
@@ -276,8 +301,11 @@ class AtomContents(AtomRelation):
     def json_properties(self):
         retval = Storable.json_properties(self)
         retval["atom_contents"] = list([
-            [row[0].uuid if row[0] else None, row[1], row[2]]
-            for row in retval["atom_contents"]
+            [
+                atom_contents.atom.uuid if atom_contents.atom else None,
+                atom_contents.prop,
+                atom_contents.amount
+            ] for atom_contents in retval["atom_contents"].iter_objects()
         ])
         return retval
 
@@ -286,9 +314,9 @@ class AtomContents(AtomRelation):
         enabled = self.enabled
         self.enabled = False
         # Change rows with string references to objects (uuid's)
-        for row in self._atom_contents:
-            if isinstance(row[0], basestring):
-                row[0] = pyxrd_object_pool.get_object(row[0])
+        for atom_content in self.atom_contents.iter_objects():
+            if isinstance(atom_content.atom, basestring):
+                atom_content.atom = pyxrd_object_pool.get_object(atom_content.atom)
         # Set the flag to its original value
         self.enabled = enabled
 
@@ -297,8 +325,7 @@ class AtomContents(AtomRelation):
     # ------------------------------------------------------------
     def apply_relation(self):
         if self.enabled and self.applicable:
-            for atom, prop, amount in self.atom_contents:
-                if not (atom == "" or atom == None or prop == None):
-                    setattr(atom, prop, amount * self.value)
+            for atom_content in self.atom_contents.iter_objects():
+                atom_content.update_atom(self.value)
 
     pass # end of class

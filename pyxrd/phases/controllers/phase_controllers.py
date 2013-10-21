@@ -15,7 +15,8 @@ from pyxrd.generic.views import ChildObjectListStoreView
 from pyxrd.generic.views.treeview_tools import new_pb_column
 from pyxrd.generic.views.combobox_tools import add_combo_text_column
 from pyxrd.generic.controllers import DialogController, BaseController, ObjectListStoreController
-from pyxrd.generic.controllers.utils import get_case_insensitive_glob, DummyAdapter
+from pyxrd.generic.controllers.utils import DummyAdapter
+from pyxrd.generic.io.utils import get_case_insensitive_glob
 from pyxrd.generic.models.treemodels.utils import create_treestore_from_directory
 
 from pyxrd.probabilities.models import get_Gbounds_for_R, get_Rbounds_for_G

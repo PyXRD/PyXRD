@@ -12,6 +12,7 @@ from itertools import chain, izip
 from collections import OrderedDict
 
 from pyxrd.gtkmvc.model import Signal
+from pyxrd.gtkmvc.model_mt import ModelMT
 import numpy as np
 
 from pyxrd.data import settings
@@ -426,10 +427,11 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
             Respects the current minimum and maximum values.
             Executes an optimization after the randomization.
         """
+        ModelMT.hold_back_notifications()
         for ref_prop in self.refinables.iter_objects():
             if ref_prop.refine and ref_prop.refinable:
                 ref_prop.value = random.uniform(ref_prop.value_min, ref_prop.value_max)
-
+        ModelMT.unhold_back_notifications()
 
     def get_refine_method(self):
         return self.all_refine_methods[self.refine_method]

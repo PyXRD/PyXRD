@@ -12,7 +12,6 @@ import multiprocessing
 from traceback import print_exc
 import warnings
 import argparse, os
-import gtk
 
 def _worker_initializer(*args):
     from pyxrd.data import settings
@@ -93,6 +92,7 @@ def _close_pool(pool):
 
 def _run_gui(args, splash=None):
     # Now we can load these:
+    import gtk
     from pyxrd.data import settings
     from pyxrd.project.models import Project
     from pyxrd.application.models import AppModel

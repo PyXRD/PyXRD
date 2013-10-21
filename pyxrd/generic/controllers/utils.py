@@ -9,6 +9,29 @@ import gtk
 
 from pyxrd.gtkmvc.adapters import Adapter
 
+class TextBufferAdapter(Adapter):
+
+    def __init__(self, model, prop_name):
+        super(TextBufferAdapter, self).__init__(
+            model, prop_name,
+            prop_cast=False
+        )
+        self._buffer = gtk.TextBuffer()
+
+    def connect_widget(self, widget):
+        self._wid = widget
+        self._wid.set_buffer(self._buffer)
+        super(TextBufferAdapter, self).connect_widget(
+                self._buffer,
+                TextBufferAdapter._get_text, gtk.TextBuffer.set_text,
+                update=True, signal="changed"
+        )
+
+    @staticmethod
+    def _get_text(bfr):
+        return str(bfr.get_text(*bfr.get_bounds()))
+
+
 class StoreAdapter(object):
 
     def __init__(self, model, prop_name, store_setter, store_getter=None):
@@ -99,11 +122,3 @@ class ComboAdapter(Adapter):
 
         # Continue as usual:
         super(ComboAdapter, self).connect_widget(wid, getter, setter, update=True, signal="changed")
-
-def get_case_insensitive_glob(*strings):
-    '''Ex: '*.ora' => '*.[oO][rR][aA]' '''
-    return ['*.%s' % ''.join(["[%s%s]" % (c.lower(), c.upper()) for c in string.split('.')[1]]) for string in strings]
-
-def retrieve_lowercase_extension(glob):
-    '''Ex: '*.[oO][rR][aA]' => '*.ora' '''
-    return ''.join([ c.replace("[", "").replace("]", "")[:-1] for c in glob.split('][')])

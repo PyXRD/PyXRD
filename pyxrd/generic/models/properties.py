@@ -5,7 +5,7 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-import gtk
+# import gtk
 from warnings import warn
 
 class IndexProperty(object):
@@ -117,6 +117,7 @@ widget_types = [ # TODO move this
     ('color-selection', types.StringType),
     ('file', types.StringType),
     ('link', types.StringType),
+    ('text_view', types.StringType),
 
     ('spin', types.IntType), # Default for integers
     ('label', types.IntType),
@@ -126,7 +127,7 @@ widget_types = [ # TODO move this
     ('check_menu', types.BooleanType),
     ('expander', types.BooleanType),
 
-    ('arrow', gtk.ArrowType), # Default for arrows
+    # ('arrow', gtk.ArrowType), # Default for arrows, not used for now
 
     ('custom', types.ObjectType), # Default for objects
     ('tree_view', types.ObjectType),

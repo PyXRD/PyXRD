@@ -43,6 +43,7 @@ POOL = None
 #  - None - Do not cache, or try to use a cache.
 CACHE = "FILE_FETCH_ONLY"
 CACHE_SIZE = 500 * (1024 * 1024) # size of on-disk cache in bytes (10 Mb)
+GUI_MODE = True
 
 ### Default Styles & Colors ###
 DEFAULT_LAYOUT = "VIEWER" # one of the keys in DEFAULT_LAYOUTS!
@@ -136,6 +137,9 @@ def apply_runtime_settings(no_gui=True, debug=False, pool=None):
     global __apply_lock__, SETTINGS_APPLIED
     if not __apply_lock__ and not SETTINGS_APPLIED:
         __apply_lock__ = True
+        global GUI_MODE
+        GUI_MODE = not no_gui
+
         global DEBUG
         global POOL
         global DATA_REG, DATA_DIRS, DATA_FILES

@@ -11,6 +11,7 @@ from pyxrd.gtkmvc.model import Signal, Observer
 
 import numpy as np
 
+from pyxrd.data import settings
 from pyxrd.generic.io import storables, Storable
 from pyxrd.generic.models import ExperimentalLine, CalculatedLine, ChildModel, PropIntel
 from pyxrd.generic.models.mixins import ObjectListStoreChildMixin, ObjectListStoreParentMixin
@@ -488,7 +489,8 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
                 phase_intensities,
                 phases
             )
-        self.statistics.update_statistics() # FIXME
+        if settings.GUI_MODE:
+            self.statistics.update_statistics()
 
     def get_phase_intensities(self, phases):
         """

@@ -51,33 +51,6 @@ class ModelMT (Model):
 
     __metaclass__ = metaclasses.ObservablePropertyMetaMT
 
-    __hold_back_notifications__ = False
-    __stored_notifications__ = []
-
-    @staticmethod
-    def release_stored_notifications():
-
-        for self, observer, method, args, kwargs in ModelMT.__stored_notifications__:
-            Model.__notify_observer__(self, observer, method,
-                                             *args, **kwargs)
-        ModelMT.__stored_notifications__ = [] # clear variable
-
-    @staticmethod
-    def hold_back_notifications():
-        """
-            If a massive number of notification is triggered by a single piece of code,
-            wrap it in hold_back_notifications() and unhold_back_notifications()
-            calls to hold them back until all properties have been set.
-            The last call will release the stored calls by calling
-            release_stored_notifications.
-        """
-        ModelMT.__hold_back_notifications__ = True
-
-    @staticmethod
-    def unhold_back_notifications():
-        ModelMT.release_stored_notifications()
-        ModelMT.__hold_back_notifications__ = False
-
     def __init__(self):
         Model.__init__(self)
         self.__observer_threads = {}
@@ -105,18 +78,10 @@ class ModelMT (Model):
         global GOBJECT_AVAILABLE
         # FIXME: we need some way to call these on the main thread without relying on gobject...
         if not GOBJECT_AVAILABLE or _threading.currentThread() == self.__observer_threads[observer]: # @UndefinedVariable
-            # standard call
-
-            if self.__hold_back_notifications__:
-                self.__stored_notifications__.append((
-                    self, observer, method, args, kwargs))
-                return
-            else:
-                return Model.__notify_observer__(
-                    self, observer, method, *args, **kwargs)
-
-        # multi-threading call
-        gobject.idle_add(self.__idle_callback, observer, method, args, kwargs)
+            return Model.__notify_observer__(
+                self, observer, method, *args, **kwargs)
+        else:
+            gobject.idle_add(self.__idle_callback, observer, method, args, kwargs)
         return
 
     def __idle_callback(self, observer, method, args, kwargs):

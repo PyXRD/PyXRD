@@ -286,6 +286,8 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
             Sets the fractions, scales and bgshifts of this mixture and emits
             a signal indicating they have changed.
         """
+        self.project.freeze_updates()
+
         self.fractions[:] = list(mixture.fractions)
         self.scales[:] = list(mixture.scales)
         self.bgshifts[:] = list(mixture.bgshifts)
@@ -301,6 +303,8 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
                         specimen_data.phase_intensities * self.fractions[:, np.newaxis] * self.scales[i],
                         self.phase_matrix[i, :]
                     )
+
+        self.project.thaw_updates()
 
         if not silent:
             self.has_changed.emit()
@@ -427,11 +431,11 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
             Respects the current minimum and maximum values.
             Executes an optimization after the randomization.
         """
-        ModelMT.hold_back_notifications()
+        self.project.freeze_updates()
         for ref_prop in self.refinables.iter_objects():
             if ref_prop.refine and ref_prop.refinable:
                 ref_prop.value = random.uniform(ref_prop.value_min, ref_prop.value_max)
-        ModelMT.unhold_back_notifications()
+        self.project.thaw_updates()
 
     def get_refine_method(self):
         return self.all_refine_methods[self.refine_method]

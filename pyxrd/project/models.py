@@ -239,7 +239,9 @@ class Project(ChildModel, Storable, ObjectListStoreParentMixin):
         self._mixtures = self.parse_liststore_arg(mixtures, ObjectListStore, Mixture)
 
         for phase in self._phases._model_data:
+            self.freeze_updates()
             phase.resolve_json_references()
+            self.thaw_updates()
             self.observe_model(phase)
         for specimen in self._specimens.iter_objects():
             if goniometer: specimen.goniometer = goniometer
@@ -312,8 +314,7 @@ class Project(ChildModel, Storable, ObjectListStoreParentMixin):
     @Observer.observe("needs_update", signal=True)
     def notify_needs_update(self, model, prop_name, info):
         self.needs_saving = True
-        if not self.before_needs_update_lock:
-            self.needs_update.emit() # propagate signal
+        self.needs_update.emit() # propagate signal
 
     @delayed("before_needs_update_lock")
     def before_needs_update(self, after):

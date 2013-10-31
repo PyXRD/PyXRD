@@ -148,7 +148,6 @@ def run_user_script(args=None):
     # Initialize multiprocessing pool:
     pool = _initialize_pool()
 
-
     # start our logging service, prints to stdout and errors.log file
     from pyxrd.generic.loggers import PyXRDLogger
     PyXRDLogger.start_logging()
@@ -171,8 +170,9 @@ def run_gui(args=None):
     # Display a splash screen showing the loading status...
     from pkg_resources import resource_filename # @UnresolvedImport
     from pyxrd.generic.views.splash import SplashScreen
+    from pyxrd import __version__
     filename = resource_filename(__name__, "application/icons/pyxrd.png")
-    splash = SplashScreen(filename)
+    splash = SplashScreen(filename, __version__)
 
     # Check if this is already provided:
     splash.set_message("Parsing arguments ...")

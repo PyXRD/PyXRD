@@ -6,19 +6,21 @@
 # Complete license can be found in the LICENSE file.
 
 from metaclasses import PyXRDMeta
-from signals import DefaultSignal
+from signals import DefaultSignal, HoldableSignal
 from properties import PropIntel, MultiProperty
-from base import PyXRDModel, ChildModel
+from base import PyXRDModel, ChildModel, DataModel
 from lines import PyXRDLine, CalculatedLine, ExperimentalLine
 
 __all__ = [
     "PyXRDMeta"
     "DefaultSignal",
+    "HoldableSignal",
     "PropIntel",
     "MultiProperty",
     "BasePyXRDModel",
     "PyXRDModel",
     "ChildModel",
+    "DataModel",
     "PyXRDLine",
     "CalculatedLine",
     "ExperimentalLine",

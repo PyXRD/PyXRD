@@ -5,11 +5,11 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from pyxrd.gtkmvc.model_mt import ModelMT
+from pyxrd.gtkmvc.model_mt import Model
 
 from pyxrd.generic.refinement.metaclasses import PyXRDRefinableMeta
 
-class _RefinementBase(ModelMT):
+class _RefinementBase(Model):
     """
     Base class for `RefinementGroup` and `RefinementValue` mixins. It's 
     used to provide common functionality and a way to check for the kind of
@@ -34,31 +34,31 @@ class _RefinementBase(ModelMT):
         
     """
     __metaclass__ = PyXRDRefinableMeta
-    
+
     @property
     def refine_title(self):
         return "Refinement Base"
-        
+
     @property
     def is_refinable(self):
         return True
-        
-    @property 
+
+    @property
     def refinables(self):
         return []
-        
+
     @property
     def refine_info(self):
         return None
-        
+
     @property
     def refine_value(self):
         return None
     @refine_value.setter
     def refine_value(self, value):
         pass
-        
-    pass #end of class
+
+    pass # end of class
 
 class RefinementGroup(_RefinementBase):
     """
@@ -74,25 +74,25 @@ class RefinementGroup(_RefinementBase):
         group of properties have a single inherit property.
     
     """
-    
+
     @property
     def refine_title(self):
         return "Refinement Group"
-       
-    @property 
+
+    @property
     def is_refinable(self):
         return False
-      
+
     @property
     def children_refinable(self):
         return True
-       
-    @property 
+
+    @property
     def refinables(self):
         return self.__refinables__
-        
-    pass #end of class
-        
+
+    pass # end of class
+
 class RefinementValue(_RefinementBase):
     """
         Mixin for objects that hold a single refinable property. They are
@@ -101,9 +101,9 @@ class RefinementValue(_RefinementBase):
         more descriptive, and the refine_value property to return and set the
         correct (refinable) attribute.
     """
-    
+
     @property
     def refine_title(self):
         return "Refinement Value"
-        
-    pass #end of class
+
+    pass # end of class

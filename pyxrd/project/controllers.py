@@ -121,9 +121,9 @@ class ProjectController (DialogController, ObjectListStoreMixin, DialogMixin):
     def notif_xscale_toggled(self, model, prop_name, info):
         self.view.set_x_range_sensitive(self.model.axes_xscale == 1)
 
-    @Controller.observe("needs_update", signal=True)
+    """@Controller.observe("data_changed", signal=True)
     def notif_display_props(self, model, prop_name, info):
-        self.parent.redraw_plot()
+        self.parent.redraw_plot()"""
 
     @Controller.observe("layout_mode", assign=True)
     def notif_layout_mode(self, model, prop_name, info):

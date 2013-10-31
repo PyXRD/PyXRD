@@ -92,23 +92,19 @@ def R0_model_generator(pasG):
         # ------------------------------------------------------------
         #      Methods & Functions
         # ------------------------------------------------------------
-        # @delayed()
         def update(self):
-            if self.G > 1:
-                self.mW[0] = self._F[0]
-                for i in range(1, self.G - 1):
-                    self.mW[i] = self._F[i] * (1.0 - np.sum(np.diag(self._W)[0:i]))
-                self.mW[self.G - 1] = 1.0 - np.sum(np.diag(self._W)[:-1])
-            else:
-                self.mW[0] = 1.0
-            self._P[:] = np.repeat(np.diag(self._W)[np.newaxis, :], self.G, 0)
+            with self.data_changed.hold_and_emit():
+                if self.G > 1:
+                    self.mW[0] = self._F[0]
+                    for i in range(1, self.G - 1):
+                        self.mW[i] = self._F[i] * (1.0 - np.sum(np.diag(self._W)[0:i]))
+                    self.mW[self.G - 1] = 1.0 - np.sum(np.diag(self._W)[:-1])
+                else:
+                    self.mW[0] = 1.0
+                self._P[:] = np.repeat(np.diag(self._W)[np.newaxis, :], self.G, 0)
 
-            self.solve()
-            self.validate()
-            self.updated.emit()
-
-        # def get_independent_label_map(self):
-        #    return self.__independent_label_map__[:(self.G-1)]
+                self.solve()
+                self.validate()
 
         pass # end of class
     cls = type("R0G%dModel" % pasG, (R0Model,), dict())

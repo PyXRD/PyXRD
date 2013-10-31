@@ -27,7 +27,7 @@ LOG_NORMAL_MAX_CSDS_FACTOR = 2.5
 ### What type of residual error we use: ###
 #   "Rp" = 'standard' pattern Rp factor
 #   "Rpder" = Rp factor of first-derivatives
-RESIDUAL_METHOD = "Rpder"
+RESIDUAL_METHOD = "Rp"
 
 ### Default wavelength if no Goniometer is available ###
 DEFAULT_LAMBDA = 0.154056

@@ -109,7 +109,7 @@ class ScalableImage(gtk.Image):
     set_from_stock = __not_implemented
 
 class SplashScreen(object):
-    def __init__(self, filename):
+    def __init__(self, filename, version=""):
         # DONT connect 'destroy' event here!
         gtk.window_set_auto_startup_notification(False)
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
@@ -136,6 +136,11 @@ class SplashScreen(object):
         self.lbl.set_markup("<span size=\"larger\"><b>Loading ...</b></span>")
         self.lbl.set_alignment(0.5, 0.5)
         main_vbox.pack_end(self.lbl, True, True)
+
+        self.version_lbl = gtk.Label()
+        self.version_lbl.set_markup("<i>Version %s</i>" % version)
+        self.version_lbl.set_alignment(0.5, 0.5)
+        main_vbox.pack_end(self.version_lbl, True, True)
 
         self.window.show_all()
         while gtk.events_pending():

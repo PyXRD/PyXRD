@@ -15,7 +15,6 @@ from pyxrd.gtkmvc import Controller
 
 from pyxrd.data import settings
 
-from pyxrd.generic.utils import delayed
 from pyxrd.generic.controllers import BaseController, DialogMixin
 from pyxrd.generic.io.utils import get_case_insensitive_glob
 from pyxrd.generic.plot.controllers import MainPlotController, EyedropperCursorPlot
@@ -89,9 +88,11 @@ class AppController (BaseController, DialogMixin):
     #      Notifications of observable properties
     # ------------------------------------------------------------
     @Controller.observe("needs_plot_update", signal=True)
-    @Controller.observe("needs_update", signal=True)
-    def notif_needs_update(self, model, prop_name, info):
-        self.redraw_plot()
+    def notif_needs_plot_update(self, model, prop_name, info):
+        # This is emitted by the Application model, in effect it is either a
+        #  forwarded data_changed or visuals_changed signal coming from the
+        #  project model.
+        self.idle_redraw_plot()
         return
 
     @Controller.observe("current_project", assign=True, after=True)
@@ -106,25 +107,30 @@ class AppController (BaseController, DialogMixin):
     def notif_specimen_changed(self, model, prop_name, info):
         self.reset_specimen_controller()
         self.update_specimen_sensitivities()
-        self.redraw_plot()
+        self.idle_redraw_plot()
         return
 
     # ------------------------------------------------------------
     #      View updating
     # ------------------------------------------------------------
-    _in_update_cycle = False
-    @delayed(lock="_in_update_cycle")
+
+    _idle_redraw_id = None
+    def idle_redraw_plot(self):
+        """
+            Adds a redraw plot function as 'idle' action to the main GTK loop.
+        """
+        self.redraw_plot()
+        """if self._idle_redraw_id != None:
+            gobject.source_remove(self._idle_redraw_id)
+        self._idle_redraw_id = gobject.idle_add(self.redraw_plot)"""
+
     @BaseController.status_message("Updating display...")
     def redraw_plot(self):
-        if not self._in_update_cycle: # Prevent never-ending update loops
-            self._in_update_cycle = True
-            # Let the plot controller update this:
-            self.plot_controller.update(
-                clear=True,
-                project=self.model.current_project,
-                specimens=self.model.current_specimens[::-1]
-            )
-            self._in_update_cycle = False
+        self.plot_controller.update(
+            clear=True,
+            project=self.model.current_project,
+            specimens=self.model.current_specimens[::-1]
+        )
 
     def update_title(self):
         self.view.get_top_widget().set_title("PyXRD - %s" % self.model.current_project.name)
@@ -195,7 +201,9 @@ class AppController (BaseController, DialogMixin):
         return True
 
     def on_about_activate(self, widget, data=None):
-        self.run_dialog(self.view["about_window"], destroy=False)
+        # self.run_dialog(self.view["about_window"], destroy=True)
+        self.view["about_window"].show()
+        return True
 
     def on_main_window_delete_event(self, widget, event):
         def on_accept(dialog):
@@ -218,7 +226,7 @@ class AppController (BaseController, DialogMixin):
 
     def on_refresh_graph(self, event):
         if self.model.current_project:
-            self.model.current_project.needs_update.emit()
+            self.model.current_project.update_all()
 
     def on_save_graph(self, event):
         filename = None

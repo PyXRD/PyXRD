@@ -76,11 +76,11 @@ def optimize_mixture(mixture, parsed=False):
         Optimizes the mixture fractions, scales and bg shifts.
         Returns the mixture data object.
     """
-    # 0. Calculate phase intensitites
+    # 0. Calculate phase intensitities
     try:
         parse_mixture(mixture, parsed=parsed)
     except AssertionError:
-        return mixture # ignore and return the orignal object back
+        return mixture # ignore and return the original object back
 
     # 1. setup start point:
     bounds = [(0, None) for i in range(mixture.m)] + [(0, None) for i in range(mixture.n * 2)]

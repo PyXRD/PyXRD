@@ -67,10 +67,23 @@ class AppView(BaseView, HasChildView):
         BaseView.__init__(self, *args, **kwargs)
 
         # Setup about window:
+        def on_aboutbox_response(dialog, response, *args):
+            if response < 0:
+                dialog.hide()
+                dialog.emit_stop_by_name('response')
+
+        def on_aboutbox_close(widget, event=None):
+            self["about_window"].hide()
+            return gtk.TRUE
+
         self["about_window"].set_version(settings.VERSION)
         pixbuf = gtk.gdk.pixbuf_new_from_file(resource_filename(__name__, "icons/pyxrd.png")) # @UndefinedVariable
         scaled_buf = pixbuf.scale_simple(212, 160, gtk.gdk.INTERP_BILINEAR) # @UndefinedVariable
         self["about_window"].set_logo(scaled_buf)
+        self["about_window"].connect("response", on_aboutbox_response)
+        self["about_window"].connect("close", on_aboutbox_close)
+        self["about_window"].connect("delete_event", on_aboutbox_close)
+
 
         # self.set_layout_modes()
         self.reset_all_views()

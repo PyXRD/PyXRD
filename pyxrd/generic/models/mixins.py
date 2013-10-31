@@ -7,18 +7,17 @@
 
 import csv
 
-from pyxrd.gtkmvc import Observable
-
 class ObjectListStoreChildMixin(object):
-    
+
+    # this is set by the ObjectListStore when an item is added
     __list_store__ = None
-        
+
     def liststore_item_changed(self):
         if self.__list_store__ != None:
             self.__list_store__.on_item_changed(self)
-            
-    pass #end of class
-    
+
+    pass # end of class
+
 class ObjectListStoreParentMixin(object):
 
     def parse_liststore_arg(self, arg, tm_type, child_type):
@@ -38,7 +37,7 @@ class ObjectListStoreParentMixin(object):
         (argument was a 'tm_type' instance), the actual object (argument was a 
         JSON dict)
         """
-        if arg==None:
+        if arg == None:
             return tm_type(child_type)
         elif isinstance(arg, tm_type):
             return arg
@@ -46,14 +45,14 @@ class ObjectListStoreParentMixin(object):
             return tm_type.from_json(parent=self, **arg['properties'])
         else:
             raise ValueError, "Could not parse argument as TreeModel: %s" % arg
-            
+
 class CSVMixin(object):
-    
-    __csv_storables__ = [] #list of tuples "label", "property_name"
+
+    __csv_storables__ = [] # list of tuples "label", "property_name"
 
     @classmethod
     def save_as_csv(type, filename, items):
-        atl_writer = csv.writer(open(filename, 'wb'), delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)      
+        atl_writer = csv.writer(open(filename, 'wb'), delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
         labels, props = zip(*type.__csv_storables__)
         atl_writer.writerow(labels)
         for item in items:
@@ -61,9 +60,9 @@ class CSVMixin(object):
             for prop in props:
                 prop_row.append(getattr(item, prop))
             atl_writer.writerow(prop_row)
-           
-    @classmethod 
-    def get_from_csv(type, filename, callback = None):
+
+    @classmethod
+    def get_from_csv(type, filename, callback=None):
         atl_reader = csv.reader(open(filename, 'rb'), delimiter=',', quotechar='"')
         labels, props = zip(*type.__csv_storables__)
         header = True
@@ -79,5 +78,5 @@ class CSVMixin(object):
                 items.append(new_item)
             header = False
         return items
-    
-    pass #end of class
+
+    pass # end of class

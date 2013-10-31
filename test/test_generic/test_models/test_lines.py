@@ -31,7 +31,8 @@ class TestLineMixin():
 
         class LineObserver(Observer):
             needs_update_recieved = False
-            @Observer.observe("needs_update", signal=True)
+            @Observer.observe("data_changed", signal=True)
+            @Observer.observe("visuals_changed", signal=True)
             def on_update_needed(self, model, prop_name, info):
                 self.needs_update_recieved = True
 

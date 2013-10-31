@@ -8,19 +8,19 @@
 from warnings import warn
 
 from pyxrd.gtkmvc.model import Model
-from pyxrd.gtkmvc.model import Signal, Observer
+from pyxrd.gtkmvc.model import Observer
 
 import numpy as np
 
 from pyxrd.generic.io import storables, Storable
-from pyxrd.generic.models import ChildModel, PropIntel
+from pyxrd.generic.models import DataModel, PropIntel
 from pyxrd.generic.models.mixins import CSVMixin, ObjectListStoreChildMixin
 from pyxrd.generic.models.metaclasses import pyxrd_object_pool
 from pyxrd.generic.calculations.data_objects import AtomTypeData, AtomData
 from pyxrd.generic.calculations.atoms import get_atomic_scattering_factor, get_structure_factor
 
 @storables.register()
-class AtomType(ChildModel, ObjectListStoreChildMixin, Storable, CSVMixin):
+class AtomType(DataModel, ObjectListStoreChildMixin, Storable, CSVMixin):
     """
         AtomType models contain all physical & chemical information for one element 
         in a certain state (e.g. Fe3+ & Fe2+ are two different AtomTypes)
@@ -34,7 +34,6 @@ class AtomType(ChildModel, ObjectListStoreChildMixin, Storable, CSVMixin):
             weight: float, the atomic weight
             debye: float, Debye-Waller scattering factor
             par_aN, par_bN and par_c: the atomic scattering factor parameters with N=[0:5]
-            parameters_changed: signal indicating the parameters have changed
             data_object: the internal data object that is used in the
                 calculations framework (see `generic.calculations.atoms`) 
     """
@@ -49,7 +48,8 @@ class AtomType(ChildModel, ObjectListStoreChildMixin, Storable, CSVMixin):
         PropIntel(name="weight", is_column=True, data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
         PropIntel(name="debye", is_column=True, data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
         PropIntel(name="par_c", is_column=True, data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
-        PropIntel(name="parameters_changed"),
+        PropIntel(name="data_changed"),
+        PropIntel(name="visuals_changed"),
     ] + [
         PropIntel(name="par_a%d" % i, is_column=True, data_type=float, storable=True, has_widget=True, widget_type="float_entry") for i in xrange(1, 6)
     ] + [
@@ -59,13 +59,15 @@ class AtomType(ChildModel, ObjectListStoreChildMixin, Storable, CSVMixin):
     __store_id__ = "AtomType"
 
     # SIGNALS:
-    parameters_changed = None
+    data_changed = None
+    visuals_changed = None
 
     # PROPERTIES:
     _name = ""
     def get_name_value(self): return self._name
     def set_name_value(self, value):
         self._name = value
+        self.visuals_changed.emit()
         self.liststore_item_changed()
 
     atom_nr = 0
@@ -97,23 +99,32 @@ class AtomType(ChildModel, ObjectListStoreChildMixin, Storable, CSVMixin):
 
     @Model.setter("par_a*", "par_b*", "par_c", "debye", "charge", "weight")
     def set_atom_par(self, prop_name, value):
+        try: value = float(value)
+        except ValueError: return # ignore faulty values
         if prop_name.startswith("par_"):
             name = prop_name[4]
             if name == "a":
                 index = int(prop_name[-1:]) - 1
-                self._data_object.par_a[index] = float(value)
+                if self._data_object.par_a[index] != value:
+                    self._data_object.par_a[index] = value
+                    self.data_changed.emit()
             elif name == "b":
                 index = int(prop_name[-1:]) - 1
-                self._data_object.par_b[index] = float(value)
-            elif name == "c":
+                if self._data_object.par_b[index] != value:
+                    self._data_object.par_b[index] = value
+                    self.data_changed.emit()
+            elif name == "c" and self._data_object.par_c != value:
                 self._data_object.par_c = value
-        elif prop_name == "debye":
-            self._data_object.debye = float(value)
-        elif prop_name == "charge":
-            self._data_object.charge = float(value)
-        elif prop_name == "weight":
-            self._data_object.weight = float(value)
-        self.parameters_changed.emit()
+                self.data_changed.emit()
+        elif prop_name == "debye" and self._data_object.debye != value:
+            self._data_object.debye = value
+            self.data_changed.emit()
+        elif prop_name == "charge" and self._data_object.charge != value:
+            self._data_object.charge = value
+            self.data_changed.emit()
+        elif prop_name == "weight" and self._data_object.weight != value:
+            self._data_object.weight = value
+            self.data_changed.emit()
 
     # ------------------------------------------------------------
     #      Initialisation and other internals
@@ -123,9 +134,8 @@ class AtomType(ChildModel, ObjectListStoreChildMixin, Storable, CSVMixin):
             par_a1=0.0, par_a2=0.0, par_a3=0.0, par_a4=0.0, par_a5=0.0,
             par_b1=0.0, par_b2=0.0, par_b3=0.0, par_b4=0.0, par_b5=0.0,
             parent=None, **kwargs):
-        ChildModel.__init__(self, parent=parent)
+        DataModel.__init__(self, parent=parent)
         Storable.__init__(self)
-        self.parameters_changed = Signal()
 
         # Set up data object
         self._data_object = AtomTypeData(
@@ -157,7 +167,7 @@ class AtomType(ChildModel, ObjectListStoreChildMixin, Storable, CSVMixin):
     pass # end of class
 
 @storables.register()
-class Atom(ChildModel, ObjectListStoreChildMixin, Storable):
+class Atom(DataModel, ObjectListStoreChildMixin, Storable):
     """
         Atoms have an atom type plus structural parameters (position and proportion)
     """
@@ -181,7 +191,12 @@ class Atom(ChildModel, ObjectListStoreChildMixin, Storable):
         return self._data_object
 
     # PROPERTIES:
-    name = ""
+    _name = ""
+    def get_name_value(self): return self._name
+    def set_name_value(self, value):
+        self._name = value
+        self.visuals_changed.emit()
+        self.liststore_item_changed()
 
     _sf_array = None
     _atom_array = None
@@ -190,16 +205,22 @@ class Atom(ChildModel, ObjectListStoreChildMixin, Storable):
     def get_default_z_value(self):
         return self._data_object.default_z
     def set_default_z_value(self, value):
+        try: value = float(value)
+        except ValueError: pass
         if value != self._data_object.default_z:
-            self._data_object.default_z = float(value)
+            self._data_object.default_z = value
             self.liststore_item_changed()
+            self.data_changed.emit()
 
     _stretch_z = False
     def get_stretch_values_value(self): return bool(self._stretch_z)
     def set_stretch_values_value(self, value):
+        try: value = bool(value)
+        except ValueError: pass
         if value != self._stretch_z:
-            self._stretch_z = bool(value)
+            self._stretch_z = value
             self.liststore_item_changed()
+            self.data_changed.emit()
 
     def get_z_value(self):
         if self.stretch_values and self.component != None:
@@ -212,9 +233,12 @@ class Atom(ChildModel, ObjectListStoreChildMixin, Storable):
     _pn = None
     def get_pn_value(self): return self._data_object.pn
     def set_pn_value(self, value):
+        try: value = float(value)
+        except ValueError: pass
         if value != self._data_object.pn:
-            self._data_object.pn = float(value)
+            self._data_object.pn = value
             self.liststore_item_changed()
+            self.data_changed.emit()
 
     @property
     def weight(self):
@@ -229,20 +253,22 @@ class Atom(ChildModel, ObjectListStoreChildMixin, Storable):
     _atom_type_name = None
     def get_atom_type_value(self): return self._atom_type
     def set_atom_type_value(self, value):
-        if self._atom_type is not None:
-            self.relieve_model(self._atom_type)
-        self._atom_type = value
-        if self._atom_type is not None:
-            self.observe_model(self._atom_type)
-        self.liststore_item_changed()
+        if self._atom_type != value: # prevent spurious events
+            with self.data_changed.hold_and_emit():
+                if self._atom_type is not None:
+                    self.relieve_model(self._atom_type)
+                self._atom_type = value
+                if self._atom_type is not None:
+                    self.observe_model(self._atom_type)
+                self.liststore_item_changed()
 
     # ------------------------------------------------------------
-    #      Initialisation and other internals
+    #      Initialization and other internals
     # ------------------------------------------------------------
     def __init__(self, name="", default_z=0.0, pn=0.0,
             atom_type=None, atom_type_index=-1, atom_type_uuid="",
             atom_type_name="", stretch_values=False, parent=None, sf_view=None, **kwargs):
-        ChildModel.__init__(self, parent=parent)
+        DataModel.__init__(self, parent=parent)
         Storable.__init__(self)
 
         # Set up data object
@@ -268,7 +294,7 @@ class Atom(ChildModel, ObjectListStoreChildMixin, Storable):
 
     def _unattach_parent(self):
         self.atom_type = None
-        ChildModel._unattach_parent(self)
+        super(Atom, self)._unattach_parent()
 
     # ------------------------------------------------------------
     #      Notifications of observable properties
@@ -315,7 +341,7 @@ class Atom(ChildModel, ObjectListStoreChildMixin, Storable):
         self._atom_type_index = None
 
     def json_properties(self):
-        retval = Storable.json_properties(self)
+        retval = super(Atom, self).json_properties()
         if self.component == None or self.component.export_atom_types:
             retval["atom_type_name"] = self.atom_type.name if self.atom_type else ""
         else:

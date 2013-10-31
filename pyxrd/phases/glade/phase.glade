@@ -416,11 +416,15 @@
           </packing>
         </child>
         <child>
-          <object class="GtkEventBox" id="phase_components">
+          <object class="GtkFrame" id="phase_components">
             <property name="visible">True</property>
             <property name="can_focus">False</property>
-            <property name="visible_window">False</property>
+            <property name="label_xalign">0</property>
+            <property name="shadow_type">none</property>
             <child>
+              <placeholder/>
+            </child>
+            <child type="label_item">
               <placeholder/>
             </child>
           </object>
@@ -433,6 +437,7 @@
             <property name="visible">True</property>
             <property name="can_focus">False</property>
             <property name="label" translatable="yes">Components</property>
+            <property name="track_visited_links">False</property>
           </object>
           <packing>
             <property name="position">2</property>

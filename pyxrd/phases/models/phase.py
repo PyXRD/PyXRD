@@ -9,16 +9,14 @@ from random import choice
 import zipfile
 from warnings import warn
 
-from pyxrd.gtkmvc.model import Model, Observer, Signal
-
-import numpy as np
+from pyxrd.gtkmvc.model import Model, Observer
 
 from pyxrd.generic.io import storables, Storable
-from pyxrd.generic.models import ChildModel, PropIntel
+from pyxrd.generic.models import DataModel, PropIntel
 from pyxrd.generic.models.mixins import ObjectListStoreChildMixin, ObjectListStoreParentMixin
 from pyxrd.generic.models.treemodels import ObjectListStore
 from pyxrd.generic.models.metaclasses import pyxrd_object_pool
-from pyxrd.generic.calculations.phases import get_diffracted_intensity, get_structure_factors
+from pyxrd.generic.calculations.phases import get_diffracted_intensity
 from pyxrd.generic.calculations.data_objects import PhaseData
 from pyxrd.generic.refinement.mixins import RefinementGroup
 
@@ -27,7 +25,7 @@ from .CSDS import DritsCSDSDistribution
 from .component import Component
 
 @storables.register()
-class Phase(ChildModel, Storable, ObjectListStoreParentMixin,
+class Phase(DataModel, Storable, ObjectListStoreParentMixin,
         ObjectListStoreChildMixin, RefinementGroup):
 
     # MODEL INTEL:
@@ -46,7 +44,6 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin,
         PropIntel(name="inherit_probabilities", data_type=bool, label="Inh. probabilities", is_column=True, has_widget=True, storable=True),
         PropIntel(name="probabilities", data_type=object, label="Probabilities", is_column=True, has_widget=True, storable=True, refinable=True, widget_type="custom", inh_name="inherit_probabilities", stor_name="_probabilities"),
         PropIntel(name="components", data_type=object, label="Components", is_column=True, has_widget=True, storable=True, refinable=True, widget_type="custom"),
-        PropIntel(name="needs_update", data_type=object),
     ]
     __store_id__ = "Phase"
 
@@ -77,9 +74,6 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin,
 
         return self._data_object
 
-    # SIGNALS:
-    needs_update = None
-
     # PROPERTIES:
     name = "Name of this phase"
 
@@ -96,30 +90,30 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin,
     def get_inherit_prop(self, prop_name): return getattr(self, "_%s" % prop_name)
     @Model.setter(*[prop.inh_name for prop in __model_intel__ if prop.inh_name])
     def set_inherit_prop(self, prop_name, value):
-        setattr(self, "_%s" % prop_name, value)
-        self.needs_update.emit()
-        self.liststore_item_changed()
+        with self.data_changed.hold_and_emit():
+            setattr(self, "_%s" % prop_name, value)
+            self.liststore_item_changed()
 
     _based_on_index = None # temporary property
     _based_on_uuid = None # temporary property
     _based_on = None
     def get_based_on_value(self): return self._based_on
     def set_based_on_value(self, value):
-        if self._based_on != None:
-            self.relieve_model(self._based_on)
-        if value == None or value.get_based_on_root() == self or value.parent != self.parent:
-            value = None
-        if value != self._based_on:
-            self._based_on = value
-            for component in self.components._model_data:
-                component.linked_with = None
-        if self._based_on != None:
-            self.observe_model(self._based_on)
-        else:
-            for prop in self.__model_intel__:
-                if prop.inh_name: setattr(self, prop.inh_name, False)
-        self.needs_update.emit()
-        self.liststore_item_changed()
+        with self.data_changed.hold_and_emit():
+            if self._based_on != None:
+                self.relieve_model(self._based_on)
+            if value == None or value.get_based_on_root() == self or value.parent != self.parent:
+                value = None
+            if value != self._based_on:
+                self._based_on = value
+                for component in self.components._model_data:
+                    component.linked_with = None
+            if self._based_on != None:
+                self.observe_model(self._based_on)
+            else:
+                for prop in self.__model_intel__:
+                    if prop.inh_name: setattr(self, prop.inh_name, False)
+            self.liststore_item_changed()
     def get_based_on_root(self):
         if self.based_on != None:
             return self.based_on.get_based_on_root()
@@ -141,40 +135,40 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin,
             return getattr(self, "_%s" % prop_name)
 
     def set_probabilities_value(self, value):
-        if self._probabilities:
-            self.relieve_model(self._probabilities)
-            self._probabilities.parent = None
-        self._probabilities = value
-        if self._probabilities:
-            self._probabilities.update()
-            self._probabilities.parent = self
-            self.observe_model(self._probabilities)
-        self.needs_update.emit()
-        self.liststore_item_changed()
+        with self.data_changed.hold_and_emit():
+            if self._probabilities:
+                self.relieve_model(self._probabilities)
+                self._probabilities.parent = None
+            self._probabilities = value
+            if self._probabilities:
+                self._probabilities.update()
+                self._probabilities.parent = self
+                self.observe_model(self._probabilities)
+            self.liststore_item_changed()
 
     def set_CSDS_distribution_value(self, value):
-        if self._CSDS_distribution:
-            self.relieve_model(self._CSDS_distribution)
-            self._CSDS_distribution.parent = None
-        self._CSDS_distribution = value
-        if self._CSDS_distribution:
-            self._CSDS_distribution.parent = self
-            self.observe_model(self._CSDS_distribution)
-        self.needs_update.emit()
-        self.liststore_item_changed()
+        with self.data_changed.hold_and_emit():
+            if self._CSDS_distribution:
+                self.relieve_model(self._CSDS_distribution)
+                self._CSDS_distribution.parent = None
+            self._CSDS_distribution = value
+            if self._CSDS_distribution:
+                self._CSDS_distribution.parent = self
+                self.observe_model(self._CSDS_distribution)
+            self.liststore_item_changed()
 
     def set_display_color_value(self, value):
         if self._display_color != value:
-            self._display_color = value
-            self.needs_update.emit()
-            self.liststore_item_changed()
+            with self.visuals_changed.hold_and_emit():
+                self._display_color = value
+                self.liststore_item_changed()
 
     def set_sigma_star_value(self, value):
         value = float(value)
         if self._sigma_star != value:
-            self._sigma_star = value
-            self.needs_update.emit()
-            self.liststore_item_changed()
+            with self.visuals_changed.hold_and_emit():
+                self._sigma_star = value
+                self.liststore_item_changed()
 
     _components = None
     def get_components_value(self): return self._components
@@ -228,8 +222,6 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin,
 
         self._data_object = PhaseData()
 
-        self.needs_update = Signal()
-
         self.name = name or self.get_depr(kwargs, self.name, "data_name")
 
         mean_CSDS = mean_CSDS or self.get_depr(kwargs, 10, "data_mean_CSDS")
@@ -272,10 +264,16 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin,
     # ------------------------------------------------------------
     #      Notifications of observable properties
     # ------------------------------------------------------------
-    @Observer.observe("needs_update", signal=True)
-    @Observer.observe("updated", signal=True)
-    def notify_needs_update(self, model, prop_name, info):
-        self.needs_update.emit() # propagate signal
+    @Observer.observe("data_changed", signal=True)
+    def notify_data_changed(self, model, prop_name, info):
+        if isinstance(model, Phase) and model == self.based_on:
+            self.data_changed.emit(arg="based_on")
+        else:
+            self.data_changed.emit()
+
+    @Observer.observe("visuals_changed", signal=True)
+    def notify_visuals_changed(self, model, prop_name, info):
+        self.visuals_changed.emit()
 
     # ------------------------------------------------------------
     #      Input/Output stuff
@@ -285,7 +283,7 @@ class Phase(ChildModel, Storable, ObjectListStoreParentMixin,
         if self._based_on_uuid:
             self.based_on = pyxrd_object_pool.get_object(self._based_on_uuid)
         elif self._based_on_index != None and self._based_on_index != -1:
-            warn("The use of object indeces is deprected since version 0.4. Please switch to using object UUIDs.", DeprecationWarning)
+            warn("The use of object indices is deprecated since version 0.4. Please switch to using object UUIDs.", DeprecationWarning)
             self.based_on = self.parent.phases.get_user_from_index(self._based_on_index)
         del self._based_on_index
         del self._based_on_uuid

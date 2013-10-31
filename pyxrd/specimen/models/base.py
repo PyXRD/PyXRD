@@ -13,7 +13,7 @@ import numpy as np
 
 from pyxrd.data import settings
 from pyxrd.generic.io import storables, Storable
-from pyxrd.generic.models import ExperimentalLine, CalculatedLine, ChildModel, PropIntel
+from pyxrd.generic.models import ExperimentalLine, CalculatedLine, DataModel, PropIntel
 from pyxrd.generic.models.mixins import ObjectListStoreChildMixin, ObjectListStoreParentMixin
 from pyxrd.generic.models.treemodels import ObjectListStore, XYListStore
 from pyxrd.generic.peak_detection import peakdetect
@@ -25,7 +25,7 @@ from markers import Marker
 from statistics import Statistics
 
 @storables.register()
-class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStoreChildMixin):
+class Specimen(DataModel, Storable, ObjectListStoreParentMixin, ObjectListStoreChildMixin):
     # MODEL INTEL:
     __parent_alias__ = 'project'
     __model_intel__ = [
@@ -59,7 +59,6 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
         PropIntel(name="inherit_calc_lw", label="Use default linewidth", data_type=bool, is_column=True, storable=True, has_widget=True),
         PropIntel(name="exp_lw", label="Linewidth for experimental lines", data_type=float, is_column=True, storable=True, has_widget=True, widget_type="spin"),
         PropIntel(name="inherit_exp_lw", label="Use default linewidth", data_type=bool, is_column=True, storable=True, has_widget=True),
-        PropIntel(name="needs_update", data_type=object),
     ]
     __store_id__ = "Specimen"
 
@@ -76,9 +75,6 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
             self._data_object.observed_intensity = np.array([], dtype=float)
         return self._data_object
 
-    # SIGNALS:
-    needs_update = None
-
     # PROPERTIES:
     _sample_name = u""
     _name = u""
@@ -90,23 +86,23 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
     _display_stats_in_lbl = True
     _display_residuals = True
     _display_derivatives = True
-    @ChildModel.getter("sample_name", "name", "display_vshift", "display_vscale",
+    @DataModel.getter("sample_name", "name", "display_vshift", "display_vscale",
          "display_phases", "display_stats_in_lbl",
          "display_residuals", "display_derivatives",
          "display_calculated", "display_experimental")
-    def get_name(self, prop_name):
+    def get_visual(self, prop_name):
         return getattr(self, "_%s" % prop_name)
-    @ChildModel.setter("sample_name", "name", "display_vshift", "display_vscale",
+    @DataModel.setter("sample_name", "name", "display_vshift", "display_vscale",
         "display_phases", "display_stats_in_lbl",
         "display_residuals", "display_derivatives",
         "display_calculated", "display_experimental")
-    def set_name(self, prop_name, value):
-        if self.get_prop_intel_by_name(prop_name).data_type == float:
-            try: value = float(value)
-            except ValueError: return
-        setattr(self, "_%s" % prop_name, value)
-        self.liststore_item_changed()
-        self.needs_update.emit()
+    def set_visual(self, prop_name, value):
+        with self.visuals_changed.hold_and_emit():
+            if self.get_prop_intel_by_name(prop_name).data_type == float:
+                try: value = float(value)
+                except ValueError: return
+            setattr(self, "_%s" % prop_name, value)
+            self.liststore_item_changed()
 
     def get_label_value(self):
         if self.project.layout_mode == "FULL" and self.display_stats_in_lbl:
@@ -120,60 +116,67 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
     _calculated_pattern = None
     def get_calculated_pattern_value(self): return self._calculated_pattern
     def set_calculated_pattern_value(self, value):
-        if self._calculated_pattern != None: self.relieve_model(self._calculated_pattern)
-        self._calculated_pattern = value
-        if self._calculated_pattern != None:
-            self.observe_model(self._calculated_pattern)
-            self.calculated_pattern.color = self.calc_color
+        if value != self._calculated_pattern:
+            with self.data_changed.hold_and_emit():
+                if self._calculated_pattern != None: self.relieve_model(self._calculated_pattern)
+                self._calculated_pattern = value
+                if self._calculated_pattern != None:
+                    self.observe_model(self._calculated_pattern)
+                    self.calculated_pattern.color = self.calc_color
+
     _experimental_pattern = None
     def get_experimental_pattern_value(self): return self._experimental_pattern
     def set_experimental_pattern_value(self, value):
-        if self._experimental_pattern != None: self.relieve_model(self._experimental_pattern)
-        self._experimental_pattern = value
-        if self._experimental_pattern != None:
-            self.observe_model(self._experimental_pattern)
-            self.experimental_pattern.color = self.exp_color
+        if value != self._experimental_pattern:
+            with self.data_changed.hold_and_emit():
+                if self._experimental_pattern != None:
+                    self.relieve_model(self._experimental_pattern)
+                self._experimental_pattern = value
+                if self._experimental_pattern != None:
+                    self.observe_model(self._experimental_pattern)
+                    self.experimental_pattern.color = self.exp_color
 
     _exclusion_ranges = None
     def get_exclusion_ranges_value(self): return self._exclusion_ranges
     def set_exclusion_ranges_value(self, value):
         if value != self._exclusion_ranges:
-            if self._exclusion_ranges != None:
-                pass
-            self._exclusion_ranges = value
-            if self._exclusion_ranges != None:
-                pass
+            with self.data_changed.hold_and_emit():
+                if self._exclusion_ranges != None:
+                    pass
+                self._exclusion_ranges = value
+                if self._exclusion_ranges != None:
+                    pass
 
     _goniometer = None
     def get_goniometer_value(self): return self._goniometer
     def set_goniometer_value(self, value):
         if value != self._goniometer:
-            if self._goniometer != None: self.relieve_model(self._goniometer)
-            self._goniometer = value
-            if self._goniometer != None:
-                self.observe_model(self._goniometer)
+            with self.data_changed.hold_and_emit():
+                if self._goniometer != None:
+                    self.relieve_model(self._goniometer)
+                self._goniometer = value
+                if self._goniometer != None:
+                    self.observe_model(self._goniometer)
 
-    @ChildModel.getter("sample_length", "absorption")
+    @DataModel.getter("sample_length", "absorption")
     def get_sample_length_value(self, prop_name):
         return getattr(self._data_object, prop_name)
-    @ChildModel.setter("sample_length", "absorption")
+    @DataModel.setter("sample_length", "absorption")
     def set_sample_length_value(self, prop_name, value):
-        setattr(self._data_object, prop_name, value)
-        self.needs_update.emit()
+        with self.data_changed.hold_and_emit():
+            setattr(self._data_object, prop_name, value)
 
 
     _abs_scale = 1.0
     _bg_shift = 0.0
-    @ChildModel.getter("abs_scale", "bg_shift")
-    def get_sample_length_value(self, prop_name):
+    @DataModel.getter("abs_scale", "bg_shift")
+    def get_scale_shift_value(self, prop_name):
         return getattr(self, "_%s" % prop_name)
-    @ChildModel.setter("abs_scale", "bg_shift")
-    def set_sample_length_value(self, prop_name, value):
-        setattr(self, "_%s" % prop_name, value)
-        if self.parent:
-            for phase in self.parent.phases.iter_objects():
-                phase.dirty = True
-        self.needs_update.emit()
+    @DataModel.setter("abs_scale", "bg_shift")
+    def set_scale_shift_value(self, prop_name, value):
+        if value != getattr(self, "_%s" % prop_name):
+            with self.data_changed.hold_and_emit():
+                setattr(self, "_%s" % prop_name, value)
 
     statistics = None
 
@@ -182,9 +185,9 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
         return self._inherit_calc_lw
     def set_inherit_calc_lw_value(self, value):
         if value != self._inherit_calc_lw:
-            self._inherit_calc_lw = value
-            if self.calculated_pattern != None:
-                self.calculated_pattern.lw = float(self.calc_lw)
+            with self.visuals_changed.hold_and_emit():
+                self._inherit_calc_lw = value
+                self._sync_linewidths()
 
     _calc_lw = 2.0
     def get_calc_lw_value(self):
@@ -194,17 +197,18 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
             return self._calc_lw
     def set_calc_lw_value(self, value):
         if value != self._calc_lw:
-            self._calc_lw = float(value)
-            self.calculated_pattern.lw = float(self.calc_lw)
+            with self.visuals_changed.hold_and_emit():
+                self._calc_lw = float(value)
+                self._sync_linewidths()
 
     _inherit_exp_lw = True
     def get_inherit_exp_lw_value(self):
         return self._inherit_exp_lw
     def set_inherit_exp_lw_value(self, value):
         if value != self._inherit_exp_lw:
-            self._inherit_exp_lw = value
-            if self.experimental_pattern != None:
-                self.experimental_pattern.lw = float(self.exp_lw)
+            with self.visuals_changed.hold_and_emit():
+                self._inherit_exp_lw = value
+                self._sync_linewidths()
 
     _exp_lw = 2.0
     def get_exp_lw_value(self):
@@ -214,16 +218,17 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
             return self._exp_lw
     def set_exp_lw_value(self, value):
         if value != self._exp_lw:
-            self._exp_lw = float(value)
-            self.experimental_pattern.lw = float(self.exp_lw)
+            with self.visuals_changed.hold_and_emit():
+                self._exp_lw = float(value)
+                self._sync_linewidths()
 
     _inherit_calc_color = True
     def get_inherit_calc_color_value(self): return self._inherit_calc_color
     def set_inherit_calc_color_value(self, value):
         if value != self._inherit_calc_color:
-            self._inherit_calc_color = value
-            if self.calculated_pattern != None:
-                self.calculated_pattern.color = self.calc_color
+            with self.visuals_changed.hold_and_emit():
+                self._inherit_calc_color = value
+                self._sync_linecolors()
 
     _calc_color = "#666666"
     def get_calc_color_value(self):
@@ -233,17 +238,18 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
             return self._calc_color
     def set_calc_color_value(self, value):
         if value != self._calc_color:
-            self._calc_color = value
-            self.calculated_pattern.color = self.calc_color
+            with self.visuals_changed.hold_and_emit():
+                self._calc_color = value
+                self._sync_linecolors()
 
     _inherit_exp_color = True
     def get_inherit_exp_color_value(self):
         return self._inherit_exp_color
     def set_inherit_exp_color_value(self, value):
         if value != self._inherit_exp_color:
-            self._inherit_exp_color = value
-            if self.experimental_pattern != None:
-                self.experimental_pattern.color = self.exp_color
+            with self.visuals_changed.hold_and_emit():
+                self._inherit_exp_color = value
+                self._sync_linecolors()
 
     _exp_color = "#000000"
     def get_exp_color_value(self):
@@ -253,8 +259,21 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
             return self._exp_color
     def set_exp_color_value(self, value):
         if value != self._exp_color:
-            self._exp_color = value
-            self.experimental_pattern.color = value
+            with self.visuals_changed.hold_and_emit():
+                self._exp_color = value
+                self.experimental_pattern.color = value
+
+    def _sync_linewidths(self):
+        if self.calculated_pattern != None:
+            self.calculated_pattern.lw = float(self.calc_lw)
+        if self.experimental_pattern != None:
+            self.experimental_pattern.lw = float(self.exp_lw)
+
+    def _sync_linecolors(self):
+        if self.calculated_pattern != None:
+            self.calculated_pattern.color = float(self.calc_color)
+        if self.experimental_pattern != None:
+            self.experimental_pattern.color = float(self.exp_color)
 
     @property
     def exp_cap_value(self):
@@ -262,7 +281,8 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
         return self.experimental_pattern.cap_value
     @exp_cap_value.setter
     def exp_cap_value(self, value):
-        self.experimental_pattern.cap_value = value
+        with self.visuals_changed.hold_and_emit():
+            self.experimental_pattern.cap_value = float(value)
 
     _markers = None
     def get_markers_value(self): return self._markers
@@ -291,85 +311,89 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
 
         self._data_object = SpecimenData()
 
-        self.needs_update = Signal()
+        with self.visuals_changed.hold_and_emit():
+            with self.data_changed.hold_and_emit():
+                self.name = name or self.get_depr(kwargs, u"", "data_name")
+                self.sample_name = sample_name or self.get_depr(kwargs, u"", "data_sample")
+                self.sample_length = float(sample_length or self.get_depr(kwargs, 1.25, "data_sample_length"))
+                self.absorption = float(absorption)
+                self.abs_scale = float(abs_scale or self.get_depr(kwargs, 1.0, "data_abs_scale"))
+                self.bg_shift = float(bg_shift or self.get_depr(kwargs, 0.0, "data_bg_shift"))
 
-        self.name = name or self.get_depr(kwargs, u"", "data_name")
-        self.sample_name = sample_name or self.get_depr(kwargs, u"", "data_sample")
-        self.sample_length = float(sample_length or self.get_depr(kwargs, 1.25, "data_sample_length"))
-        self.absorption = float(absorption)
-        self.abs_scale = float(abs_scale or self.get_depr(kwargs, 1.0, "data_abs_scale"))
-        self.bg_shift = float(bg_shift or self.get_depr(kwargs, 0.0, "data_bg_shift"))
+                self.inherit_calc_color = inherit_calc_color
+                self.inherit_exp_color = inherit_exp_color
+                self.inherit_calc_lw = inherit_calc_lw
+                self.inherit_exp_lw = inherit_exp_lw
 
-        self.inherit_calc_color = inherit_calc_color
-        self.inherit_exp_color = inherit_exp_color
-        self.inherit_calc_lw = inherit_calc_lw
-        self.inherit_exp_lw = inherit_exp_lw
+                self._calc_color = calc_color or self.calc_color
+                self._exp_color = exp_color or self.exp_color
+                self._calc_lw = calc_lw or self.calc_lw
+                self._exp_lw = exp_lw or self.exp_lw
 
-        self._calc_color = calc_color or self.calc_color
-        self._exp_color = exp_color or self.exp_color
-        self._calc_lw = calc_lw or self.calc_lw
-        self._exp_lw = exp_lw or self.exp_lw
+                # #
+                # # This is terrible: linewidth and color should ideally be stored in the pattern object itself...
+                # #
 
-        # #
-        # # This is terrible: linewidth and color should ideally be stored in the pattern object itself...
-        # #
+                calculated_pattern = calculated_pattern or self.get_depr(kwargs, None, "data_calculated_pattern")
+                if isinstance(calculated_pattern, dict) and "type" in calculated_pattern and calculated_pattern["type"] == "generic.models/XYData":
+                    calculated_pattern["properties"]["lw"] = self.calc_lw
+                    calculated_pattern["properties"]["color"] = self.calc_color
+                    self.calculated_pattern = CalculatedLine.from_json(parent=self, **calculated_pattern["properties"])
+                else:
+                    initkwargs = dict(label="Calculated Profile",
+                        color=self.calc_color, lw=self.calc_lw, parent=self)
+                    self.calculated_pattern = self.parse_init_arg(
+                        calculated_pattern,
+                        CalculatedLine(**initkwargs),
+                        child=True, **initkwargs)
 
-        calculated_pattern = calculated_pattern or self.get_depr(kwargs, None, "data_calculated_pattern")
-        if isinstance(calculated_pattern, dict) and "type" in calculated_pattern and calculated_pattern["type"] == "generic.models/XYData":
-            calculated_pattern["properties"]["lw"] = self.calc_lw
-            calculated_pattern["properties"]["color"] = self.calc_color
-            self.calculated_pattern = CalculatedLine.from_json(parent=self, **calculated_pattern["properties"])
-        else:
-            initkwargs = dict(label="Calculated Profile",
-                color=self.calc_color, lw=self.calc_lw, parent=self)
-            self.calculated_pattern = self.parse_init_arg(
-                calculated_pattern,
-                CalculatedLine(**initkwargs),
-                child=True, **initkwargs)
+                experimental_pattern = experimental_pattern or self.get_depr(kwargs, None, "data_experimental_pattern")
+                if isinstance(experimental_pattern, dict) and "type" in experimental_pattern and experimental_pattern["type"] == "generic.models/XYData":
+                    experimental_pattern["properties"]["lw"] = self.exp_lw
+                    experimental_pattern["properties"]["color"] = self.exp_color
+                    self.experimental_pattern = ExperimentalLine.from_json(parent=self, **experimental_pattern["properties"])
+                else:
+                    initkwargs = dict(label="Experimental Profile",
+                        color=self.exp_color, lw=self.exp_lw, parent=self)
+                    self.experimental_pattern = self.parse_init_arg(
+                        experimental_pattern,
+                        ExperimentalLine(**initkwargs),
+                        child=True, **initkwargs)
 
-        experimental_pattern = experimental_pattern or self.get_depr(kwargs, None, "data_experimental_pattern")
-        if isinstance(experimental_pattern, dict) and "type" in experimental_pattern and experimental_pattern["type"] == "generic.models/XYData":
-            experimental_pattern["properties"]["lw"] = self.exp_lw
-            experimental_pattern["properties"]["color"] = self.exp_color
-            self.experimental_pattern = ExperimentalLine.from_json(parent=self, **experimental_pattern["properties"])
-        else:
-            initkwargs = dict(label="Experimental Profile",
-                color=self.exp_color, lw=self.exp_lw, parent=self)
-            self.experimental_pattern = self.parse_init_arg(
-                experimental_pattern,
-                ExperimentalLine(**initkwargs),
-                child=True, **initkwargs)
+                self.exp_cap_value = exp_cap_value or 0.0
 
-        self.exp_cap_value = exp_cap_value or 0.0
+                exclusion_ranges = exclusion_ranges or self.get_depr(kwargs, None, "data_exclusion_ranges")
+                self.exclusion_ranges = self.parse_init_arg(exclusion_ranges, XYListStore())
+                self.exclusion_ranges.connect("item-removed", self.on_exclusion_range_changed)
+                self.exclusion_ranges.connect("item-inserted", self.on_exclusion_range_changed)
+                self.exclusion_ranges.connect("row-changed", self.on_exclusion_range_changed)
 
-        exclusion_ranges = exclusion_ranges or self.get_depr(kwargs, None, "data_exclusion_ranges")
-        self.exclusion_ranges = self.parse_init_arg(exclusion_ranges, XYListStore())
-        self.exclusion_ranges.connect("item-removed", self.on_exclusion_range_changed)
-        self.exclusion_ranges.connect("item-inserted", self.on_exclusion_range_changed)
-        self.exclusion_ranges.connect("row-changed", self.on_exclusion_range_changed)
+                self.goniometer = self.parse_init_arg(
+                    goniometer or self.get_depr(kwargs, None, "project_goniometer"),
+                    Goniometer(parent=self), child=True
+                )
 
-        self.goniometer = self.parse_init_arg(
-            goniometer or self.get_depr(kwargs, None, "project_goniometer"),
-            Goniometer(parent=self), child=True
-        )
+                markers = markers or self.get_depr(kwargs, None, "data_markers")
+                self._markers = self.parse_liststore_arg(markers, ObjectListStore, Marker)
+                for marker in self._markers._model_data:
+                    self.observe_model(marker)
+                self.markers.connect("item-removed", self.on_marker_removed)
+                self.markers.connect("item-inserted", self.on_marker_inserted)
 
-        markers = markers or self.get_depr(kwargs, None, "data_markers")
-        self._markers = self.parse_liststore_arg(markers, ObjectListStore, Marker)
-        for marker in self._markers._model_data:
-            self.observe_model(marker)
-        self.markers.connect("item-removed", self.on_marker_removed)
-        self.markers.connect("item-inserted", self.on_marker_inserted)
+                self.display_vshift = float(display_vshift)
+                self.display_vscale = float(display_vscale)
+                self.display_calculated = bool(display_calculated)
+                self.display_experimental = bool(display_experimental)
+                self.display_residuals = bool(display_residuals)
+                self.display_derivatives = bool(display_derivatives)
+                self.display_phases = bool(display_phases)
+                self.display_stats_in_lbl = bool(display_stats_in_lbl)
 
-        self.display_vshift = float(display_vshift)
-        self.display_vscale = float(display_vscale)
-        self.display_calculated = bool(display_calculated)
-        self.display_experimental = bool(display_experimental)
-        self.display_residuals = bool(display_residuals)
-        self.display_derivatives = bool(display_derivatives)
-        self.display_phases = bool(display_phases)
-        self.display_stats_in_lbl = bool(display_stats_in_lbl)
+                self.statistics = Statistics(parent=self)
 
-        self.statistics = Statistics(parent=self)
+                pass # end of with
+            pass # end of with
+        pass # end of __init__
 
     def __str__(self):
         return "<Specimen %s(%s)>" % (self.name, repr(self))
@@ -377,22 +401,26 @@ class Specimen(ChildModel, Storable, ObjectListStoreParentMixin, ObjectListStore
     # ------------------------------------------------------------
     #      Notifications of observable properties
     # ------------------------------------------------------------
-    @Observer.observe("needs_update", signal=True)
-    def notify_needs_update(self, model, prop_name, info):
-        self.needs_update.emit() # propagate signal
+    @Observer.observe("data_changed", signal=True)
+    def notify_data_changed(self, model, prop_name, info):
+        self.data_changed.emit() # propagate signal
+
+    @Observer.observe("visuals_changed", signal=True)
+    def notify_visuals_changed(self, model, prop_name, info):
+        self.visuals_changed.emit() # propagate signal
 
     def on_exclusion_range_changed(self, model, item, *args):
-        self.needs_update.emit() # propagate signal
+        self.data_changed.emit() # propagate signal
 
     def on_marker_removed(self, model, item):
-        self.relieve_model(item)
-        item.parent = None
-        self.needs_update.emit() # propagate signal
+        with self.visuals_changed.hold_and_emit():
+            self.relieve_model(item)
+            item.parent = None
 
     def on_marker_inserted(self, model, item):
-        self.observe_model(item)
-        item.parent = self
-        self.needs_update.emit() # propagate signal
+        with self.visuals_changed.hold_and_emit():
+            self.observe_model(item)
+            item.parent = self
 
     # ------------------------------------------------------------
     #      Input/Output stuff

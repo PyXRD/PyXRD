@@ -5,9 +5,7 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from pyxrd.gtkmvc.model import Signal
-
-from pyxrd.generic.models import ChildModel, PropIntel
+from pyxrd.generic.models import ChildModel, PropIntel, HoldableSignal
 from pyxrd.generic.models.treemodels import ObjectListStore
 from pyxrd.generic.models.metaclasses import pyxrd_object_pool
 from pyxrd.generic.models.mixins import ObjectListStoreChildMixin
@@ -51,20 +49,20 @@ class AtomRelation(ChildModel, Storable, ObjectListStoreChildMixin, ComponentPro
         PropIntel(name="value", label="Value", data_type=float, is_column=True, storable=True, has_widget=True, widget_type='float_entry', refinable=True),
         PropIntel(name="enabled", label="Enabled", data_type=bool, is_column=True, storable=True, has_widget=True),
 
-        PropIntel(name="changed", data_type=object),
+        PropIntel(name="data_changed", data_type=object),
     ]
     __store_id__ = "AtomRelation"
     allowed_relations = {}
 
     # SIGNALS:
-    changed = None
+    data_changed = None
 
     # PROPERTIES:
     _value = 0.0
     def get_value_value(self): return self._value
     def set_value_value(self, value):
         self._value = value
-        self.changed.emit()
+        self.data_changed.emit()
         self.liststore_item_changed()
 
     _name = ""
@@ -77,7 +75,7 @@ class AtomRelation(ChildModel, Storable, ObjectListStoreChildMixin, ComponentPro
     def get_enabled_value(self): return self._enabled
     def set_enabled_value(self, value):
         self._enabled = value
-        self.changed.emit()
+        self.data_changed.emit()
 
     @property
     def applicable(self):
@@ -116,7 +114,7 @@ class AtomRelation(ChildModel, Storable, ObjectListStoreChildMixin, ComponentPro
         ObjectListStoreChildMixin.__init__(self)
         RefinementValue.__init__(self)
 
-        self.changed = Signal()
+        self.data_changed = HoldableSignal()
         self.name = name
         self.value = value
         self.enabled = enabled
@@ -146,7 +144,7 @@ class AtomRelation(ChildModel, Storable, ObjectListStoreChildMixin, ComponentPro
             return store
 
     def apply_relation(self):
-        raise NotImplementedError, "Subclasses should implement the update_value method!"
+        raise NotImplementedError, "Subclasses should implement the apply_relation method!"
 
     pass # end of class
 
@@ -169,7 +167,7 @@ class AtomRatio(AtomRelation):
     def get_sum_value(self): return self._sum
     def set_sum_value(self, value):
         self._sum = float(value)
-        self.changed.emit()
+        self.data_changed.emit()
 
     def __internal_sum__(self, value):
         self._sum = float(value)
@@ -180,13 +178,13 @@ class AtomRatio(AtomRelation):
     def get_atom1_value(self): return self._atom1
     def set_atom1_value(self, value):
         self._atom1 = value
-        self.changed.emit()
+        self.data_changed.emit()
 
     _atom2 = [None, None]
     def get_atom2_value(self): return self._atom2
     def set_atom2_value(self, value):
         self._atom2 = value
-        self.changed.emit()
+        self.data_changed.emit()
 
     # ------------------------------------------------------------
     #      Initialisation and other internals
@@ -223,14 +221,12 @@ class AtomRatio(AtomRelation):
     # ------------------------------------------------------------
     def apply_relation(self):
         if self.enabled and self.applicable:
-            if self.atom1:
-                obj, prop = self.atom1
-                if obj and prop:
-                    setattr(obj, prop, self.value * self.sum)
-            if self.atom2:
-                obj, prop = self.atom2
-                if obj and prop:
-                    setattr(obj, prop, (1.0 - self.value) * self.sum)
+            for value, atom_prop in [(self.value, self.atom1), (1.0 - self.value, self.atom2)]:
+                atom, prop = atom_prop
+                if atom and prop:
+                    # do not fire events, just set attributes:
+                    with atom.data_changed.ignore():
+                        setattr(atom, prop, value * self.sum)
 
     pass # end of class
 
@@ -290,7 +286,7 @@ class AtomContents(AtomRelation):
 
         def on_change(*args):
             if self.enabled: # no need for updates in this case
-                self.changed.emit()
+                self.data_changed.emit()
         self._atom_contents.connect("row-changed", on_change)
         self._atom_contents.connect("row-inserted", on_change)
         self._atom_contents.connect("row-deleted", on_change)
@@ -326,6 +322,9 @@ class AtomContents(AtomRelation):
     def apply_relation(self):
         if self.enabled and self.applicable:
             for atom_content in self.atom_contents.iter_objects():
-                atom_content.update_atom(self.value)
+                # do not fire events, just set attributes:
+                if atom_content.atom != None:
+                    with atom_content.atom.data_changed.ignore():
+                        atom_content.update_atom(self.value)
 
     pass # end of class

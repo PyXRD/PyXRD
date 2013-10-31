@@ -10,15 +10,16 @@ import random
 from warnings import warn
 from itertools import chain, izip
 from collections import OrderedDict
+from contextlib import contextmanager
 
 from pyxrd.gtkmvc.model import Signal
-from pyxrd.gtkmvc.model_mt import ModelMT
 import numpy as np
 
 from pyxrd.data import settings
 
 from pyxrd.generic.io import storables, Storable
-from pyxrd.generic.models import ChildModel, PropIntel, MultiProperty
+# from pyxrd.generic.utils import print_timing
+from pyxrd.generic.models import DataModel, PropIntel, MultiProperty
 from pyxrd.generic.models.mixins import ObjectListStoreChildMixin
 from pyxrd.generic.models.metaclasses import pyxrd_object_pool
 from pyxrd.generic.models.treemodels import ObjectTreeStore
@@ -29,10 +30,11 @@ from pyxrd.generic.calculations.data_objects import MixtureData
 
 from .methods import get_all_refine_methods
 from .optimizers import Optimizer
+from .refiner import Refiner
 
 
 @storables.register()
-class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
+class Mixture(DataModel, ObjectListStoreChildMixin, Storable):
     """
         The base model for optimization and refinement of calculated data
         and experimental data. It uses two helper models to achieve this;
@@ -47,8 +49,7 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         PropIntel(name="refinables", label="", data_type=object, is_column=True, has_widget=True, widget_type="tree_view"),
         PropIntel(name="auto_run", label="", data_type=bool, is_column=True, storable=True, has_widget=True),
         PropIntel(name="refine_method", label="", data_type=int, storable=True, has_widget=True, widget_type="combo"),
-        PropIntel(name="has_changed", label="", data_type=object),
-        PropIntel(name="needs_reset", label="", data_type=object, storable=False,),
+        PropIntel(name="needs_reset", label="", data_type=object, storable=False,), # Signal used to indicate the mixture matrix needs to be re-built...
     ]
     __store_id__ = "Mixture"
 
@@ -68,7 +69,6 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         return self._data_object
 
     # SIGNALS:
-    has_changed = None
     needs_reset = None
 
     # INTERNALS:
@@ -112,69 +112,81 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         self._data_object.fractions = value
 
     # ------------------------------------------------------------
-    #      Initialisation and other internals
+    #      Initialization and other internals
     # ------------------------------------------------------------
     def __init__(self, name="New Mixture", auto_run=False,
             phase_indeces=None, phase_uuids=None,
             specimen_indeces=None, specimen_uuids=None, phases=None,
             scales=None, bgshifts=None, fractions=None,
             refinables=None, refine_method=None, parent=None, **kwargs):
-        ChildModel.__init__(self, parent=parent)
+        super(Mixture, self).__init__(parent=parent)
 
-        self._data_object = MixtureData()
+        with self.data_changed.hold():
 
-        self.has_changed = Signal()
-        self.needs_reset = Signal()
-        self.name = name or self.get_depr(kwargs, "", "data_name")
-        self.auto_run = auto_run or self.auto_run
+            self._data_object = MixtureData()
 
-        # 2D matrix, rows match specimens, columns match mixture 'phases'; contains the actual phase objects
-        if phase_uuids:
-            self.phase_matrix = np.array([[pyxrd_object_pool.get_object(uuid) if uuid else None for uuid in row] for row in phase_uuids], dtype=np.object_)
-        elif phase_indeces and self.parent != None:
-            warn("The use of object indeces is deprected since version 0.4. Please switch to using object UUIDs.", DeprecationWarning)
-            self.phase_matrix = np.array([[self.parent.phases.get_user_data_from_index(index) if index != -1 else None for index in row] for row in phase_indeces], dtype=np.object_)
-        else:
-            self.phase_matrix = np.empty(shape=(0, 0), dtype=np.object_)
+            self.needs_reset = Signal()
+            self.name = name or self.get_depr(kwargs, "", "data_name")
+            self.auto_run = auto_run or self.auto_run
 
-        # list with actual specimens, indexes match with rows in phase_matrix
-        if phase_uuids:
-            self.specimens = [pyxrd_object_pool.get_object(uuid) if uuid else None for uuid in specimen_uuids]
-        elif specimen_indeces != None and self.parent != None:
-            warn("The use of object indeces is deprected since version 0.4. Please switch to using object UUIDs.", DeprecationWarning)
-            self.specimens = [self.parent.specimens.get_user_data_from_index(index) if index != -1 else None for index in specimen_indeces]
-        else:
-            self.specimens = list()
+            # 2D matrix, rows match specimens, columns match mixture 'phases'; contains the actual phase objects
+            if phase_uuids:
+                self.phase_matrix = np.array([[pyxrd_object_pool.get_object(uuid) if uuid else None for uuid in row] for row in phase_uuids], dtype=np.object_)
+            elif phase_indeces and self.parent != None:
+                warn("The use of object indeces is deprected since version 0.4. Please switch to using object UUIDs.", DeprecationWarning)
+                self.phase_matrix = np.array([[self.parent.phases.get_user_data_from_index(index) if index != -1 else None for index in row] for row in phase_indeces], dtype=np.object_)
+            else:
+                self.phase_matrix = np.empty(shape=(0, 0), dtype=np.object_)
 
-        # list with mixture phase names, indexes match with cols in phase_matrix
-        self.phases = phases or self.get_depr(kwargs, list(), "data_phases")
+            # list with actual specimens, indexes match with rows in phase_matrix
+            if phase_uuids:
+                self.specimens = [pyxrd_object_pool.get_object(uuid) if uuid else None for uuid in specimen_uuids]
+            elif specimen_indeces != None and self.parent != None:
+                warn("The use of object indeces is deprected since version 0.4. Please switch to using object UUIDs.", DeprecationWarning)
+                self.specimens = [self.parent.specimens.get_user_data_from_index(index) if index != -1 else None for index in specimen_indeces]
+            else:
+                self.specimens = list()
 
-        # list with scale values, indexes match with rows in phase_matrix (= specimens)
-        self.scales = np.asarray(scales or self.get_depr(kwargs, [1.0] * len(self.specimens), "data_scales"))
-        # list with specimen background shift values, indexes match with rows in phase_matrix (=specimens)
-        self.bgshifts = np.asarray(bgshifts or self.get_depr(kwargs, [0.0] * len(self.specimens), "data_bgshifts"))
-        # list with phase fractions, indexes match with cols in phase_matrix (=phases)
-        self.fractions = np.asarray(fractions or self.get_depr(kwargs, [0.0] * len(self.phases), "data_fractions"))
+            # list with mixture phase names, indexes match with cols in phase_matrix
+            self.phases = phases or self.get_depr(kwargs, list(), "data_phases")
 
-        self.refinables = refinables or self.get_depr(kwargs, ObjectTreeStore(RefinableWrapper), "data_refinables")
-        try:
-            self.refine_method = refine_method or self.get_depr(kwargs, self.refine_method, "data_refine_method")
-        except ValueError:
-            self.refine_method = self.refine_method
-            pass # ignore faulty values, these indeces change from time to time.
+            # list with scale values, indexes match with rows in phase_matrix (= specimens)
+            self.scales = np.asarray(scales or self.get_depr(kwargs, [1.0] * len(self.specimens), "data_scales"))
+            # list with specimen background shift values, indexes match with rows in phase_matrix (=specimens)
+            self.bgshifts = np.asarray(bgshifts or self.get_depr(kwargs, [0.0] * len(self.specimens), "data_bgshifts"))
+            # list with phase fractions, indexes match with cols in phase_matrix (=phases)
+            self.fractions = np.asarray(fractions or self.get_depr(kwargs, [0.0] * len(self.phases), "data_fractions"))
 
-        # sanity check:
-        n, m = self.phase_matrix.shape
-        if len(self.scales) != n or len(self.specimens) != n or len(self.bgshifts) != n:
-            raise IndexError, "Shape mismatch: scales (%d), background shifts (%d) or specimens (%d) list lengths do not match with row count (%d) of phase matrix" % (len(self.scales), len(self.specimens), len(self.bgshifts), n)
-        if len(self.phases) != m or len(self.fractions) != m:
-            raise IndexError, "Shape mismatch: fractions or phases lists do not match with column count of phase matrix"
+            self.refinables = refinables or self.get_depr(kwargs, ObjectTreeStore(RefinableWrapper), "data_refinables")
+            try:
+                self.refine_method = refine_method or self.get_depr(kwargs, self.refine_method, "data_refine_method")
+            except ValueError:
+                self.refine_method = self.refine_method
+                pass # ignore faulty values, these indices change from time to time.
 
-        self.optimizer = Optimizer(parent=self)
-        from refiner import Refiner
-        self.refiner = Refiner(parent=self)
+            # sanity check:
+            n, m = self.phase_matrix.shape
+            if len(self.scales) != n or len(self.specimens) != n or len(self.bgshifts) != n:
+                raise IndexError, "Shape mismatch: scales (%d), background shifts (%d) or specimens (%d) list lengths do not match with row count (%d) of phase matrix" % (len(self.scales), len(self.specimens), len(self.bgshifts), n)
+            if len(self.phases) != m or len(self.fractions) != m:
+                raise IndexError, "Shape mismatch: fractions or phases lists do not match with column count of phase matrix"
 
-        self.update_refinement_treestore()
+            self.optimizer = Optimizer(parent=self)
+            self.refiner = Refiner(parent=self)
+
+            self._observe_specimens()
+            self._observe_phases()
+            self.update_refinement_treestore()
+
+            pass # end hold data_changed
+
+    # ------------------------------------------------------------
+    #      Notifications of observable properties
+    # ------------------------------------------------------------
+    @DataModel.observe("data_changed", signal=True)
+    def notify_data_changed(self, model, prop_name, info):
+        if not (info.arg == "based_on" and model.based_on != None and model.based_on in self.phase_matrix):
+            self.data_changed.emit() # Propagate the signal
 
     # ------------------------------------------------------------
     #      Input/Output stuff
@@ -211,91 +223,142 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
     # ------------------------------------------------------------
     def unset_phase(self, phase):
         """ Clears a phase slot in the phase matrix """
-        shape = self.phase_matrix.shape
-        for i in range(shape[0]):
-            for j in range(shape[1]):
-                if self.phase_matrix[i, j] == phase:
-                    self.phase_matrix[i, j] = None
-        self.update_refinement_treestore()
-        self.has_changed.emit()
+        with self.data_changed.hold_and_emit():
+            shape = self.phase_matrix.shape
+            with self._relieve_and_observe_phases():
+                for i in range(shape[0]):
+                    for j in range(shape[1]):
+                        if self.phase_matrix[i, j] == phase:
+                            self.phase_matrix[i, j] = None
+            self.update_refinement_treestore()
 
     def unset_specimen(self, specimen):
         """ Clears a specimen slot in the specimen list """
-        for i, spec in enumerate(self.specimens):
-            if spec == specimen:
-                self.specimens[i] = None
-        self.has_changed.emit()
+        with self.data_changed.hold_and_emit():
+            with self._relieve_and_observe_specimens():
+                for i, spec in enumerate(self.specimens):
+                    if spec == specimen:
+                        self.specimens[i] = None
 
-    def add_phase(self, phase_name, fraction):
+    def set_phase(self, specimen_slot, phase_slot, phase):
+        """Sets the phase at the given slot positions"""
+        with self._relieve_and_observe_phases():
+            self.phase_matrix[specimen_slot, phase_slot] = phase
+
+    def set_specimen(self, specimen_slot, specimen):
+        """Sets the specimen at the given slot position"""
+        with self._relieve_and_observe_specimens():
+            self.specimens[specimen_slot] = specimen
+
+    @contextmanager
+    def _relieve_and_observe_specimens(self):
+        self._relieve_specimens()
+        yield
+        self._observe_specimens()
+
+    def _observe_specimens(self):
+        """ Starts observing specimens in the specimens list"""
+        for specimen in self.specimens:
+            self.observe_model(specimen)
+
+    def _relieve_specimens(self):
+        """ Relieves specimens observer calls """
+        for specimen in self.specimens:
+            self.relieve_model(specimen)
+
+    @contextmanager
+    def _relieve_and_observe_phases(self):
+        self._relieve_specimens()
+        yield
+        self._observe_specimens()
+
+    def _observe_phases(self):
+        """ Starts observing phases in the phase matrix"""
+        for phase in self.phase_matrix.flat:
+            self.observe_model(phase)
+
+    def _relieve_phases(self):
+        """ Relieves phase observer calls """
+        for phase in self.phase_matrix.flat:
+            self.relieve_model(phase)
+
+    def add_phase_slot(self, phase_name, fraction):
         """ Adds a new phase column to the phase matrix """
         n, m = self.phase_matrix.shape
         if n > 0:
-            self.phases.append(phase_name)
-            self.fractions = np.append(self.fractions, fraction)
-            self.phase_matrix = np.concatenate([self.phase_matrix.copy(), [[None, ] for n in range(n)]], axis=1)
-            self.update_refinement_treestore()
-            self.has_changed.emit()
+            with self.data_changed.hold_and_emit():
+                self.phases.append(phase_name)
+                self.fractions = np.append(self.fractions, fraction)
+                self.phase_matrix = np.concatenate([self.phase_matrix.copy(), [[None, ] for n in range(n)]], axis=1)
+                self.update_refinement_treestore()
             return m
         else:
             return -1
 
-    def _del_phase_by_index(self, index):
+    def del_phase_slot(self, phase_slot):
         """ Deletes a phase column using its index """
-        del self.phases[index]
-        self.fractions = np.delete(self.fractions, index)
-        self.phase_matrix = np.delete(self.phase_matrix, index, axis=1)
-        self.update_refinement_treestore()
+        with self.data_changed.hold_and_emit():
+            with self._relieve_and_observe_phases():
+                # Remove the corresponding phase name, fraction & references:
+                del self.phases[phase_slot]
+                self.fractions = np.delete(self.fractions, phase_slot)
+                self.phase_matrix = np.delete(self.phase_matrix, phase_slot, axis=1)
+            # Update our refinement tree store to reflect current state
+            self.update_refinement_treestore()
+        # Inform any interested party they need to update their representation
         self.needs_reset.emit()
 
-    def del_phase(self, phase_name):
-        """ Deletes a phase column using its name """
-        self._del_phase_by_index(self.phases.index(phase_name))
+    def del_phase_slot_by_name(self, phase_name):
+        """ Deletes a phase slot using its name """
+        self.del_phase_slot(self.phases.index(phase_name))
 
-    def add_specimen(self, specimen, scale, bgs):
+    def add_specimen_slot(self, specimen, scale, bgs):
         """ Adds a new specimen to the phase matrix (a row) and specimen list """
-        index = len(self.specimens)
-        self.specimens.append(specimen)
-        self.scales = np.append(self.scales, scale)
-        self.bgshifts = np.append(self.bgshifts, bgs)
-        n, m = self.phase_matrix.shape
-        self.phase_matrix = np.concatenate([self.phase_matrix.copy(), [[None] * m] ], axis=0)
-        self.phase_matrix[n, :] = None
-        self.has_changed.emit()
+        with self.data_changed.hold_and_emit():
+            self.specimens.append(specimen)
+            self.scales = np.append(self.scales, scale)
+            self.bgshifts = np.append(self.bgshifts, bgs)
+            n, m = self.phase_matrix.shape
+            self.phase_matrix = np.concatenate([self.phase_matrix.copy(), [[None] * m] ], axis=0)
+            self.phase_matrix[n, :] = None
         return n
 
-    def _del_specimen_by_index(self, index):
-        """ Deletes a specimen row using its index """
-        del self.specimens[index]
-        self.scales = np.delete(self.scales, index)
-        self.bgshifts = np.delete(self.bgshifts, index)
-        self.phase_matrix = np.delete(self.phase_matrix, index, axis=0)
+    def del_specimen_slot(self, specimen_slot):
+        """ Deletes a specimen slot using its slot index """
+        with self.data_changed.hold_and_emit():
+            # Remove the corresponding specimen name, scale, bg-shift & phases:
+            with self._relieve_and_observe_specimens():
+                del self.specimens[specimen_slot]
+                self.scales = np.delete(self.scales, specimen_slot)
+                self.bgshifts = np.delete(self.bgshifts, specimen_slot)
+                self.phase_matrix = np.delete(self.phase_matrix, specimen_slot, axis=0)
+            # Update our refinement tree store to reflect current state
+            self.update_refinement_treestore()
+        # Inform any interested party they need to update their representation
         self.needs_reset.emit()
 
-    def del_specimen(self, specimen):
-        """ Deletes a specimen row using the actual object """
+    def del_specimen_slot_by_object(self, specimen):
+        """ Deletes a specimen slot using the actual object """
         try:
-            self._del_specimen_by_index(self.specimens.index(specimen))
+            self.del_specimen_slot(self.specimens.index(specimen))
         except ValueError, msg:
             print "Caught a ValueError when deleting a specimen from  mixture '%s': %s" % (self.name, msg)
 
     # ------------------------------------------------------------
     #      Refinement stuff:
     # ------------------------------------------------------------
-    def set_data_object(self, mixture, calculate=False, apply=True, silent=False):
+    def set_data_object(self, mixture, calculate=False):
         """
-            Sets the fractions, scales and bgshifts of this mixture and emits
-            a signal indicating they have changed.
+            Sets the fractions, scales and bgshifts of this mixture.
         """
-        self.project.freeze_updates()
+        with self.data_changed.hold():
+            self.fractions[:] = list(mixture.fractions)
+            self.scales[:] = list(mixture.scales)
+            self.bgshifts[:] = list(mixture.bgshifts)
 
-        self.fractions[:] = list(mixture.fractions)
-        self.scales[:] = list(mixture.scales)
-        self.bgshifts[:] = list(mixture.bgshifts)
+            if calculate: # (re-)calculate if requested:
+                mixture = self.optimizer.calculate(mixture)
 
-        if calculate: # (re-)calculate if requested:
-            mixture = self.optimizer.calculate(mixture)
-
-        if apply:
             for i, (specimen_data, specimen) in enumerate(izip(mixture.specimens, self.specimens)):
                 if specimen != None:
                     specimen.update_pattern(
@@ -303,11 +366,6 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
                         specimen_data.phase_intensities * self.fractions[:, np.newaxis] * self.scales[i],
                         self.phase_matrix[i, :]
                     )
-
-        self.project.thaw_updates()
-
-        if not silent:
-            self.has_changed.emit()
 
     def optimize(self):
         """
@@ -323,52 +381,17 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
         """
         self.set_data_object(self.data_object, calculate=True)
 
-    def get_composition_matrix(self):
+    # @print_timing
+    def update(self):
         """
-            Returns a matrix containing the oxide composition for each specimen 
-            in this mixture. It uses the COMPOSITION_CONV file for this purpose
-            to convert element weights into their oxide weight equivalent.
+            Optimizes or re-applies the current mixture 'solution'.
+            Effectively re-calculates the entire patterns.
         """
-
-        # create an atom nr -> (atom name, conversion) mapping
-        # this is used to transform most of the elements into their oxides
-        atom_conv = OrderedDict()
-        with open(settings.DATA_REG.get_file_path("COMPOSITION_CONV"), 'r') as f:
-            reader = csv.reader(f)
-            reader.next() # skip header
-            for row in reader:
-                nr, name, fact = row
-                atom_conv[int(nr)] = (name, float(fact))
-
-        comps = list()
-        for i, row in enumerate(self.phase_matrix):
-            comp = dict()
-            for j, phase in enumerate(row):
-                phase_fract = self.fractions[j]
-                for k, component in enumerate(phase.components.iter_objects()):
-                    comp_fract = phase.probabilities.mW[k] * phase_fract
-                    for atom in chain(component.layer_atoms.iter_objects(),
-                            component.interlayer_atoms.iter_objects()):
-                        nr = atom.atom_type.atom_nr
-                        if nr in atom_conv:
-                            wt = atom.pn * atom.atom_type.weight * comp_fract * atom_conv[nr][1]
-                            comp[nr] = comp.get(nr, 0.0) + wt
-            comps.append(comp)
-
-        final_comps = np.zeros(shape=(len(atom_conv) + 1, len(comps) + 1), dtype='a15')
-        final_comps[0, 0] = " "*8
-        for j, comp in enumerate(comps):
-            fact = 100.0 / sum(comp.values())
-            for i, (nr, (oxide_name, conv)) in enumerate(atom_conv.iteritems()):
-                wt = comp.get(nr, 0.0) * fact
-                # set relevant cells:
-                if i == 0:
-                    final_comps[i, j + 1] = self.specimens[j].name.ljust(15)[:15]
-                if j == 0:
-                    final_comps[i + 1, j] = ("%s  " % oxide_name).rjust(8)[:8]
-                final_comps[i + 1, j + 1] = ("%.1f" % wt).ljust(15)[:15]
-
-        return final_comps
+        with self.data_changed.hold_and_emit():
+            if self.auto_run:
+                self.optimize()
+            else:
+                self.apply_current_data_object()
 
     def update_refinement_treestore(self):
         """
@@ -376,8 +399,6 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
             store with the refinable properties and their minimum, maximum and
             current value.
         """
-
-        unique_phases = np.unique(self.phase_matrix.flatten())
 
         self.refinables.clear()
 
@@ -431,11 +452,10 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
             Respects the current minimum and maximum values.
             Executes an optimization after the randomization.
         """
-        self.project.freeze_updates()
-        for ref_prop in self.refinables.iter_objects():
-            if ref_prop.refine and ref_prop.refinable:
-                ref_prop.value = random.uniform(ref_prop.value_min, ref_prop.value_max)
-        self.project.thaw_updates()
+        with self.data_changed.hold():
+            for ref_prop in self.refinables.iter_objects():
+                if ref_prop.refine and ref_prop.refinable:
+                    ref_prop.value = random.uniform(ref_prop.value_min, ref_prop.value_max)
 
     def get_refine_method(self):
         return self.all_refine_methods[self.refine_method]
@@ -446,5 +466,55 @@ class Mixture(ChildModel, ObjectListStoreChildMixin, Storable):
             self.refine_options = {
                 name: default for name, arg, typ, default, limits in options
             }
+
+    # ------------------------------------------------------------
+    #      Various other things:
+    # ------------------------------------------------------------
+    def get_composition_matrix(self):
+        """
+            Returns a matrix containing the oxide composition for each specimen 
+            in this mixture. It uses the COMPOSITION_CONV file for this purpose
+            to convert element weights into their oxide weight equivalent.
+        """
+
+        # create an atom nr -> (atom name, conversion) mapping
+        # this is used to transform most of the elements into their oxides
+        atom_conv = OrderedDict()
+        with open(settings.DATA_REG.get_file_path("COMPOSITION_CONV"), 'r') as f:
+            reader = csv.reader(f)
+            reader.next() # skip header
+            for row in reader:
+                nr, name, fact = row
+                atom_conv[int(nr)] = (name, float(fact))
+
+        comps = list()
+        for i, row in enumerate(self.phase_matrix):
+            comp = dict()
+            for j, phase in enumerate(row):
+                phase_fract = self.fractions[j]
+                for k, component in enumerate(phase.components.iter_objects()):
+                    comp_fract = phase.probabilities.mW[k] * phase_fract
+                    for atom in chain(component.layer_atoms.iter_objects(),
+                            component.interlayer_atoms.iter_objects()):
+                        nr = atom.atom_type.atom_nr
+                        if nr in atom_conv:
+                            wt = atom.pn * atom.atom_type.weight * comp_fract * atom_conv[nr][1]
+                            comp[nr] = comp.get(nr, 0.0) + wt
+            comps.append(comp)
+
+        final_comps = np.zeros(shape=(len(atom_conv) + 1, len(comps) + 1), dtype='a15')
+        final_comps[0, 0] = " "*8
+        for j, comp in enumerate(comps):
+            fact = 100.0 / sum(comp.values())
+            for i, (nr, (oxide_name, conv)) in enumerate(atom_conv.iteritems()):
+                wt = comp.get(nr, 0.0) * fact
+                # set relevant cells:
+                if i == 0:
+                    final_comps[i, j + 1] = self.specimens[j].name.ljust(15)[:15]
+                if j == 0:
+                    final_comps[i + 1, j] = ("%s  " % oxide_name).rjust(8)[:8]
+                final_comps[i + 1, j + 1] = ("%.1f" % wt).ljust(15)[:15]
+
+        return final_comps
 
     pass # end of class

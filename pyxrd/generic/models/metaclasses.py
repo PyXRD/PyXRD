@@ -10,13 +10,13 @@ import multiprocessing
 
 from weakref import WeakValueDictionary
 
-from pyxrd.gtkmvc.support.metaclasses import ObservablePropertyMetaMT
+from pyxrd.gtkmvc.support.metaclasses import ObservablePropertyMeta
 
 from pyxrd.generic.utils import get_unique_list, get_new_uuid
 
 from pyxrd.data import settings
 
-class PyXRDMeta(ObservablePropertyMetaMT):
+class PyXRDMeta(ObservablePropertyMeta):
 
     extra_key_names = [
         "storables",
@@ -28,7 +28,7 @@ class PyXRDMeta(ObservablePropertyMetaMT):
     # ------------------------------------------------------------
     #      Type initialisation:
     # ------------------------------------------------------------
-    def __init__(cls, name, bases, d):
+    def __init__(cls, name, bases, d): # @NoSelf
         # get the model intel for this class type (excluding bases for now):
         model_intel = get_unique_list(d.get("__model_intel__", list()))
 
@@ -68,12 +68,12 @@ class PyXRDMeta(ObservablePropertyMetaMT):
             key_name = "__%s__" % key
             setattr(cls, key_name, list(d[key_name  ]))
 
-        return ObservablePropertyMetaMT.__init__(cls, name, bases, d)
+        return ObservablePropertyMeta.__init__(cls, name, bases, d)
 
     # ------------------------------------------------------------
     #      Instance creation:
     # ------------------------------------------------------------
-    def __call__(cls, *args, **kwargs):
+    def __call__(cls, *args, **kwargs): # @NoSelf
         # Check if uuid has been passed (e.g. when restored from disk)
         # if not, generate a new one
         try:
@@ -82,7 +82,7 @@ class PyXRDMeta(ObservablePropertyMetaMT):
             uuid = get_new_uuid()
 
         # Create instance:
-        instance = ObservablePropertyMetaMT.__call__(cls, *args, **kwargs)
+        instance = ObservablePropertyMeta.__call__(cls, *args, **kwargs)
 
         # Add a reference to the instance for each model intel,
         # so function calls (e.g. labels) work as expected
@@ -98,15 +98,15 @@ class PyXRDMeta(ObservablePropertyMetaMT):
     #      Other methods & functions:
     # ------------------------------------------------------------
 
-    def set_attribute(cls, d, name, value):
+    def set_attribute(cls, d, name, value): # @NoSelf
         d[name] = value
         setattr(cls, name, value)
 
-    def del_attribute(cls, d, name):
+    def del_attribute(cls, d, name): # @NoSelf
         del d[name]
         delattr(cls, name)
 
-    def __generate_observables__(cls, name, bases, d, prop):
+    def __generate_observables__(cls, name, bases, d, prop): # @NoSelf
         # loop over the model intel and generate observables list:
         if prop.observable:
             d["__observables__"].append(prop.name)
@@ -131,7 +131,7 @@ class PyXRDMeta(ObservablePropertyMetaMT):
                 cls.del_attribute(d, prop.name)
         return name, bases, d
 
-    def __generate_storables__(cls, name, bases, d, prop):
+    def __generate_storables__(cls, name, bases, d, prop): # @NoSelf
         if prop.storable:
             if prop.stor_name != None:
                 d["__storables__"].append((prop.name, prop.stor_name))
@@ -139,18 +139,18 @@ class PyXRDMeta(ObservablePropertyMetaMT):
                 d["__storables__"].append((prop.name, prop.name))
         return name, bases, d
 
-    def __generate_columns__(cls, name, bases, d, prop):
+    def __generate_columns__(cls, name, bases, d, prop): # @NoSelf
         if prop.is_column:
             # replace unicodes with strs for PyGtk
             data_type = prop.data_type if prop.data_type != unicode else str
             d["__columns__"].append((prop.name, data_type))
         return name, bases, d
 
-    def __generate_inheritables__(cls, name, bases, d, prop):
+    def __generate_inheritables__(cls, name, bases, d, prop): # @NoSelf
         if prop.inh_name:   d["__inheritables__"].append(prop.name)
         return name, bases, d
 
-    def __generate_have_no_widget__(cls, name, bases, d, prop):
+    def __generate_have_no_widget__(cls, name, bases, d, prop): # @NoSelf
         if not prop.has_widget: d["__have_no_widget__"].append(prop.name)
         return name, bases, d
 
@@ -185,7 +185,7 @@ class ObjectPool(object):
     def change_all_uuids(self):
         # first get a copy of all objects & uuids:
         items = self._objects.items()
-        for uuid, obj in items:
+        for uuid, obj in items: # @UnusedVariable
             obj.uuid = get_new_uuid()
 
     def remove_object(self, obj):

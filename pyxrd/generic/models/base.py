@@ -7,13 +7,14 @@
 
 from warnings import warn
 
-from pyxrd.gtkmvc.model_mt import ModelMT
+from pyxrd.gtkmvc.model_mt import Model
 from pyxrd.gtkmvc.model import Signal
 
+from signals import HoldableSignal
 from metaclasses import PyXRDMeta, pyxrd_object_pool
 from properties import PropIntel
 
-class PyXRDModel(ModelMT):
+class PyXRDModel(Model):
     """
        Standard model for PyXRD models, with support for refinable properties.
     """
@@ -63,7 +64,7 @@ class PyXRDModel(ModelMT):
         pyxrd_object_pool.add_object(self)
 
     def __init__(self, *args, **kwargs):
-        ModelMT.__init__(self, *args, **kwargs)
+        super(PyXRDModel, self).__init__(*args, **kwargs)
         self.__stored_uuids__ = list()
 
     def get_prop_intel_by_name(self, name):
@@ -81,6 +82,9 @@ class PyXRDModel(ModelMT):
     pass # end of class
 
 class ChildModel(PyXRDModel):
+    """
+        A PyXRDModel with child-parent relation support.
+    """
 
     # MODEL INTEL:
     __parent_alias__ = None
@@ -104,7 +108,7 @@ class ChildModel(PyXRDModel):
             self._attach_parent()
 
     def __init__(self, parent=None):
-        PyXRDModel.__init__(self)
+        super(ChildModel, self).__init__()
         self.removed = Signal()
         self.added = Signal()
 
@@ -122,5 +126,28 @@ class ChildModel(PyXRDModel):
     def _attach_parent(self):
         if self.parent != None:
             self.added.emit()
+
+    pass # end of class
+
+class DataModel(ChildModel):
+    """
+        A ChildModel with support for having 'calculation data' and 'visual data'            
+    """
+    __model_intel__ = [
+        PropIntel(name="data_changed"),
+        PropIntel(name="visuals_changed"),
+    ]
+
+    # TODO move data_object creation stuff common to classes here...
+
+    # SIGNALS:
+
+    data_changed = None
+    visuals_changed = None
+
+    def __init__(self, *args, **kwargs):
+        super(DataModel, self).__init__(*args, **kwargs)
+        self.data_changed = HoldableSignal()
+        self.visuals_changed = HoldableSignal()
 
     pass # end of class

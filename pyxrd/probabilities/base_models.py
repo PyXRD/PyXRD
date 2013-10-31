@@ -9,36 +9,30 @@ from itertools import product
 
 import numpy as np
 
-from pyxrd.gtkmvc.model import Signal
-
 from pyxrd.generic.io import Storable
-from pyxrd.generic.models import ChildModel
+from pyxrd.generic.models import DataModel
 from pyxrd.generic.models.properties import PropIntel, IndexProperty
 
-from pyxrd.generic.refinement.mixins import RefinementGroup, RefinementValue
+from pyxrd.generic.refinement.mixins import RefinementGroup
 
-class _AbstractProbability(ChildModel, Storable, RefinementGroup):
+class _AbstractProbability(DataModel, Storable, RefinementGroup):
 
-    #MODEL INTEL:     
+    # MODEL INTEL:
     __parent_alias__ = 'phase'
-    __model_intel__ = [ #TODO add labels
-        PropIntel(name="updated",   inh_name=None,  label="",               data_type=object),
-        PropIntel(name="name",      inh_name=None,  label="Probabilites",   data_type=unicode),
-        PropIntel(name="W_valid",   inh_name=None,  label="Valid W matrix", data_type=object),
-        PropIntel(name="P_valid",   inh_name=None,  label="Valid P matrix", data_type=object),
+    __model_intel__ = [ # TODO add labels
+        PropIntel(name="name", inh_name=None, label="Probabilites", data_type=unicode),
+        PropIntel(name="W_valid", inh_name=None, label="Valid W matrix", data_type=object),
+        PropIntel(name="P_valid", inh_name=None, label="Valid P matrix", data_type=object),
     ]
     __independent_label_map__ = []
-    
-    #SIGNALS:
-    updated = None
-    
-    #PROPERTIES:
+
+    # PROPERTIES:
     name = "Probabilities"
     W_valid = None
     W_valid_mask = None
     P_valid = None
     P_valid_mask = None
-    
+
     _R = -1
     @property
     def R(self):
@@ -50,14 +44,14 @@ class _AbstractProbability(ChildModel, Storable, RefinementGroup):
 
     @property
     def G(self):
-        if self.parent!=None:
+        if self.parent != None:
             return self.parent.G
         else:
             return None
-    
+
     _W = None
     _P = None
-    
+
     @IndexProperty
     def mP(self, indeces):
         r, ind = self._get_Pxy_from_indeces(indeces)
@@ -66,7 +60,7 @@ class _AbstractProbability(ChildModel, Storable, RefinementGroup):
     def mP(self, indeces, value):
         r, ind = self._get_Pxy_from_indeces(indeces)
         self._lP[r][ind] = value
-    
+
     @IndexProperty
     def mW(self, indeces):
         r, ind = self._get_Wxy_from_indeces(indeces)
@@ -75,29 +69,28 @@ class _AbstractProbability(ChildModel, Storable, RefinementGroup):
     def mW(self, indeces, value):
         r, ind = self._get_Wxy_from_indeces(indeces)
         self._lW[r][ind] = value
-    
-    #REFINEMENT GROUP IMPLEMENTATION:
+
+    # REFINEMENT GROUP IMPLEMENTATION:
     @property
     def refine_title(self):
         return self.name
-        
+
     @property
     def children_refinable(self):
         return (not self.parent.inherit_probabilities) if self.parent else True
-    
+
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
     def __init__(self, parent=None, **kwargs):
-        ChildModel.__init__(self, parent=parent)
-        self.updated = Signal()
+        super(_AbstractProbability, self).__init__(parent=parent)
         self.setup(**kwargs)
         self.update()
-    
+
     def setup(self, R=-1):
         self._R = R
         self._create_matrices()
-    
+
     def _create_matrices(self):
         """
             Creates a list of matrices for different 'levels' of R:
@@ -111,40 +104,40 @@ class _AbstractProbability(ChildModel, Storable, RefinementGroup):
                     Pijk = g²xg² matrix
                     Pijkl = g³xg³ matrix
         """
-        R = max(self.R,1)
-        self._lW = [None]*(R+1)
-        self._lP = [None]*R
+        R = max(self.R, 1)
+        self._lW = [None] * (R + 1)
+        self._lP = [None] * R
         for r in range(R):
-            lrank = self.G ** (r+1)
+            lrank = self.G ** (r + 1)
             self._lW[r] = np.zeros(shape=(lrank, lrank), dtype=float)
             self._lP[r] = np.zeros(shape=(lrank, lrank), dtype=float)
         self._lW[-1] = np.zeros(shape=(lrank, lrank), dtype=float)
         self._W = self._lW[-2]
         self._P = self._lP[-1]
-        
-        #validity matrices:
-        self.W_valid = np.array([False]*(R+1))
-        self.W_valid_mask = np.array([None]*(R+1))
-        self.P_valid = np.array([False]*R)
-        self.P_valid_mask = np.array([None]*R)
-    
+
+        # validity matrices:
+        self.W_valid = np.array([False] * (R + 1))
+        self.W_valid_mask = np.array([None] * (R + 1))
+        self.P_valid = np.array([False] * R)
+        self.P_valid_mask = np.array([None] * R)
+
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------
     def get_prob_descriptions(self):
-        for prop, name in self.__independent_label_map__:
+        for prop, name in self.__independent_label_map__: # @UnusedVariable
             yield "%s: %.3f" % (prop, getattr(self, prop))
-    
+
     def update(self):
         raise NotImplementedError
-        
+
     def solve(self):
         """
             This 'solves' the other W and P matrices using the 'top' P and W
             matrix calculated in the update method.
         """
-        
-        for num in range(1,self.R):
+
+        for num in range(1, self.R):
             # W matrices:
             for base in product(range(self.G), repeat=num):
                 self.mW[base] = 0
@@ -156,11 +149,11 @@ class _AbstractProbability(ChildModel, Storable, RefinementGroup):
                 W = self.mW[base[:-1]]
                 self.mP[base] = self.mW[base] / W if W > 0 else 0.0
 
-        #one extra W matrix:
+        # one extra W matrix:
         self._lW[-1][:] = np.dot(self._W, self._P)
-            
-                
-        
+
+
+
     def validate(self):
         """
             Checks wether the calculated matrices are valid, and stores the
@@ -172,121 +165,121 @@ class _AbstractProbability(ChildModel, Storable, RefinementGroup):
             """Validation rules for the product of a W and P matrix"""
             W_valid_mask = np.ones_like(W)
             rank = self.G ** max(R, 1)
-            
-            #sum of the cols (W...x's) need to equal W... 
+
+            # sum of the cols (W...x's) need to equal W...
             for i in range(rank):
-                if abs(np.sum(W[...,i]) - self._W[i,i]) > 1e4:
-                    W_valid_mask[...,i] -= 1
-            
-            #sum of the entire matrix must equal one:
+                if abs(np.sum(W[..., i]) - self._W[i, i]) > 1e4:
+                    W_valid_mask[..., i] -= 1
+
+            # sum of the entire matrix must equal one:
             if abs(np.sum(W) - 1.0) > 1e4:
                 W_valid_mask -= 1
-            
-            #values need to be between 0 and 1
+
+            # values need to be between 0 and 1
             for i in range(rank):
                 for j in range(rank):
-                    if W[i,j] < 0.0 or W[i,j] > 1.0:
-                        W_valid_mask[i,i] -= 1
-            
+                    if W[i, j] < 0.0 or W[i, j] > 1.0:
+                        W_valid_mask[i, i] -= 1
+
             # if the sum of the mask values equals the square of the rank,
             # no rules have been broken:
-            W_valid = (np.sum(W_valid_mask) == rank**2)
-            
+            W_valid = (np.sum(W_valid_mask) == rank ** 2)
+
             return W_valid, W_valid_mask
-        
+
         def _validate_W(W, R):
             """Validation rules for a diagonal W matrix"""
             W_valid_mask = np.ones_like(W)
             rank = self.G ** max(R, 1)
-            
-            #sum of the diagonal nees to be one
+
+            # sum of the diagonal nees to be one
             if abs(np.sum(W) - 1.0) > 1e6:
                 for i in range(rank):
-                    W_valid_mask[i,i] -= 1
-            
-            #values need to be between 0 and 1
+                    W_valid_mask[i, i] -= 1
+
+            # values need to be between 0 and 1
             for i in range(rank):
                 for j in range(rank):
-                    if W[i,j] < 0.0 or W[i,j] > 1.0:
-                        W_valid_mask[i,i] -= 1
-            
+                    if W[i, j] < 0.0 or W[i, j] > 1.0:
+                        W_valid_mask[i, i] -= 1
+
             # if the sum of the mask values equals the square of the rank,
             # no rules have been broken:
-            W_valid = (np.sum(W_valid_mask) == rank**2)
-            
+            W_valid = (np.sum(W_valid_mask) == rank ** 2)
+
             return W_valid, W_valid_mask
-            
+
         def _validate_P(P, R):
             P_valid_mask = np.ones_like(P)
             rank = self.G ** max(R, 1)
-            
-            #sum of the rows need to be one
+
+            # sum of the rows need to be one
             for i in range(rank):
-                if abs(np.sum(P[i,...]) - 1.0) > 1e6:
-                    P_valid_mask[i,...] -= 1
-            
-            #values need to be between 0 and 1
+                if abs(np.sum(P[i, ...]) - 1.0) > 1e6:
+                    P_valid_mask[i, ...] -= 1
+
+            # values need to be between 0 and 1
             for i in range(rank):
                 for j in range(rank):
-                    if P[i,j] < 0.0 or P[i,j] > 1.0:
-                        P_valid_mask[i,j] -= 1
-            
+                    if P[i, j] < 0.0 or P[i, j] > 1.0:
+                        P_valid_mask[i, j] -= 1
+
             # if the sum of the mask values equals the square of the rank,
             # no rules have been broken:
-            P_valid = (np.sum(P_valid_mask) == rank**2)
-            
+            P_valid = (np.sum(P_valid_mask) == rank ** 2)
+
             return P_valid, P_valid_mask
 
         for i in range(max(self.R, 1)):
-            self.W_valid[i], self.W_valid_mask[i] = _validate_W(self._lW[i], i+1)
-            self.P_valid[i], self.P_valid_mask[i] = _validate_P(self._lP[i], i+1)
-        
-        #the extra W matrix validates differently:
+            self.W_valid[i], self.W_valid_mask[i] = _validate_W(self._lW[i], i + 1)
+            self.P_valid[i], self.P_valid_mask[i] = _validate_P(self._lP[i], i + 1)
+
+        # the extra W matrix validates differently:
         self.W_valid[-1], self.W_valid_mask[-1] = _validate_WW(self._lW[-1], self.R)
-        
+
     def _get_Pxy_from_indeces(self, indeces):
         if not hasattr(indeces, "__iter__"):
             indeces = [indeces]
         l = len(indeces)
-        assert(l>1), "Two or more indeces needed to acces P elements, not %s" % indeces
-        assert(l<=max(self.R,1)+1), "Too many indeces for an R%d model: %s" % (self.R, indeces)
+        assert(l > 1), "Two or more indeces needed to acces P elements, not %s" % indeces
+        assert(l <= max(self.R, 1) + 1), "Too many indeces for an R%d model: %s" % (self.R, indeces)
         R = max(l - 1, 1)
         x, y = 0, 0
-        for i in range(1,R+1):
-            f = self.G ** (R-i)
-            x += indeces[i-1] * f
+        for i in range(1, R + 1):
+            f = self.G ** (R - i)
+            x += indeces[i - 1] * f
             y += indeces[i] * f
-        return (l-2), (x, y)
-        
+        return (l - 2), (x, y)
+
     def _get_Wxy_from_indeces(self, indeces):
         if not hasattr(indeces, "__iter__"):
             indeces = [indeces]
         l = len(indeces)
-        assert(l>0), "One or more indeces needed to acces W elements"
-        assert(l<=max(self.R,1)+1), "Too many indeces for an R%d model: %s" % (self.R, indeces)
-        if l==(max(self.R,1)+1):
-            R = max(l-1, 1)
+        assert(l > 0), "One or more indeces needed to acces W elements"
+        assert(l <= max(self.R, 1) + 1), "Too many indeces for an R%d model: %s" % (self.R, indeces)
+        if l == (max(self.R, 1) + 1):
+            R = max(l - 1, 1)
             x, y = 0, 0
-            for i in range(1,R+1):
-                f = self.G ** (R-i)
-                x += indeces[i-1] * f
+            for i in range(1, R + 1):
+                f = self.G ** (R - i)
+                x += indeces[i - 1] * f
                 y += indeces[i] * f
-            return (l-1), (x, y)
+            return (l - 1), (x, y)
         else:
             R = max(l, 1)
             x = 0
             for i in range(R):
-                x += indeces[i] * self.G ** (R-(i+1))
-            return (l-1), (x, x)
-    
+                x += indeces[i] * self.G ** (R - (i + 1))
+            return (l - 1), (x, x)
+
     def get_all_matrices(self): return self._lW, self._lP
-    
+
     def get_distribution_matrix(self): return self._W
-        
+
     def get_distribution_array(self): return np.diag(self._W)
 
     def get_probability_matrix(self): return self._P
-        
+
     def get_independent_label_map(self): return self.__independent_label_map__
-    
-    pass #end of class
+
+    pass # end of class

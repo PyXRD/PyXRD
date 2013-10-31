@@ -9,14 +9,9 @@ import numpy as np
 
 from pyxrd.gtkmvc.model import Model
 
-import time
-from scipy.special import erf
-from math import sin, cos, pi, sqrt, radians, degrees, asin, tan
+from math import sin, radians, degrees, asin
 
-from pyxrd.generic.models import ChildModel, PropIntel
-from pyxrd.generic.models.mixins import CSVMixin
-from pyxrd.generic.custom_math import sqrt2pi, sqrt8
-from pyxrd.generic.utils import get_md5_hash
+from pyxrd.generic.models import DataModel, PropIntel
 from pyxrd.generic.io import storables, Storable
 
 from pyxrd.generic.calculations.goniometer import (
@@ -26,7 +21,7 @@ from pyxrd.generic.calculations.goniometer import (
 from pyxrd.generic.calculations.data_objects import GonioData
 
 @storables.register()
-class Goniometer(ChildModel, Storable):
+class Goniometer(DataModel, Storable):
     # MODEL INTEL:
     __parent_alias__ = 'project'
     __model_intel__ = [ # TODO add labels
@@ -67,6 +62,7 @@ class Goniometer(ChildModel, Storable):
     )
     def set_mcr_arg(self, prop_name, value):
         setattr(self._data_object, prop_name, self.get_prop_intel_by_name(prop_name).data_type(value))
+        self.data_changed.emit()
 
     # ------------------------------------------------------------
     #      Initialisation and other internals
@@ -77,26 +73,27 @@ class Goniometer(ChildModel, Storable):
                  wavelength=None, has_ads=False, ads_fact=1.0,
                  ads_phase_fact=1.0, ads_phase_shift=0.0, ads_const=0.0,
                  parent=None, **kwargs):
-        ChildModel.__init__(self, parent=parent)
+        super(Goniometer, self).__init__(parent=parent)
         Storable.__init__(self)
 
         self._data_object = GonioData()
 
-        self.radius = radius or self.get_depr(kwargs, 24.0, "data_radius")
-        self.divergence = divergence or self.get_depr(kwargs, 0.5, "data_divergence")
-        self.has_ads = bool(has_ads)
-        self.ads_fact = ads_fact
-        self.ads_phase_fact = ads_phase_fact
-        self.ads_phase_shift = ads_phase_shift
-        self.ads_const = ads_const
+        with self.data_changed.hold():
+            self.radius = radius or self.get_depr(kwargs, 24.0, "data_radius")
+            self.divergence = divergence or self.get_depr(kwargs, 0.5, "data_divergence")
+            self.has_ads = bool(has_ads)
+            self.ads_fact = ads_fact
+            self.ads_phase_fact = ads_phase_fact
+            self.ads_phase_shift = ads_phase_shift
+            self.ads_const = ads_const
 
-        self.soller1 = soller1 or self.get_depr(kwargs, 2.3, "data_soller1")
-        self.soller2 = soller2 or self.get_depr(kwargs, 2.3, "data_soller2")
+            self.soller1 = soller1 or self.get_depr(kwargs, 2.3, "data_soller1")
+            self.soller2 = soller2 or self.get_depr(kwargs, 2.3, "data_soller2")
 
-        self.min_2theta = min_2theta or self.get_depr(kwargs, 3.0, "data_min_2theta")
-        self.max_2theta = max_2theta or self.get_depr(kwargs, 45.0, "data_max_2theta")
-        self.steps = steps
-        self.wavelength = wavelength or self.get_depr(kwargs, 0.154056, "data_lambda")
+            self.min_2theta = min_2theta or self.get_depr(kwargs, 3.0, "data_min_2theta")
+            self.max_2theta = max_2theta or self.get_depr(kwargs, 45.0, "data_max_2theta")
+            self.steps = steps
+            self.wavelength = wavelength or self.get_depr(kwargs, 0.154056, "data_lambda")
 
     def __reduce__(self):
         return (type(self), ((), self.json_properties()))
@@ -106,9 +103,10 @@ class Goniometer(ChildModel, Storable):
     # ------------------------------------------------------------
     def reset_from_file(self, path):
         new_gonio = Goniometer.load_object(path, parent=None)
-        for prop in self.__model_intel__:
-            if prop.storable and prop.name != "uuid":
-                setattr(self, prop.name, getattr(new_gonio, prop.name))
+        with self.data_changed.hold():
+            for prop in self.__model_intel__:
+                if prop.storable and prop.name != "uuid":
+                    setattr(self, prop.name, getattr(new_gonio, prop.name))
 
     def get_nm_from_t(self, theta):
         return self.get_nm_from_2t(2 * theta)

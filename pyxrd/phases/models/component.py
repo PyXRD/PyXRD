@@ -8,10 +8,10 @@
 import zipfile
 from warnings import warn
 
-from pyxrd.gtkmvc.model import Model, Observer, Signal
+from pyxrd.gtkmvc.model import Model, Observer
 
-from pyxrd.generic.io import storables, Storable, PyXRDDecoder
-from pyxrd.generic.models import ChildModel, PropIntel
+from pyxrd.generic.io import storables, Storable
+from pyxrd.generic.models import DataModel, PropIntel
 from pyxrd.generic.models.mixins import ObjectListStoreChildMixin, ObjectListStoreParentMixin
 from pyxrd.generic.models.treemodels import ObjectListStore
 from pyxrd.generic.models.metaclasses import pyxrd_object_pool
@@ -24,7 +24,7 @@ from .atom_relations import AtomRelation, AtomRatio
 from .unit_cell_prop import UnitCellProperty
 
 @storables.register()
-class Component(ChildModel, Storable, ObjectListStoreChildMixin,
+class Component(DataModel, Storable, ObjectListStoreChildMixin,
         ObjectListStoreParentMixin, RefinementGroup):
 
     # MODEL INTEL:
@@ -48,7 +48,6 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin,
         PropIntel(name="atom_relations", data_type=object, label="Atom relations", is_column=True, has_widget=True, storable=True, widget_type="custom", refinable=True, inh_name="inherit_atom_relations", stor_name="_atom_relations"),
         PropIntel(name="layer_atoms", data_type=object, label="Layer atoms", is_column=True, has_widget=True, storable=True, widget_type="custom", inh_name="inherit_layer_atoms", stor_name="_layer_atoms"),
         PropIntel(name="interlayer_atoms", data_type=object, label="Interlayer atoms", is_column=True, has_widget=True, storable=True, widget_type="custom", inh_name="inherit_interlayer_atoms", stor_name="_interlayer_atoms"),
-        PropIntel(name="needs_update", data_type=object),
     ]
     __store_id__ = "Component"
 
@@ -76,11 +75,13 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin,
 
         return self._data_object
 
-    # SIGNALS:
-    needs_update = None
-
     # PROPERTIES:
-    name = "Name of this component"
+    _name = ""
+    def get_name_value(self): return self._name
+    def set_name_value(self, value):
+        self._name = value
+        self.visuals_changed.emit()
+        self.liststore_item_changed()
 
     @property
     def _inherit_ucp_a(self):
@@ -105,9 +106,13 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin,
     def get_inherit_prop(self, prop_name): return getattr(self, "_%s" % prop_name)
     @Model.setter(*[prop.inh_name for prop in __model_intel__ if prop.inh_name])
     def set_inherit_prop(self, prop_name, value):
-        setattr(self, "_%s" % prop_name, value)
-        self.liststore_item_changed()
-        self.needs_update.emit()
+        try: value = bool(value)
+        except ValueError: return # ignore faulty values
+        current = getattr(self, "_%s" % prop_name)
+        if current != value:
+            with self.data_changed.hold_and_emit():
+                setattr(self, "_%s" % prop_name, value)
+                self.liststore_item_changed()
 
     _linked_with = None
     _linked_with_index = None
@@ -124,6 +129,22 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin,
                 for prop in self.__inheritables__:
                     setattr(self, "inherit_%s" % prop, False)
             self.liststore_item_changed()
+            self.data_changed.emit()
+
+    # Lattice d-value
+    __lattice_d = 0.0
+    @property
+    def _lattice_d(self):
+        return self.__lattice_d;
+    @_lattice_d.setter
+    def _lattice_d(self, value):
+        try: value = float(value)
+        except ValueError: return # ignore faulty values
+        if self.__lattice_d != value:
+            self.__lattice_d = value
+            self.data_changed.emit()
+    lattice_d = property(_lattice_d.fget, None, None, "The lattice d-value for this component")
+
 
     # INHERITABLE PROPERTIES:
     _ucp_a = None
@@ -143,17 +164,25 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin,
             return getattr(self, "_%s" % prop_name)
     @Model.setter(*[prop.name for prop in __model_intel__ if prop.inh_name])
     def set_inheritable(self, prop_name, value):
-        setattr(self, "_%s" % prop_name, value)
-        if prop_name == "default_c":
-            setattr(self, "_%s" % prop_name, float(value))
-            for atom in self.interlayer_atoms.iter_objects():
-                atom.liststore_item_changed()
-        self.liststore_item_changed()
-        self.needs_update.emit()
+        current = getattr(self, "_%s" % prop_name)
+        if current != value:
+            with self.data_changed.hold_and_emit():
+                if prop_name.startswith("ucp_"):
+                    if current != None:
+                        self.relieve_model(current)
+                setattr(self, "_%s" % prop_name, value)
+                if prop_name.startswith("ucp_"):
+                    if value != None:
+                        self.observe_model(value)
+                if prop_name == "default_c":
+                    setattr(self, "_%s" % prop_name, float(value))
+                    for atom in self.interlayer_atoms.iter_objects():
+                        atom.liststore_item_changed() # default_c influences calculated Z values
+                self.liststore_item_changed()
 
-    # Instance flag indicating wether or not linked_with & inherit flags should be saved
+    # Instance flag indicating whether or not linked_with & inherit flags should be saved
     save_links = True
-    # Class flag indicating wether or not atom types in the component should be
+    # Class flag indicating whether or not atom types in the component should be
     # exported using their name rather then their project-uuid.
     export_atom_types = False
 
@@ -163,7 +192,7 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin,
         return self.name
 
     # ------------------------------------------------------------
-    #      Initialisation and other internals
+    #      Initialization and other internals
     # ------------------------------------------------------------
     def __init__(self, name=None, ucp_a=None, ucp_b=None,
                  d001=None, default_c=None, delta_c=None,
@@ -183,8 +212,6 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin,
         # Set attributes:
         self.name = name or self.get_depr(kwargs, self.name, "data_name")
 
-        self.needs_update = Signal()
-
         layer_atoms = layer_atoms or self.get_depr(kwargs, None, "data_layer_atoms")
         self._layer_atoms = self.parse_liststore_arg(layer_atoms, ObjectListStore, Atom)
         interlayer_atoms = interlayer_atoms or self.get_depr(kwargs, None, "data_interlayer_atoms")
@@ -195,7 +222,6 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin,
 
         atom_ratios = kwargs.get("atom_ratios", kwargs.get("data_atom_ratios", None))
         if atom_ratios != None:
-            decoder = PyXRDDecoder(parent=parent)
             for json_ratio in atom_ratios["properties"]["model_data"]:
                 props = json_ratio["properties"]
 
@@ -208,8 +234,12 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin,
                     parent=self)
                 self._atom_relations.append(ratio)
 
-        # for atom in self._interlayer_atoms.iter_objects():
-        #    atom.stretch_values = True
+        for atom in self._interlayer_atoms.iter_objects():
+            atom.stretch_values = True
+            self.observe_model(atom)
+
+        for atom in self._layer_atoms.iter_objects():
+            self.observe_model(atom)
 
         for relation in self._atom_relations.iter_objects():
             relation.resolve_relations()
@@ -217,11 +247,9 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin,
 
         self._layer_atoms.connect("item-inserted", self.on_layer_atom_inserted)
         self._layer_atoms.connect("item-removed", self.on_layer_atom_removed)
-        self._layer_atoms.connect("row-changed", self.on_layer_atom_changed)
 
         self._interlayer_atoms.connect("item-inserted", self.on_interlayer_atom_inserted)
-        self._interlayer_atoms.connect("item-removed", self.on_child_item_removed)
-        self._interlayer_atoms.connect("row-changed", self.on_item_changed)
+        self._interlayer_atoms.connect("item-removed", self.on_interlayer_atom_removed)
 
         self._atom_relations.connect("item-removed", self.on_atom_relation_removed)
         self._atom_relations.connect("item-inserted", self.on_atom_relation_inserted)
@@ -230,19 +258,21 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin,
 
         self._default_c = float(default_c or self.get_depr(kwargs, self._d001, "data_default_c"))
         self._delta_c = delta_c or self.get_depr(kwargs, self._delta_c, "data_delta_c")
-        self._update_lattice_d()
+        self.update_lattice_d()
 
         ucp_a = ucp_a or self.get_depr(kwargs, None, "data_ucp_a", "data_cell_a")
         if isinstance(ucp_a, float):
             ucp_a = UnitCellProperty(name="cell length a", value=ucp_a, parent=self)
             inherit_ucp_a = kwargs.pop("inherit_cell_a", inherit_ucp_a)
         self._ucp_a = self.parse_init_arg(ucp_a, UnitCellProperty(parent=self, name="Cell length a [nm]"), child=True, name="Cell length a [nm]")
+        self.observe_model(self._ucp_a)
 
         ucp_b = ucp_b or self.get_depr(kwargs, None, "data_ucp_b", "data_cell_b")
         if isinstance(ucp_b, float):
             ucp_b = UnitCellProperty(name="cell length b", value=ucp_b, parent=self)
             inherit_ucp_b = kwargs.pop("inherit_cell_b", inherit_ucp_b)
         self._ucp_b = self.parse_init_arg(ucp_b, UnitCellProperty(parent=self, name="Cell length b [nm]"), child=True, name="Cell length b [nm]")
+        self.observe_model(self._ucp_b)
 
         self._linked_with_uuid = linked_with_uuid if linked_with_uuid != None else ""
         self._linked_with_index = linked_with_index if linked_with_index > -1 else None
@@ -263,53 +293,62 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin,
     # ------------------------------------------------------------
     #      Notifications of observable properties
     # ------------------------------------------------------------
-    @Observer.observe("changed", signal=True)
-    def notify_emit_changed(self, model, prop_name, info):
-        if isinstance(model, AtomRelation) or isinstance(model, Atom):
-            self._apply_atom_relations()
-        self.needs_update.emit()
+    @Observer.observe("data_changed", signal=True)
+    def on_data_model_changed(self, model, prop_name, info):
+        # Check whether the changed model is an AtomRelation or Atom, if so
+        # re-apply the atom_relations.
+        with self.data_changed.hold():
+            if isinstance(model, AtomRelation) or isinstance(model, Atom):
+                self.apply_atom_relations()
+                self.update_ucp_values()
+            if isinstance(model, UnitCellProperty):
+                self.update_ucp_values()
 
     @Observer.observe("removed", signal=True)
-    def notify_emit_removed(self, model, prop_name, info):
+    def on_data_model_removed(self, model, prop_name, info):
+        # Check whether the removed component is linked with this one, if so
+        # clears the link and emits the data_changed signal.
         if model != self and self.linked_with != None and self.linked_with == model:
-            self.linked_with = None
-            self.needs_update.emit()
+            with self.data_changed.hold_and_emit():
+                self.linked_with = None
 
-    def on_item_changed(self, *args):
-        self.needs_update.emit()
-
-    def on_layer_atom_changed(self, *args):
-        self._update_lattice_d()
-        self.on_item_changed(*args)
     def on_layer_atom_inserted(self, model, atom):
-        atom.parent = self
-        self.on_layer_atom_changed(model, atom)
+        """Sets the atoms parent and stretch_values property,
+        updates the components lattice d-value, and emits a data_changed signal"""
+        with self.data_changed.hold_and_emit():
+            atom.parent = self
+            atom.stretch_values = False
+            self.observe_model(atom)
+            self.update_lattice_d()
+
     def on_layer_atom_removed(self, model, atom):
-        atom.parent = None
-        self.on_layer_atom_changed(model, atom)
+        """Clears the atoms parent, updates the components lattice d-value, and
+        emits a data_changed signal"""
+        with self.data_changed.hold_and_emit():
+            self.relieve_model(atom)
+            atom.parent = None
+            self.update_lattice_d()
 
     def on_interlayer_atom_inserted(self, model, atom):
-        atom.stretch_values = True
-        atom.parent = self
-        self.on_item_changed(model, atom)
+        """Sets the atoms parent and stretch_values property, 
+        and emits a data_changed signal"""
+        with self.data_changed.hold_and_emit():
+            atom.stretch_values = True
+            atom.parent = self
+    def on_interlayer_atom_removed(self, model, atom):
+        """Clears the atoms parent property, 
+        and emits a data_changed signal"""
+        with self.data_changed.hold_and_emit():
+            atom.parent = None
 
     def on_atom_relation_inserted(self, model, item):
+        item.parent = self
         self.observe_model(item)
-        self._apply_atom_relations()
-        self.on_child_item_inserted(model, item)
-
+        self.apply_atom_relations()
     def on_atom_relation_removed(self, model, item):
         self.relieve_model(item)
-        self.on_child_item_removed(model, item)
-        self._apply_atom_relations()
-
-    def on_child_item_inserted(self, model, item):
-        item.parent = self
-        self.on_item_changed(model, item)
-    def on_child_item_removed(self, model, item):
-        print "ON CHILD ITEM REMOVED!!"
         item.parent = None
-        self.on_item_changed(model, item)
+        self.apply_atom_relations()
 
     # ------------------------------------------------------------
     #      Input/Output stuff
@@ -380,17 +419,30 @@ class Component(ChildModel, Storable, ObjectListStoreChildMixin,
         return get_factors(range_stl, self.data_object)
 
     def get_interlayer_stretch_factors(self):
-        z_factor = (self.cell_c - self._lattice_d) / (self.default_c - self._lattice_d)
-        return self._lattice_d, z_factor
+        z_factor = (self.cell_c - self.lattice_d) / (self.default_c - self.lattice_d)
+        return self.lattice_d, z_factor
 
-    def _update_lattice_d(self):
-        self._lattice_d = 0.0
+    def update_lattice_d(self):
+        """
+            Updates the lattice_d attribute for this component. 
+            Should normally not be called from outside the component.
+        """
         for atom in self.layer_atoms.iter_objects():
-            self._lattice_d = float(max(self._lattice_d, atom.default_z))
+            self._lattice_d = float(max(self.lattice_d, atom.default_z))
 
-    def _apply_atom_relations(self):
-        for relation in self.atom_relations.iter_objects():
-            relation.apply_relation()
+    def apply_atom_relations(self):
+        """
+            Applies the atom relation rules in this component.
+            Should normally not be called from outside the component.
+        """
+        with self.data_changed.hold_and_emit():
+            for relation in self.atom_relations.iter_objects():
+                relation.apply_relation()
+
+    def update_ucp_values(self):
+        with self.data_changed.hold():
+            for ucp in [self._ucp_a, self._ucp_b]:
+                ucp.update_value()
 
     @property
     def cell_a(self):

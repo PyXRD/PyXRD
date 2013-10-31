@@ -6,14 +6,14 @@
 # Complete license can be found in the LICENSE file.
 
 from pyxrd.generic.io import storables, Storable
-from pyxrd.generic.models import ChildModel, PropIntel
+from pyxrd.generic.models import DataModel, PropIntel
 from pyxrd.generic.models.metaclasses import pyxrd_object_pool
 from pyxrd.generic.refinement.mixins import RefinementValue
 
 from .atom_relations import ComponentPropMixin
 
 @storables.register()
-class UnitCellProperty(ChildModel, Storable, ComponentPropMixin, RefinementValue):
+class UnitCellProperty(DataModel, Storable, ComponentPropMixin, RefinementValue):
 
     # MODEL INTEL:
     __parent_alias__ = "component"
@@ -29,43 +29,69 @@ class UnitCellProperty(ChildModel, Storable, ComponentPropMixin, RefinementValue
     __store_id__ = "UnitCellProperty"
 
     # PROPERTIES:
-    name = ""
-    enabled = False
-    inherited = False
-    ready = False
+    _name = ""
+    def get_name_value(self): return self._name
+    def set_name_value(self, value):
+        if self._name != value:
+            self._name = value
+            self.visuals_changed.emit()
+
+    _enabled = False
+    def get_enabled_value(self): return self._enabled
+    def set_enabled_value(self, value):
+        if self._enabled != value:
+            self._enabled = value
+            self.data_changed.emit()
+
+    _inherited = False
+    def get_inherited_value(self): return self._inherited
+    def set_inherited_value(self, value):
+        if self._inherited != value:
+            self._inherited = value
+            self.data_changed.emit()
+
+    _ready = False
+    def get_ready_value(self): return self._ready
+    def set_ready_value(self, value):
+        if self._ready != value:
+            self._ready = value
+            self.data_changed.emit()
 
     _value = 1.0
     value_range = [0, 2.0]
     def get_value_value(self): return self._value
     def set_value_value(self, value):
-        self._value = float(value)
+        try: value = float(value)
+        except ValueError: return
+        if self._value != value:
+            self._value = value
+            self.data_changed.emit()
 
     _factor = 1.0
     def get_factor_value(self): return self._factor
     def set_factor_value(self, value):
-        self._factor = float(value)
-        self.update_value()
+        try: value = float(value)
+        except ValueError: return
+        if self._factor != value:
+            self._factor = value
+            self.data_changed.emit()
 
     _constant = 0.0
     def get_constant_value(self): return self._constant
     def set_constant_value(self, value):
-        self._constant = float(value)
-        self.update_value()
+        try: value = float(value)
+        except ValueError: return
+        if self._constant != value:
+            self._constant = value
+            self.data_changed.emit()
 
     _temp_prop = None # temporary, JSON-style prop
     _prop = None # obj, prop tuple
     def get_prop_value(self): return self._prop
     def set_prop_value(self, value):
-        if self._prop:
-            obj, prop = self._prop
-            self.relieve_model(obj)
-            self.remove_observing_method((prop,), self.on_prop_changed)
-        self._prop = value
-        if self._prop:
-            obj, prop = self._prop
-            self.observe(self.on_prop_changed, str(prop), assign=True)
-            self.observe_model(obj)
-        self.update_value()
+        if self._prop != value:
+            self._prop = value
+            self.data_changed.emit()
 
     # REFINEMENT VALUE IMPLEMENTATION:
     @property
@@ -94,17 +120,18 @@ class UnitCellProperty(ChildModel, Storable, ComponentPropMixin, RefinementValue
     def __init__(self, name="", value=0.0, enabled=False, factor=0.0, constant=0.0, prop=None, parent=None, **kwargs):
         super(UnitCellProperty, self).__init__(parent=parent)
 
-        self.name = name or self.get_depr(kwargs, self.name, "data_name")
-        self.value = value or self.get_depr(kwargs, self._value, "data_value")
-        self.factor = factor or self.get_depr(kwargs, self._factor, "data_factor")
-        self.constant = constant or self.get_depr(kwargs, self._constant, "data_constant")
-        self.enabled = enabled or self.get_depr(kwargs, self.enabled, "data_enabled")
+        with self.data_changed.hold():
+            self.name = name or self.get_depr(kwargs, self.name, "data_name")
+            self.value = value or self.get_depr(kwargs, self._value, "data_value")
+            self.factor = factor or self.get_depr(kwargs, self._factor, "data_factor")
+            self.constant = constant or self.get_depr(kwargs, self._constant, "data_constant")
+            self.enabled = enabled or self.get_depr(kwargs, self.enabled, "data_enabled")
 
-        self._temp_prop = prop or self._parseattr(self.get_depr(kwargs, self._prop, "data_prop"))
+            self._temp_prop = prop or self._parseattr(self.get_depr(kwargs, self._prop, "data_prop"))
 
-        self.ready = True
+            self.ready = True
 
-   # ------------------------------------------------------------
+    # ------------------------------------------------------------
     #      Input/Output stuff
     # ------------------------------------------------------------
     def json_properties(self):
@@ -133,12 +160,6 @@ class UnitCellProperty(ChildModel, Storable, ComponentPropMixin, RefinementValue
             del self._temp_prop
 
     # ------------------------------------------------------------
-    #      Notifications of observable properties
-    # ------------------------------------------------------------
-    def on_prop_changed(self, model, prop_name, info):
-        self.update_value()
-
-    # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------
     def create_prop_store(self, extra_props=[]):
@@ -146,9 +167,9 @@ class UnitCellProperty(ChildModel, Storable, ComponentPropMixin, RefinementValue
         from gtk import ListStore
         store = ListStore(object, str, object)
         # use private properties so we connect to the actual object stores and not the inherited ones
-        for i, atom in enumerate(self.component._layer_atoms.iter_objects()):
+        for atom in self.component._layer_atoms.iter_objects():
             store.append([atom, "pn", lambda o: o.name])
-        for i, atom in enumerate(self.component._interlayer_atoms.iter_objects()):
+        for atom in self.component._interlayer_atoms.iter_objects():
             store.append([atom, "pn", lambda o: o.name])
         for prop in extra_props:
             store.append(prop)
@@ -163,6 +184,5 @@ class UnitCellProperty(ChildModel, Storable, ComponentPropMixin, RefinementValue
     def update_value(self):
         if self.enabled and self.ready:
             self.value = float(self.factor * self.get_value_of_prop() + self.constant)
-        self.component.needs_update.emit()
 
     pass # end of class

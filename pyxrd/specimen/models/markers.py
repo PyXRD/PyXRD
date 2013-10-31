@@ -13,11 +13,11 @@ from scipy.interpolate import interp1d
 
 from pyxrd.data import settings
 from pyxrd.generic.io import unicode_open, storables, Storable
-from pyxrd.generic.models import ChildModel, PropIntel, MultiProperty
+from pyxrd.generic.models import ChildModel, DataModel, PropIntel, MultiProperty
 from pyxrd.generic.models.mixins import CSVMixin, ObjectListStoreChildMixin
 from pyxrd.generic.peak_detection import multi_peakdetect, score_minerals
 
-class MineralScorer(ChildModel):
+class MineralScorer(DataModel):
     # MODEL INTEL:
     __parent_alias__ = 'specimen'
     __model_intel__ = [
@@ -271,7 +271,7 @@ def get_inherit_attribute_pair(name, inherit_name, levels=1, parent_prefix="disp
     return get_inherit_attribute_value, set_inherit_attribute_value, get_attribute_value, set_attribute_value
 
 @storables.register()
-class Marker(ChildModel, Storable, ObjectListStoreChildMixin, CSVMixin):
+class Marker(DataModel, Storable, ObjectListStoreChildMixin, CSVMixin):
 
     # MODEL INTEL:
     __parent_alias__ = 'specimen'
@@ -295,13 +295,9 @@ class Marker(ChildModel, Storable, ObjectListStoreChildMixin, CSVMixin):
         PropIntel(name="inherit_angle", data_type=bool, storable=True, has_widget=True),
         PropIntel(name="style", data_type=str, storable=True, has_widget=True, inh_name="inherit_style", widget_type="combo"),
         PropIntel(name="inherit_style", data_type=bool, storable=True, has_widget=True),
-        PropIntel(name="needs_update", data_type=object),
     ]
-    __csv_storables__ = [ (prop.name, prop.name) for prop in __model_intel__ if not prop.name in ("needs_update",) ]
+    __csv_storables__ = [ (prop.name, prop.name) for prop in __model_intel__ ]
     __store_id__ = "Marker"
-
-    # SIGNALS:
-    needs_update = None
 
     # PROPERTIES:
     _label = ""
@@ -309,7 +305,7 @@ class Marker(ChildModel, Storable, ObjectListStoreChildMixin, CSVMixin):
     def set_label_value(self, value):
         self._label = value
         self.liststore_item_changed()
-        self.needs_update.emit()
+        self.visuals_changed.emit()
 
     # Color:
     _color = settings.MARKER_COLOR
@@ -319,7 +315,7 @@ class Marker(ChildModel, Storable, ObjectListStoreChildMixin, CSVMixin):
     get_color_value,
     set_color_value) = get_inherit_attribute_pair(
         "color", "inherit_color",
-        levels=2, parent_prefix="display_marker", signal="needs_update"
+        levels=2, parent_prefix="display_marker", signal="visuals_changed"
     )
 
     # Angle:
@@ -330,7 +326,7 @@ class Marker(ChildModel, Storable, ObjectListStoreChildMixin, CSVMixin):
     get_angle_value,
     set_angle_value) = get_inherit_attribute_pair(
         "angle", "inherit_angle",
-        levels=2, parent_prefix="display_marker", signal="needs_update"
+        levels=2, parent_prefix="display_marker", signal="visuals_changed"
     )
 
     # Angle:
@@ -341,7 +337,7 @@ class Marker(ChildModel, Storable, ObjectListStoreChildMixin, CSVMixin):
     get_top_offset_value,
     set_top_offset_value) = get_inherit_attribute_pair(
         "top_offset", "inherit_top_offset",
-        levels=2, parent_prefix="display_marker", signal="needs_update"
+        levels=2, parent_prefix="display_marker", signal="visuals_changed"
     )
 
     # Visible, position, X and Y offset:
@@ -355,10 +351,10 @@ class Marker(ChildModel, Storable, ObjectListStoreChildMixin, CSVMixin):
     @ChildModel.setter("visible", "position", "x_offset", "y_offset")
     def set_plot_value(self, prop_name, value):
         setattr(self, "_%s" % prop_name, value)
-        self.needs_update.emit()
+        self.visuals_changed.emit()
 
     def cbb_callback(self, prop_name, value):
-        self.needs_update.emit()
+        self.visuals_changed.emit()
 
     # Alignment:
     _inherit_align = settings.MARKER_INHERIT_ALIGN
@@ -367,7 +363,7 @@ class Marker(ChildModel, Storable, ObjectListStoreChildMixin, CSVMixin):
     get_align_value,
     set_align_value) = get_inherit_attribute_pair(
         "align", "inherit_align",
-        levels=2, parent_prefix="display_marker", signal="needs_update"
+        levels=2, parent_prefix="display_marker", signal="visuals_changed"
     )
     align = MultiProperty(settings.MARKER_ALIGN, lambda i: i, cbb_callback, {
         "left": "Left align",
@@ -382,7 +378,7 @@ class Marker(ChildModel, Storable, ObjectListStoreChildMixin, CSVMixin):
     get_base_value,
     set_base_value) = get_inherit_attribute_pair(
         "base", "inherit_base",
-        levels=2, parent_prefix="display_marker", signal="needs_update"
+        levels=2, parent_prefix="display_marker", signal="visuals_changed"
     )
     base = MultiProperty(settings.MARKER_BASE, int, cbb_callback, {
         0: "X-axis",
@@ -399,7 +395,7 @@ class Marker(ChildModel, Storable, ObjectListStoreChildMixin, CSVMixin):
     get_top_value,
     set_top_value) = get_inherit_attribute_pair(
         "top", "inherit_top",
-        levels=2, parent_prefix="display_marker", signal="needs_update"
+        levels=2, parent_prefix="display_marker", signal="visuals_changed"
     )
     _tops = { 0: "Relative to base", 1: "Top of plot" }
     top = MultiProperty(settings.MARKER_TOP, int, cbb_callback, _tops)
@@ -411,7 +407,7 @@ class Marker(ChildModel, Storable, ObjectListStoreChildMixin, CSVMixin):
     get_style_value,
     set_style_value) = get_inherit_attribute_pair(
         "style", "inherit_style",
-        levels=2, parent_prefix="display_marker", signal="needs_update"
+        levels=2, parent_prefix="display_marker", signal="visuals_changed"
     )
     style = MultiProperty(settings.MARKER_STYLE, lambda i: i, cbb_callback, {
         "none": "None", "solid": "Solid",
@@ -428,10 +424,8 @@ class Marker(ChildModel, Storable, ObjectListStoreChildMixin, CSVMixin):
              inherit_color=True, inherit_base=True, inherit_top=True,
              inherit_top_offset=True, inherit_align=True, inherit_angle=True,
              inherit_style=True, parent=None, **kwargs):
-        ChildModel.__init__(self, parent=parent)
+        super(Marker, self).__init__(parent=parent)
         Storable.__init__(self)
-
-        self.needs_update = Signal()
 
         self.label = label or self.get_depr(kwargs, "", "data_label")
         self.visible = visible or self.get_depr(kwargs, True, "data_visible")

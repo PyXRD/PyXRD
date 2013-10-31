@@ -15,18 +15,15 @@ from pyxrd.generic.custom_math import smooth, add_noise
 from properties import PropIntel, MultiProperty
 from treemodels import XYListStore
 
-from base import ChildModel
+from base import DataModel
 
 @storables.register()
-class PyXRDLine(ChildModel, Storable):
+class PyXRDLine(DataModel, Storable):
     """
         A PyXRDLine is an attribute holder for a real 'Line' object, whatever the
         plotting library used may be. Internally it used an XYListStore to store
-        the x-y values (xy_store attribute). Other attributes are linewidth and
-        color. More attributes may be added in the future.
-        
-        The object also has a 'needs_update' signal, which is called whenever
-        the presentation of the object should be updated.
+        the x-y values (xy_store attribute). Other attributes are line width and
+        color. More attributes may be added in the future.        
     """
 
     # MODEL INTEL:
@@ -35,14 +32,12 @@ class PyXRDLine(ChildModel, Storable):
         PropIntel(name="xy_store", data_type=object, storable=True),
         PropIntel(name="color", data_type=str, observable=False),
         PropIntel(name="lw", data_type=float, observable=False),
-        PropIntel(name="needs_update", data_type=object),
     ]
     __store_id__ = "PyXRDLine"
 
     # PROPERTIES:
     _xy_store = None
     def get_xy_store_value(self): return self._xy_store
-    needs_update = None
 
     _label = ""
     def get_label_value(self): return self._label
@@ -54,7 +49,7 @@ class PyXRDLine(ChildModel, Storable):
     @color.setter
     def color(self, value):
         self._color = value
-        self.needs_update.emit()
+        self.visuals_changed.emit()
 
     _lw = 2.0
     @property
@@ -62,7 +57,7 @@ class PyXRDLine(ChildModel, Storable):
     @lw.setter
     def lw(self, value):
         self._lw = value
-        self.needs_update.emit()
+        self.visuals_changed.emit()
 
     @property
     def size(self):
@@ -98,8 +93,6 @@ class PyXRDLine(ChildModel, Storable):
         self.xy_store.connect('row-inserted', self.on_treestore_changed)
         self.xy_store.connect('row-changed', self.on_treestore_changed)
         super(PyXRDLine, self).__init__(*args, **kwargs)
-
-        self.needs_update = Signal()
 
         self.color = color if color != None else self.color
         self.label = label if label != None else self.label
@@ -139,7 +132,7 @@ class PyXRDLine(ChildModel, Storable):
     #      Methods & Functions
     # ------------------------------------------------------------
     def on_treestore_changed(self, treemodel, path, *args):
-        self.needs_update.emit()
+        self.data_changed.emit()
 
     def set_data(self, x, *y, **kwargs):
         """
@@ -224,7 +217,7 @@ class ExperimentalLine(PyXRDLine):
     def set_cap_value_value(self, value):
         try:
             self._cap_value = float(value)
-            self.needs_update.emit()
+            self.visuals_changed.emit()
         except ValueError:
             pass
 
@@ -240,7 +233,7 @@ class ExperimentalLine(PyXRDLine):
     def set_bg_position_value(self, value):
         try:
             self._bg_position = float(value)
-            self.needs_update.emit()
+            self.visuals_changed.emit()
         except ValueError:
             pass
 
@@ -249,7 +242,7 @@ class ExperimentalLine(PyXRDLine):
     def set_bg_scale_value(self, value):
         try:
             self._bg_scale = float(value)
-            self.needs_update.emit()
+            self.visuals_changed.emit()
         except ValueError:
             pass
 
@@ -257,7 +250,7 @@ class ExperimentalLine(PyXRDLine):
     def get_bg_pattern_value(self): return self._bg_pattern
     def set_bg_pattern_value(self, value):
         self._bg_pattern = value
-        self.needs_update.emit()
+        self.visuals_changed.emit()
 
     def get_bg_type_lbl(self):
         return self._bg_types[self._bg_type]
@@ -269,17 +262,17 @@ class ExperimentalLine(PyXRDLine):
     def get_smooth_degree_value(self): return self._smooth_degree
     def set_smooth_degree_value(self, value):
         self._smooth_degree = float(value)
-        self.needs_update.emit()
+        self.visuals_changed.emit()
 
     def on_sdtype(self, prop_name, value):
-        self.needs_update.emit()
+        self.visuals_changed.emit()
 
     _noise_fraction = 0.0
     def get_noise_fraction_value(self): return self._noise_fraction
     def set_noise_fraction_value(self, value):
         try:
             self._noise_fraction = max(float(value), 0.0)
-            self.needs_update.emit()
+            self.visuals_changed.emit()
         except ValueError:
             pass
 
@@ -288,7 +281,7 @@ class ExperimentalLine(PyXRDLine):
     def set_shift_value_value(self, value):
         try:
             self._shift_value = float(value)
-            self.needs_update.emit()
+            self.visuals_changed.emit()
         except ValueError:
             pass
 
@@ -320,7 +313,7 @@ class ExperimentalLine(PyXRDLine):
     def get_stripped_pattern_value(self): return self._stripped_pattern
     def set_stripped_pattern_value(self, value):
         self._stripped_pattern = value
-        self.needs_update.emit()
+        self.visuals_changed.emit()
 
     _noise_level = 0.0
     def get_noise_level_value(self): return self._noise_level
@@ -362,7 +355,7 @@ class ExperimentalLine(PyXRDLine):
         self.bg_pattern = None
         self.bg_scale = 0.0
         self.bg_position = 0.0
-        self.needs_update.emit()
+        self.visuals_changed.emit()
 
     # ------------------------------------------------------------
     #       Data Smoothing
@@ -374,7 +367,7 @@ class ExperimentalLine(PyXRDLine):
             smoothed = smooth(y_data, degree)
             self.set_data(x_data, smoothed)
         self.smooth_degree = 0.0
-        self.needs_update.emit()
+        self.visuals_changed.emit()
 
     def setup_smooth_variables(self):
         self.smooth_degree = 5.0
@@ -391,11 +384,11 @@ class ExperimentalLine(PyXRDLine):
             noisified = add_noise(y_data, self.noise_fraction)
             self.set_data(x_data, noisified)
         self.noise_fraction = 0.0
-        self.needs_update.emit()
+        self.visuals_changed.emit()
 
     def clear_noise_variables(self):
         self.noise_fraction = 0.0
-        self.needs_update.emit()
+        self.visuals_changed.emit()
 
     # ------------------------------------------------------------
     #       Data Shifting
@@ -408,7 +401,7 @@ class ExperimentalLine(PyXRDLine):
                 for marker in self.specimen.markers._model_data:
                     marker.position = marker.position - self.shift_value
         self.shift_value = 0.0
-        self.needs_update.emit()
+        self.visuals_changed.emit()
 
     def find_shift_value(self):
         position = self.parent.goniometer.get_2t_from_nm(self.shift_position)
@@ -481,6 +474,6 @@ class ExperimentalLine(PyXRDLine):
         self._strip_startx = 0.0
         self._strip_pattern = None
         self.strip_start_x = 0.0
-        self.needs_update.emit()
+        self.visuals_changed.emit()
 
     pass # end of class

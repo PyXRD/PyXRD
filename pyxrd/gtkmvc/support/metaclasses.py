@@ -374,7 +374,7 @@ class PropertyMeta (type):
                                  % (cls.__module__, cls.__name__, varname))
         return
 
-    def has_prop_attribute(cls, prop_name):
+    def has_prop_attribute(cls, prop_name): # @NoSelf
         """This methods returns True if there exists a class attribute
         for the given property. The attribute is searched locally
         only"""
@@ -383,7 +383,7 @@ class PropertyMeta (type):
         return (cls.__dict__.has_key(prop_name) and
                 type(cls.__dict__[prop_name]) != types.FunctionType)
 
-    def check_value_change(cls, old, new):
+    def check_value_change(cls, old, new): # @NoSelf
         """Checks whether the value of the property changed in type
         or if the instance has been changed to a different instance.
         If true, a call to model._reset_property_notification should
@@ -392,7 +392,7 @@ class PropertyMeta (type):
         return  type(old) != type(new) or \
                isinstance(old, wrappers.ObsWrapperBase) and (old != new)
 
-    def create_value(cls, prop_name, val, model=None):
+    def create_value(cls, prop_name, val, model=None): # @NoSelf
         """This is used to create a value to be assigned to a
         property. Depending on the type of the value, different values
         are created and returned. For example, for a list, a
@@ -439,7 +439,7 @@ class PropertyMeta (type):
     # ------------------------------------------------------------
 
     # Override these:
-    def get_getter(cls, prop_name,
+    def get_getter(cls, prop_name, # @NoSelf
                    user_getter=None, getter_takes_name=False):
         """Returns a function wich is a getter for a property.
         prop_name is the name off the property.
@@ -462,12 +462,12 @@ class PropertyMeta (type):
             else: _getter = user_getter
             return _getter
 
-        def _getter(self): return getattr(self,
+        def _getter(self): return getattr(self, # @DuplicatedSignature
                                           PROP_NAME % {'prop_name' : prop_name})
         return _getter
 
 
-    def get_setter(cls, prop_name,
+    def get_setter(cls, prop_name, # @NoSelf
                    user_setter=None, setter_takes_name=False,
                    user_getter=None, getter_takes_name=False):
         """Similar to get_getter, but for setting property
@@ -498,11 +498,11 @@ class PropertyMeta (type):
 class ObservablePropertyMeta (PropertyMeta):
   """Classes instantiated by this meta-class must provide a method named
   notify_property_change(self, prop_name, old, new)"""
-  def __init__(cls, name, bases, dict):
+  def __init__(cls, name, bases, dict): # @NoSelf
     PropertyMeta.__init__(cls, name, bases, dict)
     return
 
-  def get_getter(cls, prop_name,
+  def get_getter(cls, prop_name, # @NoSelf
                  user_getter=None, getter_takes_name=False):
       """This implementation returns the PROP_NAME value if there
       exists such property. Otherwise there must exist a logical
@@ -563,7 +563,7 @@ class ObservablePropertyMeta (PropertyMeta):
       return PropertyMeta.get_getter(cls, prop_name, user_getter, getter_takes_name)
 
 
-  def get_setter(cls, prop_name,
+  def get_setter(cls, prop_name, # @NoSelf
                  user_setter=None, setter_takes_name=False,
                  user_getter=None, getter_takes_name=False):
       """The setter follows the rules of the getter. First search
@@ -648,11 +648,11 @@ class ObservablePropertyMetaMT (ObservablePropertyMeta):
   owned by the class that uses it. A Lock object called _prop_lock
   is assumed to be a member of the using class. see for example class
   ModelMT"""
-  def __init__(cls, name, bases, dict):
+  def __init__(cls, name, bases, dict): # @NoSelf
     ObservablePropertyMeta.__init__(cls, name, bases, dict)
     return
 
-  def get_setter(cls, prop_name,
+  def get_setter(cls, prop_name, # @NoSelf
                  user_setter=None, setter_takes_name=False,
                  user_getter=None, getter_takes_name=False):
       """The setter follows the rules of the getter. First search
@@ -682,14 +682,14 @@ try:
     """Classes instantiated by this meta-class must provide a method
     named notify_property_change(self, prop_name, old, new)"""
 
-    def __init__(cls, name, bases, dict):
+    def __init__(cls, name, bases, dict): # @NoSelf
       InheritableSQLObject.__metaclass__.__init__(cls, name, bases, dict)
       ObservablePropertyMeta.__init__(cls, name, bases, dict)
 
       listen(cls.update_listener, cls, RowUpdateSignal)
       return
 
-    def __create_conc_prop_accessors__(cls, prop_name, default_val):
+    def __create_conc_prop_accessors__(cls, prop_name, default_val): # @NoSelf
       if not isinstance(default_val, Col):
         # this is not a SQLObject column (likely a normal concrete
         # observable property)
@@ -699,7 +699,7 @@ try:
         pass
       return
 
-    def update_listener(cls, instance, kwargs):
+    def update_listener(cls, instance, kwargs): # @NoSelf
       conc_pnames, _ = type(cls).__get_observables_sets__(cls)
       for k in kwargs:
         if k in conc_pnames:

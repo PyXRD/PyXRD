@@ -86,7 +86,7 @@ class AppModel(PyXRDModel):
 
 
     # ------------------------------------------------------------
-    #      Initialisation and other internals
+    #      Initialization and other internals
     # ------------------------------------------------------------
     def __init__(self, project=None):
         """ Initializes the AppModel with the given Project. """
@@ -98,7 +98,8 @@ class AppModel(PyXRDModel):
     # ------------------------------------------------------------
     #      Notifications of observable properties
     # ------------------------------------------------------------
-    @Observer.observe("needs_update", signal=True)
+    @Observer.observe("data_changed", signal=True)
+    @Observer.observe("visuals_changed", signal=True)
     def notify_needs_update(self, model, prop_name, info):
         self.needs_plot_update.emit()
 

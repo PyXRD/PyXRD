@@ -7,13 +7,11 @@
 
 import time
 
-# import gtk
 from pyxrd.gtkmvc.model import Model, Observer
 
 from pyxrd.data import settings
 
-from pyxrd.generic.utils import delayed
-from pyxrd.generic.models import ChildModel, DefaultSignal
+from pyxrd.generic.models import DataModel
 from pyxrd.generic.models.mixins import ObjectListStoreParentMixin
 from pyxrd.generic.models.properties import PropIntel, MultiProperty
 from pyxrd.generic.models.treemodels import ObjectListStore, IndexListStore
@@ -25,7 +23,7 @@ from pyxrd.atoms.models import AtomType
 from pyxrd.mixture.models.mixture import Mixture
 
 @storables.register()
-class Project(ChildModel, Storable, ObjectListStoreParentMixin):
+class Project(DataModel, Storable, ObjectListStoreParentMixin):
     # MODEL INTEL:
     __model_intel__ = [ # TODO add labels
         PropIntel(name="name", data_type=str, storable=True, has_widget=True),
@@ -57,13 +55,9 @@ class Project(ChildModel, Storable, ObjectListStoreParentMixin):
         PropIntel(name="phases", data_type=object, storable=True),
         PropIntel(name="mixtures", data_type=object, storable=True),
         PropIntel(name="atom_types", data_type=object, storable=True),
-        PropIntel(name="needs_update", data_type=object, storable=False),
         PropIntel(name="needs_saving", data_type=bool, storable=False),
     ]
     __store_id__ = "Project"
-
-    # SIGNALS:
-    needs_update = None
 
     # PROPERTIES:
     name = ""
@@ -74,7 +68,7 @@ class Project(ChildModel, Storable, ObjectListStoreParentMixin):
     needs_saving = True
 
     def update_callback(self, prop_name, value):
-        self.needs_update.emit()
+        self.visuals_changed.emit()
     layout_mode = MultiProperty(settings.DEFAULT_LAYOUT, lambda i: i, update_callback, settings.DEFAULT_LAYOUTS)
 
     _axes_xmin = settings.AXES_MANUAL_XMIN
@@ -98,7 +92,7 @@ class Project(ChildModel, Storable, ObjectListStoreParentMixin):
         if prop_name in ("axes_xmin", "axes_xmax"): value = max(value, 0.0)
         if prop_name == "display_group_by": value = max(value, 1)
         setattr(self, "_%s" % prop_name, value)
-        self.needs_update.emit()
+        self.visuals_changed.emit()
 
     axes_xscale = MultiProperty(0, int, update_callback, { 0: "Auto", 1: "Manual" })
     axes_yscale = MultiProperty(0, int, update_callback, {
@@ -143,7 +137,7 @@ class Project(ChildModel, Storable, ObjectListStoreParentMixin):
     def set_color(self, prop_name, value):
         if value != getattr(self, "_%s" % prop_name):
             setattr(self, "_%s" % prop_name, value)
-            self.needs_update.emit()
+            self.visuals_changed.emit()
 
     _display_calc_lw = settings.CALCULATED_LINEWIDTH
     _display_exp_lw = settings.EXPERIMENTAL_LINEWIDTH
@@ -161,7 +155,7 @@ class Project(ChildModel, Storable, ObjectListStoreParentMixin):
                         specimen.calculated_pattern.lw = value
                     elif not calc and specimen.inherit_exp_lw:
                         specimen.experimental_pattern.lw = value
-            self.needs_update.emit()
+            self.visuals_changed.emit()
 
 
     _specimens = None
@@ -192,82 +186,85 @@ class Project(ChildModel, Storable, ObjectListStoreParentMixin):
             axes_xscale=None, axes_xmin=None, axes_xmax=None,
             axes_xstretch=None, axes_yscale=None, axes_yvisible=None,
             load_default_data=True, **kwargs):
-        ChildModel.__init__(self, parent=kwargs.get("parent", None))
+        super(Project, self).__init__(parent=kwargs.get("parent", None))
         self.parent = kwargs.get("parent") # FIXME ??? old project files seem to have an issue here?
-        Storable.__init__(self)
 
-        self.before_needs_update_lock = False
-        self.needs_update = DefaultSignal(before=self.before_needs_update)
+        with self.data_changed.hold():
+            with self.visuals_changed.hold():
 
-        self.layout_mode = layout_mode or self.layout_mode
+                # Storable.__init__(self)
 
-        self.display_marker_align = display_marker_align or self.display_marker_align
-        self.display_marker_color = display_marker_color or self.display_marker_color
-        self.display_marker_base = display_marker_base or self.display_marker_base
-        self.display_marker_top = display_marker_top or self.display_marker_top
-        self.display_marker_top_offset = display_marker_top_offset or self.display_marker_top_offset
-        self.display_marker_angle = display_marker_angle or self.display_marker_angle
-        self.display_marker_style = display_marker_style or self.display_marker_style
+                self.layout_mode = layout_mode or self.layout_mode
 
-        self.display_calc_color = display_calc_color or self.display_calc_color
-        self.display_exp_color = display_exp_color or self.display_exp_color
-        self.display_calc_lw = display_calc_lw or self.display_calc_lw
-        self.display_exp_lw = display_exp_lw or self.display_exp_lw
-        self.display_plot_offset = display_plot_offset or self.display_plot_offset
-        self.display_group_by = display_group_by or self.display_group_by
-        self.display_label_pos = display_label_pos or self.display_label_pos
+                self.display_marker_align = display_marker_align or self.display_marker_align
+                self.display_marker_color = display_marker_color or self.display_marker_color
+                self.display_marker_base = display_marker_base or self.display_marker_base
+                self.display_marker_top = display_marker_top or self.display_marker_top
+                self.display_marker_top_offset = display_marker_top_offset or self.display_marker_top_offset
+                self.display_marker_angle = display_marker_angle or self.display_marker_angle
+                self.display_marker_style = display_marker_style or self.display_marker_style
 
-        self.axes_xscale = axes_xscale or self.axes_xscale
-        self.axes_xmin = axes_xmin or self.axes_xmin
-        self.axes_xmax = axes_xmax or self.axes_xmax
-        self.axes_xstretch = axes_xstretch or self.axes_xstretch
-        self.axes_yscale = axes_yscale or self.axes_yscale
-        self.axes_yvisible = axes_yvisible or self.axes_yvisible
+                self.display_calc_color = display_calc_color or self.display_calc_color
+                self.display_exp_color = display_exp_color or self.display_exp_color
+                self.display_calc_lw = display_calc_lw or self.display_calc_lw
+                self.display_exp_lw = display_exp_lw or self.display_exp_lw
+                self.display_plot_offset = display_plot_offset or self.display_plot_offset
+                self.display_group_by = display_group_by or self.display_group_by
+                self.display_label_pos = display_label_pos or self.display_label_pos
 
-        goniometer = None
-        goniometer_kwargs = self.get_depr(kwargs, None, "data_goniometer", "goniometer")
-        if goniometer_kwargs:
-            goniometer = self.parse_init_arg(goniometer_kwargs, None, child=True)
+                self.axes_xscale = axes_xscale or self.axes_xscale
+                self.axes_xmin = axes_xmin or self.axes_xmin
+                self.axes_xmax = axes_xmax or self.axes_xmax
+                self.axes_xstretch = axes_xstretch or self.axes_xstretch
+                self.axes_yscale = axes_yscale or self.axes_yscale
+                self.axes_yvisible = axes_yvisible or self.axes_yvisible
 
-        atom_types = atom_types or self.get_depr(kwargs, None, "data_atom_types")
-        phases = phases or self.get_depr(kwargs, None, "data_phases")
-        specimens = specimens or self.get_depr(kwargs, None, "data_specimens")
-        mixtures = mixtures or self.get_depr(kwargs, None, "data_mixtures")
-        self._atom_types = self.parse_liststore_arg(atom_types, IndexListStore, AtomType)
-        self._phases = self.parse_liststore_arg(phases, ObjectListStore, Phase)
-        self._specimens = self.parse_liststore_arg(specimens, ObjectListStore, Specimen)
-        self._mixtures = self.parse_liststore_arg(mixtures, ObjectListStore, Mixture)
+                goniometer = None
+                goniometer_kwargs = self.get_depr(kwargs, None, "data_goniometer", "goniometer")
+                if goniometer_kwargs:
+                    goniometer = self.parse_init_arg(goniometer_kwargs, None, child=True)
 
-        for phase in self._phases._model_data:
-            self.freeze_updates()
-            phase.resolve_json_references()
-            self.thaw_updates()
-            self.observe_model(phase)
-        for specimen in self._specimens.iter_objects():
-            if goniometer: specimen.goniometer = goniometer
-            self.observe_model(specimen)
+                atom_types = atom_types or self.get_depr(kwargs, None, "data_atom_types")
+                phases = phases or self.get_depr(kwargs, None, "data_phases")
+                specimens = specimens or self.get_depr(kwargs, None, "data_specimens")
+                mixtures = mixtures or self.get_depr(kwargs, None, "data_mixtures")
+                self._atom_types = self.parse_liststore_arg(atom_types, IndexListStore, AtomType)
+                self._phases = self.parse_liststore_arg(phases, ObjectListStore, Phase)
+                self._specimens = self.parse_liststore_arg(specimens, ObjectListStore, Specimen)
+                self._mixtures = self.parse_liststore_arg(mixtures, ObjectListStore, Mixture)
 
-        self._atom_types.connect("item-removed", self.on_atom_type_item_removed)
-        self._phases.connect("item-removed", self.on_phase_item_removed)
-        self._specimens.connect("item-removed", self.on_specimen_item_removed)
-        self._mixtures.connect("item-removed", self.on_mixture_item_removed)
+                for phase in self.phases.iter_objects():
+                    phase.resolve_json_references()
+                    self.observe_model(phase)
+                for specimen in self.specimens.iter_objects():
+                    if goniometer: specimen.goniometer = goniometer
+                    self.observe_model(specimen)
+                for mixture in self.mixtures.iter_objects():
+                    self.observe_model(mixture)
 
-        self._atom_types.connect("item-inserted", self.on_atom_type_item_inserted)
-        self._phases.connect("item-inserted", self.on_phase_item_inserted)
-        self._specimens.connect("item-inserted", self.on_specimen_item_inserted)
-        self._mixtures.connect("item-inserted", self.on_mixture_item_inserted)
+                self.atom_types.connect("item-removed", self.on_atom_type_item_removed)
+                self.phases.connect("item-removed", self.on_phase_item_removed)
+                self.specimens.connect("item-removed", self.on_specimen_item_removed)
+                self.mixtures.connect("item-removed", self.on_mixture_item_removed)
 
-        self.description = "" # gtk.TextBuffer()
+                self.atom_types.connect("item-inserted", self.on_atom_type_item_inserted)
+                self.phases.connect("item-inserted", self.on_phase_item_inserted)
+                self.specimens.connect("item-inserted", self.on_specimen_item_inserted)
+                self.mixtures.connect("item-inserted", self.on_mixture_item_inserted)
 
-        self.name = str(name or self.get_depr(kwargs, "", "data_name"))
-        self.date = str(date or self.get_depr(kwargs, "", "data_date"))
-        self.description = str(description or self.get_depr(kwargs, "", "data_description"))
-        self.author = str(author or self.get_depr(kwargs, "", "data_author"))
+                self.description = "" # gtk.TextBuffer()
 
-        if load_default_data and self.layout_mode != 1 and \
-            len(self._atom_types._model_data) == 0: self.load_default_data()
+                self.name = str(name or self.get_depr(kwargs, "", "data_name"))
+                self.date = str(date or self.get_depr(kwargs, "", "data_date"))
+                self.description = str(description or self.get_depr(kwargs, "", "data_description"))
+                self.author = str(author or self.get_depr(kwargs, "", "data_author"))
 
-        self.needs_saving = True
+                if load_default_data and self.layout_mode != 1 and \
+                    len(self._atom_types._model_data) == 0: self.load_default_data()
+
+                self.needs_saving = True
+            pass # end with visuals_changed
+        pass # end with data_changed
 
     def load_default_data(self):
         AtomType.get_from_csv(
@@ -279,63 +276,72 @@ class Project(ChildModel, Storable, ObjectListStoreParentMixin):
     #      Notifications of observable properties
     # ------------------------------------------------------------
     def on_phase_item_inserted(self, model, item, *data):
-        if item.parent != self: item.parent = self
-        self.observe_model(item)
-    def on_atom_type_item_inserted(self, model, item, *data):
-        if item.parent != self: item.parent = self
-    def on_specimen_item_inserted(self, model, item, *data):
-        if item.parent != self: item.parent = self
-        self.observe_model(item)
-    def on_mixture_item_inserted(self, model, item, *data):
+        # Set parent on the new phase:
         if item.parent != self: item.parent = self
 
     def on_phase_item_removed(self, model, item, *data):
-        if item.based_on != None:
-            item.based_on = None
-        for phase in self._phases._model_data:
-            if phase.based_on == item:
-                phase.based_on = None
-        for mixture in self.mixtures.iter_objects():
-            mixture.unset_phase(item)
-        if not self.before_needs_update_lock:
-            self.needs_update.emit() # propagate signal
-    def on_atom_type_item_removed(self, model, item, *data):
-        if not self.before_needs_update_lock:
-            self.needs_update.emit() # propagate signal
-    def on_specimen_item_removed(self, model, item, *data):
-        self.relieve_model(item)
-        for mixture in self.mixtures.iter_objects():
-            mixture.unset_specimen(item)
-        if not self.before_needs_update_lock:
-            self.needs_update.emit() # propagate signal
-    def on_mixture_item_removed(self, model, item, *data):
-        pass
-
-    @Observer.observe("needs_update", signal=True)
-    def notify_needs_update(self, model, prop_name, info):
-        self.needs_saving = True
-        self.needs_update.emit() # propagate signal
-
-    @delayed("before_needs_update_lock")
-    def before_needs_update(self, after):
-        if not self.before_needs_update_lock and self.mixtures != None:
-            self.before_needs_update_lock = True
-            t1 = time.time()
+        with self.data_changed.hold_and_emit():
+            # Clear parent:
+            item.parent = None
+            # Clear links with other phases:
+            if item.based_on != None:
+                item.based_on = None
+            for phase in self.phases.iter_objects():
+                if phase.based_on == item:
+                    phase.based_on = None
+            # Remove phase from mixtures:
             for mixture in self.mixtures.iter_objects():
-                if mixture.auto_run:
-                    mixture.optimize()
-                else:
-                    mixture.apply_current_data_object()
-            t2 = time.time()
-            if settings.DEBUG: print '%s took %0.3f ms' % ("before_needs_update", (t2 - t1) * 1000.0)
-            after()
-            self.before_needs_update_lock = False
+                mixture.unset_phase(item)
 
-    def freeze_updates(self):
-        self.before_needs_update_lock = True
+    def on_atom_type_item_inserted(self, model, item, *data):
+        if item.parent != self: item.parent = self
+        # We do not observe AtomType's directly, if they change,
+        # Atoms containing them will be notified, and that event should bubble
+        # up to the project level.
 
-    def thaw_updates(self):
-        self.before_needs_update_lock = False
+    def on_atom_type_item_removed(self, model, item, *data):
+        item.parent = None
+        # We do not emit a signal for AtomType's, if it was part of
+        # an Atom, the Atom will be notified, and the event should bubble
+        # up to the project level
+
+    def on_specimen_item_inserted(self, model, item, *data):
+        # Set parent and observe the new specimen (visuals changed signals):
+        if item.parent != self: item.parent = self
+        self.observe_model(item)
+
+    def on_specimen_item_removed(self, model, item, *data):
+        with self.data_changed.hold_and_emit():
+            # Clear parent & stop observing:
+            item.parent = None
+            self.relieve_model(item)
+            # Remove specimen from mixtures:
+            for mixture in self.mixtures.iter_objects():
+                mixture.unset_specimen(item)
+
+    def on_mixture_item_inserted(self, model, item, *data):
+        # Set parent and observe the new mixture:
+        if item.parent != self: item.parent = self
+        self.observe_model(item)
+
+    def on_mixture_item_removed(self, model, item, *data):
+        with self.data_changed.hold_and_emit():
+            # Clear parent & stop observing:
+            item.parent = None
+            self.relieve_model(item)
+
+    @Observer.observe("data_changed", signal=True)
+    def notify_data_changed(self, model, prop_name, info):
+        self.needs_saving = True
+        if isinstance(model, Mixture):
+            with model.data_changed.ignore():
+                model.update()
+            self.data_changed.emit()
+
+    @Observer.observe("visuals_changed", signal=True)
+    def notify_visuals_changed(self, model, prop_name, info):
+        self.needs_saving = True
+        self.visuals_changed.emit() # propagate signal
 
     # ------------------------------------------------------------
     #      Input/Output stuff
@@ -374,5 +380,9 @@ class Project(ChildModel, Storable, ObjectListStoreParentMixin):
             for specimen in self.parent.current_specimens:
                 max_intensity = max(specimen.max_intensity, max_intensity)
         return max_intensity
+
+    def update_all(self):
+        for mixture in self.mixtures.iter_objects():
+            mixture.update()
 
     pass # end of class

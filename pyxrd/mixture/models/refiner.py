@@ -182,32 +182,31 @@ class Refiner(ChildModel):
             # Set lock
             self.refine_lock = True
 
-            # Suppres updates:
-            self.mixture.project.freeze_updates()
+            # Suppress updates:
+            with self.project.data_changed.hold():
 
-            # If something has been selected: continue...
-            if len(self.context.ref_props) > 0:
-                # Run until it ends or it raises an exception:
-                t1 = time.time()
-                try:
-                    self.mixture.get_refine_method()(self.context, stop=stop)
-                except any as error:
-                    print "Handling run-time error: %s" % error
-                    print format_exc()
-                    self.context.status = "error"
-                else:
-                    if stop.is_set():
-                        self.context.status = "stopped"
+                # If something has been selected: continue...
+                if len(self.context.ref_props) > 0:
+                    # Run until it ends or it raises an exception:
+                    t1 = time.time()
+                    try:
+                        self.mixture.get_refine_method()(self.context, stop=stop)
+                    except any as error:
+                        print "Handling run-time error: %s" % error
+                        print format_exc()
+                        self.context.status = "error"
                     else:
-                        self.context.status = "finished"
-                t2 = time.time()
-                print '%s took %0.3f ms' % ("Total refinement", (t2 - t1) * 1000.0)
-            else: # nothing selected for refinement
-                self.context.status = "error"
+                        if stop.is_set():
+                            self.context.status = "stopped"
+                        else:
+                            self.context.status = "finished"
+                    t2 = time.time()
+                    print '%s took %0.3f ms' % ("Total refinement", (t2 - t1) * 1000.0)
+                else: # nothing selected for refinement
+                    self.context.status = "error"
 
-            # Unluck the GUI & this method
+            # Unlock this method
             self.refine_lock = False
-            self.mixture.project.thaw_updates()
 
             # Return the context to whatever called this
             return self.context

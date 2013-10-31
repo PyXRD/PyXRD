@@ -5,20 +5,16 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from traceback import print_exc
-
-from pyxrd.gtkmvc.model import Signal
-
 from pyxrd.data import settings
 
 from pyxrd.generic.calculations.CSDS import calculate_distribution
 from pyxrd.generic.calculations.data_objects import CSDSData
-from pyxrd.generic.models import ChildModel, PropIntel
+from pyxrd.generic.models import DataModel, PropIntel
 from pyxrd.generic.io import storables, Storable
 
 from pyxrd.generic.refinement.mixins import RefinementGroup, RefinementValue
 
-class _AbstractCSDSDistribution(ChildModel, Storable):
+class _AbstractCSDSDistribution(DataModel, Storable):
 
     # MODEL INTEL:
     __parent_alias__ = "phase"
@@ -27,11 +23,7 @@ class _AbstractCSDSDistribution(ChildModel, Storable):
     __model_intel__ = [
         PropIntel(name="distrib", label="CSDS Distribution", data_type=object, is_column=True),
         PropIntel(name="inherited", label="Inherited", data_type=bool),
-        PropIntel(name="updated", label="", data_type=object),
     ]
-
-    # SIGNALS:
-    updated = None
 
     # PROPERTIES:
     inherited = False
@@ -46,10 +38,9 @@ class _AbstractCSDSDistribution(ChildModel, Storable):
     #      Initialisation and other internals
     # ------------------------------------------------------------
     def __init__(self, parent=None, **kwargs):
-        ChildModel.__init__(self, parent=parent)
+        super(_AbstractCSDSDistribution, self).__init__(parent=parent)
         Storable.__init__(self)
 
-        self.updated = Signal()
         self.setup(**kwargs)
 
     def setup(self, **kwargs):
@@ -76,39 +67,51 @@ class _LogNormalMixin(object):
 
     def get_average_value(self): return self._data_object.average
     def set_average_value(self, value):
+        try: value = float(value)
+        except ValueError: pass # ignore fault values
         if value < 1.0:
-            self._data_object.average = 1.0  # re-apply
-            self._data_object.maximum = int(settings.LOG_NORMAL_MAX_CSDS_FACTOR * self.average)
-            self.update_distribution()
-            return
-        try:
-            self._data_object.average = float(value)
-            self._data_object.maximum = int(settings.LOG_NORMAL_MAX_CSDS_FACTOR * self.average)
-            self.update_distribution()
-        except ValueError:
-            print "ValueError in CSDS average value setter:"
-            print_exc()
-            pass
+            value = 1.0
+        if value != self._data_object.average:
+            with self.data_changed.hold_and_emit():
+                self._data_object.average = value
+                self._data_object.maximum = int(settings.LOG_NORMAL_MAX_CSDS_FACTOR * self.average)
+                self._update_distribution()
 
     def get_alpha_scale_value(self): return self._data_object.alpha_scale
     def set_alpha_scale_value(self, value):
-        self._data_object.alpha_scale = float(value)
-        self.update_distribution()
+        try: value = float(value)
+        except ValueError: pass # ignore fault values
+        if value != self._data_object.alpha_scale:
+            with self.data_changed.hold_and_emit():
+                self._data_object.alpha_scale = value
+                self._update_distribution()
 
     def get_alpha_offset_value(self): return self._data_object.alpha_offset
     def set_alpha_offset_value(self, value):
-        self._data_object.alpha_offset = float(value)
-        self.update_distribution()
+        try: value = float(value)
+        except ValueError: pass # ignore fault values
+        if value != self._data_object.alpha_offset:
+            with self.data_changed.hold_and_emit():
+                self._data_object.alpha_offset = value
+                self._update_distribution()
 
     def get_beta_scale_value(self): return self._data_object.beta_scale
     def set_beta_scale_value(self, value):
-        self._data_object.beta_scale = float(value)
-        self.update_distribution()
+        try: value = float(value)
+        except ValueError: pass # ignore fault values
+        if value != self._data_object.beta_scale:
+            with self.data_changed.hold_and_emit():
+                self._data_object.beta_scale = value
+                self._update_distribution()
 
     def get_beta_offset_value(self): return self._data_object.beta_offset
     def set_beta_offset_value(self, value):
-        self._data_object.beta_offset = float(value)
-        self.update_distribution()
+        try: value = float(value)
+        except ValueError: pass # ignore fault values
+        if value != self._data_object.beta_offset:
+            with self.data_changed.hold_and_emit():
+                self._data_object.beta_offset = value
+                self._update_distribution()
 
     # ------------------------------------------------------------
     #      Initialisation and other internals
@@ -125,14 +128,14 @@ class _LogNormalMixin(object):
         self._data_object.alpha_offset = alpha_offset
         self._data_object.beta_scale = beta_scale
         self._data_object.beta_offset = beta_offset
-        self.update_distribution()
+
+        self._update_distribution()
 
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------
-    def update_distribution(self):
+    def _update_distribution(self):
         self._distrib = calculate_distribution(self.data_object)
-        self.updated.emit()
 
     pass # end of class
 
@@ -211,11 +214,10 @@ class DritsCSDSDistribution(RefinementValue, _LogNormalMixin, _AbstractCSDSDistr
         return not self.inherited
 
     # ------------------------------------------------------------
-    #      Initialisation and other internals
+    #      Initialization and other internals
     # ------------------------------------------------------------
     def setup(self, average=10):
         super(DritsCSDSDistribution, self).setup(average=average)
-        self.update_distribution()
 
     pass # end of class
 

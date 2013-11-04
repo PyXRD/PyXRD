@@ -105,7 +105,7 @@ class Specimen(DataModel, Storable, ObjectListStoreParentMixin, ObjectListStoreC
             self.liststore_item_changed()
 
     def get_label_value(self):
-        if self.project.layout_mode == "FULL" and self.display_stats_in_lbl:
+        if self.display_stats_in_lbl and (self.project != None and self.project.layout_mode == "FULL"):
             label = self.sample_name
             label += "\nRp = %.1f%%" % self.statistics.Rp
             label += "\nRp' = %.1f%%" % self.statistics.Rpder
@@ -463,13 +463,14 @@ class Specimen(DataModel, Storable, ObjectListStoreParentMixin, ObjectListStoreC
         for marker in self.markers._model_data:
             mpositions.append(marker.position)
 
-        i = 1
-        for x, y in maxtab: # @UnusedVariable
-            if not x in mpositions:
-                nm = self.goniometer.get_nm_from_2t(x) if x != 0 else 0
-                new_marker = Marker("%%.%df" % (3 + min(int(log(nm, 10)), 0)) % nm, parent=self, position=x, base=base)
-                self.markers.append(new_marker)
-            i += 1
+        with self.visuals_changed.hold():
+            i = 1
+            for x, y in maxtab: # @UnusedVariable
+                if not x in mpositions:
+                    nm = self.goniometer.get_nm_from_2t(x) if x != 0 else 0
+                    new_marker = Marker("%%.%df" % (3 + min(int(log(nm, 10)), 0)) % nm, parent=self, position=x, base=base)
+                    self.markers.append(new_marker)
+                i += 1
 
     def get_exclusion_selector(self, x):
         """
@@ -503,7 +504,6 @@ class Specimen(DataModel, Storable, ObjectListStoreParentMixin, ObjectListStoreC
     # ------------------------------------------------------------
     #      Intensity calculations:
     # ------------------------------------------------------------
-    # @print_timing
     def update_pattern(self, total_intensity, phase_intensities, phases):
         """
         Update calculated patterns using the provided total and phase intensities

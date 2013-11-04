@@ -93,7 +93,7 @@ class PlotController(DialogMixin):
 
         # Load gui:
         builder = gtk.Builder()
-        builder.add_from_file(resource_filename("pyxrd.specimen", "glade/save_graph_size.glade")) #FIXME move this to this namespace!!
+        builder.add_from_file(resource_filename("pyxrd.specimen", "glade/save_graph_size.glade")) # FIXME move this to this namespace!!
         size_expander = builder.get_object("size_expander")
         cmb_presets = builder.get_object("cmb_presets")
 
@@ -181,7 +181,7 @@ class MainPlotController (PlotController):
         self.scale = 1.0
         self.stats = False
         self.xdiff = 30.0
-        self.plot_left = 0.0
+        self.plot_left = settings.PLOT_LEFT
         self.app_controller = app_controller
         PlotController.__init__(self, *args, **kwargs)
 
@@ -210,7 +210,7 @@ class MainPlotController (PlotController):
         if clear: self.plot.cla()
 
         if project and specimens:
-            self.labels = plot_specimens(project, specimens, self.plot)
+            self.labels = plot_specimens(project, specimens, self.plot_left, self.plot)
             # get mixtures for the selected specimens:
             mixtures = []
             for mixture in project.mixtures.iter_objects():

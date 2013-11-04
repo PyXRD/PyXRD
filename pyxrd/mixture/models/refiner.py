@@ -101,15 +101,17 @@ class RefineContext(ChildModel):
 
     def apply_solution(self, solution):
         solution = np.asanyarray(solution)
-        for i, ref_prop in enumerate(self.ref_props):
-            if not (solution.shape == ()):
-                ref_prop.value = float(solution[i])
-            else:
-                ref_prop.value = float(solution[()])
+        with self.mixture.data_changed.hold():
+            for i, ref_prop in enumerate(self.ref_props):
+                if not (solution.shape == ()):
+                    ref_prop.value = float(solution[i])
+                else:
+                    ref_prop.value = float(solution[()])
 
     def get_data_object_for_solution(self, solution):
-        self.apply_solution(solution)
-        return deepcopy(self.mixture.data_object)
+        with self.mixture.data_changed.ignore():
+            self.apply_solution(solution)
+            return deepcopy(self.mixture.data_object)
 
     def get_residual_for_solution(self, solution):
         self.apply_solution(solution)
@@ -183,7 +185,7 @@ class Refiner(ChildModel):
             self.refine_lock = True
 
             # Suppress updates:
-            with self.project.data_changed.hold():
+            with self.mixture.project.data_changed.hold():
 
                 # If something has been selected: continue...
                 if len(self.context.ref_props) > 0:

@@ -33,44 +33,44 @@ class pyxrd_array(creator._numpy_array):
         creator._numpy_array.__init__(self, *args, **kwargs)
         self._update()
 
-    def _update(self):              
-        if hasattr(self, "context") and self.context!=None:
+    def _update(self):
+        if hasattr(self, "context") and self.context != None:
             self.data_object = self.context.get_data_object_for_solution(self)
-        
+
     def __setitem__(self, i, y):
         y = min(y, self.max_bounds[i])
         y = max(y, self.min_bounds[i])
         creator._numpy_array.__setitem__(self, i, y)
         self._update()
-        
+
     def __setslice__(self, i, j, y):
         y = np.array(y)
         np.clip(y, self.min_bounds[i:j], self.max_bounds[i:j], y)
         creator._numpy_array.__setslice__(self, i, j, y)
         self._update()
-        
-    def __array_finalize__(self,obj):
+
+    def __array_finalize__(self, obj):
         self.__init__()
         if not hasattr(self, "context"):
             # The object does not yet have a `.context` attribute
-            self.context = getattr(obj,'context',self.__def_context)
+            self.context = getattr(obj, 'context', self.__def_context)
             self._update()
 
     def __reduce__(self):
-        __dict__ = self.__dict__
+        __dict__ = self.__dict__ # @ReservedAssignment
         if "context" in __dict__:
-            __dict__ = __dict__.copy()
+            __dict__ = __dict__.copy() # @ReservedAssignment
             del __dict__["context"]
         return (pyxrd_array, (list(self),), __dict__)
 
-    pass #end of class
+    pass # end of class
 
 def evaluate(individual):
     """
         individual should be an pyxrd_array subclass 
         (or have a data_object attribute)
     """
-    if individual.data_object!=None:
+    if individual.data_object != None:
         return get_optimized_residual(individual.data_object),
     else:
-        return 100., 
+        return 100.,

@@ -138,10 +138,7 @@ class DataModel(ChildModel):
         PropIntel(name="visuals_changed"),
     ]
 
-    # TODO move data_object creation stuff common to classes here...
-
     # SIGNALS:
-
     data_changed = None
     visuals_changed = None
 

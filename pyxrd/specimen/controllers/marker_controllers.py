@@ -5,6 +5,8 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
+from contextlib import contextmanager
+
 import gtk
 
 from pyxrd.gtkmvc import Controller
@@ -122,19 +124,23 @@ class MarkersController(ObjectListStoreController):
         treeview.append_column(col)
         return True
 
+    @contextmanager
+    def _multi_operation_context(self):
+        with self.model.visuals_changed.hold():
+            yield
+
     # ------------------------------------------------------------
     #      GTK Signal handlers
     # ------------------------------------------------------------
     def on_load_object_clicked(self, event):
         def on_accept(dialog):
-            print "Importing markers..."
-            Marker.get_from_csv(dialog.get_filename(), self.model.markers.append)
+            with self._multi_operation_context():
+                Marker.get_from_csv(dialog.get_filename(), self.model.markers.append)
         self.run_load_dialog("Import markers", on_accept, parent=self.view.get_top_widget())
 
 
     def on_save_object_clicked(self, event):
         def on_accept(dialog):
-            print "Exporting markers..."
             filename = self.extract_filename(dialog)
             Marker.save_as_csv(filename, self.get_selected_objects())
         self.run_save_dialog("Export markers", on_accept, parent=self.view.get_top_widget())
@@ -167,14 +173,15 @@ class MarkersController(ObjectListStoreController):
 
     def on_match_minerals_clicked(self, widget):
         def apply_cb(matches):
-            for name, abbreviation, peaks, matches, score in matches:
-                for marker in self.get_selected_objects():
-                    for mpos, epos in matches:
-                        if marker.get_nm_position() * 10. == epos:
-                            marker.label += ", %s" % abbreviation
+            with self._multi_operation_context():
+                for name, abbreviation, peaks, matches, score in matches:
+                    for marker in self.get_selected_objects():
+                        for mpos, epos in matches:
+                            if marker.get_nm_position() * 10. == epos:
+                                marker.label += ", %s" % abbreviation
 
         def close_cb():
-            self.model.needs_update.emit()
+            self.model.visuals_changed.emit()
             self.view.show()
 
         marker_peaks = [] # position, intensity
@@ -277,7 +284,7 @@ class MatchMineralController(DialogController):
             itr = model.get_iter(paths[0])
             name, abbreviation, peaks = model.get(itr, 0, 1, 2)
             self.model.specimen.mineral_preview = (name, peaks)
-            self.model.specimen.needs_update.emit()
+            self.model.specimen.visuals_changed.emit()
 
     def on_auto_match_clicked(self, event):
         self.model.auto_match()

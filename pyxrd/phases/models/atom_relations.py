@@ -25,7 +25,10 @@ class ComponentPropMixin(object):
         """
             Function used for handling (deprecated) 'property strings':
             attr contains a string (e.g. cell_a or layer_atoms.2) which can be 
-            parsed into an object and a property
+            parsed into an object and a property.
+            Current implementation uses UUID's, however this is still here for
+            backwards-compatibility...
+            Will be removed at some point!
         """
         if attr == "" or attr == None:
             return None
@@ -137,11 +140,46 @@ class AtomRelation(ChildModel, Storable, ObjectListStoreChildMixin, ComponentPro
             for atom in self.component._interlayer_atoms.iter_objects():
                 store.append([atom, "pn", lambda o: o.name])
             for relation in self.component._atom_relations.iter_objects():
-                tp = type(relation)
+                tp = relation.__store_id__
                 if tp in self.allowed_relations:
                     prop, name = self.allowed_relations[tp]
                     store.append([relation, prop, name])
             return store
+
+    def iter_references(self):
+        raise NotImplementedError, "'iter_references' should be implemented by subclasses!"
+
+    def _safe_is_referring(self, value):
+        if value != None and hasattr(value, "is_referring"):
+            return value.is_referring([self, ])
+        else:
+            return False
+
+    def is_referring(self, references=None):
+        """
+            Checks whether this AtomRelation is causing circular references.
+            Can be used to check this before actually setting references by
+            setting the 'references' keyword argument to a list containing the
+            new reference value(s).
+        """
+        if references == None:
+            references = []
+        # 1. Bluntly check if we're not already somewhere referred to,
+        #    if not, add ourselves to the list of references
+        if self in references:
+            return True
+        references.append(self)
+
+        # 2. Loop over our own references, check if they cause a circular
+        #    reference, if not add them to the list of references.
+        for reference in self.iter_references():
+            if reference != None and hasattr(reference, "is_referring"):
+                if reference.is_referring(references):
+                    return True
+                else:
+                    references.append(reference)
+
+        return False
 
     def apply_relation(self):
         raise NotImplementedError, "Subclasses should implement the apply_relation method!"
@@ -159,6 +197,10 @@ class AtomRatio(AtomRelation):
         PropIntel(name="atom2", label="Original Atom", data_type=object, is_column=True, storable=True, has_widget=True),
     ]
     __store_id__ = "AtomRatio"
+    allowed_relations = {
+        "AtomRatio": ("__internal_sum__", lambda o: o.name),
+        "AtomContents": ("value", lambda o: o.name),
+    }
 
     # SIGNALS:
 
@@ -170,6 +212,13 @@ class AtomRatio(AtomRelation):
         self.data_changed.emit()
 
     def __internal_sum__(self, value):
+        """
+            Special setter for other AtomRelation objects depending on the value
+            of the sum of the AtomRatio. This can be used to have multi-substitution
+            by linking two (or more) AtomRatio's. Eg Al-by-Mg-&-Fe:
+            AtomRatioMgAndFeForAl -> links together Al content and Fe+Mg content => sum = e.g. 4
+            AtomRatioMgForFe -> links together the Fe and Mg content => sum = set by previous ratio.
+        """
         self._sum = float(value)
         self.apply_relation()
     __internal_sum__ = property(fset=__internal_sum__)
@@ -177,30 +226,32 @@ class AtomRatio(AtomRelation):
     _atom1 = [None, None]
     def get_atom1_value(self): return self._atom1
     def set_atom1_value(self, value):
-        self._atom1 = value
-        self.data_changed.emit()
+        with self.data_changed.hold():
+            if not self._safe_is_referring(value[0]):
+                self._atom1 = value
+                self.data_changed.emit()
 
     _atom2 = [None, None]
     def get_atom2_value(self): return self._atom2
     def set_atom2_value(self, value):
-        self._atom2 = value
-        self.data_changed.emit()
+        with self.data_changed.hold():
+            if not self._safe_is_referring(value[0]):
+                self._atom2 = value
+                self.data_changed.emit()
 
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def __init__(self, sum=0.0, atom1=[None, None], atom2=[None, None], name="New Ratio", **kwargs):
+    def __init__(self, sum=None, atom1=[None, None], atom2=[None, None], name="New Ratio", **kwargs): # @ReservedAssignment
         AtomRelation.__init__(self, name=name, **kwargs)
 
-        self.sum = sum or self.get_depr(kwargs, self._sum, "data_sum")
+        self.sum = sum if sum != None else self.get_depr(kwargs, self._sum, "data_sum")
 
-        atom1 = atom1 or self._parseattr(self.get_depr(kwargs, [None, None], "prop1", "data_prop1"))
-        if isinstance(atom1[0], basestring): atom1[0] = pyxrd_object_pool.get_object(atom1[0])
-        self.atom1 = list(atom1)
+        self._unresolved_atom1 = atom1 or self._parseattr(self.get_depr(kwargs, [None, None], "prop1", "data_prop1"))
+        # self.atom1 = list(atom1)
 
-        atom2 = atom2 or self._parseattr(self.get_depr(kwargs, [None, None], "prop2", "data_prop2"))
-        if isinstance(atom2[0], basestring): atom2[0] = pyxrd_object_pool.get_object(atom2[0])
-        self.atom2 = list(atom2)
+        self._unresolved_atom2 = atom2 or self._parseattr(self.get_depr(kwargs, [None, None], "prop2", "data_prop2"))
+        # self.atom2 = list(atom2)
 
 
     # ------------------------------------------------------------
@@ -213,20 +264,29 @@ class AtomRatio(AtomRelation):
         return retval
 
     def resolve_relations(self):
-        pass # not needed for AtomRatio
-
+        if isinstance(self._unresolved_atom1[0], basestring):
+            self._unresolved_atom1[0] = pyxrd_object_pool.get_object(self._unresolved_atom1[0])
+        self.atom1 = list(self._unresolved_atom1)
+        del self._unresolved_atom1
+        if isinstance(self._unresolved_atom2[0], basestring):
+            self._unresolved_atom2[0] = pyxrd_object_pool.get_object(self._unresolved_atom2[0])
+        self.atom2 = list(self._unresolved_atom2)
+        del self._unresolved_atom2
 
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------
     def apply_relation(self):
         if self.enabled and self.applicable:
-            for value, atom_prop in [(self.value, self.atom1), (1.0 - self.value, self.atom2)]:
-                atom, prop = atom_prop
+            for value, (atom, prop) in [(self.value, self.atom1), (1.0 - self.value, self.atom2)]:
                 if atom and prop:
                     # do not fire events, just set attributes:
                     with atom.data_changed.ignore():
                         setattr(atom, prop, value * self.sum)
+
+    def iter_references(self):
+        for atom in [self.atom1[0], self.atom2[0]]:
+            yield atom
 
     pass # end of class
 
@@ -264,7 +324,7 @@ class AtomContents(AtomRelation):
     __store_id__ = "AtomContents"
 
     allowed_relations = {
-        AtomRatio: ("__internal_sum__", lambda o: o.name),
+        "AtomRatio": ("__internal_sum__", lambda o: o.name),
     }
 
     # SIGNALS:
@@ -326,5 +386,28 @@ class AtomContents(AtomRelation):
                 if atom_content.atom != None:
                     with atom_content.atom.data_changed.ignore():
                         atom_content.update_atom(self.value)
+
+    def set_atom_content_values(self, path, new_atom, new_prop):
+        """    
+            Convenience function that first checks if the new atom value will
+            not cause a circular reference before actually setting it.
+        """
+        with self.data_changed.hold():
+            atom_content = self.atom_contents.get_item_by_index(int(path[0]))
+            if atom_content.atom != new_atom:
+                old_atom = atom_content.atom
+                atom_content.atom = None # clear...
+                if not self._safe_is_referring(new_atom):
+                    print "IS SAFE!", new_atom
+                    atom_content.atom = new_atom
+                else:
+                    atom_content.atom = old_atom
+            else:
+                atom_content.atom = None
+            atom_content.prop = new_prop
+
+    def iter_references(self):
+        for atom_content in self.atom_contents.iter_objects():
+            yield atom_content.atom
 
     pass # end of class

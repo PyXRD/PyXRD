@@ -302,7 +302,7 @@ class Component(DataModel, Storable, ObjectListStoreChildMixin,
                 self.apply_atom_relations()
                 self.update_ucp_values()
             if isinstance(model, UnitCellProperty):
-                self.update_ucp_values()
+                self.data_changed.emit() # propagate signal
 
     @Observer.observe("removed", signal=True)
     def on_data_model_removed(self, model, prop_name, info):

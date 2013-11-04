@@ -5,6 +5,8 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
+from contextlib import contextmanager
+
 import gtk
 
 from pyxrd.generic.views.treeview_tools import new_text_column, setup_treeview
@@ -242,18 +244,29 @@ class ObjectListStoreMixin(ObjectTreeviewMixin):
             self.select_object(new_object)
         return True
 
+    @contextmanager
+    def _multi_operation_context(self):
+        """
+            This method should be called as a context manager (with self._multi_...)
+            anytime more then one object is changed at the same time.
+            Default implementation does not do anything, but this can be used
+            to e.g. hold signals from firing until all objects have changed.  
+        """
+        yield # default implementation doesn't do anything.
+
     def on_del_object_clicked(self, event, del_callback=None, callback=None):
         tv = self.view.treeview
         selection = tv.get_selection()
         if selection.count_selected_rows() >= 1:
             def delete_objects(dialog):
-                for obj in self.get_selected_objects():
-                    if callable(del_callback):
-                        del_callback(obj)
-                    else:
-                        self.liststore.remove_item(obj)
-                    if callable(callback): callback(obj)
-                self.edit_object(None)
+                with self._multi_operation_context():
+                    for obj in self.get_selected_objects():
+                        if callable(del_callback):
+                            del_callback(obj)
+                        else:
+                            self.liststore.remove_item(obj)
+                        if callable(callback): callback(obj)
+                    self.edit_object(None)
             self.run_confirmation_dialog(message=self.delete_msg, on_accept_callback=delete_objects, parent=self.view.get_top_widget())
 
 

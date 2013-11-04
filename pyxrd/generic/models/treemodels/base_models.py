@@ -14,6 +14,8 @@ class BaseObjectListStore(gtk.GenericTreeModel):
     """
         Base mixin for creating GenericTreeModel implementations for lists of
         objects. It maps the columns of the store with properties of the object.
+        If the PyGTK modules are not available (e.g. on a headless HPC cluster),
+        a dummy gtk module is loaded. Not all (GTK) functionality is enabled in that case.
     """
 
     # PROPERTIES

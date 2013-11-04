@@ -168,7 +168,7 @@ class RefineCMAESRun(RefineRun):
         bounds = np.array(context.ranges)
         creator.create(
             "Individual", pyxrd_array,
-            fitness=creator.FitnessMin,
+            fitness=creator.FitnessMin, # @UndefinedVariable
             context=context,
             min_bounds=bounds[:, 0].copy(),
             max_bounds=bounds[:, 1].copy(),
@@ -177,7 +177,7 @@ class RefineCMAESRun(RefineRun):
         # Makes sure individuals stay in-bound:
         def create_individual(lst):
             arr = np.array(lst).clip(bounds[:, 0], bounds[:, 1])
-            return creator.Individual(arr)
+            return creator.Individual(arr) # @UndefinedVariable
 
         # Toolbox setup:
         toolbox = base.Toolbox()

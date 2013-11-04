@@ -176,7 +176,7 @@ def plot_hatches(project, specimen, offset, scale, axes):
             edgecolor=settings.EXCLUSION_LINES, linewidth=0)
         rightborder = axes.axvline(x1, y0, y1, c=settings.EXCLUSION_LINES)
 
-def plot_label(specimen, labels, label_offset, axes):
+def plot_label(specimen, labels, label_offset, plot_left, axes):
     text = getattr(specimen, "__plot_label_artist", None)
 
     # prevent empty $$ from causing an error:
@@ -184,7 +184,7 @@ def plot_label(specimen, labels, label_offset, axes):
 
     props = dict(
         text=save_label,
-        x=settings.PLOT_LEFT - 0.05,
+        x=plot_left - 0.05,
         y=label_offset,
         clip_on=False,
         horizontalalignment='right',
@@ -224,7 +224,7 @@ def plot_pattern(pattern, axes, scale=1, offset=0, cap=0, **kwargs):
         axes.add_line(line)
     pattern.__plot_line = line
 
-def plot_specimen(project, specimen, labels, label_offset,
+def plot_specimen(project, specimen, labels, label_offset, plot_left,
         offset, scale, marker_scale, axes):
     """
         Plots a specimens patterns, markers and hatches using the given
@@ -425,7 +425,7 @@ def plot_specimen(project, specimen, labels, label_offset,
     # markers;
     plot_markers(project, specimen, offset, scale, marker_scale, axes)
     # & label:
-    plot_label(specimen, labels, label_offset, axes)
+    plot_label(specimen, labels, label_offset, plot_left, axes)
 
 def plot_statistics(project, specimen, stats_y_pos, stats_height, axes):
 
@@ -456,7 +456,7 @@ def plot_statistics(project, specimen, stats_y_pos, stats_height, axes):
                 specimen.statistics.der_calc_pattern):
             plot_pattern_middle(pattern, axes, height=stats_height, max_I=max_I, offset=stats_y_pos, alpha=0.65)
 
-def plot_specimens(project, specimens, axes):
+def plot_specimens(project, specimens, plot_left, axes):
     """
         Plots multiple specimens within the context of a project
     """
@@ -529,7 +529,7 @@ def plot_specimens(project, specimens, axes):
 
         plot_specimen(
             project, specimen, labels,
-            lbl_y_pos, spec_y_pos, spec_scale, scale_unit,
+            lbl_y_pos, plot_left, spec_y_pos, spec_scale, scale_unit,
             axes
         )
 

@@ -8,7 +8,6 @@
 from math import log10, floor, exp, sqrt, log, pi
 
 import numpy as np
-from numpy.core.umath_tests import matrix_multiply as mmultr
 
 sqrtpi = sqrt(pi)
 sqrt2pi = sqrt(2 * pi)

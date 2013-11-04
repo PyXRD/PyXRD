@@ -14,6 +14,17 @@ from .atom_relations import ComponentPropMixin
 
 @storables.register()
 class UnitCellProperty(DataModel, Storable, ComponentPropMixin, RefinementValue):
+    """
+        UnitCellProperty's are an integral part of a component and allow to 
+        calculate the dimensions of the unit cell based on compositional
+        information such as the iron content.
+        This class is not responsible for keeping its value up-to-date.
+        With other words, it is the responsibility of the higher-level class
+        to call the 'update_value' method on this object whenever it emits a
+        'data_changed' signal. The reason for this is to prevent infinite 
+        recursion errors. 
+    """
+
 
     # MODEL INTEL:
     __parent_alias__ = "component"
@@ -24,6 +35,7 @@ class UnitCellProperty(DataModel, Storable, ComponentPropMixin, RefinementValue)
         PropIntel(name="constant", label="Constant", data_type=float, widget_type='float_entry', storable=True, has_widget=True),
         PropIntel(name="prop", label="Property", data_type=object, widget_type='combo', storable=True, has_widget=True),
         PropIntel(name="enabled", label="Enabled", data_type=bool, storable=True, has_widget=True),
+        PropIntel(name="ready", label="Ready", data_type=bool),
         PropIntel(name="inherited", label="Inherited", data_type=bool)
     ]
     __store_id__ = "UnitCellProperty"
@@ -41,21 +53,21 @@ class UnitCellProperty(DataModel, Storable, ComponentPropMixin, RefinementValue)
     def set_enabled_value(self, value):
         if self._enabled != value:
             self._enabled = value
-            self.data_changed.emit()
+            self.update_value()
 
     _inherited = False
     def get_inherited_value(self): return self._inherited
     def set_inherited_value(self, value):
         if self._inherited != value:
             self._inherited = value
-            self.data_changed.emit()
+            self.update_value()
 
     _ready = False
     def get_ready_value(self): return self._ready
     def set_ready_value(self, value):
         if self._ready != value:
             self._ready = value
-            self.data_changed.emit()
+            self.update_value()
 
     _value = 1.0
     value_range = [0, 2.0]
@@ -65,7 +77,7 @@ class UnitCellProperty(DataModel, Storable, ComponentPropMixin, RefinementValue)
         except ValueError: return
         if self._value != value:
             self._value = value
-            self.data_changed.emit()
+            self.update_value()
 
     _factor = 1.0
     def get_factor_value(self): return self._factor
@@ -74,7 +86,7 @@ class UnitCellProperty(DataModel, Storable, ComponentPropMixin, RefinementValue)
         except ValueError: return
         if self._factor != value:
             self._factor = value
-            self.data_changed.emit()
+            self.update_value()
 
     _constant = 0.0
     def get_constant_value(self): return self._constant
@@ -83,7 +95,7 @@ class UnitCellProperty(DataModel, Storable, ComponentPropMixin, RefinementValue)
         except ValueError: return
         if self._constant != value:
             self._constant = value
-            self.data_changed.emit()
+            self.update_value()
 
     _temp_prop = None # temporary, JSON-style prop
     _prop = None # obj, prop tuple
@@ -91,7 +103,7 @@ class UnitCellProperty(DataModel, Storable, ComponentPropMixin, RefinementValue)
     def set_prop_value(self, value):
         if self._prop != value:
             self._prop = value
-            self.data_changed.emit()
+            self.update_value()
 
     # REFINEMENT VALUE IMPLEMENTATION:
     @property
@@ -117,14 +129,14 @@ class UnitCellProperty(DataModel, Storable, ComponentPropMixin, RefinementValue)
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def __init__(self, name="", value=0.0, enabled=False, factor=0.0, constant=0.0, prop=None, parent=None, **kwargs):
+    def __init__(self, name="", value=None, enabled=False, factor=None, constant=None, prop=None, parent=None, **kwargs):
         super(UnitCellProperty, self).__init__(parent=parent)
 
         with self.data_changed.hold():
             self.name = name or self.get_depr(kwargs, self.name, "data_name")
-            self.value = value or self.get_depr(kwargs, self._value, "data_value")
-            self.factor = factor or self.get_depr(kwargs, self._factor, "data_factor")
-            self.constant = constant or self.get_depr(kwargs, self._constant, "data_constant")
+            self.value = value if value != None else self.get_depr(kwargs, self._value, "data_value")
+            self.factor = factor if factor != None else  self.get_depr(kwargs, self._factor, "data_factor")
+            self.constant = constant if constant != None else self.get_depr(kwargs, self._constant, "data_constant")
             self.enabled = enabled or self.get_depr(kwargs, self.enabled, "data_enabled")
 
             self._temp_prop = prop or self._parseattr(self.get_depr(kwargs, self._prop, "data_prop"))
@@ -184,5 +196,6 @@ class UnitCellProperty(DataModel, Storable, ComponentPropMixin, RefinementValue)
     def update_value(self):
         if self.enabled and self.ready:
             self.value = float(self.factor * self.get_value_of_prop() + self.constant)
+            self.data_changed.emit()
 
     pass # end of class

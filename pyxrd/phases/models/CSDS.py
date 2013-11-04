@@ -28,6 +28,11 @@ class _AbstractCSDSDistribution(DataModel, Storable):
     # PROPERTIES:
     inherited = False
 
+    _data_object = None
+    @property
+    def data_object(self):
+        return self._data_object
+
     _distrib = None
     def get_distrib_value(self):
         if self._distrib == None:
@@ -55,11 +60,6 @@ class _AbstractCSDSDistribution(DataModel, Storable):
     pass # end of class
 
 class _LogNormalMixin(object):
-
-    _data_object = None
-    @property
-    def data_object(self):
-        return self._data_object
 
     # PROPERTIES:
     def get_maximum_value(self): return self._data_object.maximum

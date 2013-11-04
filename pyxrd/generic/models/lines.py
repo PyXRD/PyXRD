@@ -125,8 +125,9 @@ class PyXRDLine(DataModel, Storable):
             the internal XYListStore's load_data_from_generator method.
             If clear=True the xy_store data is cleared first.
         """
-        xrdfiles = parser.parse(filename)
-        self.xy_store.load_data_from_generator(xrdfiles[0].data, clear=clear)
+        with self.data_changed.hold():
+            xrdfiles = parser.parse(filename)
+            self.xy_store.load_data_from_generator(xrdfiles[0].data, clear=clear)
 
     # ------------------------------------------------------------
     #      Methods & Functions
@@ -140,7 +141,8 @@ class PyXRDLine(DataModel, Storable):
             You can also pass in an optional 'names' keyword, containing
             the column names for y-value argument.
         """
-        self.xy_store.update_from_data(x, *y, **kwargs)
+        with self.data_changed.hold():
+            self.xy_store.update_from_data(x, *y, **kwargs)
 
     def get_plotted_y_at_x(self, x):
         try:
@@ -155,7 +157,8 @@ class PyXRDLine(DataModel, Storable):
             return 0
 
     def clear(self):
-        self.xy_store.clear()
+        with self.data_changed.hold():
+            self.xy_store.clear()
 
     pass # end of class
 
@@ -398,8 +401,9 @@ class ExperimentalLine(PyXRDLine):
         if self.shift_value != 0.0:
             self.set_data(x_data - self.shift_value, y_data)
             if self.specimen:
-                for marker in self.specimen.markers._model_data:
-                    marker.position = marker.position - self.shift_value
+                with self.specimen.visuals_changed.hold():
+                    for marker in self.specimen.markers._model_data:
+                        marker.position = marker.position - self.shift_value
         self.shift_value = 0.0
         self.visuals_changed.emit()
 

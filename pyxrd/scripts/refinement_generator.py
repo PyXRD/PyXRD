@@ -7,7 +7,7 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-import cProfile, pstats
+# import cProfile, pstats, StringIO
 
 import multiprocessing
 import os
@@ -33,6 +33,10 @@ def run(args):
 
         for i, mixture in enumerate(project.mixtures.iter_objects()):
             if i == int(mixture_index):
+
+                # pr = cProfile.Profile()
+                # pr.enable()
+                # try:
                 settings.CACHE = "FILE" # enable active caching
                 mixture.update_refinement_treestore()
                 mixture.randomize()
@@ -41,6 +45,15 @@ def run(args):
                 settings.CACHE = "FILE_FETCH_ONLY" # disable active caching
                 mixture.refiner.setup_context(store=True)
                 mixture.refiner.refine(stop=stop_event)
+                # except:
+                #    pass
+                # finally:
+                #    pr.disable()
+                #    with open("pyxrd_stats", "w+") as f:
+                #        sortby = 'cumulative'
+                #        ps = pstats.Stats(pr, stream=f).sort_stats(sortby)
+                #        ps.print_stats()
+                #    print "STATS DUMPED!"
 
                 context = mixture.refiner.context
 

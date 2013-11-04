@@ -28,7 +28,7 @@ from pyxrd.generic.controllers import (
 )
 
 from pyxrd.phases.views import EditAtomRatioView, EditAtomContentsView
-from pyxrd.phases.models.atom_relations import AtomRatio, AtomContents
+from pyxrd.phases.models.atom_relations import AtomRatio, AtomContents, AtomContentObject
 
 class AtomComboMixin(object):
 
@@ -267,7 +267,7 @@ class ContentsListController(InlineObjectListStoreController):
         InlineObjectListStoreController.__init__(self, model_property_name, enable_import=False, enable_export=False, **kwargs)
 
     def create_new_object_proxy(self):
-        return [None, None, 1.0]
+        return AtomContentObject(None, None, 1.0)
 
     def on_atom_changed(self, combo, path, new_iter, user_data=None):
         self.new_val = combo.get_property("model").get(new_iter, 0, 1)
@@ -275,7 +275,7 @@ class ContentsListController(InlineObjectListStoreController):
     def on_atom_edited(self, combo, path, new_text, args=None):
         if self.new_val:
             new_atom, new_prop = self.new_val
-            self.liststore.set(self.liststore.get_iter(path), 0, new_atom, 1, new_prop)
+            self.model.set_atom_content_values(path, new_atom, new_prop)
             self.new_val = None
         return True
 

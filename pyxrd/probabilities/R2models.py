@@ -115,8 +115,6 @@ class R2G2Model(_AbstractProbability):
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------
-
-    # @delayed()
     def update(self):
         with self.data_changed.hold_and_emit():
             self.mW[1] = 1.0 - self.mW[0]
@@ -280,7 +278,6 @@ class R2G3Model(_AbstractProbability):
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------
-
     def update(self):
         with self.data_changed.hold_and_emit():
             # G2inv = (1.0 / self._G2) - 1.0 if self._G2 > 0 else 0.0

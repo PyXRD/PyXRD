@@ -34,7 +34,7 @@ class PyXRDLogger(object):
     def write(self, text):
         if self.ready:
             self.saveout.write(text)
-            self.logfile.write(text)
+            # self.logfile.write(text)
             # self.logfile.flush()
             # os.fsync(self.logfile.fileno())
 

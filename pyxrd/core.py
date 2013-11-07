@@ -13,6 +13,11 @@ from traceback import print_exc
 import warnings
 import argparse, os
 
+try:
+    import gtk
+except ImportError:
+    pass
+
 def _worker_initializer(*args):
     from pyxrd.data import settings
     if settings.CACHE == "FILE":
@@ -92,13 +97,14 @@ def _close_pool(pool):
 
 def _run_gui(args, splash=None):
     # Now we can load these:
-    import gtk
     from pyxrd.data import settings
     from pyxrd.project.models import Project
     from pyxrd.application.models import AppModel
     from pyxrd.application.views import AppView
     from pyxrd.application.controllers import AppController
     from pyxrd.generic.gtkexcepthook import plugin_gtk_excepthook
+
+    # Initialize threads
 
     # Check if a filename was passed, if so try to load it
     project = None
@@ -119,9 +125,6 @@ def _run_gui(args, splash=None):
 
     # Close splash screen
     if splash: splash.close()
-
-    # Initialize threads
-    gtk.gdk.threads_init() # @UndefinedVariable
 
     # Nice GUI error handler:
     plugin_gtk_excepthook()

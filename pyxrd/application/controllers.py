@@ -10,6 +10,7 @@ from shutil import copy2 as copy, move
 from os.path import basename, dirname
 
 import gtk
+import gobject
 
 from pyxrd.gtkmvc import Controller
 
@@ -33,8 +34,15 @@ class AppController (BaseController, DialogMixin):
         Controller handling the main application interface.
     """
 
-    file_filters = [("PyXRD Project files", get_case_insensitive_glob("*.pyxrd", "*.zpd")),
-                    ("All Files", "*.*")]
+    file_filters = [
+        ("PyXRD Project files", get_case_insensitive_glob("*.pyxrd", "*.zpd")),
+        ("All Files", "*.*")
+    ]
+
+    import_filters = [
+        ("Sybilla XML files", get_case_insensitive_glob("*.xml")),
+        ("All Files", "*.*")
+    ]
 
     # ------------------------------------------------------------
     #      Initialisation and other internals
@@ -100,6 +108,7 @@ class AppController (BaseController, DialogMixin):
         self.reset_project_controller()
         self.update_project_sensitivities()
         self.set_layout_mode(self.model.current_project.layout_mode)
+        self.update_title()
         return
 
     @Controller.observe("current_specimen", assign=True, after=True)
@@ -119,10 +128,9 @@ class AppController (BaseController, DialogMixin):
         """
             Adds a redraw plot function as 'idle' action to the main GTK loop.
         """
-        self.redraw_plot()
-        """if self._idle_redraw_id != None:
+        if self._idle_redraw_id != None:
             gobject.source_remove(self._idle_redraw_id)
-        self._idle_redraw_id = gobject.idle_add(self.redraw_plot)"""
+        self._idle_redraw_id = gobject.idle_add(self.redraw_plot)
 
     @BaseController.status_message("Updating display...")
     def redraw_plot(self):
@@ -183,10 +191,28 @@ class AppController (BaseController, DialogMixin):
 
     def open_project(self, filename):
         try:
+            import threading
+            print threading.current_thread()
             self.model.current_project = Project.load_object(filename, parent=self.model)
             self.model.current_filename = filename
+            self.update_title()
         except any as error:
             self.run_information_dialog("An error has occurred.\n Your project was not loaded!", parent=self.view.get_top_widget())
+            print error
+
+    def new_project(self):
+        self.model.current_project = Project(parent=self.model)
+        self.model.current_filename = None
+        self.view.project.present()
+
+    def import_project_from_xml(self, filename):
+        try:
+            self.model.current_project = Project.create_from_sybilla_xml(filename, parent=self.model)
+            self.model.current_filename = None
+            self.update_title()
+            self.view.project.present()
+        except any as error:
+            self.run_information_dialog("An error has occurred.\n Your project was not imported!", parent=self.view.get_top_widget())
             print error
 
     # ------------------------------------------------------------
@@ -274,10 +300,8 @@ class AppController (BaseController, DialogMixin):
     @BaseController.status_message("Creating new project...", "new_project")
     def on_new_project_activate(self, widget, data=None):
         def on_accept(dialog):
-            self.model.current_project = Project(parent=self.model)
-            self.model.current_filename = None
-            self.update_title()
-            self.view.project.present()
+            print "Creating new project..."
+            self.new_project()
         if self.model.current_project and self.model.current_project.needs_saving:
             self.run_confirmation_dialog(
                 "The current project has unsaved changes,\n"
@@ -304,6 +328,26 @@ class AppController (BaseController, DialogMixin):
             self.run_confirmation_dialog(
                 "The current project has unsaved changes,\n"
                 "are you sure you want to load another project?",
+                on_open_project,
+                parent=self.view.get_top_widget())
+        else:
+            on_open_project(None)
+
+    @BaseController.status_message("Import Sybilla XML...", "import_project_xml")
+    def on_import_project_sybilla_activate(self, widget, data=None, title="Import Sybilla XML"):
+        def on_open_project(confirm_dialog):
+            def on_accept(dialog):
+                print "Importing project..."
+                self.import_project_from_xml(self.extract_filename(dialog))
+            self.run_load_dialog(
+                title="Import project",
+                on_accept_callback=on_accept,
+                filters=self.import_filters,
+                parent=self.view.get_top_widget())
+        if self.model.current_project and self.model.current_project.needs_saving:
+            self.run_confirmation_dialog(
+                "The current project has unsaved changes,\n"
+                "are you sure you want to create a new project?",
                 on_open_project,
                 parent=self.view.get_top_widget())
         else:

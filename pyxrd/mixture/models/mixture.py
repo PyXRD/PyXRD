@@ -18,7 +18,7 @@ import numpy as np
 from pyxrd.data import settings
 
 from pyxrd.generic.io import storables, Storable
-# from pyxrd.generic.utils import print_timing
+from pyxrd.generic.utils import print_timing
 from pyxrd.generic.models import DataModel, PropIntel, MultiProperty
 from pyxrd.generic.models.mixins import ObjectListStoreChildMixin
 from pyxrd.generic.models.metaclasses import pyxrd_object_pool
@@ -259,12 +259,14 @@ class Mixture(DataModel, ObjectListStoreChildMixin, Storable):
     def _observe_specimens(self):
         """ Starts observing specimens in the specimens list"""
         for specimen in self.specimens:
-            self.observe_model(specimen)
+            if specimen != None:
+                self.observe_model(specimen)
 
     def _relieve_specimens(self):
         """ Relieves specimens observer calls """
         for specimen in self.specimens:
-            self.relieve_model(specimen)
+            if specimen != None:
+                self.relieve_model(specimen)
 
     @contextmanager
     def _relieve_and_observe_phases(self):
@@ -275,12 +277,14 @@ class Mixture(DataModel, ObjectListStoreChildMixin, Storable):
     def _observe_phases(self):
         """ Starts observing phases in the phase matrix"""
         for phase in self.phase_matrix.flat:
-            self.observe_model(phase)
+            if phase != None:
+                self.observe_model(phase)
 
     def _relieve_phases(self):
         """ Relieves phase observer calls """
         for phase in self.phase_matrix.flat:
-            self.relieve_model(phase)
+            if phase != None:
+                self.relieve_model(phase)
 
     def add_phase_slot(self, phase_name, fraction):
         """ Adds a new phase column to the phase matrix """
@@ -381,7 +385,7 @@ class Mixture(DataModel, ObjectListStoreChildMixin, Storable):
         """
         self.set_data_object(self.data_object, calculate=True)
 
-    # @print_timing
+    @print_timing
     def update(self):
         """
             Optimizes or re-applies the current mixture 'solution'.

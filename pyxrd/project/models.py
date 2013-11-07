@@ -278,6 +278,7 @@ class Project(DataModel, Storable, ObjectListStoreParentMixin):
     def on_phase_item_inserted(self, model, item, *data):
         # Set parent on the new phase:
         if item.parent != self: item.parent = self
+        item.resolve_json_references()
 
     def on_phase_item_removed(self, model, item, *data):
         with self.data_changed.hold_and_emit():
@@ -347,7 +348,7 @@ class Project(DataModel, Storable, ObjectListStoreParentMixin):
     #      Input/Output stuff
     # ------------------------------------------------------------
     @classmethod
-    def from_json(type, **kwargs):
+    def from_json(type, **kwargs): # @ReservedAssignment
         project = type(**kwargs)
         project.needs_saving = False # don't mark this when just loaded
         return project
@@ -355,6 +356,11 @@ class Project(DataModel, Storable, ObjectListStoreParentMixin):
     def save_object(self, filename):
         Storable.save_object(self, filename, zipped=True)
         self.needs_saving = False
+
+    @staticmethod
+    def create_from_sybilla_xml(filename, **kwargs):
+        from pyxrd.project.importing import create_project_from_sybilla_xml
+        return create_project_from_sybilla_xml(filename, **kwargs)
 
     # ------------------------------------------------------------
     #      Methods & Functions

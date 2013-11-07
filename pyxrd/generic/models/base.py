@@ -7,14 +7,15 @@
 
 from warnings import warn
 
-from pyxrd.gtkmvc.model_mt import Model
+from pyxrd.gtkmvc.model import ModelMT
+
 from pyxrd.gtkmvc.model import Signal
 
 from signals import HoldableSignal
 from metaclasses import PyXRDMeta, pyxrd_object_pool
 from properties import PropIntel
 
-class PyXRDModel(Model):
+class PyXRDModel(ModelMT):
     """
        Standard model for PyXRD models, with support for refinable properties.
     """

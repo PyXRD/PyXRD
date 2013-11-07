@@ -13,3 +13,8 @@ try:
     GTK_AVAILABLE = True
 except ImportError:
     pass # ignore missing GTK
+
+try:
+    from pyxrd.gtkmvc.model_mt import ModelMT # @UnusedImport
+except ImportError:
+    ModelMT = Model

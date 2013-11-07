@@ -10,19 +10,15 @@
 import types
 import gobject
 import gtk
-from gtk import Entry, HScale, HBox
 
 from pyxrd.gtkmvc.adapters.default import add_adapter
 
-import threading
 from threading import Lock
 
-from pyxrd.generic.views.validators import FloatEntryValidator
 from pyxrd.generic.custom_math import round_sig
-from pyxrd.generic.utils import delayed
 from pyxrd.generic.threads import CancellableThread
 
-class ScaleEntry(HBox):
+class ScaleEntry(gtk.HBox):
     """
         The ScaleEntry combines the generic GtkEntry and GtkScale widgets in
         one widget, with synchronized values and one changed signal.
@@ -47,7 +43,7 @@ class ScaleEntry(HBox):
         return self.adjustment.set_upper(value)
 
     def __init__(self, lower=0, upper=10, enforce_range=False):
-        HBox.__init__(self, spacing=5)
+        gtk.HBox.__init__(self, spacing=5)
 
         self.enforce_range = enforce_range
 
@@ -74,8 +70,8 @@ class ScaleEntry(HBox):
 
         self.set_value(self.scale.get_value())
 
-        HBox.pack_start(self, self.scale, expand=False)
-        HBox.pack_start(self, self.entry, expand=False)
+        gtk.HBox.pack_start(self, self.scale, expand=False)
+        gtk.HBox.pack_start(self, self.entry, expand=False)
         self.set_focus_chain((self.entry,))
 
 

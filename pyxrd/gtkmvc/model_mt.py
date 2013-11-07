@@ -28,22 +28,12 @@ from pyxrd.gtkmvc.support import metaclasses
 try: import threading as _threading
 except ImportError: import dummy_threading as _threading
 
-try:
-    import gobject
-    import gtk
-except ImportError:
-    GOBJECT_AVAILABLE = False
-    GTK_AVAILABLE = False
-else:
-    GOBJECT_AVAILABLE = True
-    GTK_AVAILABLE = True
-    if hasattr(gobject, "threads_init"): gobject.threads_init()
-    else: gtk.threads_init()
-
+import gtk
+import gobject
 
 class ModelMT (Model):
     """A base class for models whose observable properties can be
-    changed by threads different than gtk main thread. Notification is
+    changed by threads different than the (gtk) main thread. Notification is
     performed by exploiting the gtk idle loop only if needed,
     otherwise the standard notification system (direct method call) is
     used. In this model, the observer is expected to run in the gtk
@@ -63,21 +53,22 @@ class ModelMT (Model):
         return
 
     def unregister_observer(self, observer):
-        Model.unregister_observer(self, observer)
-        del self.__observer_threads[observer]
+        try:
+            Model.unregister_observer(self, observer)
+            del self.__observer_threads[observer]
+        except KeyError:
+            pass # ignore unregistering errors
         return
 
     # ---------- Notifiers:
-
     def __notify_observer__(self, observer, method, *args, **kwargs):
         """This makes a call either through the gtk.idle list or a
         direct method call depending whether the caller's thread is
         different from the observer's thread"""
 
         assert self.__observer_threads.has_key(observer)
-        global GOBJECT_AVAILABLE
         # FIXME: we need some way to call these on the main thread without relying on gobject...
-        if not GOBJECT_AVAILABLE or _threading.currentThread() == self.__observer_threads[observer]: # @UndefinedVariable
+        if _threading.currentThread() == self.__observer_threads[observer]: # @UndefinedVariable
             return Model.__notify_observer__(
                 self, observer, method, *args, **kwargs)
         else:
@@ -91,41 +82,40 @@ class ModelMT (Model):
 
     pass # end of class
 
-if GTK_AVAILABLE:
-    # ----------------------------------------------------------------------
-    class TreeStoreModelMT (ModelMT, gtk.TreeStore):
-        """Use this class as base class for your model derived by
-        gtk.TreeStore"""
-        __metaclass__ = metaclasses.ObservablePropertyGObjectMetaMT
+# ----------------------------------------------------------------------
+class TreeStoreModelMT (ModelMT, gtk.TreeStore):
+    """Use this class as base class for your model derived by
+    gtk.TreeStore"""
+    __metaclass__ = metaclasses.ObservablePropertyGObjectMetaMT
 
-        def __init__(self, column_type, *args):
-            ModelMT.__init__(self)
-            gtk.TreeStore.__init__(self, column_type, *args)
-            return
-        pass
-
-
-    # ----------------------------------------------------------------------
-    class ListStoreModelMT (ModelMT, gtk.ListStore):
-        """Use this class as base class for your model derived by
-        gtk.ListStore"""
-        __metaclass__ = metaclasses.ObservablePropertyGObjectMetaMT
-
-        def __init__(self, column_type, *args):
-            ModelMT.__init__(self)
-            gtk.ListStore.__init__(self, column_type, *args)
-            return
-        pass
+    def __init__(self, column_type, *args):
+        ModelMT.__init__(self)
+        gtk.TreeStore.__init__(self, column_type, *args)
+        return
+    pass
 
 
-    # ----------------------------------------------------------------------
-    class TextBufferModelMT (ModelMT, gtk.TextBuffer):
-        """Use this class as base class for your model derived by
-        gtk.TextBuffer"""
-        __metaclass__ = metaclasses.ObservablePropertyGObjectMetaMT
+# ----------------------------------------------------------------------
+class ListStoreModelMT (ModelMT, gtk.ListStore):
+    """Use this class as base class for your model derived by
+    gtk.ListStore"""
+    __metaclass__ = metaclasses.ObservablePropertyGObjectMetaMT
 
-        def __init__(self, table=None):
-            ModelMT.__init__(self)
-            gtk.TextBuffer.__init__(self, table)
-            return
-        pass
+    def __init__(self, column_type, *args):
+        ModelMT.__init__(self)
+        gtk.ListStore.__init__(self, column_type, *args)
+        return
+    pass
+
+
+# ----------------------------------------------------------------------
+class TextBufferModelMT (ModelMT, gtk.TextBuffer):
+    """Use this class as base class for your model derived by
+    gtk.TextBuffer"""
+    __metaclass__ = metaclasses.ObservablePropertyGObjectMetaMT
+
+    def __init__(self, table=None):
+        ModelMT.__init__(self)
+        gtk.TextBuffer.__init__(self, table)
+        return
+    pass

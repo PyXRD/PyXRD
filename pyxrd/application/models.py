@@ -52,6 +52,8 @@ class AppModel(PyXRDModel):
         self._current_project = value
         pyxrd_object_pool.clear()
         if self._current_project != None: self.observe_model(self._current_project)
+        self.clear_selected()
+        self.needs_plot_update.emit()
     current_filename = None
 
     _statistics_visible = None
@@ -102,5 +104,8 @@ class AppModel(PyXRDModel):
     @Observer.observe("visuals_changed", signal=True)
     def notify_needs_update(self, model, prop_name, info):
         self.needs_plot_update.emit()
+
+    def clear_selected(self):
+        self.current_specimens = None
 
     pass # end of class

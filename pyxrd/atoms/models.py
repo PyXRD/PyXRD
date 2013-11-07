@@ -322,23 +322,23 @@ class Atom(DataModel, ObjectListStoreChildMixin, Storable):
     #      Input/Output stuff
     # ------------------------------------------------------------
     def resolve_json_references(self):
-        if self._atom_type_uuid != "":
+        if getattr(self, "_atom_type_uuid", "") != "":
             self.atom_type = pyxrd_object_pool.get_object(self._atom_type_uuid)
-        elif self._atom_type_name != "" or self._atom_type_index is not None:
+            del self._atom_type_uuid
+        elif getattr(self, "_atom_type_name", "") != "" or getattr(self, "_atom_type_index", None) != None:
             assert(self.component != None)
             assert(self.component.phase != None)
             assert(self.component.phase.project != None)
-            if self._atom_type_name != "":
+            if getattr(self, "_atom_type_name", "") != "":
                 for atom_type in self.component.phase.project.atom_types.iter_objects():
                     if atom_type.name == self._atom_type_name:
                         self.atom_type = atom_type
+                del self._atom_type_name
             else:
                 warn("The use of object indeces is deprected since version 0.4. \
                     Please switch to using object UUIDs.", DeprecationWarning)
                 self.atom_type = self.component.phase.project.atom_types.get_user_data_from_path((self._atom_type_index,))
-        self._atom_type_name = ""
-        self._atom_type_uuid = ""
-        self._atom_type_index = None
+                del self._atom_type_index
 
     def json_properties(self):
         retval = super(Atom, self).json_properties()

@@ -72,7 +72,6 @@ class R1G2Model(_AbstractProbability):
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------
-    # @delayed()
     def update(self):
         with self.data_changed.hold_and_emit():
             self.mW[1] = 1.0 - self.mW[0]
@@ -164,7 +163,6 @@ class R1G3Model(_AbstractProbability):
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------
-    # @delayed()
     def update(self):
         with self.data_changed.hold_and_emit():
             # temporary storage:

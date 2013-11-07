@@ -10,13 +10,13 @@ import multiprocessing
 
 from weakref import WeakValueDictionary
 
-from pyxrd.gtkmvc.support.metaclasses import ObservablePropertyMeta
+from pyxrd.gtkmvc.support.metaclasses import ObservablePropertyMetaMT
 
 from pyxrd.generic.utils import get_unique_list, get_new_uuid
 
 from pyxrd.data import settings
 
-class PyXRDMeta(ObservablePropertyMeta):
+class PyXRDMeta(ObservablePropertyMetaMT):
 
     extra_key_names = [
         "storables",
@@ -68,7 +68,7 @@ class PyXRDMeta(ObservablePropertyMeta):
             key_name = "__%s__" % key
             setattr(cls, key_name, list(d[key_name  ]))
 
-        return ObservablePropertyMeta.__init__(cls, name, bases, d)
+        return ObservablePropertyMetaMT.__init__(cls, name, bases, d)
 
     # ------------------------------------------------------------
     #      Instance creation:
@@ -82,7 +82,7 @@ class PyXRDMeta(ObservablePropertyMeta):
             uuid = get_new_uuid()
 
         # Create instance:
-        instance = ObservablePropertyMeta.__call__(cls, *args, **kwargs)
+        instance = ObservablePropertyMetaMT.__call__(cls, *args, **kwargs)
 
         # Add a reference to the instance for each model intel,
         # so function calls (e.g. labels) work as expected

@@ -7,7 +7,7 @@
 
 from math import pi, log
 
-from pyxrd.gtkmvc.model import Signal, Observer
+from pyxrd.gtkmvc.model import Observer
 
 import numpy as np
 

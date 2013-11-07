@@ -280,9 +280,9 @@ class Phase(DataModel, Storable, ObjectListStoreParentMixin,
     # ------------------------------------------------------------
     def resolve_json_references(self):
         # Set the based on and linked with variables:
-        if self._based_on_uuid:
+        if hasattr(self, "_based_on_uuid") and self._based_on_uuid:
             self.based_on = pyxrd_object_pool.get_object(self._based_on_uuid)
-        elif self._based_on_index != None and self._based_on_index != -1:
+        elif hasattr(self, "_based_on_index") and self._based_on_index != None and self._based_on_index != -1:
             warn("The use of object indices is deprecated since version 0.4. Please switch to using object UUIDs.", DeprecationWarning)
             self.based_on = self.parent.phases.get_user_from_index(self._based_on_index)
         del self._based_on_index

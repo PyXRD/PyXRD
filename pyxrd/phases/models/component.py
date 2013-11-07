@@ -364,13 +364,13 @@ class Component(DataModel, Storable, ObjectListStoreChildMixin,
         self._ucp_b.resolve_json_references()
         self._ucp_b.update_value()
 
-        if self._linked_with_uuid:
+        if getattr(self, "_linked_with_uuid", None):
             self.linked_with = pyxrd_object_pool.get_object(self._linked_with_uuid)
-        elif self._linked_with_index != None and self._linked_with_index != -1:
+            del self._linked_with_uuid
+        elif getattr(self, "_linked_with_index", None) and self._linked_with_index != -1:
             warn("The use of object indeces is deprected since version 0.4. Please switch to using object UUIDs.", DeprecationWarning)
             self.linked_with = self.parent.based_on.components.get_user_from_index(self._linked_with_index)
-        del self._linked_with_uuid
-        del self._linked_with_index
+            del self._linked_with_index
 
     @classmethod
     def save_components(cls, components, filename):

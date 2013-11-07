@@ -6,6 +6,10 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
+import shutil
+import os
+import tempfile
+
 import unittest
 
 from pyxrd.generic.exceptions import AlreadyRegistered, NotRegistered
@@ -19,8 +23,11 @@ __all__ = [
 class TestDataRegistry(unittest.TestCase):
 
     def setUp(self):
+
+        self.base_temp_dir = tempfile.mkdtemp()
+
         self.dirs = [
-            ("TEST1", "test1/", None),
+            ("TEST1", os.path.join(self.base_temp_dir, "test1/"), None),
             ("TEST2", "test2/", "TEST1"),
         ]
         self.files = [
@@ -32,6 +39,7 @@ class TestDataRegistry(unittest.TestCase):
         pass
 
     def tearDown(self):
+        shutil.rmtree(self.base_temp_dir)
         del self.data_reg
         pass
 

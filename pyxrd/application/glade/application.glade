@@ -5,6 +5,16 @@
   <object class="GtkActionGroup" id="persistent_actions">
     <property name="accel_group">PyXRDGroup</property>
     <child>
+      <object class="GtkAction" id="import_project_sybilla">
+        <property name="label" translatable="yes">Import Sybilla XML</property>
+        <property name="short_label" translatable="yes">Import</property>
+        <property name="tooltip" translatable="yes">Create a new project by importing a Sybilla XML file</property>
+        <property name="stock_id">358-file-import</property>
+        <property name="always_show_image">True</property>
+        <signal name="activate" handler="on_import_project_sybilla_activate" swapped="no"/>
+      </object>
+    </child>
+    <child>
       <object class="GtkAction" id="new_project">
         <property name="label" translatable="yes">New Project</property>
         <property name="short_label" translatable="yes">New</property>
@@ -325,28 +335,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</property>
 Gael Varoquaux (joblib)
 Johan Van Der Wauw</property>
     <property name="license_type">custom</property>
-    <child internal-child="vbox">
-      <object class="GtkBox" id="aboutdialog-vbox1">
-        <property name="can_focus">False</property>
-        <property name="orientation">vertical</property>
-        <property name="spacing">2</property>
-        <child internal-child="action_area">
-          <object class="GtkButtonBox" id="aboutdialog-action_area1">
-            <property name="can_focus">False</property>
-            <property name="layout_style">end</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="pack_type">end</property>
-            <property name="position">0</property>
-          </packing>
-        </child>
-        <child>
-          <placeholder/>
-        </child>
-      </object>
-    </child>
   </object>
   <object class="GtkImage" id="image2">
     <property name="visible">True</property>
@@ -407,6 +395,15 @@ Johan Van Der Wauw</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="use_underline">True</property>
+                        <property name="use_stock">True</property>
+                        <property name="always_show_image">True</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkImageMenuItem" id="menu_item_import_xml">
+                        <property name="related_action">import_project_sybilla</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
                         <property name="use_stock">True</property>
                         <property name="always_show_image">True</property>
                       </object>

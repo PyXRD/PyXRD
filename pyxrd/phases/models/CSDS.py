@@ -5,6 +5,8 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
+from math import isnan
+
 from pyxrd.data import settings
 
 from pyxrd.generic.calculations.CSDS import calculate_distribution
@@ -67,8 +69,11 @@ class _LogNormalMixin(object):
 
     def get_average_value(self): return self._data_object.average
     def set_average_value(self, value):
+        # ignore fault values:
         try: value = float(value)
-        except ValueError: pass # ignore fault values
+        except ValueError: return
+        if isnan(value):
+            value = self.average
         if value < 1.0:
             value = 1.0
         if value != self._data_object.average:
@@ -80,7 +85,7 @@ class _LogNormalMixin(object):
     def get_alpha_scale_value(self): return self._data_object.alpha_scale
     def set_alpha_scale_value(self, value):
         try: value = float(value)
-        except ValueError: pass # ignore fault values
+        except ValueError: return # ignore fault values
         if value != self._data_object.alpha_scale:
             with self.data_changed.hold_and_emit():
                 self._data_object.alpha_scale = value
@@ -89,7 +94,7 @@ class _LogNormalMixin(object):
     def get_alpha_offset_value(self): return self._data_object.alpha_offset
     def set_alpha_offset_value(self, value):
         try: value = float(value)
-        except ValueError: pass # ignore fault values
+        except ValueError: return # ignore fault values
         if value != self._data_object.alpha_offset:
             with self.data_changed.hold_and_emit():
                 self._data_object.alpha_offset = value
@@ -98,7 +103,7 @@ class _LogNormalMixin(object):
     def get_beta_scale_value(self): return self._data_object.beta_scale
     def set_beta_scale_value(self, value):
         try: value = float(value)
-        except ValueError: pass # ignore fault values
+        except ValueError: return # ignore fault values
         if value != self._data_object.beta_scale:
             with self.data_changed.hold_and_emit():
                 self._data_object.beta_scale = value
@@ -107,7 +112,7 @@ class _LogNormalMixin(object):
     def get_beta_offset_value(self): return self._data_object.beta_offset
     def set_beta_offset_value(self, value):
         try: value = float(value)
-        except ValueError: pass # ignore fault values
+        except ValueError: return # ignore fault values
         if value != self._data_object.beta_offset:
             with self.data_changed.hold_and_emit():
                 self._data_object.beta_offset = value

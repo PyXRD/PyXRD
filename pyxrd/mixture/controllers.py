@@ -379,7 +379,7 @@ class EditMixtureController(BaseController):
 
         def on_fraction_changed(editable):
             try: self.model.fractions[phase_slot] = float(editable.get_text())
-            except ValueError: pass # ignore ValueErrors
+            except ValueError: return # ignore ValueErrors
 
         def on_phase_delete(widget):
             self.model.del_phase_slot(phase_slot)
@@ -396,11 +396,11 @@ class EditMixtureController(BaseController):
         """
         def on_scale_changed(editable):
             try: self.model.scales[specimen_slot] = float(editable.get_text())
-            except ValueError: pass # ignore ValueErrors
+            except ValueError: return # ignore ValueErrors
 
         def on_bgs_changed(editable):
             try: self.model.bgshifts[specimen_slot] = float(editable.get_text())
-            except ValueError: pass # ignore ValueErrors
+            except ValueError: return # ignore ValueErrors
 
         def on_specimen_changed(combobox):
             itr = combobox.get_active_iter()

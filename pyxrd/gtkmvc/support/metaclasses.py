@@ -665,7 +665,10 @@ class ObservablePropertyMetaMT (ObservablePropertyMeta):
                                                           user_setter, setter_takes_name,
                                                           user_getter, getter_takes_name)
         def _setter(self, val):
-            with self._prop_lock:
+            if hasattr(self, '_prop_lock'):
+                with self._prop_lock:
+                    return _inner_setter(self, val)
+            else:
                 return _inner_setter(self, val)
         return _setter
 

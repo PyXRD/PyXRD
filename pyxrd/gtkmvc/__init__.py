@@ -57,7 +57,7 @@ __all__ = ["Model",
 __version = (1, 99, 1)
 
 # visible classes
-from .model import Model
+from .model import Model, ModelMT
 try:
     from .model import TreeStoreModel, ListStoreModel, TextBufferModel
 except ImportError:
@@ -65,7 +65,6 @@ except ImportError:
 else:
     __all__ += [ "TreeStoreModel", "ListStoreModel", "TextBufferModel" ]
 
-from .model_mt import ModelMT
 try:
     from .controller import Controller
     from .view import View

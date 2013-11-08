@@ -49,7 +49,7 @@ class ModelFactory (object):
         # adds a model when user is lazy
         if not contains_model:
             if have_mt:
-                from pyxrd.gtkmvc.model_mt import ModelMT
+                from pyxrd.gtkmvc.model import ModelMT
                 fixed.insert(0, ModelMT)
             else: fixed.insert(0, Model)
             pass

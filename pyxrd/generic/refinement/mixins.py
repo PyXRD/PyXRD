@@ -5,11 +5,11 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from pyxrd.gtkmvc.model_mt import Model
+from pyxrd.gtkmvc.model import ModelMT
 
 from pyxrd.generic.refinement.metaclasses import PyXRDRefinableMeta
 
-class _RefinementBase(Model):
+class _RefinementBase(ModelMT):
     """
     Base class for `RefinementGroup` and `RefinementValue` mixins. It's 
     used to provide common functionality and a way to check for the kind of

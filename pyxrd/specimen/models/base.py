@@ -271,9 +271,9 @@ class Specimen(DataModel, Storable, ObjectListStoreParentMixin, ObjectListStoreC
 
     def _sync_linecolors(self):
         if self.calculated_pattern != None:
-            self.calculated_pattern.color = float(self.calc_color)
+            self.calculated_pattern.color = self.calc_color
         if self.experimental_pattern != None:
-            self.experimental_pattern.color = float(self.exp_color)
+            self.experimental_pattern.color = self.exp_color
 
     @property
     def exp_cap_value(self):

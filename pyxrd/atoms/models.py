@@ -206,7 +206,7 @@ class Atom(DataModel, ObjectListStoreChildMixin, Storable):
         return self._data_object.default_z
     def set_default_z_value(self, value):
         try: value = float(value)
-        except ValueError: pass
+        except ValueError: return
         if value != self._data_object.default_z:
             self._data_object.default_z = value
             self.liststore_item_changed()
@@ -216,7 +216,7 @@ class Atom(DataModel, ObjectListStoreChildMixin, Storable):
     def get_stretch_values_value(self): return bool(self._stretch_z)
     def set_stretch_values_value(self, value):
         try: value = bool(value)
-        except ValueError: pass
+        except ValueError: return
         if value != self._stretch_z:
             self._stretch_z = value
             self.liststore_item_changed()
@@ -234,7 +234,7 @@ class Atom(DataModel, ObjectListStoreChildMixin, Storable):
     def get_pn_value(self): return self._data_object.pn
     def set_pn_value(self, value):
         try: value = float(value)
-        except ValueError: pass
+        except ValueError: return
         if value != self._data_object.pn:
             self._data_object.pn = value
             self.liststore_item_changed()

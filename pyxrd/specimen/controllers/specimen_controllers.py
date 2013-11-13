@@ -9,8 +9,6 @@ import os, locale
 
 import gtk
 
-from pyxrd.gtkmvc import Controller
-
 from pyxrd.generic.io.file_parsers import parsers
 from pyxrd.generic.controllers import BaseController, DialogController, DialogMixin, ObjectTreeviewMixin
 from pyxrd.generic.controllers.utils import DummyAdapter
@@ -19,6 +17,7 @@ from pyxrd.generic.views.treeview_tools import setup_treeview, new_text_column
 from pyxrd.goniometer.controllers import InlineGoniometerController
 
 from pyxrd.generic.controllers.line_controllers import (
+    LinePropertiesController,
     BackgroundController,
     SmoothDataController,
     AddNoiseController,
@@ -61,10 +60,6 @@ class SpecimenController(DialogController, DialogMixin, ObjectTreeviewMixin):
             ad = DummyAdapter(intel.name)
             return ad
 
-    def register_adapters(self):
-        super(SpecimenController, self).register_adapters()
-        self.update_sensitivities()
-
     def setup_experimental_pattern_tree_view(self, store, widget):
         """
             Creates the experimental data TreeView layout and behavior
@@ -80,6 +75,8 @@ class SpecimenController(DialogController, DialogMixin, ObjectTreeviewMixin):
         widget.append_column(new_text_column(
             u'Intensity', text_col=store.c_y, editable=True,
             edited_callback=(self.on_xy_data_cell_edited, (store, store.c_y))))
+        # Other properties:
+        self.exp_line_ctrl = LinePropertiesController(model=self.model.experimental_pattern, view=self.view.exp_line_view, parent=self)
 
     def setup_calculated_pattern_tree_view(self, store, widget):
         """
@@ -90,6 +87,8 @@ class SpecimenController(DialogController, DialogMixin, ObjectTreeviewMixin):
             on_columns_changed=self.on_calc_treestore_changed,
             sel_mode=gtk.SELECTION_NONE)
         self.update_calc_treeview(widget)
+        # Other properties:
+        self.calc_line_ctrl = LinePropertiesController(model=self.model.calculated_pattern, view=self.view.calc_line_view, parent=self)
 
     def setup_exclusion_ranges_tree_view(self, store, widget):
         """
@@ -134,21 +133,6 @@ class SpecimenController(DialogController, DialogMixin, ObjectTreeviewMixin):
             tv.append_column(new_text_column(
                 model.get_y_name(i), text_col=i + 2, data_func=get_num))
 
-    def update_sensitivities(self):
-        """
-            Updates the views sensitivities according to the model state.
-        """
-        print self, self.model, self.view
-        self.view["specimen_exp_color"].set_sensitive(not self.model.inherit_exp_color)
-        # if not self.model.inherit_exp_color:
-        #    self.view["specimen_exp_color"].set_color(gtk.gdk.color_parse(self.model.exp_color))
-        self.view["specimen_calc_color"].set_sensitive(not self.model.inherit_calc_color)
-        # if not self.model.inherit_calc_color:
-        #    self.view["specimen_calc_color"].set_color(gtk.gdk.color_parse(self.model.calc_color))
-
-        self.view["spb_calc_lw"].set_sensitive(not self.model.inherit_calc_lw)
-        self.view["spb_exp_lw"].set_sensitive(not self.model.inherit_exp_lw)
-
     def remove_background(self):
         """
             Opens the 'remove background' dialog.
@@ -188,16 +172,6 @@ class SpecimenController(DialogController, DialogMixin, ObjectTreeviewMixin):
         st_view = StripPeakView(parent=self.view)
         StripPeakController(self.model.experimental_pattern, st_view, parent=self)
         st_view.present()
-
-    # ------------------------------------------------------------
-    #      Notifications of observable properties
-    # ------------------------------------------------------------
-    @Controller.observe("inherit_exp_color", assign=True)
-    @Controller.observe("inherit_calc_color", assign=True)
-    @Controller.observe("inherit_exp_lw", assign=True)
-    @Controller.observe("inherit_calc_lw", assign=True)
-    def notif_color_toggled(self, model, prop_name, info):
-        self.update_sensitivities()
 
     # ------------------------------------------------------------
     #      GTK Signal handlers

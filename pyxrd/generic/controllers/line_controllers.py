@@ -8,9 +8,60 @@
 import os
 
 from pyxrd.generic.io.file_parsers import parsers
-from pyxrd.generic.controllers import DialogController
+from pyxrd.generic.controllers import BaseController, DialogController
 from pyxrd.generic.controllers.handlers import float_entry_widget_handler
 from pyxrd.generic.plot.controllers import EyedropperCursorPlot
+
+
+class LinePropertiesController(BaseController):
+    """
+        Controller for the Line models general properties
+    """
+    auto_adapt_excluded = [
+        "noise_fraction",
+        "shift_value",
+        "shift_position",
+        "smooth_type",
+        "smooth_degree",
+        "strip_startx",
+        "strip_endx",
+        "noise_level",
+        "bg_type",
+        "bg_position",
+        "bg_scale",
+    ] # these are handled by other controllers
+
+    __LINEID__ = "TRUE"
+
+    # ------------------------------------------------------------
+    #      Initialization and other internals
+    # ------------------------------------------------------------
+    def register_adapters(self):
+        super(LinePropertiesController, self).register_adapters()
+        self.update_sensitivities()
+
+    # ------------------------------------------------------------
+    #      Methods & Functions
+    # ------------------------------------------------------------
+    def update_sensitivities(self):
+        """
+            Updates the views sensitivities according to the model state.
+        """
+        print "UPDATE SENSITIVIES!"
+        self.view[self.view.widget_format % "color"].set_sensitive(not self.model.inherit_color)
+        self.view["spb_%s" % self.view.widget_format % "lw"].set_sensitive(not self.model.inherit_lw)
+
+    # ------------------------------------------------------------
+    #      Notifications of observable properties
+    # ------------------------------------------------------------
+    @BaseController.observe("inherit_color", assign=True)
+    @BaseController.observe("inherit_lw", assign=True)
+    def notif_color_toggled(self, model, prop_name, info):
+        print "NOTIF INHERIT!"
+        self.update_sensitivities()
+
+    pass  # end of class
+
 
 class PatternActionController(DialogController):
     """

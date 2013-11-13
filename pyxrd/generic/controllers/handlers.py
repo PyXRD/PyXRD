@@ -15,7 +15,7 @@ from pyxrd.generic.views.widgets import ScaleEntry
 widget_handlers = {}
 
 def adjustment_widget_handler(ctrl, intel, widget):
-    """ A handler for an expander widget (boolean) """
+    """ A handler for an adjustment widget (number) """
     ad = Adapter(ctrl.model, intel.name)
     ad.connect_widget(
         widget,

@@ -9,7 +9,27 @@ from pkg_resources import resource_filename # @UnresolvedImport
 
 import gtk
 
-from pyxrd.generic.views import DialogView
+from pyxrd.generic.views import DialogView, BaseView
+
+class CalculatedLinePropertiesView(BaseView):
+    builder = resource_filename(__name__, "glade/lines/calculated_props.glade")
+    top = "cal_line_props"
+    widget_format = "cal_%s"
+
+    widget_groups = {
+        'full_mode_only': [
+            "cal_line_props"
+        ]
+    }
+
+    pass # end of class
+
+class ExperimentalLinePropertiesView(BaseView):
+    builder = resource_filename(__name__, "glade/lines/experimental_props.glade")
+    top = "exp_line_props"
+    widget_format = "exp_%s"
+
+    pass # end of class
 
 class BackgroundView(DialogView):
     title = "Remove Background"

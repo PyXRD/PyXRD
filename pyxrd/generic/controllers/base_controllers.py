@@ -301,6 +301,7 @@ class BaseController (Controller, DialogMixin):
             name to a (custom) 'handler' that returns the actual adapter class.
         """
         intel = self.model.get_prop_intel_by_name(prop_name)
+
         try:
             if intel == None: # if no intel is present, we can't be smarter...
                 return super(BaseController, self).__create_adapters__(prop_name, wid_name)

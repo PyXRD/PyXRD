@@ -385,7 +385,7 @@ class Mixture(DataModel, ObjectListStoreChildMixin, Storable):
         """
         self.set_data_object(self.data_object, calculate=True)
 
-    @print_timing
+    # @print_timing
     def update(self):
         """
             Optimizes or re-applies the current mixture 'solution'.

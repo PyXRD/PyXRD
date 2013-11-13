@@ -7,8 +7,7 @@
 
 import numpy as np
 
-from pyxrd.gtkmvc.model import Signal
-
+from pyxrd.data import settings
 from pyxrd.generic.io import storables, Storable, PyXRDDecoder
 from pyxrd.generic.custom_math import smooth, add_noise
 
@@ -30,10 +29,13 @@ class PyXRDLine(DataModel, Storable):
     __model_intel__ = [
         PropIntel(name="label", data_type=unicode, storable=True),
         PropIntel(name="xy_store", data_type=object, storable=True),
-        PropIntel(name="color", data_type=str, observable=False),
-        PropIntel(name="lw", data_type=float, observable=False),
+        PropIntel(name="color", data_type=str, storable=True, has_widget=True, widget_type="color"),
+        PropIntel(name="inherit_color", data_type=bool, storable=True, has_widget=True, widget_type="toggle"),
+        PropIntel(name="lw", data_type=float, storable=True, has_widget=True, widget_type="spin"),
+        PropIntel(name="inherit_lw", data_type=bool, storable=True, has_widget=True, widget_type="toggle"),
     ]
     __store_id__ = "PyXRDLine"
+    __inherit_format__ = "display_exp_%s"
 
     # PROPERTIES:
     _xy_store = None
@@ -45,19 +47,54 @@ class PyXRDLine(DataModel, Storable):
 
     _color = "#000000"
     @property
-    def color(self): return self._color
+    def color(self):
+        if self.inherit_color:
+            try:
+                return getattr(self.parent.parent, self.__inherit_format__ % "color")
+            except AttributeError: # occurs when e.g. a parent is None
+                return self._color
+        else:
+            return self._color
     @color.setter
     def color(self, value):
-        self._color = value
-        self.visuals_changed.emit()
+        if self._color != value:
+            self._color = value
+            self.visuals_changed.emit()
+
+    _inherit_color = True
+    @property
+    def inherit_color(self):
+        return self._inherit_color
+    @inherit_color.setter
+    def inherit_color(self, value):
+        if value != self._inherit_color:
+            self._inherit_color = value
+            self.visuals_changed.emit()
 
     _lw = 2.0
     @property
-    def lw(self): return self._lw
+    def lw(self):
+        if self.inherit_lw:
+            try:
+                return getattr(self.parent.parent, self.__inherit_format__ % "lw")
+            except AttributeError: # occurs when e.g. a parent is None
+                return self._lw
+        else:
+            return self._lw
     @lw.setter
     def lw(self, value):
-        self._lw = value
-        self.visuals_changed.emit()
+        if self._lw != value:
+            self._lw = value
+            self.visuals_changed.emit()
+
+    _inherit_lw = True
+    @property
+    def inherit_lw(self): return self._inherit_lw
+    @inherit_lw.setter
+    def inherit_lw(self, value):
+        if value != self._inherit_lw:
+            self._inherit_lw = value
+            self.visuals_changed.emit()
 
     @property
     def size(self):
@@ -87,16 +124,19 @@ class PyXRDLine(DataModel, Storable):
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def __init__(self, xy_store=None, label=None, color=None, lw=None, *args, **kwargs):
+    def __init__(self, xy_store=None, label=None, color=None, inherit_color=True, lw=None, inherit_lw=True, *args, **kwargs):
         self.init_xy_store(xy_store=xy_store)
         self.xy_store.connect('row-deleted', self.on_treestore_changed)
         self.xy_store.connect('row-inserted', self.on_treestore_changed)
         self.xy_store.connect('row-changed', self.on_treestore_changed)
         super(PyXRDLine, self).__init__(*args, **kwargs)
 
-        self.color = color if color != None else self.color
-        self.label = label if label != None else self.label
-        self.lw = lw if lw != None else self.lw
+        with self.visuals_changed.hold():
+            self.label = label if label != None else self.label
+            self.color = color if color != None else self.color
+            self.inherit_color = inherit_color if inherit_color != None else self.inherit_color
+            self.lw = lw if lw != None else self.lw
+            self.inherit_lw = inherit_lw if inherit_lw != None else self.inherit_lw
 
     def init_xy_store(self, xy_store=None):
         self._xy_store = xy_store or XYListStore()
@@ -105,7 +145,7 @@ class PyXRDLine(DataModel, Storable):
     #      Input/Output stuff
     # ------------------------------------------------------------
     @classmethod
-    def from_json(type, **kwargs):
+    def from_json(type, **kwargs): # @ReservedAssignment
         if "xy_store" in kwargs:
             kwargs["xy_store"] = PyXRDDecoder().__pyxrd_decode__(kwargs["xy_store"])
         elif "xy_data" in kwargs:
@@ -170,9 +210,13 @@ class CalculatedLine(PyXRDLine):
     __model_intel__ = [ ]
     __store_id__ = "CalculatedLine"
     __gtype_name__ = "PyXRDCalculatedLine"
+    __inherit_format__ = "display_calc_%s"
 
     # PROPERTIES:
     phases = None
+
+    _color = settings.CALCULATED_COLOR
+    _lw = settings.CALCULATED_LINEWIDTH
 
     # ------------------------------------------------------------
     #      Initialisation and other internals
@@ -205,7 +249,7 @@ class ExperimentalLine(PyXRDLine):
         PropIntel(name="noise_fraction", data_type=float, has_widget=True, widget_type="spin"),
         PropIntel(name="shift_value", data_type=float, has_widget=True, widget_type="float_entry"),
         PropIntel(name="shift_position", data_type=float, has_widget=True, widget_type="combo"),
-        PropIntel(name="cap_value", data_type=float, has_widget=True, widget_type="float_entry"),
+        PropIntel(name="cap_value", data_type=float, has_widget=True, storable=True, widget_type="float_entry"),
         PropIntel(name="strip_startx", data_type=float, has_widget=True, widget_type="float_entry"),
         PropIntel(name="strip_endx", data_type=float, has_widget=True, widget_type="float_entry"),
         PropIntel(name="noise_level", data_type=float, has_widget=True, widget_type="float_entry"),
@@ -215,6 +259,10 @@ class ExperimentalLine(PyXRDLine):
     __gtype_name__ = "PyXRDExperimentalLine"
 
     # PROPERTIES:
+
+    _color = settings.EXPERIMENTAL_COLOR
+    _lw = settings.EXPERIMENTAL_LINEWIDTH
+
     _cap_value = 0.0
     def get_cap_value_value(self): return self._cap_value
     def set_cap_value_value(self, value):
@@ -332,6 +380,13 @@ class ExperimentalLine(PyXRDLine):
     })
     smooth_type = MultiProperty(0, int, on_sdtype, { 0: "Moving Triangle" })
     bg_type = MultiProperty(0, int, on_bgtype, { 0: "Linear", 1: "Pattern" })
+
+    # ------------------------------------------------------------
+    #      Initialisation and other internals
+    # ------------------------------------------------------------
+    def __init__(self, cap_value=None, *args, **kwargs):
+        super(ExperimentalLine, self).__init__(*args, **kwargs)
+        self.cap_value = cap_value if cap_value != None else 0.0
 
     # ------------------------------------------------------------
     #      Background Removal

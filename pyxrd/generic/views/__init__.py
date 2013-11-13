@@ -44,7 +44,7 @@ class BaseView(View):
     widget_groups = { }
 
     def __init__(self, *args, **kwargs):
-        View.__init__(self, *args, **kwargs)
+        super(BaseView, self).__init__(*args, **kwargs)
         self.parent = kwargs.get("parent", None)
         top = self.get_toplevel()
         if isinstance(top, gtk.Window):

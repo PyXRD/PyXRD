@@ -172,7 +172,7 @@ class Controller (Observer):
         if n == 0:
             adapters = []
             props = self.model.get_properties()
-            # matches all properties not previoulsy adapter by the user:
+            # matches all properties not previously adapted by the user:
             for prop_name in filter(lambda p: p not in self.__user_props, props):
                 try: wid_name = self._find_widget_match(prop_name)
                 except TooManyCandidatesError, e:

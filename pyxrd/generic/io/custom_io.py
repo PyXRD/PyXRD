@@ -304,7 +304,7 @@ class Storable(object):
             retval[alias] = getattr(self, attr)
         return retval
 
-    def parse_init_arg(self, arg, default, child=False, **kwargs):
+    def parse_init_arg(self, arg, default, child=False, default_is_class=False, **kwargs):
         """
         Can be used to transform an argument passed to a __init__ method of a
         Storable (sub-)class containing a JSON dict into the actual object it
@@ -318,6 +318,10 @@ class Storable(object):
         if true, self is passed as the parent keyword to the JSON decoder if
         the passed argument is a JSON dict
         
+        **default_is_class** boolean flag indicating whether or not the passed
+        default value is an unitialized type. If True, the type will be initialized
+        using the kwargs passed to this function.
+        
         **kwargs* any other kwargs are passed to the JSON decoder if the passed
         argument is a JSON dict
         
@@ -325,7 +329,10 @@ class Storable(object):
         a JSON dict) or the default value (argument was None)
         """
         if arg == None:
-            return default
+            if not default_is_class:
+                return default
+            else:
+                return default(**kwargs)
         elif isinstance(arg, dict) and "type" in arg and "properties" in arg:
             arg = PyXRDDecoder(parent=self if child else None).__pyxrd_decode__(arg, **kwargs)
             return arg

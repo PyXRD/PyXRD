@@ -44,11 +44,11 @@ class EditAtomTypeController(BaseController):
 
     pass # end of class
 
-class AtomTypesController(ObjectListStoreController):
+class AtomTypesController(ObjectListStoreController): # FIXME THIS NEES CLEAN-UP AND TESTING!!
     """
         Controller for an AtomType ObjectListStore model and view.
     """
-    file_filters = ("Single atom type file", "*.sat"), ("Atom types list file", "*.atl")
+    file_filters = AtomType.__file_filters__
     model_property_name = "atom_types"
     columns = [ ("Atom type name", "c_name") ]
     delete_msg = "Deleting an atom type is irreverisble!\nAre You sure you want to continue?"

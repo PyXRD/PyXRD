@@ -5,7 +5,7 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from pkg_resources import resource_filename
+from pkg_resources import resource_filename # @UnresolvedImport
 
 from pyxrd.generic.views import DialogView
 
@@ -27,12 +27,15 @@ class ProjectView(DialogView):
     }
 
     @property
+    def specimens_treeview_container(self):
+        return self["vbox_specimens"]
+
+    @property
     def specimens_treeview(self):
         return self["project_specimens"]
 
     def __init__(self, *args, **kwargs):
         DialogView.__init__(self, *args, **kwargs)
-        self.parent.set_specimens_widget(self['vbox_specimens'])
         self["specimen_popup"].set_accel_group(self.parent["PyXRDGroup"])
         self["popup_menu_item_add_specimen"].set_related_action(self.parent["add_specimen"])
         self["popup_menu_item_edit_specimen"].set_related_action(self.parent["edit_specimen"])
@@ -45,13 +48,18 @@ class ProjectView(DialogView):
         super(ProjectView, self).present(*args, **kwargs)
         self["nbk_edit_project"].set_current_page(0)
 
-    def specimens_popup(self, event):
+    def show_specimens_context_menu(self, event):
         self["specimen_popup"].popup(None, None, None, event.button, event.time)
+
+    def hide_specimens_context_menu(self):
+        self["specimen_popup"].hide()
 
     def set_x_range_sensitive(self, sensitive):
         self["box_manual_xrange"].set_sensitive(sensitive)
 
     def set_selection_state(self, value):
-        pass # no sensitivity stuff to do? --> TODO popup!
+        if value is None:
+            self.hide_specimens_context_menu()
+        pass
 
     pass # end of class

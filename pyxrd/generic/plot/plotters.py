@@ -19,6 +19,8 @@ from matplotlib.text import Text
 
 from pyxrd.generic.custom_math import smooth, add_noise
 
+from draggables import DraggableMixin
+
 def getattr_or_create(obj, attr, create):
     value = getattr(obj, attr, None)
     if value == None:
@@ -226,6 +228,15 @@ def plot_pattern(pattern, axes, scale=1, offset=0, cap=0, **kwargs):
         axes.add_line(line)
     pattern.__plot_line = line
 
+def make_draggable(artist, drag_x_handler=None, drag_y_handler=None):
+    if artist != None:
+        draggable = getattr(artist, "__draggable", None)
+        if draggable == None:
+            draggable = DraggableMixin(artist, drag_x_handler, drag_y_handler)
+        else:
+            draggable.update(artist, drag_x_handler, drag_y_handler)
+        artist.__draggable = draggable
+
 def plot_specimen(project, specimen, labels, label_offset, plot_left,
         offset, scale, marker_scale, axes):
     """
@@ -239,6 +250,7 @@ def plot_specimen(project, specimen, labels, label_offset, plot_left,
 
         # plot the experimental pattern:
         plot_pattern(pattern, axes, scale=scale, offset=offset, cap=pattern.cap_value)
+        make_draggable(getattr(pattern, "__plot_line", None), drag_y_handler=specimen.on_pattern_dragged)
 
         # get some common data for the next lines:
         x_data, y_data = pattern.xy_store.get_raw_model_data()
@@ -369,6 +381,9 @@ def plot_specimen(project, specimen, labels, label_offset, plot_left,
     if specimen.display_calculated:
         pattern = specimen.calculated_pattern
         plot_pattern(pattern, axes, scale=scale, offset=offset)
+        if not specimen.display_experimental:
+            make_draggable(getattr(pattern, "__plot_line", None), drag_y_handler=specimen.on_pattern_dragged)
+
 
         # fetch x data, y data and linewidth for the phase patterns:
         x_data = pattern.xy_store._model_data_x
@@ -428,6 +443,7 @@ def plot_specimen(project, specimen, labels, label_offset, plot_left,
     plot_markers(project, specimen, offset, scale, marker_scale, axes)
     # & label:
     plot_label(specimen, labels, label_offset, plot_left, axes)
+    make_draggable(getattr(specimen, "__plot_label_artist", None), drag_y_handler=project.on_label_dragged)
 
 def plot_statistics(project, specimen, stats_y_pos, stats_height, axes):
 

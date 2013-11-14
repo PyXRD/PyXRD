@@ -79,13 +79,20 @@ class AppModel(PyXRDModel):
             self._current_specimen = None
 
     @property
+    def project_loaded(self):
+        return self.current_project is not None
+
+    @property
+    def specimen_selected(self):
+        return self.current_specimen is not None
+
+    @property
     def single_specimen_selected(self):
-        return bool(self.current_specimen is not None or self.current_specimens == [])
+        return self.specimen_selected and len(self.current_specimens) == 1
 
     @property
     def multiple_specimens_selected(self):
-        return bool(len(self.current_specimens) > 1)
-
+        return len(self.current_specimens) > 1
 
     # ------------------------------------------------------------
     #      Initialization and other internals

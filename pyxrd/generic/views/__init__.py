@@ -127,16 +127,36 @@ class BaseView(View):
 
 class TitleView():
     """
-        Mixin that provides title support for views
+        Mix-in that provides title support for views.
+        The class attribute 'title' can be set, if so, this class will
+        attempt to set the title attribute upon initialization unless it is 'None'. 
     """
     title = None
 
-    def __init__(self):
+    def __init__(self, *args, **kwargs):
         if self.title is not None: self.set_title(self.title)
 
     def set_title(self, title):
         self.title = title
         self.get_toplevel().set_title(title)
+
+    pass # end of class
+
+class FormattedTitleView(TitleView):
+    """
+        Mix-in that provides a formatted title support for views.
+        The 'title_format' class attribute should be set to a string format
+        containing a single string (%s) specifier. When set_title is called, 
+        only that part of the string is updated.
+    """
+    title_format = "%s"
+    title = ""
+
+    def set_title(self, title, *args, **kwargs):
+        self.title = title
+        self.get_toplevel().set_title(self.title_format % self.title)
+
+    pass # end of class
 
 class HasChildView():
     """

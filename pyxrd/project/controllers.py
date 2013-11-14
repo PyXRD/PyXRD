@@ -1,4 +1,4 @@
-    # coding=UTF-8
+# coding=UTF-8
 # ex:ts=4:sw=4:et=on
 
 # Copyright (c) 2013, Mathijs Dumon
@@ -15,14 +15,14 @@ from pyxrd.gtkmvc import Controller
 from pyxrd.generic.views.treeview_tools import new_text_column, new_toggle_column, new_pb_column
 from pyxrd.generic.controllers import BaseController, DialogController, ObjectListStoreMixin, DialogMixin
 from pyxrd.specimen.models import Specimen
-from pyxrd.specimen.controllers import SpecimenController
 
 class ProjectController (DialogController, ObjectListStoreMixin, DialogMixin):
 
     model_property_name = "specimens"
     columns = [ ]
     delete_msg = "Deleting a specimen is irreversible!\nAre You sure you want to continue?"
-    file_filters = SpecimenController.file_filters
+
+    file_filters = Specimen.__file_filters__
 
     def register_view(self, view):
         if view is not None and self.model is not None:
@@ -109,6 +109,29 @@ class ProjectController (DialogController, ObjectListStoreMixin, DialogMixin):
                              parent=self.view.get_top_widget(),
                              multiple=True)
 
+    @BaseController.status_message("Deleting specimen...", "del_specimen")
+    def delete_selected_specimens(self):
+        """
+            Asks the user for confirmation and if positive deletes all the 
+            selected specimens. Does nothing when no specimens are selected.
+        """
+        selection = self.get_selected_objects()
+        if selection is not None and len(selection) >= 1:
+            def delete_objects(dialog):
+                for obj in selection:
+                    self.model.specimens.remove_item(obj)
+            self.run_confirmation_dialog(
+                message='Deleting a specimen is irreversible!\nAre You sure you want to continue?',
+                on_accept_callback=delete_objects,
+                parent=self.view.get_top_widget())
+
+    @BaseController.status_message("Creating new specimen...", "add_specimen")
+    def add_specimen(self):
+        specimen = Specimen(parent=self.model)
+        self.view.specimens_treeview.set_cursor(self.model.specimens.append(specimen))
+        self.parent.view["edit_specimen"].activate()
+        return True
+
     # ------------------------------------------------------------
     #      Notifications of observable properties
     # ------------------------------------------------------------
@@ -120,10 +143,6 @@ class ProjectController (DialogController, ObjectListStoreMixin, DialogMixin):
     @Controller.observe("axes_xscale", assign=True)
     def notif_xscale_toggled(self, model, prop_name, info):
         self.view.set_x_range_sensitive(self.model.axes_xscale == 1)
-
-    """@Controller.observe("data_changed", signal=True)
-    def notif_display_props(self, model, prop_name, info):
-        self.parent.redraw_plot()"""
 
     @Controller.observe("layout_mode", assign=True)
     def notif_layout_mode(self, model, prop_name, info):
@@ -156,7 +175,7 @@ class ProjectController (DialogController, ObjectListStoreMixin, DialogMixin):
             else:
                 # clicked an empty space, so clear selection
                 self.select_object(None)
-            self.view.specimens_popup(event)
+            self.view.show_specimens_context_menu(event)
             return True
         elif event.type == gtk.gdk._2BUTTON_PRESS and specimen is not None and col.get_data("colnr") == self.model.specimens.c_name:
             self.parent.on_edit_specimen_activate(event)

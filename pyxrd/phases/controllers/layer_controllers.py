@@ -17,8 +17,16 @@ class EditLayerController(InlineObjectListStoreController):
         Controller for the (inter)layer atom ObjectListStores
     """
     auto_adapt = False
-    file_filters = ("Layer file", "*.lyr"),
+    file_filters = Atom.__layer_filters__
     new_atom_type = None
+
+    # ------------------------------------------------------------
+    #      Initialization and other internals
+    # ------------------------------------------------------------
+    def __init__(self, model_property_name, stretch_values=False, *args, **kwargs):
+        InlineObjectListStoreController.__init__(self, model_property_name, *args, **kwargs)
+        self.new_atom_type = None
+        self.stretch_values = stretch_values
 
     def _setup_treeview(self, tv, model):
         setup_treeview(tv, model, sel_mode=gtk.SELECTION_MULTIPLE, reset=True)
@@ -60,11 +68,9 @@ class EditLayerController(InlineObjectListStoreController):
             editable=True,
             has_entry=True))
 
-    def __init__(self, model_property_name, stretch_values=False, *args, **kwargs):
-        InlineObjectListStoreController.__init__(self, model_property_name, *args, **kwargs)
-        self.new_atom_type = None
-        self.stretch_values = stretch_values
-
+    # ------------------------------------------------------------
+    #      Methods & Functions
+    # ------------------------------------------------------------
     def create_new_object_proxy(self):
         return Atom("New Atom", parent=self.model, stretch_values=self.stretch_values)
 
@@ -73,37 +79,47 @@ class EditLayerController(InlineObjectListStoreController):
     # ------------------------------------------------------------
     def on_export_item(self, widget, user_data=None):
         def on_accept(save_dialog):
-            fltr = save_dialog.get_filter()
-            filename = save_dialog.get_filename()
-            if fltr.get_name() == self.file_filters[0][0]:
-                if filename[len(filename) - 4:] != self.file_filters[0][1][1:]:
-                    filename = "%s%s" % (filename, self.file_filters[0][1][1:])
-                Atom.save_as_csv(filename, self.get_all_objects())
-        self.run_save_dialog("Export atoms", on_accept, parent=self.view.get_toplevel(), suggest_name="%s%s" % (self.model.name.lower(), self.model_property_name.replace("data", "").lower()))
+            filename = self.extract_filename(save_dialog, self.file_filters)
+            Atom.save_as_csv(filename, self.get_all_objects())
+        self.run_save_dialog(
+            "Export atoms", on_accept, parent=self.view.get_toplevel(),
+             suggest_name="%s%s" % (self.model.name.lower(),
+             self.model_property_name.replace("data", "").lower())
+         )
 
     def on_import_item(self, widget, user_data=None):
         def import_layer(dialog):
             def on_accept(open_dialog):
-                fltr = open_dialog.get_filter()
-                if fltr.get_name() == self.file_filters[0][0]:
-                    self.liststore.clear()
-                    Atom.get_from_csv(open_dialog.get_filename(), self.liststore.append, self.model)
+                filename = self.extract_filename(open_dialog, self.file_filters)
+                self.liststore.clear()
+                Atom.get_from_csv(filename, self.liststore.append, self.model)
             self.run_load_dialog("Import atoms", on_accept, parent=self.view.get_toplevel())
-        self.run_confirmation_dialog(message="Are you sure?\nImporting a layer file will clear the current list of atoms!", on_accept_callback=import_layer, parent=self.view.get_toplevel())
+        self.run_confirmation_dialog(
+            message="Are you sure?\nImporting a layer file will clear the current list of atoms!",
+             on_accept_callback=import_layer, parent=self.view.get_toplevel()
+         )
 
     def on_atom_type_changed(self, combo, path, new_iter, user_data=None):
+        """Called when the user selects an AtomType from the combo box"""
         self.new_atom_type = self.model.phase.project.atom_types.get_user_data(new_iter)
         return True
 
     def on_atom_type_edited(self, combo, path, new_text, user_data=None):
+        """Called when the user has closed the AtomType combo box 
+        (so after the on_atom_type_changed call)"""
         atom = self.liststore.get_user_data_from_path((int(path),))
-        if self.new_atom_type == None and not new_text in (None, ""):
-            try:
-                self.new_atom_type = self.model.phase.project.atom_types.get_item_by_index(new_text)
-            except:
-                pass
         if atom is not None:
-            atom.atom_type = self.new_atom_type
+            # If new_atom_type is not set, but the user has typed in the name
+            # of an atom_type, find it (index search):
+            if self.new_atom_type is None and not new_text in (None, ""):
+                try:
+                    self.new_atom_type = self.model.phase.project.atom_types.get_item_by_index(new_text)
+                except:
+                    pass
+            # Set the new atom type if it is not None:
+            if self.new_atom_type is not None:
+                atom.atom_type = self.new_atom_type
+            # Clear variable and leave
             self.new_atom_type = None
             return True
         return False

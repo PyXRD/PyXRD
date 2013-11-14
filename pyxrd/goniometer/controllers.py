@@ -10,9 +10,9 @@ import gtk
 from pyxrd.data import settings
 
 from pyxrd.generic.models.treemodels.utils import create_valuestore_from_file, create_treestore_from_directory
-
-from pyxrd.generic.io.utils import get_case_insensitive_glob
 from pyxrd.generic.controllers import BaseController
+
+from pyxrd.goniometer.models import Goniometer
 
 class InlineGoniometerController(BaseController):
     """
@@ -20,8 +20,7 @@ class InlineGoniometerController(BaseController):
         but rather in another view. 
     """
 
-    file_filters = [("Goniometer files", get_case_insensitive_glob("*.GON")),
-                    ("All Files", "*.*")]
+    file_filters = Goniometer.__file_filters__ + [("All Files", "*.*"), ]
 
     # ------------------------------------------------------------
     #      Initialisation and other internals

@@ -8,7 +8,7 @@
 try:
     import gtk
 except ImportError:
-    from pyxrd.generic.models.treemodels import dummy_gtk as gtk
+    from pyxrd.generic import dummy_gtk as gtk
 
 class BaseObjectListStore(gtk.GenericTreeModel):
     """

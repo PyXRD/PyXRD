@@ -129,15 +129,15 @@ class UnitCellProperty(DataModel, Storable, ComponentPropMixin, RefinementValue)
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def __init__(self, **kwargs):
-        super(UnitCellProperty, self).__init__(**kwargs)
+    def __init__(self, *args, **kwargs):
+        super(UnitCellProperty, self).__init__(*args, **kwargs)
 
-        with self.data_changed.hold():
-            self.name = self.get_kwarg(kwargs, self.name, "name", "data_name")
-            self.value = self.get_kwarg(kwargs, self._value, "value" "data_value")
-            self.factor = self.get_kwarg(kwargs, self._factor, "factor", "data_factor")
-            self.constant = self.get_kwarg(kwargs, self._constant, "constant", "data_constant")
-            self.enabled = self.get_kwarg(kwargs, self.enabled, "enabled", "data_enabled")
+        with self.data_changed.hold_and_emit():
+            self._name = self.get_kwarg(kwargs, self.name, "name", "data_name")
+            self._value = self.get_kwarg(kwargs, self._value, "value", "data_value")
+            self._factor = self.get_kwarg(kwargs, self._factor, "factor", "data_factor")
+            self._constant = self.get_kwarg(kwargs, self._constant, "constant", "data_constant")
+            self._enabled = self.get_kwarg(kwargs, self.enabled, "enabled", "data_enabled")
 
             self._temp_prop = self.get_kwarg(kwargs, self._prop, "prop", "data_prop")
 

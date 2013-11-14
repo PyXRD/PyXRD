@@ -183,6 +183,13 @@ class ObjectListStoreMixin(ObjectTreeviewMixin):
 
         return True
 
+    def get_selected_index(self):
+        cur_obj = self.get_selected_object()
+        if cur_obj is not None:
+            return self.liststore.index(cur_obj)
+        else:
+            return None
+
     def get_selected_object(self):
         return ObjectTreeviewMixin.get_selected_object(self, self.view.treeview)
 
@@ -203,10 +210,9 @@ class ObjectListStoreMixin(ObjectTreeviewMixin):
         for obj in objs: self.select_object(obj, False)
 
     def add_object(self, new_object):
-        if new_object:
-            cur_obj = self.get_selected_object()
-            if cur_obj:
-                index = self.liststore.index(cur_obj)
+        if new_object is not None:
+            index = self.get_selected_index()
+            if index is not None:
                 self.liststore.insert(index + 1, new_object)
             else:
                 self.liststore.append(new_object)
@@ -216,10 +222,10 @@ class ObjectListStoreMixin(ObjectTreeviewMixin):
     # ------------------------------------------------------------
 
     def on_item_removed(self, model, item):
-        pass
+        self.select_object(None, unselect_all=True)
 
     def on_item_inserted(self, model, item):
-        pass
+        self.select_object(item, unselect_all=True)
 
     def objects_tv_selection_changed(self, selection):
         obj = self.get_selected_object()

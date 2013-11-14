@@ -5,6 +5,7 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
+from contextlib import contextmanager
 import os
 import gtk
 
@@ -191,6 +192,22 @@ class DialogMixin():
             on_accept_callback=None, on_reject_callback=None, parent=None):
         dialog = self.get_information_dialog(message, parent)
         return self.run_dialog(dialog, on_accept_callback, on_reject_callback)
+
+    def get_error_dialog(self, message, parent=None):
+        return self.get_message_dialog(message, gtk.MESSAGE_ERROR, buttons=gtk.BUTTONS_OK, parent=parent)
+
+    def run_error_dialog(self, message,
+            on_accept_callback=None, on_reject_callback=None, parent=None):
+        dialog = self.get_information_dialog(message, parent)
+        return self.run_dialog(dialog, on_accept_callback, on_reject_callback)
+
+    @contextmanager
+    def ui_error_handler(self, message):
+        try:
+            yield
+        except:
+            self.run_error_dialog(message, parent=self.view.get_top_widget())
+            raise # This will be handled by the default UI bug dialog
     ############################################################################
 
 

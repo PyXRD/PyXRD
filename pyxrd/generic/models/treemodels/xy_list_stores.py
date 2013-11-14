@@ -1,5 +1,5 @@
 # coding=UTF-8
-# ex:ts=4:sw=4:et=on
+# ex:ts=4:sw=4:et
 
 # Copyright (c) 2013, Mathijs Dumon
 # All rights reserved.

@@ -12,7 +12,7 @@ from pyxrd.gtkmvc.model import Observer
 
 import numpy as np
 
-from pyxrd.generic.io import storables, Storable
+from pyxrd.generic.io import storables, Storable, get_case_insensitive_glob
 from pyxrd.generic.models import DataModel, PropIntel
 from pyxrd.generic.models.mixins import CSVMixin, ObjectListStoreChildMixin
 from pyxrd.generic.models.metaclasses import pyxrd_object_pool
@@ -57,6 +57,10 @@ class AtomType(DataModel, ObjectListStoreChildMixin, Storable, CSVMixin):
     ]
     __csv_storables__ = [(prop.name, prop.name) for prop in __model_intel__ if prop.storable]
     __store_id__ = "AtomType"
+    __file_filters__ = [
+        ("Single atom type file", get_case_insensitive_glob("*.atm")),
+        ("Atom types list file", get_case_insensitive_glob("*.atl"))
+    ]
 
     # SIGNALS:
     data_changed = None
@@ -180,6 +184,9 @@ class Atom(DataModel, ObjectListStoreChildMixin, Storable):
         PropIntel(name="stretch_values", data_type=bool),
     ]
     __store_id__ = "Atom"
+    __layer_filters__ = [
+        ("Layer file", get_case_insensitive_glob("*.lyr")),
+    ]
 
     _data_object = None
     @property

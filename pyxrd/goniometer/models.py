@@ -5,14 +5,12 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
+from math import sin, radians, degrees, asin
 import numpy as np
 
 from pyxrd.gtkmvc.model import Model
-
-from math import sin, radians, degrees, asin
-
 from pyxrd.generic.models import DataModel, PropIntel
-from pyxrd.generic.io import storables, Storable
+from pyxrd.generic.io import storables, Storable, get_case_insensitive_glob
 
 from pyxrd.generic.calculations.goniometer import (
     get_lorentz_polarisation_factor,
@@ -40,6 +38,9 @@ class Goniometer(DataModel, Storable):
         PropIntel(name="ads_const", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
     ]
     __store_id__ = "Goniometer"
+    __file_filters__ = [
+        ("Goniometer files", get_case_insensitive_glob("*.GON")),
+    ]
 
     _data_object = None
     @property

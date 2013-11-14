@@ -9,12 +9,12 @@ import os, locale
 
 import gtk
 
-from pyxrd.generic.io.file_parsers import parsers
 from pyxrd.generic.controllers import BaseController, DialogController, DialogMixin, ObjectTreeviewMixin
 from pyxrd.generic.controllers.utils import DummyAdapter
 from pyxrd.generic.views.treeview_tools import setup_treeview, new_text_column
 
 from pyxrd.goniometer.controllers import InlineGoniometerController
+from pyxrd.specimen.models.base import Specimen
 
 from pyxrd.generic.controllers.line_controllers import (
     LinePropertiesController,
@@ -42,9 +42,9 @@ class SpecimenController(DialogController, DialogMixin, ObjectTreeviewMixin):
             excl_filters: the file filter tuples for exporting exclusion ranges
     """
 
-    file_filters = [parser.file_filter for parser in parsers["xrd"]]
-    export_filters = [parser.file_filter for parser in parsers["xrd"] if parser.can_write]
-    excl_filters = [parser.file_filter for parser in parsers["exc"]]
+    file_filters = Specimen.__file_filters__
+    export_filters = Specimen.__export_filters__
+    excl_filters = Specimen.__excl_filters__
 
     widget_handlers = {
         'custom':  'custom_handler',

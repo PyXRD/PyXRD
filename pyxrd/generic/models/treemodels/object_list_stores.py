@@ -12,7 +12,7 @@ from base_models import BaseObjectListStore
 try:
     import gobject
 except ImportError:
-    from pyxrd.generic.models.treemodels import dummy_gobject as gobject
+    from pyxrd.generic import dummy_gobject as gobject
 
 from pyxrd.gtkmvc import Observer
 from pyxrd.generic.io import storables, Storable, PyXRDDecoder

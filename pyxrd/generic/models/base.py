@@ -40,13 +40,12 @@ class PyXRDModel(ModelMT):
             raise AttributeError, "get_kwarg() requires at least one keyword (%d given)" % (len(keywords))
 
         value = default
-        for i, key in enumerate(keywords):
-            if key in fun_kwargs and fun_kwargs[key] is not None:
+        for i, key in enumerate(keywords[::-1]):
+            if key in fun_kwargs:
                 value = not_none(fun_kwargs[key], default)
                 if i != 0:
                     warn("The use of the keyword '%s' is deprecated for %s!" %
                         (key, type(self)), DeprecationWarning)
-                break
         return value
 
     __uuid__ = None

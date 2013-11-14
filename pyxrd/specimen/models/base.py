@@ -13,6 +13,7 @@ import numpy as np
 
 from pyxrd.data import settings
 from pyxrd.generic.io import storables, Storable
+from pyxrd.generic.io.file_parsers import parsers
 from pyxrd.generic.models import ExperimentalLine, CalculatedLine, DataModel, PropIntel
 from pyxrd.generic.models.mixins import ObjectListStoreChildMixin, ObjectListStoreParentMixin
 from pyxrd.generic.models.treemodels import ObjectListStore, XYListStore
@@ -50,6 +51,10 @@ class Specimen(DataModel, Storable, ObjectListStoreParentMixin, ObjectListStoreC
         PropIntel(name="statistics", label="Statistics", data_type=object, is_column=True),
     ]
     __store_id__ = "Specimen"
+
+    __file_filters__ = [parser.file_filter for parser in parsers["xrd"]]
+    __export_filters__ = [parser.file_filter for parser in parsers["xrd"] if parser.can_write]
+    __excl_filters__ = [parser.file_filter for parser in parsers["exc"]]
 
     _data_object = None
     @property
@@ -169,7 +174,7 @@ class Specimen(DataModel, Storable, ObjectListStoreParentMixin, ObjectListStoreC
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def __init__(self, **kwargs):
+    def __init__(self, *args, **kwargs):
         """
             Valid keyword arguments for a Specimen are:
                 name: the name of the specimen
@@ -191,7 +196,7 @@ class Specimen(DataModel, Storable, ObjectListStoreParentMixin, ObjectListStoreC
                 display_stats_in_lbl: whether or not to display the Rp values 
                  in the pattern label
         """
-        super(Specimen, self).__init__(**kwargs)
+        super(Specimen, self).__init__(*args, **kwargs)
 
         self._data_object = SpecimenData()
 
@@ -358,6 +363,18 @@ class Specimen(DataModel, Storable, ObjectListStoreParentMixin, ObjectListStoreC
         cx, cy = self.calculated_pattern.xy_store.get_raw_model_data()
         selector = self.get_exclusion_selector(ex)
         return ex[selector], ey[selector], cx[selector], cy[selector]
+
+    # ------------------------------------------------------------
+    #      Draggable mix-in hook:
+    # ------------------------------------------------------------
+    def on_pattern_dragged(self, delta_y, button=1):
+        if button == 1:
+            self.display_vshift += delta_y
+        elif button == 3:
+            self.display_vscale += delta_y
+        elif button == 2:
+            self.project.display_plot_offset += delta_y
+        pass
 
     # ------------------------------------------------------------
     #      Intensity calculations:

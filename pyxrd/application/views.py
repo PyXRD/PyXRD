@@ -12,12 +12,12 @@ from matplotlib.backends.backend_gtkagg import NavigationToolbar2GTKAgg as Navig
 
 from pyxrd.data import settings
 
-from pyxrd.generic.views import ObjectListStoreView, BaseView, HasChildView
+from pyxrd.generic.views import ObjectListStoreView, BaseView, HasChildView, FormattedTitleView
 
 from pyxrd.project.views import ProjectView
 from pyxrd.specimen.views import SpecimenView, EditMarkersView
 
-class AppView(BaseView, HasChildView):
+class AppView(BaseView, HasChildView, FormattedTitleView):
     """
         The main application interface view.
         
@@ -33,8 +33,8 @@ class AppView(BaseView, HasChildView):
         
     """
     builder = resource_filename(__name__, "glade/application.glade")
-
     top = "main_window"
+    title_format = "PyXRD - %s"
 
     child_views = {
         "project": ProjectView,
@@ -63,8 +63,11 @@ class AppView(BaseView, HasChildView):
         ]
     }
 
+    # ------------------------------------------------------------
+    #      Initialisation and other internals
+    # ------------------------------------------------------------
     def __init__(self, *args, **kwargs):
-        BaseView.__init__(self, *args, **kwargs)
+        super(AppView, self).__init__(*args, **kwargs)
 
         # Setup about window:
         def on_aboutbox_response(dialog, response, *args):
@@ -112,15 +115,44 @@ class AppView(BaseView, HasChildView):
         view = class_type(parent=self)
         setattr(self, view_name, view)
         view.set_layout_mode(self.current_layout_state)
+
+        if view_name.lower() == "project":
+            # Plug in this tree view in the main application:
+            self._add_child_view(
+                view.specimens_treeview_container, self["specimens_container"])
+
         return view
 
     def reset_all_views(self):
         for view_name, class_type in self.child_views.iteritems():
             self.reset_child_view(view_name, class_type)
 
-    def set_specimens_widget(self, widget):
-        self._add_child_view(widget, self["specimens_container"])
+    # ------------------------------------------------------------
+    #      Sensitivity updates
+    # ------------------------------------------------------------
+    def update_project_sensitivities(self, project_loaded):
+        """
+            Updates the views sensitivities according to the flag 'project_loaded'
+            indicating whether or not there's a project loaded.
+        """
+        self["main_pained"].set_sensitive(project_loaded)
+        self["project_actions"].set_sensitive(project_loaded)
+        for action in self["project_actions"].list_actions():
+            action.set_sensitive(project_loaded)
 
+    def update_specimen_sensitivities(self, single_specimen_selected, multiple_specimen_selected):
+        """
+            Updates the views sensitivities according to the flags 
+            'single_specimen_active' indicating whether or not there's a single
+            specimen selected (= active) and 'multiple_specimen_active' 
+            indicating whether or not there are multiple specimen selected.
+        """
+        self["specimen_actions"].set_sensitive(single_specimen_selected)
+        self["specimens_actions"].set_sensitive(single_specimen_selected or multiple_specimen_selected)
+
+    # ------------------------------------------------------------
+    #      View update methods
+    # ------------------------------------------------------------
     def set_layout_mode(self, mode):
         super(AppView, self).set_layout_mode(mode)
         for view_name in self.child_views:

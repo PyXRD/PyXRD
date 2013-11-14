@@ -11,7 +11,7 @@ from pyxrd.generic.models import ChildModel, PropIntel, HoldableSignal
 from pyxrd.generic.models.treemodels import ObjectListStore
 from pyxrd.generic.models.metaclasses import pyxrd_object_pool
 from pyxrd.generic.models.mixins import ObjectListStoreChildMixin
-from pyxrd.generic.io import storables, Storable
+from pyxrd.generic.io import storables, Storable, get_case_insensitive_glob
 
 from pyxrd.generic.refinement.mixins import RefinementValue
 
@@ -64,6 +64,9 @@ class AtomRelation(ChildModel, Storable, ObjectListStoreChildMixin, ComponentPro
         PropIntel(name="data_changed", data_type=object),
     ]
     __store_id__ = "AtomRelation"
+    __file_filters__ = [
+        ("Atom relation", get_case_insensitive_glob("*.atr")),
+    ]
     allowed_relations = {}
 
     # SIGNALS:

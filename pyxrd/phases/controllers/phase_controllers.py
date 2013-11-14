@@ -11,12 +11,12 @@ from pyxrd.gtkmvc import Model, Controller
 
 from pyxrd.data import settings
 
+from pyxrd.generic.gtk_tools.utils import convert_string_to_gdk_color_int
 from pyxrd.generic.views import ChildObjectListStoreView
 from pyxrd.generic.views.treeview_tools import new_pb_column
 from pyxrd.generic.views.combobox_tools import add_combo_text_column
 from pyxrd.generic.controllers import DialogController, BaseController, ObjectListStoreController
 from pyxrd.generic.controllers.utils import DummyAdapter
-from pyxrd.generic.io.utils import get_case_insensitive_glob
 from pyxrd.generic.models.treemodels.utils import create_treestore_from_directory
 
 from pyxrd.probabilities.models import get_Gbounds_for_R, get_Rbounds_for_G
@@ -155,8 +155,11 @@ class PhasesController(ObjectListStoreController):
     """ 
         Controller for the phase ObjectListStore
     """
-    file_filters = [("Phase file", get_case_insensitive_glob("*.PHS")), ]
+    file_filters = Phase.__file_filters__
     model_property_name = "phases"
+    obj_type_map = [
+        (Phase, EditPhaseView, EditPhaseController),
+    ]
     multi_selection = True
     columns = [
         ("Phase name", "c_name"),
@@ -165,22 +168,16 @@ class PhasesController(ObjectListStoreController):
         ("#", "c_G"),
     ]
     delete_msg = "Deleting a phase is irreversible!\nAre You sure you want to continue?"
-    obj_type_map = [
-        (Phase, EditPhaseView, EditPhaseController),
-    ]
     title = "Edit Phases"
 
     def load_phases(self, filename):
-        print "Importing phase..."
-        for phase in Phase.load_phases(filename, parent=self.model):
-            self.add_object(phase)
-            phase.resolve_json_references()
-        self.select_object(phase)
+        index = self.get_selected_index()
+        if index is not None: index += 1
+        self.model.load_phases(filename, insert_index=index)
 
     def setup_treeview_col_c_display_color(self, treeview, name, col_descr, col_index, tv_col_nr):
         def set_pb(column, cell_renderer, tree_model, iter, col_index):
-            color = gtk.gdk.color_parse(tree_model.get_value(iter, col_index)) # @UndefinedVariable
-            color = (int(color.red_float * 255) << 24) + (int(color.green_float * 255) << 16) + (int(color.blue_float * 255) << 8) + 255
+            color = convert_string_to_gdk_color_int(tree_model.get_value(iter, col_index))
             phase = tree_model.get_user_data(iter)
             pb, old_color = getattr(phase, "__col_c_pb", (None, None))
             if old_color != color:
@@ -198,15 +195,13 @@ class PhasesController(ObjectListStoreController):
         return True
 
     def create_new_object_proxy(self):
-        def on_accept(phase, G, R):
-            if not phase:
-                G = int(G)
-                R = int(R)
-                if G is not None and G > 0 and R is not None and R >= 0 and R <= 4:
-                    self.add_object(Phase("New Phase", G=G, R=R, parent=self.model))
-                    self.select_object(phase)
+        def on_accept(filename, G, R):
+            index = self.get_selected_index()
+            if index is not None: index += 1
+            if filename is None:
+                self.model.insert_new_phase(G=int(G), R=int(R), insert_index=index)
             else:
-                self.load_phases(phase)
+                self.model.load_phases(filename, insert_index=index)
 
         add_model = Model()
         add_view = AddPhaseView(parent=self.view)

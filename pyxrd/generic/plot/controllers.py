@@ -324,12 +324,25 @@ class MainPlotController (PlotController):
         PLOT_WIDTH = self._get_plot_width()
         return self.plot_left + PLOT_WIDTH
 
+
+    def get_user_x_coordinate(self, callback):
+        def onclick(x_pos, event):
+            self.edc.enabled = False
+            self.edc.disconnect()
+            callback(x_pos)
+            del self.edc
+        self.edc = EyedropperCursorPlot(
+            self.canvas,
+            self.canvas.get_window(),
+            onclick,
+            True, True
+        )
+
     pass # end of class
 
 
 class EyedropperCursorPlot():
-    def __init__(self, figure, canvas, window, click_callback=None, connect=False, enabled=False):
-        self.figure = figure
+    def __init__(self, canvas, window, click_callback=None, connect=False, enabled=False):
         self.canvas = canvas
         self.window = window
         self.enabled = enabled
@@ -337,11 +350,11 @@ class EyedropperCursorPlot():
         if connect: self.connect()
 
     def connect(self):
-        self.cidmotion = self.figure.canvas.mpl_connect(
+        self.cidmotion = self.canvas.mpl_connect(
             'motion_notify_event',
              self.on_motion
          )
-        self.cidclick = self.figure.canvas.mpl_connect(
+        self.cidclick = self.canvas.mpl_connect(
             'button_press_event',
             self.on_click
         )
@@ -351,20 +364,20 @@ class EyedropperCursorPlot():
             if not self.enabled:
                 self.window.set_cursor(None)
             else:
-                self.window.set_cursor(gtk.gdk.Cursor(gtk.gdk.CROSSHAIR))
+                self.window.set_cursor(gtk.gdk.Cursor(gtk.gdk.CROSSHAIR)) # @UndefinedVariable
 
     def on_click(self, event):
         x_pos = -1
         if event.inaxes:
             x_pos = event.xdata
         if self.enabled and callable(self.click_callback):
-            self.click_callback(self, x_pos, event)
+            self.click_callback(x_pos, event)
 
     def disconnect(self):
         if self.window is not None:
             self.window.set_cursor(None)
-        self.figure.canvas.mpl_disconnect(self.cidmotion)
-        self.figure.canvas.mpl_disconnect(self.cidclick)
+        self.canvas.mpl_disconnect(self.cidmotion)
+        self.canvas.mpl_disconnect(self.cidclick)
 
 
 class DraggableVLine():

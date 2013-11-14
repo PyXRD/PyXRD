@@ -11,7 +11,7 @@ from warnings import warn
 
 from pyxrd.gtkmvc.model import Model, Observer
 
-from pyxrd.generic.io import storables, Storable
+from pyxrd.generic.io import storables, Storable, get_case_insensitive_glob
 from pyxrd.generic.models import DataModel, PropIntel
 from pyxrd.generic.models.mixins import ObjectListStoreChildMixin, ObjectListStoreParentMixin
 from pyxrd.generic.models.treemodels import ObjectListStore
@@ -46,6 +46,9 @@ class Phase(DataModel, Storable, ObjectListStoreParentMixin,
         PropIntel(name="components", data_type=object, label="Components", is_column=True, has_widget=True, storable=True, refinable=True, widget_type="custom"),
     ]
     __store_id__ = "Phase"
+    __file_filters__ = [
+        ("Phase file", get_case_insensitive_glob("*.PHS")),
+    ]
 
     _data_object = None
     @property
@@ -211,8 +214,8 @@ class Phase(DataModel, Storable, ObjectListStoreParentMixin,
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def __init__(self, **kwargs):
-        super(Phase, self).__init__(**kwargs)
+    def __init__(self, *args, **kwargs):
+        super(Phase, self).__init__(*args, **kwargs)
 
         self._data_object = PhaseData()
 
@@ -276,11 +279,11 @@ class Phase(DataModel, Storable, ObjectListStoreParentMixin,
         # Set the based on and linked with variables:
         if hasattr(self, "_based_on_uuid") and self._based_on_uuid is not None:
             self.based_on = pyxrd_object_pool.get_object(self._based_on_uuid)
+            del self._based_on_uuid
         elif hasattr(self, "_based_on_index") and self._based_on_index is not None and self._based_on_index != -1:
             warn("The use of object indices is deprecated since version 0.4. Please switch to using object UUIDs.", DeprecationWarning)
             self.based_on = self.parent.phases.get_user_from_index(self._based_on_index)
-        del self._based_on_index
-        del self._based_on_uuid
+            del self._based_on_index
         for component in self.components._model_data:
             component.resolve_json_references()
 

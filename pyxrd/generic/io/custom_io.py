@@ -5,7 +5,8 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-import os, sys
+import os, sys, types
+from shutil import move
 
 import numpy as np
 
@@ -233,17 +234,47 @@ class Storable(object):
         """
         print self.dump_object()
 
-    def save_object(self, filename, zipped=False):
+    def save_object(self, file, zipped=False): # @ReservedAssignment
         """
         Saves the output from dump_object() to a filename, optionally zipping it.
+        File can be either a filename or a file-like object. If it is a filename
+        extra precautions are taken to prevent malformed data overwriting a good
+        file. With file objects this is not the case.
         """
-        if zipped:
-            f = ZipFile(filename, mode="w", compression=ZIP_DEFLATED)
-            f.writestr('content', json.dumps(self, indent=4, cls=PyXRDEncoder))
-            f.close()
-        else:
-            with unicode_open(filename, 'w') as f:
-                json.dump(self, f, indent=4, cls=PyXRDEncoder)
+
+        filename = None
+        if isinstance(file, types.StringTypes):
+            # We have a filename, not a file object
+            filename = file
+            # Create temporary filenames for output, and a backup filename if
+            # the file already exists.
+            file = filename + ".tmp" # @ReservedAssignment
+            backup_name = filename + "~"
+
+        try:
+            if zipped:
+                # Try to safe the file as a zipfile:
+                with ZipFile(file, mode="w", compression=ZIP_DEFLATED) as f:
+                    f.writestr('content', json.dumps(self, indent=4, cls=PyXRDEncoder))
+            else:
+                # Regular text file:
+                if filename is not None:
+                    with unicode_open(file, 'w') as f:
+                        json.dump(self, f, indent=4, cls=PyXRDEncoder)
+                else:
+                    json.dump(self, file, indent=4, cls=PyXRDEncoder)
+        except:
+            # In case saving fails, remove the temporary file:
+            if filename is not None and os.path.exists(file):
+                os.remove(file)
+            raise
+
+        if filename is not None:
+            # If target file exists, back it up:
+            if os.path.exists(filename):
+                move(filename, backup_name)
+            # Rename temporary saved file:
+            move(file, filename)
 
     @staticmethod
     def load_object(filename, data=None, parent=None):

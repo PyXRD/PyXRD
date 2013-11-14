@@ -102,7 +102,7 @@ def _run_gui(args, splash=None):
     from pyxrd.application.models import AppModel
     from pyxrd.application.views import AppView
     from pyxrd.application.controllers import AppController
-    from pyxrd.generic.gtkexcepthook import plugin_gtk_excepthook
+    from pyxrd.generic.gtk_tools.gtkexcepthook import plugin_gtk_excepthook
 
     # Initialize threads
 

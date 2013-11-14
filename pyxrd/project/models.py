@@ -15,7 +15,8 @@ from pyxrd.generic.models import DataModel
 from pyxrd.generic.models.mixins import ObjectListStoreParentMixin
 from pyxrd.generic.models.properties import PropIntel, MultiProperty
 from pyxrd.generic.models.treemodels import ObjectListStore, IndexListStore
-from pyxrd.generic.io import storables, Storable
+from pyxrd.generic.plot.draggables import DraggableMixin
+from pyxrd.generic.io import storables, Storable, get_case_insensitive_glob
 
 from pyxrd.specimen.models import Specimen
 from pyxrd.phases.models import Phase
@@ -23,7 +24,7 @@ from pyxrd.atoms.models import AtomType
 from pyxrd.mixture.models.mixture import Mixture
 
 @storables.register()
-class Project(DataModel, Storable, ObjectListStoreParentMixin):
+class Project(DataModel, Storable, ObjectListStoreParentMixin, DraggableMixin):
     # MODEL INTEL:
     __model_intel__ = [ # TODO add labels
         PropIntel(name="name", data_type=str, storable=True, has_widget=True),
@@ -58,6 +59,12 @@ class Project(DataModel, Storable, ObjectListStoreParentMixin):
         PropIntel(name="needs_saving", data_type=bool, storable=False),
     ]
     __store_id__ = "Project"
+    __file_filters__ = [
+        ("PyXRD Project files", get_case_insensitive_glob("*.pyxrd", "*.zpd")),
+    ]
+    __import_filters__ = [
+        ("Sybilla XML files", get_case_insensitive_glob("*.xml")),
+    ]
 
     # PROPERTIES:
     name = ""
@@ -91,6 +98,7 @@ class Project(DataModel, Storable, ObjectListStoreParentMixin):
     def set_axes_value(self, prop_name, value):
         if prop_name in ("axes_xmin", "axes_xmax"): value = max(value, 0.0)
         if prop_name == "display_group_by": value = max(value, 1)
+        if prop_name == "display_plot_offset": value = max(value, 0.0)
         setattr(self, "_%s" % prop_name, value)
         self.visuals_changed.emit()
 
@@ -388,14 +396,22 @@ class Project(DataModel, Storable, ObjectListStoreParentMixin):
         project.needs_saving = False # don't mark this when just loaded
         return project
 
-    def save_object(self, filename):
-        Storable.save_object(self, filename, zipped=True)
+    def save_object(self, file): # @ReservedAssignment
+        Storable.save_object(self, file, zipped=True)
         self.needs_saving = False
 
     @staticmethod
     def create_from_sybilla_xml(filename, **kwargs):
         from pyxrd.project.importing import create_project_from_sybilla_xml
         return create_project_from_sybilla_xml(filename, **kwargs)
+
+    # ------------------------------------------------------------
+    #      Draggable mix-in hook:
+    # ------------------------------------------------------------
+    def on_label_dragged(self, delta_y, button=1):
+        if button == 1:
+            self.display_label_pos += delta_y
+        pass
 
     # ------------------------------------------------------------
     #      Methods & Functions
@@ -425,5 +441,35 @@ class Project(DataModel, Storable, ObjectListStoreParentMixin):
     def update_all(self):
         for mixture in self.mixtures.iter_objects():
             mixture.update()
+
+    def load_phases(self, filename, insert_index=None):
+        """
+            Loads the phases from the file 'filename'. An optional index can
+            be given where the phases need to be inserted at.
+        """
+        for phase in Phase.load_phases(filename, parent=self):
+            self.insert_phase(phase, insert_index=insert_index)
+            phase.resolve_json_references()
+
+    def insert_new_phase(self, name="New Phase", G=None, R=None, insert_index=None, **kwargs):
+        """
+            Adds a new phase with the given key word args
+        """
+        if G is not None and G > 0 and R is not None and R >= 0 and R <= 4:
+            self.insert_phase(
+                Phase(parent=self, name=name, G=G, R=R, **kwargs),
+                insert_index=insert_index
+            )
+
+    def insert_phase(self, phase, insert_index=None):
+        """
+            Inserts a phase in the phases ObjectListStore. Does not take
+            care of handling JSON references.
+        """
+        if insert_index is None:
+            self.phases.append(phase)
+        else:
+            self.phases.insert(insert_index, phase)
+            insert_index += 1
 
     pass # end of class

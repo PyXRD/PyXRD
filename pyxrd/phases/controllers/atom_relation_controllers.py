@@ -8,7 +8,6 @@
 import gtk
 
 from pyxrd.gtkmvc import Controller
-from pyxrd.gtkmvc.adapters import Adapter
 
 from pyxrd.generic.controllers.utils import DummyAdapter
 
@@ -28,7 +27,7 @@ from pyxrd.generic.controllers import (
 )
 
 from pyxrd.phases.views import EditAtomRatioView, EditAtomContentsView
-from pyxrd.phases.models.atom_relations import AtomRatio, AtomContents, AtomContentObject
+from pyxrd.phases.models.atom_relations import AtomRelation, AtomRatio, AtomContents, AtomContentObject
 
 class AtomComboMixin(object):
 
@@ -121,52 +120,31 @@ class EditUnitCellPropertyController(BaseController, AtomComboMixin):
     custom_handler_names = ["prop", ]
     widget_handlers = {
         'combo': 'custom_handler',
-        'check': 'check_handler',
     }
 
     def __init__(self, extra_props, **kwargs):
         BaseController.__init__(self, **kwargs)
         self.extra_props = extra_props
 
-    @staticmethod
-    def check_handler(self, intel, widget):
-        if intel.name == "enabled":
-            ad = Adapter(self.model, intel.name)
-            ad.connect_widget(widget)
-            self.view["ucp_disabled"].set_active(not self.model.enabled)
-            self.view["ucp_enabled"].set_active(self.model.enabled)
-            return ad
-
     def register_adapters(self):
         BaseController.register_adapters(self)
         self.update_sensitivities()
 
     def update_sensitivities(self):
-        if self.model.enabled:
-            self.view['ucp_value'].set_sensitive(False)
-            self.view['box_enabled'].set_sensitive(True)
-        else:
-            self.view['ucp_value'].set_sensitive(True)
-            self.view['box_enabled'].set_sensitive(False)
+        self.view['ucp_value'].set_sensitive(not self.model.enabled)
+        self.view['box_enabled'].set_sensitive(self.model.enabled)
 
     # ------------------------------------------------------------
     #      Notifications of observable properties
     # ------------------------------------------------------------
-    @Controller.observe("enabled", signal=True)
+    @BaseController.observe("enabled", assign=True)
     def notif_enabled_changed(self, model, prop_name, info):
         self.update_sensitivities()
-        return
 
-    @Controller.observe("removed", signal=True)
+    @BaseController.observe("removed", signal=True)
     def notif_removed(self, model, prop_name, info):
         AtomComboMixin._disconnect_from_layers(self)
         AtomComboMixin._disconnect_from_interlayers(self)
-
-    # ------------------------------------------------------------
-    #      GTK Signal handlers
-    # ------------------------------------------------------------
-    def on_opt_enabled_group_changed(self, widget, *args):
-        self.update_sensitivities()
 
     pass # end of class
 
@@ -285,7 +263,7 @@ class EditAtomRelationsController(InlineObjectListStoreController):
     """ 
         Controller for the components' atom relations ObjectListStore
     """
-    file_filters = ("Atom relation", "*.atr"),
+    file_filters = AtomRelation.__file_filters__
     auto_adapt = False # FIXME
 
     add_types = [

@@ -40,9 +40,14 @@ widget_handlers['expander'] = expander_widget_handler
 def toggle_widget_handler(ctrl, intel, widget):
     """ A handler for a toggle widget (boolean) """
     ad = Adapter(ctrl.model, intel.name)
+    widget_type = type(widget)
+    if not isinstance(widget, gtk.ToggleButton):
+        raise TypeError, \
+            "The toggle_widget_handler needs to be applied to an instance" + \
+            " of (a subclass of) a gtk.ToggleButton, not a %s" % widget_type
     ad.connect_widget(
         widget,
-        getter=gtk.ToggleButton.get_active, setter=gtk.ToggleButton.set_active,
+        getter=widget_type.get_active, setter=widget_type.set_active,
         signal="toggled"
     )
     return ad

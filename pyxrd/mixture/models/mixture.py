@@ -58,11 +58,11 @@ class Mixture(DataModel, ObjectListStoreChildMixin, Storable):
     def data_object(self):
         self._data_object.specimens = [None] * len(self.specimens)
         for i, specimen in enumerate(self.specimens):
-            if specimen != None:
+            if specimen is not None:
                 data_object = specimen.data_object
                 data_object.phases = [None] * len(self.phases)
                 for j, phase in enumerate(self.phase_matrix[i, ...].flatten()):
-                    data_object.phases[j] = phase.data_object if phase != None else None
+                    data_object.phases[j] = phase.data_object if phase is not None else None
                 self._data_object.specimens[i] = data_object
             else:
                 self._data_object.specimens[i] = None
@@ -114,52 +114,79 @@ class Mixture(DataModel, ObjectListStoreChildMixin, Storable):
     # ------------------------------------------------------------
     #      Initialization and other internals
     # ------------------------------------------------------------
-    def __init__(self, name="New Mixture", auto_run=False,
-            phase_indeces=None, phase_uuids=None,
-            specimen_indeces=None, specimen_uuids=None, phases=None,
-            scales=None, bgshifts=None, fractions=None,
-            refinables=None, refine_method=None, parent=None, **kwargs):
-        super(Mixture, self).__init__(parent=parent)
+    def __init__(self, **kwargs):
+        """
+            Valid keyword arguments for a Mixture are:
+                name: the name of this mixture
+                auto_run: a flag indicating whether or not this Mixture should
+                 change the fractions, bg_shifts and scales when a specimen or
+                 a phase has emitted a data_changed signal
+                phase_uuids: a list containing the UUID's for the phases in the
+                 mixture
+                specimen_uuids: a list containing the UUID's for the specimens
+                 in the mixture
+                phases: a list containing the names for each 'phase row'
+                scales: a list containing the absolute scales for each of the
+                 specimens
+                bg_shifts: a list containing the background shifts for each of
+                 the specimens
+                fractions: a list containing the fractions for each phase
+                refinables: an ObjectTreeStore containing the refinable 
+                 properties in this mixture
+                refine_method: which method to use for the refinement (see 
+                 mixture.models.methods.get_all_refine_methods) 
+                
+            Deprecated, but still supported, keyword arguments:
+                phase_indeces: a list containing the indices of the phases in
+                 the ObjectListStore at the project level
+                specimen_indeces: a list containing the indices of the specimens
+                 in the ObjectListStore at the project level
+        """
+        super(Mixture, self).__init__(**kwargs)
 
         with self.data_changed.hold():
 
             self._data_object = MixtureData()
 
             self.needs_reset = Signal()
-            self.name = name or self.get_depr(kwargs, "", "data_name")
-            self.auto_run = auto_run or self.auto_run
+            self.name = self.get_kwarg(kwargs, "New Mixture", "name", "data_name")
+            self.auto_run = self.get_kwarg(kwargs, False, "auto_run")
 
             # 2D matrix, rows match specimens, columns match mixture 'phases'; contains the actual phase objects
-            if phase_uuids:
+            phase_uuids = self.get_kwarg(kwargs, None, "phase_uuids")
+            phase_indeces = self.get_kwarg(kwargs, None, "phase_indeces")
+            if phase_uuids is not None:
                 self.phase_matrix = np.array([[pyxrd_object_pool.get_object(uuid) if uuid else None for uuid in row] for row in phase_uuids], dtype=np.object_)
-            elif phase_indeces and self.parent != None:
-                warn("The use of object indeces is deprected since version 0.4. Please switch to using object UUIDs.", DeprecationWarning)
+            elif phase_indeces and self.parent is not None:
+                warn("The use of object indices is deprecated since version 0.4. Please switch to using object UUIDs.", DeprecationWarning)
                 self.phase_matrix = np.array([[self.parent.phases.get_user_data_from_index(index) if index != -1 else None for index in row] for row in phase_indeces], dtype=np.object_)
             else:
                 self.phase_matrix = np.empty(shape=(0, 0), dtype=np.object_)
 
             # list with actual specimens, indexes match with rows in phase_matrix
-            if phase_uuids:
+            specimen_uuids = self.get_kwarg(kwargs, None, "specimen_uuids")
+            specimen_indeces = self.get_kwarg(kwargs, None, "specimen_indeces")
+            if specimen_uuids:
                 self.specimens = [pyxrd_object_pool.get_object(uuid) if uuid else None for uuid in specimen_uuids]
-            elif specimen_indeces != None and self.parent != None:
-                warn("The use of object indeces is deprected since version 0.4. Please switch to using object UUIDs.", DeprecationWarning)
+            elif specimen_indeces and self.parent is not None:
+                warn("The use of object indices is deprecated since version 0.4. Please switch to using object UUIDs.", DeprecationWarning)
                 self.specimens = [self.parent.specimens.get_user_data_from_index(index) if index != -1 else None for index in specimen_indeces]
             else:
                 self.specimens = list()
 
             # list with mixture phase names, indexes match with cols in phase_matrix
-            self.phases = phases or self.get_depr(kwargs, list(), "data_phases")
+            self.phases = self.get_kwarg(kwargs, list(), "phases", "data_phases")
 
             # list with scale values, indexes match with rows in phase_matrix (= specimens)
-            self.scales = np.asarray(scales or self.get_depr(kwargs, [1.0] * len(self.specimens), "data_scales"))
+            self.scales = np.asarray(self.get_kwarg(kwargs, [1.0] * len(self.specimens), "scales", "data_scales"))
             # list with specimen background shift values, indexes match with rows in phase_matrix (=specimens)
-            self.bgshifts = np.asarray(bgshifts or self.get_depr(kwargs, [0.0] * len(self.specimens), "data_bgshifts"))
+            self.bgshifts = np.asarray(self.get_kwarg(kwargs, [0.0] * len(self.specimens), "bgshifts", "data_bgshifts"))
             # list with phase fractions, indexes match with cols in phase_matrix (=phases)
-            self.fractions = np.asarray(fractions or self.get_depr(kwargs, [0.0] * len(self.phases), "data_fractions"))
+            self.fractions = np.asarray(self.get_kwarg(kwargs, [0.0] * len(self.phases), "fractions", "data_fractions"))
 
-            self.refinables = refinables or self.get_depr(kwargs, ObjectTreeStore(RefinableWrapper), "data_refinables")
+            self.refinables = self.get_kwarg(kwargs, ObjectTreeStore(RefinableWrapper), "refinables", "data_refinables")
             try:
-                self.refine_method = refine_method or self.get_depr(kwargs, self.refine_method, "data_refine_method")
+                self.refine_method = int(self.get_kwarg(kwargs, self.refine_method, "refine_method", "data_refine_method"))
             except ValueError:
                 self.refine_method = self.refine_method
                 pass # ignore faulty values, these indices change from time to time.
@@ -185,7 +212,7 @@ class Mixture(DataModel, ObjectListStoreChildMixin, Storable):
     # ------------------------------------------------------------
     @DataModel.observe("data_changed", signal=True)
     def notify_data_changed(self, model, prop_name, info):
-        if not (info.arg == "based_on" and model.based_on != None and model.based_on in self.phase_matrix):
+        if not (info.arg == "based_on" and model.based_on is not None and model.based_on in self.phase_matrix):
             self.data_changed.emit() # Propagate the signal
 
     # ------------------------------------------------------------
@@ -259,13 +286,13 @@ class Mixture(DataModel, ObjectListStoreChildMixin, Storable):
     def _observe_specimens(self):
         """ Starts observing specimens in the specimens list"""
         for specimen in self.specimens:
-            if specimen != None:
+            if specimen is not None:
                 self.observe_model(specimen)
 
     def _relieve_specimens(self):
         """ Relieves specimens observer calls """
         for specimen in self.specimens:
-            if specimen != None:
+            if specimen is not None:
                 self.relieve_model(specimen)
 
     @contextmanager
@@ -277,13 +304,13 @@ class Mixture(DataModel, ObjectListStoreChildMixin, Storable):
     def _observe_phases(self):
         """ Starts observing phases in the phase matrix"""
         for phase in self.phase_matrix.flat:
-            if phase != None:
+            if phase is not None:
                 self.observe_model(phase)
 
     def _relieve_phases(self):
         """ Relieves phase observer calls """
         for phase in self.phase_matrix.flat:
-            if phase != None:
+            if phase is not None:
                 self.relieve_model(phase)
 
     def add_phase_slot(self, phase_name, fraction):
@@ -364,7 +391,7 @@ class Mixture(DataModel, ObjectListStoreChildMixin, Storable):
                 mixture = self.optimizer.calculate(mixture)
 
             for i, (specimen_data, specimen) in enumerate(izip(mixture.specimens, self.specimens)):
-                if specimen != None:
+                if specimen is not None:
                     specimen.update_pattern(
                         specimen_data.total_intensity,
                         specimen_data.phase_intensities * self.fractions[:, np.newaxis] * self.scales[i],
@@ -407,7 +434,7 @@ class Mixture(DataModel, ObjectListStoreChildMixin, Storable):
         self.refinables.clear()
 
         def add_property(parent_itr, obj, prop):
-            rp = RefinableWrapper(obj, prop, sensitivity=0, refine=False, parent=self)
+            rp = RefinableWrapper(obj=obj, prop=prop, sensitivity=0, refine=False, parent=self)
             return self.refinables.append(parent_itr, rp)
 
         def parse_attribute(obj, attr, root_itr):
@@ -416,7 +443,7 @@ class Mixture(DataModel, ObjectListStoreChildMixin, Storable):
                 attr: the attribute of obj or None if obj is the attribute
                 root_itr: the iter new iters should be put under
             """
-            if attr != None:
+            if attr is not None:
                 if hasattr(obj, "get_base_value"):
                     value = obj.get_base_value(attr)
                 else:

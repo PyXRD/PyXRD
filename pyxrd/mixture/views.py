@@ -56,7 +56,7 @@ class RefinementView(DialogView):
         self["refinables"].set_visible(False)
         self["refinables"].set_no_show_all(True)
 
-        if self.refine_spin_box != None:
+        if self.refine_spin_box is not None:
             self.refine_spin_box.cancel()
         self.refine_spin_box = ThreadedTaskBox(refine_function, gui_callback, cancelable=True)
         self.refine_spin_box.connect("complete", self.complete_function)
@@ -72,7 +72,7 @@ class RefinementView(DialogView):
 
     def hide_refinement_info(self):
         self[self.refine_status_toplevel].hide()
-        if self.refine_spin_box != None:
+        if self.refine_spin_box is not None:
             self.refine_spin_box.set_no_show_all(True)
             self.refine_spin_box.cancel()
         self["hbox_actions"].set_sensitive(True)
@@ -258,7 +258,7 @@ class EditMixtureView(BaseView):
         new_input.set_text(text)
         new_input.set_alignment(0.0)
         new_input.set_width_chars(width)
-        if callback != None: new_input.connect("changed", callback)
+        if callback is not None: new_input.connect("changed", callback)
         return new_input
 
     def _add_new_phase_combo(self, model, text_column, default, r, c, callback):
@@ -281,7 +281,7 @@ class EditMixtureView(BaseView):
         cell = gtk.CellRendererText()
         combobox.pack_start(cell) # , False)
         combobox.add_attribute(cell, 'text', text_column)
-        if default != None:
+        if default is not None:
             combobox.set_active(model.index(default))
         combobox.connect("changed", callback, *args)
         return combobox

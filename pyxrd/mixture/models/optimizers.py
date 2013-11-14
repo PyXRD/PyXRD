@@ -72,6 +72,6 @@ class Optimizer(ChildModel):
             return None
 
     def get_data_object(self, data_object=None):
-        return (data_object if data_object != None else self.parent.data_object,)
+        return (data_object if data_object is not None else self.parent.data_object,)
 
     pass # end of class

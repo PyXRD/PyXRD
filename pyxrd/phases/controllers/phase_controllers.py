@@ -94,7 +94,7 @@ class EditPhaseController(BaseController):
         self.update_sensitivities()
 
     def update_sensitivities(self):
-        can_inherit = (self.model.based_on != None)
+        can_inherit = (self.model.based_on is not None)
 
         for name in ("sigma_star", "display_color"):
             widget_name = "container_%s" % name
@@ -139,7 +139,7 @@ class EditPhaseController(BaseController):
     # ------------------------------------------------------------
     def on_based_on_changed(self, combo, user_data=None):
         itr = combo.get_active_iter()
-        if itr != None:
+        if itr is not None:
             val = combo.get_model().get_user_data(itr)
             # cannot be based on itself == not based on anything
             # cannot be based on a model with a different # of components
@@ -202,7 +202,7 @@ class PhasesController(ObjectListStoreController):
             if not phase:
                 G = int(G)
                 R = int(R)
-                if G != None and G > 0 and R != None and R >= 0 and R <= 4:
+                if G is not None and G > 0 and R is not None and R >= 0 and R <= 4:
                     self.add_object(Phase("New Phase", G=G, R=R, parent=self.model))
                     self.select_object(phase)
             else:
@@ -249,14 +249,14 @@ class AddPhaseController(DialogController):
         pass # has no intel, or a model!
 
     def update_R_bounds(self):
-        if self.view != None:
+        if self.view is not None:
             min_R, max_R, R = get_Rbounds_for_G(self.view.get_G(), self.view.get_R())
             self.view["adj_R"].set_upper(max_R)
             self.view["adj_R"].set_lower(min_R)
             self.view["R"].set_value(R)
 
     def update_G_bounds(self):
-        if self.view != None:
+        if self.view is not None:
             min_G, max_G, G = get_Gbounds_for_R(self.view.get_R(), self.view.get_G())
             self.view["adj_G"].set_upper(max_G)
             self.view["adj_G"].set_lower(min_G)

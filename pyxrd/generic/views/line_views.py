@@ -42,7 +42,7 @@ class BackgroundView(DialogView):
     bg_view_cont = "bg_view_container"
 
     def select_bg_view(self, bg_view=None):
-        if bg_view != None:
+        if bg_view is not None:
             bg_view = "bg_%s" % bg_view
         else:
             bg_view = self.def_bg_view

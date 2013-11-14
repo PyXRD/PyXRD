@@ -72,7 +72,7 @@ class XYListStore(BaseObjectListStore, Storable):
 
         self._iters = dict()
 
-        if data != None:
+        if data is not None:
             self._deserialize(data)
         else:
             self.set_from_data(np.array([], dtype=float), np.array([], dtype=float))
@@ -289,7 +289,7 @@ class XYListStore(BaseObjectListStore, Storable):
             self._model_data_x = tempx
             if tempy.shape[0] == 1:
                 self._model_data_y[0] = tempy[0]
-                if names != None: self._y_names = names
+                if names is not None: self._y_names = names
             else:
                 self._model_data_y = tempy
                 self._y_names = names

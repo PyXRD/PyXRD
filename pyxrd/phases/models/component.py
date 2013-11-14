@@ -120,10 +120,10 @@ class Component(DataModel, Storable, ObjectListStoreChildMixin,
     def get_linked_with_value(self): return self._linked_with
     def set_linked_with_value(self, value):
         if value != self._linked_with:
-            if self._linked_with != None:
+            if self._linked_with is not None:
                 self.relieve_model(self._linked_with)
             self._linked_with = value
-            if self._linked_with != None:
+            if self._linked_with is not None:
                 self.observe_model(self._linked_with)
             else:
                 for prop in self.__inheritables__:
@@ -158,7 +158,7 @@ class Component(DataModel, Storable, ObjectListStoreChildMixin,
     @Model.getter(*[prop.name for prop in __model_intel__ if prop.inh_name])
     def get_inheritable(self, prop_name):
         inh_name = "inherit_%s" % prop_name
-        if self.linked_with != None and getattr(self, inh_name):
+        if self.linked_with is not None and getattr(self, inh_name):
             return getattr(self.linked_with, prop_name)
         else:
             return getattr(self, "_%s" % prop_name)
@@ -168,11 +168,11 @@ class Component(DataModel, Storable, ObjectListStoreChildMixin,
         if current != value:
             with self.data_changed.hold_and_emit():
                 if prop_name.startswith("ucp_"):
-                    if current != None:
+                    if current is not None:
                         self.relieve_model(current)
                 setattr(self, "_%s" % prop_name, value)
                 if prop_name.startswith("ucp_"):
-                    if value != None:
+                    if value is not None:
                         self.observe_model(value)
                 if prop_name == "default_c":
                     setattr(self, "_%s" % prop_name, float(value))
@@ -194,14 +194,40 @@ class Component(DataModel, Storable, ObjectListStoreChildMixin,
     # ------------------------------------------------------------
     #      Initialization and other internals
     # ------------------------------------------------------------
-    def __init__(self, name=None, ucp_a=None, ucp_b=None,
-                 d001=None, default_c=None, delta_c=None,
-                 layer_atoms=None, interlayer_atoms=None, atom_relations=None,
-                 inherit_ucp_a=False, inherit_ucp_b=False, inherit_d001=False,
-                 inherit_default_c=False, inherit_delta_c=False,
-                 inherit_layer_atoms=False, inherit_interlayer_atoms=False, inherit_atom_relations=False,
-                 linked_with_index=None, linked_with_uuid=None, parent=None, **kwargs):
-        super(Component, self).__init__(parent=parent)
+    def __init__(self, **kwargs):
+        """
+            Valid keyword arguments for a Component are:
+                ucp_a: unit cell property along a axis
+                ucp_b: unit cell property along b axis
+                d001: unit cell length c (aka d001)
+                default_c: default c-value
+                delta_c: the variation in basal spacing due to defects
+                layer_atoms: ObjectListStore of layer Atoms
+                interlayer_atoms: ObjectListStore of interlayer Atoms
+                atom_relations: ObjectListStore of AtomRelations
+                inherit_ucp_a: whether or not to inherit the ucp_a property from
+                 the linked component (if linked)
+                inherit_ucp_b: whether or not to inherit the ucp_b property from
+                 the linked component (if linked)
+                inherit_d001: whether or not to inherit the d001 property from
+                 the linked component (if linked)
+                inherit_default_c: whether or not to inherit the default_c 
+                 property from the linked component (if linked)
+                inherit_delta_c: whether or not to inherit the delta_c 
+                 property from the linked component (if linked)
+                inherit_layer_atoms: whether or not to inherit the layer_atoms 
+                 property from the linked component (if linked)
+                inherit_interlayer_atoms: whether or not to inherit the
+                 interlayer_atoms property from the linked component (if linked)
+                inherit_atom_relations: whether or not to inherit the 
+                 atom_relations property from the linked component (if linked)
+                linked_with_uuid: the UUID for the component this one is linked
+                 with
+            Deprecated, but still supported:
+                linked_with_index: the index for the component this one is 
+                 linked with in the ObjectListStore of the parent based on phase.
+        """
+        super(Component, self).__init__(**kwargs)
 
         # Set up data object
         self._data_object = ComponentData(
@@ -210,18 +236,26 @@ class Component(DataModel, Storable, ObjectListStoreChildMixin,
         )
 
         # Set attributes:
-        self.name = name or self.get_depr(kwargs, self.name, "data_name")
+        self.name = self.get_kwarg(kwargs, "", "name", "data_name")
 
-        layer_atoms = layer_atoms or self.get_depr(kwargs, None, "data_layer_atoms")
-        self._layer_atoms = self.parse_liststore_arg(layer_atoms, ObjectListStore, Atom)
-        interlayer_atoms = interlayer_atoms or self.get_depr(kwargs, None, "data_interlayer_atoms")
-        self._interlayer_atoms = self.parse_liststore_arg(interlayer_atoms, ObjectListStore, Atom)
+        self._layer_atoms = self.parse_liststore_arg(
+            self.get_kwarg(kwargs, None, "layer_atoms", "data_layer_atoms"),
+            ObjectListStore, Atom
+        )
 
-        atom_relations = atom_relations or self.get_depr(kwargs, None, "data_atom_relations")
-        self._atom_relations = self.parse_liststore_arg(atom_relations, ObjectListStore, AtomRelation)
+        self._interlayer_atoms = self.parse_liststore_arg(
+            self.get_kwarg(kwargs, None, "interlayer_atoms", "data_interlayer_atoms"),
+            ObjectListStore, Atom
+        )
 
-        atom_ratios = kwargs.get("atom_ratios", kwargs.get("data_atom_ratios", None))
-        if atom_ratios != None:
+        self._atom_relations = self.parse_liststore_arg(
+            self.get_kwarg(kwargs, None, "atom_relations", "data_atom_relations"),
+            ObjectListStore, AtomRelation
+        )
+
+        # Add all atom ratios to the AtomRelation ObjectListStore
+        atom_ratios = self.get_kwarg(kwargs, None, "atom_ratios", "data_atom_ratios")
+        if atom_ratios is not None:
             for json_ratio in atom_ratios["properties"]["model_data"]:
                 props = json_ratio["properties"]
 
@@ -234,17 +268,21 @@ class Component(DataModel, Storable, ObjectListStoreChildMixin,
                     parent=self)
                 self._atom_relations.append(ratio)
 
+        # Observe the inter layer atoms, and make sure they get stretched
         for atom in self._interlayer_atoms.iter_objects():
             atom.stretch_values = True
             self.observe_model(atom)
 
+        # Observe the layer atoms
         for atom in self._layer_atoms.iter_objects():
             self.observe_model(atom)
 
+        # Resolve their relations and observe the atom relations
         for relation in self._atom_relations.iter_objects():
             relation.resolve_relations()
             self.observe_model(relation)
 
+        # Connect signals for our ObjectListStores:
         self._layer_atoms.connect("item-inserted", self.on_layer_atom_inserted)
         self._layer_atoms.connect("item-removed", self.on_layer_atom_removed)
 
@@ -254,37 +292,44 @@ class Component(DataModel, Storable, ObjectListStoreChildMixin,
         self._atom_relations.connect("item-removed", self.on_atom_relation_removed)
         self._atom_relations.connect("item-inserted", self.on_atom_relation_inserted)
 
-        self._d001 = d001 or self.get_depr(kwargs, self.d001, "data_d001")
-
-        self._default_c = float(default_c or self.get_depr(kwargs, self._d001, "data_default_c"))
-        self._delta_c = delta_c or self.get_depr(kwargs, self._delta_c, "data_delta_c")
+        # Update lattice values:
+        self._d001 = self.get_kwarg(kwargs, self.d001, "d001", "data_d001")
+        self._default_c = float(self.get_kwarg(kwargs, self._d001, "default_c", "data_default_c"))
+        self._delta_c = float(self.get_kwarg(kwargs, self._delta_c, "delta_c", "data_delta_c"))
         self.update_lattice_d()
 
-        ucp_a = ucp_a or self.get_depr(kwargs, None, "data_ucp_a", "data_cell_a")
+        # Set/Create & observe unit cell properties:
+        ucp_a = self.get_kwarg(kwargs, None, "ucp_a", "data_ucp_a", "data_cell_a")
         if isinstance(ucp_a, float):
             ucp_a = UnitCellProperty(name="cell length a", value=ucp_a, parent=self)
-            inherit_ucp_a = kwargs.pop("inherit_cell_a", inherit_ucp_a)
-        self._ucp_a = self.parse_init_arg(ucp_a, UnitCellProperty(parent=self, name="Cell length a [nm]"), child=True, name="Cell length a [nm]")
+        self._ucp_a = self.parse_init_arg(
+            ucp_a, UnitCellProperty, child=True,
+            default_is_class=True, name="Cell length a [nm]", parent=self
+        )
         self.observe_model(self._ucp_a)
 
-        ucp_b = ucp_b or self.get_depr(kwargs, None, "data_ucp_b", "data_cell_b")
+        ucp_b = self.get_kwarg(kwargs, None, "ucp_b", "data_ucp_b", "data_cell_b")
         if isinstance(ucp_b, float):
             ucp_b = UnitCellProperty(name="cell length b", value=ucp_b, parent=self)
-            inherit_ucp_b = kwargs.pop("inherit_cell_b", inherit_ucp_b)
-        self._ucp_b = self.parse_init_arg(ucp_b, UnitCellProperty(parent=self, name="Cell length b [nm]"), child=True, name="Cell length b [nm]")
+        self._ucp_b = self.parse_init_arg(
+            ucp_b, UnitCellProperty, child=True,
+            default_is_class=True, name="Cell length b [nm]", parent=self
+        )
         self.observe_model(self._ucp_b)
 
-        self._linked_with_uuid = linked_with_uuid if linked_with_uuid != None else ""
-        self._linked_with_index = linked_with_index if linked_with_index > -1 else None
+        # Set links:
+        self._linked_with_uuid = self.get_kwarg(kwargs, "", "linked_with_uuid")
+        self._linked_with_index = self.get_kwarg(kwargs, -1, "linked_with_index")
 
-        self._inherit_d001 = inherit_d001
-        self._inherit_ucp_a = inherit_ucp_a
-        self._inherit_ucp_b = inherit_ucp_b
-        self._inherit_default_c = inherit_default_c
-        self._inherit_delta_c = inherit_delta_c
-        self._inherit_layer_atoms = inherit_layer_atoms
-        self._inherit_interlayer_atoms = inherit_interlayer_atoms
-        self._inherit_atom_relations = inherit_atom_relations
+        # Set inherit flags:
+        self._inherit_d001 = self.get_kwarg(kwargs, False, "inherit_d001")
+        self._inherit_ucp_a = self.get_kwarg(kwargs, False, "inherit_ucp_a", "inherit_cell_a")
+        self._inherit_ucp_b = self.get_kwarg(kwargs, False, "inherit_ucp_b", "inherit_cell_b")
+        self._inherit_default_c = self.get_kwarg(kwargs, False, "inherit_default_c")
+        self._inherit_delta_c = self.get_kwarg(kwargs, False, "inherit_delta_c")
+        self._inherit_layer_atoms = self.get_kwarg(kwargs, False, "inherit_layer_atoms")
+        self._inherit_interlayer_atoms = self.get_kwarg(kwargs, False, "inherit_interlayer_atoms")
+        self._inherit_atom_relations = self.get_kwarg(kwargs, False, "inherit_atom_relations")
 
     def __str__(self):
         return ("<Component %s" % self.name) + \
@@ -308,7 +353,7 @@ class Component(DataModel, Storable, ObjectListStoreChildMixin,
     def on_data_model_removed(self, model, prop_name, info):
         # Check whether the removed component is linked with this one, if so
         # clears the link and emits the data_changed signal.
-        if model != self and self.linked_with != None and self.linked_with == model:
+        if model != self and self.linked_with is not None and self.linked_with == model:
             with self.data_changed.hold_and_emit():
                 self.linked_with = None
 
@@ -409,7 +454,7 @@ class Component(DataModel, Storable, ObjectListStoreChildMixin,
                     retval[prop.inh_name] = False
         else:
             retval = Storable.json_properties(self)
-            retval["linked_with_uuid"] = self.linked_with.uuid if self.linked_with != None else ""
+            retval["linked_with_uuid"] = self.linked_with.uuid if self.linked_with is not None else ""
         return retval
 
     # ------------------------------------------------------------

@@ -244,7 +244,7 @@ class BrkRAWParser(XRDParserMixin, BaseParser):
                 data_object.data = []
 
             # Parse data:
-            if f != None:
+            if f is not None:
                 if data_object.version in ("RAW1", "RAW2", "RAW3"):
                     f.seek(data_object.data_start)
                     n = 0

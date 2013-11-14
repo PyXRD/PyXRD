@@ -197,10 +197,10 @@ class PropIntel(object):
             self.widget_type = self._get_default_widget_type()
 
     def __eq__(self, other):
-        return other != None and self.name == other.name
+        return other is not None and self.name == other.name
 
     def __neq__(self, other):
-        return other != None and self.name != other.name
+        return other is not None and self.name != other.name
 
     def _get_default_widget_type(self):
         for wid, tp in widget_types:

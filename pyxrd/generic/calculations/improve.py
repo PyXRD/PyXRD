@@ -40,7 +40,7 @@ def setup_project(projectf):
 
 @wrap_exceptions
 def improve_solution(projectf, mixture_index, solution, residual, l_bfgs_b_kwargs={}):
-    if projectf != None:
+    if projectf is not None:
         # Retrieve project and mixture:
         project = setup_project(projectf)
         del projectf

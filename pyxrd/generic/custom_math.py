@@ -42,7 +42,7 @@ def round_sig(x, sig=1):
 
 def capint(lower, value, upper, out=None):
     if value < lower or value > upper:
-        return out if out != None else min(max(value, lower), upper)
+        return out if out is not None else min(max(value, lower), upper)
     else:
         return value
 

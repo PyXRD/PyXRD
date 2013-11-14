@@ -32,8 +32,8 @@ class DataRegistry(object):
 
     def __parse_parent(self, path, parent=None):
         # Adds parent path:
-        if parent != None:
-            if parent != None:
+        if parent is not None:
+            if parent is not None:
                 try:
                     path = os.path.join(self.__data_directories[parent], path)
                 except KeyError:

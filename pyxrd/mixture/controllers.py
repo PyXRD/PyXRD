@@ -221,10 +221,10 @@ class RefinementController(DialogController):
                     value = typ(new_text)
                     if typ in (int, float,):
                         min_value, max_value = limits
-                        if min_value != None: value = max(min_value, value)
-                        if max_value != None: value = min(max_value, value)
+                        if min_value is not None: value = max(min_value, value)
+                        if max_value is not None: value = min(max_value, value)
                         store.set_value(itr, col, value)
-                    elif limits != None:
+                    elif limits is not None:
                         if value in limits:
                             store.set_value(itr, col, value)
                         else:
@@ -404,7 +404,7 @@ class EditMixtureController(BaseController):
 
         def on_specimen_changed(combobox):
             itr = combobox.get_active_iter()
-            specimen = self.model.parent.specimens.get_user_data(itr) if itr != None else None
+            specimen = self.model.parent.specimens.get_user_data(itr) if itr is not None else None
             self.model.set_specimen(specimen_slot, specimen)
 
         def on_specimen_delete(widget):
@@ -433,7 +433,7 @@ class EditMixtureController(BaseController):
     # ------------------------------------------------------------
     def on_combo_changed(self, combobox, row, col):
         itr = combobox.get_active_iter()
-        phase = self.model.parent.phases.get_user_data(itr) if itr != None else None
+        phase = self.model.parent.phases.get_user_data(itr) if itr is not None else None
         self.model.set_phase(row, col, phase)
 
     def on_add_phase(self, widget, *args):
@@ -456,7 +456,7 @@ class EditMixtureController(BaseController):
 
     def on_refine_clicked(self, widget, *args):
         self.model.update_refinement_treestore()
-        if self.ref_view != None:
+        if self.ref_view is not None:
             self.ref_view.hide()
             self.ref_ctrl.cleanup()
         self.ref_view = RefinementView(parent=self.parent.view)

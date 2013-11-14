@@ -91,7 +91,7 @@ def run(args):
                         ])
                         f.write(line + "\n")
                     f.write("################################################################################\n")
-                    if context.record_header != None:
+                    if context.record_header is not None:
                         f.write(", ".join(context.record_header) + "\n")
                         for record in context.records:
                             f.write(", ".join(map(lambda f: "%.7f" % f, record)) + "\n")

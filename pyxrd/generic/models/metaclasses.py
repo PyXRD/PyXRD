@@ -82,7 +82,11 @@ class PyXRDMeta(ObservablePropertyMetaMT):
             uuid = get_new_uuid()
 
         # Create instance:
-        instance = ObservablePropertyMetaMT.__call__(cls, *args, **kwargs)
+        try:
+            instance = ObservablePropertyMetaMT.__call__(cls, *args, **kwargs)
+        except:
+            print cls, args, kwargs.keys()
+            raise
 
         # Add a reference to the instance for each model intel,
         # so function calls (e.g. labels) work as expected
@@ -133,7 +137,7 @@ class PyXRDMeta(ObservablePropertyMetaMT):
 
     def __generate_storables__(cls, name, bases, d, prop): # @NoSelf
         if prop.storable:
-            if prop.stor_name != None:
+            if prop.stor_name is not None:
                 d["__storables__"].append((prop.name, prop.stor_name))
             else:
                 d["__storables__"].append((prop.name, prop.name))

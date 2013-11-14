@@ -77,7 +77,7 @@ class ScaleEntry(gtk.HBox):
 
     _idle_changed_id = None
     def _idle_emit_changed(self):
-        if self._idle_changed_id != None:
+        if self._idle_changed_id is not None:
             gobject.source_remove(self._idle_changed_id)
         self._idle_changed_id = gobject.idle_add(self._emit_changed)
 
@@ -216,7 +216,7 @@ class ThreadedTaskBox(gtk.Table):
             caption -- optional text to display in the label
         """
         # Throw an exception if the user tries to start an operating thread
-        if self.gui_timeout_id != None:
+        if self.gui_timeout_id is not None:
             raise RuntimeError("ThreadedTaskBox already started.")
 
         self.label.set_text(caption)
@@ -247,7 +247,7 @@ class ThreadedTaskBox(gtk.Table):
             self.cancel_button.set_sensitive(False)
             self.stop_button.set_sensitive(False)
             # tell the users function tostop if it's thread exists
-            if self.work_thread != None:
+            if self.work_thread is not None:
                 if cancel:
                     self.work_thread.cancel()
                 else:
@@ -286,7 +286,7 @@ class ThreadedTaskBox(gtk.Table):
     def __destroy(self, widget, data=None):
         # called when the widget is destroyed, attempts to clean up
         # the work thread and the pulse thread
-        if self.work_thread != None:
+        if self.work_thread is not None:
             self.work_thread.cancel()
 
     pass # end of class

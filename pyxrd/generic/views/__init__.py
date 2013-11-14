@@ -132,7 +132,7 @@ class TitleView():
     title = None
 
     def __init__(self):
-        if self.title != None: self.set_title(self.title)
+        if self.title is not None: self.set_title(self.title)
 
     def set_title(self, title):
         self.title = title
@@ -214,7 +214,7 @@ class ObjectListStoreViewMixin(HasChildView):
         child = self.extra_widget_box.get_child()
         if child:
             self.extra_widget_box.remove(child)
-        if widget != None:
+        if widget is not None:
             self["extra_box"].add(widget)
 
     _none_view = None
@@ -227,11 +227,11 @@ class ObjectListStoreViewMixin(HasChildView):
             Sets the state of the view to correspond with the number of currently
             selected objects. Value is either None or a number indicating the number of selected objects.
         """
-        if self.edit_view != None:
-            # self.edit_view.get_top_widget().set_sensitive(value != None)
+        if self.edit_view is not None:
+            # self.edit_view.get_top_widget().set_sensitive(value is not None)
             pass
-        self["button_del_object"].set_sensitive(value != None)
-        self["button_save_object"].set_sensitive(value != None)
+        self["button_del_object"].set_sensitive(value is not None)
+        self["button_save_object"].set_sensitive(value is not None)
 
     def __init__(self, edit_view_container=None, display_buttons=True, load_label=None, save_label=None, **kwargs):
         self.edit_view_container = edit_view_container or self.edit_view_container
@@ -242,7 +242,7 @@ class ObjectListStoreViewMixin(HasChildView):
             self["vbox_objects"].remove(self["table_data"])
 
         self.extra_widget_box = self["extra_box"]
-        if self.extra_widget_builder != None:
+        if self.extra_widget_builder is not None:
             self._builder.add_from_file(self.extra_widget_builder)
             self.extra_widget = self._builder.get_object(self.extra_widget_toplevel)
         return
@@ -318,7 +318,7 @@ class NoneView(BaseView):
     def __init__(self, label=None, **kwargs):
         BaseView.__init__(self, **kwargs)
         self._label = self[self.caption_widget]
-        if label != None: self.label = label
+        if label is not None: self.label = label
 
     _label = None
     @property

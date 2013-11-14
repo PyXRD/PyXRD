@@ -48,13 +48,13 @@ class Statistics(ChildModel):
     #      Methods & Functions
     # ------------------------------------------------------------
     def _get_experimental(self):
-        if self.specimen != None:
+        if self.specimen is not None:
             x, y = self.specimen.experimental_pattern.xy_store.get_raw_model_data()
             return x.copy(), y.copy()
         else:
             return None, None
     def _get_calculated(self):
-        if self.specimen != None:
+        if self.specimen is not None:
             x, y = self.specimen.calculated_pattern.xy_store.get_raw_model_data()
             return x.copy(), y.copy()
         else:
@@ -88,7 +88,7 @@ class Statistics(ChildModel):
 
         # Try to get statistics, if it fails, just clear and inform the user
         try:
-            if cal_y != None and exp_y != None and cal_y.size > 0 and exp_y.size > 0:
+            if cal_y is not None and exp_y is not None and cal_y.size > 0 and exp_y.size > 0:
                 # Get the selector for areas to consider in the statistics:
                 selector = self.specimen.get_exclusion_selector(exp_x)
 

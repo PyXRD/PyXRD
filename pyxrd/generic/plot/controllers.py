@@ -225,7 +225,7 @@ class MainPlotController (PlotController):
         """
             Updates the view limits and displays statistics plot if needed         
         """
-        self.stretch = project.axes_xstretch if project != None else False
+        self.stretch = project.axes_xstretch if project is not None else False
 
         self.update_lim(project=project)
         xaxis = self.plot.get_xaxis()
@@ -347,7 +347,7 @@ class EyedropperCursorPlot():
         )
 
     def on_motion(self, event):
-        if self.window != None:
+        if self.window is not None:
             if not self.enabled:
                 self.window.set_cursor(None)
             else:
@@ -361,7 +361,7 @@ class EyedropperCursorPlot():
             self.click_callback(self, x_pos, event)
 
     def disconnect(self):
-        if self.window != None:
+        if self.window is not None:
             self.window.set_cursor(None)
         self.figure.canvas.mpl_disconnect(self.cidmotion)
         self.figure.canvas.mpl_disconnect(self.cidclick)
@@ -398,7 +398,7 @@ class DraggableVLine():
 
     def on_motion(self, event):
         """ Move the line if the mouse is over us & pressed """
-        if self.window != None and event.inaxes == self.line.axes:
+        if self.window is not None and event.inaxes == self.line.axes:
             if DraggableVLine.lock is not self:
                 change_cursor, attrd = self.line.contains(event)
             else:
@@ -427,7 +427,7 @@ class DraggableVLine():
         self.press = None
         DraggableVLine.lock = None
 
-        if self.callback != None and callable(self.callback):
+        if self.callback is not None and callable(self.callback):
             x = self.line.get_xdata()
             self.callback(x[0])
 

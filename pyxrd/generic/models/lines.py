@@ -124,19 +124,28 @@ class PyXRDLine(DataModel, Storable):
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def __init__(self, xy_store=None, label=None, color=None, inherit_color=True, lw=None, inherit_lw=True, *args, **kwargs):
-        self.init_xy_store(xy_store=xy_store)
+    def __init__(self, *args, **kwargs):
+        """
+            Valid keyword arguments for a PyXRDLine are:
+                xy_store: the actual data store containing x and y values
+                label: the label for this line
+                color: the color of this line
+                inherit_color: whether to use the parent-level color or its own
+                lw: the line width of this line
+                inherit_lw: whether to use the parent-level line width or its own
+        """
+        self.init_xy_store(xy_store=self.get_kwarg(kwargs, None, "xy_store"))
         self.xy_store.connect('row-deleted', self.on_treestore_changed)
         self.xy_store.connect('row-inserted', self.on_treestore_changed)
         self.xy_store.connect('row-changed', self.on_treestore_changed)
         super(PyXRDLine, self).__init__(*args, **kwargs)
 
         with self.visuals_changed.hold():
-            self.label = label if label != None else self.label
-            self.color = color if color != None else self.color
-            self.inherit_color = inherit_color if inherit_color != None else self.inherit_color
-            self.lw = lw if lw != None else self.lw
-            self.inherit_lw = inherit_lw if inherit_lw != None else self.inherit_lw
+            self.label = self.get_kwarg(kwargs, self.label, "label")
+            self.color = self.get_kwarg(kwargs, self.color, "color")
+            self.inherit_color = bool(self.get_kwarg(kwargs, self.inherit_color, "inherit_color"))
+            self.lw = float(self.get_kwarg(kwargs, self.lw, "lw"))
+            self.inherit_lw = bool(self.get_kwarg(kwargs, self.inherit_lw, "inherit_lw"))
 
     def init_xy_store(self, xy_store=None):
         self._xy_store = xy_store or XYListStore()
@@ -219,7 +228,7 @@ class CalculatedLine(PyXRDLine):
     _lw = settings.CALCULATED_LINEWIDTH
 
     # ------------------------------------------------------------
-    #      Initialisation and other internals
+    #      Initialization and other internals
     # ------------------------------------------------------------
     def __init__(self, *args, **kwargs):
         self.phases = []
@@ -230,7 +239,7 @@ class CalculatedLine(PyXRDLine):
     # ------------------------------------------------------------
     def set_data(self, x, y, phase_patterns=[], phases=[]):
         self.phases = phases
-        super(CalculatedLine, self).set_data(x, y, *phase_patterns, names=[phase.name if phase != None else "NOT SET" for phase in phases])
+        super(CalculatedLine, self).set_data(x, y, *phase_patterns, names=[phase.name if phase is not None else "NOT SET" for phase in phases])
 
     pass # end of class
 
@@ -382,11 +391,16 @@ class ExperimentalLine(PyXRDLine):
     bg_type = MultiProperty(0, int, on_bgtype, { 0: "Linear", 1: "Pattern" })
 
     # ------------------------------------------------------------
-    #      Initialisation and other internals
+    #      Initialization and other internals
     # ------------------------------------------------------------
-    def __init__(self, cap_value=None, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
+        """
+            Valid keyword arguments for a ExperimentalLine are:
+                cap_value: the value (in raw counts) at which to cap
+                 the experimental pattern  
+        """
         super(ExperimentalLine, self).__init__(*args, **kwargs)
-        self.cap_value = cap_value if cap_value != None else 0.0
+        self.cap_value = self.get_kwarg(kwargs, 0.0, "cap_value")
 
     # ------------------------------------------------------------
     #      Background Removal
@@ -396,9 +410,9 @@ class ExperimentalLine(PyXRDLine):
         bg = None
         if self.bg_type == 0:
             bg = self.bg_position
-        elif self.bg_type == 1 and self.bg_pattern != None and not (self.bg_position == 0 and self.bg_scale == 0):
+        elif self.bg_type == 1 and self.bg_pattern is not None and not (self.bg_position == 0 and self.bg_scale == 0):
             bg = self.bg_pattern * self.bg_scale + self.bg_position
-        if bg != None:
+        if bg is not None:
             y_data -= bg
             self.set_data(x_data, y_data)
         self.clear_bg_variables()
@@ -484,7 +498,7 @@ class ExperimentalLine(PyXRDLine):
     # ------------------------------------------------------------
     def strip_peak(self):
         x_data, y_data = self.xy_store.get_raw_model_data()
-        if self.stripped_pattern != None:
+        if self.stripped_pattern is not None:
             stripx, stripy = self.stripped_pattern
             indeces = ((x_data >= self.strip_startx) & (x_data <= self.strip_endx)).nonzero()[0]
             np.put(y_data, indeces, stripy)

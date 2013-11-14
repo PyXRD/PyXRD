@@ -20,7 +20,7 @@ from pyxrd.probabilities.views import EditProbabilitiesView, get_correct_probabi
 from pyxrd.probabilities.models import RGbounds
 
 def get_correct_probability_controllers(probability, parent_controller, independents_view, dependents_view):
-    if probability != None:
+    if probability is not None:
         G = probability.G
         R = probability.R
         rank = probability.rank

@@ -44,7 +44,7 @@ class _AbstractProbability(DataModel, Storable, RefinementGroup):
 
     @property
     def G(self):
-        if self.parent != None:
+        if self.parent is not None:
             return self.parent.G
         else:
             return None
@@ -82,12 +82,12 @@ class _AbstractProbability(DataModel, Storable, RefinementGroup):
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def __init__(self, parent=None, **kwargs):
-        super(_AbstractProbability, self).__init__(parent=parent)
+    def __init__(self, **kwargs):
+        super(_AbstractProbability, self).__init__(**kwargs)
         self.setup(**kwargs)
         self.update()
 
-    def setup(self, R=-1):
+    def setup(self, R=-1, **kwargs):
         self._R = R
         self._create_matrices()
 

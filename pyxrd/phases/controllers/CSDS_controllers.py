@@ -60,7 +60,7 @@ class EditCSDSTypeController(BaseController):
     # ------------------------------------------------------------
     def on_changed(self, combo, user_data=None):
         itr = combo.get_active_iter()
-        if itr != None:
+        if itr is not None:
             cls = combo.get_model().get_value(itr, 1)
             if not type(self.model.CSDS_distribution) == cls:
                 new_csds_model = cls(parent=self.model)
@@ -81,7 +81,7 @@ class EditCSDSDistributionController(BaseController):
         self.relieve_model(self.model)
         self.model = new_model
         self.observe_model(new_model)
-        if self.view != None:
+        if self.view is not None:
             self.register_view(self.view)
 
     def register_view(self, view):
@@ -101,7 +101,7 @@ class EditCSDSDistributionController(BaseController):
     # ------------------------------------------------------------
     @Controller.observe("updated", signal=True)
     def notif_updated(self, model, prop_name, info):
-        if self.model.distrib != None and not self.model.phase.project.before_needs_update_lock:
+        if self.model.distrib is not None and not self.model.phase.project.before_needs_update_lock:
             try: self.view.update_figure(self.model.distrib[0])
             except any as error:
                 print "Caught unhandled exception: %s" % error

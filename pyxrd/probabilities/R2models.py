@@ -105,7 +105,7 @@ class R2G2Model(_AbstractProbability):
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def setup(self, W1=0.75, P112_or_P211=0.75, P21=0.75, P122_or_P221=0.75):
+    def setup(self, W1=0.75, P112_or_P211=0.75, P21=0.75, P122_or_P221=0.75, **kwargs):
         _AbstractProbability.setup(self, R=2)
         self.W1 = W1
         self.P112_or_P211 = P112_or_P211
@@ -266,7 +266,7 @@ class R2G3Model(_AbstractProbability):
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def setup(self, W1=0.75, P111_or_P212=0.5, G1=0.5, G2=0.5, G3=0.5, G4=0.5):
+    def setup(self, W1=0.75, P111_or_P212=0.5, G1=0.5, G2=0.5, G3=0.5, G4=0.5, **kwargs):
         _AbstractProbability.setup(self, R=2)
         self.W1 = W1
         self.P111_or_P212 = P111_or_P212

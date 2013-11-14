@@ -52,5 +52,5 @@ class EditAtomTypeView(BaseView):
         self.plot.set_ylabel('Scattering factor', size=14, weight="heavy")
         self.plot.set_xlabel('2θ', size=14, weight="heavy")
         self.plot.autoscale_view()
-        if self.matlib_canvas != None:
+        if self.matlib_canvas is not None:
             self.matlib_canvas.draw()

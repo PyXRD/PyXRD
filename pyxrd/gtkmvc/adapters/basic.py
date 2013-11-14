@@ -87,9 +87,6 @@ class Adapter (Observer):
         self._wid = None
         self._wid_info = {}
 
-        if prop_name == "inherit_lw":
-            print "HANDLER __INIT__"
-
         # this flag is set when self is changing the property or the
         # widget, in order to avoid infinite looping.
         self._itsme = False
@@ -134,9 +131,6 @@ class Adapter (Observer):
 
         self._wid = wid
 
-        if self._prop_name == "inherit_lw":
-            print "HANDLER CONNECT WIDGET", signal
-
         # updates the widget:
         if update: self.update_widget()
         return
@@ -145,8 +139,6 @@ class Adapter (Observer):
         """Forces the property to be updated from the value hold by
         the widget. This method should be called directly by the
         user in very unusual conditions."""
-        if self._prop_name == "inherit_lw":
-            print "HANDLER UPDATE MODEL"
         self._write_property(self._read_widget())
         return
 
@@ -155,8 +147,6 @@ class Adapter (Observer):
         value. This method should be called directly by the user
         when the property is not observable, or in very unusual
         conditions."""
-        if self._prop_name == "inherit_lw":
-            print "HANDLER UPDATE WIDGET"
         self._write_widget(self._read_property())
         return
 
@@ -309,8 +299,6 @@ class Adapter (Observer):
 
     def _on_wid_changed(self, wid, *args):
         """Called when the widget is changed"""
-        if self._prop_name == "inherit_lw":
-            print "HANDLER _on_wid_changed", self._itsme, self._prop_name
         if self._itsme: return
         self.update_model()
         return

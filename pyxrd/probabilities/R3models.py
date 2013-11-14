@@ -90,7 +90,7 @@ class R3G2Model(_AbstractProbability):
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def setup(self, W1=0.85, P1111_or_P2112=0.75):
+    def setup(self, W1=0.85, P1111_or_P2112=0.75, **kwargs):
         _AbstractProbability.setup(self, R=3)
         self.W1 = W1
         self.P1111_or_P2112 = P1111_or_P2112

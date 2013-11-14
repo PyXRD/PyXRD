@@ -37,7 +37,7 @@ class EditMarkersView(ObjectListStoreView):
 
     def set_selection_state(self, value):
         super(EditMarkersView, self).set_selection_state(value)
-        self["cmd_match_minerals"].set_sensitive(value != None)
+        self["cmd_match_minerals"].set_sensitive(value is not None)
 
     pass # end of class
 

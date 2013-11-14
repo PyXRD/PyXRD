@@ -32,7 +32,7 @@ class EditPhaseView(BaseView, HasChildView):
 
     def set_csds_view(self, view):
         self.csds_view = view
-        if view != None:
+        if view is not None:
             self._add_child_view(view.get_top_widget(), self[self.csds_view_container])
         return view
 
@@ -41,7 +41,7 @@ class EditPhaseView(BaseView, HasChildView):
 
     def set_probabilities_view(self, view):
         self.probabilities_view = view
-        if view != None:
+        if view is not None:
             self._add_child_view(view.get_top_widget(), self[self.probabilities_view_container])
         return view
 
@@ -54,7 +54,7 @@ class EditPhaseView(BaseView, HasChildView):
 
     def set_components_view(self, view):
         self.components_view = view
-        if view != None:
+        if view is not None:
             self._add_child_view(view.get_top_widget(), self[self.components_view_container])
         return view
 
@@ -175,7 +175,7 @@ class EditCSDSDistributionView(BaseView):
         self.plot.set_xlabel('CSDS', size=14, weight="heavy")
         self.plot.relim()
         self.plot.autoscale_view()
-        if self.matlib_canvas != None:
+        if self.matlib_canvas is not None:
             self.matlib_canvas.draw()
 
     def reset_params(self):

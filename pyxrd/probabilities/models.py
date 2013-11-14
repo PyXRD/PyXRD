@@ -55,7 +55,7 @@ def get_Rbounds_for_G(G, R):
 
 def get_correct_probability_model(phase, R, G):
     global RGbounds
-    if phase != None:
+    if phase is not None:
         if (RGbounds[R, G - 1] > 0):
             class_name = "R%dG%dModel" % (R, G)
             return globals()[class_name](parent=phase)

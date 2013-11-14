@@ -75,9 +75,9 @@ class ComboAdapter(Adapter):
     def __init__(self, model, prop_name, list_prop_name=None, list_data=None, store=None):
 
         if store == None:
-            if list_data != None:
+            if list_data is not None:
                 store = gtk.ListStore(str, str)
-            elif list_prop_name != None:
+            elif list_prop_name is not None:
                 store = gtk.ListStore(str, str)
                 list_data = getattr(model, list_prop_name)
             else:
@@ -93,10 +93,8 @@ class ComboAdapter(Adapter):
         )
 
     def prop_write(self, itr):
-        if itr != None:
+        if itr is not None:
             return self._store.get_value(itr, 0)
-        else:
-            print "PROP WRITE WITH NONE ITR"
 
     def prop_read(self, val):
         for row in self._store:

@@ -47,7 +47,7 @@ class ObjectListStore(BaseObjectListStore, Storable):
         BaseObjectListStore.__init__(self, class_type)
         Storable.__init__(self)
         self._model_data = list()
-        if model_data != None:
+        if model_data is not None:
             decoder = PyXRDDecoder(parent=parent)
             for obj in model_data:
                 item = decoder.__pyxrd_decode__(obj, parent=parent)
@@ -201,14 +201,14 @@ class ObjectListStore(BaseObjectListStore, Storable):
             self.rows_reordered(None, None, new_order)
 
     def move_item_down(self, item):
-        if item != None:
+        if item is not None:
             old_pos = self._model_data.index(item)
             new_pos = old_pos + 1
             if new_pos < len(self._model_data):
                 self.reposition_item(item, new_pos)
 
     def move_item_up(self, item):
-        if item != None:
+        if item is not None:
             old_pos = self._model_data.index(item)
             new_pos = old_pos - 1
             if new_pos >= 0:

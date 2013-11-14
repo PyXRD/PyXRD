@@ -65,7 +65,7 @@ class AppController (BaseController, DialogMixin):
         return
 
     def register_view(self, view):
-        if self.model.current_project != None:
+        if self.model.current_project is not None:
             self.update_project_sensitivities ()
             view.set_layout_mode(self.model.current_project.layout_mode)
         else:
@@ -84,7 +84,7 @@ class AppController (BaseController, DialogMixin):
         self.mixtures = MixturesController(model=self.model.current_project, view=self.view.mixtures, parent=self)
 
     def reset_specimen_controller(self):
-        if self.model.current_specimen != None:
+        if self.model.current_specimen is not None:
             view = self.view.reset_child_view("specimen")
             self.specimen = SpecimenController(model=self.model.current_specimen, view=view, parent=self)
             self.markers = MarkersController(model=self.model.current_specimen, view=self.view.reset_child_view("markers"), parent=self)
@@ -128,7 +128,7 @@ class AppController (BaseController, DialogMixin):
         """
             Adds a redraw plot function as 'idle' action to the main GTK loop.
         """
-        if self._idle_redraw_id != None:
+        if self._idle_redraw_id is not None:
             gobject.source_remove(self._idle_redraw_id)
         self._idle_redraw_id = gobject.idle_add(self.redraw_plot)
 
@@ -148,14 +148,14 @@ class AppController (BaseController, DialogMixin):
         self.update_project_sensitivities()
 
     def update_project_sensitivities(self):
-        sensitive = (self.model.current_project != None)
+        sensitive = (self.model.current_project is not None)
         self.view["main_pained"].set_sensitive(sensitive)
         self.view["project_actions"].set_sensitive(sensitive)
         for action in self.view["project_actions"].list_actions():
             action.set_sensitive(sensitive)
 
     def update_specimen_sensitivities(self):
-        sensitive = (self.model.current_specimen != None)
+        sensitive = (self.model.current_specimen is not None)
         self.view["specimen_actions"].set_sensitive(sensitive)
         sensitive = sensitive or (self.model.current_specimens is not None and len(self.model.current_specimens) >= 1)
         self.view["specimens_actions"].set_sensitive(sensitive)
@@ -191,8 +191,6 @@ class AppController (BaseController, DialogMixin):
 
     def open_project(self, filename):
         try:
-            import threading
-            print threading.current_thread()
             self.model.current_project = Project.load_object(filename, parent=self.model)
             self.model.current_filename = filename
             self.update_title()
@@ -272,7 +270,7 @@ class AppController (BaseController, DialogMixin):
             experimental data values in an information dialog.
         """
         def onclick(edc, x_pos, event):
-            if edc != None:
+            if edc is not None:
                 edc.enabled = False
                 edc.disconnect()
 
@@ -367,7 +365,7 @@ class AppController (BaseController, DialogMixin):
             filename = self.extract_filename(dialog)
             self.save_project(filename=filename)
         suggest_name, suggest_folder = None, None
-        if self.model.current_filename != None:
+        if self.model.current_filename is not None:
             suggest_name = basename(self.model.current_filename)
             suggest_folder = dirname(self.model.current_filename)
         self.run_save_dialog(title=title,
@@ -429,27 +427,27 @@ class AppController (BaseController, DialogMixin):
         return True
 
     def on_remove_background(self, event):
-        if self.model.current_specimen != None:
+        if self.model.current_specimen is not None:
             self.specimen.remove_background()
         return True
 
     def on_smooth_data(self, event):
-        if self.model.current_specimen != None:
+        if self.model.current_specimen is not None:
             self.specimen.smooth_data()
         return True
 
     def on_add_noise(self, event):
-        if self.model.current_specimen != None:
+        if self.model.current_specimen is not None:
             self.specimen.add_noise()
         return True
 
     def on_shift_data(self, event):
-        if self.model.current_specimen != None:
+        if self.model.current_specimen is not None:
             self.specimen.shift_data()
         return True
 
     def on_strip_peak(self, event):
-        if self.model.current_specimen != None:
+        if self.model.current_specimen is not None:
             self.specimen.strip_peak()
         return True
 

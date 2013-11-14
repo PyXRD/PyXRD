@@ -96,7 +96,7 @@ class EditComponentController(BaseController):
         self.update_sensitivities()
 
     def update_sensitivities(self):
-        can_inherit = (self.model.linked_with != None)
+        can_inherit = (self.model.linked_with is not None)
 
         def update(widget, name):
             self.view[widget].set_sensitive(not (can_inherit and getattr(self.model, "inherit_%s" % name)))
@@ -136,7 +136,7 @@ class EditComponentController(BaseController):
     # ------------------------------------------------------------
     def on_linked_with_changed(self, combo, user_data=None):
         itr = combo.get_active_iter()
-        if itr != None:
+        if itr is not None:
             val = combo.get_model().get_user_data(itr)
             self.model.linked_with = val
             self.update_sensitivities()

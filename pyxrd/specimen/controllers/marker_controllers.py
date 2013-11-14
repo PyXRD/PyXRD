@@ -62,7 +62,7 @@ class EditMarkerController(BaseController):
     def on_style_changed(self, combo, user_data=None):
         pass
         itr = combo.get_active_iter()
-        if itr != None:
+        if itr is not None:
             val = combo.get_model().get_value(itr, 0)
             self.model.style = val
 
@@ -76,7 +76,7 @@ class EditMarkerController(BaseController):
     def on_sample_clicked(self, widget):
 
         def click_callback(edc, x_pos, event):
-            if edc != None:
+            if edc is not None:
                 edc.enabled = False
                 edc.disconnect()
             self.view.get_toplevel().present()
@@ -149,7 +149,7 @@ class MarkersController(ObjectListStoreController):
         return Marker("New Marker", parent=self.model)
 
     def on_marker_visible_toggled(self, cell, path, model, colnr):
-        if model != None:
+        if model is not None:
             itr = model.get_iter(path)
             model.set_value(itr, colnr, not cell.get_active())
             return True
@@ -304,13 +304,13 @@ class MatchMineralController(DialogController):
             self.model.del_match(*paths[0])
 
     def on_apply_clicked(self, event):
-        if self.apply_callback != None and callable(self.apply_callback):
+        if self.apply_callback is not None and callable(self.apply_callback):
             self.model.specimen.mineral_preview = None
             self.apply_callback(self.model.matches)
         self.view.hide()
 
     def on_cancel(self):
-        if self.close_callback != None and callable(self.close_callback):
+        if self.close_callback is not None and callable(self.close_callback):
             self.model.specimen.mineral_preview = None
             self.close_callback()
         self.view.hide()
@@ -363,9 +363,9 @@ class ThresholdController(DialogController):
         self.dline = None
 
     def update_plot(self):
-        if self.view != None:
+        if self.view is not None:
             self.view.plot.cla()
-            if self.dline != None:
+            if self.dline is not None:
                 self.dline.disconnect()
                 self.dline = None
 
@@ -398,7 +398,7 @@ class ThresholdController(DialogController):
     #      GTK Signal handlers
     # ------------------------------------------------------------
     def on_btn_ok_clicked(self, event):
-        if self.callback != None and callable(self.callback):
+        if self.callback is not None and callable(self.callback):
             self.callback(self.model)
         return DialogController.on_btn_ok_clicked(self, event)
 

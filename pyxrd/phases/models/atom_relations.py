@@ -5,6 +5,8 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
+import types
+
 from pyxrd.generic.models import ChildModel, PropIntel, HoldableSignal
 from pyxrd.generic.models.treemodels import ObjectListStore
 from pyxrd.generic.models.metaclasses import pyxrd_object_pool
@@ -21,6 +23,10 @@ class ComponentPropMixin(object):
         properties using a string description (e.g. 'layer_atoms.1' or 'b_cell')
     """
 
+    def __init__(self, *args, **kwargs):
+        # Nothing to do but ignore any extraneous args & kwargs passed down
+        super(ComponentPropMixin, self).__init__()
+
     def _parseattr(self, attr):
         """
             Function used for handling (deprecated) 'property strings':
@@ -30,6 +36,9 @@ class ComponentPropMixin(object):
             backwards-compatibility...
             Will be removed at some point!
         """
+        if not isinstance(attr, types.StringTypes):
+            return attr
+
         if attr == "" or attr == None:
             return None
 
@@ -86,7 +95,7 @@ class AtomRelation(ChildModel, Storable, ObjectListStoreChildMixin, ComponentPro
         Is true when this AtomRelations was passed a component of which the atom
         ratios are not set to be inherited from another component.
         """
-        return (self.parent != None and not self.parent.inherit_atom_relations)
+        return (self.parent is not None and not self.parent.inherit_atom_relations)
 
     # REFINEMENT VALUE IMPLEMENTATION:
     @property
@@ -111,16 +120,20 @@ class AtomRelation(ChildModel, Storable, ObjectListStoreChildMixin, ComponentPro
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def __init__(self, name=None, value=0.0, enabled=True, parent=None, **kwargs):
-        ChildModel.__init__(self, parent=parent)
-        Storable.__init__(self)
-        ObjectListStoreChildMixin.__init__(self)
-        RefinementValue.__init__(self)
+    def __init__(self, *args, **kwargs):
+        """
+            Valid keyword arguments for an AtomRelation are:
+                name: the name of this AtomRelation
+                value: the value for this AtomRelation
+                enabled: boolean indicating whether or not this AtomRelation is 
+                 enabled
+        """
+        super(AtomRelation, self).__init__(*args, **kwargs)
 
         self.data_changed = HoldableSignal()
-        self.name = name
-        self.value = value
-        self.enabled = enabled
+        self.name = self.get_kwarg(kwargs, "", "name")
+        self.value = self.get_kwarg(kwargs, "", "value")
+        self.enabled = bool(self.get_kwarg(kwargs, True, "enabled"))
 
     # ------------------------------------------------------------
     #      Input/Output stuff
@@ -132,7 +145,7 @@ class AtomRelation(ChildModel, Storable, ObjectListStoreChildMixin, ComponentPro
     #      Methods & Functions
     # ------------------------------------------------------------
     def create_prop_store(self, prop=None):
-        if self.component != None:
+        if self.component is not None:
             import gtk
             store = gtk.ListStore(object, str, object)
             for atom in self.component._layer_atoms.iter_objects():
@@ -150,7 +163,7 @@ class AtomRelation(ChildModel, Storable, ObjectListStoreChildMixin, ComponentPro
         raise NotImplementedError, "'iter_references' should be implemented by subclasses!"
 
     def _safe_is_referring(self, value):
-        if value != None and hasattr(value, "is_referring"):
+        if value is not None and hasattr(value, "is_referring"):
             return value.is_referring([self, ])
         else:
             return False
@@ -173,7 +186,7 @@ class AtomRelation(ChildModel, Storable, ObjectListStoreChildMixin, ComponentPro
         # 2. Loop over our own references, check if they cause a circular
         #    reference, if not add them to the list of references.
         for reference in self.iter_references():
-            if reference != None and hasattr(reference, "is_referring"):
+            if reference is not None and hasattr(reference, "is_referring"):
                 if reference.is_referring(references):
                     return True
                 else:
@@ -242,17 +255,20 @@ class AtomRatio(AtomRelation):
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def __init__(self, sum=None, atom1=[None, None], atom2=[None, None], name="New Ratio", **kwargs): # @ReservedAssignment
-        AtomRelation.__init__(self, name=name, **kwargs)
+    def __init__(self, *args, **kwargs): # @ReservedAssignment
+        """
+            Valid keyword arguments for an AtomRatio are:
+                sum: the sum of the atoms contents
+                atom1: a tuple containing the first atom and its property name to read/set
+                atom2: a tuple containing the first atom and its property name to read/set
+            The value property is the 'ratio' of the first atom over the sum of both
+        """
+        super(AtomRatio, self).__init__(*args, **kwargs)
 
-        self.sum = sum if sum != None else self.get_depr(kwargs, self._sum, "data_sum")
+        self.sum = self.get_kwarg(kwargs, self.sum, "sum", "data_sum")
 
-        self._unresolved_atom1 = atom1 or self._parseattr(self.get_depr(kwargs, [None, None], "prop1", "data_prop1"))
-        # self.atom1 = list(atom1)
-
-        self._unresolved_atom2 = atom2 or self._parseattr(self.get_depr(kwargs, [None, None], "prop2", "data_prop2"))
-        # self.atom2 = list(atom2)
-
+        self._unresolved_atom1 = self._parseattr(self.get_kwarg(kwargs, [None, None], "atom1", "prop1", "data_prop1"))
+        self._unresolved_atom2 = self._parseattr(self.get_kwarg(kwargs, [None, None], "atom2", "prop2", "data_prop2"))
 
     # ------------------------------------------------------------
     #      Input/Output stuff
@@ -291,7 +307,7 @@ class AtomRatio(AtomRelation):
     pass # end of class
 
 
-class AtomContentObject():
+class AtomContentObject(object):
     """
         Wrapper around an atom object used in the AtomContents model.
         Stores the atom, the property to set and it's default amount.
@@ -302,7 +318,8 @@ class AtomContentObject():
         ("amount", float)
     ]
 
-    def __init__(self, atom, prop, amount):
+    def __init__(self, atom, prop, amount, **kwargs):
+        super(AtomContentObject, self).__init__()
         self.atom = atom
         self.prop = prop
         self.amount = amount
@@ -336,12 +353,19 @@ class AtomContents(AtomRelation):
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def __init__(self, atom_contents=None, name="New Contents", **kwargs):
-        AtomRelation.__init__(self, name=name, **kwargs)
-        self._atom_contents = ObjectListStore(AtomContentObject)
+    def __init__(self, *args, **kwargs):
+        """
+            Valid keyword arguments for an AtomContents are:
+                atom_contents: a list of tuples containing the atom content 
+                 object uuids, property names and default amounts 
+        """
+        super(AtomContents, self).__init__(*args, **kwargs)
 
+        self._atom_contents = ObjectListStore(AtomContentObject)
+        atom_contents = self.get_kwarg(kwargs, None, "atom_contents")
         if atom_contents:
-            for uuid, prop, amount in atom_contents: # uuids are resolved by calling resolve_relations!
+            # uuid's are resolved by calling resolve_relations
+            for uuid, prop, amount in atom_contents:
                 self._atom_contents.append(AtomContentObject(uuid, prop, amount))
 
         def on_change(*args):
@@ -383,7 +407,7 @@ class AtomContents(AtomRelation):
         if self.enabled and self.applicable:
             for atom_content in self.atom_contents.iter_objects():
                 # do not fire events, just set attributes:
-                if atom_content.atom != None:
+                if atom_content.atom is not None:
                     with atom_content.atom.data_changed.ignore():
                         atom_content.update_atom(self.value)
 
@@ -398,7 +422,6 @@ class AtomContents(AtomRelation):
                 old_atom = atom_content.atom
                 atom_content.atom = None # clear...
                 if not self._safe_is_referring(new_atom):
-                    print "IS SAFE!", new_atom
                     atom_content.atom = new_atom
                 else:
                     atom_content.atom = old_atom

@@ -36,7 +36,7 @@ class AtomComboMixin(object):
     custom_handler_names = []
 
     def reset_combo_box(self, name):
-        if self.model.component != None:
+        if self.model.component is not None:
             # Get store, reset combo
             store = self.model.create_prop_store(self.extra_props)
             combo = self.view[self.view.widget_format % name]
@@ -52,7 +52,7 @@ class AtomComboMixin(object):
 
             # Set the selected item to active:
             prop = getattr(self.model, name)
-            if prop != None:
+            if prop is not None:
                 prop = tuple(prop)
                 for row in store:
                     if tuple(store.get(row.iter, 0, 1)) == prop:
@@ -67,7 +67,7 @@ class AtomComboMixin(object):
             combo, store = controller.reset_combo_box(intel.name) # @UnusedVariable
             def on_changed(combo, user_data=None):
                 itr = combo.get_active_iter()
-                if itr != None:
+                if itr is not None:
                     val = combo.get_model().get(itr, 0, 1)
                     setattr(controller.model, combo.get_data('model_prop'), val)
             combo.set_data('model_prop', intel.name)
@@ -231,7 +231,7 @@ class ContentsListController(InlineObjectListStoreController):
             else:
                 cell.set_property('text', '#NA#')
         def adjust_combo(cell, editable, path, data=None):
-            if editable != None:
+            if editable is not None:
                 rend = gtk.CellRendererText()
                 editable.clear()
                 editable.pack_start(rend)

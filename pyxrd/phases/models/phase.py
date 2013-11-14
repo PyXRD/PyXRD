@@ -100,7 +100,7 @@ class Phase(DataModel, Storable, ObjectListStoreParentMixin,
     def get_based_on_value(self): return self._based_on
     def set_based_on_value(self, value):
         with self.data_changed.hold_and_emit():
-            if self._based_on != None:
+            if self._based_on is not None:
                 self.relieve_model(self._based_on)
             if value == None or value.get_based_on_root() == self or value.parent != self.parent:
                 value = None
@@ -108,14 +108,14 @@ class Phase(DataModel, Storable, ObjectListStoreParentMixin,
                 self._based_on = value
                 for component in self.components._model_data:
                     component.linked_with = None
-            if self._based_on != None:
+            if self._based_on is not None:
                 self.observe_model(self._based_on)
             else:
                 for prop in self.__model_intel__:
                     if prop.inh_name: setattr(self, prop.inh_name, False)
             self.liststore_item_changed()
     def get_based_on_root(self):
-        if self.based_on != None:
+        if self.based_on is not None:
             return self.based_on.get_based_on_root()
         else:
             return self
@@ -173,14 +173,14 @@ class Phase(DataModel, Storable, ObjectListStoreParentMixin,
     _components = None
     def get_components_value(self): return self._components
     def set_components_value(self, value):
-        if self._components != None:
+        if self._components is not None:
             for comp in self._components._model_data: self.relieve_model(comp)
         self._components = value
-        if self._components != None:
+        if self._components is not None:
             for comp in self._components._model_data: self.observe_model(comp)
         self.liststore_item_changed()
     def get_G_value(self):
-        if self.components != None:
+        if self.components is not None:
             return len(self.components._model_data)
         else:
             return 0
@@ -211,51 +211,45 @@ class Phase(DataModel, Storable, ObjectListStoreParentMixin,
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def __init__(self, name=None, display_color=None, sigma_star=None,
-                 G=None, R=None, based_on_index=None, based_on_uuid=None,
-                 CSDS_distribution=None, mean_CSDS=None,
-                 probabilities=None, components=None,
-                 inherit_display_color=False, inherit_sigma_star=False,
-                 inherit_CSDS_distribution=False, inherit_probabilities=False,
-                 parent=None, **kwargs):
-        super(Phase, self).__init__(parent=parent)
+    def __init__(self, **kwargs):
+        super(Phase, self).__init__(**kwargs)
 
         self._data_object = PhaseData()
 
-        self.name = name or self.get_depr(kwargs, self.name, "data_name")
+        self.name = self.get_kwarg(kwargs, self.name, "name", "data_name")
 
-        mean_CSDS = mean_CSDS or self.get_depr(kwargs, 10, "data_mean_CSDS")
-
-        CSDS_distribution = CSDS_distribution or self.get_depr(kwargs, None, "data_CSDS_distribution")
+        CSDS_distribution = self.get_kwarg(kwargs, None, "CSDS_distribution", "data_CSDS_distribution")
         self.CSDS_distribution = self.parse_init_arg(
-            CSDS_distribution, DritsCSDSDistribution(parent=self, average=mean_CSDS), child=True)
-        self.inherit_CSDS_distribution = inherit_CSDS_distribution
+            CSDS_distribution, DritsCSDSDistribution, child=True,
+            default_is_class=True, parent=self
+        )
+        self.inherit_CSDS_distribution = self.get_kwarg(kwargs, False, "inherit_CSDS_distribution")
 
-        self._display_color = display_color or choice(self.line_colors)
-        self._sigma_star = sigma_star or self.get_depr(kwargs, self.sigma_star, "data_sigma_star")
+        self._display_color = self.get_kwarg(kwargs, choice(self.line_colors), "display_color")
+        self._sigma_star = self.get_kwarg(kwargs, self.sigma_star, "sigma_star", "data_sigma_star")
 
-        self.inherit_display_color = inherit_display_color
-        self.inherit_sigma_star = inherit_sigma_star
+        self.inherit_display_color = self.get_kwarg(kwargs, False, "inherit_display_color")
+        self.inherit_sigma_star = self.get_kwarg(kwargs, False, "inherit_sigma_star")
 
-        components = components or self.get_depr(kwargs, None, "data_components")
+        components = self.get_kwarg(kwargs, None, "components", "data_components")
         self.components = self.parse_liststore_arg(
             components, ObjectListStore, Component)
-        G = G or self.get_depr(kwargs, 0, "data_G")
-        R = R or self.get_depr(kwargs, 0, "data_R")
-        if G != None and G > 0:
+        G = self.get_kwarg(kwargs, 1, "G", "data_G")
+        R = self.get_kwarg(kwargs, 0, "R", "data_R")
+        if G is not None and G > 0:
             for i in range(len(self.components._model_data), G):
-                new_comp = Component("Component %d" % (i + 1), parent=self)
+                new_comp = Component(name="Component %d" % (i + 1), parent=self)
                 self.components.append(new_comp)
                 self.observe_model(new_comp)
 
-        probabilities = probabilities or self.get_depr(kwargs, None, "data_probabilities")
+        probabilities = self.get_kwarg(kwargs, None, "probabilities", "data_probabilities")
         self.probabilities = self.parse_init_arg(probabilities,
             get_correct_probability_model(self, R, G), child=True)
         self.probabilities.update() # force an update
-        self.inherit_probabilities = inherit_probabilities
+        self.inherit_probabilities = self.get_kwarg(kwargs, False, "inherit_probabilities")
 
-        self._based_on_uuid = based_on_uuid if based_on_uuid != None else ""
-        self._based_on_index = based_on_index if based_on_index > -1 else None
+        self._based_on_uuid = self.get_kwarg(kwargs, None, "based_on_uuid")
+        self._based_on_index = self.get_kwarg(kwargs, None, "based_on_index")
 
     def __str__(self):
         return ("<Phase %s" % self.name) + \
@@ -280,9 +274,9 @@ class Phase(DataModel, Storable, ObjectListStoreParentMixin,
     # ------------------------------------------------------------
     def resolve_json_references(self):
         # Set the based on and linked with variables:
-        if hasattr(self, "_based_on_uuid") and self._based_on_uuid:
+        if hasattr(self, "_based_on_uuid") and self._based_on_uuid is not None:
             self.based_on = pyxrd_object_pool.get_object(self._based_on_uuid)
-        elif hasattr(self, "_based_on_index") and self._based_on_index != None and self._based_on_index != -1:
+        elif hasattr(self, "_based_on_index") and self._based_on_index is not None and self._based_on_index != -1:
             warn("The use of object indices is deprecated since version 0.4. Please switch to using object UUIDs.", DeprecationWarning)
             self.based_on = self.parent.phases.get_user_from_index(self._based_on_index)
         del self._based_on_index

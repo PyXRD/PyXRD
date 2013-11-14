@@ -204,23 +204,23 @@ class BaseController (Controller, DialogMixin):
 
     @property
     def statusbar(self):
-        if self.parent != None:
+        if self.parent is not None:
             return self.parent.statusbar
-        elif self.view != None:
+        elif self.view is not None:
             return self.view['statusbar']
         else:
             return None
 
     @property
     def status_cid(self):
-        if self.statusbar != None:
+        if self.statusbar is not None:
             return self.statusbar.get_context_id(self.__class__.__name__)
         else:
             return None
 
     def __init__(self, model, view, spurious=False, auto_adapt=None, parent=None):
         self.parent = parent
-        auto_adapt = auto_adapt if auto_adapt != None else self.auto_adapt
+        auto_adapt = auto_adapt if auto_adapt is not None else self.auto_adapt
         Controller.__init__(self, model, view, spurious=spurious, auto_adapt=auto_adapt)
 
     @staticmethod
@@ -273,7 +273,7 @@ class BaseController (Controller, DialogMixin):
             widget_name = widget_format % prop_name
             if not widget_name in self.view:
                 intel = self.model.get_prop_intel_by_name(prop_name)
-                if intel != None and intel.widget_type == 'scale':
+                if intel is not None and intel.widget_type == 'scale':
                     self.view.add_scale_widget(intel, widget_format=widget_format)
         else:
             for wid_name in self.view:

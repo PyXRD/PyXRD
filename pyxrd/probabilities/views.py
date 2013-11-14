@@ -18,7 +18,7 @@ def get_correct_probability_views(probability, parent_view):
         Convenience function that creates both an `IndependentsView` and 
         `MatrixView` based on the probability model passed.
     """
-    if probability != None:
+    if probability is not None:
         G = probability.G
         R = probability.R
         rank = probability.rank
@@ -256,7 +256,7 @@ class MatrixView(BaseView, HasChildView, ProbabilityViewMixin):
             for i in range(shape[0]):
                 for j in range(shape[1]):
                     markup = "<small><span foreground=\"%s\">%.3f</span></small>"
-                    if mask != None:
+                    if mask is not None:
                         fgcol = "#AA0000" if mask[i, j] < 1 else "#00AA00"
                     else:
                         fgcol = "#000000"

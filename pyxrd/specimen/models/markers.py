@@ -153,12 +153,12 @@ class ThresholdSelector(ChildModel):
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def __init__(self, max_threshold=None, steps=None, sel_threshold=None, parent=None):
-        ChildModel.__init__(self, parent=parent)
+    def __init__(self, **kwargs):
+        super(ThresholdSelector, self).__init__(self, **kwargs)
 
-        self.max_threshold = max_threshold or self.max_threshold
-        self.steps = steps or self.steps
-        self.sel_threshold = sel_threshold or self.sel_threshold
+        self.max_threshold = self.get_kwarg(kwargs, self.max_threshold, "max_threshold")
+        self.steps = self.get_kwarg(kwargs, self.steps, "steps")
+        self.sel_threshold = self.get_kwarg(kwargs, self.sel_threshold, "sel_threshold")
 
         if self.parent.experimental_pattern.size > 0:
             self.pattern = "exp"
@@ -180,7 +180,7 @@ class ThresholdSelector(ChildModel):
         return data_x, data_y
 
     def update_threshold_plot_data(self):
-        if self.parent != None:
+        if self.parent is not None:
             data_x, data_y = self.get_xy()
             length = data_x.size
 
@@ -254,10 +254,10 @@ def get_inherit_attribute_pair(name, inherit_name, levels=1, parent_prefix="disp
         return getattr(self, "_%s" % inherit_name)
     def set_inherit_attribute_value(self, value):
         setattr(self, "_%s" % inherit_name, bool(value))
-        if getattr(self, signal, None) != None: getattr(self, signal, None).emit()
+        if getattr(self, signal, None) is not None: getattr(self, signal, None).emit()
 
     def get_attribute_value(self):
-        if getattr(self, inherit_name, False) and self.parent != None and self.parent.parent != None:
+        if getattr(self, inherit_name, False) and self.parent is not None and self.parent.parent is not None:
             parent = self.parent
             for level in range(levels - 1):
                 parent = parent.parent
@@ -266,7 +266,7 @@ def get_inherit_attribute_pair(name, inherit_name, levels=1, parent_prefix="disp
             return getattr(self, "_%s" % name)
     def set_attribute_value(self, value):
         setattr(self, "_%s" % name, value)
-        if getattr(self, signal, None) != None: getattr(self, signal, None).emit()
+        if getattr(self, signal, None) is not None: getattr(self, signal, None).emit()
 
     return get_inherit_attribute_value, set_inherit_attribute_value, get_attribute_value, set_attribute_value
 
@@ -418,53 +418,45 @@ class Marker(DataModel, Storable, ObjectListStoreChildMixin, CSVMixin):
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def __init__(self, label=None, visible=None, position=None,
-             x_offset=None, y_offset=None, top_offset=None,
-             color=None, base=None, top=None, angle=None, align=None, style=None,
-             inherit_color=True, inherit_base=True, inherit_top=True,
-             inherit_top_offset=True, inherit_align=True, inherit_angle=True,
-             inherit_style=True, parent=None, **kwargs):
-        super(Marker, self).__init__(parent=parent)
-        Storable.__init__(self)
+    def __init__(self, *args, **kwargs):
+        super(Marker, self).__init__(*args, **kwargs)
 
-        self.label = label or self.get_depr(kwargs, "", "data_label")
-        self.visible = visible or self.get_depr(kwargs, True, "data_visible")
-        self.position = float(position or self.get_depr(kwargs, 0.0, "data_position"))
-        self.x_offset = float(x_offset or self.get_depr(kwargs, 0.0, "data_x_offset"))
-        self.y_offset = float(y_offset or self.get_depr(kwargs, 0.05, "data_y_offset"))
-        self.top_offset = float(top_offset or 0.0)
-        self.color = color or self.get_depr(kwargs, settings.MARKER_COLOR, "data_color")
-        self.base = int(base if base != None else self.get_depr(kwargs, settings.MARKER_BASE, "data_base"))
-        self.angle = float(angle or self.get_depr(kwargs, 0.0, "data_angle"))
-        self.align = align or settings.MARKER_ALIGN
-        self.style = style or self.get_depr(kwargs, settings.MARKER_STYLE, "data_style")
+        self.label = self.get_kwarg(kwargs, "", "label", "data_label")
+        self.visible = self.get_kwarg(kwargs, True, "visible", "data_visible")
+        self.position = float(self.get_kwarg(kwargs, 0.0, "position", "data_position"))
+        self.x_offset = float(self.get_kwarg(kwargs, 0.0, "x_offset", "data_x_offset"))
+        self.y_offset = float(self.get_kwarg(kwargs, 0.05, "y_offset", "data_y_offset"))
+        self.top_offset = float(self.get_kwarg(kwargs, 0.0, "top_offset"))
+        self.color = self.get_kwarg(kwargs, settings.MARKER_COLOR, "color", "data_color")
+        self.base = int(self.get_kwarg(kwargs, settings.MARKER_BASE, "base", "data_base"))
+        self.angle = float(self.get_kwarg(kwargs, 0.0, "angle", "data_angle"))
+        self.align = self.get_kwarg(kwargs, settings.MARKER_ALIGN, "align")
+        self.style = self.get_kwarg(kwargs, settings.MARKER_STYLE, "style", "data_align")
 
-        # if top is not set and style is not "None",
-        # assume top to be "Top of plot":
-        if top == None and self.style != "none":
-            self.top = 1
-        else:
-            self.top = int(top if top != None else 0)
+        # if top is not set and style is not "none",
+        # assume top to be "Top of plot", otherwise (style is not "none")
+        # assume top to be relative to the base point (using top_offset)
+        self.top = int(self.get_kwarg(kwargs, 0 if self.style == "none" else 1, "top"))
 
-        self.inherit_align = inherit_align
-        self.inherit_color = inherit_color
-        self.inherit_base = inherit_base
-        self.inherit_top = inherit_top
-        self.inherit_top_offset = inherit_top_offset
-        self.inherit_angle = inherit_angle
-        self.inherit_style = inherit_style
+        self.inherit_align = self.get_kwarg(kwargs, True, "inherit_align")
+        self.inherit_color = self.get_kwarg(kwargs, True, "inherit_color")
+        self.inherit_base = self.get_kwarg(kwargs, True, "inherit_base")
+        self.inherit_top = self.get_kwarg(kwargs, True, "inherit_top")
+        self.inherit_top_offset = self.get_kwarg(kwargs, True, "inherit_top_offset")
+        self.inherit_angle = self.get_kwarg(kwargs, True, "inherit_angle")
+        self.inherit_style = self.get_kwarg(kwargs, True, "inherit_style")
 
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------
     def get_nm_position(self):
-        if self.parent != None:
+        if self.parent is not None:
             return self.parent.goniometer.get_nm_from_2t(self.position)
         else:
             return 0.0
 
     def set_nm_position(self, position):
-        if self.parent != None:
+        if self.parent is not None:
             self.position = self.parent.goniometer.get_2t_from_nm(position)
         else:
             self.position = 0.0

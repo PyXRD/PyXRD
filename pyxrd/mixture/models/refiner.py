@@ -63,7 +63,7 @@ class RefineContext(ChildModel):
         super(RefineContext, self).__init__(parent=parent)
         self.options = options
 
-        if parent != None:
+        if parent is not None:
             self.ref_props = []
             self.values = []
             self.ranges = ()
@@ -118,7 +118,7 @@ class RefineContext(ChildModel):
         return self.mixture.optimizer.get_optimized_residual()
 
     def update(self, solution, residual=None):
-        residual = residual if residual != None else self.get_residual_for_solution(solution)
+        residual = residual if residual is not None else self.get_residual_for_solution(solution)
         self.last_solution = solution
         self.last_residual = residual
         if self.best_residual == None or self.best_residual > self.last_residual:
@@ -178,7 +178,7 @@ class Refiner(ChildModel):
             This refines the selected properties using the selected algorithm.
             This should be run asynchronously to keep the GUI from blocking.
         """
-        assert self.context != None, "You need to setup the RefineContext before starting the refinement!"
+        assert self.context is not None, "You need to setup the RefineContext before starting the refinement!"
 
         if not self.refine_lock: # TODO use a proper lock
             # Set lock

@@ -137,7 +137,7 @@ def eaMultiPSO(toolbox,
         kwargs = {}
         if stats:
             kwargs['stats'] = stats
-        if halloffame != None:
+        if halloffame is not None:
             try:
                 kwargs['champ'] = round(halloffame[0].fitness.values[0], 2)
             except IndexError:
@@ -146,9 +146,9 @@ def eaMultiPSO(toolbox,
 
     if verbose:
         column_names = ["gen", "nswarm", "uncnvrg"]
-        if halloffame != None:
+        if halloffame is not None:
             column_names.append("champ")
-        if stats != None:
+        if stats is not None:
             column_names.extend(stats.functions.keys())
         logger = tools.EvolutionLogger(column_names)
         logger.logHeader()
@@ -181,7 +181,7 @@ def eaMultiPSO(toolbox,
         for swarm in population:
             for part in swarm:
                 # Not necessary to update if it is a new swarm
-                if swarm.best != None and part.best != None:
+                if swarm.best is not None and part.best is not None:
                     toolbox.update(part, swarm.best)
             toolbox.evaluate_fitnesses(swarm)
 
@@ -196,7 +196,7 @@ def eaMultiPSO(toolbox,
         reinit_swarms = set()
         for s1, s2 in itertools.combinations(range(len(population)), 2):
             # Swarms must have a best and not already be set to reinitialize
-            if population[s1].best != None and population[s2].best != None and not (s1 in reinit_swarms or s2 in reinit_swarms):
+            if population[s1].best is not None and population[s2].best is not None and not (s1 in reinit_swarms or s2 in reinit_swarms):
 
                 t, prob = scipy.stats.ttest_ind(population[s1], population[s2])
                 if np.all(t < 0.1):
@@ -282,7 +282,7 @@ class RefineMPSORun(RefineRun):
             context=context
         )
 
-        if pool != None:
+        if pool is not None:
             toolbox.register("map", pool.map)
 
         final = eaMultiPSO(

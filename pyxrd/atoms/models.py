@@ -130,12 +130,8 @@ class AtomType(DataModel, ObjectListStoreChildMixin, Storable, CSVMixin):
     #      Initialisation and other internals
     # ------------------------------------------------------------
 
-    def __init__(self, name="", charge=0.0, debye=0.0, weight=0.0, atom_nr=0, par_c=0.0,
-            par_a1=0.0, par_a2=0.0, par_a3=0.0, par_a4=0.0, par_a5=0.0,
-            par_b1=0.0, par_b2=0.0, par_b3=0.0, par_b4=0.0, par_b5=0.0,
-            parent=None, **kwargs):
-        DataModel.__init__(self, parent=parent)
-        Storable.__init__(self)
+    def __init__(self, *args, **kwargs):
+        super(AtomType, self).__init__(*args, **kwargs)
 
         # Set up data object
         self._data_object = AtomTypeData(
@@ -148,14 +144,16 @@ class AtomType(DataModel, ObjectListStoreChildMixin, Storable, CSVMixin):
         )
 
         # Set attributes:
-        self.name = str(name or self.get_depr(kwargs, "", "data_name"))
-        self.atom_nr = int(atom_nr or self.get_depr(kwargs, 0, "data_atom_nr") or 0)
-        self.weight = float(weight or self.get_depr(kwargs, 0.0, "data_weight") or 0.0)
-        self.charge = float(charge or self.get_depr(kwargs, 0.0, "data_charge") or 0.0)
-        self.debye = float(debye or self.get_depr(kwargs, 0.0, "data_debye") or 0.0)
+        self.name = str(self.get_kwarg(kwargs, "", "name", "data_name"))
+        self.atom_nr = int(self.get_kwarg(kwargs, 0, "atom_nr", "data_atom_nr"))
+        self.weight = float(self.get_kwarg(kwargs, 0, "weight", "data_weight"))
+        self.charge = float(self.get_kwarg(kwargs, 0, "charge", "data_charge"))
+        self.debye = float(self.get_kwarg(kwargs, 0, "debye", "data_debye"))
 
-        for name in ["par_a1", "par_a2", "par_a3", "par_a4", "par_a5", "par_b1", "par_b2", "par_b3", "par_b4", "par_b5", "par_c"]:
-            setattr(self, name, float(locals()[name] or self.get_depr(kwargs, 0.0, "data_%s" % name) or 0.0))
+        for kw in ["par_a%d" % i for i in xrange(1, 6)] + ["par_b%d" % i for i in xrange(1, 6)] + ["par_c"]:
+            setattr(
+                self, kw, self.get_kwarg(kwargs, 0.0, kw, "data_%s" % kw)
+            )
 
     def __str__(self):
         return "<AtomType %s (%s)>" % (self.name, id(self))
@@ -186,7 +184,7 @@ class Atom(DataModel, ObjectListStoreChildMixin, Storable):
     _data_object = None
     @property
     def data_object(self):
-        if self.atom_type != None:
+        if self.atom_type is not None:
             self._data_object.atom_type = self.atom_type.data_object
         return self._data_object
 
@@ -223,7 +221,7 @@ class Atom(DataModel, ObjectListStoreChildMixin, Storable):
             self.data_changed.emit()
 
     def get_z_value(self):
-        if self.stretch_values and self.component != None:
+        if self.stretch_values and self.component is not None:
             lattice_d, factor = self.component.get_interlayer_stretch_factors()
             return float(lattice_d + (self.default_z - lattice_d) * factor)
         return self.default_z
@@ -242,7 +240,7 @@ class Atom(DataModel, ObjectListStoreChildMixin, Storable):
 
     @property
     def weight(self):
-        if self.atom_type != None:
+        if self.atom_type is not None:
             return self.pn * self.atom_type.weight
         else:
             return 0.0
@@ -265,11 +263,8 @@ class Atom(DataModel, ObjectListStoreChildMixin, Storable):
     # ------------------------------------------------------------
     #      Initialization and other internals
     # ------------------------------------------------------------
-    def __init__(self, name="", default_z=0.0, pn=0.0,
-            atom_type=None, atom_type_index=-1, atom_type_uuid="",
-            atom_type_name="", stretch_values=False, parent=None, sf_view=None, **kwargs):
-        DataModel.__init__(self, parent=parent)
-        Storable.__init__(self)
+    def __init__(self, *args, **kwargs):
+        super(Atom, self).__init__(*args, **kwargs)
 
         # Set up data object
         self._data_object = AtomData(
@@ -278,16 +273,16 @@ class Atom(DataModel, ObjectListStoreChildMixin, Storable):
         )
 
         # Set attributes
-        self.name = str(name or self.get_depr(kwargs, "", "data_name"))
+        self.name = str(self.get_kwarg(kwargs, "", "name", "data_name"))
 
-        self.stretch_values = stretch_values
-        self.default_z = float(default_z or self.get_depr(kwargs, 0.0, "data_z", "z"))
-        self.pn = float(pn or self.get_depr(kwargs, 0.0, "data_pn"))
+        self.stretch_values = bool(self.get_kwarg(kwargs, False, "stretch_values"))
+        self.default_z = float(self.get_kwarg(kwargs, 0.0, "default_z", "data_z", "z"))
+        self.pn = float(self.get_kwarg(kwargs, 0.0, "pn", "data_pn"))
 
-        self.atom_type = atom_type or self.get_depr(kwargs, None, "data_atom_type")
-        self._atom_type_uuid = atom_type_uuid
-        self._atom_type_name = atom_type_name
-        self._atom_type_index = atom_type_index if atom_type_index > -1 else None
+        self.atom_type = self.get_kwarg(kwargs, None, "atom_type", "data_atom_type")
+        self._atom_type_uuid = self.get_kwarg(kwargs, "", "atom_type_uuid")
+        self._atom_type_name = self.get_kwarg(kwargs, "", "atom_type_name")
+        self._atom_type_index = self.get_kwarg(kwargs, None, "atom_type_index")
 
     def __str__(self):
         return "<Atom %s(%s)>" % (self.name, repr(self))
@@ -313,7 +308,7 @@ class Atom(DataModel, ObjectListStoreChildMixin, Storable):
     #      Methods & Functions
     # ------------------------------------------------------------
     def get_structure_factors(self, stl_range):
-        if self.atom_type != None:
+        if self.atom_type is not None:
             return float(get_structure_factor(stl_range, self.data_object))
         else:
             return 0.0
@@ -325,10 +320,10 @@ class Atom(DataModel, ObjectListStoreChildMixin, Storable):
         if getattr(self, "_atom_type_uuid", "") != "":
             self.atom_type = pyxrd_object_pool.get_object(self._atom_type_uuid)
             del self._atom_type_uuid
-        elif getattr(self, "_atom_type_name", "") != "" or getattr(self, "_atom_type_index", None) != None:
-            assert(self.component != None)
-            assert(self.component.phase != None)
-            assert(self.component.phase.project != None)
+        elif getattr(self, "_atom_type_name", "") != "" or getattr(self, "_atom_type_index", None) is not None:
+            assert(self.component is not None)
+            assert(self.component.phase is not None)
+            assert(self.component.phase.project is not None)
             if getattr(self, "_atom_type_name", "") != "":
                 for atom_type in self.component.phase.project.atom_types.iter_objects():
                     if atom_type.name == self._atom_type_name:
@@ -356,7 +351,7 @@ class Atom(DataModel, ObjectListStoreChildMixin, Storable):
         atoms = []
 
         types = dict()
-        if parent != None:
+        if parent is not None:
             for atom_type in parent.phase.project.atom_types._model_data:
                 if not atom_type.name in types:
                     types[atom_type.name] = atom_type
@@ -387,7 +382,7 @@ class Atom(DataModel, ObjectListStoreChildMixin, Storable):
         atl_writer = csv.writer(open(filename, 'wb'), delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
         atl_writer.writerow(["Atom", "z", "def_z", "pn", "Element"])
         for item in atoms:
-            if item != None and item.atom_type != None:
+            if item is not None and item.atom_type is not None:
                 atl_writer.writerow([item.name, item.z, item.default_z, item.pn, item.atom_type.name])
 
     pass # end of class

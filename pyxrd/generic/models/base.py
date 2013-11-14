@@ -14,6 +14,7 @@ from pyxrd.gtkmvc.model import Signal
 from signals import HoldableSignal
 from metaclasses import PyXRDMeta, pyxrd_object_pool
 from properties import PropIntel
+from utils import not_none
 
 class PyXRDModel(ModelMT):
     """
@@ -25,33 +26,27 @@ class PyXRDModel(ModelMT):
         PropIntel(name="uuid", data_type=str, storable=True, observable=False),
     ]
 
-
-    def get_depr(self, fun_kwargs, default, *keywords):
+    def get_kwarg(self, fun_kwargs, default, *keywords):
         """
-        Can be used to check if any deprecated keywords are passed to a 
-        function, and if not, return a default value. Additionally warns the 
-        user about the fact that he is using a deprecated keyword.
-        If more then one deprecated keyword argument is present, the value of
-        the last keword as passed to this function is passed.
-        By default, deprecated arguments should be ignored if a non-deprecated
-        one is passed as well.
-        
-        *fun_kwargs* the keyword arguments as passed to the function
-        
-        *default* the default value if no deprecated arguments are present
-        
-        **keywords* the deprecated keywords
-        
-        :rtype: the retrieved value or the default one as explained above
+        Convenience function to get a certain keyword 'kw' value from the passed
+        keyword arguments 'fun_kwargs'. If the key 'kw' is not in 'fun_kwargs'
+        a list of deprecated keywords to be searched for can be passed as an
+        optional argument list 'depr_kws'. If one of these is found, its value
+        is returned and a deprecation warning is emitted. 
+        If neither the 'kw' nor any of the 'depr_kws' are found the 'default'
+        value is returned. 
         """
         if len(keywords) < 1:
-            raise AttributeError, "get_depr() requires at least one alias (%d given)" % (len(keywords))
+            raise AttributeError, "get_kwarg() requires at least one keyword (%d given)" % (len(keywords))
 
         value = default
-        for key in keywords:
-            if key in fun_kwargs:
-                value = fun_kwargs[key]
-                warn("The use of the keyword '%s' is deprecated for %s!" % (key, type(self)), DeprecationWarning)
+        for i, key in enumerate(keywords):
+            if key in fun_kwargs and fun_kwargs[key] is not None:
+                value = not_none(fun_kwargs[key], default)
+                if i != 0:
+                    warn("The use of the keyword '%s' is deprecated for %s!" %
+                        (key, type(self)), DeprecationWarning)
+                break
         return value
 
     __uuid__ = None
@@ -75,7 +70,7 @@ class PyXRDModel(ModelMT):
 
     def get_base_value(self, attr):
         intel = self.get_prop_intel_by_name(attr)
-        if intel.inh_name != None:
+        if intel.inh_name is not None:
             return getattr(self, "_%s" % attr)
         else:
             return getattr(self, attr)
@@ -108,12 +103,12 @@ class ChildModel(PyXRDModel):
             self._parent = value
             self._attach_parent()
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, *args, **kwargs):
         super(ChildModel, self).__init__()
         self.removed = Signal()
         self.added = Signal()
 
-        if self.__parent_alias__ != None:
+        if self.__parent_alias__ is not None:
             setattr(self.__class__, self.__parent_alias__, property(lambda self: self.parent))
         self.parent = parent
 
@@ -121,11 +116,11 @@ class ChildModel(PyXRDModel):
     #      Methods & Functions
     # ------------------------------------------------------------
     def _unattach_parent(self):
-        if self.parent != None:
+        if self.parent is not None:
             self.removed.emit()
 
     def _attach_parent(self):
-        if self.parent != None:
+        if self.parent is not None:
             self.added.emit()
 
     pass # end of class

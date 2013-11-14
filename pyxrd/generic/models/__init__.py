@@ -10,6 +10,7 @@ from signals import DefaultSignal, HoldableSignal
 from properties import PropIntel, MultiProperty
 from base import PyXRDModel, ChildModel, DataModel
 from lines import PyXRDLine, CalculatedLine, ExperimentalLine
+from utils import not_none
 
 __all__ = [
     "PyXRDMeta"
@@ -17,11 +18,11 @@ __all__ = [
     "HoldableSignal",
     "PropIntel",
     "MultiProperty",
-    "BasePyXRDModel",
     "PyXRDModel",
     "ChildModel",
     "DataModel",
     "PyXRDLine",
     "CalculatedLine",
     "ExperimentalLine",
+    "not_none"
 ]

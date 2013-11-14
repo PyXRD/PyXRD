@@ -12,13 +12,21 @@ class ObjectListStoreChildMixin(object):
     # this is set by the ObjectListStore when an item is added
     __list_store__ = None
 
+    def __init__(self, *args, **kwargs):
+        # Nothing to do but ignore any extraneous args & kwargs passed down
+        super(ObjectListStoreChildMixin, self).__init__()
+
     def liststore_item_changed(self):
-        if self.__list_store__ != None:
+        if self.__list_store__ is not None:
             self.__list_store__.on_item_changed(self)
 
     pass # end of class
 
 class ObjectListStoreParentMixin(object):
+
+    def __init__(self, *args, **kwargs):
+        # Nothing to do but ignore any extraneous args & kwargs passed down
+        super(ObjectListStoreParentMixin, self).__init__()
 
     def parse_liststore_arg(self, arg, tm_type, child_type):
         """
@@ -49,6 +57,10 @@ class ObjectListStoreParentMixin(object):
 class CSVMixin(object):
 
     __csv_storables__ = [] # list of tuples "label", "property_name"
+
+    def __init__(self, *args, **kwargs):
+        # Nothing to do but ignore any extraneous args & kwargs passed down
+        super(CSVMixin, self).__init__()
 
     @classmethod
     def save_as_csv(type, filename, items):

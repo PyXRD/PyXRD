@@ -104,7 +104,7 @@ class AppView(BaseView, HasChildView):
         self["navtoolbar_box"].add(self.nav_toolbar)
 
     def reset_child_view(self, view_name, class_type=None):
-        if getattr(self, view_name, None) != None:
+        if getattr(self, view_name, None) is not None:
             getattr(self, view_name).hide()
             setattr(self, view_name, None)
         if class_type == None:

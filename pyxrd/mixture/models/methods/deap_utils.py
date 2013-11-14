@@ -34,7 +34,7 @@ class pyxrd_array(creator._numpy_array):
         self._update()
 
     def _update(self):
-        if hasattr(self, "context") and self.context != None:
+        if hasattr(self, "context") and self.context is not None:
             self.data_object = self.context.get_data_object_for_solution(self)
 
     def __setitem__(self, i, y):
@@ -70,7 +70,7 @@ def evaluate(individual):
         individual should be an pyxrd_array subclass 
         (or have a data_object attribute)
     """
-    if individual.data_object != None:
+    if individual.data_object is not None:
         return get_optimized_residual(individual.data_object),
     else:
         return 100.,

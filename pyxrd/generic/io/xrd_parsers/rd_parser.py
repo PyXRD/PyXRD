@@ -122,7 +122,7 @@ class RDParser(XRDParserMixin, BaseParser):
             data_objects[0].data = []
 
         # Parse data:
-        if f != None:
+        if f is not None:
             if data_objects[0].version in ("V3", "V5"):
                 # Move to start of data:
                 f.seek(data_objects[0].data_start)

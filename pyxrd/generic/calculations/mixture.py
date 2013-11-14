@@ -33,8 +33,8 @@ def _get_residual(x, mixture):
     fractions, scales, bgshifts = parse_solution(x, mixture.n, mixture.m)
     tot_rp = 0.0
     for scale, bgshift, specimen in izip(scales, bgshifts, mixture.specimens):
-        if specimen != None:
-            if specimen.phase_intensities != None:
+        if specimen is not None:
+            if specimen.phase_intensities is not None:
                 calc = (scale * np.sum(specimen.phase_intensities * fractions, axis=0))
                 if settings.BGSHIFT:
                     calc += bgshift
@@ -58,7 +58,7 @@ def parse_mixture(mixture, parsed=False):
         assert n > 0, "Need at least 1 specimen to optimize phase fractions, scales and background."
         m = 0
         for specimen in mixture.specimens:
-            if specimen != None:
+            if specimen is not None:
                 m = len(specimen.phases)
                 break
         assert m > 0, "Need at least 1 phase in each specimen to optimize phase fractions, scales and background."
@@ -67,7 +67,7 @@ def parse_mixture(mixture, parsed=False):
         mixture.m = m
 
         for specimen in mixture.specimens:
-            if specimen != None:
+            if specimen is not None:
                 specimen.phase_intensities = get_phase_intensities(specimen)
 
 @wrap_exceptions
@@ -137,7 +137,7 @@ def calculate_mixture(mixture, parsed=False):
         parse_mixture(mixture, parsed=parsed)
     except AssertionError:
         for specimen in mixture.specimens:
-            if specimen != None:
+            if specimen is not None:
                 specimen.total_intensity = None # clear pattern
         return mixture
     fractions = np.asanyarray(mixture.fractions)

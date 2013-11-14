@@ -59,7 +59,7 @@ def _get_default_column(title, rend,
         not as key-word arguments.
     """
     col = PyXRDTreeViewColumn(title, rend, **col_attrs)
-    if data_func != None:
+    if data_func is not None:
         callback, args = parse_callback(data_func)
         col.set_cell_data_func(rend, callback, args)
     col.set_spacing(spacing)
@@ -108,10 +108,10 @@ def new_text_column(title,
         Creates a TreeViewColumn packed with a CellRendererText .
     """
     kwargs, col_attrs = parse_kwargs(**kwargs)
-    alignment = alignment if alignment != None else kwargs["xalign"]
+    alignment = alignment if alignment is not None else kwargs["xalign"]
 
     rend = get_default_renderer(gtk.CellRendererText, **kwargs)
-    if edited_callback != None:
+    if edited_callback is not None:
         callback, args = parse_callback(edited_callback, reduce=False)
         rend.connect('edited', callback, *args)
 
@@ -156,7 +156,7 @@ def new_pb_column(title,
         Creates a TreeViewColumn packed with a CellRendererPixbuf.
     """
     kwargs, col_attrs = parse_kwargs(**kwargs)
-    alignment = alignment if alignment != None else kwargs["xalign"]
+    alignment = alignment if alignment is not None else kwargs["xalign"]
 
     rend = get_default_renderer(gtk.CellRendererPixbuf, **kwargs)
 
@@ -202,10 +202,10 @@ def new_toggle_column(title,
         Creates a TreeViewColumn packed with a CellRendererToggle.
     """
     kwargs, col_attrs = parse_kwargs(**kwargs)
-    alignment = alignment if alignment != None else kwargs["xalign"]
+    alignment = alignment if alignment is not None else kwargs["xalign"]
 
     rend = get_default_renderer(gtk.CellRendererToggle, **kwargs)
-    if toggled_callback != None:
+    if toggled_callback is not None:
         callback, args = parse_callback(toggled_callback, reduce=False)
         rend.connect('toggled', callback, *args)
 
@@ -254,19 +254,19 @@ def new_combo_column(title,
         Creates a TreeViewColumn packed with a CellRendererCombo.
     """
     kwargs, col_attrs = parse_kwargs(**kwargs)
-    alignment = alignment if alignment != None else kwargs["xalign"]
+    alignment = alignment if alignment is not None else kwargs["xalign"]
 
     rend = get_default_renderer(gtk.CellRendererCombo, **kwargs)
-    if changed_callback != None:
+    if changed_callback is not None:
         callback, args = parse_callback(changed_callback, reduce=False)
         rend.connect('changed', callback, *args)
-    if edited_callback != None:
+    if edited_callback is not None:
         callback, args = parse_callback(edited_callback, reduce=False)
         rend.connect('edited', callback, *args)
-    if editing_started_callback != None:
+    if editing_started_callback is not None:
         callback, args = parse_callback(editing_started_callback, reduce=False)
         rend.connect('editing-started', callback, *args)
-    if editing_canceled_callback != None:
+    if editing_canceled_callback is not None:
         callback, args = parse_callback(editing_canceled_callback, reduce=False)
         rend.connect('editing-canceled', callback, *args)
 
@@ -325,11 +325,11 @@ def setup_treeview(tv, model,
     sel = tv.get_selection()
     sel.set_mode(sel_mode)
     ids = ()
-    if on_cursor_changed != None:
+    if on_cursor_changed is not None:
         ids += (tv.connect('cursor_changed', on_cursor_changed),)
-    if on_columns_changed != None:
+    if on_columns_changed is not None:
         ids += (model.connect('columns-changed', on_columns_changed),)
-    if on_selection_changed != None:
+    if on_selection_changed is not None:
         ids += (sel.connect('changed', on_selection_changed),)
     return ids
 

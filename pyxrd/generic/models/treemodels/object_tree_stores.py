@@ -67,7 +67,7 @@ class ObjectTreeNode(object):
 
     def get_root_node(self):
         parent = self.parent
-        while parent.parent != None:
+        while parent.parent is not None:
             parent = parent.parent
         return parent
 
@@ -89,7 +89,7 @@ class ObjectTreeNode(object):
         parent = self.parent
         node = self
         indeces = tuple()
-        while parent != None:
+        while parent is not None:
             indeces += (parent.get_child_node_index(node),)
             node = parent
             parent = parent.parent

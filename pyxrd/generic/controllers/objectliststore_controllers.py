@@ -86,7 +86,7 @@ class ObjectListStoreMixin(ObjectTreeviewMixin):
 
     @property
     def liststore(self):
-        if self.model != None:
+        if self.model is not None:
             return getattr(self.model, self.model_property_name)
         else:
             return None
@@ -197,7 +197,7 @@ class ObjectListStoreMixin(ObjectTreeviewMixin):
         if unselect_all: selection.unselect_all()
         if obj:
             path = self.liststore.on_get_path(obj)
-            if path != None: selection.select_path(path)
+            if path is not None: selection.select_path(path)
 
     def select_objects(self, objs):
         for obj in objs: self.select_object(obj, False)
@@ -224,7 +224,7 @@ class ObjectListStoreMixin(ObjectTreeviewMixin):
     def objects_tv_selection_changed(self, selection):
         obj = self.get_selected_object()
         objs = self.get_selected_objects()
-        self.view.set_selection_state(len(objs) if objs != None else None)
+        self.view.set_selection_state(len(objs) if objs is not None else None)
         if self._edit_controller == None or obj != self._edit_controller.model:
             self.edit_object(obj)
 
@@ -341,7 +341,7 @@ class InlineObjectListStoreController(BaseController, ObjectTreeviewMixin):
 
             def on_changed(combo, user_data=None):
                 itr = combo.get_active_iter()
-                if itr != None:
+                if itr is not None:
                     val = combo.get_model().get_value(itr, 1)
                     self.add_type = val
             combo.connect('changed', on_changed)
@@ -402,14 +402,14 @@ class InlineObjectListStoreController(BaseController, ObjectTreeviewMixin):
 
     def on_add_item(self, widget, user_data=None):
         new_object = self.create_new_object_proxy()
-        if new_object != None:
+        if new_object is not None:
             self.liststore.append(new_object)
             self.select_object(new_object)
         self.update_sensitivities()
 
     def on_del_item(self, widget, user_data=None):
         path, col = self.treeview.get_cursor() # @UnusedVariable
-        if path != None:
+        if path is not None:
             itr = self.liststore.get_iter(path)
             self.liststore.remove(itr)
             self.update_sensitivities()

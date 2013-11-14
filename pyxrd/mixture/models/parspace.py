@@ -250,7 +250,7 @@ class ParameterSpaceGenerator(object):
                     coords = np.array(coords)
                     view = interp(coords).reshape(density, density).transpose()
 
-                    if ax != None:
+                    if ax is not None:
                         # Setup axes:
                         ax.set_axes_locator(get_locator(gridx, gridy))
                         ax.set_visible(True)
@@ -298,7 +298,7 @@ class ParameterSpaceGenerator(object):
                     im.set_clim(tvmin, tvmax)
 
                 # Make it look PRO:
-                if im != None:
+                if im is not None:
                     cbar_ax = grid.cbar_axes[0]
                     nx = 1 + (dims - 1) * 2
                     ny1 = (dims - 1) * 2

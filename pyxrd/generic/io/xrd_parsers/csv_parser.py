@@ -100,7 +100,7 @@ class CSVParser(XRDParserMixin, ASCIIParser):
 
         data_objects = cls.parse_header(filename, f=f, data_objects=data_objects, **fmt_params)
 
-        if f != None:
+        if f is not None:
             for row in csv.reader(f, **fmt_params):
                 if row:
                     data = map(float, row)
@@ -129,7 +129,7 @@ class CSVParser(XRDParserMixin, ASCIIParser):
         # - update default class dialect parameters with the sniffed dialect
         # - override the obtained dialect with any user-passed parameters
         dialect = None
-        if f != None:
+        if f is not None:
             try:
                 # skip (potential) header as these are sometimes formatted differently
                 f.readline()

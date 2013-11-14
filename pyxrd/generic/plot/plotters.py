@@ -13,7 +13,7 @@ import numpy as np
 
 import matplotlib
 import matplotlib.transforms as transforms
-from matplotlib.patches import FancyBboxPatch
+from matplotlib.patches import FancyBboxPatch, Rectangle
 from matplotlib.offsetbox import VPacker, HPacker, AnchoredOffsetbox, TextArea, AuxTransformBox
 from matplotlib.text import Text
 
@@ -168,13 +168,15 @@ def plot_hatches(project, specimen, offset, scale, axes):
         except: pass
 
     # Create & add new hatches:
-    for i, (x0, x1) in enumerate(izip(*specimen.exclusion_ranges.get_raw_model_data())):
-        leftborder = axes.axvline(x0, y0, y1, c=settings.EXCLUSION_LINES)
-        hatch = axes.axvspan(
-            x0, x1, y0, y1, fill=True, hatch="/",
+    for x0, x1 in izip(*specimen.exclusion_ranges.get_raw_model_data()):
+        leftborder = axes.plot([x0, x0], [y0, y1], c=settings.EXCLUSION_LINES)
+        axes.add_patch(Rectangle(
+            (x0, y0), x1 - x0, y1 - y0,
+            fill=True, hatch="/", linewidth=0,
             facecolor=settings.EXCLUSION_FOREG,
-            edgecolor=settings.EXCLUSION_LINES, linewidth=0)
-        rightborder = axes.axvline(x1, y0, y1, c=settings.EXCLUSION_LINES)
+            edgecolor=settings.EXCLUSION_LINES)
+        )
+        rightborder = axes.plot([x1, x1], [y0, y1], c=settings.EXCLUSION_LINES)
 
 def plot_label(specimen, labels, label_offset, plot_left, axes):
     text = getattr(specimen, "__plot_label_artist", None)
@@ -251,7 +253,7 @@ def plot_specimen(project, specimen, labels, label_offset, plot_left,
                 data=apply_transform(([xmin, xmax], [pattern.bg_position, pattern.bg_position]), scale=scale, offset=offset),
                 visible=True
             ))
-        elif pattern.bg_type == 1 and pattern.bg_pattern != None:
+        elif pattern.bg_type == 1 and pattern.bg_pattern is not None:
             bg_line.update(dict(
                 data=apply_transform((x_data, (pattern.bg_pattern * pattern.bg_scale) + pattern.bg_position), scale=scale, offset=offset),
                 visible=True
@@ -376,7 +378,7 @@ def plot_specimen(project, specimen, labels, label_offset, plot_left,
         # setup or update the calculated lines (phases)
         if specimen.display_phases:
             for i, phase in enumerate(pattern.phases):
-                if phase != None:
+                if phase is not None:
                     phase_line = getattr(phase, "__plot_phase_lines", dict()).get(
                         specimen,
                         matplotlib.lines.Line2D([], [])
@@ -393,7 +395,7 @@ def plot_specimen(project, specimen, labels, label_offset, plot_left,
                     phase.__plot_phase_lines[specimen] = phase_line
 
     # mineral preview sticks
-    if hasattr(specimen, "mineral_preview") and specimen.mineral_preview != None:
+    if hasattr(specimen, "mineral_preview") and specimen.mineral_preview is not None:
         name, peaks = specimen.mineral_preview
         lines = getattr(specimen, "__plot_mineral_preview", [])
         for line in lines:
@@ -563,7 +565,7 @@ def plot_mixtures(project, mixtures, axes):
             fc=fc,
             mutation_scale=14, # font size
             transform=trans,
-            alpha=1.0 if (ec != None or fc != None) else 0.0
+            alpha=1.0 if (ec is not None or fc is not None) else 0.0
         )
         _box.add_artist(rect)
         return _box

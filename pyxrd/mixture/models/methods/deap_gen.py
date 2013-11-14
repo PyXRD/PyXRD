@@ -97,7 +97,7 @@ def eaGenerateUpdateStagn(toolbox, ngen, halloffame=None, stats=None,
         if len(best_fitnesses) > (stagn_ngen + 1):
             del best_fitnesses[0]
 
-        if context != None:
+        if context is not None:
             context.record_state_data([
                 ("gen", gen),
                 ("pop", len(population)),
@@ -215,7 +215,7 @@ class RefineCMAESRun(RefineRun):
         stats.register("max", max)
 
         # Get this show on the road:
-        if pool != None:
+        if pool is not None:
             toolbox.register("map", lambda f, i: pool.map(f, i, 10))
 
         final = eaGenerateUpdateStagn(

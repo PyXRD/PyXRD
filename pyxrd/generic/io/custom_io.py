@@ -47,9 +47,9 @@ def get_size(path='.', maxsize=None):
         for f in filenames:
             fp = os.path.join(dirpath, f)
             total_size += os.path.getsize(fp)
-            if maxsize != None and total_size > maxsize:
+            if maxsize is not None and total_size > maxsize:
                 break
-        if maxsize != None and total_size > maxsize:
+        if maxsize is not None and total_size > maxsize:
             break
     return total_size
 
@@ -175,7 +175,7 @@ class PyXRDDecoder(json.JSONDecoder):
         if "type" in obj:
             objtype = storables[obj["type"]]
             if "properties" in obj and hasattr(objtype, "from_json"):
-                if self.parent != None and not "parent" in kwargs:
+                if self.parent is not None and not "parent" in kwargs:
                     kwargs["parent"] = self.parent
                 return objtype.from_json(**dict(obj["properties"], **kwargs))
         raise Warning, "__pyxrd_decode__ will return None for %s!" % str(obj)[:30] + "..." + str(obj)[:-30]
@@ -206,6 +206,10 @@ class Storable(object):
     __storables__ = []
 
     __store_id__ = None
+
+    def __init__(self, *args, **kwargs):
+        # Nothing to do but ignore any extraneous args & kwargs passed down
+        super(Storable, self).__init__()
 
     ###########################################################################
     # High-level JSON (de)serialisiation related methods & functions:
@@ -254,7 +258,7 @@ class Storable(object):
                 
         :rtype: the loaded object instance
         """
-        if filename != None:
+        if filename is not None:
             try:
                 if is_zipfile(filename): # ZIP files
                     with ZipFile(filename, 'r') as zf:
@@ -271,7 +275,7 @@ class Storable(object):
                 except:
                     print tb
                     raise # re-raise last error
-        elif data != None: # STRINGS:
+        elif data is not None: # STRINGS:
             return json.loads(data, cls=PyXRDDecoder, parent=parent)
 
 

@@ -36,12 +36,12 @@ class Controller (Observer):
     _controller_scope_aplied = False
     @property
     def __user_props(self):
-        assert(not (self.auto_adapt_included != None and self.auto_adapt_excluded != None))
+        assert(not (self.auto_adapt_included is not None and self.auto_adapt_excluded is not None))
         if not self._controller_scope_aplied:
             props = self.model.get_properties()
-            if self.auto_adapt_included != None:
+            if self.auto_adapt_included is not None:
                 self.___user_props = self.___user_props.union(set(filter(lambda p: p not in self.auto_adapt_included, props)))
-            elif self.auto_adapt_excluded != None:
+            elif self.auto_adapt_excluded is not None:
                 self.___user_props = self.___user_props.union(set(filter(lambda p: p in self.auto_adapt_excluded, props)))
             self._controller_scope_aplied = True
         return self.___user_props

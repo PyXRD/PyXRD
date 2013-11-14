@@ -48,10 +48,10 @@ class AppModel(PyXRDModel):
     def get_current_project_value(self):
         return self._current_project
     def set_current_project_value(self, value):
-        if self._current_project != None: self.relieve_model(self._current_project)
+        if self._current_project is not None: self.relieve_model(self._current_project)
         self._current_project = value
         pyxrd_object_pool.clear()
-        if self._current_project != None: self.observe_model(self._current_project)
+        if self._current_project is not None: self.observe_model(self._current_project)
         self.clear_selected()
         self.needs_plot_update.emit()
     current_filename = None
@@ -59,7 +59,7 @@ class AppModel(PyXRDModel):
     _statistics_visible = None
     def set_statistics_visible_value(self, value): self._statistics_visible = value
     def get_statistics_visible_value(self):
-        return self._statistics_visible and self.current_specimen != None and self.current_project.layout_mode != 1
+        return self._statistics_visible and self.current_specimen is not None and self.current_project.layout_mode != 1
 
     _current_specimen = None
     def get_current_specimen_value(self): return self._current_specimen
@@ -80,7 +80,7 @@ class AppModel(PyXRDModel):
 
     @property
     def single_specimen_selected(self):
-        return bool(self.current_specimen != None or self.current_specimens == [])
+        return bool(self.current_specimen is not None or self.current_specimens == [])
 
     @property
     def multiple_specimens_selected(self):

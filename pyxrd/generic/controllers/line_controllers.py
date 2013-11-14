@@ -47,7 +47,6 @@ class LinePropertiesController(BaseController):
         """
             Updates the views sensitivities according to the model state.
         """
-        print "UPDATE SENSITIVIES!"
         self.view[self.view.widget_format % "color"].set_sensitive(not self.model.inherit_color)
         self.view["spb_%s" % self.view.widget_format % "lw"].set_sensitive(not self.model.inherit_lw)
 
@@ -57,7 +56,6 @@ class LinePropertiesController(BaseController):
     @BaseController.observe("inherit_color", assign=True)
     @BaseController.observe("inherit_lw", assign=True)
     def notif_color_toggled(self, model, prop_name, info):
-        print "NOTIF INHERIT!"
         self.update_sensitivities()
 
     pass  # end of class
@@ -81,7 +79,7 @@ class PatternActionController(DialogController):
     model_cancel_method = None
 
     def register_adapters(self):
-        if self.model_setup_method != None:
+        if self.model_setup_method is not None:
             getattr(self.model, self.model_setup_method)()
         return super(PatternActionController, self).register_adapters()
 
@@ -95,7 +93,7 @@ class PatternActionController(DialogController):
         return super(PatternActionController, self).on_btn_ok_clicked(event)
 
     def on_cancel(self):
-        if self.model_cancel_method != None:
+        if self.model_cancel_method is not None:
             getattr(self.model, self.model_cancel_method)()
         return super(PatternActionController, self).on_cancel()
 
@@ -167,7 +165,7 @@ class StripPeakController(PatternActionController):
     def sample(self, attribute):
 
         def onclick(edc, x_pos, event):
-            if edc != None:
+            if edc is not None:
                 edc.enabled = False
                 edc.disconnect()
             if x_pos != -1:

@@ -101,7 +101,7 @@ class ProjectController (DialogController, ObjectListStoreMixin, DialogMixin):
                 else:
                     for specimen in specimens:
                         last_iter = self.model.specimens.append(specimen)
-            if last_iter != None:
+            if last_iter is not None:
                 self.view["project_specimens"].set_cursor(last_iter)
 
         self.run_load_dialog(title="Select XRD files for import",
@@ -133,7 +133,7 @@ class ProjectController (DialogController, ObjectListStoreMixin, DialogMixin):
     #      GTK Signal handlers
     # ------------------------------------------------------------
     def specimen_tv_toggled(self, cell, path, model, colnr):
-        if model != None:
+        if model is not None:
             itr = model.get_iter(path)
             model.set_value(itr, colnr, not cell.get_active())
             return True
@@ -148,7 +148,7 @@ class ProjectController (DialogController, ObjectListStoreMixin, DialogMixin):
             model = tv.get_model()
             specimen = model.get_user_data_from_path(path)
         if event.button == 3:
-            if specimen != None:
+            if specimen is not None:
                 # clicked a specimen which is not in the current selection,
                 # so clear selection and select it
                 if not specimen in current_specimens:

@@ -185,12 +185,12 @@ class SpecimenController(DialogController, DialogMixin, ObjectTreeviewMixin):
 
     def on_exclusion_ranges_tv_cursor_changed(self, tv):
         path, col = tv.get_cursor()
-        self.view["btn_del_exclusion_ranges"].set_sensitive(path != None)
+        self.view["btn_del_exclusion_ranges"].set_sensitive(path is not None)
         return True
 
     def on_exp_data_tv_cursor_changed(self, tv):
         path, col = tv.get_cursor()
-        self.view["btn_del_experimental_data"].set_sensitive(path != None)
+        self.view["btn_del_experimental_data"].set_sensitive(path is not None)
         return True
 
     def on_add_experimental_data_clicked(self, widget):
@@ -207,14 +207,14 @@ class SpecimenController(DialogController, DialogMixin, ObjectTreeviewMixin):
 
     def on_del_experimental_data_clicked(self, widget):
         paths = self.get_selected_paths(self.view["specimen_experimental_pattern"])
-        if paths != None:
+        if paths is not None:
             model = self.model.experimental_pattern.xy_store
             model.remove_from_index(*paths)
         return True
 
     def on_del_exclusion_ranges_clicked(self, widget):
         paths = self.get_selected_paths(self.view["specimen_exclusion_ranges"])
-        if paths != None:
+        if paths is not None:
             model = self.model.exclusion_ranges
             model.remove_from_index(*paths)
         return True

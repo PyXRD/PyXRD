@@ -129,17 +129,17 @@ class UnitCellProperty(DataModel, Storable, ComponentPropMixin, RefinementValue)
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def __init__(self, name="", value=None, enabled=False, factor=None, constant=None, prop=None, parent=None, **kwargs):
-        super(UnitCellProperty, self).__init__(parent=parent)
+    def __init__(self, **kwargs):
+        super(UnitCellProperty, self).__init__(**kwargs)
 
         with self.data_changed.hold():
-            self.name = name or self.get_depr(kwargs, self.name, "data_name")
-            self.value = value if value != None else self.get_depr(kwargs, self._value, "data_value")
-            self.factor = factor if factor != None else  self.get_depr(kwargs, self._factor, "data_factor")
-            self.constant = constant if constant != None else self.get_depr(kwargs, self._constant, "data_constant")
-            self.enabled = enabled or self.get_depr(kwargs, self.enabled, "data_enabled")
+            self.name = self.get_kwarg(kwargs, self.name, "name", "data_name")
+            self.value = self.get_kwarg(kwargs, self._value, "value" "data_value")
+            self.factor = self.get_kwarg(kwargs, self._factor, "factor", "data_factor")
+            self.constant = self.get_kwarg(kwargs, self._constant, "constant", "data_constant")
+            self.enabled = self.get_kwarg(kwargs, self.enabled, "enabled", "data_enabled")
 
-            self._temp_prop = prop or self._parseattr(self.get_depr(kwargs, self._prop, "data_prop"))
+            self._temp_prop = self.get_kwarg(kwargs, self._prop, "prop", "data_prop")
 
             self.ready = True
 
@@ -175,7 +175,7 @@ class UnitCellProperty(DataModel, Storable, ComponentPropMixin, RefinementValue)
     #      Methods & Functions
     # ------------------------------------------------------------
     def create_prop_store(self, extra_props=[]):
-        assert(self.component != None)
+        assert(self.component is not None)
         from gtk import ListStore
         store = ListStore(object, str, object)
         # use private properties so we connect to the actual object stores and not the inherited ones

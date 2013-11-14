@@ -5,7 +5,6 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from pyxrd.generic.utils import get_new_uuid
 from pyxrd.gtkmvc.model import Signal
 
 class HoldableSignal(Signal):

@@ -90,7 +90,7 @@ class UDFParser(XRDParserMixin, BaseParser):
         if data_objects[0].data == None:
             data_objects[0].data = []
 
-        if f != None:
+        if f is not None:
             f.seek(data_objects[0].data_start)
             n = 0
             last_value_reached = False

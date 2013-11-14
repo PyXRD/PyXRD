@@ -173,75 +173,111 @@ class Project(DataModel, Storable, ObjectListStoreParentMixin):
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def __init__(self, name="Project name", date=time.strftime("%d/%m/%Y"),
-            description="Project description", author="Project author",
-            atom_types=None, phases=None,
-            specimens=None, mixtures=None, layout_mode=None,
-            display_marker_align=None, display_marker_color=None, display_marker_base=None,
-            display_marker_top=None, display_marker_top_offset=None,
-            display_marker_angle=None, display_marker_style=None,
-            display_plot_offset=None, display_group_by=None,
-            display_calc_color=None, display_exp_color=None, display_label_pos=None,
-            display_calc_lw=None, display_exp_lw=None,
-            axes_xscale=None, axes_xmin=None, axes_xmax=None,
-            axes_xstretch=None, axes_yscale=None, axes_yvisible=None,
-            load_default_data=True, **kwargs):
-        super(Project, self).__init__(parent=kwargs.get("parent", None))
-        self.parent = kwargs.get("parent") # FIXME ??? old project files seem to have an issue here?
+    def __init__(self, *args, **kwargs):
+        """
+            Valid keyword arguments for a Project are:
+                name: the project name
+                description: the project description
+                author: the project author(s)
+                date: the data at which the project was created
+                layout_mode: the layout mode this project should be displayed in
+                display_calc_color: 'default' calculated profile color
+                display_calc_lw: 'default' calculated profile line width
+                display_exp_color: 'default' experimental profile color
+                display_exp_lw: 'default' experimental profile line width
+                display_plot_offset: the offset between patterns as a fraction of
+                 the maximum intensity
+                display_group_by: the number of patterns to group (having no offset)
+                display_label_pos: the relative position  from the pattern offset
+                 for pattern labels as a fraction of the patterns intensity
+                axes_xscale: what type of scale to use for X-axis, automatic or manual
+                axes_xmin: the manual lower limit for the X-axis
+                axes_xmax: the manual upper limit for the X-axis
+                axes_xstretch: whether or not to stretch the X-axis over the entire
+                 available display
+                axes_yscale: what type of y-axis to use: raw counts, single or
+                 multi-normalized units
+                axes_yvisible: whether or not the y-axis should be shown
+                atom_types: the AtomType's ObjectListStore
+                phases: the Phase's ObjectListStore
+                specimens: the Specimen's ObjectListStore
+                mixtures: the Mixture's ObjectListStore
+                load_default_data: whether or not to load default data (i.e. 
+                 atom type definitions)
+                
+            Keyword arguments controlling the 'default' layout for markers:
+                display_marker_align
+                display_marker_color
+                display_marker_base
+                display_marker_top
+                display_marker_top_offset
+                display_marker_angle
+                display_marker_style
+            See the 'specimen.models.marker' model for an explenation on what
+             these mean.
+             
+            Deprecated (but still supported) keyword arguments:
+                goniometer: the project-level goniometer, is passed on to the
+                 specimens
+        """
+        super(Project, self).__init__(**kwargs)
+        # self.parent = kwargs.get("parent") # FIXME ??? old project files seem to have an issue here?
 
         with self.data_changed.hold():
             with self.visuals_changed.hold():
 
-                # Storable.__init__(self)
+                self.layout_mode = self.get_kwarg(kwargs, self.layout_mode, "layout_mode")
 
-                self.layout_mode = layout_mode or self.layout_mode
+                self.display_marker_align = self.get_kwarg(kwargs, self.display_marker_align, "display_marker_align")
+                self.display_marker_color = self.get_kwarg(kwargs, self.display_marker_color, "display_marker_color")
+                self.display_marker_base = self.get_kwarg(kwargs, self.display_marker_base, "display_marker_base")
+                self.display_marker_top = self.get_kwarg(kwargs, self.display_marker_top, "display_marker_top")
+                self.display_marker_top_offset = self.get_kwarg(kwargs, self.display_marker_top_offset, "display_marker_top_offset")
+                self.display_marker_angle = self.get_kwarg(kwargs, self.display_marker_angle, "display_marker_angle")
+                self.display_marker_style = self.get_kwarg(kwargs, self.display_marker_style, "display_marker_style")
 
-                self.display_marker_align = display_marker_align or self.display_marker_align
-                self.display_marker_color = display_marker_color or self.display_marker_color
-                self.display_marker_base = display_marker_base or self.display_marker_base
-                self.display_marker_top = display_marker_top or self.display_marker_top
-                self.display_marker_top_offset = display_marker_top_offset or self.display_marker_top_offset
-                self.display_marker_angle = display_marker_angle or self.display_marker_angle
-                self.display_marker_style = display_marker_style or self.display_marker_style
+                self.display_calc_color = self.get_kwarg(kwargs, self.display_calc_color, "display_calc_color")
+                self.display_exp_color = self.get_kwarg(kwargs, self.display_exp_color, "display_exp_color")
+                self.display_calc_lw = self.get_kwarg(kwargs, self.display_calc_lw, "display_calc_lw")
+                self.display_exp_lw = self.get_kwarg(kwargs, self.display_exp_lw, "display_exp_lw")
+                self.display_plot_offset = self.get_kwarg(kwargs, self.display_plot_offset, "display_plot_offset")
+                self.display_group_by = self.get_kwarg(kwargs, self.display_group_by, "display_group_by")
+                self.display_label_pos = self.get_kwarg(kwargs, self.display_label_pos, "display_label_pos")
 
-                self.display_calc_color = display_calc_color or self.display_calc_color
-                self.display_exp_color = display_exp_color or self.display_exp_color
-                self.display_calc_lw = display_calc_lw or self.display_calc_lw
-                self.display_exp_lw = display_exp_lw or self.display_exp_lw
-                self.display_plot_offset = display_plot_offset or self.display_plot_offset
-                self.display_group_by = display_group_by or self.display_group_by
-                self.display_label_pos = display_label_pos or self.display_label_pos
-
-                self.axes_xscale = axes_xscale or self.axes_xscale
-                self.axes_xmin = axes_xmin or self.axes_xmin
-                self.axes_xmax = axes_xmax or self.axes_xmax
-                self.axes_xstretch = axes_xstretch or self.axes_xstretch
-                self.axes_yscale = axes_yscale or self.axes_yscale
-                self.axes_yvisible = axes_yvisible or self.axes_yvisible
+                self.axes_xscale = self.get_kwarg(kwargs, self.axes_xscale, "axes_xscale")
+                self.axes_xmin = self.get_kwarg(kwargs, self.axes_xmin, "axes_xmin")
+                self.axes_xmax = self.get_kwarg(kwargs, self.axes_xmax, "axes_xmax")
+                self.axes_xstretch = self.get_kwarg(kwargs, self.axes_xstretch, "axes_xstretch")
+                self.axes_yscale = self.get_kwarg(kwargs, self.axes_yscale, "axes_yscale")
+                self.axes_yvisible = self.get_kwarg(kwargs, self.axes_yvisible, "axes_yvisible")
 
                 goniometer = None
-                goniometer_kwargs = self.get_depr(kwargs, None, "data_goniometer", "goniometer")
+                goniometer_kwargs = self.get_kwarg(kwargs, None, "goniometer", "data_goniometer")
                 if goniometer_kwargs:
                     goniometer = self.parse_init_arg(goniometer_kwargs, None, child=True)
 
-                atom_types = atom_types or self.get_depr(kwargs, None, "data_atom_types")
-                phases = phases or self.get_depr(kwargs, None, "data_phases")
-                specimens = specimens or self.get_depr(kwargs, None, "data_specimens")
-                mixtures = mixtures or self.get_depr(kwargs, None, "data_mixtures")
+                atom_types = self.get_kwarg(kwargs, None, "atom_types", "data_atom_types")
+                phases = self.get_kwarg(kwargs, None, "phases", "data_phases")
+                specimens = self.get_kwarg(kwargs, None, "specimens", "data_specimens")
+                mixtures = self.get_kwarg(kwargs, None, "mixtures", "data_mixtures")
                 self._atom_types = self.parse_liststore_arg(atom_types, IndexListStore, AtomType)
                 self._phases = self.parse_liststore_arg(phases, ObjectListStore, Phase)
                 self._specimens = self.parse_liststore_arg(specimens, ObjectListStore, Specimen)
                 self._mixtures = self.parse_liststore_arg(mixtures, ObjectListStore, Mixture)
 
+                # Resolve json references & observe phases
                 for phase in self.phases.iter_objects():
                     phase.resolve_json_references()
                     self.observe_model(phase)
+                # Set goniometer if required & observe specimens
                 for specimen in self.specimens.iter_objects():
                     if goniometer: specimen.goniometer = goniometer
                     self.observe_model(specimen)
+                # Observe mixtures:
                 for mixture in self.mixtures.iter_objects():
                     self.observe_model(mixture)
 
+                # Connect signals to ObjectListStores:
                 self.atom_types.connect("item-removed", self.on_atom_type_item_removed)
                 self.phases.connect("item-removed", self.on_phase_item_removed)
                 self.specimens.connect("item-removed", self.on_specimen_item_removed)
@@ -252,13 +288,12 @@ class Project(DataModel, Storable, ObjectListStoreParentMixin):
                 self.specimens.connect("item-inserted", self.on_specimen_item_inserted)
                 self.mixtures.connect("item-inserted", self.on_mixture_item_inserted)
 
-                self.description = "" # gtk.TextBuffer()
+                self.name = str(self.get_kwarg(kwargs, "Project name", "name", "data_name"))
+                self.date = str(self.get_kwarg(kwargs, time.strftime("%d/%m/%Y"), "date", "data_date"))
+                self.description = str(self.get_kwarg(kwargs, "Project description", "description", "data_description"))
+                self.author = str(self.get_kwarg(kwargs, "Project author", "author", "data_author"))
 
-                self.name = str(name or self.get_depr(kwargs, "", "data_name"))
-                self.date = str(date or self.get_depr(kwargs, "", "data_date"))
-                self.description = str(description or self.get_depr(kwargs, "", "data_description"))
-                self.author = str(author or self.get_depr(kwargs, "", "data_author"))
-
+                load_default_data = self.get_kwarg(kwargs, False, "load_default_data")
                 if load_default_data and self.layout_mode != 1 and \
                     len(self._atom_types._model_data) == 0: self.load_default_data()
 
@@ -285,7 +320,7 @@ class Project(DataModel, Storable, ObjectListStoreParentMixin):
             # Clear parent:
             item.parent = None
             # Clear links with other phases:
-            if item.based_on != None:
+            if item.based_on is not None:
                 item.based_on = None
             for phase in self.phases.iter_objects():
                 if phase.based_on == item:
@@ -382,7 +417,7 @@ class Project(DataModel, Storable, ObjectListStoreParentMixin):
 
     def get_max_intensity(self):
         max_intensity = 0
-        if self.parent != None:
+        if self.parent is not None:
             for specimen in self.parent.current_specimens:
                 max_intensity = max(specimen.max_intensity, max_intensity)
         return max_intensity

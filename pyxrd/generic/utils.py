@@ -85,7 +85,7 @@ class delayed(object):
             else:
                 instance = args[0] if len(args) > 0 else None
                 key = instance or func
-                if self.__lock != None and getattr(instance, self.__lock):
+                if self.__lock is not None and getattr(instance, self.__lock):
                     return # if the function is locked, do not push back the call
                 if key in self.__tmrid:
                     gobject.source_remove(self.__tmrid[key])

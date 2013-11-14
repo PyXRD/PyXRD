@@ -67,33 +67,47 @@ class Goniometer(DataModel, Storable):
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def __init__(self, radius=None, divergence=None,
-                 soller1=None, soller2=None,
-                 min_2theta=None, max_2theta=None, steps=2500,
-                 wavelength=None, has_ads=False, ads_fact=1.0,
-                 ads_phase_fact=1.0, ads_phase_shift=0.0, ads_const=0.0,
-                 parent=None, **kwargs):
-        super(Goniometer, self).__init__(parent=parent)
-        Storable.__init__(self)
+    def __init__(self, *args, **kwargs):
+        """
+            Valid keyword arguments for a Goniometer are:
+                radius: the radius of the goniometer
+                divergence: the divergence slit size of the goniometer (in °)
+                has_ads: flag indicating whether an automatic divergence slit is used
+                ads_fact: the factor in the ads equation (see below) 
+                ads_phase_fact: the phase factor in the ads equation (see below
+                ads_phase_shift: the phase shift in the ads equation (see below)
+                ads_const: the constant in the ads equation (see below)
+                soller1: the first Soller slit
+                soller2: the second Soller slit
+                min_2theta: the starting angle
+                max_2theta: the ending angle
+                steps: the number of steps between start and end angle
+                wavelength: the wavelength of the generated X-rays
+                
+            The ADS equation is defined as follows:
+            I*(2theta) = I(2theta) * ((divergence * ads_fact) / 
+                (np.sin(ads_phase_fact * 2theta + radians(ads_phase_shift)) - ads_const))
+        """
+        super(Goniometer, self).__init__(*args, **kwargs)
 
         self._data_object = GonioData()
 
         with self.data_changed.hold():
-            self.radius = radius or self.get_depr(kwargs, 24.0, "data_radius")
-            self.divergence = divergence or self.get_depr(kwargs, 0.5, "data_divergence")
-            self.has_ads = bool(has_ads)
-            self.ads_fact = ads_fact
-            self.ads_phase_fact = ads_phase_fact
-            self.ads_phase_shift = ads_phase_shift
-            self.ads_const = ads_const
+            self.radius = self.get_kwarg(kwargs, 24.0, "radius", "data_radius")
+            self.divergence = self.get_kwarg(kwargs, 0.5, "divergence", "data_divergence")
+            self.has_ads = self.get_kwarg(kwargs, False, "has_ads")
+            self.ads_fact = self.get_kwarg(kwargs, 1.0, "ads_fact")
+            self.ads_phase_fact = self.get_kwarg(kwargs, 1.0, "ads_phase_fact")
+            self.ads_phase_shift = self.get_kwarg(kwargs, 0.0, "ads_phase_shift")
+            self.ads_const = self.get_kwarg(kwargs, 0.0, "ads_const")
 
-            self.soller1 = soller1 or self.get_depr(kwargs, 2.3, "data_soller1")
-            self.soller2 = soller2 or self.get_depr(kwargs, 2.3, "data_soller2")
+            self.soller1 = self.get_kwarg(kwargs, 2.3, "soller1", "data_soller1")
+            self.soller2 = self.get_kwarg(kwargs, 2.3, "soller2", "data_soller2")
 
-            self.min_2theta = min_2theta or self.get_depr(kwargs, 3.0, "data_min_2theta")
-            self.max_2theta = max_2theta or self.get_depr(kwargs, 45.0, "data_max_2theta")
-            self.steps = steps
-            self.wavelength = wavelength or self.get_depr(kwargs, 0.154056, "data_lambda")
+            self.min_2theta = self.get_kwarg(kwargs, 3.0, "min_2theta", "data_min_2theta")
+            self.max_2theta = self.get_kwarg(kwargs, 45.0, "max_2theta", "data_max_2theta")
+            self.steps = self.get_kwarg(kwargs, 2500, "steps")
+            self.wavelength = self.get_kwarg(kwargs, 0.154056, "wavelength", "data_lambda", "lambda")
 
     def __reduce__(self):
         return (type(self), ((), self.json_properties()))

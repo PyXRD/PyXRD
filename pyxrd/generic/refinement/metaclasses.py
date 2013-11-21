@@ -55,7 +55,7 @@ class PyXRDRefinableMeta(PyXRDMeta):
                 if info_args:
                     prop_infos[ref_info_name] = RefinementInfo.from_json(*info_args)
                 else:
-                    prop_infos[ref_info_name] = RefinementInfo(minimum=prop_intel.minimum, maximum=prop_intel.maximum)
+                    prop_infos[ref_info_name] = RefinementInfo(prop_intel.minimum, prop_intel.maximum, False)
 
         # Create the instance passing the stripped keyword arguments:
         instance = PyXRDMeta.__call__(cls, *args, **kwargs)

@@ -287,8 +287,8 @@ class Atom(DataModel, ObjectListStoreChildMixin, Storable):
         self.pn = float(self.get_kwarg(kwargs, 0.0, "pn", "data_pn"))
 
         self.atom_type = self.get_kwarg(kwargs, None, "atom_type", "data_atom_type")
-        self._atom_type_uuid = self.get_kwarg(kwargs, "", "atom_type_uuid")
-        self._atom_type_name = self.get_kwarg(kwargs, "", "atom_type_name")
+        self._atom_type_uuid = self.get_kwarg(kwargs, None, "atom_type_uuid")
+        self._atom_type_name = self.get_kwarg(kwargs, None, "atom_type_name")
         self._atom_type_index = self.get_kwarg(kwargs, None, "atom_type_index")
 
     def __str__(self):
@@ -324,23 +324,23 @@ class Atom(DataModel, ObjectListStoreChildMixin, Storable):
     #      Input/Output stuff
     # ------------------------------------------------------------
     def resolve_json_references(self):
-        if getattr(self, "_atom_type_uuid", "") != "":
+        if getattr(self, "_atom_type_uuid", None) is not None:
             self.atom_type = pyxrd_object_pool.get_object(self._atom_type_uuid)
-            del self._atom_type_uuid
-        elif getattr(self, "_atom_type_name", "") != "" or getattr(self, "_atom_type_index", None) is not None:
+            self._atom_type_uuid = None
+        elif getattr(self, "_atom_type_name", None) is not None or getattr(self, "_atom_type_index", None) is not None:
             assert(self.component is not None)
             assert(self.component.phase is not None)
             assert(self.component.phase.project is not None)
-            if getattr(self, "_atom_type_name", "") != "":
+            if getattr(self, "_atom_type_name", None) is not None:
                 for atom_type in self.component.phase.project.atom_types.iter_objects():
                     if atom_type.name == self._atom_type_name:
                         self.atom_type = atom_type
-                del self._atom_type_name
+                self._atom_type_name = None
             else:
                 warn("The use of object indeces is deprected since version 0.4. \
                     Please switch to using object UUIDs.", DeprecationWarning)
                 self.atom_type = self.component.phase.project.atom_types.get_user_data_from_path((self._atom_type_index,))
-                del self._atom_type_index
+                self._atom_type_index = None
 
     def json_properties(self):
         retval = super(Atom, self).json_properties()

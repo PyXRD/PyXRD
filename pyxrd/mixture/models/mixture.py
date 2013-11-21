@@ -297,9 +297,9 @@ class Mixture(DataModel, ObjectListStoreChildMixin, Storable):
 
     @contextmanager
     def _relieve_and_observe_phases(self):
-        self._relieve_specimens()
+        self._relieve_phases()
         yield
-        self._observe_specimens()
+        self._observe_phases()
 
     def _observe_phases(self):
         """ Starts observing phases in the phase matrix"""

@@ -185,7 +185,7 @@ class Refiner(ChildModel):
             self.refine_lock = True
 
             # Suppress updates:
-            with self.mixture.project.data_changed.hold():
+            with self.mixture.data_changed.hold():
 
                 # If something has been selected: continue...
                 if len(self.context.ref_props) > 0:

@@ -15,6 +15,7 @@ import argparse, os
 
 try:
     import gtk
+    gtk.gdk.threads_init() # @UndefinedVariable
 except ImportError:
     pass
 

@@ -15,7 +15,6 @@ from pyxrd.generic.models import DataModel
 from pyxrd.generic.models.mixins import ObjectListStoreParentMixin
 from pyxrd.generic.models.properties import PropIntel, MultiProperty
 from pyxrd.generic.models.treemodels import ObjectListStore, IndexListStore
-from pyxrd.generic.plot.draggables import DraggableMixin
 from pyxrd.generic.io import storables, Storable, get_case_insensitive_glob
 
 from pyxrd.specimen.models import Specimen
@@ -24,7 +23,7 @@ from pyxrd.atoms.models import AtomType
 from pyxrd.mixture.models.mixture import Mixture
 
 @storables.register()
-class Project(DataModel, Storable, ObjectListStoreParentMixin, DraggableMixin):
+class Project(DataModel, Storable, ObjectListStoreParentMixin):
     # MODEL INTEL:
     __model_intel__ = [ # TODO add labels
         PropIntel(name="name", data_type=str, storable=True, has_widget=True),

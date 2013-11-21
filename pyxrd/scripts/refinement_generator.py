@@ -37,14 +37,15 @@ def run(args):
                 # pr = cProfile.Profile()
                 # pr.enable()
                 # try:
-                settings.CACHE = "FILE" # enable active caching
-                mixture.update_refinement_treestore()
-                mixture.randomize()
-                mixture.optimizer.optimize()
+                with mixture.data_changed.hold():
+                    settings.CACHE = "FILE" # enable active caching
+                    mixture.update_refinement_treestore()
+                    mixture.randomize()
+                    mixture.optimizer.optimize()
 
-                settings.CACHE = "FILE_FETCH_ONLY" # disable active caching
-                mixture.refiner.setup_context(store=True)
-                mixture.refiner.refine(stop=stop_event)
+                    settings.CACHE = "FILE_FETCH_ONLY" # disable active caching
+                    mixture.refiner.setup_context(store=True)
+                    mixture.refiner.refine(stop=stop_event)
                 # except:
                 #    pass
                 # finally:

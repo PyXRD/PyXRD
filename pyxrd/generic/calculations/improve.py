@@ -47,20 +47,22 @@ def improve_solution(projectf, mixture_index, solution, residual, l_bfgs_b_kwarg
 
         mixture = project.mixtures.get_item_by_index(mixture_index)
 
-        # Setup context again:
-        mixture.update_refinement_treestore()
-        mixture.refiner.setup_context(store=False) # we already have a dumped project
-        context = mixture.refiner.context
+        with mixture.data_changed.ignore():
 
-        # Refine solution
-        vals = fmin_l_bfgs_b(
-            context.get_residual_for_solution,
-            solution,
-            approx_grad=True,
-            bounds=context.ranges,
-            **l_bfgs_b_kwargs
-        )
-        new_solution, new_residual = tuple(vals[0:2])
+            # Setup context again:
+            mixture.update_refinement_treestore()
+            mixture.refiner.setup_context(store=False) # we already have a dumped project
+            context = mixture.refiner.context
+
+            # Refine solution
+            vals = fmin_l_bfgs_b(
+                context.get_residual_for_solution,
+                solution,
+                approx_grad=True,
+                bounds=context.ranges,
+                **l_bfgs_b_kwargs
+            )
+            new_solution, new_residual = tuple(vals[0:2])
 
         # Return result
         return new_solution, new_residual

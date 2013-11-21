@@ -18,8 +18,8 @@ try:
     INHIBIT_MASS_EMIT = False
 except ImportError:
     INHIBIT_MASS_EMIT = True
-    from pyxrd.generic.models.treemodels import dummy_gtk as gtk
-    from pyxrd.generic.models.treemodels import dummy_gobject as gobject
+    from pyxrd.generic.gtk_tools import dummy_gtk as gtk
+    from pyxrd.generic.gtk_tools import dummy_gobject as gobject
 
 from pyxrd.generic.io import storables, Storable
 from pyxrd.generic.io.file_parsers import ASCIIParser

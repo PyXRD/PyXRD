@@ -30,17 +30,17 @@ class RefinementInfo(PyXRDModel, Storable):
     maximum = None
     refine = False
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, minimum, maximum, refine, *args, **kwargs):
         """
-            Valid keyword arguments for a RefinementInfo are:
+            Valid *positional* arguments for a RefinementInfo are:
                 refine: whether or not the linked parameter is selected for refinement
                 minimum: the minimum allowable value for the linked parameter
                 maximum: the maximum allowable value for the linked parameter   
         """
         super(RefinementInfo, self).__init__()
-        self.refine = self.get_kwarg(kwargs, False, "refine")
-        self.minimum = self.get_kwarg(kwargs, None, "minimum")
-        self.maximum = self.get_kwarg(kwargs, None, "maximum")
+        self.refine = refine
+        self.minimum = minimum
+        self.maximum = maximum
 
     def to_json(self):
         return self.json_properties()

@@ -16,24 +16,27 @@ __all__ = [
     'TestBaseObjectListStore',
 ]
 
-class TestBaseObjectListStoreMixin(object):
+class _DummyObject(object):
+    class Meta(object):
+        @classmethod
+        def get_column_properties(cls):
+            return [
+                ["name", str],
+                ["number", float],
+                ["test", object]
+            ]
 
-    class DummyObject(object):
-        __columns__ = [
-            ["name", str],
-            ["number", float],
-            ["object", object]
-        ]
+    def __init__(self, *args, **kwargs):
+        super(_DummyObject, self).__init__()
+        for key, val in kwargs.iteritems():
+            setattr(self, key, val)
 
-        def __init__(self, *args, **kwargs):
-            super(TestBaseObjectListStoreMixin.DummyObject, self).__init__()
-            for key, val in kwargs.iteritems():
-                setattr(self, key, val)
+    pass # end of class
 
-        pass # end of class
+class TestBaseObjectListStore(unittest.TestCase):
 
     def setUp(self):
-        self.store = self.store_type(self.DummyObject)
+        self.store = BaseObjectListStore(_DummyObject)
 
     def tearDown(self):
         del self.store
@@ -42,16 +45,12 @@ class TestBaseObjectListStoreMixin(object):
         self.assertNotEqual(self.store, None)
 
     def test_columns(self):
-        self.assertEqual(self.store.get_n_columns(), len(self.DummyObject.__columns__))
+        self.assertEqual(self.store.get_n_columns(), len(self.store._class_type.Meta.get_column_properties()))
         self.assertEqual(self.store.get_column_type(self.store.c_name), gobject.type_from_name("gchararray"))
         self.assertEqual(self.store.get_column_type(self.store.c_number), gobject.type_from_name("gdouble"))
-        self.assertEqual(self.store.get_column_type(self.store.c_object), gobject.type_from_name("PyObject"))
+        self.assertEqual(self.store.get_column_type(self.store.c_test), gobject.type_from_name("PyObject"))
 
     def test_convert(self):
         self.assertEqual(self.store.convert(1, "0.5"), 0.5)
-
-class TestBaseObjectListStore(TestBaseObjectListStoreMixin, unittest.TestCase):
-
-    store_type = BaseObjectListStore
 
     pass # end of class

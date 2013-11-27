@@ -12,10 +12,11 @@ except:
 
 from scipy.optimize import fmin_l_bfgs_b
 
+from pyxrd.gtkmvc.support.metaclasses import UUIDMeta
+
 from pyxrd.data import settings
 
 from pyxrd.project.models import Project
-from pyxrd.generic.models.metaclasses import pyxrd_object_pool
 
 from .exceptions import wrap_exceptions
 
@@ -29,7 +30,7 @@ def setup_project(projectf):
         settings.CACHE = None
     settings.apply_runtime_settings()
 
-    pyxrd_object_pool.clear()
+    UUIDMeta.object_pool.clear()
 
     f = StringIO()
     f.write(projectf)

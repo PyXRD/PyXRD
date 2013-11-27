@@ -11,6 +11,7 @@ from pyxrd.gtkmvc.adapters import Adapter
 from pyxrd.generic.controllers.utils import StoreAdapter, ComboAdapter, TextBufferAdapter
 from pyxrd.generic.views.validators import FloatEntryValidator
 from pyxrd.generic.views.widgets import ScaleEntry
+import types
 
 widget_handlers = {}
 
@@ -147,7 +148,7 @@ def color_selection_widget_handler(ctrl, intel, widget):
         signal="color-set"
     )
     return ad
-widget_handlers['color-selection'] = color_selection_widget_handler
+widget_handlers['color_selection'] = color_selection_widget_handler
 
 def text_view_handler(ctrl, intel, widget):
     """ Handler for gtk.TextView widgets """
@@ -163,25 +164,30 @@ widget_handlers['text_view'] = text_view_handler
 
 def tree_view_handler(ctrl, intel, widget):
     """ Handler for gtk.TreeView widgets """
-    get_tree_model = getattr(ctrl, 'get_%s_tree_model' % intel.name, None)
-    set_tree_model = getattr(ctrl, 'set_%s_tree_model' % intel.name, gtk.TreeView.set_model)
     setup_tree_view = getattr(ctrl, 'setup_%s_tree_view' % intel.name, None)
 
-    ad = StoreAdapter(ctrl.model, intel.name, set_tree_model, get_tree_model)
+    if hasattr(ctrl, "get_%s_tree_model" % intel.name):
+        tree_model = getattr(ctrl, "get_%s_tree_model" % intel.name)()
+    else:
+        tree_model = getattr(ctrl, "treemodel", None)
+
+    ad = StoreAdapter(ctrl.model, intel.name, tree_model, gtk.TreeView.set_model)
     ad.connect_widget(widget)
-    if callable(setup_tree_view): setup_tree_view(ad._get_store(), widget)
+    if callable(setup_tree_view): setup_tree_view(tree_model, widget)
 
     return ad
 widget_handlers['tree_view'] = tree_view_handler
 
 def combo_handler(ctrl, intel, widget):
     """ Handler for a ComboBox widget """
-    ad = ComboAdapter(ctrl.model, intel.name, "_%ss" % intel.name)
+    if not isinstance(intel.options, types.DictionaryType):
+        raise ValueError, "ComboBox widget handler requires a PropIntel with an 'options' list!"
+    ad = ComboAdapter(ctrl.model, intel.name, list_data=intel.options)
     ad.connect_widget(widget)
     setup_combo = getattr(ctrl, 'setup_%s_combo' % intel.name, None)
     if callable(setup_combo): setup_combo(intel, widget)
     return ad
-widget_handlers['combo'] = combo_handler
+widget_handlers['option_list'] = combo_handler
 
 def file_chooser_widget_handler(ctrl, intel, widget):
     """ A handler for a file chooser widgets (string) """

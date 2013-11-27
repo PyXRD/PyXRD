@@ -34,25 +34,22 @@ class TextBufferAdapter(Adapter):
 
 class StoreAdapter(object):
 
-    def __init__(self, model, prop_name, store_setter, store_getter=None):
+    def __init__(self, model, prop_name, store, store_setter):
         super(StoreAdapter, self).__init__()
         self._prop_name = prop_name
         self._model = model
         self._store_setter = store_setter
-        self._store_getter = store_getter
+        self._store = store
 
     def get_property_name(self):
         return self._prop_name
 
-    def _get_store(self):
-        if callable(self._store_getter):
-            return self._store_getter(self._model, self._prop_name)
-        else:
-            return getattr(self._model, self._prop_name)
-
     def connect_widget(self, widget):
+        """
+            Set the store on the view
+        """
         self._wid = widget
-        self._store_setter(widget, self._get_store())
+        self._store_setter(widget, self._store)
 
     pass # end of class
 

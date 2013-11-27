@@ -87,9 +87,12 @@ class PatternActionController(DialogController):
     #      GTK Signal handlers
     # ------------------------------------------------------------
     def on_btn_ok_clicked(self, event):
-        try: getattr(self.model, self.model_action_method)()
-        except:
-            raise ValueError, "Subclasses of PatternActionController should specify a valid action method name!"
+        try:
+            action = getattr(self.model, self.model_action_method)
+        except AttributeError:
+            raise ValueError, "Subclasses of PatternActionController should specify a valid action method name (was '%s')!" % self.model_action_method
+        else:
+            action()
         return super(PatternActionController, self).on_btn_ok_clicked(event)
 
     def on_cancel(self):
@@ -122,7 +125,7 @@ class ShiftDataController(PatternActionController):
         "shift_value",
         "shift_position",
     ]
-    model_setup_method = "find_shift_value"
+    model_setup_method = "setup_shift_variables"
     model_action_method = "shift_data"
     model_cancel_method = "clear_shift_variables"
 
@@ -206,7 +209,7 @@ class BackgroundController(PatternActionController):
         # FIXME in the future, this better become a separate view ...?
         float_entry_widget_handler(
             self,
-            self.model.get_prop_intel_by_name("bg_position"),
+            self.model.Meta.get_prop_intel_by_name("bg_position"),
             self.view['bg_offset']
         )
         super(BackgroundController, self).register_adapters()
@@ -248,8 +251,8 @@ class BackgroundController(PatternActionController):
             bg_pattern_y = pattern[:, 1].copy()
             del pattern
 
-            if bg_pattern_x.shape != self.model.xy_store._model_data_x.shape:
-                raise ValueError, "Shape mismatch: background pattern (shape = %s) and experimental data (shape = %s) need to have the same length!" % (bg_pattern_x.shape, self.model.xy_store._model_data_x.shape)
+            if bg_pattern_x.shape != self.model.data_x.shape:
+                raise ValueError, "Shape mismatch: background pattern (shape = %s) and experimental data (shape = %s) need to have the same length!" % (bg_pattern_x.shape, self.model.data_x.shape)
                 dialog.unselect_filename(filename)
             else:
                 self.model.bg_pattern = bg_pattern_y

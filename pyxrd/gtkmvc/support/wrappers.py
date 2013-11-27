@@ -154,7 +154,7 @@ class ObsListWrapper (ObsSeqWrapper):
                    "pop", "remove", "reverse", "sort")
         ObsSeqWrapper.__init__(self, l, methods)
 
-        for _m in "add mul".split():
+        for _m in ("add", "mul"):
             meth = "__%s__" % _m
             assert hasattr(self._obj, meth), "Not found method %s in %s" % (meth, str(type(self._obj)))
             setattr(self.__class__, meth, getattr(self._obj, meth))

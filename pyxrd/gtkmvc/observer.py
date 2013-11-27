@@ -476,7 +476,8 @@ class Observer (object):
             processed_props |= cls_processed_props
             pass # end of loop over classes in the mro
 
-        if model: self.observe_model(model)
+        if model is not None: 
+            self.observe_model(model)
         return
 
     def observe_model(self, model):

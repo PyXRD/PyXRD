@@ -7,13 +7,6 @@
 
 from pyxrd.gtkmvc.model_base import * # @UnusedWildImport
 
-GTK_AVAILABLE = False
-try:
-    from pyxrd.gtkmvc.model_gtk import TreeStoreModel, ListStoreModel, TextBufferModel # @UnusedImport
-    GTK_AVAILABLE = True
-except ImportError:
-    pass # ignore missing GTK
-
 try:
     from pyxrd.gtkmvc.model_mt import ModelMT # @UnusedImport
 except ImportError:

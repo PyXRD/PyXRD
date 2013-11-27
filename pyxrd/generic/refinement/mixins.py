@@ -35,6 +35,9 @@ class _RefinementBase(ModelMT):
     """
     __metaclass__ = PyXRDRefinableMeta
 
+    class Meta(ModelMT.Meta):
+        properties = []
+
     def __init__(self, *args, **kwargs):
         # Nothing to do but ignore any extraneous args & kwargs passed down
         super(_RefinementBase, self).__init__()
@@ -93,7 +96,7 @@ class RefinementGroup(_RefinementBase):
 
     @property
     def refinables(self):
-        return self.__refinables__
+        return self.Meta.get_refinable_properties()
 
     pass # end of class
 

@@ -280,10 +280,10 @@ class EditMixtureView(BaseView):
         combobox.set_size_request(75, -1)
         cell = gtk.CellRendererText()
         combobox.pack_start(cell) # , False)
-        combobox.add_attribute(cell, 'text', text_column)
+        combobox.add_attribute(cell, 'text', text_column) 
         if default is not None:
-            print default
-            combobox.set_active(model.index(default))
+            index = model.on_get_path(default)[0]
+            combobox.set_active(index)
         combobox.connect("changed", callback, *args)
         return combobox
 

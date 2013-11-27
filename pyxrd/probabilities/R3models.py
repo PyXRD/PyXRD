@@ -6,9 +6,9 @@
 # Complete license can be found in the LICENSE file.
 
 from pyxrd.generic.mathtext_support import mt_range
-from pyxrd.generic.models import PropIntel
 from pyxrd.generic.io import storables
 from pyxrd.probabilities.base_models import _AbstractProbability
+from pyxrd.gtkmvc.support.propintel import PropIntel
 
 @storables.register()
 class R3G2Model(_AbstractProbability):
@@ -48,39 +48,40 @@ class R3G2Model(_AbstractProbability):
 	indexes are NOT zero-based in external property names!
 	"""
 
-    # MODEL INTEL:
-    __independent_label_map__ = [
-        ("W1", r"$W_1$", [2.0 / 3.0, 1.0]),
-        ("P1111_or_P2112",
-         r"$P_{1111} %s$ or $\newline P_{2112} %s$" % (
-            mt_range(2.0 / 3.0, "W_1", 3.0 / 4.0),
-            mt_range(3.0 / 4.0, "W_1", 1.0)
-         ), [0.0, 1.0]),
-    ]
-    __model_intel__ = [
-        PropIntel(
-            name=prop, label=label,
-            minimum=rng[0], maximum=rng[1],
-            data_type=float,
-            refinable=True, storable=True, has_widget=True
-        ) for prop, label, rng in __independent_label_map__
-    ]
-    __store_id__ = "R3G2Model"
+    # MODEL METADATA:
+    class Meta(_AbstractProbability.Meta):
+        store_id = "R3G2Model"
+        independent_label_map = [
+            ("W1", r"$W_1$", [2.0 / 3.0, 1.0]),
+            ("P1111_or_P2112",
+             r"$P_{1111} %s$ or $\newline P_{2112} %s$" % (
+                mt_range(2.0 / 3.0, "W_1", 3.0 / 4.0),
+                mt_range(3.0 / 4.0, "W_1", 1.0)
+             ), [0.0, 1.0]),
+        ]
+        properties = [
+            PropIntel(
+                name=prop, label=label,
+                minimum=rng[0], maximum=rng[1],
+                data_type=float,
+                refinable=True, storable=True, has_widget=True
+            ) for prop, label, rng in independent_label_map
+        ]
+        
 
     # PROPERTIES:
-
     _W0 = 0.0
-    def get_W1_value(self): return self._W0
-    def set_W1_value(self, value):
+    def get_W1(self): return self._W0
+    def set_W1(self, value):
         self._W0 = min(max(value, 2.0 / 3.0), 1.0)
         self.update()
 
-    def get_P1111_or_P2112_value(self):
+    def get_P1111_or_P2112(self):
         if self._W0 <= 0.75:
             return self.mP[0, 0, 0, 0]
         else:
             return self.mP[1, 0, 0, 1]
-    def set_P1111_or_P2112_value(self, value):
+    def set_P1111_or_P2112(self, value):
         if self._W0 <= 0.75:
             self.mP[0, 0, 0, 0] = value
         else:

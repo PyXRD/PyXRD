@@ -5,25 +5,17 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-import locale
+from pyxrd.gtkmvc import Controller
 
-import gtk
-
-from pyxrd.gtkmvc import Model, Controller
-from pyxrd.gtkmvc.adapters import Adapter
-
-from pyxrd.generic.views.validators import FloatEntryValidator
-from pyxrd.generic.views import ChildObjectListStoreView
 from pyxrd.generic.controllers import BaseController
 
-from pyxrd.probabilities.views import EditProbabilitiesView, get_correct_probability_views
+from pyxrd.probabilities.views import get_correct_probability_views
 from pyxrd.probabilities.models import RGbounds
 
 def get_correct_probability_controllers(probability, parent_controller, independents_view, dependents_view):
     if probability is not None:
         G = probability.G
         R = probability.R
-        rank = probability.rank
         if (RGbounds[R, G - 1] > 0):
             return BaseController(model=probability, parent=parent_controller, view=independents_view), \
                    MatrixController(current=R, model=probability, parent=parent_controller, view=dependents_view)

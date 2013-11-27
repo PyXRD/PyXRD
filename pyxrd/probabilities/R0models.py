@@ -6,69 +6,52 @@
 # Complete license can be found in the LICENSE file.
 
 import numpy as np
-from pyxrd.gtkmvc.model import Model
 
-from pyxrd.generic.models import PropIntel
+from pyxrd.gtkmvc.support.propintel import PropIntel
+
 from pyxrd.generic.io import storables
 from pyxrd.probabilities.base_models import _AbstractProbability
 
 def R0_model_generator(pasG):
 
-    @storables.register()
-    class R0Model(_AbstractProbability):
+    class _R0Meta(_AbstractProbability.Meta):
+        store_id = "R0G%dModel" % pasG
+        independent_label_map = [(
+            "F%d" % (g + 1),
+            r"$\large\frac{W_{%(g)d}}{\sum_{i=%(g)d}^{%(G)d} W_i}$" % {'g':g + 1, 'G':pasG },
+            [0.0, 1.0, ]
+        ) for g in range(pasG - 1) ]
+        
+        properties = [
+            PropIntel(name=prop, label=label, minimum=rng[0], maximum=rng[1], data_type=float, refinable=True, storable=True, has_widget=True) \
+                for prop, label, rng in independent_label_map
+        ]
+
+    class _BaseR0Model():
         """
         Reichweite = 0
-	    (g-1) independent variables:
-	    
-	    W0 = W0/sum(W0>Wg)
-	    W1/sum(W1>Wg)
-	    W2/sum(W2>Wg)
-	    etc.
-	    
-
-	    Pij = Wj
-	    ∑W = 1
-	    ∑P = 1
-	
-	    indexes are NOT zero-based in external property names!
-	    """
-
-        # MODEL INTEL:
-        __independent_label_map__ = [
-            (
-                "F%d" % (g + 1),
-                r"$\large\frac{W_{%(g)d}}{\sum_{i=%(g)d}^{%(G)d} W_i}$" % {'g':g + 1, 'G':pasG },
-                [0.0, 1.0, ]
-            ) for g in range(pasG - 1)
-        ]
-        __model_intel__ = [
-            PropIntel(name=prop, label=label, minimum=rng[0], maximum=rng[1], data_type=float, refinable=True, storable=True, has_widget=True) \
-                for prop, label, rng in __independent_label_map__
-        ]
-        __store_id__ = "R0G%dModel" % pasG
-
-        @property
-        def G(self):
-            return pasG
-
-        # PROPERTIES:
-        @Model.getter("F[1-%d]" % (pasG + 1))
-        def get_W(self, prop_name):
-            index = int(prop_name[1:]) - 1
-            return self._F[index] if index < self.G else None
-        @Model.setter("F[1-%d]" % (pasG + 1))
-        def set_W(self, prop_name, value):
-            index = int(prop_name[1:]) - 1
-            self._F[index] = min(max(float(value), 0.0), 1.0)
-            self.update()
-
+        (g-1) independent variables:
+        
+        W0 = W0/sum(W0>Wg)
+        W1/sum(W1>Wg)
+        W2/sum(W2>Wg)
+        etc.
+        
+    
+        Pij = Wj
+        ∑W = 1
+        ∑P = 1
+    
+        indexes are NOT zero-based in external property names!
+        """
+    
         # ------------------------------------------------------------
         #      Initialisation and other internals
         # ------------------------------------------------------------
         def setup(self, **kwargs):
             _AbstractProbability.setup(self, R=0)
             self._F = np.zeros(shape=(self.G - 1), dtype=float)
-
+    
             if self.G > 1 and "W1" in kwargs: # old-style model
                 for i in range(self.G - 1):
                     self.mW[i] = kwargs.get("W%d" % (i + 1), 0.0 if i > 0 else 1.0)
@@ -88,7 +71,7 @@ def R0_model_generator(pasG):
                 else:
                     self.mW[0] = 1.0
             self._P[:] = np.repeat(np.diag(self._W)[np.newaxis, :], self.G, 0)
-
+    
         # ------------------------------------------------------------
         #      Methods & Functions
         # ------------------------------------------------------------
@@ -102,12 +85,42 @@ def R0_model_generator(pasG):
                 else:
                     self.mW[0] = 1.0
                 self._P[:] = np.repeat(np.diag(self._W)[np.newaxis, :], self.G, 0)
-
+    
                 self.solve()
                 self.validate()
-
+    
         pass # end of class
-    cls = type("R0G%dModel" % pasG, (R0Model,), dict())
+
+    #MODEL METADATA:
+    setattr(_BaseR0Model, "G", property(lambda s: pasG))
+    
+    #PROPERTIES:
+    def set_generic_F_accesors(index, get_name_format, set_name_format):
+        def _generic_get_F(self):
+            return self._F[index] if index < self.G else None
+        _generic_get_F.__name__ = get_name_format % (index + 1)
+        setattr(_BaseR0Model, "get_F%d" % (index + 1), _generic_get_F)
+                
+        def _generic_set_F(self, value):
+            try:
+                value = float(value)
+            except ValueError:
+                pass
+            else:
+                value = min(max(value, 0.0), 1.0)
+                if value != self._F[index]: 
+                    self._F[index] = value
+                    self.update()
+        _generic_set_F.__name__ = set_name_format % (index + 1)
+        setattr(_BaseR0Model, "set_F%d" % (index + 1), _generic_set_F)
+    
+    for index in range(pasG-1):
+        set_generic_F_accesors(index, "get_F%d", "set_F%d")
+    
+    #CREATE TYPE AND REGISTER AS STORABLE:
+    cls = type("R0G%dModel" % pasG, (_BaseR0Model, _AbstractProbability), dict(Meta = _R0Meta))
+    storables.register_decorator(cls)
+    
     return cls
 
 R0G1Model = R0_model_generator(1)

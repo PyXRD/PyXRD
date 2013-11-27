@@ -17,6 +17,7 @@ from pyxrd.generic.views.treeview_tools import new_pb_column
 from pyxrd.generic.views.combobox_tools import add_combo_text_column
 from pyxrd.generic.controllers import DialogController, BaseController, ObjectListStoreController
 from pyxrd.generic.controllers.utils import DummyAdapter
+from pyxrd.generic.controllers.objectliststore_controllers import wrap_list_property_to_treemodel
 from pyxrd.generic.models.treemodels.utils import create_treestore_from_directory
 
 from pyxrd.probabilities.models import get_Gbounds_for_R, get_Rbounds_for_G
@@ -26,6 +27,7 @@ from pyxrd.probabilities.views import EditProbabilitiesView
 from pyxrd.phases.controllers import EditCSDSTypeController, ComponentsController
 from pyxrd.phases.views import EditPhaseView, AddPhaseView, EditCSDSDistributionView
 from pyxrd.phases.models import Phase
+from pyxrd.generic.utils import not_none
 
 class EditPhaseController(BaseController):
     """ 
@@ -39,6 +41,10 @@ class EditPhaseController(BaseController):
     widget_handlers = {
         'custom': 'custom_handler',
     }
+
+    @property
+    def phases_treemodel(self):
+        return wrap_list_property_to_treemodel(self.model.project, "phases", Phase)
 
     def register_view(self, view):
         BaseController.register_view(self, view)
@@ -72,19 +78,17 @@ class EditPhaseController(BaseController):
             elif intel.name == "based_on":
                 combo = self.view["phase_based_on"]
 
-                tv_model = self.parent.model.current_project.phases
-
-                combo.set_model(tv_model)
+                combo.set_model(self.phases_treemodel)
                 combo.connect('changed', self.on_based_on_changed)
 
                 def phase_renderer(celllayout, cell, model, itr, user_data=None):
                     phase = model.get_user_data(itr)
                     if phase: # FIXME an error can occur here if the phase list is cleared and the view is still open
                         cell.set_sensitive(phase.R == self.model.R and phase.G == self.model.G and phase.get_based_on_root() != self.model)
-                add_combo_text_column(combo, data_func=phase_renderer, text_col=tv_model.c_name)
+                add_combo_text_column(combo, data_func=phase_renderer, text_col=self.phases_treemodel.c_name)
 
-                for row in tv_model:
-                    if tv_model.get_user_data(row.iter) == self.model.based_on:
+                for row in self.phases_treemodel:
+                    if self.phases_treemodel.get_user_data(row.iter) == self.model.based_on:
                         combo.set_active_iter (row.iter)
                         break
 
@@ -131,7 +135,7 @@ class EditPhaseController(BaseController):
 
     @Controller.observe("name", assign=True)
     def notif_name_changed(self, model, prop_name, info):
-        self.parent.model.current_project.phases.on_item_changed(self.model)
+        self.phases_treemodel.on_item_changed(self.model)
         return
 
     # ------------------------------------------------------------
@@ -153,10 +157,11 @@ class EditPhaseController(BaseController):
 
 class PhasesController(ObjectListStoreController):
     """ 
-        Controller for the phase ObjectListStore
+        Controller for the phases list
     """
-    file_filters = Phase.__file_filters__
-    model_property_name = "phases"
+    file_filters = Phase.Meta.file_filters
+    treemodel_property_name = "phases"
+    treemodel_class_type = Phase
     obj_type_map = [
         (Phase, EditPhaseView, EditPhaseController),
     ]
@@ -169,6 +174,9 @@ class PhasesController(ObjectListStoreController):
     ]
     delete_msg = "Deleting a phase is irreversible!\nAre You sure you want to continue?"
     title = "Edit Phases"
+
+    def get_phases_tree_model(self, *args):
+        return self.treemodel
 
     def load_phases(self, filename):
         index = self.get_selected_index()
@@ -196,10 +204,9 @@ class PhasesController(ObjectListStoreController):
 
     def create_new_object_proxy(self):
         def on_accept(filename, G, R):
-            index = self.get_selected_index()
-            if index is not None: index += 1
+            index = int(not_none(self.get_selected_index(), -1)) + 1
             if filename is None:
-                self.model.insert_new_phase(G=int(G), R=int(R), insert_index=index)
+                self.add_object(Phase(G=int(G), R=int(R)))
             else:
                 self.model.load_phases(filename, insert_index=index)
 

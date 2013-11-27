@@ -7,11 +7,7 @@
 
 import gtk
 
-from pyxrd.data import settings
-
-from pyxrd.generic.models.treemodels.utils import create_valuestore_from_file, create_treestore_from_directory
 from pyxrd.generic.controllers import BaseController
-
 from pyxrd.goniometer.models import Goniometer
 
 class InlineGoniometerController(BaseController):
@@ -20,7 +16,7 @@ class InlineGoniometerController(BaseController):
         but rather in another view. 
     """
 
-    file_filters = Goniometer.__file_filters__ + [("All Files", "*.*"), ]
+    file_filters = Goniometer.Meta.file_filters + [("All Files", "*.*"), ]
 
     # ------------------------------------------------------------
     #      Initialisation and other internals
@@ -31,10 +27,7 @@ class InlineGoniometerController(BaseController):
 
     def generate_import_combo(self):
         self.view.import_combo_box.clear()
-        cmb_model = create_treestore_from_directory(
-            settings.DATA_REG.get_directory_path("DEFAULT_GONIOS"),
-            ".gon"
-        )
+        cmb_model = Goniometer.create_defaults_store()
         self.view.import_combo_box.set_model(cmb_model)
         cell = gtk.CellRendererText()
         self.view.import_combo_box.pack_start(cell, True)
@@ -43,9 +36,7 @@ class InlineGoniometerController(BaseController):
 
     def generate_wavelength_combo(self):
         self.view.wavelength_combo_box.clear()
-        cmb_model = create_valuestore_from_file(
-            settings.DATA_REG.get_file_path("WAVELENGTHS")
-        )
+        cmb_model = Goniometer.create_wavelengths_store()
         self.view.wavelength_combo_box.set_model(cmb_model)
         cell = gtk.CellRendererText()
         self.view.wavelength_combo_box.pack_start(cell, True)
@@ -67,6 +58,8 @@ class InlineGoniometerController(BaseController):
         model = combobox.get_model()
         itr = combobox.get_active_iter()
         if itr:
+            # first column is the name, second column the path and third column
+            # a flag indicating if this can be selected
             path = model.get_value(itr, 1)
             if path:
                 def on_accept(dialog):

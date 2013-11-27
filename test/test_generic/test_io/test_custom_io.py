@@ -26,12 +26,15 @@ class TestStorable(unittest.TestCase):
 
     @storables.register()
     class DummyStorable(Storable):
-        __store_id__ = "DummyStorable"
+        
         __storables__ = [
             "name",
             "data",
             "my_daddy"
         ]
+        
+        class Meta(Storable.Meta):
+            store_id = "DummyStorable"
 
         def __init__(self, name, data, my_daddy):
             super(TestStorable.DummyStorable, self).__init__()

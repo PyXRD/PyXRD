@@ -89,7 +89,7 @@ def smooth(x, half_window_len=3, window='blackman'):
     window_len = half_window_len * 2 + 1
 
     if x.ndim != 1:
-        raise ValueError, "smooth only accepts 1 dimension arrays."
+        x = np.ndarray.flatten(x)
 
     if x.size < window_len:
         raise ValueError, "Input vector needs to be bigger than window size."

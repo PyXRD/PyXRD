@@ -8,29 +8,31 @@
 from traceback import format_exc
 
 
-from pyxrd.generic.models import PyXRDLine, ChildModel, PropIntel
+from pyxrd.generic.models import PyXRDLine, ChildModel
 from pyxrd.generic.calculations.statistics import Rp, derive
+from pyxrd.gtkmvc.support.propintel import PropIntel
 
 class Statistics(ChildModel):
 
     # MODEL INTEL:
-    __parent_alias__ = 'specimen'
-    __model_intel__ = [ # TODO add labels
-        PropIntel(name="points", data_type=int, has_widget=True),
-        PropIntel(name="residual_pattern", data_type=object),
-        PropIntel(name="der_exp_pattern", data_type=object),
-        PropIntel(name="der_calc_pattern", data_type=object),
-        PropIntel(name="der_residual_pattern", data_type=object),
-        PropIntel(name="Rp", data_type=float, has_widget=True),
-        PropIntel(name="Rpder", data_type=float, has_widget=True),
-    ]
+    class Meta(ChildModel.Meta):
+        parent_alias = 'specimen'
+        properties = [ # TODO add labels
+            PropIntel(name="points", data_type=int, has_widget=True),
+            PropIntel(name="residual_pattern", data_type=object),
+            PropIntel(name="der_exp_pattern", data_type=object),
+            PropIntel(name="der_calc_pattern", data_type=object),
+            PropIntel(name="der_residual_pattern", data_type=object),
+            PropIntel(name="Rp", data_type=float, has_widget=True),
+            PropIntel(name="Rpder", data_type=float, has_widget=True),
+        ]
 
     # PROPERTIES:
-    def set_parent_value(self, value):
-        ChildModel.set_parent_value(self, value)
+    def set_parent(self, value):
+        ChildModel.set_parent(self, value)
         self.update_statistics()
 
-    def get_points_value(self):
+    def get_points(self):
         try:
             e_ex, e_ey, e_cx, e_cy = self.specimen.get_exclusion_xy()
             return e_ex.size
@@ -49,13 +51,13 @@ class Statistics(ChildModel):
     # ------------------------------------------------------------
     def _get_experimental(self):
         if self.specimen is not None:
-            x, y = self.specimen.experimental_pattern.xy_store.get_raw_model_data()
+            x, y = self.specimen.experimental_pattern.get_xy_data()
             return x.copy(), y.copy()
         else:
             return None, None
     def _get_calculated(self):
         if self.specimen is not None:
-            x, y = self.specimen.calculated_pattern.xy_store.get_raw_model_data()
+            x, y = self.specimen.calculated_pattern.get_xy_data()
             return x.copy(), y.copy()
         else:
             return None, None
@@ -104,6 +106,7 @@ class Statistics(ChildModel):
                 # Calculate 'included' R values:
                 self.Rp = Rp(exp_y[selector], cal_y[selector])
                 self.Rpder = Rp(der_exp_y[selector], der_cal_y[selector])
+                print self.Rp, self.Rpder
             else:
                 self.residual_pattern.clear()
                 self.der_exp_pattern.clear()

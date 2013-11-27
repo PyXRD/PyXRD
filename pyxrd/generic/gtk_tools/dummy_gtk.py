@@ -1,5 +1,5 @@
 # coding=UTF-8
-# ex:ts=4:sw=4:et=on
+# ex:ts=4:sw=4:et
 
 # Copyright (c) 2013, Mathijs Dumon
 # All rights reserved.
@@ -22,6 +22,9 @@ class GtkTreeIter():
         self.path = path
 
     pass # end of class
+
+
+
 
 class GenericTreeModel(object):
     __connected_signals__ = None
@@ -71,7 +74,7 @@ class GenericTreeModel(object):
     def invalidate_iters(self):
         pass # TOD0!
 
-    def is_valid_iter(self, itr):
+    def iter_is_valid(self, itr):
         return True # TODO!
 
     def __len__(self):

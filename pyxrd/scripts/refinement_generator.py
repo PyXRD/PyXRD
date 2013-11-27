@@ -68,17 +68,17 @@ def run(args):
                     f.write("Property name, initial, best, min, max" + "\n")
                     for j, ref_prop in enumerate(context.ref_props):
 
-                        if ref_prop.obj.__store_id__ == 'Phase':
+                        if ref_prop.obj.Meta.store_id == 'Phase':
                             descriptor = ref_prop.obj.name.encode("utf-8")
                             descriptor += u" | * | "
                             descriptor += ref_prop.title.decode("utf-8")
-                        elif ref_prop.obj.__store_id__ in ('DritsCSDSDistribution', 'LogNormalCSDSDistribution'):
+                        elif ref_prop.obj.Meta.store_id in ('DritsCSDSDistribution', 'LogNormalCSDSDistribution'):
                             descriptor = ref_prop.obj.phase.name.encode("utf-8") + u" | * | " + ref_prop.title.decode("utf-8")
                         elif ref_prop.obj.name == 'Probabilities':
                             descriptor = ref_prop.obj.phase.name.encode("utf-8") + u" | * | " + ref_prop.title.decode("utf-8")
-                        elif ref_prop.obj.__store_id__ == 'Component':
+                        elif ref_prop.obj.Meta.store_id == 'Component':
                             descriptor = ref_prop.obj.phase.name.encode("utf-8") + u" | " + ref_prop.obj.name + u" | " + ref_prop.title.decode("utf-8")
-                        elif ref_prop.obj.__store_id__ == 'UnitCellProperty':
+                        elif ref_prop.obj.Meta.store_id == 'UnitCellProperty':
                             descriptor = ref_prop.obj.component.phase.name.encode("utf-8") + u" | " + ref_prop.component.name + u" | " + ref_prop.title.decode("utf-8")
                         # else:
                         #    descriptor = ref_prop.title

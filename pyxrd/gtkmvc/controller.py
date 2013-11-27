@@ -21,8 +21,6 @@
 #  or email to the author Roberto Cavada <roboogle@gmail.com>.
 #  Please report bugs to <roboogle@gmail.com>.
 
-import gtk
-
 from pyxrd.gtkmvc.observer import Observer
 from pyxrd.gtkmvc.support.log import logger
 from pyxrd.gtkmvc.support.exceptions import TooManyCandidatesError
@@ -38,7 +36,7 @@ class Controller (Observer):
     def __user_props(self):
         assert(not (self.auto_adapt_included is not None and self.auto_adapt_excluded is not None))
         if not self._controller_scope_aplied:
-            props = self.model.get_properties()
+            props = [prop.name for prop in self.model.get_properties()]
             if self.auto_adapt_included is not None:
                 self.___user_props = self.___user_props.union(set(filter(lambda p: p not in self.auto_adapt_included, props)))
             elif self.auto_adapt_excluded is not None:
@@ -171,10 +169,10 @@ class Controller (Observer):
 
         if n == 0:
             adapters = []
-            props = self.model.get_properties()
+            props = self.model.Meta.get_viewable_properties()
             # matches all properties not previously adapted by the user:
-            for prop_name in filter(lambda p: p not in self.__user_props, props):
-                try: wid_name = self._find_widget_match(prop_name)
+            for prop in filter(lambda p: p.name not in self.__user_props, props):
+                try: wid_name = self._find_widget_match(prop.name)
                 except TooManyCandidatesError, e:
                     # multiple candidates, gives up
                     raise e
@@ -184,11 +182,11 @@ class Controller (Observer):
                         logger.warn(e[0])
                     else:
                         logger.warn("No widget candidates match property '%s'"
-                            % prop_name)
+                            % prop.name)
                 else:
                     logger.debug("Auto-adapting property %s and widget %s" % \
-                                     (prop_name, wid_name))
-                    adapters += self.__create_adapters__(prop_name, wid_name)
+                                     (prop.name, wid_name))
+                    adapters += self.__create_adapters__(prop, wid_name)
                     pass
                 pass
 
@@ -200,7 +198,7 @@ class Controller (Observer):
             elif isinstance(args[0], types.StringType):
                 prop_name = args[0]
                 wid_name = self._find_widget_match(prop_name)
-                adapters = self.__create_adapters__(prop_name, wid_name)
+                adapters = self.__create_adapters__(prop, wid_name)
                 pass
             else: raise TypeError("Argument of adapt() must be either an Adapter or a string")
 
@@ -210,7 +208,7 @@ class Controller (Observer):
 
             # retrieves both property and widget, and creates an adapter
             prop_name, wid_name = args
-            adapters = self.__create_adapters__(prop_name, wid_name)
+            adapters = self.__create_adapters__(prop, wid_name)
             pass
 
         for ad in adapters:
@@ -277,12 +275,37 @@ class Controller (Observer):
         return
 
 
-    def __create_adapters__(self, prop_name, wid_name):
+    def __create_adapters__(self, prop, wid_name):
         """
+            Private service that looks at property and widgets types,
+            and possibly creates one or more (best) fitting adapters
+            that are returned as a list.
+        """
+        try:
+            if prop.has_widget:
+
+                wid = self.view[wid_name]
+                if wid == None:
+                    raise ValueError("Widget '%s' not found" % wid_name)
+
+                local_handlers = self._get_handler_list()
+
+                handler = local_handlers.get(prop.widget_type)
+                ad = handler(self, prop, wid)
+
+                return [ad]
+            else:
+                return []
+        except any as error:
+            raise RuntimeError(error), "Unhandled error in '%s'.__create_adapters__ for property '%s' and widget '%s'!" % (type(self), prop.name, wid_name)
+
+    # TODO: check if the logic below is transformed to the new handler logic
+    """def __create_adapters__(self, prop_name, wid_name):
+        ""
         Private service that looks at property and widgets types,
         and possibly creates one or more (best) fitting adapters
         that are returned as a list.
-        """
+        ""
         from pyxrd.gtkmvc.adapters.basic import Adapter, RoUserClassAdapter
         from pyxrd.gtkmvc.adapters.containers import StaticContainerAdapter
 
@@ -337,7 +360,7 @@ class Controller (Observer):
             res.append(ad)
             pass
 
-        return res
+        return res"""
 
 
     pass # end of class Controller

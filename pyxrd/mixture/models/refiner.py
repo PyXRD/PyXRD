@@ -12,10 +12,11 @@ import time
 
 import numpy as np
 
-from pyxrd.generic.utils import print_timing
+#from pyxrd.generic.utils import print_timing
 
 from pyxrd.gtkmvc import Signal
-from pyxrd.generic.models import ChildModel, PropIntel
+from pyxrd.generic.models import ChildModel
+from pyxrd.gtkmvc.support.propintel import PropIntel
 
 class RefineContext(ChildModel):
     """
@@ -26,15 +27,15 @@ class RefineContext(ChildModel):
         Also loads the properties to be refined once, together with their
         ranges and initial values.
     """
-    __parent_alias__ = "mixture"
-
-    __model_intel__ = [ # TODO add labels
-        PropIntel(name="solution_added"),
-        PropIntel(name="status", column=True, data_type=str, has_widget=False),
-        PropIntel(name="initial_residual", column=True, data_type=float, has_widget=True, widget_type='label'),
-        PropIntel(name="last_residual", column=True, data_type=float, has_widget=True, widget_type='label'),
-        PropIntel(name="best_residual", column=True, data_type=float, has_widget=True, widget_type='label'),
-    ]
+    class Meta(ChildModel.Meta):
+        parent_alias = "mixture"    
+        properties = [ # TODO add labels
+            PropIntel(name="solution_added"),
+            PropIntel(name="status", column=True, data_type=str, has_widget=False),
+            PropIntel(name="initial_residual", column=True, data_type=float, has_widget=True, widget_type='label'),
+            PropIntel(name="last_residual", column=True, data_type=float, has_widget=True, widget_type='label'),
+            PropIntel(name="best_residual", column=True, data_type=float, has_widget=True, widget_type='label'),
+        ]
 
     # SIGNALS:
     solution_added = None
@@ -151,7 +152,7 @@ class Refiner(ChildModel):
         A simple model that plugs onto the Mixture model. It provides
         the functionality related to refinement of parameters.
     """
-    __parent_alias__ = "mixture"
+    parent_alias = "mixture"
 
     # ------------------------------------------------------------
     #      Methods & Functions

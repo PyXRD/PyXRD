@@ -126,7 +126,7 @@ def plot_markers(project, specimen, offset, scale, marker_scale, axes):
         Plots a specimens markers using the given offset and scale
     """
 
-    for marker in specimen.markers.iter_objects():
+    for marker in specimen.markers:
         base_y = 0
 
         if marker.base == 1:
@@ -170,7 +170,7 @@ def plot_hatches(project, specimen, offset, scale, axes):
         except: pass
 
     # Create & add new hatches:
-    for x0, x1 in izip(*specimen.exclusion_ranges.get_raw_model_data()):
+    for x0, x1 in izip(*specimen.exclusion_ranges.get_xy_data()):
         leftborder = axes.plot([x0, x0], [y0, y1], c=settings.EXCLUSION_LINES)
         axes.add_patch(Rectangle(
             (x0, y0), x1 - x0, y1 - y0,
@@ -220,7 +220,7 @@ def plot_pattern(pattern, axes, scale=1, offset=0, cap=0, **kwargs):
     if kwargs:
         line.update(kwargs)
     line.update(dict(
-        data=apply_transform(pattern.xy_store.get_raw_model_data(), scale=scale, offset=offset, cap=cap),
+        data=apply_transform(pattern.get_xy_data(), scale=scale, offset=offset, cap=cap),
         color=pattern.color,
         linewidth=pattern.lw
     ))
@@ -253,7 +253,7 @@ def plot_specimen(project, specimen, labels, label_offset, plot_left,
         make_draggable(getattr(pattern, "__plot_line", None), drag_y_handler=specimen.on_pattern_dragged)
 
         # get some common data for the next lines:
-        x_data, y_data = pattern.xy_store.get_raw_model_data()
+        x_data, y_data = pattern.get_xy_data()
         xmin, xmax = (np.min(x_data), np.max(x_data)) if x_data.size > 0 else (0, 0)
         ymin, ymax = (np.min(y_data), np.max(y_data)) if y_data.size > 0 else (0, 0)
 
@@ -384,30 +384,40 @@ def plot_specimen(project, specimen, labels, label_offset, plot_left,
         if not specimen.display_experimental:
             make_draggable(getattr(pattern, "__plot_line", None), drag_y_handler=specimen.on_pattern_dragged)
 
-
-        # fetch x data, y data and linewidth for the phase patterns:
-        x_data = pattern.xy_store._model_data_x
-        y_data_n = pattern.xy_store._model_data_y
-        lw = pattern.lw
-
         # setup or update the calculated lines (phases)
         if specimen.display_phases:
-            for i, phase in enumerate(pattern.phases):
-                if phase is not None:
-                    phase_line = getattr(phase, "__plot_phase_lines", dict()).get(
-                        specimen,
-                        matplotlib.lines.Line2D([], [])
-                    )
-                    phase_line.update(dict(
-                        data=apply_transform((x_data, y_data_n[i + 1]), scale=scale, offset=offset),
-                        color=phase.display_color,
-                        linewidth=lw
-                    ))
-                    if not hasattr(phase, "__plot_phase_lines"):
-                        phase.__plot_phase_lines = dict()
-                    if not phase_line in axes.get_lines():
-                        axes.add_line(phase_line)
-                    phase.__plot_phase_lines[specimen] = phase_line
+            phase_lines = getattr(specimen, "__plot_phase_lines", [])
+
+            # Clear previous phase lines:
+            for phase_line in phase_lines:
+                if phase_line in axes.get_lines():
+                    axes.remove_line(phase_line)
+                        
+            # Update & add phase lines:
+            for i in xrange(2,pattern.num_columns):
+                phase_data = pattern.get_xy_data(i)
+                # Get the line object or create it:
+                try:
+                    phase_line = phase_lines[i-2]
+                except IndexError:
+                    phase_line = matplotlib.lines.Line2D(*phase_data)
+                    phase_lines.append(phase_line)
+                # Get the phase color or use a default color:
+                try:
+                    phase_color = pattern.phase_colors[i-2]
+                except IndexError:
+                    phase_color = pattern.color
+                # Update the line object properties:
+                phase_line.update(dict(
+                    data=apply_transform(phase_data, scale=scale, offset=offset),
+                    color=phase_color,
+                    linewidth=pattern.lw
+                ))
+                
+                # Add to axes:
+                axes.add_line(phase_line)
+                
+            specimen.__plot_phase_lines = phase_lines
 
     # mineral preview sticks
     if hasattr(specimen, "mineral_preview") and specimen.mineral_preview is not None:
@@ -454,7 +464,7 @@ def plot_statistics(project, specimen, stats_y_pos, stats_height, axes):
         offset = offset + max_I * scale
         plot_pattern(pattern, axes, scale=scale, offset=offset, **kwargs)
 
-    if specimen.display_residuals:
+    if specimen.display_residuals and specimen.statistics.residual_pattern is not None:
         plot_pattern_middle(
             specimen.statistics.residual_pattern,
             axes, height=stats_height,
@@ -467,12 +477,14 @@ def plot_statistics(project, specimen, stats_y_pos, stats_height, axes):
                 specimen.statistics.der_residual_pattern,
                 specimen.statistics.der_exp_pattern,
                 specimen.statistics.der_calc_pattern):
-            max_I = max(max_I, pattern.abs_max_intensity)
+            if pattern is not None:
+                max_I = max(max_I, pattern.abs_max_intensity)
         for pattern in (
                 specimen.statistics.der_residual_pattern,
                 specimen.statistics.der_exp_pattern,
                 specimen.statistics.der_calc_pattern):
-            plot_pattern_middle(pattern, axes, height=stats_height, max_I=max_I, offset=stats_y_pos, alpha=0.65)
+            if pattern is not None:
+                plot_pattern_middle(pattern, axes, height=stats_height, max_I=max_I, offset=stats_y_pos, alpha=0.65)
 
 def plot_specimens(project, specimens, plot_left, axes):
     """

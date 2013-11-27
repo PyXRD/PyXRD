@@ -11,20 +11,23 @@ import numpy as np
 
 from pyxrd.generic.io import Storable
 from pyxrd.generic.models import DataModel
-from pyxrd.generic.models.properties import PropIntel, IndexProperty
+from pyxrd.generic.models.properties import IndexProperty
 
 from pyxrd.generic.refinement.mixins import RefinementGroup
+from pyxrd.gtkmvc.support.propintel import PropIntel
 
 class _AbstractProbability(DataModel, Storable, RefinementGroup):
 
     # MODEL INTEL:
-    __parent_alias__ = 'phase'
-    __model_intel__ = [ # TODO add labels
-        PropIntel(name="name", inh_name=None, label="Probabilites", data_type=unicode),
-        PropIntel(name="W_valid", inh_name=None, label="Valid W matrix", data_type=object),
-        PropIntel(name="P_valid", inh_name=None, label="Valid P matrix", data_type=object),
-    ]
-    __independent_label_map__ = []
+    parent_alias = 'phase'
+    class Meta(DataModel.Meta):
+        independent_label_map = []
+        properties = [
+            PropIntel(name="name", inh_name=None, label="Probabilities", data_type=unicode),
+            PropIntel(name="W_valid", inh_name=None, label="Valid W matrix", data_type=object),
+            PropIntel(name="P_valid", inh_name=None, label="Valid P matrix", data_type=object),
+        ]
+    
 
     # PROPERTIES:
     name = "Probabilities"
@@ -125,11 +128,16 @@ class _AbstractProbability(DataModel, Storable, RefinementGroup):
     #      Methods & Functions
     # ------------------------------------------------------------
     def get_prob_descriptions(self):
-        for prop, name in self.__independent_label_map__: # @UnusedVariable
+        for prop, name in self.Meta.independent_label_map: # @UnusedVariable
             yield "%s: %.3f" % (prop, getattr(self, prop))
 
     def update(self):
         raise NotImplementedError
+
+    def _clamp_set_and_update(self, name, value, minimum=0.0, maximum=1.0):
+        clamped = min(max(value, minimum), maximum)
+        setattr(self, name, clamped)
+        self.update()
 
     def solve(self):
         """
@@ -280,6 +288,6 @@ class _AbstractProbability(DataModel, Storable, RefinementGroup):
 
     def get_probability_matrix(self): return self._P
 
-    def get_independent_label_map(self): return self.__independent_label_map__
+    def get_independent_label_map(self): return self.Meta.independent_label_map
 
     pass # end of class

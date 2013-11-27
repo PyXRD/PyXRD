@@ -5,13 +5,12 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from pyxrd.generic.models.mixins import ObjectListStoreChildMixin
-from pyxrd.generic.models.properties import PropIntel
 from pyxrd.generic.models.base import ChildModel
 
 from pyxrd.generic.refinement.mixins import _RefinementBase, RefinementValue, RefinementGroup
+from pyxrd.gtkmvc.support.propintel import PropIntel
 
-class RefinableWrapper(ChildModel, ObjectListStoreChildMixin):
+class RefinableWrapper(ChildModel):
     """
         Wrapper class for refinables easing the retrieval of certain
         properties for the different types of refinables.
@@ -19,61 +18,61 @@ class RefinableWrapper(ChildModel, ObjectListStoreChildMixin):
     """
 
     # MODEL INTEL:
-    __parent_alias__ = "mixture"
-    __index_column__ = "index"
-    __model_intel__ = [ # TODO add labels
-        PropIntel(name="title", label="", is_column=True, data_type=str, has_widget=True),
-        PropIntel(name="refine", label="", is_column=True, data_type=bool, has_widget=True),
-        PropIntel(name="refinable", label="", is_column=True, data_type=bool),
-        PropIntel(name="prop", label="", is_column=True, data_type=str, has_widget=True),
-        PropIntel(name="inh_prop", label="", is_column=True, data_type=str, has_widget=True),
-        PropIntel(name="value", label="", is_column=True, data_type=float),
-        PropIntel(name="value_min", label="", is_column=True, data_type=float, has_widget=True),
-        PropIntel(name="value_max", label="", is_column=True, data_type=float, has_widget=True),
-        PropIntel(name="obj", label="", is_column=True, data_type=object),
-        PropIntel(name="prop_intel", label="", is_column=True, data_type=object)
-    ]
+    class Meta(ChildModel.Meta):
+        parent_alias = "mixture"
+        properties = [ # TODO add labels
+            PropIntel(name="title", label="", is_column=True, data_type=str, has_widget=True),
+            PropIntel(name="refine", label="", is_column=True, data_type=bool, has_widget=True),
+            PropIntel(name="refinable", label="", is_column=True, data_type=bool),
+            PropIntel(name="prop", label="", is_column=True, data_type=str, has_widget=True),
+            PropIntel(name="inh_prop", label="", is_column=True, data_type=str, has_widget=True),
+            PropIntel(name="value", label="", is_column=True, data_type=float),
+            PropIntel(name="value_min", label="", is_column=True, data_type=float, has_widget=True),
+            PropIntel(name="value_max", label="", is_column=True, data_type=float, has_widget=True),
+            PropIntel(name="obj", label="", is_column=True, data_type=object),
+            PropIntel(name="prop_intel", label="", is_column=True, data_type=object)
+        ]
 
     # PROPERTIES:
     obj = None
 
     # The PropIntel object of the refinable property
     _prop_intel = None
-    def get_prop_intel_value(self):
+    def get_prop_intel(self):
         if isinstance(self.obj, _RefinementBase) and self.prop == None:
             return None
         else:
             if not self._prop_intel:
-                self._prop_intel = self.obj.get_prop_intel_by_name(self.prop)
+                self._prop_intel = self.obj.Meta.get_prop_intel_by_name(self.prop)
             return self._prop_intel
 
     # The attribute name:
     _prop = ""
-    def get_prop_value(self):
+    def get_prop(self):
         return self._prop
-    def set_prop_value(self, value):
+    def set_prop(self, value):
         self._prop = value
 
     # The inherit attribute name:
-    def get_inh_prop_value(self):
+    def get_inh_prop(self):
         return self.prop_intel.inh_name if self.prop_intel else None
 
     # The label for the refinable property:
-    def get_title_value(self):
+    def get_title(self):
         if isinstance(self.obj, _RefinementBase) and self.prop_intel == None:
             return self.obj.refine_title
         else:
             return self.prop_intel.label
 
     # The actual value of the refinable property:
-    def get_value_value(self):
+    def get_value(self):
         if isinstance(self.obj, RefinementValue):
             return self.obj.refine_value
         elif self.prop != None:
             return getattr(self.obj, self.prop)
         else:
             return None
-    def set_value_value(self, value):
+    def set_value(self, value):
         value = max(min(value, self.value_max), self.value_min)
         if isinstance(self.obj, RefinementValue):
             self.obj.refine_value = value
@@ -105,28 +104,25 @@ class RefinableWrapper(ChildModel, ObjectListStoreChildMixin):
             return self.obj.refine_info
 
     # The minimum value for the refinable property
-    def get_value_min_value(self):
+    def get_value_min(self):
         return self.ref_info.minimum if self.ref_info else None
-    def set_value_min_value(self, value):
+    def set_value_min(self, value):
         if self.ref_info:
             self.ref_info.minimum = value
-            self.liststore_item_changed()
 
     # The maximum value of the refinable property
-    def get_value_max_value(self):
+    def get_value_max(self):
         return self.ref_info.maximum if self.ref_info else None
-    def set_value_max_value(self, value):
+    def set_value_max(self, value):
         if self.ref_info:
             self.ref_info.maximum = value
-            self.liststore_item_changed()
 
     # Wether this property is selected for refinement:
-    def get_refine_value(self):
+    def get_refine(self):
         return self.ref_info.refine if self.ref_info else False
-    def set_refine_value(self, value):
+    def set_refine(self, value):
         if self.ref_info:
             self.ref_info.refine = value and self.refinable
-            self.liststore_item_changed()
 
     # ------------------------------------------------------------
     #      Initialisation and other internals

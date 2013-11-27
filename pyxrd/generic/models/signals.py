@@ -5,7 +5,7 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from pyxrd.gtkmvc.model import Signal
+from pyxrd.gtkmvc.observable import Signal
 
 class HoldableSignal(Signal):
     """

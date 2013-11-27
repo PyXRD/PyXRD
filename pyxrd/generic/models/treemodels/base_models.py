@@ -1,12 +1,13 @@
 # coding=UTF-8
 # ex:ts=4:sw=4:et=on
+import types
 
 # Copyright (c) 2013, Mathijs Dumon
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
 try:
-    import gtk
+    import gtk, gobject
 except ImportError:
     from pyxrd.generic.gtk_tools import dummy_gtk as gtk
 
@@ -23,21 +24,27 @@ class BaseObjectListStore(gtk.GenericTreeModel):
     _class_type = None
 
     # ------------------------------------------------------------
-    #      Initialisation and other internals
+    #      Initialization and other internals
     # ------------------------------------------------------------
     def __init__(self, class_type):
         gtk.GenericTreeModel.__init__(self)
-        self.set_property("leak-references", False)
         if class_type is None:
             raise ValueError, 'Invalid class_type for %s! Expecting object, but None was given' % type(self)
-        elif not hasattr(class_type, '__columns__'):
-            raise ValueError, 'Invalid class_type for %s! %s does not have __columns__ attribute!' % (type(self), type(class_type))
+        elif not hasattr(class_type, "Meta") or not hasattr(class_type.Meta, 'get_column_properties'):
+            raise ValueError, 'Invalid class_type for %s! %s.Meta does not have get_column_properties method!' % (type(self), class_type)
         else:
             self.setup_class_type(class_type)
 
     def setup_class_type(self, class_type):
         self._class_type = class_type
-        self._columns = self._class_type.__columns__
+        self._columns = []
+        for item in self._class_type.Meta.get_column_properties():
+            title, col_type = item
+            if col_type in types.StringTypes:
+                col_type = 'gchararray'
+            # TODO map other types we might encounter...
+            self._columns.append((title, col_type))
+        
         i = 0
         for col in self._columns:
             setattr(self, "c_%s" % col[0], i)

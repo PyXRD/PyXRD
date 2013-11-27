@@ -95,9 +95,13 @@ class EditMarkerController(BaseController):
         self.parent.view.get_toplevel().present()
 
 class MarkersController(ObjectListStoreController):
-
+    """ 
+        Controller for the markers list
+    """
+    
     file_filters = ("Marker file", get_case_insensitive_glob("*.MRK")),
-    model_property_name = "markers"
+    treemodel_property_name = "markers"
+    treemodel_class_type = Marker
     columns = [
         (" ", "c_visible"),
         ("Marker label", "c_label")
@@ -107,6 +111,9 @@ class MarkersController(ObjectListStoreController):
         (Marker, EditMarkerView, EditMarkerController),
     ]
     title = "Edit Markers"
+
+    def get_markers_tree_model(self, *args):
+        return self.treemodel
 
     def setup_treeview_col_c_visible(self, treeview, name, col_descr, col_index, tv_col_nr):
         def toggle_renderer(column, cell, model, itr, data=None):
@@ -146,7 +153,7 @@ class MarkersController(ObjectListStoreController):
         self.run_save_dialog("Export markers", on_accept, parent=self.view.get_top_widget())
 
     def create_new_object_proxy(self):
-        return Marker("New Marker", parent=self.model)
+        return Marker(name="New Marker", parent=self.model)
 
     def on_marker_visible_toggled(self, cell, path, model, colnr):
         if model is not None:
@@ -157,7 +164,7 @@ class MarkersController(ObjectListStoreController):
 
     def on_find_peaks_clicked(self, widget):
         def after_cb(threshold):
-            if len(self.model.markers._model_data) > 0:
+            if len(self.model.markers) > 0:
                 def on_accept(dialog):
                     self.model.markers.clear()
                 self.run_confirmation_dialog("Do you want to clear the current markers for this pattern?",
@@ -187,7 +194,7 @@ class MarkersController(ObjectListStoreController):
         marker_peaks = [] # position, intensity
 
         for marker in self.get_selected_objects():
-            intensity = self.model.experimental_pattern.xy_store.get_y_at_x(
+            intensity = self.model.experimental_pattern.get_y_at_x(
                 marker.position)
             marker_peaks.append((marker.get_nm_position() * 10., intensity))
 

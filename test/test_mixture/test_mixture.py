@@ -161,7 +161,7 @@ class TestMixture(unittest.TestCase):
     #  - update_refinement_treestore
     #  - auto_restrict
     #  - randomize
-    #  - get_refine_method
+    #  - get_refinement_method
     #  - setup_refine_options
 
     pass # end of class

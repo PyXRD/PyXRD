@@ -16,6 +16,9 @@ from pyxrd.generic.controllers import DialogController, BaseController, ObjectLi
 from pyxrd.mixture.models.parspace import ParameterSpaceGenerator
 from pyxrd.mixture.models import Mixture
 from pyxrd.mixture.views import EditMixtureView, RefinementView, RefinementResultView
+from pyxrd.specimen.models.base import Specimen
+from pyxrd.generic.controllers.objectliststore_controllers import wrap_list_property_to_treemodel
+from pyxrd.phases.models.phase import Phase
 
 class RefinementResultsController(DialogController):
     """
@@ -91,6 +94,10 @@ class RefinementController(DialogController):
         "refine_method",
         "refinables"
     ]
+
+    @property
+    def treemodel(self):
+        return self.model.refinables
 
     def setup_refinables_tree_view(self, store, widget):
         """
@@ -172,7 +179,7 @@ class RefinementController(DialogController):
             Update the method options tree store (when a new method is selected)
         """
         # 1 get the method:
-        refine_method = self.model.get_refine_method()
+        refine_method = self.model.get_refinement_method()
 
         # 2 get the options:
         options = refine_method.options
@@ -357,6 +364,14 @@ class EditMixtureController(BaseController):
 
     ref_view = None
 
+    @property
+    def specimens_treemodel(self):
+        return wrap_list_property_to_treemodel(self.model.project, "specimens", Specimen)
+
+    @property
+    def phases_treemodel(self):
+        return wrap_list_property_to_treemodel(self.model.project, "phases", Phase)
+
     def register_adapters(self):
         self.create_ui()
 
@@ -385,7 +400,7 @@ class EditMixtureController(BaseController):
             self.model.del_phase_slot(phase_slot)
             widget.disconnect(widget.get_data("deleventid"))
 
-        self.view.add_phase_slot(self.model.parent.phases,
+        self.view.add_phase_slot(self.phases_treemodel,
             on_phase_delete, on_label_changed, on_fraction_changed,
             self.on_combo_changed, label=self.model.phases[phase_slot],
             fraction=self.model.fractions[phase_slot], phases=self.model.phase_matrix)
@@ -404,15 +419,15 @@ class EditMixtureController(BaseController):
 
         def on_specimen_changed(combobox):
             itr = combobox.get_active_iter()
-            specimen = self.model.parent.specimens.get_user_data(itr) if itr is not None else None
+            specimen = self.specimens_treemodel.get_user_data(itr) if itr is not None else None
             self.model.set_specimen(specimen_slot, specimen)
 
         def on_specimen_delete(widget):
             self.model.del_specimen_slot(specimen_slot)
             widget.disconnect(widget.get_data("deleventid"))
 
-        self.view.add_specimen_slot(self.model.parent.phases,
-            self.model.parent.specimens, on_specimen_delete, on_scale_changed,
+        self.view.add_specimen_slot(self.phases_treemodel,
+            self.specimens_treemodel, on_specimen_delete, on_scale_changed,
             on_bgs_changed, on_specimen_changed, self.on_combo_changed,
             scale=self.model.scales[specimen_slot], bgs=self.model.bgshifts[specimen_slot],
             specimen=self.model.specimens[specimen_slot], phases=self.model.phase_matrix)
@@ -433,7 +448,7 @@ class EditMixtureController(BaseController):
     # ------------------------------------------------------------
     def on_combo_changed(self, combobox, row, col):
         itr = combobox.get_active_iter()
-        phase = self.model.parent.phases.get_user_data(itr) if itr is not None else None
+        phase = self.phases_treemodel.get_user_data(itr) if itr is not None else None
         self.model.set_phase(row, col, phase)
 
     def on_add_phase(self, widget, *args):
@@ -477,21 +492,16 @@ class EditMixtureController(BaseController):
 
 class MixturesController(ObjectListStoreController):
 
-    model_property_name = "mixtures"
+    treemodel_property_name = "mixtures"
+    treemodel_class_type = Mixture
     columns = [ ("Mixture name", "c_name") ]
     delete_msg = "Deleting a mixture is irreverisble!\nAre You sure you want to continue?"
+    obj_type_map = [
+        (Mixture, EditMixtureView, EditMixtureController),
+    ]
 
-    def get_new_edit_view(self, obj):
-        if isinstance(obj, Mixture):
-            return EditMixtureView(parent=self.view)
-        else:
-            return ObjectListStoreController.get_new_edit_view(self, obj)
-
-    def get_new_edit_controller(self, obj, view, parent=None):
-        if isinstance(obj, Mixture):
-            return EditMixtureController(obj, view, parent=parent)
-        else:
-            return ObjectListStoreController.get_new_edit_controller(self, obj, view, parent=parent)
+    def get_mixtures_tree_model(self, *args):
+        return self.treemodel
 
     # ------------------------------------------------------------
     #      GTK Signal handlers

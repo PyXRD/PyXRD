@@ -307,7 +307,7 @@ class InlineObjectListStoreView(BaseView):
     top = "edit_item"
 
     @property
-    def treeview_widget(self):
+    def treeview(self):
         return self['tvw_items']
 
     @property

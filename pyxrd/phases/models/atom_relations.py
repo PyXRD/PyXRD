@@ -7,13 +7,13 @@
 
 import types
 
-from pyxrd.generic.models import ChildModel, PropIntel, HoldableSignal
-from pyxrd.generic.models.treemodels import ObjectListStore
-from pyxrd.generic.models.metaclasses import pyxrd_object_pool
-from pyxrd.generic.models.mixins import ObjectListStoreChildMixin
+from pyxrd.generic.models import DataModel, HoldableSignal
+from pyxrd.generic.models.observers import ListObserver
+from pyxrd.gtkmvc.support.metaclasses import UUIDMeta
 from pyxrd.generic.io import storables, Storable, get_case_insensitive_glob
 
 from pyxrd.generic.refinement.mixins import RefinementValue
+from pyxrd.gtkmvc.support.propintel import PropIntel
 
 # from gtk import ListStore
 
@@ -42,31 +42,46 @@ class ComponentPropMixin(object):
         if attr == "" or attr == None:
             return None
 
+        def get_atom_by_index(atoms, index):
+            for atom in atoms:
+                if atom.atom_nr == index:
+                    return atom
+            return None
+
         attr = attr.replace("data_", "", 1) # for backwards compatibility
         attrs = attr.split(".")
         if attrs[0] == "layer_atoms":
-            return self.component._layer_atoms._model_data[int(attrs[1])], "pn"
+            atom = get_atom_by_index(self.component._layer_atoms, int(attrs[1]))
+            if atom is not None:
+                return atom, "pn"
+            else:
+                return None
         elif attrs[0] == "interlayer_atoms":
-            return self.component._interlayer_atoms._model_data[int(attrs[1])], "pn"
+            atom = get_atom_by_index(self.component._interlayer_atoms, int(attrs[1]))
+            if atom is not None:
+                return atom, "pn"
+            else:
+                return None
         else:
             return self.component, attr
 
 @storables.register()
-class AtomRelation(ChildModel, Storable, ObjectListStoreChildMixin, ComponentPropMixin, RefinementValue):
+class AtomRelation(DataModel, Storable, ComponentPropMixin, RefinementValue):
 
     # MODEL INTEL:
-    __parent_alias__ = "component"
-    __model_intel__ = [
-        PropIntel(name="name", label="Name", data_type=unicode, is_column=True, storable=True, has_widget=True),
-        PropIntel(name="value", label="Value", data_type=float, is_column=True, storable=True, has_widget=True, widget_type='float_entry', refinable=True),
-        PropIntel(name="enabled", label="Enabled", data_type=bool, is_column=True, storable=True, has_widget=True),
-
-        PropIntel(name="data_changed", data_type=object),
-    ]
-    __store_id__ = "AtomRelation"
-    __file_filters__ = [
-        ("Atom relation", get_case_insensitive_glob("*.atr")),
-    ]
+    class Meta(DataModel.Meta):
+        parent_alias = "component"
+        properties = [
+            PropIntel(name="name", label="Name", data_type=unicode, is_column=True, storable=True, has_widget=True),
+            PropIntel(name="value", label="Value", data_type=float, is_column=True, storable=True, has_widget=True, widget_type='float_entry', refinable=True),
+            PropIntel(name="enabled", label="Enabled", data_type=bool, is_column=True, storable=True, has_widget=True),
+    
+            PropIntel(name="data_changed", data_type=object),
+        ]
+        store_id = "AtomRelation"
+        file_filters = [
+            ("Atom relation", get_case_insensitive_glob("*.atr")),
+        ]
     allowed_relations = {}
 
     # SIGNALS:
@@ -74,21 +89,20 @@ class AtomRelation(ChildModel, Storable, ObjectListStoreChildMixin, ComponentPro
 
     # PROPERTIES:
     _value = 0.0
-    def get_value_value(self): return self._value
-    def set_value_value(self, value):
+    def get_value(self): return self._value
+    def set_value(self, value):
         self._value = value
         self.data_changed.emit()
-        self.liststore_item_changed()
 
     _name = ""
-    def get_name_value(self): return self._name
-    def set_name_value(self, value):
+    def get_name(self): return self._name
+    def set_name(self, value):
         self._name = value
-        self.liststore_item_changed()
+        self.visuals_changed.emit()
 
     _enabled = False
-    def get_enabled_value(self): return self._enabled
-    def set_enabled_value(self, value):
+    def get_enabled(self): return self._enabled
+    def set_enabled(self, value):
         self._enabled = value
         self.data_changed.emit()
 
@@ -134,8 +148,8 @@ class AtomRelation(ChildModel, Storable, ObjectListStoreChildMixin, ComponentPro
         super(AtomRelation, self).__init__(*args, **kwargs)
 
         self.data_changed = HoldableSignal()
-        self.name = self.get_kwarg(kwargs, "", "name")
-        self.value = self.get_kwarg(kwargs, "", "value")
+        self.name = self.get_kwarg(kwargs, "", "name", "data_name")
+        self.value = self.get_kwarg(kwargs, "", "value", "ratio", "data_ratio")
         self.enabled = bool(self.get_kwarg(kwargs, True, "enabled"))
 
     # ------------------------------------------------------------
@@ -151,12 +165,12 @@ class AtomRelation(ChildModel, Storable, ObjectListStoreChildMixin, ComponentPro
         if self.component is not None:
             import gtk
             store = gtk.ListStore(object, str, object)
-            for atom in self.component._layer_atoms.iter_objects():
+            for atom in self.component._layer_atoms:
                 store.append([atom, "pn", lambda o: o.name])
-            for atom in self.component._interlayer_atoms.iter_objects():
+            for atom in self.component._interlayer_atoms:
                 store.append([atom, "pn", lambda o: o.name])
-            for relation in self.component._atom_relations.iter_objects():
-                tp = relation.__store_id__
+            for relation in self.component._atom_relations:
+                tp = relation.Meta.store_id
                 if tp in self.allowed_relations:
                     prop, name = self.allowed_relations[tp]
                     store.append([relation, prop, name])
@@ -206,24 +220,25 @@ class AtomRelation(ChildModel, Storable, ObjectListStoreChildMixin, ComponentPro
 class AtomRatio(AtomRelation):
 
     # MODEL INTEL:
-    __parent_alias__ = "component"
-    __model_intel__ = [
-        PropIntel(name="sum", label="Sum", data_type=float, widget_type='float_entry', is_column=True, storable=True, has_widget=True, minimum=0.0),
-        PropIntel(name="atom1", label="Substituting Atom", data_type=object, is_column=True, storable=True, has_widget=True),
-        PropIntel(name="atom2", label="Original Atom", data_type=object, is_column=True, storable=True, has_widget=True),
-    ]
-    __store_id__ = "AtomRatio"
-    allowed_relations = {
-        "AtomRatio": ("__internal_sum__", lambda o: o.name),
-        "AtomContents": ("value", lambda o: o.name),
-    }
+    class Meta(AtomRelation.Meta):
+        parent_alias = "component"
+        properties = [
+            PropIntel(name="sum", label="Sum", data_type=float, widget_type='float_entry', is_column=True, storable=True, has_widget=True, minimum=0.0),
+            PropIntel(name="atom1", label="Substituting Atom", data_type=object, is_column=True, storable=True, has_widget=True),
+            PropIntel(name="atom2", label="Original Atom", data_type=object, is_column=True, storable=True, has_widget=True),
+        ]
+        store_id = "AtomRatio"
+        allowed_relations = {
+            "AtomRatio": ("__internal_sum__", lambda o: o.name),
+            "AtomContents": ("value", lambda o: o.name),
+        }
 
     # SIGNALS:
 
     # PROPERTIES:
     _sum = 1.0
-    def get_sum_value(self): return self._sum
-    def set_sum_value(self, value):
+    def get_sum(self): return self._sum
+    def set_sum(self, value):
         self._sum = float(value)
         self.data_changed.emit()
 
@@ -240,16 +255,16 @@ class AtomRatio(AtomRelation):
     __internal_sum__ = property(fset=__internal_sum__)
 
     _atom1 = [None, None]
-    def get_atom1_value(self): return self._atom1
-    def set_atom1_value(self, value):
+    def get_atom1(self): return self._atom1
+    def set_atom1(self, value):
         with self.data_changed.hold():
             if not self._safe_is_referring(value[0]):
                 self._atom1 = value
                 self.data_changed.emit()
 
     _atom2 = [None, None]
-    def get_atom2_value(self): return self._atom2
-    def set_atom2_value(self, value):
+    def get_atom2(self): return self._atom2
+    def set_atom2(self, value):
         with self.data_changed.hold():
             if not self._safe_is_referring(value[0]):
                 self._atom2 = value
@@ -284,11 +299,11 @@ class AtomRatio(AtomRelation):
 
     def resolve_relations(self):
         if isinstance(self._unresolved_atom1[0], basestring):
-            self._unresolved_atom1[0] = pyxrd_object_pool.get_object(self._unresolved_atom1[0])
+            self._unresolved_atom1[0] = UUIDMeta.object_pool.get_object(self._unresolved_atom1[0])
         self.atom1 = list(self._unresolved_atom1)
         del self._unresolved_atom1
         if isinstance(self._unresolved_atom2[0], basestring):
-            self._unresolved_atom2[0] = pyxrd_object_pool.get_object(self._unresolved_atom2[0])
+            self._unresolved_atom2[0] = UUIDMeta.object_pool.get_object(self._unresolved_atom2[0])
         self.atom2 = list(self._unresolved_atom2)
         del self._unresolved_atom2
 
@@ -309,17 +324,18 @@ class AtomRatio(AtomRelation):
 
     pass # end of class
 
-
 class AtomContentObject(object):
     """
         Wrapper around an atom object used in the AtomContents model.
         Stores the atom, the property to set and it's default amount.
     """
-    __columns__ = [
-        ("atom", object),
-        ("prop", object),
-        ("amount", float)
-    ]
+    class Meta():
+        def get_column_properties(self):
+            return [
+                ("atom", object),
+                ("prop", object),
+                ("amount", float)
+            ]
 
     def __init__(self, atom, prop, amount, **kwargs):
         super(AtomContentObject, self).__init__()
@@ -337,11 +353,12 @@ class AtomContentObject(object):
 class AtomContents(AtomRelation):
 
     # MODEL INTEL:
-    __parent_alias__ = "component"
-    __model_intel__ = [
-        PropIntel(name="atom_contents", label="Atom contents", data_type=object, is_column=True, storable=True, has_widget=True),
-    ]
-    __store_id__ = "AtomContents"
+    class Meta(AtomRelation.Meta):
+        parent_alias = "component"
+        properties = [
+            PropIntel(name="atom_contents", label="Atom contents", data_type=object, is_column=True, storable=True, has_widget=True),
+        ]
+        store_id = "AtomContents"
 
     allowed_relations = {
         "AtomRatio": ("__internal_sum__", lambda o: o.name),
@@ -351,7 +368,7 @@ class AtomContents(AtomRelation):
 
     # PROPERTIES:
     _atom_contents = None
-    def get_atom_contents_value(self): return self._atom_contents
+    def get_atom_contents(self): return self._atom_contents
 
     # ------------------------------------------------------------
     #      Initialisation and other internals
@@ -364,19 +381,22 @@ class AtomContents(AtomRelation):
         """
         super(AtomContents, self).__init__(*args, **kwargs)
 
-        self._atom_contents = ObjectListStore(AtomContentObject)
-        atom_contents = self.get_kwarg(kwargs, None, "atom_contents")
-        if atom_contents:
-            # uuid's are resolved by calling resolve_relations
-            for uuid, prop, amount in atom_contents:
-                self._atom_contents.append(AtomContentObject(uuid, prop, amount))
+        # Load atom contents:
+        self._atom_contents = []
+        for uuid, prop, amount in self.get_kwarg(kwargs, [], "atom_contents"):
+            # uuid's are resolved when resolve_relations is called
+            self._atom_contents.append(AtomContentObject(uuid, prop, amount))
 
         def on_change(*args):
             if self.enabled: # no need for updates in this case
                 self.data_changed.emit()
-        self._atom_contents.connect("row-changed", on_change)
-        self._atom_contents.connect("row-inserted", on_change)
-        self._atom_contents.connect("row-deleted", on_change)
+
+        self._atom_contents_observer = ListObserver(
+            on_change,
+            on_change,
+            prop_name="atom_contents",
+            model=self
+        )
 
     # ------------------------------------------------------------
     #      Input/Output stuff
@@ -388,7 +408,7 @@ class AtomContents(AtomRelation):
                 atom_contents.atom.uuid if atom_contents.atom else None,
                 atom_contents.prop,
                 atom_contents.amount
-            ] for atom_contents in retval["atom_contents"].iter_objects()
+            ] for atom_contents in retval["atom_contents"]
         ])
         return retval
 
@@ -397,9 +417,9 @@ class AtomContents(AtomRelation):
         enabled = self.enabled
         self.enabled = False
         # Change rows with string references to objects (uuid's)
-        for atom_content in self.atom_contents.iter_objects():
+        for atom_content in self.atom_contents:
             if isinstance(atom_content.atom, basestring):
-                atom_content.atom = pyxrd_object_pool.get_object(atom_content.atom)
+                atom_content.atom = UUIDMeta.object_pool.get_object(atom_content.atom)
         # Set the flag to its original value
         self.enabled = enabled
 
@@ -408,7 +428,7 @@ class AtomContents(AtomRelation):
     # ------------------------------------------------------------
     def apply_relation(self):
         if self.enabled and self.applicable:
-            for atom_content in self.atom_contents.iter_objects():
+            for atom_content in self.atom_contents:
                 # do not fire events, just set attributes:
                 if atom_content.atom is not None:
                     with atom_content.atom.data_changed.ignore():
@@ -433,7 +453,7 @@ class AtomContents(AtomRelation):
             atom_content.prop = new_prop
 
     def iter_references(self):
-        for atom_content in self.atom_contents.iter_objects():
+        for atom_content in self.atom_contents:
             yield atom_content.atom
 
     pass # end of class

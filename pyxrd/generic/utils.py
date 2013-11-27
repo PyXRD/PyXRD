@@ -9,6 +9,10 @@ import time
 import hashlib
 from uuid import uuid4 as get_uuid
 
+def not_none(passed, default):
+    """Convenience function to check if a value is None and return a default if so"""
+    return passed if passed is not None else default
+
 def print_stack_plus():
     """
     Print the usual traceback information, followed by a listing of all the

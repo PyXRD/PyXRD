@@ -75,40 +75,12 @@ class AtomComboMixin(object):
             def on_item_changed(*args):
                 controller.reset_combo_box(intel.name)
 
-            # use private properties so we connect to the actual object stores and not the inherited ones
-            if hasattr(controller, "__layer_connect_ids"):
-                controller._disconnect_from_layers(controller)
-            if hasattr(controller, "__interlayer_connect_ids"):
-                controller._disconnect_from_interlayers(controller)
-            controller.__layer_connect_ids = ()
-            controller.__layer_connect_ids += (controller.model.parent._layer_atoms.connect("item-removed", on_item_changed),)
-            controller.__layer_connect_ids += (controller.model.parent._layer_atoms.connect("item-inserted", on_item_changed),)
-            controller.__interlayer_connect_ids = ()
-            controller.__interlayer_connect_ids += (controller.model.parent._interlayer_atoms.connect("item-removed", on_item_changed),)
-            controller.__interlayer_connect_ids += (controller.model.parent._interlayer_atoms.connect("item-inserted", on_item_changed),)
+            if controller.is_observing_method("atoms_changed", on_item_changed):
+                controller.remove_observing_method("atoms_changed", on_item_changed)
+            controller.observe(on_item_changed, "atoms_changed", signal=True)
 
         else: return False
         return True
-
-    @staticmethod
-    def _disconnect_from_layers(controller):
-        """
-            Disconnect the controller from the layer atoms signals
-        """
-        if hasattr(controller, "__layer_connect_ids"):
-            for signal_id in controller.__layer_connect_ids:
-                controller.model.parent._layer_atoms.disconnect(signal_id)
-            del controller.__layer_connect_ids
-
-    @staticmethod
-    def _disconnect_from_interlayers(controller):
-        """
-            Disconnect the controller from the interlayer atoms signals
-        """
-        if hasattr(controller, "__interlayer_connect_ids"):
-            for signal_id in controller.__interlayer_connect_ids:
-                controller.model.parent._interlayer_atoms.disconnect(signal_id)
-            del controller.__interlayer_connect_ids
 
     pass # end of class
 
@@ -197,6 +169,8 @@ class ContentsListController(InlineObjectListStoreController):
     new_val = None
     auto_adapt = False # FIXME
 
+    treemodel_class_type = AtomContentObject
+
     def _reset_treeview(self, tv, model):
         setup_treeview(tv, model, sel_mode=gtk.SELECTION_MULTIPLE, reset=True)
         tv.set_model(model)
@@ -241,8 +215,11 @@ class ContentsListController(InlineObjectListStoreController):
     def _setup_treeview(self, tv, model):
         self._reset_treeview(tv, model)
 
-    def __init__(self, model_property_name, **kwargs):
-        InlineObjectListStoreController.__init__(self, model_property_name, enable_import=False, enable_export=False, **kwargs)
+    def __init__(self, treemodel_property_name, **kwargs):
+        InlineObjectListStoreController.__init__(self,
+            treemodel_property_name=treemodel_property_name,
+            enable_import=False, enable_export=False, **kwargs
+        )
 
     def create_new_object_proxy(self):
         return AtomContentObject(None, None, 1.0)
@@ -263,8 +240,9 @@ class EditAtomRelationsController(InlineObjectListStoreController):
     """ 
         Controller for the components' atom relations ObjectListStore
     """
-    file_filters = AtomRelation.__file_filters__
-    auto_adapt = False # FIXME
+    file_filters = AtomRelation.Meta.file_filters
+    auto_adapt = False
+    treemodel_class_type = AtomRelation
 
     add_types = [
         ("Ratio", AtomRatio, EditAtomRatioView, EditAtomRatioController),
@@ -309,8 +287,8 @@ class EditAtomRelationsController(InlineObjectListStoreController):
         tv.connect('button-press-event', self.tv_button_press)
         self._reset_treeview(tv, model)
 
-    def __init__(self, model_property_name, **kwargs):
-        InlineObjectListStoreController.__init__(self, model_property_name, enable_import=False, enable_export=False, **kwargs)
+    def __init__(self, **kwargs):
+        InlineObjectListStoreController.__init__(self, enable_import=False, enable_export=False, **kwargs)
 
     def create_new_object_proxy(self):
         return self.add_type(parent=self.model)

@@ -6,11 +6,12 @@
 # Complete license can be found in the LICENSE file.
 
 from pyxrd.generic.io import storables, Storable
-from pyxrd.generic.models import DataModel, PropIntel
-from pyxrd.generic.models.metaclasses import pyxrd_object_pool
+from pyxrd.generic.models import DataModel
 from pyxrd.generic.refinement.mixins import RefinementValue
 
 from .atom_relations import ComponentPropMixin
+from pyxrd.gtkmvc.support.propintel import PropIntel
+from pyxrd.gtkmvc.support.metaclasses import UUIDMeta
 
 @storables.register()
 class UnitCellProperty(DataModel, Storable, ComponentPropMixin, RefinementValue):
@@ -27,52 +28,53 @@ class UnitCellProperty(DataModel, Storable, ComponentPropMixin, RefinementValue)
 
 
     # MODEL INTEL:
-    __parent_alias__ = "component"
-    __model_intel__ = [
-        PropIntel(name="name", label="Name", data_type=unicode, is_column=True),
-        PropIntel(name="value", label="Value", data_type=float, widget_type='float_entry', storable=True, has_widget=True, refinable=True),
-        PropIntel(name="factor", label="Factor", data_type=float, widget_type='float_entry', storable=True, has_widget=True),
-        PropIntel(name="constant", label="Constant", data_type=float, widget_type='float_entry', storable=True, has_widget=True),
-        PropIntel(name="prop", label="Property", data_type=object, widget_type='combo', storable=True, has_widget=True),
-        PropIntel(name="enabled", label="Enabled", data_type=bool, storable=True, has_widget=True),
-        PropIntel(name="ready", label="Ready", data_type=bool),
-        PropIntel(name="inherited", label="Inherited", data_type=bool)
-    ]
-    __store_id__ = "UnitCellProperty"
+    class Meta(DataModel.Meta):
+        parent_alias = "component"
+        properties = [
+            PropIntel(name="name", label="Name", data_type=unicode, is_column=True),
+            PropIntel(name="value", label="Value", data_type=float, widget_type='float_entry', storable=True, has_widget=True, refinable=True),
+            PropIntel(name="factor", label="Factor", data_type=float, widget_type='float_entry', storable=True, has_widget=True),
+            PropIntel(name="constant", label="Constant", data_type=float, widget_type='float_entry', storable=True, has_widget=True),
+            PropIntel(name="prop", label="Property", data_type=object, widget_type='combo', storable=True, has_widget=True),
+            PropIntel(name="enabled", label="Enabled", data_type=bool, storable=True, has_widget=True),
+            PropIntel(name="ready", label="Ready", data_type=bool),
+            PropIntel(name="inherited", label="Inherited", data_type=bool)
+        ]
+        store_id = "UnitCellProperty"
 
     # PROPERTIES:
     _name = ""
-    def get_name_value(self): return self._name
-    def set_name_value(self, value):
+    def get_name(self): return self._name
+    def set_name(self, value):
         if self._name != value:
             self._name = value
             self.visuals_changed.emit()
 
     _enabled = False
-    def get_enabled_value(self): return self._enabled
-    def set_enabled_value(self, value):
+    def get_enabled(self): return self._enabled
+    def set_enabled(self, value):
         if self._enabled != value:
             self._enabled = value
             self.update_value()
 
     _inherited = False
-    def get_inherited_value(self): return self._inherited
-    def set_inherited_value(self, value):
+    def get_inherited(self): return self._inherited
+    def set_inherited(self, value):
         if self._inherited != value:
             self._inherited = value
             self.update_value()
 
     _ready = False
-    def get_ready_value(self): return self._ready
-    def set_ready_value(self, value):
+    def get_ready(self): return self._ready
+    def set_ready(self, value):
         if self._ready != value:
             self._ready = value
             self.update_value()
 
     _value = 1.0
     value_range = [0, 2.0]
-    def get_value_value(self): return self._value
-    def set_value_value(self, value):
+    def get_value(self): return self._value
+    def set_value(self, value):
         try: value = float(value)
         except ValueError: return
         if self._value != value:
@@ -80,8 +82,8 @@ class UnitCellProperty(DataModel, Storable, ComponentPropMixin, RefinementValue)
             self.update_value()
 
     _factor = 1.0
-    def get_factor_value(self): return self._factor
-    def set_factor_value(self, value):
+    def get_factor(self): return self._factor
+    def set_factor(self, value):
         try: value = float(value)
         except ValueError: return
         if self._factor != value:
@@ -89,8 +91,8 @@ class UnitCellProperty(DataModel, Storable, ComponentPropMixin, RefinementValue)
             self.update_value()
 
     _constant = 0.0
-    def get_constant_value(self): return self._constant
-    def set_constant_value(self, value):
+    def get_constant(self): return self._constant
+    def set_constant(self, value):
         try: value = float(value)
         except ValueError: return
         if self._constant != value:
@@ -99,8 +101,8 @@ class UnitCellProperty(DataModel, Storable, ComponentPropMixin, RefinementValue)
 
     _temp_prop = None # temporary, JSON-style prop
     _prop = None # obj, prop tuple
-    def get_prop_value(self): return self._prop
-    def set_prop_value(self, value):
+    def get_prop(self): return self._prop
+    def set_prop(self, value):
         if self._prop != value:
             self._prop = value
             self.update_value()
@@ -162,7 +164,7 @@ class UnitCellProperty(DataModel, Storable, ComponentPropMixin, RefinementValue)
         if getattr(self, "_temp_prop", None):
             self._temp_prop = list(self._temp_prop)
             if isinstance(self._temp_prop[0], basestring):
-                obj = pyxrd_object_pool.get_object(self._temp_prop[0])
+                obj = UUIDMeta.object_pool.get_object(self._temp_prop[0])
                 if obj:
                     self._temp_prop[0] = obj
                     self.prop = self._temp_prop
@@ -179,9 +181,9 @@ class UnitCellProperty(DataModel, Storable, ComponentPropMixin, RefinementValue)
         from gtk import ListStore
         store = ListStore(object, str, object)
         # use private properties so we connect to the actual object stores and not the inherited ones
-        for atom in self.component._layer_atoms.iter_objects():
+        for atom in self.component._layer_atoms:
             store.append([atom, "pn", lambda o: o.name])
-        for atom in self.component._interlayer_atoms.iter_objects():
+        for atom in self.component._interlayer_atoms:
             store.append([atom, "pn", lambda o: o.name])
         for prop in extra_props:
             store.append(prop)

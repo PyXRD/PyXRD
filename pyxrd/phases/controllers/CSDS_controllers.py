@@ -28,7 +28,7 @@ class EditCSDSTypeController(BaseController):
         store = gtk.ListStore(str, object)
 
         for cls in CSDS_distribution_types:
-            store.append([cls.__description__, cls])
+            store.append([cls.Meta.description, cls])
         combo.set_model(store)
 
         for row in store:
@@ -87,11 +87,11 @@ class EditCSDSDistributionController(BaseController):
     def register_view(self, view):
         if self.model is not None:
             view.reset_params()
-            for intel in self.model.__model_intel__:
-                if intel.refinable:
+            for prop in self.model.Meta.all_properties:
+                if prop.refinable:
                     view.add_param_widget(
-                        view.widget_format % intel.name, intel.label,
-                        intel.minimum, intel.maximum
+                        view.widget_format % prop.name, prop.label,
+                        prop.minimum, prop.maximum
                     )
             view.update_figure(self.model.distrib[0])
 

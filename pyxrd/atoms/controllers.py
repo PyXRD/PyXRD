@@ -5,6 +5,8 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
+from contextlib import contextmanager
+
 import numpy as np
 
 from pyxrd.gtkmvc import Controller
@@ -20,7 +22,7 @@ class EditAtomTypeController(BaseController):
     """
 
     # ------------------------------------------------------------
-    #      Initialisation and other internals
+    #      Initialization and other internals
     # ------------------------------------------------------------
     def register_adapters(self):
         self.update_plot()
@@ -48,10 +50,11 @@ class AtomTypesController(ObjectListStoreController): # FIXME THIS NEES CLEAN-UP
     """
         Controller for an AtomType ObjectListStore model and view.
     """
-    file_filters = AtomType.__file_filters__
-    model_property_name = "atom_types"
+    file_filters = AtomType.Meta.file_filters
+    treemodel_property_name = "atom_types"
+    treemodel_class_type = AtomType
     columns = [ ("Atom type name", "c_name") ]
-    delete_msg = "Deleting an atom type is irreverisble!\nAre You sure you want to continue?"
+    delete_msg = "Deleting an atom type is irreversible!\nAre You sure you want to continue?"
     obj_type_map = [
         (AtomType, EditAtomTypeView, EditAtomTypeController),
     ]
@@ -60,48 +63,37 @@ class AtomTypesController(ObjectListStoreController): # FIXME THIS NEES CLEAN-UP
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------
-    def create_new_object_proxy(self):
-        # new_atom_type =
-        # self.model.add_atom_type(new_atom_type)
-        # self.select_object(new_atom_type)
-        return AtomType("New Atom Type", parent=self.model)
+    def get_atom_types_tree_model(self, *args):
+        return self.treemodel
 
-    def open_atom_type(self, filename):
-        self.model.append(AtomType.load_object(filename))
+    def create_new_object_proxy(self):
+        return AtomType(name="New Atom Type", parent=self.model)
+
+    @contextmanager
+    def _multi_operation_context(self):
+        with self.model.data_changed.hold():
+            yield
 
     # ------------------------------------------------------------
     #      GTK Signal handlers
     # ------------------------------------------------------------
     def on_load_object_clicked(self, event):
         def on_accept(open_dialog):
-            print "Importing atom types..."
             fltr = open_dialog.get_filter()
+            filename = open_dialog.get_filename()
             if fltr.get_name() == self.file_filters[0][0]:
-                self.open_atom_type(open_dialog.get_filename())
+                self.model.load_atom_types_from_csv(filename)
             elif fltr.get_name() == self.file_filters[1][0]:
-                def save_append(*args):
-                    try:
-                        self.model.atom_types.append(*args)
-                    except AssertionError:
-                        print "AssertionError raised when trying to add %s: most likely there is already an AtomType with this name!" % args
-                AtomType.get_from_csv(open_dialog.get_filename(), save_append) # self.model.atom_types.append)
+                self.model.load_atom_types(filename)
         self.run_load_dialog("Import atom types", on_accept, parent=self.view.get_top_widget())
-
 
     def on_save_object_clicked(self, event):
         def on_accept(save_dialog):
-            print "Exporting atom types..."
             fltr = save_dialog.get_filter()
-            filename = save_dialog.get_filename()
+            filename = self.extract_filename(save_dialog, self.file_filters)
             if fltr.get_name() == self.file_filters[0][0]:
-                if filename[len(filename) - 4:] != self.file_filters[0][1][1:]:
-                    filename = "%s%s" % (filename, self.file_filters[0][1][1:])
-                atom_type = self.get_selected_object()
-                if atom_type is not None:
-                    atom_type.save_object(filename=filename)
+                AtomType.save_atom_types(filename, self.get_selected_objects())
             elif fltr.get_name() == self.file_filters[1][0]:
-                if filename[len(filename) - 4:] != self.file_filters[1][1][1:]:
-                    filename = "%s%s" % (filename, self.file_filters[1][1][1:])
                 AtomType.save_as_csv(filename, self.get_selected_objects())
         self.run_save_dialog("Export atom types", on_accept, parent=self.view.get_top_widget())
 

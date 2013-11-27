@@ -13,27 +13,39 @@ import gtk
 from pyxrd.gtkmvc import Controller
 
 from pyxrd.generic.views.treeview_tools import new_text_column, new_toggle_column, new_pb_column
-from pyxrd.generic.controllers import BaseController, DialogController, ObjectListStoreMixin, DialogMixin
+from pyxrd.generic.controllers import BaseController, ObjectListStoreController, DialogMixin
 from pyxrd.specimen.models import Specimen
 
-class ProjectController (DialogController, ObjectListStoreMixin, DialogMixin):
+class ProjectController(ObjectListStoreController, DialogMixin):
 
-    model_property_name = "specimens"
+    treemodel_property_name = "specimens"
+    treemodel_class_type = Specimen
     columns = [ ]
     delete_msg = "Deleting a specimen is irreversible!\nAre You sure you want to continue?"
+    auto_adapt = True
 
-    file_filters = Specimen.__file_filters__
+    file_filters = Specimen.Meta.file_filters
+
+    def __init__(self, *args, **kwargs):
+        super(ProjectController, self).__init__(*args, **kwargs)
 
     def register_view(self, view):
         if view is not None and self.model is not None:
-            if self.parent is not None:
+            if self.parent is not None: # is this still needed?
                 tv = self.view["project_specimens"]
-                tv.set_model(self.model.specimens)
+                tv.set_model(self.treemodel)
                 self.view.treeview = tv
         return
 
-    def setup_specimens_tree_view(self, store, widget):
-        ObjectListStoreMixin.setup_treeview(self, widget)
+    def _idle_register_view(self, *args, **kwargs):
+        super(ProjectController, self)._idle_register_view(*args, **kwargs)
+
+    def adapt(self, *args, **kwargs):
+        super(ProjectController, self).adapt(*args, **kwargs)
+
+    def setup_treeview(self, widget):
+        super(ProjectController, self).setup_treeview(widget)
+        store = self.treemodel
         widget.connect('button-press-event', self.specimen_tv_button_press)
 
         # First reset & then (re)create the columns of the treeview:
@@ -51,8 +63,11 @@ class ProjectController (DialogController, ObjectListStoreMixin, DialogMixin):
 
         # Check boxes:
         def toggle_renderer(column, cell, model, itr, data=None):
-            col = column.get_col_attr("active")
-            cell.set_property('active', model.get_value(itr, col))
+            active = False
+            if model.iter_is_valid(itr):
+                col = column.get_col_attr("active")
+                active = model.get_value(itr, col)
+            cell.set_property('active', active)
             return
         def setup_check_column(title, colnr):
             col = new_toggle_column(title,
@@ -65,10 +80,10 @@ class ProjectController (DialogController, ObjectListStoreMixin, DialogMixin):
             col.set_data("colnr", colnr)
             widget.append_column(col)
 
-        setup_check_column('Exp', self.model.specimens.c_display_experimental)
+        setup_check_column('Exp', store.c_display_experimental)
         if self.model.layout_mode == "FULL":
-            setup_check_column('Cal', self.model.specimens.c_display_calculated)
-            setup_check_column('Sep', self.model.specimens.c_display_phases)
+            setup_check_column('Cal', store.c_display_calculated)
+            setup_check_column('Sep', store.c_display_phases)
 
         # Up and down arrows:
         def setup_image_button(image, colnr):
@@ -119,17 +134,25 @@ class ProjectController (DialogController, ObjectListStoreMixin, DialogMixin):
         if selection is not None and len(selection) >= 1:
             def delete_objects(dialog):
                 for obj in selection:
-                    self.model.specimens.remove_item(obj)
+                    if obj is not None:
+                        self.model.specimens.remove(obj)
             self.run_confirmation_dialog(
                 message='Deleting a specimen is irreversible!\nAre You sure you want to continue?',
                 on_accept_callback=delete_objects,
                 parent=self.view.get_top_widget())
 
+    def edit_specimen(self):
+        selection = self.get_selected_objects()
+        if selection is not None and len(selection) == 1:
+            # TODO move the specimen view & controller into the project level
+            self.parent.view.specimen.present()
+
     @BaseController.status_message("Creating new specimen...", "add_specimen")
     def add_specimen(self):
         specimen = Specimen(parent=self.model)
-        self.view.specimens_treeview.set_cursor(self.model.specimens.append(specimen))
-        self.parent.view["edit_specimen"].activate()
+        self.model.specimens.append(specimen)
+        self.view.specimens_treeview.set_cursor(self.treemodel.on_get_path(specimen))
+        self.edit_specimen()
         return True
 
     # ------------------------------------------------------------
@@ -164,8 +187,7 @@ class ProjectController (DialogController, ObjectListStoreMixin, DialogMixin):
         ret = tv.get_path_at_pos(int(event.x), int(event.y))
         if ret is not None:
             path, col, x, y = ret
-            model = tv.get_model()
-            specimen = model.get_user_data_from_path(path)
+            specimen = self.treemodel.get_user_data_from_path(path) # FIXME
         if event.button == 3:
             if specimen is not None:
                 # clicked a specimen which is not in the current selection,
@@ -177,33 +199,33 @@ class ProjectController (DialogController, ObjectListStoreMixin, DialogMixin):
                 self.select_object(None)
             self.view.show_specimens_context_menu(event)
             return True
-        elif event.type == gtk.gdk._2BUTTON_PRESS and specimen is not None and col.get_data("colnr") == self.model.specimens.c_name:
+        elif event.type == gtk.gdk._2BUTTON_PRESS and specimen is not None and col.get_data("colnr") == self.treemodel.c_name:
             self.parent.on_edit_specimen_activate(event)
             return True
         elif (event.button == 1 or event.type == gtk.gdk._2BUTTON_PRESS) and specimen is not None:
             column = col.get_data("colnr")
-            if column in (self.model.specimens.c_display_experimental,
-                    self.model.specimens.c_display_calculated,
-                    self.model.specimens.c_display_phases):
-                if column == self.model.specimens.c_display_experimental:
+            if column in (self.treemodel.c_display_experimental,
+                    self.treemodel.c_display_calculated,
+                    self.treemodel.c_display_phases):
+                if column == self.treemodel.c_display_experimental:
                     specimen.display_experimental = not specimen.display_experimental
-                elif column == self.model.specimens.c_display_calculated:
+                elif column == self.treemodel.c_display_calculated:
                     specimen.display_calculated = not specimen.display_calculated
-                elif column == self.model.specimens.c_display_phases:
+                elif column == self.treemodel.c_display_phases:
                     specimen.display_phases = not specimen.display_phases
-                model.on_item_changed(specimen)
+                #TODO FIXME self.treemodel.on_row_changed(ret)
                 return True
             elif column == 501:
-                model.move_item_up(specimen)
+                self.model.move_specimen_down(specimen)
                 self.parent.model.current_specimens = self.get_selected_objects()
                 return True
             elif column == 502:
-                model.move_item_down(specimen)
+                self.model.move_specimen_up(specimen)
                 self.parent.model.current_specimens = self.get_selected_objects()
                 return True
 
     def objects_tv_selection_changed(self, selection):
-        ObjectListStoreMixin.objects_tv_selection_changed(self, selection)
+        ObjectListStoreController.objects_tv_selection_changed(self, selection)
         self.parent.model.current_specimens = self.get_selected_objects()
         return True
 

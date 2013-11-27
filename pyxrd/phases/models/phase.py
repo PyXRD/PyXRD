@@ -9,13 +9,11 @@ from random import choice
 import zipfile
 from warnings import warn
 
-from pyxrd.gtkmvc.model import Model, Observer
+from pyxrd.gtkmvc.model import Observer
+from pyxrd.gtkmvc.support.propintel import PropIntel
 
 from pyxrd.generic.io import storables, Storable, get_case_insensitive_glob
-from pyxrd.generic.models import DataModel, PropIntel
-from pyxrd.generic.models.mixins import ObjectListStoreChildMixin, ObjectListStoreParentMixin
-from pyxrd.generic.models.treemodels import ObjectListStore
-from pyxrd.generic.models.metaclasses import pyxrd_object_pool
+from pyxrd.generic.models import DataModel
 from pyxrd.generic.calculations.phases import get_diffracted_intensity
 from pyxrd.generic.calculations.data_objects import PhaseData
 from pyxrd.generic.refinement.mixins import RefinementGroup
@@ -23,32 +21,34 @@ from pyxrd.generic.refinement.mixins import RefinementGroup
 from pyxrd.probabilities.models import get_correct_probability_model
 from .CSDS import DritsCSDSDistribution
 from .component import Component
+from pyxrd.gtkmvc.support.metaclasses import UUIDMeta
+
 
 @storables.register()
-class Phase(DataModel, Storable, ObjectListStoreParentMixin,
-        ObjectListStoreChildMixin, RefinementGroup):
+class Phase(DataModel, Storable, RefinementGroup):
 
     # MODEL INTEL:
-    __parent_alias__ = 'project'
-    __model_intel__ = [
-        PropIntel(name="name", data_type=unicode, label="Name", is_column=True, has_widget=True, storable=True),
-        PropIntel(name="display_color", data_type=str, label="Display color", is_column=True, has_widget=True, widget_type='color', storable=True, inh_name="inherit_display_color", stor_name="_display_color"),
-        PropIntel(name="based_on", data_type=object, label="Based on phase", is_column=True, has_widget=True, widget_type='custom'),
-        PropIntel(name="G", data_type=int, label="# of components", is_column=True, has_widget=True, widget_type="entry", storable=True),
-        PropIntel(name="R", data_type=int, label="Reichweite", is_column=True, has_widget=True, widget_type="entry"),
-        PropIntel(name="CSDS_distribution", data_type=object, label="CSDS Distribution", is_column=True, has_widget=True, storable=True, refinable=True, widget_type="custom", inh_name="inherit_CSDS_distribution", stor_name="_CSDS_distribution"),
-        PropIntel(name="sigma_star", data_type=float, label="$\sigma^*$ [°]", is_column=True, has_widget=True, storable=True, refinable=True, minimum=0.0, maximum=90.0, inh_name="inherit_sigma_star", stor_name="_sigma_star"),
-        PropIntel(name="inherit_display_color", data_type=bool, label="Inh. display color", is_column=True, has_widget=True, storable=True),
-        PropIntel(name="inherit_CSDS_distribution", data_type=bool, label="Inh. mean CSDS", is_column=True, has_widget=True, storable=True),
-        PropIntel(name="inherit_sigma_star", data_type=bool, label="Inh. sigma star", is_column=True, has_widget=True, storable=True),
-        PropIntel(name="inherit_probabilities", data_type=bool, label="Inh. probabilities", is_column=True, has_widget=True, storable=True),
-        PropIntel(name="probabilities", data_type=object, label="Probabilities", is_column=True, has_widget=True, storable=True, refinable=True, widget_type="custom", inh_name="inherit_probabilities", stor_name="_probabilities"),
-        PropIntel(name="components", data_type=object, label="Components", is_column=True, has_widget=True, storable=True, refinable=True, widget_type="custom"),
-    ]
-    __store_id__ = "Phase"
-    __file_filters__ = [
-        ("Phase file", get_case_insensitive_glob("*.PHS")),
-    ]
+    class Meta(DataModel.Meta):
+        parent_alias = 'project'
+        properties = [
+            PropIntel(name="name", data_type=unicode, label="Name", is_column=True, has_widget=True, storable=True),
+            PropIntel(name="display_color", data_type=str, label="Display color", is_column=True, has_widget=True, widget_type='color', storable=True, inh_name="inherit_display_color", stor_name="_display_color"),
+            PropIntel(name="based_on", data_type=object, label="Based on phase", is_column=True, has_widget=True, widget_type='custom'),
+            PropIntel(name="G", data_type=int, label="# of components", is_column=True, has_widget=True, widget_type="entry", storable=True),
+            PropIntel(name="R", data_type=int, label="Reichweite", is_column=True, has_widget=True, widget_type="entry"),
+            PropIntel(name="CSDS_distribution", data_type=object, label="CSDS Distribution", is_column=True, has_widget=True, storable=True, refinable=True, widget_type="custom", inh_name="inherit_CSDS_distribution", stor_name="_CSDS_distribution"),
+            PropIntel(name="sigma_star", data_type=float, label="$\sigma^*$ [°]", is_column=True, has_widget=True, storable=True, refinable=True, minimum=0.0, maximum=90.0, inh_name="inherit_sigma_star", stor_name="_sigma_star"),
+            PropIntel(name="inherit_display_color", data_type=bool, label="Inh. display color", is_column=True, has_widget=True, storable=True),
+            PropIntel(name="inherit_CSDS_distribution", data_type=bool, label="Inh. mean CSDS", is_column=True, has_widget=True, storable=True),
+            PropIntel(name="inherit_sigma_star", data_type=bool, label="Inh. sigma star", is_column=True, has_widget=True, storable=True),
+            PropIntel(name="inherit_probabilities", data_type=bool, label="Inh. probabilities", is_column=True, has_widget=True, storable=True),
+            PropIntel(name="probabilities", data_type=object, label="Probabilities", is_column=True, has_widget=True, storable=True, refinable=True, widget_type="custom", inh_name="inherit_probabilities", stor_name="_probabilities"),
+            PropIntel(name="components", data_type=object, label="Components", is_column=True, has_widget=True, storable=True, refinable=True, widget_type="custom"),
+        ]
+        store_id = "Phase"
+        file_filters = [
+            ("Phase file", get_case_insensitive_glob("*.PHS")),
+        ]
 
     _data_object = None
     @property
@@ -65,7 +65,7 @@ class Phase(DataModel, Storable, ObjectListStoreParentMixin,
             self._data_object.P = self.probabilities.get_probability_matrix()
 
             self._data_object.components = [None] * len(self.components)
-            for i, comp in enumerate(self.components.iter_objects()):
+            for i, comp in enumerate(self.components):
                 self._data_object.components[i] = comp.data_object
         else:
             self._data_object.sigma_star = None
@@ -78,45 +78,55 @@ class Phase(DataModel, Storable, ObjectListStoreParentMixin,
         return self._data_object
 
     # PROPERTIES:
-    name = "Name of this phase"
+    name = "New Phase"
 
-    @property
-    def _inherit_CSDS_distribution(self):
-        return self._CSDS_distribution.inherited
-    @_inherit_CSDS_distribution.setter
-    def _inherit_CSDS_distribution(self, value):
-        self._CSDS_distribution.inherited = value
+    def get_inherit_CSDS_distribution(self): return self._CSDS_distribution.inherited
+    def set_inherit_CSDS_distribution(self, value): self._CSDS_distribution.inherited = value
+
     _inherit_display_color = False
+    def get_inherit_display_color(self): return self._inherit_display_color
+    def set_inherit_display_color(self, value):
+        with self.visuals_changed.hold_and_emit():
+            self._inherit_display_color = bool(value)
+
     _inherit_sigma_star = False
+    def get_inherit_sigma_star(self): return self._inherit_sigma_star
+    def set_inherit_sigma_star(self, value):
+        try:
+            value = bool(value)
+        except ValueError:
+            pass
+        else:
+            if value != self._inherit_sigma_star:
+                with self.data_changed.hold_and_emit():
+                    self._inherit_sigma_star = value
+
     _inherit_probabilities = False
-    @Model.getter(*[prop.inh_name for prop in __model_intel__ if prop.inh_name])
-    def get_inherit_prop(self, prop_name): return getattr(self, "_%s" % prop_name)
-    @Model.setter(*[prop.inh_name for prop in __model_intel__ if prop.inh_name])
-    def set_inherit_prop(self, prop_name, value):
+    def get_inherit_probabilities(self): return self._inherit_probabilities
+    def set_inherit_probabilities(self, value):
         with self.data_changed.hold_and_emit():
-            setattr(self, "_%s" % prop_name, value)
-            self.liststore_item_changed()
+            self._inherit_probabilities = bool(value)
 
     _based_on_index = None # temporary property
     _based_on_uuid = None # temporary property
     _based_on = None
-    def get_based_on_value(self): return self._based_on
-    def set_based_on_value(self, value):
-        with self.data_changed.hold_and_emit():
+    def get_based_on(self): return self._based_on
+    def set_based_on(self, value):
+        with self.data_changed.hold():
             if self._based_on is not None:
                 self.relieve_model(self._based_on)
             if value == None or value.get_based_on_root() == self or value.parent != self.parent:
                 value = None
             if value != self._based_on:
                 self._based_on = value
-                for component in self.components._model_data:
+                for component in self.components:
                     component.linked_with = None
+                self.data_changed.emit()
             if self._based_on is not None:
                 self.observe_model(self._based_on)
             else:
-                for prop in self.__model_intel__:
-                    if prop.inh_name: setattr(self, prop.inh_name, False)
-            self.liststore_item_changed()
+                for prop in self.Meta.get_inheritable_properties():
+                    setattr(self, prop.inh_name, False)
     def get_based_on_root(self):
         if self.based_on is not None:
             return self.based_on.get_based_on_root()
@@ -124,20 +134,37 @@ class Phase(DataModel, Storable, ObjectListStoreParentMixin,
             return self
 
     # INHERITABLE PROPERTIES:
-    _sigma_star = 3.0
-    sigma_star_range = [0, 90]
-    _CSDS_distribution = None
-    _probabilities = None
-    _display_color = "#FFB600"
-    @Model.getter(*[prop.name for prop in __model_intel__ if prop.inh_name])
-    def get_inheritable(self, prop_name):
-        inh_name = "inherit_%s" % prop_name
+    def _get_inheritable_property_value(self, name):
+        inh_name = self.Meta.get_prop_intel_by_name(name).inh_name
         if self.based_on is not None and getattr(self, inh_name):
-            return getattr(self.based_on, prop_name)
+            return getattr(self.based_on, name)
         else:
-            return getattr(self, "_%s" % prop_name)
+            return getattr(self, "_%s" % name)
 
-    def set_probabilities_value(self, value):
+    _sigma_star = 3.0
+    def get_sigma_star(self): return self._get_inheritable_property_value("sigma_star")
+    def set_sigma_star(self, value):
+        value = float(value)
+        if self._sigma_star != value:
+            with self.data_changed.hold_and_emit():
+                self._sigma_star = value
+
+    _CSDS_distribution = None
+    def get_CSDS_distribution(self): return self._get_inheritable_property_value("CSDS_distribution")
+    def set_CSDS_distribution(self, value):
+        with self.data_changed.hold_and_emit():
+            if self._CSDS_distribution:
+                self.relieve_model(self._CSDS_distribution)
+                self._CSDS_distribution.parent = None
+            self._CSDS_distribution = value
+            if self._CSDS_distribution:
+                self._CSDS_distribution.parent = self
+                self.observe_model(self._CSDS_distribution)
+
+
+    _probabilities = None
+    def get_probabilities(self): return self._get_inheritable_property_value("probabilities")
+    def set_probabilities(self, value):
         with self.data_changed.hold_and_emit():
             if self._probabilities:
                 self.relieve_model(self._probabilities)
@@ -147,53 +174,27 @@ class Phase(DataModel, Storable, ObjectListStoreParentMixin,
                 self._probabilities.update()
                 self._probabilities.parent = self
                 self.observe_model(self._probabilities)
-            self.liststore_item_changed()
 
-    def set_CSDS_distribution_value(self, value):
-        with self.data_changed.hold_and_emit():
-            if self._CSDS_distribution:
-                self.relieve_model(self._CSDS_distribution)
-                self._CSDS_distribution.parent = None
-            self._CSDS_distribution = value
-            if self._CSDS_distribution:
-                self._CSDS_distribution.parent = self
-                self.observe_model(self._CSDS_distribution)
-            self.liststore_item_changed()
-
-    def set_display_color_value(self, value):
+    _display_color = "#FFB600"
+    def get_display_color(self): return self._get_inheritable_property_value("display_color")
+    def set_display_color(self, value):
         if self._display_color != value:
             with self.visuals_changed.hold_and_emit():
                 self._display_color = value
-                self.liststore_item_changed()
 
-    def set_sigma_star_value(self, value):
-        value = float(value)
-        if self._sigma_star != value:
-            with self.visuals_changed.hold_and_emit():
-                self._sigma_star = value
-                self.liststore_item_changed()
+    components = []
 
-    _components = None
-    def get_components_value(self): return self._components
-    def set_components_value(self, value):
-        if self._components is not None:
-            for comp in self._components._model_data: self.relieve_model(comp)
-        self._components = value
-        if self._components is not None:
-            for comp in self._components._model_data: self.observe_model(comp)
-        self.liststore_item_changed()
-    def get_G_value(self):
+    def get_G(self):
         if self.components is not None:
-            return len(self.components._model_data)
+            return len(self.components)
         else:
             return 0
 
-    _R = 0
-    def get_R_value(self):
+    def get_R(self):
         if self.probabilities:
             return self.probabilities.R
 
-    # Flag indicating wether or not the links (based_on and linked_with) should
+    # Flag indicating whether or not the links (based_on and linked_with) should
     # be saved as well.
     save_links = True
 
@@ -212,7 +213,7 @@ class Phase(DataModel, Storable, ObjectListStoreParentMixin,
         return self.name
 
     # ------------------------------------------------------------
-    #      Initialisation and other internals
+    #      Initialization and other internals
     # ------------------------------------------------------------
     def __init__(self, *args, **kwargs):
         super(Phase, self).__init__(*args, **kwargs)
@@ -228,19 +229,18 @@ class Phase(DataModel, Storable, ObjectListStoreParentMixin,
         )
         self.inherit_CSDS_distribution = self.get_kwarg(kwargs, False, "inherit_CSDS_distribution")
 
-        self._display_color = self.get_kwarg(kwargs, choice(self.line_colors), "display_color")
-        self._sigma_star = self.get_kwarg(kwargs, self.sigma_star, "sigma_star", "data_sigma_star")
+        self.display_color = self.get_kwarg(kwargs, choice(self.line_colors), "display_color")
+        self.sigma_star = self.get_kwarg(kwargs, self._sigma_star, "sigma_star", "data_sigma_star")
 
         self.inherit_display_color = self.get_kwarg(kwargs, False, "inherit_display_color")
         self.inherit_sigma_star = self.get_kwarg(kwargs, False, "inherit_sigma_star")
 
-        components = self.get_kwarg(kwargs, None, "components", "data_components")
-        self.components = self.parse_liststore_arg(
-            components, ObjectListStore, Component)
+        self.components = self.get_list(kwargs, [], "components", "data_components", parent=self)
+
         G = self.get_kwarg(kwargs, 1, "G", "data_G")
         R = self.get_kwarg(kwargs, 0, "R", "data_R")
         if G is not None and G > 0:
-            for i in range(len(self.components._model_data), G):
+            for i in range(len(self.components), G):
                 new_comp = Component(name="Component %d" % (i + 1), parent=self)
                 self.components.append(new_comp)
                 self.observe_model(new_comp)
@@ -278,13 +278,13 @@ class Phase(DataModel, Storable, ObjectListStoreParentMixin,
     def resolve_json_references(self):
         # Set the based on and linked with variables:
         if hasattr(self, "_based_on_uuid") and self._based_on_uuid is not None:
-            self.based_on = pyxrd_object_pool.get_object(self._based_on_uuid)
+            self.based_on = UUIDMeta.object_pool.get_object(self._based_on_uuid)
             del self._based_on_uuid
         elif hasattr(self, "_based_on_index") and self._based_on_index is not None and self._based_on_index != -1:
             warn("The use of object indices is deprecated since version 0.4. Please switch to using object UUIDs.", DeprecationWarning)
             self.based_on = self.parent.phases.get_user_from_index(self._based_on_index)
             del self._based_on_index
-        for component in self.components._model_data:
+        for component in self.components:
             component.resolve_json_references()
 
     @classmethod
@@ -292,12 +292,12 @@ class Phase(DataModel, Storable, ObjectListStoreParentMixin,
         """
             Saves multiple phases to a single file.
         """
-        pyxrd_object_pool.change_all_uuids()
+        UUIDMeta.object_pool.change_all_uuids()
         for phase in phases:
             if phase.based_on != "" and not phase.based_on in phases:
                 phase.save_links = False
             Component.export_atom_types = True
-            for component in phase.components.iter_objects():
+            for component in phase.components:
                 component.save_links = phase.save_links
 
         ordered_phases = list(phases) # make a copy
@@ -315,7 +315,7 @@ class Phase(DataModel, Storable, ObjectListStoreParentMixin,
                 zfile.writestr("%d###%s" % (i, phase.uuid), phase.dump_object())
         for phase in ordered_phases:
             phase.save_links = True
-            for component in phase.components.iter_objects():
+            for component in phase.components:
                 component.save_links = True
             Component.export_atom_types = False
 
@@ -324,7 +324,7 @@ class Phase(DataModel, Storable, ObjectListStoreParentMixin,
         """
             Returns multiple phases loaded from a single file.
         """
-        pyxrd_object_pool.change_all_uuids()
+        UUIDMeta.object_pool.change_all_uuids()
         if zipfile.is_zipfile(filename):
             with zipfile.ZipFile(filename, 'r') as zfile:
                 for name in zfile.namelist():
@@ -349,7 +349,7 @@ class Phase(DataModel, Storable, ObjectListStoreParentMixin,
     def json_properties(self):
         retval = Storable.json_properties(self)
         if not self.save_links:
-            for prop in self.__model_intel__:
+            for prop in self.Meta.all_properties:
                 if prop.inh_name:
                     retval[prop.inh_name] = False
             retval["based_on_uuid"] = ""

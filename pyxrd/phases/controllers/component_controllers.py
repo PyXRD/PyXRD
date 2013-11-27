@@ -16,6 +16,7 @@ from pyxrd.generic.io.utils import get_case_insensitive_glob
 from pyxrd.phases.controllers import EditLayerController, EditAtomRelationsController, EditUnitCellPropertyController
 from pyxrd.phases.views import EditComponentView, EditUnitCellPropertyView
 from pyxrd.phases.models.component import Component
+from pyxrd.generic.controllers.objectliststore_controllers import wrap_list_property_to_treemodel
 
 class EditComponentController(BaseController):
     """ 
@@ -40,17 +41,24 @@ class EditComponentController(BaseController):
         'custom': 'custom_handler',
     }
 
+    @property
+    def components_treemodel(self):
+        if self.model.phase.based_on:
+            return wrap_list_property_to_treemodel(self.model.phase.based_on, "components", Component)
+        else:
+            return None
+
     def __init__(self, *args, **kwargs):
         BaseController.__init__(self, *args, **kwargs)
 
         self.layer_view = InlineObjectListStoreView(parent=self.view)
-        self.layer_controller = EditLayerController("_layer_atoms", model=self.model, view=self.layer_view, parent=self)
+        self.layer_controller = EditLayerController(treemodel_property_name="layer_atoms", model=self.model, view=self.layer_view, parent=self)
 
         self.interlayer_view = InlineObjectListStoreView(parent=self.view)
-        self.interlayer_controller = EditLayerController("_interlayer_atoms", model=self.model, view=self.interlayer_view, parent=self)
+        self.interlayer_controller = EditLayerController(treemodel_property_name="interlayer_atoms", model=self.model, view=self.interlayer_view, parent=self)
 
         self.atom_relations_view = InlineObjectListStoreView(parent=self.view)
-        self.atom_relations_controller = EditAtomRelationsController("_atom_relations", model=self.model, view=self.atom_relations_view, parent=self)
+        self.atom_relations_controller = EditAtomRelationsController(treemodel_property_name="atom_relations", model=self.model, view=self.atom_relations_view, parent=self)
 
         self.ucpa_view = EditUnitCellPropertyView(parent=self.view)
         self.ucpa_controller = EditUnitCellPropertyController(extra_props=[(self.model, "cell_b", "B cell length"), ], model=self.model._ucp_a, view=self.ucpa_view, parent=self)
@@ -65,17 +73,13 @@ class EditComponentController(BaseController):
         if self.model is not None and self.model.parent is not None:
             combo = self.view["component_linked_with"]
             combo.clear()
-            if self.model.parent.based_on is not None:
-                tv_model = self.model.parent.based_on.components
-                combo.set_model(tv_model)
-                add_combo_text_column(combo, text_col=tv_model.c_name)
-
-                for row in tv_model:
-                    if tv_model.get_user_data(row.iter) == self.model.linked_with:
+            combo.set_model(self.components_treemodel)
+            if self.components_treemodel is not None:
+                add_combo_text_column(combo, text_col=self.components_treemodel.c_name)
+                for row in self.components_treemodel:
+                    if self.components_treemodel.get_user_data(row.iter) == self.model.linked_with:
                         combo.set_active_iter (row.iter)
                         break
-            else:
-                combo.set_model(None)
 
     @staticmethod
     def custom_handler(self, intel, widget):
@@ -149,7 +153,8 @@ class ComponentsController(ChildObjectListStoreController):
     """ 
         Controller for the components ObjectListStore
     """
-    model_property_name = "components"
+    treemodel_property_name = "components"
+    treemodel_class_type = Component
     columns = [ ("Component name", "c_name") ]
     delete_msg = "Deleting a component is irreversible!\nAre You sure you want to continue?"
     file_filters = [("Component file", get_case_insensitive_glob("*.CMP")), ]

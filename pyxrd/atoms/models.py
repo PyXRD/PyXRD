@@ -6,21 +6,22 @@
 # Complete license can be found in the LICENSE file.
 
 from warnings import warn
+import zipfile
 
-from pyxrd.gtkmvc.model import Model
 from pyxrd.gtkmvc.model import Observer
 
 import numpy as np
 
 from pyxrd.generic.io import storables, Storable, get_case_insensitive_glob
-from pyxrd.generic.models import DataModel, PropIntel
-from pyxrd.generic.models.mixins import CSVMixin, ObjectListStoreChildMixin
-from pyxrd.generic.models.metaclasses import pyxrd_object_pool
+from pyxrd.generic.models import DataModel
+from pyxrd.generic.models.mixins import CSVMixin
 from pyxrd.generic.calculations.data_objects import AtomTypeData, AtomData
 from pyxrd.generic.calculations.atoms import get_atomic_scattering_factor, get_structure_factor
+from pyxrd.gtkmvc.support.propintel import PropIntel
+from pyxrd.gtkmvc.support.metaclasses import UUIDMeta
 
 @storables.register()
-class AtomType(DataModel, ObjectListStoreChildMixin, Storable, CSVMixin):
+class AtomType(DataModel, Storable, CSVMixin):
     """
         AtomType models contain all physical & chemical information for one element 
         in a certain state (e.g. Fe3+ & Fe2+ are two different AtomTypes)
@@ -38,29 +39,28 @@ class AtomType(DataModel, ObjectListStoreChildMixin, Storable, CSVMixin):
                 calculations framework (see `generic.calculations.atoms`) 
     """
 
-    # MODEL INTEL:
-    __index_column__ = 'name'
-    __parent_alias__ = 'project'
-    __model_intel__ = [ # TODO add labels
-        PropIntel(name="atom_nr", is_column=True, data_type=int, storable=True, has_widget=True, widget_type="entry"),
-        PropIntel(name="name", is_column=True, data_type=unicode, storable=True, has_widget=True),
-        PropIntel(name="charge", is_column=True, data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
-        PropIntel(name="weight", is_column=True, data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
-        PropIntel(name="debye", is_column=True, data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
-        PropIntel(name="par_c", is_column=True, data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
-        PropIntel(name="data_changed"),
-        PropIntel(name="visuals_changed"),
-    ] + [
-        PropIntel(name="par_a%d" % i, is_column=True, data_type=float, storable=True, has_widget=True, widget_type="float_entry") for i in xrange(1, 6)
-    ] + [
-        PropIntel(name="par_b%d" % i, is_column=True, data_type=float, storable=True, has_widget=True, widget_type="float_entry") for i in xrange(1, 6)
-    ]
-    __csv_storables__ = [(prop.name, prop.name) for prop in __model_intel__ if prop.storable]
-    __store_id__ = "AtomType"
-    __file_filters__ = [
-        ("Single atom type file", get_case_insensitive_glob("*.atm")),
-        ("Atom types list file", get_case_insensitive_glob("*.atl"))
-    ]
+    # MODEL METADATA:
+    class Meta(DataModel.Meta):
+        store_id = "AtomType"
+        parent_alias = 'project'
+        properties = [ # TODO add labels
+            PropIntel(name="atom_nr", is_column=True, data_type=int, storable=True, has_widget=True, widget_type="entry"),
+            PropIntel(name="name", is_column=True, data_type=unicode, storable=True, has_widget=True),
+            PropIntel(name="charge", is_column=True, data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
+            PropIntel(name="weight", is_column=True, data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
+            PropIntel(name="debye", is_column=True, data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
+            PropIntel(name="par_c", is_column=True, data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
+        ] + [
+            PropIntel(name="par_a%d" % i, is_column=True, data_type=float, storable=True, has_widget=True, widget_type="float_entry") for i in xrange(1, 6)
+        ] + [
+            PropIntel(name="par_b%d" % i, is_column=True, data_type=float, storable=True, has_widget=True, widget_type="float_entry") for i in xrange(1, 6)
+        ]
+        csv_storables = [(prop.name, prop.name) for prop in properties if prop.storable]
+        
+        file_filters = [
+            ("Atom types CSV file", get_case_insensitive_glob("*.atl")),
+            ("Atom types JSON file", get_case_insensitive_glob("*.ztl"))
+        ]
 
     # SIGNALS:
     data_changed = None
@@ -68,11 +68,10 @@ class AtomType(DataModel, ObjectListStoreChildMixin, Storable, CSVMixin):
 
     # PROPERTIES:
     _name = ""
-    def get_name_value(self): return self._name
-    def set_name_value(self, value):
+    def get_name(self): return self._name
+    def set_name(self, value):
         self._name = value
         self.visuals_changed.emit()
-        self.liststore_item_changed()
 
     atom_nr = 0
 
@@ -81,59 +80,71 @@ class AtomType(DataModel, ObjectListStoreChildMixin, Storable, CSVMixin):
     def data_object(self):
         return self._data_object
 
-    @Model.getter("par_a*", "par_b*", "par_c", "debye", "charge", "weight")
-    def get_atom_par(self, prop_name):
-        if prop_name.startswith("par_"):
-            name = prop_name[4]
-            if name == "a":
-                index = int(prop_name[-1:]) - 1
-                return self._data_object.par_a[index]
-            elif name == "b":
-                index = int(prop_name[-1:]) - 1
-                return self._data_object.par_b[index]
-            elif name == "c":
-                return self._data_object.par_c
-        elif prop_name == "debye":
-            return self._data_object.debye
-        elif prop_name == "charge":
-            return self._data_object.charge
-        elif prop_name == "weight":
-            return self._data_object.weight
-        return None
-
-    @Model.setter("par_a*", "par_b*", "par_c", "debye", "charge", "weight")
-    def set_atom_par(self, prop_name, value):
+    def _set_par_a(self, index, value):
+        assert (index >= 0 and index < 5)
         try: value = float(value)
         except ValueError: return # ignore faulty values
-        if prop_name.startswith("par_"):
-            name = prop_name[4]
-            if name == "a":
-                index = int(prop_name[-1:]) - 1
-                if self._data_object.par_a[index] != value:
-                    self._data_object.par_a[index] = value
-                    self.data_changed.emit()
-            elif name == "b":
-                index = int(prop_name[-1:]) - 1
-                if self._data_object.par_b[index] != value:
-                    self._data_object.par_b[index] = value
-                    self.data_changed.emit()
-            elif name == "c" and self._data_object.par_c != value:
-                self._data_object.par_c = value
-                self.data_changed.emit()
-        elif prop_name == "debye" and self._data_object.debye != value:
-            self._data_object.debye = value
-            self.data_changed.emit()
-        elif prop_name == "charge" and self._data_object.charge != value:
-            self._data_object.charge = value
-            self.data_changed.emit()
-        elif prop_name == "weight" and self._data_object.weight != value:
-            self._data_object.weight = value
-            self.data_changed.emit()
+        self._data_object.par_a[index] = value
+        self.data_changed.emit()
+
+    def _set_par_b(self, index, value):
+        assert (index >= 0 and index < 5)
+        try: value = float(value)
+        except ValueError: return # ignore faulty values
+        self._data_object.par_b[index] = value
+        self.data_changed.emit()
+
+    def _set_float_data_property(self, name, value):
+        try: value = float(value)
+        except ValueError: return # ignore faulty values
+        setattr(self._data_object, name, value)
+        self.data_changed.emit()
+
+    def get_par_a1(self): return self._data_object.par_a[0]
+    def set_par_a1(self, value): self._set_par_a(0, value)
+
+    def get_par_a2(self): return self._data_object.par_a[1]
+    def set_par_a2(self, value): self._set_par_a(1, value)
+
+    def get_par_a3(self): return self._data_object.par_a[2]
+    def set_par_a3(self, value): self._set_par_a(2, value)
+
+    def get_par_a4(self): return self._data_object.par_a[3]
+    def set_par_a4(self, value): self._set_par_a(3, value)
+
+    def get_par_a5(self): return self._data_object.par_a[4]
+    def set_par_a5(self, value): self._set_par_a(4, value)
+
+    def get_par_b1(self): return self._data_object.par_b[0]
+    def set_par_b1(self, value): self._set_par_b(0, value)
+
+    def get_par_b2(self): return self._data_object.par_b[1]
+    def set_par_b2(self, value): self._set_par_b(1, value)
+
+    def get_par_b3(self): return self._data_object.par_b[2]
+    def set_par_b3(self, value): self._set_par_b(2, value)
+
+    def get_par_b4(self): return self._data_object.par_b[3]
+    def set_par_b4(self, value): self._set_par_b(3, value)
+
+    def get_par_b5(self): return self._data_object.par_b[4]
+    def set_par_b5(self, value): self._set_par_b(4, value)
+
+    def get_par_c(self): return self._data_object.par_c
+    def set_par_c(self, value): self._set_float_data_property("par_c", value)
+
+    def get_debye(self): return self._data_object.debye
+    def set_debye(self, value): self._set_float_data_property("debye", value)
+
+    def get_charge(self): return self._data_object.charge
+    def set_charge(self, value): self._set_float_data_property("charge", value)
+
+    def get_weight(self): return self._data_object.weight
+    def set_weight(self, value): self._set_float_data_property("weight", value)
 
     # ------------------------------------------------------------
-    #      Initialisation and other internals
+    #      Initialization and other internals
     # ------------------------------------------------------------
-
     def __init__(self, *args, **kwargs):
         super(AtomType, self).__init__(*args, **kwargs)
 
@@ -166,27 +177,57 @@ class AtomType(DataModel, ObjectListStoreChildMixin, Storable, CSVMixin):
         angstrom_range = ((stl_range * 0.05) ** 2)
         return get_atomic_scattering_factor(angstrom_range, self.data_object)
 
+    # ------------------------------------------------------------
+    #      Input/Output stuff
+    # ------------------------------------------------------------
+    @classmethod
+    def load_atom_types(cls, filename, parent=None):
+        """
+            Returns multiple AtomTypes loaded from a single (JSON) file.
+        """
+        UUIDMeta.object_pool.change_all_uuids()
+        
+        if zipfile.is_zipfile(filename):
+            with zipfile.ZipFile(filename, 'r') as zfile:
+                for name in zfile.namelist():
+                    yield cls.load_object(zfile.open(name), parent=parent)
+        else:
+            yield cls.load_object(filename, parent=parent)
+
+    @classmethod
+    def save_atom_types(cls, atom_types, filename):
+        """
+            Saves multiple AtomTypes to a single (JSON) file.
+        """
+        UUIDMeta.object_pool.change_all_uuids()
+
+        with zipfile.ZipFile(filename, 'w') as zfile:
+            for i, atom_type in enumerate(atom_types):
+                zfile.writestr("%d###%s" % (i, atom_type.uuid), atom_type.dump_object())
+
     pass # end of class
 
 @storables.register()
-class Atom(DataModel, ObjectListStoreChildMixin, Storable):
+class Atom(DataModel, Storable):
     """
         Atoms have an atom type plus structural parameters (position and proportion)
     """
-    # MODEL INTEL:
-    __parent_alias__ = 'component'
-    __model_intel__ = [ # TODO add labels
-        PropIntel(name="name", data_type=unicode, is_column=True, storable=True, has_widget=True),
-        PropIntel(name="default_z", data_type=float, is_column=True, storable=True, has_widget=True),
-        PropIntel(name="z", data_type=float, is_column=True, storable=False, has_widget=True),
-        PropIntel(name="pn", data_type=float, is_column=True, storable=True, has_widget=True),
-        PropIntel(name="atom_type", data_type=object, is_column=True, has_widget=True),
-        PropIntel(name="stretch_values", data_type=bool),
-    ]
-    __store_id__ = "Atom"
-    __layer_filters__ = [
-        ("Layer file", get_case_insensitive_glob("*.lyr")),
-    ]
+    
+    # MODEL METADATA:
+    class Meta(DataModel.Meta):
+        store_id = "Atom"
+        parent_alias = 'component'
+        properties = [ # TODO add labels
+            PropIntel(name="name", data_type=unicode, is_column=True, storable=True, has_widget=True),
+            PropIntel(name="default_z", data_type=float, is_column=True, storable=True, has_widget=True),
+            PropIntel(name="z", data_type=float, is_column=True, storable=False, has_widget=True),
+            PropIntel(name="pn", data_type=float, is_column=True, storable=True, has_widget=True),
+            PropIntel(name="atom_type", data_type=object, is_column=True, has_widget=True),
+            PropIntel(name="stretch_values", data_type=bool),
+        ]
+        layer_filters = [
+            ("Layer file", get_case_insensitive_glob("*.lyr")),
+        ]
 
     _data_object = None
     @property
@@ -197,52 +238,48 @@ class Atom(DataModel, ObjectListStoreChildMixin, Storable):
 
     # PROPERTIES:
     _name = ""
-    def get_name_value(self): return self._name
-    def set_name_value(self, value):
+    def get_name(self): return self._name
+    def set_name(self, value):
         self._name = value
         self.visuals_changed.emit()
-        self.liststore_item_changed()
 
     _sf_array = None
     _atom_array = None
 
     _default_z = None
-    def get_default_z_value(self):
+    def get_default_z(self):
         return self._data_object.default_z
-    def set_default_z_value(self, value):
+    def set_default_z(self, value):
         try: value = float(value)
         except ValueError: return
         if value != self._data_object.default_z:
             self._data_object.default_z = value
-            self.liststore_item_changed()
             self.data_changed.emit()
 
     _stretch_z = False
-    def get_stretch_values_value(self): return bool(self._stretch_z)
-    def set_stretch_values_value(self, value):
+    def get_stretch_values(self): return bool(self._stretch_z)
+    def set_stretch_values(self, value):
         try: value = bool(value)
         except ValueError: return
         if value != self._stretch_z:
             self._stretch_z = value
-            self.liststore_item_changed()
             self.data_changed.emit()
 
-    def get_z_value(self):
+    def get_z(self):
         if self.stretch_values and self.component is not None:
             lattice_d, factor = self.component.get_interlayer_stretch_factors()
             return float(lattice_d + (self.default_z - lattice_d) * factor)
         return self.default_z
-    def set_z_value(self, value):
+    def set_z(self, value):
         warn("The z property can not be set!", DeprecationWarning)
 
     _pn = None
-    def get_pn_value(self): return self._data_object.pn
-    def set_pn_value(self, value):
+    def get_pn(self): return self._data_object.pn
+    def set_pn(self, value):
         try: value = float(value)
         except ValueError: return
         if value != self._data_object.pn:
             self._data_object.pn = value
-            self.liststore_item_changed()
             self.data_changed.emit()
 
     @property
@@ -256,8 +293,8 @@ class Atom(DataModel, ObjectListStoreChildMixin, Storable):
     _atom_type_uuid = None
     _atom_type = None
     _atom_type_name = None
-    def get_atom_type_value(self): return self._atom_type
-    def set_atom_type_value(self, value):
+    def get_atom_type(self): return self._atom_type
+    def set_atom_type(self, value):
         if self._atom_type != value: # prevent spurious events
             with self.data_changed.hold_and_emit():
                 if self._atom_type is not None:
@@ -265,7 +302,6 @@ class Atom(DataModel, ObjectListStoreChildMixin, Storable):
                 self._atom_type = value
                 if self._atom_type is not None:
                     self.observe_model(self._atom_type)
-                self.liststore_item_changed()
 
     # ------------------------------------------------------------
     #      Initialization and other internals
@@ -325,7 +361,7 @@ class Atom(DataModel, ObjectListStoreChildMixin, Storable):
     # ------------------------------------------------------------
     def resolve_json_references(self):
         if getattr(self, "_atom_type_uuid", None) is not None:
-            self.atom_type = pyxrd_object_pool.get_object(self._atom_type_uuid)
+            self.atom_type = UUIDMeta.object_pool.get_object(self._atom_type_uuid)
         if self.atom_type is None and \
                 getattr(self, "_atom_type_name", None) is not None or \
                 getattr(self, "_atom_type_index", None) is not None:
@@ -361,7 +397,7 @@ class Atom(DataModel, ObjectListStoreChildMixin, Storable):
 
         types = dict()
         if parent is not None:
-            for atom_type in parent.phase.project.atom_types._model_data:
+            for atom_type in parent.phase.project.atom_types._data:
                 if not atom_type.name in types:
                     types[atom_type.name] = atom_type
 

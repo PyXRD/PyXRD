@@ -8,26 +8,28 @@
 import gtk
 
 from pyxrd.generic.views.treeview_tools import new_text_column, new_combo_column, create_float_data_func, setup_treeview
+from pyxrd.generic.controllers.objectliststore_controllers import wrap_list_property_to_treemodel
 from pyxrd.generic.controllers import InlineObjectListStoreController
 
-from pyxrd.atoms.models import Atom
+from pyxrd.atoms.models import Atom, AtomType
+
 
 class EditLayerController(InlineObjectListStoreController):
     """ 
         Controller for the (inter)layer atom ObjectListStores
     """
     auto_adapt = False
-    file_filters = Atom.__layer_filters__
+    treemodel_class_type = Atom
+    file_filters = Atom.Meta.layer_filters
     new_atom_type = None
+
+    @property
+    def atom_types_treemodel(self):
+        return wrap_list_property_to_treemodel(self.model.phase.project, "atom_types", AtomType)
 
     # ------------------------------------------------------------
     #      Initialization and other internals
     # ------------------------------------------------------------
-    def __init__(self, model_property_name, stretch_values=False, *args, **kwargs):
-        InlineObjectListStoreController.__init__(self, model_property_name, *args, **kwargs)
-        self.new_atom_type = None
-        self.stretch_values = stretch_values
-
     def _setup_treeview(self, tv, model):
         setup_treeview(tv, model, sel_mode=gtk.SELECTION_MULTIPLE, reset=True)
         tv.set_model(model)
@@ -56,15 +58,14 @@ class EditLayerController(InlineObjectListStoreController):
             return
         def adjust_combo(cell, editable, path, data=None):
             editable.set_wrap_width(10)
-        atom_model = self.model.parent.parent.atom_types
         tv.append_column(new_combo_column(
             "Element",
             data_func=(atom_type_renderer, (3,)),
             changed_callback=self.on_atom_type_changed,
             edited_callback=(self.on_atom_type_edited, (model,)),
             editing_started_callback=adjust_combo,
-            model=atom_model,
-            text_column=atom_model.c_name,
+            model=self.atom_types_treemodel,
+            text_column=self.atom_types_treemodel.c_name,
             editable=True,
             has_entry=True))
 
@@ -72,12 +73,12 @@ class EditLayerController(InlineObjectListStoreController):
     #      Methods & Functions
     # ------------------------------------------------------------
     def create_new_object_proxy(self):
-        return Atom("New Atom", parent=self.model, stretch_values=self.stretch_values)
+        return Atom(name="New Atom", parent=self.model)
 
     # ------------------------------------------------------------
     #      GTK Signal handlers
     # ------------------------------------------------------------
-    def on_export_item(self, widget, user_data=None):
+    def on_save_object_clicked(self, widget, user_data=None):
         def on_accept(save_dialog):
             filename = self.extract_filename(save_dialog, self.file_filters)
             Atom.save_as_csv(filename, self.get_all_objects())
@@ -87,12 +88,12 @@ class EditLayerController(InlineObjectListStoreController):
              self.model_property_name.replace("data", "").lower())
          )
 
-    def on_import_item(self, widget, user_data=None):
+    def on_load_object_clicked(self, widget, user_data=None):
         def import_layer(dialog):
             def on_accept(open_dialog):
                 filename = self.extract_filename(open_dialog, self.file_filters)
-                self.liststore.clear()
-                Atom.get_from_csv(filename, self.liststore.append, self.model)
+                self.treemodel_data.clear()
+                Atom.get_from_csv(filename, self.treemodel_data.append, self.model)
             self.run_load_dialog("Import atoms", on_accept, parent=self.view.get_toplevel())
         self.run_confirmation_dialog(
             message="Are you sure?\nImporting a layer file will clear the current list of atoms!",
@@ -101,13 +102,13 @@ class EditLayerController(InlineObjectListStoreController):
 
     def on_atom_type_changed(self, combo, path, new_iter, user_data=None):
         """Called when the user selects an AtomType from the combo box"""
-        self.new_atom_type = self.model.phase.project.atom_types.get_user_data(new_iter)
+        self.new_atom_type = self.atom_types_treemodel.get_user_data(new_iter)
         return True
 
     def on_atom_type_edited(self, combo, path, new_text, user_data=None):
         """Called when the user has closed the AtomType combo box 
         (so after the on_atom_type_changed call)"""
-        atom = self.liststore.get_user_data_from_path((int(path),))
+        atom = self.treemodel_data[int(path)]
         if atom is not None:
             # If new_atom_type is not set, but the user has typed in the name
             # of an atom_type, find it (index search):

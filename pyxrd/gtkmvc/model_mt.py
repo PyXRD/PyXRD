@@ -22,13 +22,12 @@
 #  Please report bugs to <roboogle@gmail.com>.
 
 
-from pyxrd.gtkmvc.model import Model
-from pyxrd.gtkmvc.support import metaclasses
+from pyxrd.gtkmvc.model_base import Model
+from pyxrd.gtkmvc.support.metaclasses import ObservablePropertyMetaMT
 
 try: import threading as _threading
 except ImportError: import dummy_threading as _threading
 
-import gtk
 import gobject
 
 class ModelMT (Model):
@@ -39,7 +38,7 @@ class ModelMT (Model):
     used. In this model, the observer is expected to run in the gtk
     main loop thread."""
 
-    __metaclass__ = metaclasses.ObservablePropertyMetaMT
+    __metaclass__ = ObservablePropertyMetaMT
 
     def __init__(self):
         Model.__init__(self)
@@ -81,41 +80,3 @@ class ModelMT (Model):
 
 
     pass # end of class
-
-# ----------------------------------------------------------------------
-class TreeStoreModelMT (ModelMT, gtk.TreeStore):
-    """Use this class as base class for your model derived by
-    gtk.TreeStore"""
-    __metaclass__ = metaclasses.ObservablePropertyGObjectMetaMT
-
-    def __init__(self, column_type, *args):
-        ModelMT.__init__(self)
-        gtk.TreeStore.__init__(self, column_type, *args)
-        return
-    pass
-
-
-# ----------------------------------------------------------------------
-class ListStoreModelMT (ModelMT, gtk.ListStore):
-    """Use this class as base class for your model derived by
-    gtk.ListStore"""
-    __metaclass__ = metaclasses.ObservablePropertyGObjectMetaMT
-
-    def __init__(self, column_type, *args):
-        ModelMT.__init__(self)
-        gtk.ListStore.__init__(self, column_type, *args)
-        return
-    pass
-
-
-# ----------------------------------------------------------------------
-class TextBufferModelMT (ModelMT, gtk.TextBuffer):
-    """Use this class as base class for your model derived by
-    gtk.TextBuffer"""
-    __metaclass__ = metaclasses.ObservablePropertyGObjectMetaMT
-
-    def __init__(self, table=None):
-        ModelMT.__init__(self)
-        gtk.TextBuffer.__init__(self, table)
-        return
-    pass

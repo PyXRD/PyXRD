@@ -7,24 +7,24 @@
 
 from warnings import warn
 
-from pyxrd.gtkmvc.model import ModelMT
-
+from pyxrd.gtkmvc.model_mt import ModelMT
+from pyxrd.gtkmvc.support.propintel import PropIntel
+from pyxrd.gtkmvc.support.metaclasses import UUIDMeta
 from pyxrd.gtkmvc.model import Signal
 
-from signals import HoldableSignal
-from metaclasses import PyXRDMeta, pyxrd_object_pool
-from properties import PropIntel
-from utils import not_none
+from pyxrd.generic.models.signals import HoldableSignal
+from pyxrd.generic.utils import not_none
 
 class PyXRDModel(ModelMT):
     """
        Standard model for PyXRD models, with support for refinable properties.
     """
 
-    __metaclass__ = PyXRDMeta
-    __model_intel__ = [
-        PropIntel(name="uuid", data_type=str, storable=True, observable=False),
-    ]
+    __metaclass__ = UUIDMeta
+    class Meta(ModelMT.Meta):
+        properties = [
+           PropIntel(name="uuid", data_type=str, storable=True, observable=False),
+       ]
 
     def get_kwarg(self, fun_kwargs, default, *keywords):
         """
@@ -48,27 +48,29 @@ class PyXRDModel(ModelMT):
                         (key, type(self)), DeprecationWarning)
         return value
 
-    __uuid__ = None
-    @property
-    def uuid(self):
-        return self.__uuid__
-    @uuid.setter
-    def uuid(self, value):
-        pyxrd_object_pool.remove_object(self)
-        self.__uuid__ = value
-        pyxrd_object_pool.add_object(self)
+    def get_list(self, fun_kwargs, default, *keywords, **kwargs):
+        """
+            Convenience function to get a 'list' type keyword. Supports
+            deprecated serialized ObjectListStores (replaced by regular lists).
+        """
+        return self.parse_list(self.get_kwarg(fun_kwargs, default, *keywords), **kwargs)
+
+    def parse_list(self, list_arg, **kwargs):
+        if isinstance(list_arg, dict) and "type" in list_arg:
+            list_arg = list_arg["properties"]["model_data"]
+        if list_arg is not None:
+            return [
+                self.parse_init_arg(json_obj, None, child=True, **kwargs)
+                for json_obj in list_arg
+             ]
+        else:
+            return list()
 
     def __init__(self, *args, **kwargs):
         super(PyXRDModel, self).__init__(*args, **kwargs)
-        self.__stored_uuids__ = list()
 
-    def get_prop_intel_by_name(self, name):
-        for prop in self.__model_intel__: # TODO memoize this?
-            if prop.name == name:
-                return prop
-
-    def get_base_value(self, attr):
-        intel = self.get_prop_intel_by_name(attr)
+    def get_base(self, attr):
+        intel = self.Meta.get_prop_intel_by_name(attr)
         if intel.inh_name is not None:
             return getattr(self, "_%s" % attr)
         else:
@@ -82,12 +84,13 @@ class ChildModel(PyXRDModel):
     """
 
     # MODEL INTEL:
-    __parent_alias__ = None
-    __model_intel__ = [
-        PropIntel(name="parent", data_type=object),
-        PropIntel(name="removed", data_type=object),
-        PropIntel(name="added", data_type=object),
-    ]
+    class Meta(PyXRDModel.Meta):
+        parent_alias = None
+        properties = [
+            PropIntel(name="parent", data_type=object, storable=False),
+            PropIntel(name="removed", data_type=object, storable=False),
+            PropIntel(name="added", data_type=object, storable=False),
+        ]
 
     # SIGNALS:
     removed = None
@@ -95,8 +98,8 @@ class ChildModel(PyXRDModel):
 
     # PROPERTIES:
     _parent = None
-    def get_parent_value(self): return self._parent
-    def set_parent_value(self, value):
+    def get_parent(self): return self._parent
+    def set_parent(self, value):
         if value != self._parent:
             self._unattach_parent()
             self._parent = value
@@ -107,8 +110,8 @@ class ChildModel(PyXRDModel):
         self.removed = Signal()
         self.added = Signal()
 
-        if self.__parent_alias__ is not None:
-            setattr(self.__class__, self.__parent_alias__, property(lambda self: self.parent))
+        if self.Meta.parent_alias is not None:
+            setattr(self.__class__, self.Meta.parent_alias, property(lambda self: self.parent))
         self.parent = parent
 
     # ------------------------------------------------------------
@@ -128,10 +131,11 @@ class DataModel(ChildModel):
     """
         A ChildModel with support for having 'calculation data' and 'visual data'            
     """
-    __model_intel__ = [
-        PropIntel(name="data_changed"),
-        PropIntel(name="visuals_changed"),
-    ]
+    class Meta(ChildModel.Meta):
+        properties = [
+           PropIntel(name="data_changed", storable=False),
+           PropIntel(name="visuals_changed", storable=False),
+       ]
 
     # SIGNALS:
     data_changed = None

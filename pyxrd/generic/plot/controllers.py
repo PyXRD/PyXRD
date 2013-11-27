@@ -213,7 +213,7 @@ class MainPlotController (PlotController):
             self.labels = plot_specimens(project, specimens, self.plot_left, self.plot)
             # get mixtures for the selected specimens:
             mixtures = []
-            for mixture in project.mixtures.iter_objects():
+            for mixture in project.mixtures:
                 for specimen in specimens:
                     if specimen in mixture.specimens:
                         mixtures.append(mixture)

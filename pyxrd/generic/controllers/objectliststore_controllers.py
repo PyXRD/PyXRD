@@ -9,16 +9,94 @@ from contextlib import contextmanager
 
 import gtk
 
+from pyxrd.generic.utils import not_none
+from pyxrd.generic.models.treemodels import ObjectListStore
+
 from pyxrd.generic.views.treeview_tools import new_text_column, setup_treeview
 from base_controllers import DialogController, BaseController
+from pyxrd.generic.models.treemodels.xy_list_store import XYListStore
 
-class ObjectTreeviewMixin():
+def wrap_list_property_to_treemodel(model, property_name, class_type):
     """
-        Mixin that provides some generic methods to acces or set the objects selected in a treeview.
+        Convenience function that (sparsely) wraps a list property
+        to an ObjectListStore. If the property is an gtk.TreeModel instance,
+        it returns it without wrapping.
     """
+    prop_value = getattr(model, property_name)
+    if not isinstance(prop_value, gtk.TreeModel):
+        # Wrap the value if its not a TreeModel, but store this
+        # on the model, so we can re-use it if needed.
+        # Checks if the wrapped data still matches
+        wrapper = getattr(model, "__%s_treemodel_wrapper" % property_name, None)
+        if wrapper is None or not wrapper.is_wrapping(model, property_name):
+            wrapper = ObjectListStore(class_type, model, property_name)
+        setattr(model, "__%s_treemodel_wrapper" % property_name, wrapper)
+        prop_value = wrapper
+    return prop_value
+
+def wrap_xydata_to_treemodel(model):
+    """
+        Convenience function that (sparsely) wraps an XYData model
+        to an XYListStore. If the property is an gtk.TreeModel instance,
+        it returns it without wrapping.
+    """
+    # Wrap the value if its not a TreeModel, but store this
+    # on the model, so we can re-use it if needed.
+    # Checks if the wrapped data still matches
+    xystore = getattr(model, "__xyliststore_wrapper", None)
+    if xystore is None or not xystore.is_wrapping(model):
+        xystore = XYListStore(model)
+    setattr(model, "__xyliststore_wrapper", xystore)
+    return xystore
+
+
+class TreeModelMixin(object):
+    """
+        A mixin providing functionality to get a TreeModel property from a model.
+        If that property is an actual TreeModel,it will use it directly.
+        Otherwise it will first wrap it in an ObjectListStore
+    """
+
+    treemodel_property_name = ""
+    treemodel_class_type = None
+
+    _treemodel = None
+    @property
+    def treemodel(self):
+        self._update_treemodel_property()
+        return self._treemodel
+
+    @property
+    def treemodel_data(self):
+        if getattr(self, "model", None) is not None:
+            return getattr(self.model, self.treemodel_property_name, None)
+        else:
+            return None
+
+    def __init__(self, treemodel_property_name=None, treemodel_class_type=None, *args, **kwargs):
+        super(TreeModelMixin, self).__init__()
+        self.treemodel_property_name = not_none(treemodel_property_name, self.treemodel_property_name)
+        self.treemodel_class_type = not_none(treemodel_class_type, self.treemodel_class_type)
+
+    def _update_treemodel_property(self):
+        if getattr(self, "model", None) is not None:
+            self._treemodel = wrap_list_property_to_treemodel(
+                self.model,
+                self.treemodel_property_name, self.treemodel_class_type
+            )
+
+
+class TreeViewMixin(object):
+    """
+        Mixin that provides some generic methods to access or set the objects selected in a treeview.
+    """
+
+    def __init__(self, *args, **kwargs):
+        super(TreeViewMixin, self).__init__()
 
     def get_selected_object(self, tv):
-        objects = ObjectTreeviewMixin.get_selected_objects(self, tv)
+        # call this implementation, not the overriden method:
+        objects = TreeViewMixin.get_selected_objects(self, tv)
         if objects is not None and len(objects) == 1:
             return objects[0]
         return None
@@ -38,7 +116,7 @@ class ObjectTreeviewMixin():
         return None
 
     def get_all_objects(self, tv):
-        return tv.get_model().get_raw_model_data()
+        return tv.get_model().get_raw_data()
 
     def set_selected_paths(self, tv, paths):
         selection = tv.get_selection()
@@ -46,7 +124,7 @@ class ObjectTreeviewMixin():
         for path in paths:
             selection.select_path(path)
 
-class ObjectListStoreMixin(ObjectTreeviewMixin):
+class TreeControllerMixin(TreeViewMixin, TreeModelMixin):
     """
         Mixin that can be used for regular ObjectListStoreControllers (two-pane view).
         
@@ -65,7 +143,6 @@ class ObjectListStoreMixin(ObjectTreeviewMixin):
              used to create the controller and view for editing a selected object.
     """
 
-    model_property_name = ""
     multi_selection = True
     columns = [ ("Object name", 0) ]
     delete_msg = "Deleting objects is irreversible!\nAre You sure you want to continue?"
@@ -74,22 +151,15 @@ class ObjectListStoreMixin(ObjectTreeviewMixin):
     _edit_controller = None
     _edit_view = None
 
-    def __init__(self, model_property_name="", multi_selection=None, columns=[], delete_msg=""):
-        self.model_property_name = model_property_name or self.model_property_name
-        self.multi_selection = multi_selection or self.multi_selection
+    def __init__(self, treemodel_property_name=None, treemodel_class_type=None, multi_selection=None, columns=None, delete_msg=None, *args, **kwargs):
+        TreeModelMixin.__init__(self, treemodel_property_name=treemodel_property_name, treemodel_class_type=treemodel_class_type)
+        self.multi_selection = not_none(multi_selection, True)
 
-        self.liststore.connect("item-removed", self.on_item_removed)
-        self.liststore.connect("item-inserted", self.on_item_inserted)
+        self.treemodel.connect("row-deleted", self.on_item_removed)
+        self.treemodel.connect("row-inserted", self.on_item_inserted)
 
-        self.columns = columns or self.columns
-        self.delete_msg = delete_msg or self.delete_msg
-
-    @property
-    def liststore(self):
-        if self.model is not None:
-            return getattr(self.model, self.model_property_name)
-        else:
-            return None
+        self.columns = not_none(columns, self.columns)
+        self.delete_msg = not_none(delete_msg, self.delete_msg)
 
     def get_new_edit_view(self, obj):
         """
@@ -104,7 +174,7 @@ class ObjectListStoreMixin(ObjectTreeviewMixin):
                 if isinstance(obj, obj_tp):
                     return view_tp(parent=self.view)
             raise NotImplementedError, ("Unsupported object type; subclasses of"
-                " ObjectListStoreMixin need to define an obj_type_map attribute!")
+                " TreeControllerMixin need to define an obj_type_map attribute!")
 
     def get_new_edit_controller(self, obj, view, parent=None):
         """
@@ -119,7 +189,7 @@ class ObjectListStoreMixin(ObjectTreeviewMixin):
                 if isinstance(obj, obj_tp):
                     return ctrl_tp(model=obj, view=view, parent=parent)
             raise NotImplementedError, ("Unsupported object type; subclasses of"
-                " ObjectListStoreMixin need to define an obj_type_map attribute!")
+                " TreeControllerMixin need to define an obj_type_map attribute!")
 
     def edit_object(self, obj):
         self._edit_view = self.view.set_edit_view(self.get_new_edit_view(obj))
@@ -128,7 +198,7 @@ class ObjectListStoreMixin(ObjectTreeviewMixin):
         return True
 
     def register_adapters(self):
-        # connects the treeview to the liststore
+        # connects the treeview to the treemodel
         self.setup_treeview(self.view.treeview)
         # we can now edit 'nothing':
         self.view.set_selection_state(None)
@@ -152,10 +222,10 @@ class ObjectListStoreMixin(ObjectTreeviewMixin):
         """
         sel_mode = gtk.SELECTION_MULTIPLE if self.multi_selection else gtk.SELECTION_SINGLE
         setup_treeview(
-            tv, self.liststore,
+            tv, self.treemodel,
             sel_mode=sel_mode,
             on_selection_changed=self.objects_tv_selection_changed)
-        tv.set_model(self.liststore)
+        tv.set_model(self.treemodel)
 
         # reset:
         for col in tv.get_columns():
@@ -166,7 +236,7 @@ class ObjectListStoreMixin(ObjectTreeviewMixin):
             try:
                 col_index = int(col_descr)
             except:
-                col_index = getattr(self.liststore, str(col_descr), col_descr)
+                col_index = getattr(self.treemodel, str(col_descr), col_descr)
 
             handled = False
             if hasattr(self, "setup_treeview_col_%s" % str(col_descr)):
@@ -186,24 +256,25 @@ class ObjectListStoreMixin(ObjectTreeviewMixin):
     def get_selected_index(self):
         cur_obj = self.get_selected_object()
         if cur_obj is not None:
-            return self.liststore.index(cur_obj)
+            return self.treemodel_data.index(cur_obj)
         else:
             return None
 
     def get_selected_object(self):
-        return ObjectTreeviewMixin.get_selected_object(self, self.view.treeview)
+        return super(TreeControllerMixin, self).get_selected_object(self.view.treeview)
 
     def get_selected_objects(self):
-        return ObjectTreeviewMixin.get_selected_objects(self, self.view.treeview)
+        return super(TreeControllerMixin, self).get_selected_objects(self.view.treeview)
 
     def get_all_objects(self):
-        return ObjectTreeviewMixin.get_all_objects(self, self.view.treeview)
+        return super(TreeControllerMixin, self).get_all_objects(self.view.treeview)
 
-    def select_object(self, obj, unselect_all=True):
+    def select_object(self, obj, path=None, unselect_all=True):
         selection = self.view.treeview.get_selection()
         if unselect_all: selection.unselect_all()
-        if obj:
-            path = self.liststore.on_get_path(obj)
+        if obj is not None or path is not None:
+            if path is None:
+                path = self.treemodel.on_get_path(obj)
             if path is not None: selection.select_path(path)
 
     def select_objects(self, objs):
@@ -213,19 +284,19 @@ class ObjectListStoreMixin(ObjectTreeviewMixin):
         if new_object is not None:
             index = self.get_selected_index()
             if index is not None:
-                self.liststore.insert(index + 1, new_object)
+                self.treemodel_data.insert(index + 1, new_object)
             else:
-                self.liststore.append(new_object)
+                self.treemodel_data.append(new_object)
 
     # ------------------------------------------------------------
     #      GTK Signal handlers
     # ------------------------------------------------------------
 
-    def on_item_removed(self, model, item):
+    def on_item_removed(self, *args):
         self.select_object(None, unselect_all=True)
 
-    def on_item_inserted(self, model, item):
-        self.select_object(item, unselect_all=True)
+    def on_item_inserted(self, model, path, iter):
+        self.select_object(None, path=path, unselect_all=True)
 
     def objects_tv_selection_changed(self, selection):
         obj = self.get_selected_object()
@@ -270,43 +341,57 @@ class ObjectListStoreMixin(ObjectTreeviewMixin):
                         if callable(del_callback):
                             del_callback(obj)
                         else:
-                            self.liststore.remove_item(obj)
+                            self.treemodel_data.remove(obj)
                         if callable(callback): callback(obj)
                     self.edit_object(None)
-            self.run_confirmation_dialog(message=self.delete_msg, on_accept_callback=delete_objects, parent=self.view.get_top_widget())
+            parent = self.view.get_top_widget()
+            if not isinstance(parent, gtk.Window):
+                parent = None
+            self.run_confirmation_dialog(message=self.delete_msg, on_accept_callback=delete_objects, parent=parent)
 
 
-class ObjectListStoreController(DialogController, ObjectListStoreMixin):
+class ObjectListStoreController(DialogController, TreeControllerMixin):
     """
         A stand-alone, regular ObjectListStore controller (left pane with objects and right pane with object properties)
     """
     title = "Edit Dialog"
+    auto_adapt = False
 
-    def __init__(self, model, view,
-                 spurious=False, auto_adapt=False, parent=None,
-                 model_property_name="", columns=[], delete_msg="", title=""):
-        DialogController.__init__(self, model, view, spurious=spurious, auto_adapt=auto_adapt, parent=parent)
-        ObjectListStoreMixin.__init__(self, model_property_name=model_property_name, columns=columns, delete_msg=delete_msg)
-        self.title = title or self.title
+    def __init__(self, treemodel_property_name=None, treemodel_class_type=None, columns=None, delete_msg=None, title=None, *args, **kwargs):
+        DialogController.__init__(self, *args, **kwargs)
+        TreeControllerMixin.__init__(self, treemodel_property_name=treemodel_property_name, treemodel_class_type=treemodel_class_type, columns=columns, delete_msg=delete_msg)
+        self.title = not_none(title, self.title)
+
+    def register_view(self, view):
+        super(ObjectListStoreController, self).register_view(view)
         view.set_title(self.title)
 
-    def register_adapters(self):
-        ObjectListStoreMixin.register_adapters(self)
+    def set_model(self, *args, **kwargs):
+        super(ObjectListStoreController, self).set_model(*args, **kwargs)
+        self._update_treemodel_property()
 
-class ChildObjectListStoreController(BaseController, ObjectListStoreMixin):
+    def register_adapters(self):
+        TreeControllerMixin.register_adapters(self)
+
+
+class ChildObjectListStoreController(BaseController, TreeControllerMixin):
     """
         An embeddable, regular ObjectListStore controller (left pane with objects and right pane with object properties)
     """
     def __init__(self, model, view,
                  spurious=False, auto_adapt=False, parent=None,
-                 model_property_name="", columns=[], delete_msg=""):
+                 treemodel_property_name=None, treemodel_class_type=None, columns=None, delete_msg=None, title=None):
         BaseController.__init__(self, model, view, spurious=spurious, auto_adapt=auto_adapt, parent=parent)
-        ObjectListStoreMixin.__init__(self, model_property_name=model_property_name, columns=columns, delete_msg=delete_msg)
+        TreeControllerMixin.__init__(self, treemodel_property_name=treemodel_property_name, treemodel_class_type=treemodel_class_type, columns=columns, delete_msg=delete_msg)
+
+    def set_model(self, *args, **kwargs):
+        super(ObjectListStoreController, self).set_model(*args, **kwargs)
+        self._update_treemodel_property()
 
     def register_adapters(self):
-        ObjectListStoreMixin.register_adapters(self)
+        TreeControllerMixin.register_adapters(self)
 
-class InlineObjectListStoreController(BaseController, ObjectTreeviewMixin):
+class InlineObjectListStoreController(BaseController, TreeControllerMixin):
     """
         ObjectListStore controller that consists of a single TreeView, 
         with import & export and add & delete buttons and an optional combo box
@@ -317,12 +402,7 @@ class InlineObjectListStoreController(BaseController, ObjectTreeviewMixin):
     treeview = None
     enable_import = True
     enable_export = True
-    model_property_name = ""
     add_types = list()
-
-    @property
-    def liststore(self):
-        return getattr(self.model, self.model_property_name)
 
     def _edit_item(self, item):
         item_type = type(item)
@@ -359,74 +439,59 @@ class InlineObjectListStoreController(BaseController, ObjectTreeviewMixin):
     def _setup_treeview(self, tv, model):
         raise NotImplementedError
 
-    def __init__(self, model_property_name, enable_import=True, enable_export=True, *args, **kwargs):
+    def __init__(self, treemodel_property_name=None, treemodel_class_type=None, enable_import=True, enable_export=True, *args, **kwargs):
         BaseController.__init__(self, *args, **kwargs)
+        TreeModelMixin.__init__(self, treemodel_property_name=treemodel_property_name, treemodel_class_type=treemodel_class_type)
         self.enable_import = enable_import
         self.enable_export = enable_export
-        self.model_property_name = model_property_name
+
+    def set_model(self, *args, **kwargs):
+        super(InlineObjectListStoreController, self).set_model(*args, **kwargs)
+        self._update_treemodel_property()
 
     def register_adapters(self):
-        if self.liststore is not None:
-            self.treeview = self.view.treeview_widget
-            self.treeview.connect('cursor-changed', self.on_treeview_cursor_changed, self.liststore)
-            self._setup_treeview(self.treeview, self.liststore)
+        if self.treemodel is not None:
+            self.treeview = self.view.treeview
+            self.treeview.connect('cursor-changed', self.on_treeview_cursor_changed, self.treemodel)
+            self._setup_treeview(self.treeview, self.treemodel)
             self.type_combobox = self.view.type_combobox_widget
             self._setup_combo_type(self.type_combobox)
-        self.update_sensitivities()
+            self.update_sensitivities()
         return
 
     def update_sensitivities(self):
         self.view.del_item_widget.set_sensitive((self.treeview.get_cursor() != (None, None)))
-        self.view.add_item_widget.set_sensitive((self.liststore is not None))
+        self.view.add_item_widget.set_sensitive((self.treemodel is not None))
         self.view.export_items_widget.set_visible(self.enable_export)
-        self.view.export_items_widget.set_sensitive(len(self.liststore) > 0)
+        self.view.export_items_widget.set_sensitive(len(self.treemodel_data) > 0)
         self.view.import_items_widget.set_visible(self.enable_import)
 
     def get_selected_object(self):
-        return ObjectTreeviewMixin.get_selected_object(self, self.treeview)
+        return TreeViewMixin.get_selected_object(self, self.treeview)
 
     def get_selected_objects(self):
-        return ObjectTreeviewMixin.get_selected_objects(self, self.treeview)
+        return TreeViewMixin.get_selected_objects(self, self.treeview)
 
     def get_all_objects(self):
-        return ObjectTreeviewMixin.get_all_objects(self, self.treeview)
+        return TreeViewMixin.get_all_objects(self, self.treeview)
 
     def select_object(self, obj, unselect_all=True):
         selection = self.treeview.get_selection()
         if unselect_all: selection.unselect_all()
-        if hasattr(self.liststore, "on_get_path"):
-            selection.select_path(self.liststore.on_get_path(obj))
+        if hasattr(self.treemodel, "on_get_path"):
+            selection.select_path(self.treemodel.on_get_path(obj))
 
     def create_new_object_proxy(self):
         raise NotImplementedError
+
+    def edit_object(self, obj):
+        pass
 
     # ------------------------------------------------------------
     #      GTK Signal handlers
     # ------------------------------------------------------------
     def on_treeview_cursor_changed(self, widget, model):
         self.update_sensitivities()
-
-    def on_add_item(self, widget, user_data=None):
-        new_object = self.create_new_object_proxy()
-        if new_object is not None:
-            self.liststore.append(new_object)
-            self.select_object(new_object)
-        self.update_sensitivities()
-
-    def on_del_item(self, widget, user_data=None):
-        path, col = self.treeview.get_cursor() # @UnusedVariable
-        if path is not None:
-            itr = self.liststore.get_iter(path)
-            self.liststore.remove(itr)
-            self.update_sensitivities()
-            return True
-        return False
-
-    def on_export_item(self, widget, user_data=None):
-        raise NotImplementedError
-
-    def on_import_item(self, widget, user_data=None):
-        raise NotImplementedError
 
     def on_item_cell_edited(self, cell, path, new_text, model, col):
         model.set_value(model.get_iter(path), col, model.convert(col, new_text))

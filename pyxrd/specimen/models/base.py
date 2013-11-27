@@ -14,9 +14,8 @@ import numpy as np
 from pyxrd.data import settings
 from pyxrd.generic.io import storables, Storable
 from pyxrd.generic.io.file_parsers import parsers
-from pyxrd.generic.models import ExperimentalLine, CalculatedLine, DataModel, PropIntel
-from pyxrd.generic.models.mixins import ObjectListStoreChildMixin, ObjectListStoreParentMixin
-from pyxrd.generic.models.treemodels import ObjectListStore, XYListStore
+from pyxrd.generic.models.observers import ListObserver
+from pyxrd.generic.models import ExperimentalLine, CalculatedLine, DataModel
 from pyxrd.generic.peak_detection import peakdetect
 from pyxrd.generic.calculations.specimen import get_phase_intensities
 from pyxrd.generic.calculations.data_objects import SpecimenData
@@ -24,37 +23,41 @@ from pyxrd.generic.calculations.data_objects import SpecimenData
 from pyxrd.goniometer.models import Goniometer
 from markers import Marker
 from statistics import Statistics
+from pyxrd.generic.utils import not_none
+from pyxrd.gtkmvc.support.propintel import PropIntel
+from pyxrd.generic.models.lines import XYData
 
 @storables.register()
-class Specimen(DataModel, Storable, ObjectListStoreParentMixin, ObjectListStoreChildMixin):
+class Specimen(DataModel, Storable):
     # MODEL INTEL:
-    __parent_alias__ = 'project'
-    __model_intel__ = [
-        PropIntel(name="name", label="Name", data_type=unicode, is_column=True, storable=True, has_widget=True),
-        PropIntel(name="sample_name", label="Sample", data_type=unicode, is_column=True, storable=True, has_widget=True),
-        PropIntel(name="label", label="Label", data_type=unicode, is_column=True),
-        PropIntel(name="sample_length", label="Sample length [cm]", data_type=float, minimum=0.0, is_column=True, storable=True, has_widget=True, widget_type="float_entry"),
-        PropIntel(name="absorption", label="Absorption coeff. (µ*g)", data_type=float, minimum=0.0, is_column=True, storable=True, has_widget=True, widget_type="float_entry"),
-        PropIntel(name="display_calculated", label="Display calculated diffractogram", data_type=bool, is_column=True, storable=True, has_widget=True),
-        PropIntel(name="display_experimental", label="Display experimental diffractogram", data_type=bool, is_column=True, storable=True, has_widget=True),
-        PropIntel(name="display_phases", label="Display phases seperately", data_type=bool, is_column=True, storable=True, has_widget=True),
-        PropIntel(name="display_stats_in_lbl", label="Display Rp in label", data_type=bool, is_column=True, storable=True, has_widget=True),
-        PropIntel(name="display_vshift", label="Vertical shift of the plot", data_type=float, is_column=True, storable=True, has_widget=True, widget_type="float_entry"),
-        PropIntel(name="display_vscale", label="Vertical scale of the plot", data_type=float, is_column=True, storable=True, has_widget=True, widget_type="float_entry"),
-        PropIntel(name="display_residuals", label="Display residual patterns", data_type=bool, is_column=True, storable=True, has_widget=True),
-        PropIntel(name="display_derivatives", label="Display derivative patterns", data_type=bool, is_column=True, storable=True, has_widget=True),
-        PropIntel(name="goniometer", label="Goniometer", data_type=object, is_column=True, storable=True, has_widget=True, widget_type="custom"),
-        PropIntel(name="calculated_pattern", label="Calculated diffractogram", data_type=object, is_column=True, storable=True, has_widget=True, widget_type="tree_view"),
-        PropIntel(name="experimental_pattern", label="Experimental diffractogram", data_type=object, is_column=True, storable=True, has_widget=True, widget_type="tree_view"),
-        PropIntel(name="exclusion_ranges", label="Excluded ranges", data_type=object, is_column=True, storable=True, has_widget=True, widget_type="tree_view"),
-        PropIntel(name="markers", label="Markers", data_type=object, is_column=True, storable=True),
-        PropIntel(name="statistics", label="Statistics", data_type=object, is_column=True),
-    ]
-    __store_id__ = "Specimen"
-
-    __file_filters__ = [parser.file_filter for parser in parsers["xrd"]]
-    __export_filters__ = [parser.file_filter for parser in parsers["xrd"] if parser.can_write]
-    __excl_filters__ = [parser.file_filter for parser in parsers["exc"]]
+    class Meta(DataModel.Meta):
+        parent_alias = 'project'
+        properties = [
+            PropIntel(name="name", label="Name", data_type=unicode, is_column=True, storable=True, has_widget=True),
+            PropIntel(name="sample_name", label="Sample", data_type=unicode, is_column=True, storable=True, has_widget=True),
+            PropIntel(name="label", label="Label", data_type=unicode, is_column=True),
+            PropIntel(name="sample_length", label="Sample length [cm]", data_type=float, minimum=0.0, is_column=True, storable=True, has_widget=True, widget_type="float_entry"),
+            PropIntel(name="absorption", label="Absorption coeff. (µ*g)", data_type=float, minimum=0.0, is_column=True, storable=True, has_widget=True, widget_type="float_entry"),
+            PropIntel(name="display_calculated", label="Display calculated diffractogram", data_type=bool, is_column=True, storable=True, has_widget=True),
+            PropIntel(name="display_experimental", label="Display experimental diffractogram", data_type=bool, is_column=True, storable=True, has_widget=True),
+            PropIntel(name="display_phases", label="Display phases seperately", data_type=bool, is_column=True, storable=True, has_widget=True),
+            PropIntel(name="display_stats_in_lbl", label="Display Rp in label", data_type=bool, is_column=True, storable=True, has_widget=True),
+            PropIntel(name="display_vshift", label="Vertical shift of the plot", data_type=float, is_column=True, storable=True, has_widget=True, widget_type="float_entry"),
+            PropIntel(name="display_vscale", label="Vertical scale of the plot", data_type=float, is_column=True, storable=True, has_widget=True, widget_type="float_entry"),
+            PropIntel(name="display_residuals", label="Display residual patterns", data_type=bool, is_column=True, storable=True, has_widget=True),
+            PropIntel(name="display_derivatives", label="Display derivative patterns", data_type=bool, is_column=True, storable=True, has_widget=True),
+            PropIntel(name="goniometer", label="Goniometer", data_type=object, is_column=True, storable=True, has_widget=True, widget_type="custom"),
+            PropIntel(name="calculated_pattern", label="Calculated diffractogram", data_type=object, is_column=True, storable=True, has_widget=True, widget_type="tree_view"),
+            PropIntel(name="experimental_pattern", label="Experimental diffractogram", data_type=object, is_column=True, storable=True, has_widget=True, widget_type="tree_view"),
+            PropIntel(name="exclusion_ranges", label="Excluded ranges", data_type=object, is_column=True, storable=True, has_widget=True, widget_type="tree_view"),
+            PropIntel(name="markers", label="Markers", data_type=object, is_column=True, storable=True),
+            PropIntel(name="statistics", label="Statistics", data_type=object, is_column=True),
+        ]
+        store_id = "Specimen"
+    
+        file_filters = [parser.file_filter for parser in parsers["xrd"]]
+        export_filters = [parser.file_filter for parser in parsers["xrd"] if parser.can_write]
+        excl_filters = [parser.file_filter for parser in parsers["exc"]]
 
     _data_object = None
     @property
@@ -64,52 +67,84 @@ class Specimen(DataModel, Storable, ObjectListStoreParentMixin, ObjectListStoreC
         self._data_object.range_theta = self.__get_range_theta()
         self._data_object.selected_range = self.get_exclusion_selector(self._data_object.range_theta)
         try:
-            self._data_object.observed_intensity = self.experimental_pattern.xy_store._model_data_y[0]
+            self._data_object.observed_intensity = self.experimental_pattern.data_y[:,0]
         except IndexError:
             self._data_object.observed_intensity = np.array([], dtype=float)
         return self._data_object
 
     # PROPERTIES:
     _sample_name = u""
-    _name = u""
-    _display_calculated = True
-    _display_experimental = True
-    _display_vshift = 0.0
-    _display_vscale = 1.0
-    _display_phases = False
-    _display_stats_in_lbl = True
-    _display_residuals = True
-    _display_derivatives = True
-    @DataModel.getter("sample_name", "name", "display_vshift", "display_vscale",
-         "display_phases", "display_stats_in_lbl",
-         "display_residuals", "display_derivatives",
-         "display_calculated", "display_experimental")
-    def get_visual(self, prop_name):
-        return getattr(self, "_%s" % prop_name)
-    @DataModel.setter("sample_name", "name", "display_vshift", "display_vscale",
-        "display_phases", "display_stats_in_lbl",
-        "display_residuals", "display_derivatives",
-        "display_calculated", "display_experimental")
-    def set_visual(self, prop_name, value):
-        with self.visuals_changed.hold_and_emit():
-            if self.get_prop_intel_by_name(prop_name).data_type == float:
-                try: value = float(value)
-                except ValueError: return
-            setattr(self, "_%s" % prop_name, value)
-            self.liststore_item_changed()
+    def get_sample_name(self): return self._sample_name
+    def set_sample_name(self, value):
+        self._sample_name = value
+        self.visuals_changed.emit()
 
-    def get_label_value(self):
+    _name = u""
+    def get_name(self): return self._name
+    def set_name(self, value):
+        self._name = value
+        self.visuals_changed.emit()
+
+    _display_calculated = True
+    def get_display_calculated(self): return self._display_calculated
+    def set_display_calculated(self, value):
+        self._display_calculated = bool(value)
+        self.visuals_changed.emit()
+
+    _display_experimental = True
+    def get_display_experimental(self): return self._display_experimental
+    def set_display_experimental(self, value):
+        self._display_experimental = bool(value)
+        self.visuals_changed.emit()
+
+    _display_vshift = 0.0
+    def get_display_vshift(self): return self._display_vshift
+    def set_display_vshift(self, value):
+        self._display_vshift = float(value)
+        self.visuals_changed.emit()
+
+    _display_vscale = 0.0
+    def get_display_vscale(self): return self._display_vscale
+    def set_display_vscale(self, value):
+        self._display_vscale = float(value)
+        self.visuals_changed.emit()
+
+    _display_phases = False
+    def get_display_phases(self): return self._display_phases
+    def set_display_phases(self, value):
+        self._display_phases = bool(value)
+        self.visuals_changed.emit()
+
+    _display_stats_in_lbl = True
+    def get_display_stats_in_lbl(self): return self._display_stats_in_lbl
+    def set_display_stats_in_lbl(self, value):
+        self._display_stats_in_lbl = bool(value)
+        self.visuals_changed.emit()
+
+    _display_residuals = True
+    def get_display_residuals(self): return self._display_residuals
+    def set_display_residuals(self, value):
+        self._display_residuals = bool(value)
+        self.visuals_changed.emit()
+
+    _display_derivatives = True
+    def get_display_derivatives(self): return self._display_derivatives
+    def set_display_derivatives(self, value):
+        self._display_derivatives = bool(value)
+        self.visuals_changed.emit()
+
+    def get_label(self):
         if self.display_stats_in_lbl and (self.project is not None and self.project.layout_mode == "FULL"):
             label = self.sample_name
-            label += "\nRp = %.1f%%" % self.statistics.Rp
-            label += "\nRp' = %.1f%%" % self.statistics.Rpder
+            label += "\nRp = %.1f%%" % not_none(self.statistics.Rp, 0.0)
+            label += "\nRp' = %.1f%%" % not_none(self.statistics.Rpder, 0.0)
             return label
         else:
             return self.sample_name
 
     _calculated_pattern = None
-    def get_calculated_pattern_value(self): return self._calculated_pattern
-    def set_calculated_pattern_value(self, value):
+    def get_calculated_pattern(self): return self._calculated_pattern
+    def set_calculated_pattern(self, value):
         if value != self._calculated_pattern:
             with self.data_changed.hold_and_emit():
                 if self._calculated_pattern is not None: self.relieve_model(self._calculated_pattern)
@@ -118,8 +153,8 @@ class Specimen(DataModel, Storable, ObjectListStoreParentMixin, ObjectListStoreC
                     self.observe_model(self._calculated_pattern)
 
     _experimental_pattern = None
-    def get_experimental_pattern_value(self): return self._experimental_pattern
-    def set_experimental_pattern_value(self, value):
+    def get_experimental_pattern(self): return self._experimental_pattern
+    def set_experimental_pattern(self, value):
         if value != self._experimental_pattern:
             with self.data_changed.hold_and_emit():
                 if self._experimental_pattern is not None:
@@ -129,19 +164,15 @@ class Specimen(DataModel, Storable, ObjectListStoreParentMixin, ObjectListStoreC
                     self.observe_model(self._experimental_pattern)
 
     _exclusion_ranges = None
-    def get_exclusion_ranges_value(self): return self._exclusion_ranges
-    def set_exclusion_ranges_value(self, value):
+    def get_exclusion_ranges(self): return self._exclusion_ranges
+    def set_exclusion_ranges(self, value):
         if value != self._exclusion_ranges:
             with self.data_changed.hold_and_emit():
-                if self._exclusion_ranges is not None:
-                    pass
                 self._exclusion_ranges = value
-                if self._exclusion_ranges is not None:
-                    pass
 
     _goniometer = None
-    def get_goniometer_value(self): return self._goniometer
-    def set_goniometer_value(self, value):
+    def get_goniometer(self): return self._goniometer
+    def set_goniometer(self, value):
         if value != self._goniometer:
             with self.data_changed.hold_and_emit():
                 if self._goniometer is not None:
@@ -150,18 +181,23 @@ class Specimen(DataModel, Storable, ObjectListStoreParentMixin, ObjectListStoreC
                 if self._goniometer is not None:
                     self.observe_model(self._goniometer)
 
-    @DataModel.getter("sample_length", "absorption")
-    def get_sample_length_value(self, prop_name):
-        return getattr(self._data_object, prop_name)
-    @DataModel.setter("sample_length", "absorption")
-    def set_sample_length_value(self, prop_name, value):
+    def get_sample_length(self): return self._data_object.sample_length
+    def set_sample_length(self, value):
         with self.data_changed.hold_and_emit():
-            setattr(self._data_object, prop_name, value)
+            self._data_object.sample_length = float(value)
+
+    def get_absorption(self): return self._data_object.absorption
+    def set_absorption(self, value):
+        with self.data_changed.hold_and_emit():
+            self._data_object.absorption = float(value)
 
     statistics = None
 
-    _markers = None
-    def get_markers_value(self): return self._markers
+    _markers = []
+    def get_markers(self): return self._markers
+    def set_markers(self, value): 
+        with self.visuals_changed.hold_and_emit():
+            self._markers = value
 
     @property
     def max_intensity(self):
@@ -233,23 +269,22 @@ class Specimen(DataModel, Storable, ObjectListStoreParentMixin, ObjectListStoreC
                     **calc_pattern_old_kwargs
                 )
 
-                exclusion_ranges = self.get_kwarg(kwargs, None, "exclusion_ranges", "data_exclusion_ranges")
-                self.exclusion_ranges = self.parse_init_arg(exclusion_ranges, XYListStore())
-                self.exclusion_ranges.connect("item-removed", self.on_exclusion_range_changed)
-                self.exclusion_ranges.connect("item-inserted", self.on_exclusion_range_changed)
-                self.exclusion_ranges.connect("row-changed", self.on_exclusion_range_changed)
+                self.exclusion_ranges = XYData(data=self.get_kwarg(kwargs, None, "exclusion_ranges"), parent=self)
 
                 self.goniometer = self.parse_init_arg(
                     self.get_kwarg(kwargs, None, "goniometer", "project_goniometer"),
                     Goniometer(parent=self), child=True
                 )
 
-                markers = self.get_kwarg(kwargs, None, "markers", "data_markers")
-                self._markers = self.parse_liststore_arg(markers, ObjectListStore, Marker)
-                for marker in self._markers._model_data:
+                self.markers = self.get_list(kwargs, None, "markers", "data_markers", parent=self)
+                for marker in self.markers:
                     self.observe_model(marker)
-                self.markers.connect("item-removed", self.on_marker_removed)
-                self.markers.connect("item-inserted", self.on_marker_inserted)
+                self._specimens_observer = ListObserver(
+                    self.on_marker_removed,
+                    self.on_marker_inserted,
+                    prop_name="markers",
+                    model=self
+                )
 
                 self.display_vshift = float(self.get_kwarg(kwargs, 0.0, "display_vshift"))
                 self.display_vscale = float(self.get_kwarg(kwargs, 1.0, "display_vscale"))
@@ -280,15 +315,15 @@ class Specimen(DataModel, Storable, ObjectListStoreParentMixin, ObjectListStoreC
     def notify_visuals_changed(self, model, prop_name, info):
         self.visuals_changed.emit() # propagate signal
 
-    def on_exclusion_range_changed(self, model, item, *args):
+    def on_exclusion_range_changed(self, model, item, *args): # TODO FIXME
         self.data_changed.emit() # propagate signal
 
-    def on_marker_removed(self, model, item):
+    def on_marker_removed(self, item):
         with self.visuals_changed.hold_and_emit():
             self.relieve_model(item)
             item.parent = None
 
-    def on_marker_inserted(self, model, item):
+    def on_marker_inserted(self, item):
         with self.visuals_changed.hold_and_emit():
             self.observe_model(item)
             item.parent = self
@@ -303,10 +338,16 @@ class Specimen(DataModel, Storable, ObjectListStoreParentMixin, ObjectListStoreC
         for xrdfile in xrdfiles:
             name, sample, generator = xrdfile.filename, xrdfile.name, xrdfile.data
             specimen = Specimen(parent=parent, name=name, sample_name=sample)
-            specimen.experimental_pattern.xy_store.load_data_from_generator(generator, clear=True)
+            specimen.experimental_pattern.load_data_from_generator(generator, clear=True)
             specimens.append(specimen)
 
         return specimens
+
+
+    def json_properties(self):
+        props = Storable.json_properties(self)
+        props["exclusion_ranges"] = self.exclusion_ranges._serialize_data()
+        return props
 
     # ------------------------------------------------------------
     #      Methods & Functions
@@ -322,16 +363,14 @@ class Specimen(DataModel, Storable, ObjectListStoreParentMixin, ObjectListStoreC
         data_x, data_y = tmodel.get_xy()
         maxtab, mintab = peakdetect(data_y, data_x, 5, threshold) # @UnusedVariable
 
-        mpositions = []
-        for marker in self.markers._model_data:
-            mpositions.append(marker.position)
+        mpositions = [marker.position for marker in self.markers]
 
         with self.visuals_changed.hold():
             i = 1
             for x, y in maxtab: # @UnusedVariable
                 if not x in mpositions:
                     nm = self.goniometer.get_nm_from_2t(x) if x != 0 else 0
-                    new_marker = Marker("%%.%df" % (3 + min(int(log(nm, 10)), 0)) % nm, parent=self, position=x, base=base)
+                    new_marker = Marker(label = "%%.%df" % (3 + min(int(log(nm, 10)), 0)) % nm, parent=self, position=x, base=base)
                     self.markers.append(new_marker)
                 i += 1
 
@@ -346,7 +385,8 @@ class Specimen(DataModel, Storable, ObjectListStoreParentMixin, ObjectListStoreC
         if x is not None:
             x = x * 360.0 / pi
             selector = np.ones(x.shape, dtype=bool)
-            for x0, x1 in zip(*np.sort(np.asarray(self.exclusion_ranges.get_raw_model_data()), axis=0)):
+            data = np.sort(np.asarray(self.exclusion_ranges.get_xy_data()), axis=0)
+            for x0, x1 in zip(*data):
                 new_selector = ((x < x0) | (x > x1))
                 selector = selector & new_selector
             return selector
@@ -359,8 +399,8 @@ class Specimen(DataModel, Storable, ObjectListStoreParentMixin, ObjectListStoreC
         :rtype: a tuple containing 4 numpy ndarray's: the experimental X and Y
         data and the calculated X and Y data
         """
-        ex, ey = self.experimental_pattern.xy_store.get_raw_model_data()
-        cx, cy = self.calculated_pattern.xy_store.get_raw_model_data()
+        ex, ey = self.experimental_pattern.get_xy_data() 
+        cx, cy = self.calculated_pattern.get_xy_data() 
         selector = self.get_exclusion_selector(ex)
         return ex[selector], ey[selector], cx[selector], cy[selector]
 
@@ -385,13 +425,17 @@ class Specimen(DataModel, Storable, ObjectListStoreParentMixin, ObjectListStoreC
         """
         if len(phases) == 0:
             self.calculated_pattern.clear()
-        else:
+        else: 
             self.calculated_pattern.set_data(
-                self.__get_range_theta() * 360. / pi,
-                total_intensity,
-                phase_intensities,
-                phases
+                 self.__get_range_theta() * 360. / pi,
+                 np.vstack((total_intensity, phase_intensities)).transpose()
             )
+            self.calculated_pattern.y_names = [
+               phase.name if phase is not None else "" for phase in phases
+            ]
+            self.calculated_pattern.phase_colors = [
+                phase.display_color if phase is not None else "#FF00FF" for phase in phases
+            ]
         if settings.GUI_MODE:
             self.statistics.update_statistics()
 
@@ -406,10 +450,10 @@ class Specimen(DataModel, Storable, ObjectListStoreParentMixin, ObjectListStoreC
         return get_phase_intensities(self.data_object, phases)
 
     def __get_range_theta(self):
-        if self.experimental_pattern.xy_store._model_data_x.size <= 1:
+        if len(self.experimental_pattern) <= 1:
             return self.goniometer.get_default_theta_range()
         else:
-            return np.radians(self.experimental_pattern.xy_store._model_data_x * 0.5)
+            return np.radians(self.experimental_pattern.data_x * 0.5)
 
     def __str__(self):
         return "<'%s' Specimen>" % self.name

@@ -22,7 +22,7 @@ class Optimizer(ChildModel):
         the functionality related to optimizing the weight fractions, scales
         and background shifts and residual calculation for the phases.
     """
-    __parent_alias__ = "mixture"
+    parent_alias = "mixture"
 
     # ------------------------------------------------------------
     #      Methods & Functions

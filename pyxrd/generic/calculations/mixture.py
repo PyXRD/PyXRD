@@ -140,7 +140,8 @@ def calculate_mixture(mixture, parsed=False):
     fractions = np.asanyarray(mixture.fractions)
 
     for scale, bgshift, specimen in izip(mixture.scales, mixture.bgshifts, mixture.specimens):
-        specimen.total_intensity = scale * np.sum(fractions[:, np.newaxis] * specimen.phase_intensities, axis=0) + (bgshift if settings.BGSHIFT else 0.0)
+        if specimen is not None:
+            specimen.total_intensity = scale * np.sum(fractions[:, np.newaxis] * specimen.phase_intensities, axis=0) + (bgshift if settings.BGSHIFT else 0.0)
 
     return mixture
 

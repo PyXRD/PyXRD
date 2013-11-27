@@ -7,8 +7,9 @@
 
 from utils import ComboAdapter
 from objectliststore_controllers import (
-    ObjectTreeviewMixin,
-    ObjectListStoreMixin,
+    TreeViewMixin,
+    TreeModelMixin,
+    TreeControllerMixin,
     ObjectListStoreController,
     ChildObjectListStoreController,
     InlineObjectListStoreController,
@@ -21,8 +22,9 @@ from base_controllers import (
 
 __all__ = [
     "ComboAdapter",
-    "ObjectTreeviewMixin",
-    "ObjectListStoreMixin",
+    "TreeViewMixin",
+    "TreeModelMixin",
+    "TreeControllerMixin",
     "ObjectListStoreController",
     "ChildObjectListStoreController",
     "InlineObjectListStoreController",

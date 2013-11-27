@@ -7,63 +7,67 @@
 
 import time
 
-from pyxrd.gtkmvc.model import Model, Observer
+from pyxrd.gtkmvc.model import Observer
+from pyxrd.gtkmvc.support.propintel import PropIntel, OptionPropIntel
 
 from pyxrd.data import settings
 
 from pyxrd.generic.models import DataModel
-from pyxrd.generic.models.mixins import ObjectListStoreParentMixin
-from pyxrd.generic.models.properties import PropIntel, MultiProperty
-from pyxrd.generic.models.treemodels import ObjectListStore, IndexListStore
+from pyxrd.generic.models.observers import ListObserver
 from pyxrd.generic.io import storables, Storable, get_case_insensitive_glob
 
-from pyxrd.specimen.models import Specimen
 from pyxrd.phases.models import Phase
 from pyxrd.atoms.models import AtomType
 from pyxrd.mixture.models.mixture import Mixture
 
+prop_kwargs = dict(
+    storable=True,
+    has_widget=True
+)
+
 @storables.register()
-class Project(DataModel, Storable, ObjectListStoreParentMixin):
+class Project(DataModel, Storable):
     # MODEL INTEL:
-    __model_intel__ = [ # TODO add labels
-        PropIntel(name="name", data_type=str, storable=True, has_widget=True),
-        PropIntel(name="date", data_type=str, storable=True, has_widget=True),
-        PropIntel(name="description", data_type=str, storable=True, has_widget=True, widget_type="text_view"),
-        PropIntel(name="author", data_type=str, storable=True, has_widget=True),
-        PropIntel(name="layout_mode", data_type=str, storable=True, has_widget=True, widget_type="combo"),
-        PropIntel(name="display_marker_align", data_type=str, storable=True, has_widget=True, widget_type="combo"),
-        PropIntel(name="display_marker_color", data_type=str, storable=True, has_widget=True, widget_type="color"),
-        PropIntel(name="display_marker_base", data_type=int, storable=True, has_widget=True, widget_type="combo"),
-        PropIntel(name="display_marker_top", data_type=int, storable=True, has_widget=True, widget_type="combo"),
-        PropIntel(name="display_marker_top_offset", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
-        PropIntel(name="display_marker_angle", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
-        PropIntel(name="display_marker_style", data_type=str, storable=True, has_widget=True, widget_type="combo"),
-        PropIntel(name="display_calc_color", data_type=str, storable=True, has_widget=True, widget_type="color"),
-        PropIntel(name="display_exp_color", data_type=str, storable=True, has_widget=True, widget_type="color"),
-        PropIntel(name="display_calc_lw", data_type=int, storable=True, has_widget=True, widget_type="spin"),
-        PropIntel(name="display_exp_lw", data_type=int, storable=True, has_widget=True, widget_type="spin"),
-        PropIntel(name="display_plot_offset", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
-        PropIntel(name="display_group_by", data_type=int, storable=True, has_widget=True),
-        PropIntel(name="display_label_pos", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
-        PropIntel(name="axes_xscale", data_type=int, storable=True, has_widget=True, widget_type="combo"),
-        PropIntel(name="axes_xmin", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
-        PropIntel(name="axes_xmax", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
-        PropIntel(name="axes_xstretch", data_type=bool, storable=True, has_widget=True),
-        PropIntel(name="axes_yscale", data_type=int, storable=True, has_widget=True, widget_type="combo"),
-        PropIntel(name="axes_yvisible", data_type=bool, storable=True, has_widget=True),
-        PropIntel(name="specimens", data_type=object, storable=True, has_widget=True, widget_type="tree_view"),
-        PropIntel(name="phases", data_type=object, storable=True),
-        PropIntel(name="mixtures", data_type=object, storable=True),
-        PropIntel(name="atom_types", data_type=object, storable=True),
-        PropIntel(name="needs_saving", data_type=bool, storable=False),
-    ]
-    __store_id__ = "Project"
-    __file_filters__ = [
-        ("PyXRD Project files", get_case_insensitive_glob("*.pyxrd", "*.zpd")),
-    ]
-    __import_filters__ = [
-        ("Sybilla XML files", get_case_insensitive_glob("*.xml")),
-    ]
+    class Meta(DataModel.Meta):
+        properties = [ # TODO add labels
+            PropIntel(name="name", data_type=str, **prop_kwargs),
+            PropIntel(name="date", data_type=str, **prop_kwargs),
+            PropIntel(name="description", data_type=str, widget_type="text_view", **prop_kwargs),
+            PropIntel(name="author", data_type=str, **prop_kwargs),
+            OptionPropIntel(name="layout_mode", data_type=str, options=settings.DEFAULT_LAYOUTS, **prop_kwargs),
+            OptionPropIntel(name="display_marker_align", data_type=str, options=settings.MARKER_ALIGNS, **prop_kwargs),
+            PropIntel(name="display_marker_color", data_type=str, widget_type="color", **prop_kwargs),
+            OptionPropIntel(name="display_marker_base", data_type=int, options=settings.MARKER_BASES, **prop_kwargs),
+            OptionPropIntel(name="display_marker_top", data_type=int, options=settings.MARKER_TOPS, **prop_kwargs),
+            PropIntel(name="display_marker_top_offset", data_type=float, widget_type="float_entry", **prop_kwargs),
+            PropIntel(name="display_marker_angle", data_type=float, widget_type="float_entry", **prop_kwargs),
+            OptionPropIntel(name="display_marker_style", data_type=str, options=settings.MARKER_STYLES, **prop_kwargs),
+            PropIntel(name="display_calc_color", data_type=str, widget_type="color", **prop_kwargs),
+            PropIntel(name="display_exp_color", data_type=str, widget_type="color", **prop_kwargs),
+            PropIntel(name="display_calc_lw", data_type=int, widget_type="spin", **prop_kwargs),
+            PropIntel(name="display_exp_lw", data_type=int, widget_type="spin", **prop_kwargs),
+            PropIntel(name="display_plot_offset", data_type=float, widget_type="float_entry", **prop_kwargs),
+            PropIntel(name="display_group_by", data_type=int, **prop_kwargs),
+            PropIntel(name="display_label_pos", data_type=float, widget_type="float_entry", **prop_kwargs),
+            OptionPropIntel(name="axes_xscale", data_type=int, options=settings.AXES_XSCALES, **prop_kwargs),
+            PropIntel(name="axes_xmin", data_type=float, widget_type="float_entry", **prop_kwargs),
+            PropIntel(name="axes_xmax", data_type=float, widget_type="float_entry", **prop_kwargs),
+            PropIntel(name="axes_xstretch", data_type=bool, **prop_kwargs),
+            OptionPropIntel(name="axes_yscale", data_type=int, options=settings.AXES_YSCALES, **prop_kwargs),
+            PropIntel(name="axes_yvisible", data_type=bool, **prop_kwargs),
+            PropIntel(name="specimens", data_type=object, widget_type="tree_view", **prop_kwargs),
+            PropIntel(name="phases", data_type=object, has_widget=False, storable=True),
+            PropIntel(name="mixtures", data_type=object, has_widget=False, storable=True),
+            PropIntel(name="atom_types", data_type=object, has_widget=False, storable=True),
+            PropIntel(name="needs_saving", data_type=bool, has_widget=False, storable=False),
+        ]
+        store_id = "Project"
+        file_filters = [
+            ("PyXRD Project files", get_case_insensitive_glob("*.pyxrd", "*.zpd")),
+        ]
+        import_filters = [
+            ("Sybilla XML files", get_case_insensitive_glob("*.xml")),
+        ]
 
     # PROPERTIES:
     name = ""
@@ -72,86 +76,139 @@ class Project(DataModel, Storable, ObjectListStoreParentMixin):
     author = ""
 
     needs_saving = True
-
-    def update_callback(self, prop_name, value):
-        self.visuals_changed.emit()
-    layout_mode = MultiProperty(settings.DEFAULT_LAYOUT, lambda i: i, update_callback, settings.DEFAULT_LAYOUTS)
+    
+    _layout_mode = settings.DEFAULT_LAYOUT
+    def get_layout_mode(self): return self._layout_mode
+    def set_layout_mode(self, value):
+        with self.visuals_changed.hold_and_emit():
+            self._layout_mode = value
 
     _axes_xmin = settings.AXES_MANUAL_XMIN
-    _axes_xmax = settings.AXES_MANUAL_XMAX
-    _axes_xstretch = settings.AXES_XSTRETCH
-    _axes_yvisible = settings.AXES_YVISIBLE
-
-    _display_plot_offset = settings.PLOT_OFFSET
-    _display_group_by = settings.PATTERN_GROUP_BY
-    _display_marker_angle = settings.MARKER_ANGLE
-    _display_marker_top_offset = settings.MARKER_TOP_OFFSET
-    _display_label_pos = settings.LABEL_POSITION
-    @Model.getter("axes_xmin", "axes_xmax", "axes_xstretch", "axes_yvisible",
-            "display_plot_offset", "display_group_by", "display_marker_angle",
-            "display_label_pos", "display_marker_top_offset")
-    def get_axes_value(self, prop_name):
-        return getattr(self, "_%s" % prop_name)
-    @Model.setter("axes_xmin", "axes_xmax", "axes_xstretch", "axes_yvisible",
-            "display_plot_offset", "display_group_by", "display_marker_angle",
-            "display_label_pos", "display_marker_top_offset")
-    def set_axes_value(self, prop_name, value):
-        if prop_name in ("axes_xmin", "axes_xmax"): value = max(value, 0.0)
-        if prop_name == "display_group_by": value = max(value, 1)
-        if prop_name == "display_plot_offset": value = max(value, 0.0)
-        setattr(self, "_%s" % prop_name, value)
+    def get_axes_xmin(self): return self._axes_xmin
+    def set_axes_xmin(self, value):
+        self._axes_xmin = max(float(value), 0.0)
         self.visuals_changed.emit()
 
-    axes_xscale = MultiProperty(settings.AXES_XSCALE, int, update_callback, settings.AXES_XSCALES)
-    axes_yscale = MultiProperty(settings.AXES_YSCALE, int, update_callback, settings.AXES_YSCALES)
+    _axes_xmax = settings.AXES_MANUAL_XMAX
+    def get_axes_xmax(self): return self._axes_xmax
+    def set_axes_xmax(self, value):
+        self._axes_xmax = max(float(value), 0.0)
+        self.visuals_changed.emit()
 
-    display_marker_align = MultiProperty(settings.MARKER_ALIGN, lambda i: i, update_callback, settings.MARKER_ALIGNS)
-    display_marker_base = MultiProperty(settings.MARKER_BASE, int, update_callback, settings.MARKER_BASES)
-    display_marker_top = MultiProperty(settings.MARKER_TOP, int, update_callback, settings.MARKER_TOPS)
-    display_marker_style = MultiProperty(settings.MARKER_STYLE, lambda i: i, update_callback, settings.MARKER_STYLES)
+    _axes_xstretch = settings.AXES_XSTRETCH
+    def get_axes_xstretch(self): return self._axes_xstretch
+    def set_axes_xstretch(self, value):
+        self._axes_xstretch = bool(value)
+        self.visuals_changed.emit()
+
+    _axes_yvisible = settings.AXES_YVISIBLE
+    def get_axes_yvisible(self): return self._axes_yvisible
+    def set_axes_yvisible(self, value):
+        self._axes_yvisible = bool(value)
+        self.visuals_changed.emit()
+
+    _display_plot_offset = settings.PLOT_OFFSET
+    def get_display_plot_offset(self): return self._display_plot_offset
+    def set_display_plot_offset(self, value):
+        self._display_plot_offset = max(float(value), 0.0)
+        self.visuals_changed.emit()
+
+    _display_group_by = settings.PATTERN_GROUP_BY
+    def get_display_group_by(self): return self._display_group_by
+    def set_display_group_by(self, value):
+        self._display_group_by = max(int(value), 1)
+        self.visuals_changed.emit()
+
+    _display_marker_angle = settings.MARKER_ANGLE
+    def get_display_marker_angle(self): return self._display_marker_angle
+    def set_display_marker_angle(self, value):
+        self._display_marker_angle = float(value)
+        self.visuals_changed.emit()
+
+    _display_marker_top_offset = settings.MARKER_TOP_OFFSET
+    def get_display_marker_top_offset(self): return self._display_marker_top_offset
+    def set_display_marker_top_offset(self, value):
+        self._display_marker_top_offset = float(value)
+        self.visuals_changed.emit()
+
+    _display_label_pos = settings.LABEL_POSITION
+    def get_display_label_pos(self): return self._display_label_pos
+    def set_display_label_pos(self, value):
+        self._display_label_pos = float(value)
+        self.visuals_changed.emit()
+
+    _axes_xscale = settings.AXES_XSCALE
+    def get_axes_xscale(self): return self._axes_xscale
+    def set_axes_xscale(self, value):
+        self._axes_xscale = value
+        self.visuals_changed.emit()
+    
+    _axes_yscale = settings.AXES_YSCALE
+    def get_axes_yscale(self): return self._axes_yscale
+    def set_axes_yscale(self, value):
+        self._axes_yscale = value
+        self.visuals_changed.emit()
+    
+    _display_marker_align = settings.MARKER_ALIGN
+    def get_display_marker_align(self): return self._display_marker_align
+    def set_display_marker_align(self, value):
+        self._display_marker_align = value
+        self.visuals_changed.emit()
+        
+    _display_marker_base = settings.MARKER_BASE
+    def get_display_marker_base(self): return self._display_marker_base
+    def set_display_marker_base(self, value):
+        self._display_marker_base = value
+        self.visuals_changed.emit()
+        
+    _display_marker_top = settings.MARKER_TOP
+    def get_display_marker_top(self): return self._display_marker_top
+    def set_display_marker_top(self, value):
+        self._display_marker_top = value
+        self.visuals_changed.emit()
+        
+    _display_marker_style = settings.MARKER_STYLE
+    def get_display_marker_style(self): return self._display_marker_style
+    def set_display_marker_style(self, value):
+        self._display_marker_style = value
+        self.visuals_changed.emit()
 
     _display_calc_color = settings.CALCULATED_COLOR
+    def get_display_calc_color(self): return self._display_calc_color
+    def set_display_calc_color(self, value):
+        self._display_calc_color = value
+        self.visuals_changed.emit()
+
     _display_exp_color = settings.EXPERIMENTAL_COLOR
+    def get_display_exp_color(self): return self._display_exp_color
+    def set_display_exp_color(self, value):
+        self._display_exp_color = value
+        self.visuals_changed.emit()
+
     _display_marker_color = settings.MARKER_COLOR
-    @Model.getter("display_calc_color", "display_exp_color", "display_marker_color")
-    def get_color(self, prop_name):
-        return getattr(self, "_%s" % prop_name)
-    @Model.setter("display_calc_color", "display_exp_color", "display_marker_color")
-    def set_color(self, prop_name, value):
-        if value != getattr(self, "_%s" % prop_name):
-            setattr(self, "_%s" % prop_name, value)
-            self.visuals_changed.emit()
+    def get_display_marker_color(self): return self._display_marker_color
+    def set_display_marker_color(self, value):
+        self._display_marker_color = value
+        self.visuals_changed.emit()
 
     _display_calc_lw = settings.CALCULATED_LINEWIDTH
-    _display_exp_lw = settings.EXPERIMENTAL_LINEWIDTH
-    @Model.getter("display_calc_lw", "display_exp_lw")
-    def get_lw(self, prop_name):
-        return getattr(self, "_%s" % prop_name)
-    @Model.setter("display_calc_lw", "display_exp_lw")
-    def set_lw(self, prop_name, value):
-        if value != getattr(self, "_%s" % prop_name):
-            setattr(self, "_%s" % prop_name, float(value))
-            calc = ("calc" in prop_name)
-            if self.specimens:
-                for specimen in self.specimens.iter_objects():
-                    if calc and specimen.inherit_calc_lw:
-                        specimen.calculated_pattern.lw = value
-                    elif not calc and specimen.inherit_exp_lw:
-                        specimen.experimental_pattern.lw = value
+    def get_display_calc_lw(self): return self._display_calc_lw
+    def set_display_calc_lw(self, value):
+        if value != self._display_calc_lw:
+            self._display_calc_lw = float(value)
             self.visuals_changed.emit()
 
+    _display_exp_lw = settings.EXPERIMENTAL_LINEWIDTH
+    def get_display_exp_lw(self): return self._display_exp_lw
+    def set_display_exp_lw(self, value):
+        if value != self._display_exp_lw:
+            self._display_exp_lw = float(value)
+            self.visuals_changed.emit()
 
-    _specimens = None
-    def get_specimens_value(self): return self._specimens
-
-    _phases = None
-    def get_phases_value(self): return self._phases
-
-    _atom_types = None
-    def get_atom_types_value(self): return self._atom_types
-
-    _mixtures = None
-    def get_mixtures_value(self): return self._mixtures
+    specimens = []
+    phases = []
+    atom_types = []
+    mixtures = []
 
     # ------------------------------------------------------------
     #      Initialisation and other internals
@@ -181,10 +238,10 @@ class Project(DataModel, Storable, ObjectListStoreParentMixin):
                 axes_yscale: what type of y-axis to use: raw counts, single or
                  multi-normalized units
                 axes_yvisible: whether or not the y-axis should be shown
-                atom_types: the AtomType's ObjectListStore
-                phases: the Phase's ObjectListStore
-                specimens: the Specimen's ObjectListStore
-                mixtures: the Mixture's ObjectListStore
+                atom_types: a list of AtomTypes
+                phases: a list of Phases
+                specimens: a list of Specimens
+                mixtures: a list of Mixtures
                 load_default_data: whether or not to load default data (i.e. 
                  atom type definitions)
                 
@@ -204,7 +261,6 @@ class Project(DataModel, Storable, ObjectListStoreParentMixin):
                  specimens
         """
         super(Project, self).__init__(**kwargs)
-        # self.parent = kwargs.get("parent") # FIXME ??? old project files seem to have an issue here?
 
         with self.data_changed.hold():
             with self.visuals_changed.hold():
@@ -239,37 +295,48 @@ class Project(DataModel, Storable, ObjectListStoreParentMixin):
                 if goniometer_kwargs:
                     goniometer = self.parse_init_arg(goniometer_kwargs, None, child=True)
 
-                atom_types = self.get_kwarg(kwargs, None, "atom_types", "data_atom_types")
-                phases = self.get_kwarg(kwargs, None, "phases", "data_phases")
-                specimens = self.get_kwarg(kwargs, None, "specimens", "data_specimens")
-                mixtures = self.get_kwarg(kwargs, None, "mixtures", "data_mixtures")
-                self._atom_types = self.parse_liststore_arg(atom_types, IndexListStore, AtomType)
-                self._phases = self.parse_liststore_arg(phases, ObjectListStore, Phase)
-                self._specimens = self.parse_liststore_arg(specimens, ObjectListStore, Specimen)
-                self._mixtures = self.parse_liststore_arg(mixtures, ObjectListStore, Mixture)
+                self.atom_types = self.get_list(kwargs, [], "atom_types", "data_atom_types", parent=self)
+                self.phases = self.get_list(kwargs, [], "phases", "data_phases", parent=self)
+                self.specimens = self.get_list(kwargs, [], "specimens", "data_specimens", goniometer=goniometer, parent=self)
+                self.mixtures = self.get_list(kwargs, [], "mixtures", "data_mixtures", parent=self)
 
                 # Resolve json references & observe phases
-                for phase in self.phases.iter_objects():
+                for phase in self.phases:
                     phase.resolve_json_references()
                     self.observe_model(phase)
                 # Set goniometer if required & observe specimens
-                for specimen in self.specimens.iter_objects():
+                for specimen in self.specimens:
                     if goniometer: specimen.goniometer = goniometer
                     self.observe_model(specimen)
                 # Observe mixtures:
-                for mixture in self.mixtures.iter_objects():
+                for mixture in self.mixtures:
                     self.observe_model(mixture)
 
-                # Connect signals to ObjectListStores:
-                self.atom_types.connect("item-removed", self.on_atom_type_item_removed)
-                self.phases.connect("item-removed", self.on_phase_item_removed)
-                self.specimens.connect("item-removed", self.on_specimen_item_removed)
-                self.mixtures.connect("item-removed", self.on_mixture_item_removed)
-
-                self.atom_types.connect("item-inserted", self.on_atom_type_item_inserted)
-                self.phases.connect("item-inserted", self.on_phase_item_inserted)
-                self.specimens.connect("item-inserted", self.on_specimen_item_inserted)
-                self.mixtures.connect("item-inserted", self.on_mixture_item_inserted)
+                # Connect signals to lists and dicts:
+                self._phases_observer = ListObserver(
+                    self.on_phase_inserted,
+                    self.on_phase_removed,
+                    prop_name="phases",
+                    model=self
+                )
+                self._specimens_observer = ListObserver(
+                    self.on_specimen_inserted,
+                    self.on_specimen_removed,
+                    prop_name="specimens",
+                    model=self
+                )
+                self._mixtures_observer = ListObserver(
+                    self.on_mixture_inserted,
+                    self.on_mixture_removed,
+                    prop_name="mixtures",
+                    model=self
+                )
+                self._atom_types_observer = ListObserver(
+                    self.on_atom_type_inserted,
+                    self.on_atom_type_removed,
+                    prop_name="atom_types",
+                    model=self
+                )
 
                 self.name = str(self.get_kwarg(kwargs, "Project name", "name", "data_name"))
                 self.date = str(self.get_kwarg(kwargs, time.strftime("%d/%m/%Y"), "date", "data_date"))
@@ -278,72 +345,70 @@ class Project(DataModel, Storable, ObjectListStoreParentMixin):
 
                 load_default_data = self.get_kwarg(kwargs, True, "load_default_data")
                 if load_default_data and self.layout_mode != 1 and \
-                    len(self._atom_types._model_data) == 0: self.load_default_data()
+                    len(self.atom_types) == 0: self.load_default_data()
 
                 self.needs_saving = True
             pass # end with visuals_changed
         pass # end with data_changed
 
     def load_default_data(self):
-        AtomType.get_from_csv(
-            settings.DATA_REG.get_file_path("ATOM_SCAT_FACTORS"),
-            self.atom_types.append
-        )
+        for atom_type in AtomType.get_from_csv(settings.DATA_REG.get_file_path("ATOM_SCAT_FACTORS")):
+            self.atom_types.append(atom_type)
 
     # ------------------------------------------------------------
     #      Notifications of observable properties
     # ------------------------------------------------------------
-    def on_phase_item_inserted(self, model, item, *data):
+    def on_phase_inserted(self, item):
         # Set parent on the new phase:
         if item.parent != self: item.parent = self
         item.resolve_json_references()
 
-    def on_phase_item_removed(self, model, item, *data):
+    def on_phase_removed(self, item):
         with self.data_changed.hold_and_emit():
             # Clear parent:
             item.parent = None
             # Clear links with other phases:
             if item.based_on is not None:
                 item.based_on = None
-            for phase in self.phases.iter_objects():
+            for phase in self.phases:
                 if phase.based_on == item:
                     phase.based_on = None
             # Remove phase from mixtures:
-            for mixture in self.mixtures.iter_objects():
+            for mixture in self.mixtures:
                 mixture.unset_phase(item)
 
-    def on_atom_type_item_inserted(self, model, item, *data):
+    def on_atom_type_inserted(self, item, *data):
         if item.parent != self: item.parent = self
         # We do not observe AtomType's directly, if they change,
         # Atoms containing them will be notified, and that event should bubble
         # up to the project level.
 
-    def on_atom_type_item_removed(self, model, item, *data):
+    def on_atom_type_removed(self, item, *data):
         item.parent = None
         # We do not emit a signal for AtomType's, if it was part of
         # an Atom, the Atom will be notified, and the event should bubble
         # up to the project level
 
-    def on_specimen_item_inserted(self, model, item, *data):
+    def on_specimen_inserted(self, item):
         # Set parent and observe the new specimen (visuals changed signals):
         if item.parent != self: item.parent = self
         self.observe_model(item)
 
-    def on_specimen_item_removed(self, model, item, *data):
+    def on_specimen_removed(self, item):
         with self.data_changed.hold_and_emit():
             # Clear parent & stop observing:
             item.parent = None
             self.relieve_model(item)
             # Remove specimen from mixtures:
-            for mixture in self.mixtures.iter_objects():
+            for mixture in self.mixtures:
                 mixture.unset_specimen(item)
 
-    def on_mixture_item_inserted(self, model, item, *data):
+    def on_mixture_inserted(self, item):
         # Set parent and observe the new mixture:
         if item.parent != self: item.parent = self
         self.observe_model(item)
 
-    def on_mixture_item_removed(self, model, item, *data):
+    def on_mixture_removed(self, item):
         with self.data_changed.hold_and_emit():
             # Clear parent & stop observing:
             item.parent = None
@@ -413,37 +478,50 @@ class Project(DataModel, Storable, ObjectListStoreParentMixin):
                 max_intensity = max(specimen.max_intensity, max_intensity)
         return max_intensity
 
-    def update_all(self):
-        for mixture in self.mixtures.iter_objects():
+    def update_all_mixtures(self):
+        for mixture in self.mixtures:
             mixture.update()
 
+    # ------------------------------------------------------------
+    #      Specimen list related
+    # ------------------------------------------------------------
+    def move_specimen_up(self, specimen):
+        """Move the passed specimen up one slot"""
+        index = self.specimens.index(specimen) 
+        self.specimens.insert(min(index+1, len(self.specimens)), self.specimens.pop(index))
+    
+    def move_specimen_down(self, specimen):
+        """Move the passed specimen down one slot"""
+        index = self.specimens.index(specimen) 
+        self.specimens.insert(max(index-1, 0), self.specimens.pop(index))
+        pass
+
+    # ------------------------------------------------------------
+    #      Phases list related
+    # ------------------------------------------------------------
     def load_phases(self, filename, insert_index=None):
         """
             Loads the phases from the file 'filename'. An optional index can
             be given where the phases need to be inserted at.
         """
         for phase in Phase.load_phases(filename, parent=self):
-            self.insert_phase(phase, insert_index=insert_index)
-
-    def insert_new_phase(self, name="New Phase", G=None, R=None, insert_index=None, **kwargs):
-        """
-            Adds a new phase with the given key word args
-        """
-        if G is not None and G > 0 and R is not None and R >= 0 and R <= 4:
-            self.insert_phase(
-                Phase(parent=self, name=name, G=G, R=R, **kwargs),
-                insert_index=insert_index
-            )
-
-    def insert_phase(self, phase, insert_index=None):
-        """
-            Inserts a phase in the phases ObjectListStore. Does not take
-            care of handling JSON references.
-        """
-        if insert_index is None:
-            self.phases.append(phase)
-        else:
             self.phases.insert(insert_index, phase)
-            insert_index += 1
+
+    # ------------------------------------------------------------
+    #      AtomType's list related
+    # ------------------------------------------------------------
+    def load_atom_types_from_csv(self, filename):
+        """
+            Loads the atom types from the CSV file 'filename'.
+        """
+        for atom_type in AtomType.get_from_csv(filename, parent=self):
+            self.atom_types.append(atom_type)
+
+    def load_atom_types(self, filename):
+        """
+            Loads the atom types from the (JSON) file 'filename'.
+        """
+        for atom_type in AtomType.load_atom_types(filename, parent=self):
+            self.atom_types.append(atom_type)
 
     pass # end of class

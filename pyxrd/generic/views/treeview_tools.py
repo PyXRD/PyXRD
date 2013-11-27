@@ -30,7 +30,7 @@ class PyXRDTreeViewColumn(gtk.TreeViewColumn):
         gtk.TreeViewColumn.set_attributes(self, cell_renderer, attribute, column)
 
     def clear_attributes(self, cell_renderer):
-        self._attrs[attribute] = dict()
+        self._attrs = dict()
         gtk.TreeViewColumn.clear_attributes(self, cell_renderer)
 
     def get_col_attr(self, attr):
@@ -314,21 +314,17 @@ def reset_columns(tv):
 def setup_treeview(tv, model,
         reset=False,
         on_cursor_changed=None,
-        on_columns_changed=None,
         on_selection_changed=None,
         sel_mode=gtk.SELECTION_SINGLE):
     """
         Sets up a treeview (signal connection, sets selection mode).
     """
-    # tv.set_model(model)
     if reset: reset_columns(tv)
     sel = tv.get_selection()
     sel.set_mode(sel_mode)
     ids = ()
     if on_cursor_changed is not None:
         ids += (tv.connect('cursor_changed', on_cursor_changed),)
-    if on_columns_changed is not None:
-        ids += (model.connect('columns-changed', on_columns_changed),)
     if on_selection_changed is not None:
         ids += (sel.connect('changed', on_selection_changed),)
     return ids

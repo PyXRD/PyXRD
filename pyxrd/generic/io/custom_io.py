@@ -9,6 +9,9 @@ import os, sys, types
 from shutil import move
 
 import numpy as np
+from pyxrd.gtkmvc.model_base import Model
+from pyxrd.generic.utils import not_none
+from pyxrd.gtkmvc.support.wrappers import ObsWrapper
 
 # Small workaround to provide a unicode-aware open method for PyXRD:
 if sys.version_info[0] < 3: # Pre Python 3.0
@@ -115,11 +118,11 @@ class StorableRegistry(dict):
         return self.register_decorator
 
     def register_decorator(self, cls):
-        if hasattr(cls, '__store_id__'):
-            if settings.DEBUG: print "Registering %s as storage type with id '%s'" % (cls, cls.__store_id__)
-            self[cls.__store_id__] = cls
+        if hasattr(cls, 'Meta') and hasattr(cls.Meta, 'store_id'):
+            if settings.DEBUG: print "Registering %s as storage type with id '%s'" % (cls, cls.Meta.store_id)
+            self[cls.Meta.store_id] = cls
         else:
-            raise TypeError, "Cannot register an object as storable when it does not have a __store_id__ attribute."
+            raise TypeError, "Cannot register type '%s' without a Meta.store_id!" % cls
         return cls
 
     pass # end of class
@@ -130,16 +133,24 @@ storables = StorableRegistry()
 class PyXRDEncoder(json.JSONEncoder):
     """
         A custom JSON encoder that checks if:
-            - the object is a gtk.TextBuffer, if so the encodcer translates the
-              object to a string containing the text in the buffer
             - the object has a to_json callable method, if so it is called to
-              convert the object to a dict object. This dict object should have:
+              convert the object to a JSON encodable object.
+              E.g. the default implementation from the Storable class is a dict object
+              containing:
                - a 'type' key mapped to the storage type id of the storable class
                - a 'properties' key mapped to a dict of name-values for each
                  property that needs to be stored in order to be able to 
                  recreate the object.
-              The user needs to register the class type as storable
+              If the user registered this class as a storable
               (see the 'registes_storable' method or the Storable class)
+              then the JSON object is transformed back into the actual Python
+              object using its from_json(...) method. Default implementation
+              finds the registered class using the 'type' value and passes the
+              'properties' value to its constructor as keyword arguments.  
+            - if the object is a numpy array, it is converted to a list
+            - if the object is a wrapped list, dictionary, ... (ObsWrapper 
+              subclass) then the wrapped object is returned, as these are
+              directly JSON encodable.
             - fall back to the default JSONEncoder methods
     """
 
@@ -147,8 +158,9 @@ class PyXRDEncoder(json.JSONEncoder):
         if hasattr(obj, "to_json") and callable(getattr(obj, "to_json")):
             return obj.to_json()
         if isinstance(obj, np.ndarray):
-            return json.dumps(obj.tolist())
-        # fallback:
+            return obj.tolist()
+        if isinstance(obj, ObsWrapper):
+            return obj._obj #return the wrapped object
         return json.JSONEncoder(self).default(obj)
 
 
@@ -173,6 +185,10 @@ class PyXRDDecoder(json.JSONDecoder):
         return self.__pyxrd_decode__(obj) or obj
 
     def __pyxrd_decode__(self, obj, **kwargs):
+        if isinstance(obj, list):
+            for index, subobj in enumerate(obj):
+                obj[index] = self.__pyxrd_decode__(subobj) or subobj
+            return obj
         if "type" in obj:
             objtype = storables[obj["type"]]
             if "properties" in obj and hasattr(objtype, "from_json"):
@@ -191,8 +207,8 @@ class Storable(object):
     """
         A class with a number of default implementations to serialize objects
         to JSON strings. It used the PyXRDDecoder en PyXRDEncoder.
-        Subclasses should override the '__store_id__' property
-        and register themsevels by calling the storables.register method
+        Subclasses should override their 'Meta.store_id' property
+        and register themselves by calling the storables.register method
         and applying it as decorator to the subclass:
         
          @storables.register()
@@ -206,7 +222,8 @@ class Storable(object):
     """
     __storables__ = []
 
-    __store_id__ = None
+    class Meta():  # override this!
+        store_id = None
 
     def __init__(self, *args, **kwargs):
         # Nothing to do but ignore any extraneous args & kwargs passed down
@@ -316,12 +333,12 @@ class Storable(object):
     def to_json(self):
         """
         Method that should return a dict containing two keys:
-         - 'type' -> registered class __store_id__
+         - 'type' -> registered class Meta.store_id
          - 'properties' -> a dict containg all the properties neccesary to 
            re-create the object when serialized as JSON.
         """
         return {
-            "type": self.__store_id__,
+            "type": self.Meta.store_id,
             "properties": self.json_properties()
         }
 
@@ -331,12 +348,22 @@ class Storable(object):
         re-create the object when serialized as JSON.
         """
         retval = OrderedDict()
-        for val in self.__storables__:
+        def add_prop(val):
             try:
                 alias, attr = val
             except ValueError:
                 alias, attr = val, val
             retval[alias] = getattr(self, attr)
+        
+        if isinstance(self, Model):
+            for prop in self.Meta.all_properties:
+                if prop.storable:
+                    add_prop((prop.name, not_none(prop.stor_name, prop.name)))
+        elif hasattr(self, "__storables__"): # Fallback:        
+            for val in self.__storables__:
+                add_prop(val)
+        else:
+            raise RuntimeError, "Cannot find either a '__storables__' or Meta class attribute on Storable '%s' instance!" % type(self)
         return retval
 
     def parse_init_arg(self, arg, default, child=False, default_is_class=False, **kwargs):

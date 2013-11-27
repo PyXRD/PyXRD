@@ -8,7 +8,8 @@
 from pyxrd.gtkmvc.model import Observer, Signal
 
 from pyxrd.generic.models import PyXRDModel
-from pyxrd.generic.models.metaclasses import pyxrd_object_pool
+from pyxrd.gtkmvc.support.metaclasses import UUIDMeta
+from pyxrd.gtkmvc.support.propintel import PropIntel
 
 class AppModel(PyXRDModel):
     """
@@ -32,44 +33,45 @@ class AppModel(PyXRDModel):
                 multiple specimen are selected
     """
     # MODEL INTEL:
-    __observables__ = (
-        "current_project",
-        "current_specimen",
-        "current_specimens",
-        "statistics_visible",
-        "needs_plot_update"
-    )
+    class Meta(PyXRDModel.Meta):
+        properties = [
+            PropIntel(name="current_project", observable=True),
+            PropIntel(name="current_specimen", observable=True),
+            PropIntel(name="current_specimens", observable=True),
+            PropIntel(name="statistics_visible", observable=True),
+            PropIntel(name="needs_plot_update", observable=True)
+        ]
 
     # SIGNALS:
     needs_plot_update = None
 
     # PROPERTIES:
     _current_project = None
-    def get_current_project_value(self):
+    def get_current_project(self):
         return self._current_project
-    def set_current_project_value(self, value):
+    def set_current_project(self, value):
         if self._current_project is not None: self.relieve_model(self._current_project)
         self._current_project = value
-        pyxrd_object_pool.clear()
+        UUIDMeta.object_pool.clear()
         if self._current_project is not None: self.observe_model(self._current_project)
         self.clear_selected()
         self.needs_plot_update.emit()
     current_filename = None
 
     _statistics_visible = None
-    def set_statistics_visible_value(self, value): self._statistics_visible = value
-    def get_statistics_visible_value(self):
+    def set_statistics_visible(self, value): self._statistics_visible = value
+    def get_statistics_visible(self):
         return self._statistics_visible and self.current_specimen is not None and self.current_project.layout_mode != 1
 
     _current_specimen = None
-    def get_current_specimen_value(self): return self._current_specimen
-    def set_current_specimen_value(self, value):
+    def get_current_specimen(self): return self._current_specimen
+    def set_current_specimen(self, value):
         self._current_specimens = [value]
         self._current_specimen = value
 
     _current_specimens = []
-    def get_current_specimens_value(self): return self._current_specimens
-    def set_current_specimens_value(self, value):
+    def get_current_specimens(self): return self._current_specimens
+    def set_current_specimens(self, value):
         if value == None:
             value = []
         self._current_specimens = value

@@ -132,23 +132,15 @@ class ObjectTreeNode(object):
 class ObjectTreeStore(BaseObjectListStore):
     """
         GenericTreeModel implementation that holds a tree with objects.
-        Has support for some extra signals (pass the actual object instead of
-        an iter). This TreeStore does not require the objects to be unique.
+        It expects all objects to be of a certain type, which needs to be
+        passed to the __init__ as the first argument. 
     """
 
     # MODEL INTEL:
-    __store_id__ = "ObjectTreeStore"
-
-    # SIGNALS:
-    if GOBJECT_AVAILABLE:
-        __gsignals__ = {
-            'item-removed' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
-            'item-inserted' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,))
-        }
+    store_id = "ObjectTreeStore"
 
     # PROPERTIES:
-    # An object tree node with obj = None
-    _model_data = None
+    _root_node = None
     _object_node_map = None
 
     # ------------------------------------------------------------
@@ -158,20 +150,8 @@ class ObjectTreeStore(BaseObjectListStore):
         if isinstance(class_type, basestring):
             class_type = storables[class_type]
         BaseObjectListStore.__init__(self, class_type)
-        self._model_data = ObjectTreeNode()
+        self._root_node = ObjectTreeNode()
         self._object_node_map = dict()
-
-    # ------------------------------------------------------------
-    #      Input/Output stuff
-    # ------------------------------------------------------------
-    def json_properties(self):
-        return { 'class_type': self._class_type.__store_id__,
-                 'model_data': self._model_data }
-
-    def __reduce__(self):
-        return (type(self), ((self._class_type,), {
-            "model_data": self._model_data,
-        }))
 
     # ------------------------------------------------------------
     #      Methods & Functions
@@ -183,7 +163,7 @@ class ObjectTreeStore(BaseObjectListStore):
     def on_get_iter(self, path):
         try:
             if hasattr(path, 'split'): path = map(int, path.split(":"))
-            return self._model_data.get_child_node(*path)
+            return self._root_node.get_child_node(*path)
         except IndexError, msg:
             print "IndexError in on_get_iter of %s caused by %s" % (self, path)
             print_exc()
@@ -206,7 +186,6 @@ class ObjectTreeStore(BaseObjectListStore):
         try:
             return getattr(node.object, self._columns[column][0])
         except:
-            print node, column, self._columns[column][0]
             return ""
 
 
@@ -214,19 +193,19 @@ class ObjectTreeStore(BaseObjectListStore):
         return node.get_next_node()
 
     def on_iter_children(self, node):
-        node = node or self._model_data
+        node = node or self._root_node
         return node.get_first_child_node()
 
     def on_iter_has_child(self, node):
-        node = node or self._model_data
+        node = node or self._root_node
         return node.has_children
 
     def on_iter_n_children(self, node):
-        node = node or self._model_data
+        node = node or self._root_node
         return node.child_count
 
     def on_iter_nth_child(self, parent, n):
-        node = parent or self._model_data
+        node = parent or self._root_node
         try:
             return node.get_child_node(n)
         except:
@@ -239,25 +218,21 @@ class ObjectTreeStore(BaseObjectListStore):
         if not isinstance(item, self._class_type):
             raise ValueError, 'Invalid type, must be %s but got %s instead' % (self._class_type, type(item))
         else:
-            parent = parent or self._model_data
+            parent = parent or self._root_node
             node = parent.append(item)
             return self._emit_added(node)
     def insert(self, parent, pos, item):
         if not isinstance(item, self._class_type):
             raise ValueError, 'Invalid type, must be %s but got %s instead' % (self._class_type, type(item))
         else:
-            parent = parent or self._model_data
+            parent = parent or self._root_node
             node = parent.insert(pos, item)
             return self._emit_added(node)
     def _emit_added(self, node):
-        if hasattr(node.object, "__list_store__"):
-            node.object.__list_store__ = self
         self._object_node_map[node.object] = node
         itr = self.create_tree_iter(node)
         path = self.get_path(itr)
         self.row_inserted(path, itr)
-        if GOBJECT_AVAILABLE:
-            self.emit('item-inserted', node.object)
         return node
 
     def remove(self, itr):
@@ -266,43 +241,35 @@ class ObjectTreeStore(BaseObjectListStore):
         indeces = node.get_indeces()
         node.parent = None # break link
         del self._object_node_map[node.object]
-        if hasattr(node.object, "__list_store__"):
-            node.object.__list_store__ = None
-        if GOBJECT_AVAILABLE:
-            self.emit('item-removed', node.object)
         self.row_deleted(indeces)
 
     def clear(self, callback=None):
-        for node in self._model_data.clear():
+        for node in self._root_node.clear():
             self.remove_item(node)
             if callable(callback): callback(node)
 
-    def on_item_changed(self, object):
-        node = self._object_node_map[object]
-        itr = self.create_tree_iter(node)
-        path = self.get_path(itr)
-        self.row_changed(path, itr)
-
-    def get_raw_model_data(self):
-        return self._model_data
+    def get_data(self):
+        return self._root_node
 
     def iter_objects(self):
-        for node in self._model_data.iter_children(recursive=True):
+        for node in self._root_node.iter_children(recursive=True):
             yield node.object
 
     def get_tree_node(self, itr):
-        return BaseObjectListStore.get_user_data(self, itr)
+        path = self.get_path(itr)
+        return self.get_tree_node_from_path(path)
 
     def get_tree_node_from_path(self, path):
         return BaseObjectListStore.get_user_data_from_path(self, path)
 
     def get_user_data(self, itr):
-        return BaseObjectListStore.get_user_data(self, itr).object
+        path = self.get_path(itr)
+        return self.get_tree_node_from_path(path).object
 
     def get_user_data_from_path(self, path):
-        return BaseObjectListStore.get_user_data_from_path(self, path).object
+        return self.get_tree_node_from_path(path).object
 
     pass # end of class
 
 if GOBJECT_AVAILABLE:
-    gobject.type_register(ObjectTreeStore)
+    gobject.type_register(ObjectTreeStore) # @UndefinedVariable

@@ -8,9 +8,12 @@
 from math import sin, radians, degrees, asin
 import numpy as np
 
-from pyxrd.gtkmvc.model import Model
-from pyxrd.generic.models import DataModel, PropIntel
+from pyxrd.gtkmvc.support.propintel import PropIntel
+
+from pyxrd.generic.models.treemodels.utils import create_valuestore_from_file, create_treestore_from_directory
+from pyxrd.generic.models import DataModel
 from pyxrd.generic.io import storables, Storable, get_case_insensitive_glob
+from pyxrd.data import settings
 
 from pyxrd.generic.calculations.goniometer import (
     get_lorentz_polarisation_factor,
@@ -21,26 +24,27 @@ from pyxrd.generic.calculations.data_objects import GonioData
 @storables.register()
 class Goniometer(DataModel, Storable):
     # MODEL INTEL:
-    __parent_alias__ = 'project'
-    __model_intel__ = [ # TODO add labels
-        PropIntel(name="radius", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
-        PropIntel(name="divergence", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
-        PropIntel(name="soller1", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
-        PropIntel(name="soller2", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
-        PropIntel(name="min_2theta", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
-        PropIntel(name="max_2theta", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
-        PropIntel(name="steps", data_type=int, storable=True, has_widget=True),
-        PropIntel(name="wavelength", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
-        PropIntel(name="has_ads", data_type=bool, storable=True, has_widget=True),
-        PropIntel(name="ads_fact", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
-        PropIntel(name="ads_phase_fact", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
-        PropIntel(name="ads_phase_shift", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
-        PropIntel(name="ads_const", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
-    ]
-    __store_id__ = "Goniometer"
-    __file_filters__ = [
-        ("Goniometer files", get_case_insensitive_glob("*.GON")),
-    ]
+    class Meta(DataModel.Meta):
+        parent_alias = 'project'
+        properties = [ # TODO add labels
+            PropIntel(name="radius", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
+            PropIntel(name="divergence", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
+            PropIntel(name="soller1", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
+            PropIntel(name="soller2", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
+            PropIntel(name="min_2theta", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
+            PropIntel(name="max_2theta", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
+            PropIntel(name="steps", data_type=int, storable=True, has_widget=True),
+            PropIntel(name="wavelength", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
+            PropIntel(name="has_ads", data_type=bool, storable=True, has_widget=True),
+            PropIntel(name="ads_fact", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
+            PropIntel(name="ads_phase_fact", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
+            PropIntel(name="ads_phase_shift", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
+            PropIntel(name="ads_const", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
+        ]
+        store_id = "Goniometer"
+        file_filters = [
+            ("Goniometer files", get_case_insensitive_glob("*.GON")),
+        ]
 
     _data_object = None
     @property
@@ -49,21 +53,50 @@ class Goniometer(DataModel, Storable):
 
     # PROPERTIES:
 
-    @Model.getter(
-        'min_2theta', 'max_2theta', 'steps', 'wavelength', 'soller1',
-        'soller2', 'radius', 'divergence', 'has_ads', 'ads_fact',
-        'ads_phase_fact', 'ads_phase_shift', 'ads_const'
-    )
-    def get_mcr_arg(self, prop_name):
-        return getattr(self._data_object, prop_name)
-    @Model.setter(
-        'min_2theta', 'max_2theta', 'steps', 'wavelength', 'soller1',
-        'soller2', 'radius', 'divergence', 'has_ads', 'ads_fact',
-        'ads_phase_fact', 'ads_phase_shift', 'ads_const'
-    )
-    def set_mcr_arg(self, prop_name, value):
-        setattr(self._data_object, prop_name, self.get_prop_intel_by_name(prop_name).data_type(value))
+    def _set_data_property(self, name, value):
+        try: value = self.Meta.get_prop_intel_by_name(name).data_type(value)
+        except ValueError: return # ignore faulty values
+        setattr(self._data_object, name, value)
         self.data_changed.emit()
+
+    def get_min_2theta(self): return self._data_object.min_2theta
+    def set_min_2theta(self, value): self._set_data_property("min_2theta", value)
+
+    def get_max_2theta(self): return self._data_object.max_2theta
+    def set_max_2theta(self, value): self._set_data_property("max_2theta", value)
+
+    def get_steps(self): return self._data_object.steps
+    def set_steps(self, value): self._set_data_property("steps", value)
+
+    def get_wavelength(self): return self._data_object.wavelength
+    def set_wavelength(self, value): self._set_data_property("wavelength", value)
+
+    def get_soller1(self): return self._data_object.soller1
+    def set_soller1(self, value): self._set_data_property("soller1", value)
+
+    def get_soller2(self): return self._data_object.soller2
+    def set_soller2(self, value): self._set_data_property("soller2", value)
+
+    def get_radius(self): return self._data_object.radius
+    def set_radius(self, value): self._set_data_property("radius", value)
+
+    def get_divergence(self): return self._data_object.divergence
+    def set_divergence(self, value): self._set_data_property("divergence", value)
+
+    def get_has_ads(self): return self._data_object.has_ads
+    def set_has_ads(self, value): self._set_data_property("has_ads", value)
+
+    def get_ads_fact(self): return self._data_object.ads_fact
+    def set_ads_fact(self, value): self._set_data_property("ads_fact", value)
+
+    def get_ads_phase_fact(self): return self._data_object.ads_phase_fact
+    def set_ads_phase_fact(self, value): self._set_data_property("ads_phase_fact", value)
+
+    def get_ads_phase_shift(self): return self._data_object.ads_phase_shift
+    def set_ads_phase_shift(self, value): self._set_data_property("ads_phase_shift", value)
+
+    def get_ads_const(self): return self._data_object.ads_const
+    def set_ads_const(self, value): self._set_data_property("ads_const", value)
 
     # ------------------------------------------------------------
     #      Initialisation and other internals
@@ -113,13 +146,34 @@ class Goniometer(DataModel, Storable):
     def __reduce__(self):
         return (type(self), ((), self.json_properties()))
 
+    @classmethod
+    def create_defaults_store(cls):
+        """
+            Creates & returns a gtk.TreeStore containing references to
+            the default Goniometer setup files
+        """
+        return create_treestore_from_directory(# TODO get extensions from file types
+            settings.DATA_REG.get_directory_path("DEFAULT_GONIOS"),
+            ".gon"
+        )
+
+    @classmethod
+    def create_wavelengths_store(cls):
+        """
+            Creates & returns a gtk.ListStore containing references to
+            the default wavelengths
+        """
+        return create_valuestore_from_file(
+            settings.DATA_REG.get_file_path("WAVELENGTHS")
+        )
+
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------
     def reset_from_file(self, path):
         new_gonio = Goniometer.load_object(path, parent=None)
         with self.data_changed.hold():
-            for prop in self.__model_intel__:
+            for prop in self.Meta.all_properties:
                 if prop.storable and prop.name != "uuid":
                     setattr(self, prop.name, getattr(new_gonio, prop.name))
 

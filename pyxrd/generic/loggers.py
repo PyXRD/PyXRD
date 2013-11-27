@@ -28,8 +28,8 @@ class PyXRDLogger(object):
         hdlr = logging.StreamHandler(self)
         self.logger.addHandler(hdlr)
         self.ready = True
-        # if settings.DEBUG:
-        #    self.logger.setLevel(logging.DEBUG)
+        if settings.DEBUG:
+            self.logger.setLevel(logging.DEBUG)
 
     def write(self, text):
         if self.ready:

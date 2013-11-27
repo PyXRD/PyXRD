@@ -5,8 +5,9 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
+from pyxrd.gtkmvc.support.propintel import PropIntel
+
 from pyxrd.generic.models.base import PyXRDModel
-from pyxrd.generic.models.properties import PropIntel
 from pyxrd.generic.io import storables, Storable
 
 @storables.register()
@@ -18,13 +19,17 @@ class RefinementInfo(PyXRDModel, Storable):
     """
 
     # MODEL INTEL:
-    __model_intel__ = [
-        PropIntel(name="minimum", data_type=float, storable=True),
-        PropIntel(name="maximum", data_type=float, storable=True),
-        PropIntel(name="refine", data_type=bool, storable=True),
-    ]
+    class Meta(PyXRDModel.Meta, Storable.Meta):
+        store_id = "RefinementInfo"
+        properties = [
+            PropIntel(name="minimum", data_type=float, storable=True),
+            PropIntel(name="maximum", data_type=float, storable=True),
+            PropIntel(name="refine", data_type=bool, storable=True),
+        ]
 
-    ref_info_name = "%s_ref_info"
+    @staticmethod
+    def get_attribute_name(prop):
+        return "%s_ref_info" % prop.name
 
     minimum = None
     maximum = None

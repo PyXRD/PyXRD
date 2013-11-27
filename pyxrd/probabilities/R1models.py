@@ -5,12 +5,12 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from pyxrd.gtkmvc.model import Model
+from pyxrd.gtkmvc.support.propintel import PropIntel
 
 from pyxrd.generic.mathtext_support import mt_range
-from pyxrd.generic.models import PropIntel
 from pyxrd.generic.io import storables
 from pyxrd.probabilities.base_models import _AbstractProbability
+
 
 @storables.register()
 class R1G2Model(_AbstractProbability):
@@ -29,32 +29,33 @@ class R1G2Model(_AbstractProbability):
     indexes are NOT zero-based in external property names!
     """
 
-    # MODEL INTEL:
-    __independent_label_map__ = [
-        ("W1", r"$W_1$", [0.0, 1.0, ]),
-        ("P11_or_P22", r"$P_{11} %s$ or $\newline P_{22} %s$" % (
-            mt_range(0.0, "W_1", 0.5),
-            mt_range(0.5, "W_1", 1.0)
-         ), [0.0, 1.0, ]),
-     ]
-    __model_intel__ = [
-        PropIntel(name=prop, label=label, minimum=0.0, maximum=1.0, data_type=float, refinable=True, storable=True, has_widget=True) \
-            for prop, label, range in __independent_label_map__
-    ]
-    __store_id__ = "R1G2Model"
+    # MODEL METADATA:
+    class Meta(_AbstractProbability.Meta):
+        independent_label_map = [
+            ("W1", r"$W_1$", [0.0, 1.0, ]),
+            ("P11_or_P22", r"$P_{11} %s$ or $\newline P_{22} %s$" % (
+                mt_range(0.0, "W_1", 0.5),
+                mt_range(0.5, "W_1", 1.0)
+             ), [0.0, 1.0, ]),
+         ]
+        properties = [
+            PropIntel(name=prop, label=label, minimum=0.0, maximum=1.0, data_type=float, refinable=True, storable=True, has_widget=True) \
+                for prop, label, range in independent_label_map
+        ]
+        store_id = "R1G2Model"
 
     # PROPERTIES:
-    def get_W1_value(self): return self.mW[0]
-    def set_W1_value(self, value):
+    def get_W1(self): return self.mW[0]
+    def set_W1(self, value):
         self.mW[0] = min(max(value, 0.0), 1.0)
         self.update()
 
-    def get_P11_or_P22_value(self):
+    def get_P11_or_P22(self):
         if self.mW[0] <= 0.5:
             return self.mP[0, 0]
         else:
             return self.mP[1, 1]
-    def set_P11_or_P22_value(self, value):
+    def set_P11_or_P22(self, value):
         if self.mW[0] <= 0.5:
             self.mP[0, 0] = min(max(value, 0.0), 1.0)
         else:
@@ -105,51 +106,54 @@ class R1G3Model(_AbstractProbability):
     indexes are NOT zero-based in external property names!
     """
 
-    # MODEL INTEL:
-    __independent_label_map__ = [
-        ("W1", r"$W_1$"),
-        ("P11_or_P22", r"$P_{11} %s$ or $\newline P_{22} %s$" % (
-            mt_range(0.0, "W_1", 0.5),
-            mt_range(0.5, "W_1", 1.0))
-        ),
-        ("G1", r"$\large\frac{W_2}{W_3 + W_2}$"),
-        ("G2", r"$\large\frac{W_{22} + W_{23}}{W_{22} + W_{23} + W_{32} + W_{33}}$"),
-        ("G3", r"$\large\frac{W_{22}}{W_{22} + W_{23}}$"),
-        ("G4", r"$\large\frac{W_{32}}{W_{32} + W_{33}}$"),
-    ]
-    __model_intel__ = [
-        PropIntel(name=prop, label=label, minimum=0.0, maximum=1.0, data_type=float, refinable=True, storable=True, has_widget=True) \
-            for prop, label in __independent_label_map__
-    ]
-    __store_id__ = "R1G3Model"
+    # MODEL METADATA:
+    class Meta(_AbstractProbability.Meta):
+        independent_label_map = [
+            ("W1", r"$W_1$"),
+            ("P11_or_P22", r"$P_{11} %s$ or $\newline P_{22} %s$" % (
+                mt_range(0.0, "W_1", 0.5),
+                mt_range(0.5, "W_1", 1.0))
+            ),
+            ("G1", r"$\large\frac{W_2}{W_3 + W_2}$"),
+            ("G2", r"$\large\frac{W_{22} + W_{23}}{W_{22} + W_{23} + W_{32} + W_{33}}$"),
+            ("G3", r"$\large\frac{W_{22}}{W_{22} + W_{23}}$"),
+            ("G4", r"$\large\frac{W_{32}}{W_{32} + W_{33}}$"),
+        ]
+        properties = [
+            PropIntel(name=prop, label=label, minimum=0.0, maximum=1.0, data_type=float, refinable=True, storable=True, has_widget=True) \
+                for prop, label in independent_label_map
+        ]
+        store_id = "R1G3Model"
 
     # PROPERTIES
     _W0 = 0.0
-    def get_W1_value(self): return self._W0
-    def set_W1_value(self, value):
+    def get_W1(self): return self._W0
+    def set_W1(self, value):
         self._W0 = min(max(value, 0.0), 1.0)
         self.update()
 
     _P00_P11 = 0.0
-    def get_P11_or_P22_value(self): return self._P00_P11
-    def set_P11_or_P22_value(self, value):
-        self._P00_P11 = min(max(value, 0.0), 1.0)
-        self.update()
+    def get_P11_or_P22(self): return self._P00_P11
+    def set_P11_or_P22(self, value):  self._clamp_set_and_update("_P00_P11", value)
 
-    _G1 = 0
+    _G1 = 0.0
+    def get_G1(self): return self._G1
+    def set_G1(self, value): self._clamp_set_and_update("_G1", value)
+
     _G2 = 0
+    def get_G2(self): return self._G2
+    def set_G2(self, value): self._clamp_set_and_update("_G2", value)
+
     _G3 = 0
+    def get_G3(self): return self._G3
+    def set_G3(self, value): self._clamp_set_and_update("_G3", value)
+
     _G4 = 0
-    @Model.getter("G[1234]")
-    def get_G(self, prop_name):
-        return getattr(self, "_%s" % prop_name)
-    @Model.setter("G[1234]")
-    def set_G(self, prop_name, value):
-        setattr(self, "_%s" % prop_name, min(max(value, 0.0), 1.0))
-        self.update()
+    def get_G4(self): return self._G4
+    def set_G4(self, value): self._clamp_set_and_update("_G4", value)
 
     # ------------------------------------------------------------
-    #      Initialisation and other internals
+    #      Initialization and other internals
     # ------------------------------------------------------------
     def setup(self, W1=0.6, P11_or_P22=0.3, G1=0.5, G2=0.4, G3=0.5, G4=0.2, **kwargs):
         _AbstractProbability.setup(self, R=1)
@@ -242,43 +246,44 @@ class R1G4Model(_AbstractProbability):
     indexes are NOT zero-based in external property names!
     """
 
-    # MODEL INTEL:
-    __independent_label_map__ = [
-        ("W1", r"$W_1$", [0.0, 1.0]),
-        ("R1", r"$\large\frac{W_2}{W_2 + W_3 + W_4}$", [0.0, 1.0]),
-        ("R2", r"$\large\frac{W_3}{W_3 + W_4}$", [0.0, 1.0]),
-        ("P11_or_P22",
-         r"$P_{11} %s$ or $\newline P_{22} %s$" % (
-            mt_range(0.0, "W_1", 0.5),
-            mt_range(0.5, "W_1", 1.0)
-         ), [0.0, 1.0]),
-        ("G1", r"$\large\frac{\sum_{j=2}^{4} W_{2j}}{\sum_{i=2}^{4} \sum_{j=2}^{4} W_{ij}}$", [0.0, 1.0]),
-        ("G2", r"$\large\frac{\sum_{j=2}^{4} W_{3j}}{\sum_{i=3}^{4} \sum_{j=2}^{4} W_{ij}}$", [0.0, 1.0]),
-        ("G11", r"$\large\frac{W_{22}}{\sum_{j=2}^{4} W_{2j}}$", [0.0, 1.0]),
-        ("G12", r"$\large\frac{W_{23}}{\sum_{j=3}^{4} W_{2j}}$", [0.0, 1.0]),
-        ("G21", r"$\large\frac{W_{32}}{\sum_{j=2}^{4} W_{3j}}$", [0.0, 1.0]),
-        ("G22", r"$\large\frac{W_{33}}{\sum_{j=3}^{4} W_{3j}}$", [0.0, 1.0]),
-        ("G31", r"$\large\frac{W_{42}}{\sum_{j=2}^{4} W_{4j}}$", [0.0, 1.0]),
-        ("G32", r"$\large\frac{W_{43}}{\sum_{j=3}^{4} W_{4j}}$", [0.0, 1.0]),
-    ]
-    __model_intel__ = [
-        PropIntel(name=prop, label=label, minimum=rng[0], maximum=rng[1], data_type=float, refinable=True, storable=True, has_widget=True) \
-            for prop, label, rng in __independent_label_map__
-    ]
-    __store_id__ = "R1G4Model"
+    # MODEL METADATA:
+    class Meta(_AbstractProbability.Meta):
+        independent_label_map = [
+            ("W1", r"$W_1$", [0.0, 1.0]),
+            ("R1", r"$\large\frac{W_2}{W_2 + W_3 + W_4}$", [0.0, 1.0]),
+            ("R2", r"$\large\frac{W_3}{W_3 + W_4}$", [0.0, 1.0]),
+            ("P11_or_P22",
+             r"$P_{11} %s$ or $\newline P_{22} %s$" % (
+                mt_range(0.0, "W_1", 0.5),
+                mt_range(0.5, "W_1", 1.0)
+             ), [0.0, 1.0]),
+            ("G1", r"$\large\frac{\sum_{j=2}^{4} W_{2j}}{\sum_{i=2}^{4} \sum_{j=2}^{4} W_{ij}}$", [0.0, 1.0]),
+            ("G2", r"$\large\frac{\sum_{j=2}^{4} W_{3j}}{\sum_{i=3}^{4} \sum_{j=2}^{4} W_{ij}}$", [0.0, 1.0]),
+            ("G11", r"$\large\frac{W_{22}}{\sum_{j=2}^{4} W_{2j}}$", [0.0, 1.0]),
+            ("G12", r"$\large\frac{W_{23}}{\sum_{j=3}^{4} W_{2j}}$", [0.0, 1.0]),
+            ("G21", r"$\large\frac{W_{32}}{\sum_{j=2}^{4} W_{3j}}$", [0.0, 1.0]),
+            ("G22", r"$\large\frac{W_{33}}{\sum_{j=3}^{4} W_{3j}}$", [0.0, 1.0]),
+            ("G31", r"$\large\frac{W_{42}}{\sum_{j=2}^{4} W_{4j}}$", [0.0, 1.0]),
+            ("G32", r"$\large\frac{W_{43}}{\sum_{j=3}^{4} W_{4j}}$", [0.0, 1.0]),
+        ]
+        properties = [
+            PropIntel(name=prop, label=label, minimum=rng[0], maximum=rng[1], data_type=float, refinable=True, storable=True, has_widget=True) \
+                for prop, label, rng in independent_label_map
+        ]
+        store_id = "R1G4Model"
 
     # PROPERTIES
-    def get_W1_value(self): return self.mW[0]
-    def set_W1_value(self, value):
+    def get_W1(self): return self.mW[0]
+    def set_W1(self, value):
         self.mW[0] = min(max(value, 0.0), 1.0)
         self.update()
 
-    def get_P11_or_P22_value(self):
+    def get_P11_or_P22(self):
         if self.mW[0] <= 0.5:
             return self.mP[0, 0]
         else:
             return self.mP[1, 1]
-    def set_P11_or_P22_value(self, value):
+    def set_P11_or_P22(self, value):
         if self.mW[0] <= 0.5:
             self.mP[0, 0] = min(max(value, 0.0), 1.0)
         else:
@@ -286,22 +291,44 @@ class R1G4Model(_AbstractProbability):
         self.update()
 
     _R1 = 0
+    def get_R1(self): return self._R1
+    def set_R1(self, value): self._clamp_set_and_update("_R1", value)
+
     _R2 = 0
+    def get_R2(self): return self._R2
+    def set_R2(self, value): self._clamp_set_and_update("_R2", value)
+
     _G1 = 0
+    def get_G1(self): return self._G1
+    def set_G1(self, value): self._clamp_set_and_update("_G1", value)
+
     _G2 = 0
+    def get_G2(self): return self._G2
+    def set_G2(self, value): self._clamp_set_and_update("_G2", value)
+
     _G11 = 0
+    def get_G11(self): return self._G11
+    def set_G11(self, value): self._clamp_set_and_update("_G11", value)
+
     _G12 = 0
+    def get_G12(self): return self._G12
+    def set_G12(self, value): self._clamp_set_and_update("_G12", value)
+
     _G21 = 0
+    def get_G21(self): return self._G21
+    def set_G21(self, value): self._clamp_set_and_update("_G21", value)
+
     _G22 = 0
+    def get_G22(self): return self._G22
+    def set_G22(self, value): self._clamp_set_and_update("_G22", value)
+
     _G31 = 0
+    def get_G31(self): return self._G31
+    def set_G31(self, value): self._clamp_set_and_update("_G31", value)
+
     _G32 = 0
-    @Model.getter("R[12]", "G[12]", "G[123][12]")
-    def get_G1(self, prop_name):
-        return getattr(self, "_%s" % prop_name)
-    @Model.setter("R[12]", "G[12]", "G[123][12]")
-    def set_G(self, prop_name, value):
-        setattr(self, "_%s" % prop_name, min(max(value, 0), 1))
-        self.update()
+    def get_G32(self): return self._G32
+    def set_G32(self, value): self._clamp_set_and_update("_G32", value)
 
     # ------------------------------------------------------------
     #      Initialisation and other internals

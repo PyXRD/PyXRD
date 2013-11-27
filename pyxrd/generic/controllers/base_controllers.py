@@ -53,7 +53,7 @@ class DialogMixin():
         return filename
 
     def get_selected_glob(self, filter, filters=None):
-        """ """
+        """ Returns the extension glob corresponding to the selected filter """
         selected_name = filter.get_name()
         for fltr in (filters or self.file_filters):
             try:
@@ -274,12 +274,6 @@ class BaseController (Controller, DialogMixin):
         if cid is not None:
             self.statusbar.pop(cid)
 
-    def register_view(self, view):
-        if self.model is not None:
-            return Controller.register_view(self, view)
-        else:
-            return None
-
     def _find_widget_match(self, prop_name):
         """
             Checks if the view has defined a 'widget_format' attribute.
@@ -296,7 +290,7 @@ class BaseController (Controller, DialogMixin):
         if widget_format:
             widget_name = widget_format % prop_name
             if not widget_name in self.view:
-                intel = self.model.get_prop_intel_by_name(prop_name)
+                intel = self.model.Meta.get_prop_intel_by_name(prop_name)
                 if intel is not None and intel.widget_type == 'scale':
                     self.view.add_scale_widget(intel, widget_format=widget_format)
         else:
@@ -318,35 +312,6 @@ class BaseController (Controller, DialogMixin):
                 self.widget_handlers[widget_type] = getattr(self, handler)
         local_handlers.update(self.widget_handlers)
         return local_handlers
-
-    def __create_adapters__(self, prop_name, wid_name):
-        """
-            Slightly modified version that passes the property intel and widget
-            name to a (custom) 'handler' that returns the actual adapter class.
-        """
-        intel = self.model.get_prop_intel_by_name(prop_name)
-
-        try:
-            if intel == None: # if no intel is present, we can't be smarter...
-                return super(BaseController, self).__create_adapters__(prop_name, wid_name)
-            else:
-                if intel.has_widget:
-
-                    wid = self.view[wid_name]
-                    if wid == None:
-                        raise ValueError("Widget '%s' not found" % wid_name)
-
-                    local_handlers = self._get_handler_list()
-
-                    handler = local_handlers.get(intel.widget_type)
-                    ad = handler(self, intel, wid)
-
-                    return [ad]
-                else:
-                    return []
-        except:
-            print self, prop_name, wid_name
-            raise
 
     pass # end of class
 

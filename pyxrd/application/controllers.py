@@ -16,7 +16,7 @@ from pyxrd.gtkmvc import Controller
 from pyxrd.data import settings
 
 from pyxrd.generic.controllers import BaseController, DialogMixin
-from pyxrd.generic.models import not_none
+from pyxrd.generic.utils import not_none
 from pyxrd.generic.plot.controllers import MainPlotController
 
 from pyxrd.project.controllers import ProjectController
@@ -34,8 +34,8 @@ class AppController (BaseController, DialogMixin):
         Mixture, Specimen, Phase, Marker and Atoms actions. 
     """
 
-    file_filters = Project.__file_filters__ + [ ("All Files", "*.*"), ]
-    import_filters = Project.__import_filters__ + [ ("All Files", "*.*"), ]
+    file_filters = Project.Meta.file_filters + [ ("All Files", "*.*"), ]
+    import_filters = Project.Meta.import_filters + [ ("All Files", "*.*"), ]
 
     # ------------------------------------------------------------
     #      Initialization and other internals
@@ -269,7 +269,7 @@ class AppController (BaseController, DialogMixin):
 
     def on_refresh_graph(self, event):
         if self.model.current_project:
-            self.model.current_project.update_all()
+            self.model.current_project.update_all_mixtures()
 
     def on_save_graph(self, event):
         filename = None
@@ -289,8 +289,8 @@ class AppController (BaseController, DialogMixin):
             experimental data values in an information dialog.
         """
         def parse_x_pos(x_pos):
-            exp_y = self.model.current_specimen.experimental_pattern.xy_store.get_y_at_x(x_pos)
-            calc_y = self.model.current_specimen.calculated_pattern.xy_store.get_y_at_x(x_pos)
+            exp_y = self.model.current_specimen.experimental_pattern.get_y_at_x(x_pos)
+            calc_y = self.model.current_specimen.calculated_pattern.get_y_at_x(x_pos)
             message = "Sampled point:\n"
             message += "\tExperimental data:\t( %.4f , %.4f )\n"
             if self.model.current_project.layout_mode == "FULL":
@@ -365,8 +365,7 @@ class AppController (BaseController, DialogMixin):
     #      GTK Signal handlers - Specimen related
     # ------------------------------------------------------------
     def on_edit_specimen_activate(self, event):
-        if self.model.single_specimen_selected:
-            self.view.specimen.present()
+        self.project.edit_specimen()
         return True
 
     def on_add_specimen_activate(self, event):

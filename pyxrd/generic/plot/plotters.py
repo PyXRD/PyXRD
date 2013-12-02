@@ -602,8 +602,8 @@ def plot_mixtures(project, mixtures, axes):
             label_text = u"{}: {:>5.1f}".format(phase, fraction * 100.0)
             label = TextArea(label_text)
             phase_children = [
-                create_rect_patch(fc=mixture.phase_matrix[j, i].display_color)
-                for j, specimen in enumerate(mixture.specimens)
+                create_rect_patch(fc=phase.display_color)
+                for phase in mixture.phase_matrix[:, i].flat if phase is not None
             ]
             phase_children.insert(0, label)
             legend_items.append(

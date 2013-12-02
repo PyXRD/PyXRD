@@ -5,4 +5,4 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-__version__ = "0.5.2"
+__version__ = "0.5.3"

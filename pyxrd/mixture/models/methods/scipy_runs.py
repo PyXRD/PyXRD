@@ -11,33 +11,34 @@ import scipy
 from .refine_run import RefineRun
 
 class RefineLBFGSBRun(RefineRun):
-    name="L BFGS B algorithm"
-    description="Refinement using the L BFGS B algorithm"
-    options=[]
-    
+    name = "L BFGS B algorithm"
+    description = "Refinement using the L BFGS B algorithm"
+    options = []
+
     def run(self, context, **kwargs):
         """
             Refinement using the L BFGS B algorithm
         """
-        context.last_solution, context.last_residual, d = scipy.optimize.fmin_l_bfgs_b(
+        context.last_solution, context.last_residual, d = scipy.optimize.fmin_l_bfgs_b(# @UnusedVariable
             context.get_residual_for_solution,
             context.initial_solution,
-            approx_grad=True, 
-            bounds=context.ranges, 
-            args=[],
-            factr=1e6,
-            iprint=-1
+            approx_grad=True,
+            bounds=context.ranges,
+            iprint=-1,
+            epsilon=1e-4,
+            callback=context.update
         )
-        
-    pass #end of class
-    
+        print d
+
+    pass # end of class
+
 class RefineBruteForceRun(RefineRun):
-    name="Brute force algorithm"
-    description="Refinement using a Brute Force algorithm"
-    options=[
-        ( 'Number of samples', 'num_samples', int, 10, [3, 1000] ),
+    name = "Brute force algorithm"
+    description = "Refinement using a Brute Force algorithm"
+    options = [
+        ('Number of samples', 'num_samples', int, 10, [3, 1000]),
     ]
-    
+
     def run(self, context, num_samples=10, **kwargs):
         """
             Refinement using a Brute Force algorithm
@@ -51,22 +52,22 @@ class RefineBruteForceRun(RefineRun):
         )
         try:
             context.last_solution = np.ndarray(list(vals[0]))
-        except TypeError:            
+        except TypeError:
             context.last_solution = np.ndarray([vals[0]])
         context.last_residual = vals[1]
-        
-    pass #end of class
-    
+
+    pass # end of class
+
 class RefineBasinHoppingRun(RefineRun):
 
-    name="Basin Hopping Algorithm"
-    description="Refinement using a basin hopping algorithm"
-    options=[
-         ( 'Number of iterations', 'niter', int, 100, [10, 10000] ),
-         ( 'Temperature criterion', 'T', float, 3.0, [0.0, None] ),
-         ( 'Displacement stepsize', 'stepsize', float, 1.0, [0.0, None] ),
+    name = "Basin Hopping Algorithm"
+    description = "Refinement using a basin hopping algorithm"
+    options = [
+         ('Number of iterations', 'niter', int, 100, [10, 10000]),
+         ('Temperature criterion', 'T', float, 3.0, [0.0, None]),
+         ('Displacement stepsize', 'stepsize', float, 1.0, [0.0, None]),
     ]
-    
+
     def run(self, context, niter=100, T=3.0, stepsize=1.0, **kwargs):
         """
             Refinement using a Basin Hopping Algorithm
@@ -75,15 +76,15 @@ class RefineBasinHoppingRun(RefineRun):
             context.get_residual_for_solution,
             context.initial_solution,
             niter=niter,
-            T=T, #this can be quite large
+            T=T, # this can be quite large
             stepsize=stepsize,
-            minimizer_kwargs= {
+            minimizer_kwargs={
                 'method': 'L-BFGS-B',
                 'bounds': context.ranges,
             }
         )
         context.last_solution = np.asanyarray(vals.x)
         context.last_residual = vals.fun
-        
-    pass #end of class
+
+    pass # end of class
 

@@ -12,6 +12,8 @@ import time
 
 import numpy as np
 
+from pyxrd.generic.utils import print_timing
+
 from pyxrd.gtkmvc import Signal
 from pyxrd.generic.models import ChildModel, PropIntel
 

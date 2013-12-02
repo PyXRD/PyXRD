@@ -93,9 +93,6 @@ def optimize_mixture(mixture, parsed=False):
         _get_residual,
         x0,
         args=(mixture,),
-        # factr=1e3*np.finfo(np.float).eps,
-        # pgtol=0.01,
-        # epsilon=1e-5,
         approx_grad=True,
         bounds=bounds,
         iprint=-1

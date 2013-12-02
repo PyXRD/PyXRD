@@ -300,7 +300,7 @@ class Project(DataModel, Storable, ObjectListStoreParentMixin):
                 self.description = str(self.get_kwarg(kwargs, "Project description", "description", "data_description"))
                 self.author = str(self.get_kwarg(kwargs, "Project author", "author", "data_author"))
 
-                load_default_data = self.get_kwarg(kwargs, False, "load_default_data")
+                load_default_data = self.get_kwarg(kwargs, True, "load_default_data")
                 if load_default_data and self.layout_mode != 1 and \
                     len(self._atom_types._model_data) == 0: self.load_default_data()
 
@@ -448,7 +448,6 @@ class Project(DataModel, Storable, ObjectListStoreParentMixin):
         """
         for phase in Phase.load_phases(filename, parent=self):
             self.insert_phase(phase, insert_index=insert_index)
-            phase.resolve_json_references()
 
     def insert_new_phase(self, name="New Phase", G=None, R=None, insert_index=None, **kwargs):
         """

@@ -282,6 +282,7 @@ class EditMixtureView(BaseView):
         combobox.pack_start(cell) # , False)
         combobox.add_attribute(cell, 'text', text_column)
         if default is not None:
+            print default
             combobox.set_active(model.index(default))
         combobox.connect("changed", callback, *args)
         return combobox

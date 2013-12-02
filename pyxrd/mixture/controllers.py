@@ -444,7 +444,7 @@ class EditMixtureController(BaseController):
     def on_add_specimen(self, widget, *args):
         with self.model.data_changed.hold():
             index = self.model.add_specimen_slot(None, 1.0, 0.0)
-            self.add_specimen_view(index)
+            self._add_specimen_view(index)
 
     def on_add_both(self, widget, *args):
         with self.model.data_changed.hold():

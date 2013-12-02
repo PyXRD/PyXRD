@@ -315,16 +315,18 @@ class Mixture(DataModel, ObjectListStoreChildMixin, Storable):
 
     def add_phase_slot(self, phase_name, fraction):
         """ Adds a new phase column to the phase matrix """
-        n, m = self.phase_matrix.shape
-        if n > 0:
-            with self.data_changed.hold_and_emit():
-                self.phases.append(phase_name)
-                self.fractions = np.append(self.fractions, fraction)
-                self.phase_matrix = np.concatenate([self.phase_matrix.copy(), [[None, ] for n in range(n)]], axis=1)
-                self.update_refinement_treestore()
-            return m
-        else:
-            return -1
+        with self.data_changed.hold_and_emit():
+            self.phases.append(phase_name)
+            self.fractions = np.append(self.fractions, fraction)
+            n, m = self.phase_matrix.shape # @UnusedVariable
+            if self.phase_matrix.size == 0:
+                self.phase_matrix = np.resize(self.phase_matrix.copy(), (n, m + 1))
+                self.phase_matrix[:] = None
+            else:
+                self.phase_matrix = np.concatenate([self.phase_matrix.copy(), [[None]] * n ], axis=1)
+                self.phase_matrix[:, m] = None
+            self.update_refinement_treestore()
+        return m
 
     def del_phase_slot(self, phase_slot):
         """ Deletes a phase column using its index """
@@ -350,8 +352,12 @@ class Mixture(DataModel, ObjectListStoreChildMixin, Storable):
             self.scales = np.append(self.scales, scale)
             self.bgshifts = np.append(self.bgshifts, bgs)
             n, m = self.phase_matrix.shape
-            self.phase_matrix = np.concatenate([self.phase_matrix.copy(), [[None] * m] ], axis=0)
-            self.phase_matrix[n, :] = None
+            if self.phase_matrix.size == 0:
+                self.phase_matrix = np.resize(self.phase_matrix.copy(), (n + 1, m))
+                self.phase_matrix[:] = None
+            else:
+                self.phase_matrix = np.concatenate([self.phase_matrix.copy(), [[None] * m] ], axis=0)
+                self.phase_matrix[n, :] = None
         return n
 
     def del_specimen_slot(self, specimen_slot):

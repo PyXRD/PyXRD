@@ -57,11 +57,28 @@ AXES_MANUAL_XMAX = 70.0
 AXES_XSTRETCH = False
 AXES_YVISIBLE = False
 
+AXES_XSCALE = 0
+AXES_XSCALES = {
+    0: "Auto",
+    1: "Manual"
+}
+
+AXES_YSCALE = 0
+AXES_YSCALES = {
+    0: "Multi normalised",
+    1: "Single normalised",
+    2: "Unchanged raw counts"
+}
+
 EXPERIMENTAL_COLOR = "#000000"
 CALCULATED_COLOR = "#FF0000"
 
 EXPERIMENTAL_LINEWIDTH = 1.0
 CALCULATED_LINEWIDTH = 2.0
+
+PLOT_OFFSET = 0.75
+PATTERN_GROUP_BY = 1
+LABEL_POSITION = 0.35
 
 MARKER_VISIBLE = True
 MARKER_X_OFFSET = 0.0
@@ -76,12 +93,33 @@ MARKER_INHERIT_TOP_OFFSET = True
 MARKER_TOP_OFFSET = 0.0
 MARKER_INHERIT_BASE = True
 MARKER_BASE = 1
+MARKER_BASES = {
+    0: "X-axis",
+    1: "Experimental profile",
+    2: "Calculated profile",
+    3: "Lowest of both",
+    4: "Highest of both"
+}
 MARKER_INHERIT_TOP = True
 MARKER_TOP = 0
+MARKER_TOPS = {
+     0: "Relative to base",
+     1: "Top of plot"
+}
 MARKER_INHERIT_STYLE = True
 MARKER_STYLE = "none"
+MARKER_STYLES = {
+    "none": "None", "solid": "Solid",
+    "dashed": "Dash", "dotted": "Dotted",
+    "dashdot": "Dash-Dotted", "offset": "Display at Y-offset"
+}
 MARKER_INHERIT_ALIGN = True
 MARKER_ALIGN = "left"
+MARKER_ALIGNS = {
+    "left": "Left align",
+    "center": "Centered",
+    "right": "Right align"
+}
 
 EXCLUSION_FOREG = "#999999"
 EXCLUSION_LINES = "#333333"

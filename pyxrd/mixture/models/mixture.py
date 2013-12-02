@@ -18,7 +18,7 @@ import numpy as np
 from pyxrd.data import settings
 
 from pyxrd.generic.io import storables, Storable
-from pyxrd.generic.utils import print_timing
+# from pyxrd.generic.utils import print_timing
 from pyxrd.generic.models import DataModel, PropIntel, MultiProperty
 from pyxrd.generic.models.mixins import ObjectListStoreChildMixin
 from pyxrd.generic.models.metaclasses import pyxrd_object_pool

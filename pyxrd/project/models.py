@@ -81,11 +81,12 @@ class Project(DataModel, Storable, ObjectListStoreParentMixin):
     _axes_xmax = settings.AXES_MANUAL_XMAX
     _axes_xstretch = settings.AXES_XSTRETCH
     _axes_yvisible = settings.AXES_YVISIBLE
-    _display_plot_offset = 0.75
-    _display_group_by = 1
+
+    _display_plot_offset = settings.PLOT_OFFSET
+    _display_group_by = settings.PATTERN_GROUP_BY
     _display_marker_angle = settings.MARKER_ANGLE
     _display_marker_top_offset = settings.MARKER_TOP_OFFSET
-    _display_label_pos = 0.35
+    _display_label_pos = settings.LABEL_POSITION
     @Model.getter("axes_xmin", "axes_xmax", "axes_xstretch", "axes_yvisible",
             "display_plot_offset", "display_group_by", "display_marker_angle",
             "display_label_pos", "display_marker_top_offset")
@@ -101,38 +102,13 @@ class Project(DataModel, Storable, ObjectListStoreParentMixin):
         setattr(self, "_%s" % prop_name, value)
         self.visuals_changed.emit()
 
-    axes_xscale = MultiProperty(0, int, update_callback, { 0: "Auto", 1: "Manual" })
-    axes_yscale = MultiProperty(0, int, update_callback, {
-        0: "Multi normalised",
-        1: "Single normalised",
-        2: "Unchanged raw counts"
-    })
+    axes_xscale = MultiProperty(settings.AXES_XSCALE, int, update_callback, settings.AXES_XSCALES)
+    axes_yscale = MultiProperty(settings.AXES_YSCALE, int, update_callback, settings.AXES_YSCALES)
 
-
-
-    display_marker_align = MultiProperty(settings.MARKER_ALIGN, lambda i: i, update_callback, {
-        "left": "Left align",
-        "center": "Centered",
-        "right": "Right align"
-    })
-
-    display_marker_base = MultiProperty(settings.MARKER_BASE, int, update_callback, {
-        0: "X-axis",
-        1: "Experimental profile",
-        2: "Calculated profile",
-        3: "Lowest of both",
-        4: "Highest of both"
-    })
-
-    display_marker_top = MultiProperty(settings.MARKER_TOP, int, update_callback, {
-         0: "Relative to base", 1: "Top of plot"
-    })
-
-    display_marker_style = MultiProperty(settings.MARKER_STYLE, lambda i: i, update_callback, {
-        "none": "None", "solid": "Solid",
-        "dashed": "Dash", "dotted": "Dotted",
-        "dashdot": "Dash-Dotted", "offset": "Display at Y-offset"
-    })
+    display_marker_align = MultiProperty(settings.MARKER_ALIGN, lambda i: i, update_callback, settings.MARKER_ALIGNS)
+    display_marker_base = MultiProperty(settings.MARKER_BASE, int, update_callback, settings.MARKER_BASES)
+    display_marker_top = MultiProperty(settings.MARKER_TOP, int, update_callback, settings.MARKER_TOPS)
+    display_marker_style = MultiProperty(settings.MARKER_STYLE, lambda i: i, update_callback, settings.MARKER_STYLES)
 
     _display_calc_color = settings.CALCULATED_COLOR
     _display_exp_color = settings.EXPERIMENTAL_COLOR

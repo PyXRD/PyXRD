@@ -8,19 +8,13 @@ def get_version():
     return __version__
 
 def get_install_requires():
-    # Adds PyGTK only when in windows, on linux this returns an error...
-    import platform
-    install_requires = [
+    return [
         'setuptools',
         'numpy>=1.7',
         'scipy>=0.10',
         'matplotlib>=1.2.0',
         'PyParsing>=1.5.7'
     ]
-
-    if platform.system() == 'Windows':
-        install_requires.append('PyGTK>=2.24')
-    return install_requires
 
 def read(fname):
     # Utility function to read the README file.

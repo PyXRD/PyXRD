@@ -17,7 +17,7 @@ This allows for instance to have an air-dry and a glycolated illite-smectite
 share their coherent scattering domain size, but still have different basal 
 spacings and interlayer compositions for the smectite component. 
 
-Other features are (incomplete):
+Other features are (incomplete list):
 
  - Import/export several common XRD formats (.RD, .RAW, .CPI, ASCII)
  - simple background subtraction/addition (linear or custom patterns)
@@ -32,6 +32,18 @@ Other features are (incomplete):
     - Covariation Matrix Adapation Evolutionary Strategy (CMA-ES; using DEAP)
     - Multiple Particle Swarm Optimization (MPSO; using DEAP)
  - scripting support
+
+DISCLAIMER
+==========
+PyXRD is still very much work in progress. Currently there is no strict 
+development cycle as it is still a one-mans project. This also means little
+time is going into testing and adding new tests for new features. Most of the
+codebase therefore remains untested at this point and Things May Break as a 
+result.
+
+If you encounter serious bugs please send me the output so we can improve the code!
+We'll try to make a habit out of writing UnitTests for each bug we encounter.
+
 
 INSTALLATION
 ============
@@ -48,6 +60,7 @@ DEPENDENCIES
 This is what should be present on your system.
 
  * Python 2.7.4 (other version may also work, or may not)
+ * Setuptools 1.4.1
  * PyGTK 2.24.2 or later
  * Numpy 1.7.0 or later
  * Scipy 0.11.0 or later
@@ -63,12 +76,13 @@ first-time Python user and don't really care about what way it is installed,
 just download and install these, in the order given:
 
  1. [Python 2.7.4](http://www.python.org/ftp/python/2.7.4/python-2.7.4.msi)
- 2. [PyGTK 2.24.2](http://ftp.gnome.org/pub/GNOME/binaries/win32/pygtk/2.24/pygtk-all-in-one-2.24.2.win32-py2.7.msi)
- 3. [Numpy 1.7.0](http://sourceforge.net/projects/numpy/files/NumPy/1.7.0/numpy-1.7.0-win32-superpack-python2.7.exe/download)
- 4. [Scipy 0.11.0](http://sourceforge.net/projects/scipy/files/scipy/0.11.0/scipy-0.11.0-win32-superpack-python2.7.exe/download)
- 5. [Matplotlib 1.2.1](https://downloads.sourceforge.net/project/matplotlib/matplotlib/matplotlib-1.2.1/matplotlib-1.2.1.win32-py2.7.exe)
- 6. [PyParsing 1.5.7](http://sourceforge.net/projects/pyparsing/files/pyparsing/pyparsing-1.5.7/pyparsing-1.5.7.win32-py2.7.exe/download)
- 7. [PyXRD](https://github.com/mathijs-dumon/PyXRD/releases)
+ 2. [Setuptools 1.4.1](http://www.lfd.uci.edu/~gohlke/pythonlibs/v92jt8xn/setuptools-1.4.1.win32-py2.7.exe)
+ 3. [PyGTK 2.24.2](http://ftp.gnome.org/pub/GNOME/binaries/win32/pygtk/2.24/pygtk-all-in-one-2.24.2.win32-py2.7.msi)
+ 4. [Numpy 1.7.0](http://sourceforge.net/projects/numpy/files/NumPy/1.7.0/numpy-1.7.0-win32-superpack-python2.7.exe/download)
+ 5. [Scipy 0.11.0](http://sourceforge.net/projects/scipy/files/scipy/0.11.0/scipy-0.11.0-win32-superpack-python2.7.exe/download)
+ 6. [Matplotlib 1.2.1](https://downloads.sourceforge.net/project/matplotlib/matplotlib/matplotlib-1.2.1/matplotlib-1.2.1.win32-py2.7.exe)
+ 7. [PyParsing 1.5.7](http://sourceforge.net/projects/pyparsing/files/pyparsing/pyparsing-1.5.7/pyparsing-1.5.7.win32-py2.7.exe/download)
+ 8. [PyXRD](https://github.com/mathijs-dumon/PyXRD/releases)
 
 At this point you should have a working version of PyXRD installed (with a desktop shortcut).
 
@@ -101,6 +115,10 @@ if you like that better:
  * OpenSuSE (not tested, gime some feedback if this works!):
     ```sudo zypper install python python-gtk```
 
+*Note: you could also add the Numpy, Scipy and Matplotlib libraries if these are
+provided by your OS's package repositories. Sometimes these cause problems when
+installed using pip (see below).*
+
 Once this has been completed, keep the terminal open and issue these commands:
 
 ```
@@ -108,13 +126,23 @@ sudo easy_install pip
 pip install --user 'pyxrd>=0.5.0'
 ```
 
-This will install everyting under your '~/.local' folder.
+As this will install everyting under your '~/.local' folder, you don't need admin
+rights for these commands, and you will be able to run PyXRD as a regular user.
 
 To run PyXRD type in the following:
 
 ```
 ~/.local/bin/PyXRD
 ```
+
+If you hate typing curly braces for this purpose, edit/create a .bashrc file in
+your home_directory and add a line like this:
+```
+export PATH=$PATH:~/.local/bin/
+```
+
+Then all installed commands under that folder will be available, and you can start
+PyXRD by typing just that: PyXRD.
 
 Mac OS X
 --------
@@ -123,6 +151,9 @@ Currently no support is given for Mac's. The main problem is getting PyGTK
 to work under Mac. There has been some succes using MacPorts and the like (from
 what I can read & tell online), but your milage may vary, and I recommend novice
 users to switch to either a Windows or Linux PC.
+It should be possible to get the code running in script-mode, as it has been
+modified to run on headless (GTK-less) HPC infrastructure recently. Of course
+this is not a very easy way of working with PyXRD...
 
 CREDITS
 =======

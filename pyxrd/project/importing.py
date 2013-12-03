@@ -27,6 +27,7 @@ def create_project_from_sybilla_xml(filename, **kwargs):
         Some information (e.g. the actual XRD pattern) is not present and will
         still need to be imported manually.
     """
+
     tree = ET.parse(filename)
     root = tree.getroot()
     basename = os.path.basename(filename)
@@ -52,12 +53,13 @@ def create_project_from_sybilla_xml(filename, **kwargs):
                 if child.tag == "basic_params":
                     # Goniometer parameters:
                     step_size = safe_float(child.attrib['step_size'])
-                    safe_float(child.attrib['lambda'])
+                    wavelength = safe_float(child.attrib['lambda']) / 10.0
                     steps = int(1 + (specimen.goniometer.max_2theta - specimen.goniometer.min_2theta) / step_size)
 
                     specimen.goniometer.min_2theta = safe_float(child.attrib['min2theta'])
                     specimen.goniometer.max_2theta = safe_float(child.attrib['max2theta'])
                     specimen.goniometer.steps = steps
+                    specimen.goniometer.wavelength = wavelength
                 elif child.tag == "diffractometer":
                     # Some more goniometer parameters, and specimen parameters:
                     specimen.goniometer.radius = safe_float(child.attrib['gonio_radius'])
@@ -87,7 +89,8 @@ def create_project_from_sybilla_xml(filename, **kwargs):
                             R = int(prob.attrib['R'])
 
                         # create phase and add to project:
-                        phase = Phase(name=name, sigma_star=sigma, G=G, R=R, mean_CSDS=csds, parent=project)
+                        phase = Phase(name=name, sigma_star=sigma, G=G, R=R, parent=project)
+                        phase.CSDS_distribution.average = csds
                         project.phases.append(phase)
 
                         # set probability:
@@ -95,7 +98,10 @@ def create_project_from_sybilla_xml(filename, **kwargs):
                             xmlW = prob.find('W')
                             W = np.array([ float(int(safe_float(xmlW.attrib[string.ascii_lowercase[i]]) * 1000.)) / 1000. for i in range(G) ])
                             for i in range(G - 1):
-                                setattr(phase.probabilities, "F%d" % i, W[i] / np.sum(W[i:]))
+                                setattr(phase.probabilities, "F%d" % (i + 1), W[i] / np.sum(W[i:]))
+                        if R == 1 and G == 2:
+                            pass  # TODO
+                        # ... TODO other probs
 
                         # parse components:
                         for i, layer in enumerate(xmlPhase.findall("./layer_and_edge/layer")):
@@ -122,16 +128,22 @@ def create_project_from_sybilla_xml(filename, **kwargs):
                                 "OH": "OH1-",
                                 "Fe": "Fe1.5+",
                                 "Al": "Al1.5+",
-                                "Mg": "Mg2+", # FIXME
+                                "Mg": "Mg1+",
                                 "H2O": "H2O",
-                                "Glycol": "Glycol", # TODO CHECK!
+                                "Gly": "Glycol",
                                 "Ca": "Ca2+",
+                                "Na": "Na1+",
                             }
 
                             # add atoms:
+                            fe_atom = None
+                            encountered_oxygen = False
                             for atom in layer.findall("atom"):
                                 atom_type_name = atom_type_map.get(atom.attrib['type'], None)
                                 if atom_type_name:
+                                    if atom_type_name == "O1-":
+                                        # From this point we're dealing with layer atoms
+                                        encountered_oxygen = True
                                     atom = Atom(
                                         name=atom.attrib['type'],
                                         default_z=safe_float(atom.attrib['position']) / 10.0,
@@ -139,8 +151,22 @@ def create_project_from_sybilla_xml(filename, **kwargs):
                                         atom_type_name=atom_type_name,
                                         parent=component
                                     )
-                                    component.layer_atoms.append(atom)
+                                    if encountered_oxygen:
+                                        component.layer_atoms.append(atom)
+                                    else:
+                                        component.interlayer_atoms.append(atom)
                                     atom.resolve_json_references()
+                                    # Assume this is the octahedral iron...
+                                    if encountered_oxygen and atom_type_name == "Fe1.5+":
+                                        fe_atom = atom
+
+                            # Set the atom relation
+                            if fe_atom is not None:
+                                component.ucp_b.constant = 0.9
+                                component.ucp_b.factor = 0.0043
+                                component.ucp_b.prop = (fe_atom, 'pn')
+                                component.ucp_b.enabled = True
+
                 pass # end of if
             pass # end of for
 
@@ -150,8 +176,5 @@ def create_project_from_sybilla_xml(filename, **kwargs):
                 for slot, phase_name in enumerate(mixture.phases):
                     if phase.name == phase_name:
                         mixture.set_phase(0, slot, phase)
-
-    project_filename = "/home/mathijs/%s" % os.path.basename(filename).replace(".xml", ".pyxrd", 1)
-    project.save_object(project_filename)
 
     return project

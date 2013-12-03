@@ -85,17 +85,24 @@ class DialogMixin():
 
     def run_dialog(self,
             dialog, on_accept_callback=None, on_reject_callback=None, destroy=True):
-        response = dialog.run()
-        retval = None
-        if response in self.accept_responses and on_accept_callback is not None:
-            retval = on_accept_callback(dialog)
-        elif on_reject_callback is not None:
-            retval = on_reject_callback(dialog)
-        if destroy:
-            dialog.destroy()
-        else:
-            dialog.hide()
-        return retval
+
+        # Using an event prevents deadlocks, because we can return to the Main Loop
+        def _dialog_response_cb(dialog, response):
+            retval = None
+            if response in self.accept_responses and on_accept_callback is not None:
+                retval = on_accept_callback(dialog)
+            elif on_reject_callback is not None:
+                retval = on_reject_callback(dialog)
+            if destroy:
+                dialog.destroy()
+            else:
+                dialog.hide()
+            return retval
+
+        # Connect callback and present the dialog
+        dialog.connect('response', _dialog_response_cb)
+        dialog.set_modal(True)
+        dialog.show()
 
     ############################################################################
     def get_file_dialog(self, action, title,

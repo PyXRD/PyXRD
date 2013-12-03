@@ -198,7 +198,8 @@ class AppController (BaseController, DialogMixin):
         filter = not_none(filters, self.file_filters)
         def on_open_project(confirm_dialog):
             def on_accept(dialog):
-                action(self.extract_filename(dialog))
+                gobject.idle_add(action, self.extract_filename(dialog))
+                return True
             self.run_load_dialog(
                 title=title,
                 on_accept_callback=on_accept,
@@ -305,7 +306,6 @@ class AppController (BaseController, DialogMixin):
     @BaseController.status_message("Creating new project...", "new_project")
     def on_new_project_activate(self, widget, data=None):
         def on_accept(dialog):
-            print "Creating new project..."
             self.new_project()
         if self.model.current_project and self.model.current_project.needs_saving:
             self.run_confirmation_dialog(

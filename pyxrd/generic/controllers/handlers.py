@@ -175,6 +175,7 @@ def tree_view_handler(ctrl, intel, widget):
 widget_handlers['tree_view'] = tree_view_handler
 
 def combo_handler(ctrl, intel, widget):
+    """ Handler for a ComboBox widget """
     ad = ComboAdapter(ctrl.model, intel.name, "_%ss" % intel.name)
     ad.connect_widget(widget)
     setup_combo = getattr(ctrl, 'setup_%s_combo' % intel.name, None)

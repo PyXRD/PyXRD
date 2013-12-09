@@ -71,7 +71,14 @@ class DummyAdapter(object):
     pass # end of class
 
 class ComboAdapter(Adapter):
-
+    """
+        An adapter that adapts a ComboBox widget to a 'list' property.
+        That property can be passed as a property name of the model 
+        (list_prop_name keyword), or as a dictionary containing the actual data
+        (list_data keyword). A gtk.ListStore is then generated from this data.
+        The dictionary's keys are treated as the row values (e.g. numbers), 
+        while the dictionary's values are the textual descriptions.
+    """
     def __init__(self, model, prop_name, list_prop_name=None, list_data=None, store=None):
 
         if store == None:

@@ -60,8 +60,8 @@ class EditPhaseController(BaseController):
         self.view.set_components_view(self.components_view)
 
     @staticmethod
-    def custom_handler(self, intel, widget):
-        if intel.name in ("CSDS_distribution", "components", "probabilities"):
+    def custom_handler(self, intel, widget): # TODO split out these 4 properties in their own adapters
+        if intel.name in ("CSDS_distribution", "components", "probabilities", "based_on"):
             if intel.name == "CSDS_distribution":
                 self.csds_controller = EditCSDSTypeController(model=self.model, view=self.csds_view, parent=self)
             elif intel.name == "components":

@@ -46,7 +46,7 @@ def improve_solution(projectf, mixture_index, solution, residual, l_bfgs_b_kwarg
         project = setup_project(projectf)
         del projectf
 
-        mixture = project.mixtures.get_item_by_index(mixture_index)
+        mixture = project.mixtures[mixture_index]
 
         with mixture.data_changed.ignore():
 

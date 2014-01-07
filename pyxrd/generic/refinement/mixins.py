@@ -9,7 +9,7 @@ from pyxrd.gtkmvc.model import ModelMT
 
 from pyxrd.generic.refinement.metaclasses import PyXRDRefinableMeta
 
-class _RefinementBase(ModelMT):
+class _RefinementBase(object):
     """
     Base class for `RefinementGroup` and `RefinementValue` mixins. It's 
     used to provide common functionality and a way to check for the kind of

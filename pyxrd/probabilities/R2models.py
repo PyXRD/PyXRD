@@ -62,7 +62,7 @@ class R2G2Model(_AbstractProbability):
             PropIntel(name=prop, label=label, minimum=rng[0], maximum=rng[1], data_type=float, refinable=True, storable=True, has_widget=True) \
                 for prop, label, rng in independent_label_map
         ]
-        
+
     # PROPERTIES:
     twothirds = 2.0 / 3.0
 
@@ -70,53 +70,39 @@ class R2G2Model(_AbstractProbability):
     def get_W1(self): return self._W1
     def set_W1(self, value): self._clamp_set_and_update("_W1", value, minimum=0.5)
 
-    def get_P112_or_P211(self):
-        if self.mW[0] <= self.twothirds:
-            return self.mP[0, 0, 1]
-        else:
-            return self.mP[1, 0, 0]
-    def set_P112_or_P211(self, value):
-        if self.mW[0] <= self.twothirds:
-            self.mP[0, 0, 1] = value
-        else:
-            self.mP[1, 0, 0] = value
-        self.update()
 
-    def get_P21(self): return self.mP[1, 0]
-    def set_P21(self, value):
-        self.mP[1, 0] = min(max(value, 0.0), 1.0)
-        self.update()
+    _P001_P100 = 0.0
+    def get_P112_or_P211(self): return self._P001_P100
+    def set_P112_or_P211(self, value): self._clamp_set_and_update("_P001_P100", value)
 
-    def get_P122_or_P221(self):
-        if self.mP[1, 0] <= 0.5:
-            return self.mP[0, 1, 1]
-        else:
-            return self.mP[1, 1, 0]
-        self.update()
-    def set_P122_or_P221(self, value):
-        if self.mP[1, 0] <= 0.5:
-            self.mP[0, 1, 1] = value
-        else:
-            self.mP[1, 1, 0] = value
-        self.update()
+    _P10 = 0.0
+    def get_P21(self): return self._P10
+    def set_P21(self, value): self._clamp_set_and_update("_P10", value)
+
+    _P011_P110 = 0.0
+    def get_P122_or_P221(self): return self._P011_P110
+    def set_P122_or_P221(self, value): self._clamp_set_and_update("_P011_P110", value)
 
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
     def setup(self, W1=0.75, P112_or_P211=0.75, P21=0.75, P122_or_P221=0.75, **kwargs):
         _AbstractProbability.setup(self, R=2)
-        self.W1 = W1
-        self.P112_or_P211 = P112_or_P211
-        self.P21 = P21
-        self.P122_or_P221 = P122_or_P221
+        with self.data_changed.hold():
+            self.W1 = W1
+            self.P112_or_P211 = P112_or_P211
+            self.P21 = P21
+            self.P122_or_P221 = P122_or_P221
 
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------
     def update(self):
         with self.data_changed.hold_and_emit():
+            self.mW[0] = self.W1
             self.mW[1] = 1.0 - self.mW[0]
 
+            self.mP[1, 0] = self.P21
             self.mP[1, 1] = 1.0 - self.mP[1, 0]
 
             self.mW[1, 0] = self.mW[1] * self.mP[1, 0]
@@ -125,15 +111,19 @@ class R2G2Model(_AbstractProbability):
             self.mW[0, 0] = self.mW[0] - self.mW[1, 0]
 
             if self.mW[0] <= self.twothirds:
+                self.mP[0, 0, 1] = self.P112_or_P211
                 self.mP[1, 0, 0] = self.mP[0, 0, 1] * self.mW[0, 0] / self.mW[1, 0]
             else:
+                self.mP[1, 0, 0] = self.P112_or_P211
                 self.mP[0, 0, 1] = self.mP[1, 0, 0] * self.mW[1, 0] / self.mW[0, 0]
             self.mP[1, 0, 1] = 1.0 - self.mP[1, 0, 0]
             self.mP[0, 0, 0] = 1.0 - self.mP[0, 0, 1]
 
             if self.mP[1, 0] <= 0.5:
+                self.mP[0, 1, 1] = self.P122_or_P221
                 self.mP[1, 1, 0] = self.mP[0, 1, 1] * self.mW[0, 1] / self.mW[1, 1]
             else:
+                self.mP[1, 1, 0] = self.P122_or_P221
                 self.mP[0, 1, 1] = self.mP[1, 1, 0] * self.mW[1, 1] / self.mW[0, 1]
             self.mP[0, 1, 0] = 1.0 - self.mP[0, 1, 1]
             self.mP[1, 1, 1] = 1.0 - self.mP[1, 1, 0]
@@ -221,8 +211,8 @@ class R2G3Model(_AbstractProbability):
             ("G2", r"$\large\frac{W_{212} + W_{213}}{W_{212} + W_{213} + W_{312} + W_{313}}$", [0.0, 1.0]),
             ("G3", r"$\large\frac{W_{212}}{W_{212} + W_{213}}$", [0.0, 1.0]),
             ("G4", r"$\large\frac{W_{312}}{W_{312} + W_{313}}$", [0.0, 1.0]),
-    
-    
+
+
         ]
         properties = [
             PropIntel(name=prop, label=label, minimum=rng[0], maximum=rng[1], data_type=float, refinable=True, storable=True, has_widget=True) \
@@ -281,13 +271,13 @@ class R2G3Model(_AbstractProbability):
     # ------------------------------------------------------------
     def update(self):
         with self.data_changed.hold_and_emit():
-            # G2inv = (1.0 / self._G2) - 1.0 if self._G2 > 0 else 0.0
-            # G3inv = (1.0 / self._G3) - 1.0 if self._G3 > 0 else 0.0
-            # G4inv = (1.0 / self._G4) - 1.0 if self._G4 > 0 else 0.0
+            # G2inv = (1.0 / self.G2) - 1.0 if self.G2 > 0 else 0.0
+            # G3inv = (1.0 / self.G3) - 1.0 if self.G3 > 0 else 0.0
+            # G4inv = (1.0 / self.G4) - 1.0 if self.G4 > 0 else 0.0
 
             # calculate Wx's (0-based!!):
             W0 = self.W1
-            W1 = (1.0 - W0) * self._G1
+            W1 = (1.0 - W0) * self.G1
             W2 = 1.0 - W0 - W1
 
             # consequences of restrictions:
@@ -297,16 +287,16 @@ class R2G3Model(_AbstractProbability):
 
             # continue calculations:
             if W0 < 0.5:
-                self.mP[1, 0, 1] = self._G2 * self._G3 * (self.mW[0, 0] * (self.mP[0, 0, 0] - 1.0) + 2.0) / W1
-            self.mP[1, 0, 2] = (self.mP[1, 0, 1] * ((1.0 / self._G3) - 1.0)) if self._G3 > 0 else 1.0
+                self.mP[1, 0, 1] = self.G2 * self.G3 * (self.mW[0, 0] * (self.mP[0, 0, 0] - 1.0) + 2.0) / W1
+            self.mP[1, 0, 2] = (self.mP[1, 0, 1] * ((1.0 / self.G3) - 1.0)) if self.G3 > 0 else 1.0
             # self.mP[0,0,0] = 1.0 - self.mP[1,0,1] - self.mP[1,0,2]
 
             self.mW[1, 0, 1] = self.mP[1, 0, 1] * W1
             self.mW[1, 0, 2] = self.mP[1, 0, 2] * W1
             self.mW[1, 0, 0] = self.mW[1, 0] - self.mW[1, 0, 1] - self.mW[1, 0, 2]
 
-            self.mW[2, 0, 1] = (self._G4 * (1.0 - self._G2) / (self._G2 * self._G3) * self.mW[1, 0, 1]) if (self._G2 * self._G3) > 0 else 0.0
-            self.mW[2, 0, 2] = (self.mW[2, 0, 1] * ((1.0 / self._G4) - 1.0)) if self._G4 > 0 else 1.0
+            self.mW[2, 0, 1] = (self.G4 * (1.0 - self.G2) / (self.G2 * self.G3) * self.mW[1, 0, 1]) if (self.G2 * self.G3) > 0 else 0.0
+            self.mW[2, 0, 2] = (self.mW[2, 0, 1] * ((1.0 / self.G4) - 1.0)) if self.G4 > 0 else 1.0
             self.mW[2, 0, 0] = self.mW[2, 0] - self.mW[2, 0, 1] - self.mW[2, 0, 2]
             for i in range(3):
                 self.mP[2, 0, i] = self.mW[2, 0, i] / self.mW[2, 0] if self.mW[2, 0] > 0 else 0.0

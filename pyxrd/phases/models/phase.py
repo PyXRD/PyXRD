@@ -10,7 +10,6 @@ import zipfile
 from warnings import warn
 
 from pyxrd.gtkmvc.model import Observer
-from pyxrd.gtkmvc.support.propintel import PropIntel
 
 from pyxrd.generic.io import storables, Storable, get_case_insensitive_glob
 from pyxrd.generic.models import DataModel
@@ -22,6 +21,8 @@ from pyxrd.probabilities.models import get_correct_probability_model
 from .CSDS import DritsCSDSDistribution
 from .component import Component
 from pyxrd.gtkmvc.support.metaclasses import UUIDMeta
+from pyxrd.gtkmvc.support.propintel import PropIntel
+from pyxrd.generic.models.observers import ListObserver
 
 
 @storables.register()
@@ -218,41 +219,53 @@ class Phase(DataModel, Storable, RefinementGroup):
     def __init__(self, *args, **kwargs):
         super(Phase, self).__init__(*args, **kwargs)
 
-        self._data_object = PhaseData()
+        with self.data_changed.hold():
+            self._data_object = PhaseData()
 
-        self.name = self.get_kwarg(kwargs, self.name, "name", "data_name")
+            self.name = self.get_kwarg(kwargs, self.name, "name", "data_name")
 
-        CSDS_distribution = self.get_kwarg(kwargs, None, "CSDS_distribution", "data_CSDS_distribution")
-        self.CSDS_distribution = self.parse_init_arg(
-            CSDS_distribution, DritsCSDSDistribution, child=True,
-            default_is_class=True, parent=self
-        )
-        self.inherit_CSDS_distribution = self.get_kwarg(kwargs, False, "inherit_CSDS_distribution")
+            CSDS_distribution = self.get_kwarg(kwargs, None, "CSDS_distribution", "data_CSDS_distribution")
+            self.CSDS_distribution = self.parse_init_arg(
+                CSDS_distribution, DritsCSDSDistribution, child=True,
+                default_is_class=True, parent=self
+            )
+            self.inherit_CSDS_distribution = self.get_kwarg(kwargs, False, "inherit_CSDS_distribution")
 
-        self.display_color = self.get_kwarg(kwargs, choice(self.line_colors), "display_color")
-        self.sigma_star = self.get_kwarg(kwargs, self._sigma_star, "sigma_star", "data_sigma_star")
+            self.display_color = self.get_kwarg(kwargs, choice(self.line_colors), "display_color")
+            self.sigma_star = self.get_kwarg(kwargs, self._sigma_star, "sigma_star", "data_sigma_star")
 
-        self.inherit_display_color = self.get_kwarg(kwargs, False, "inherit_display_color")
-        self.inherit_sigma_star = self.get_kwarg(kwargs, False, "inherit_sigma_star")
+            self.inherit_display_color = self.get_kwarg(kwargs, False, "inherit_display_color")
+            self.inherit_sigma_star = self.get_kwarg(kwargs, False, "inherit_sigma_star")
 
-        self.components = self.get_list(kwargs, [], "components", "data_components", parent=self)
+            self.components = self.get_list(kwargs, [], "components", "data_components", parent=self)
 
-        G = self.get_kwarg(kwargs, 1, "G", "data_G")
-        R = self.get_kwarg(kwargs, 0, "R", "data_R")
-        if G is not None and G > 0:
-            for i in range(len(self.components), G):
-                new_comp = Component(name="Component %d" % (i + 1), parent=self)
-                self.components.append(new_comp)
-                self.observe_model(new_comp)
+            G = self.get_kwarg(kwargs, 1, "G", "data_G")
+            R = self.get_kwarg(kwargs, 0, "R", "data_R")
+            if G is not None and G > 0:
+                for i in range(len(self.components), G):
+                    new_comp = Component(name="Component %d" % (i + 1), parent=self)
+                    self.components.append(new_comp)
+                    self.observe_model(new_comp)
 
-        probabilities = self.get_kwarg(kwargs, None, "probabilities", "data_probabilities")
-        self.probabilities = self.parse_init_arg(probabilities,
-            get_correct_probability_model(self, R, G), child=True)
-        self.probabilities.update() # force an update
-        self.inherit_probabilities = self.get_kwarg(kwargs, False, "inherit_probabilities")
+            # Observe components
+            for component in self.components:
+                self.observe_model(component)
 
-        self._based_on_uuid = self.get_kwarg(kwargs, None, "based_on_uuid")
-        self._based_on_index = self.get_kwarg(kwargs, None, "based_on_index")
+            # Connect signals to lists and dicts:
+            self._components_observer = ListObserver(
+                self.on_component_inserted,
+                self.on_component_removed,
+                prop_name="components",
+                model=self
+            )
+
+            self.probabilities = self.parse_init_arg(self.get_kwarg(kwargs, None, "probabilities", "data_probabilities"),
+                get_correct_probability_model(self, R, G), child=True)
+            self.probabilities.update() # force an update
+            self.inherit_probabilities = self.get_kwarg(kwargs, False, "inherit_probabilities")
+
+            self._based_on_uuid = self.get_kwarg(kwargs, None, "based_on_uuid")
+            self._based_on_index = self.get_kwarg(kwargs, None, "based_on_index")
 
     def __str__(self):
         return ("<Phase %s" % self.name) + \
@@ -261,6 +274,17 @@ class Phase(DataModel, Storable, RefinementGroup):
     # ------------------------------------------------------------
     #      Notifications of observable properties
     # ------------------------------------------------------------
+    def on_component_inserted(self, item):
+        # Set parent and observe the new component (visuals changed signals):
+        if item.parent != self: item.parent = self
+        self.observe_model(item)
+
+    def on_component_removed(self, item):
+        with self.data_changed.hold_and_emit():
+            # Clear parent & stop observing:
+            item.parent = None
+            self.relieve_model(item)
+
     @Observer.observe("data_changed", signal=True)
     def notify_data_changed(self, model, prop_name, info):
         if isinstance(model, Phase) and model == self.based_on:

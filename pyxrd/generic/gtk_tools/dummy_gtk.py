@@ -14,7 +14,10 @@ __all__ = [
     "TREE_MODEL_LIST_ONLY"
 ]
 
-TREE_MODEL_LIST_ONLY = None
+TREE_MODEL_LIST_ONLY = 0x00
+TREE_MODEL_ITERS_PERSIST = 0x00
+
+events_pending = lambda: False
 
 class GtkTreeIter():
     def __init__(self, user_data, path=None):

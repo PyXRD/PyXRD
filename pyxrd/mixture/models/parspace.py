@@ -12,7 +12,6 @@ import numpy as np
 import scipy
 import scipy.spatial.qhull as qhull
 
-import matplotlib
 from mpl_toolkits.axes_grid1 import ImageGrid
 import mpl_toolkits.axes_grid1.axes_size as Size
 from mpl_toolkits.axes_grid1 import Divider
@@ -74,7 +73,7 @@ class ParameterSpaceGenerator(object):
                 - centroid indeces in the final grid
                 - grid minimum and maximum values shifted as explained in get_extents
         """
-        points = np.array([point for value, point in self.solutions])
+        points = np.array([point for value, point in self.solutions]) # @UnusedVariable
         values = np.array([value for value, point in self.solutions])
 
         mins = points.min(axis=0)
@@ -303,7 +302,7 @@ class ParameterSpaceGenerator(object):
                     nx = 1 + (dims - 1) * 2
                     ny1 = (dims - 1) * 2
                     cbar_ax.set_axes_locator(divider.new_locator(nx=nx, ny=1, ny1=ny1))
-                    cb = cbar_ax.colorbar(im)
+                    cb = cbar_ax.colorbar(im) # @UnusedVariable
         except:
             print "Unhandled exception while generating parameter space images:"
             print format_exc()

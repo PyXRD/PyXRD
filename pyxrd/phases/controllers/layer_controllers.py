@@ -113,10 +113,9 @@ class EditLayerController(InlineObjectListStoreController):
             # If new_atom_type is not set, but the user has typed in the name
             # of an atom_type, find it (index search):
             if self.new_atom_type is None and not new_text in (None, ""):
-                try:
-                    self.new_atom_type = self.model.phase.project.atom_types.get_item_by_index(new_text)
-                except:
-                    pass
+                for atom_type in self.model.phase.project.atom_types:
+                    if atom_type.name == new_text:
+                        self.new_atom_type = atom_type
             # Set the new atom type if it is not None:
             if self.new_atom_type is not None:
                 atom.atom_type = self.new_atom_type

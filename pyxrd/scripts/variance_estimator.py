@@ -7,7 +7,6 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-import os, sys
 from math import log
 
 import numpy as np
@@ -16,10 +15,10 @@ from itertools import combinations
 from pyxrd.project.models import Project
 
 def run(args):
-    #batch csv file generator for a file containin a number of projects
-    if args and args.filename!="":
+    # batch csv file generator for a file containin a number of projects
+    if args and args.filename != "":
         project = Project.load_object(args.filename)
-        for i, mixture in enumerate(project.mixtures.iter_objects()):
+        for i, mixture in enumerate(project.mixtures):
             mixture.update_refinement_treestore()
             refs = []
             props = ("d001", "F1", "F2", "F3", "F4", "W1", "P11_or_P22",)
@@ -48,22 +47,22 @@ def run(args):
                         rp = mixture.optimize()
                         if rp <= 30.0:
                             inv_rp = 30.0 - rp
-                            fractions[k,:] = np.array(mixture.fractions, dtype=float)
+                            fractions[k, :] = np.array(mixture.fractions, dtype=float)
                             rps[k] = inv_rp
-                        #print "\rProgress: %00f%% - iter %d of 25" % (float(100.0 * k / len(combs)), i*5+(j+1))
-                                       
+                        # print "\rProgress: %00f%% - iter %d of 25" % (float(100.0 * k / len(combs)), i*5+(j+1))
+
             print "Phases:"
             print mixture.phases
             print "Unweighted average:"
             print np.average(fractions.transpose(), axis=1, weights=rps)
-            print np.std(fractions.transpose()*rps, axis=1) / np.sum(rps)
+            print np.std(fractions.transpose() * rps, axis=1) / np.sum(rps)
             print "Weighted average:"
             print np.average(fractions.transpose(), axis=1, weights=rps)
             print np.std(fractions.transpose(), axis=1)
             print "Average Rp value:"
-            print np.average(30.0-rps), "+/-", np.std(30.0-rps)
+            print np.average(30.0 - rps), "+/-", np.std(30.0 - rps)
 
-        
+
         del project
-                
+
         print "Finished!"

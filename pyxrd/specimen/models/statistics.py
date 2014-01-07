@@ -106,7 +106,6 @@ class Statistics(ChildModel):
                 # Calculate 'included' R values:
                 self.Rp = Rp(exp_y[selector], cal_y[selector])
                 self.Rpder = Rp(der_exp_y[selector], der_cal_y[selector])
-                print self.Rp, self.Rpder
             else:
                 self.residual_pattern.clear()
                 self.der_exp_pattern.clear()

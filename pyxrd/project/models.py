@@ -19,6 +19,7 @@ from pyxrd.generic.io import storables, Storable, get_case_insensitive_glob
 from pyxrd.phases.models import Phase
 from pyxrd.atoms.models import AtomType
 from pyxrd.mixture.models.mixture import Mixture
+from pyxrd.generic.utils import not_none
 
 prop_kwargs = dict(
     storable=True,
@@ -76,7 +77,7 @@ class Project(DataModel, Storable):
     author = ""
 
     needs_saving = True
-    
+
     _layout_mode = settings.DEFAULT_LAYOUT
     def get_layout_mode(self): return self._layout_mode
     def set_layout_mode(self, value):
@@ -142,31 +143,31 @@ class Project(DataModel, Storable):
     def set_axes_xscale(self, value):
         self._axes_xscale = value
         self.visuals_changed.emit()
-    
+
     _axes_yscale = settings.AXES_YSCALE
     def get_axes_yscale(self): return self._axes_yscale
     def set_axes_yscale(self, value):
         self._axes_yscale = value
         self.visuals_changed.emit()
-    
+
     _display_marker_align = settings.MARKER_ALIGN
     def get_display_marker_align(self): return self._display_marker_align
     def set_display_marker_align(self, value):
         self._display_marker_align = value
         self.visuals_changed.emit()
-        
+
     _display_marker_base = settings.MARKER_BASE
     def get_display_marker_base(self): return self._display_marker_base
     def set_display_marker_base(self, value):
         self._display_marker_base = value
         self.visuals_changed.emit()
-        
+
     _display_marker_top = settings.MARKER_TOP
     def get_display_marker_top(self): return self._display_marker_top
     def set_display_marker_top(self, value):
         self._display_marker_top = value
         self.visuals_changed.emit()
-        
+
     _display_marker_style = settings.MARKER_STYLE
     def get_display_marker_style(self): return self._display_marker_style
     def set_display_marker_style(self, value):
@@ -297,7 +298,7 @@ class Project(DataModel, Storable):
 
                 self.atom_types = self.get_list(kwargs, [], "atom_types", "data_atom_types", parent=self)
                 self.phases = self.get_list(kwargs, [], "phases", "data_phases", parent=self)
-                self.specimens = self.get_list(kwargs, [], "specimens", "data_specimens", goniometer=goniometer, parent=self)
+                self.specimens = self.get_list(kwargs, [], "specimens", "data_specimens", parent=self)
                 self.mixtures = self.get_list(kwargs, [], "mixtures", "data_mixtures", parent=self)
 
                 # Resolve json references & observe phases
@@ -487,13 +488,13 @@ class Project(DataModel, Storable):
     # ------------------------------------------------------------
     def move_specimen_up(self, specimen):
         """Move the passed specimen up one slot"""
-        index = self.specimens.index(specimen) 
-        self.specimens.insert(min(index+1, len(self.specimens)), self.specimens.pop(index))
-    
+        index = self.specimens.index(specimen)
+        self.specimens.insert(min(index + 1, len(self.specimens)), self.specimens.pop(index))
+
     def move_specimen_down(self, specimen):
         """Move the passed specimen down one slot"""
-        index = self.specimens.index(specimen) 
-        self.specimens.insert(max(index-1, 0), self.specimens.pop(index))
+        index = self.specimens.index(specimen)
+        self.specimens.insert(max(index - 1, 0), self.specimens.pop(index))
         pass
 
     # ------------------------------------------------------------
@@ -504,8 +505,10 @@ class Project(DataModel, Storable):
             Loads the phases from the file 'filename'. An optional index can
             be given where the phases need to be inserted at.
         """
+        insert_index = not_none(insert_index, 0)
         for phase in Phase.load_phases(filename, parent=self):
             self.phases.insert(insert_index, phase)
+            insert_index += 1
 
     # ------------------------------------------------------------
     #      AtomType's list related

@@ -27,7 +27,7 @@ class _AbstractProbability(DataModel, Storable, RefinementGroup):
             PropIntel(name="W_valid", inh_name=None, label="Valid W matrix", data_type=object),
             PropIntel(name="P_valid", inh_name=None, label="Valid P matrix", data_type=object),
         ]
-    
+
 
     # PROPERTIES:
     name = "Probabilities"
@@ -136,8 +136,9 @@ class _AbstractProbability(DataModel, Storable, RefinementGroup):
 
     def _clamp_set_and_update(self, name, value, minimum=0.0, maximum=1.0):
         clamped = min(max(value, minimum), maximum)
-        setattr(self, name, clamped)
-        self.update()
+        if getattr(self, name) != clamped:
+            setattr(self, name, clamped)
+            self.update()
 
     def solve(self):
         """

@@ -10,11 +10,12 @@ from traceback import print_exc
 from base_models import BaseObjectListStore
 from pyxrd.generic.models.observers import ListObserver, ListItemObserver
 from weakref import WeakKeyDictionary
+from pyxrd.generic.utils import not_none
 
 try:
-    import gobject
+    import gobject, gtk
 except ImportError:
-    from pyxrd.generic.gtk_tools import dummy_gobject as gobject
+    from pyxrd.generic.gtk_tools import dummy_gobject as gobject, dummy_gtk as gtk
 
 class ObjectListStore(BaseObjectListStore):
     """
@@ -45,14 +46,14 @@ class ObjectListStore(BaseObjectListStore):
             on_deleted_before=self.on_item_deleted_before,
             prop_name=self._prop_name, model=self._model
         )
-        
+
         self._list_item_observers = WeakKeyDictionary()
         for item in self._data:
             self._observe_item(item)
 
     def _observe_item(self, item):
         obs = ListItemObserver(self.on_item_changed, model=item)
-        self._list_item_observers[item] = obs 
+        self._list_item_observers[item] = obs
 
     def _unobserve_item(self, item):
         observer = self._list_item_observers.get(item, None)
@@ -61,14 +62,20 @@ class ObjectListStore(BaseObjectListStore):
     def on_item_changed(self, item):
         itr = self.create_tree_iter(item)
         path = self.get_path(itr)
-        self.row_changed(path, itr)
+        try:
+            self.row_changed(path, itr)
+        except TypeError:
+            print "TypeError when emitting row_changed using:", path, itr
+            raise
 
     def on_item_inserted(self, item):
-        self.invalidate_iters()
-        itr = self.create_tree_iter(item)
-        path = self.get_path(itr)
-        self._observe_item(item)
-        self.row_inserted(path, itr)
+        try:
+            itr = self.create_tree_iter(item)
+            path = self.get_path(itr)
+            self._observe_item(item)
+            self.row_inserted(path, itr)
+        except ValueError:
+            pass # invalid rowref
 
     _deleted_paths = []
     def on_item_deleted_before(self, item):
@@ -76,7 +83,6 @@ class ObjectListStore(BaseObjectListStore):
         self._deleted_paths.append((self._data.index(item),))
 
     def on_item_deleted(self, item):
-        self.invalidate_iters()
         for path in self._deleted_paths:
             self.row_deleted(path)
         self._deleted_paths = []
@@ -104,7 +110,12 @@ class ObjectListStore(BaseObjectListStore):
         self.row_changed(self.get_path(itr), itr)
 
     def on_get_value(self, rowref, column):
-        return getattr(rowref, self._columns[column][0])
+        value = getattr(rowref, self._columns[column][0])
+        try:
+            default = self._columns[column][1]()
+        except TypeError:
+            default = ""
+        return not_none(value, default)
 
     def on_iter_next(self, rowref):
         n, = self.on_get_path(rowref)

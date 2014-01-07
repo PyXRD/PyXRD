@@ -73,7 +73,7 @@ def get_result_description(mixture):
                     text += "\""
                 text_matrix[j, i] = text
                 j += 1
-            for k, component in enumerate(phase.components.iter_objects()):
+            for k, component in enumerate(phase.components):
                 for prop in comp_props:
                     text_matrix[j, 0] = prop
                     text = ""
@@ -87,7 +87,7 @@ def get_result_description(mixture):
                             text += " +/- %s" % component.delta_c
                     elif prop == "relations":
                         text += "\""
-                        for relation in component.atom_relations.iter_objects():
+                        for relation in component.atom_relations:
                             text += "%s: %.3f\n" % (relation.name, relation.value)
                         text += "\""
                     text_matrix[j, i] = text
@@ -105,7 +105,7 @@ def run(args):
                 project_file = project_file.rstrip()
                 print "Parsing: %s" % project_file
                 project = Project.load_object(project_file)
-                for i, mixture in enumerate(project.mixtures.iter_objects()):
+                for i, mixture in enumerate(project.mixtures):
 
                     np.savetxt(
                         "%s/%s" % (os.path.dirname(project_file), os.path.basename(project_file).replace(".pyxrd", "-%d.csv" % i, 1)),

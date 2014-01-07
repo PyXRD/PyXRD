@@ -104,7 +104,7 @@ class MineralScorer(DataModel):
 class ThresholdSelector(ChildModel):
 
     # MODEL INTEL:
-    
+
     class Meta(DataModel.Meta):
         parent_alias = 'specimen'
         properties = [ # TODO add labels
@@ -115,11 +115,11 @@ class ThresholdSelector(ChildModel):
             PropIntel(name="sel_num_peaks", data_type=int, storable=True, has_widget=True, widget_type="label"),
             PropIntel(name="threshold_plot_data", data_type=object, storable=True),
         ]
-    
+
 
 
     # PROPERTIES:
-    
+
     _pattern = "exp"
     def get_pattern(self): return self._pattern
     def set_pattern(self, value):

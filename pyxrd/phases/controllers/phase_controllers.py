@@ -184,15 +184,20 @@ class PhasesController(ObjectListStoreController):
         self.model.load_phases(filename, insert_index=index)
 
     def setup_treeview_col_c_display_color(self, treeview, name, col_descr, col_index, tv_col_nr):
-        def set_pb(column, cell_renderer, tree_model, iter, col_index):
-            color = convert_string_to_gdk_color_int(tree_model.get_value(iter, col_index))
-            phase = tree_model.get_user_data(iter)
-            pb, old_color = getattr(phase, "__col_c_pb", (None, None))
-            if old_color != color:
-                pb = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB, True, 8, 10, 20) # @UndefinedVariable
-                pb.fill(color)
-                setattr(phase, "__col_c_pb", (color, pb))
-            cell_renderer.set_property('pixbuf', pb)
+        def set_pb(column, cell_renderer, tree_model, iter, col_index): # @ReservedAssignment
+            try:
+                color = tree_model.get_value(iter, col_index)
+            except TypeError:
+                pass # invalid iter
+            else:
+                color = convert_string_to_gdk_color_int(color)
+                phase = tree_model.get_user_data(iter)
+                pb, old_color = getattr(phase, "__col_c_pb", (None, None))
+                if old_color != color:
+                    pb = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB, True, 8, 10, 20) # @UndefinedVariable
+                    pb.fill(color)
+                    setattr(phase, "__col_c_pb", (color, pb))
+                cell_renderer.set_property('pixbuf', pb)
 
         treeview.append_column(new_pb_column(
             name,

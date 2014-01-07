@@ -213,7 +213,7 @@ class ProjectController(ObjectListStoreController, DialogMixin):
                     specimen.display_calculated = not specimen.display_calculated
                 elif column == self.treemodel.c_display_phases:
                     specimen.display_phases = not specimen.display_phases
-                #TODO FIXME self.treemodel.on_row_changed(ret)
+                # TODO FIXME self.treemodel.on_row_changed(ret)
                 return True
             elif column == 501:
                 self.model.move_specimen_down(specimen)
@@ -226,6 +226,7 @@ class ProjectController(ObjectListStoreController, DialogMixin):
 
     def objects_tv_selection_changed(self, selection):
         ObjectListStoreController.objects_tv_selection_changed(self, selection)
+        print "GET SELECTED OBJECTS"
         self.parent.model.current_specimens = self.get_selected_objects()
         return True
 

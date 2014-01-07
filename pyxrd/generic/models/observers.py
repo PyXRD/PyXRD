@@ -7,6 +7,8 @@
 
 import weakref
 from pyxrd.gtkmvc.model import Observer
+import types
+from pyxrd.generic.utils import not_none
 
 class ListItemObserver(Observer):
     """
@@ -14,32 +16,42 @@ class ListItemObserver(Observer):
         The observed properties are defined in the list type's meta class by
         setting their PropIntel 'is_column' attribute to True.
     """
-    
+
+    _previous_model_ref = None
+    @property
+    def _previous_model(self):
+        if self._previous_model_ref is not None:
+            return self._previous_model_ref()
+        else:
+            return None
+    @_previous_model.setter
+    def _previous_model(self, value):
+        self._previous_model_ref = weakref.ref(value, self.clear)
+
     def __init__(self, on_changed, model=None, spurious=False):
         super(ListItemObserver, self).__init__(spurious=spurious)
         self.on_changed = on_changed
         self.observe_model(model)
 
-    _previous_model = None
     def observe_model(self, model):
-        props = model.Meta.get_column_properties()
         if self._previous_model is not None:
             self.relieve_model(self._previous_model)
-        for prop_name, data_type in props:  # @UnusedVariable
-            self.observe(self.on_prop_mutation, prop_name, assign=True)
-        super(ListItemObserver, self).observe_model(model)
-        self._previous_model = weakref.ref(model, self.clear)
-        
+        if model is not None:
+            for prop_name, data_type in model.Meta.get_column_properties():  # @UnusedVariable
+                self.observe(self.on_prop_mutation, prop_name, assign=True)
+            self._previous_model = model
+            super(ListItemObserver, self).observe_model(model)
+
     def clear(self, *args):
         self.on_changed = None
-        if len(*args) == 0:
+        if len(args) == 0:
             self.observe_model(None)
-        
+
     def on_prop_mutation(self, model, prop_name, info):
         if callable(self.on_changed):
             self.on_changed(model)
-        
-    pass #end of class
+
+    pass # end of class
 
 class ListObserver(Observer):
     """
@@ -62,7 +74,9 @@ class ListObserver(Observer):
     def on_prop_mutation_before(self, model, prop_name, info):
         if info.method_name in ("__setitem__", "__delitem__"):
             i = info.args[0]
-            if i <= len(info.instance): # setting an existing item: need a on_delete as well
+            if isinstance(i, types.SliceType):
+                self._deleted = info.instance[i]
+            elif i <= len(info.instance): # setting an existing item: need a on_delete as well
                 self._deleted = [info.instance[i], ]
         if info.method_name == "pop":
             if len(info.instance) > 0:
@@ -71,18 +85,23 @@ class ListObserver(Observer):
             self._deleted = [info.args[0], ]
 
         if callable(self.on_deleted_before):
-            for old_item in self._deleted:
+            for old_item in self._deleted[::-1]:
                 self.on_deleted_before(old_item)
 
     def on_prop_mutation_after(self, model, prop_name, info):
         if callable(self.on_deleted):
-            for old_item in self._deleted:
+            for old_item in self._deleted[::-1]:
                 self.on_deleted(old_item)
             self._deleted = []
 
         if info.method_name == "__setitem__":
-            new_item = info.args[1]
-            self.on_inserted(new_item)
+            i = info.args[0]
+            if type(i) is types.SliceType:
+                for item in info.instance[i]:
+                    self.on_inserted(item)
+            else:
+                new_item = info.args[1]
+                self.on_inserted(new_item)
         if info.method_name == "append":
             new_item = info.args[0]
             self.on_inserted(new_item)

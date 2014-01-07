@@ -147,7 +147,7 @@ class Component(DataModel, Storable, RefinementGroup):
             if self._linked_with is not None:
                 self.observe_model(self._linked_with)
             else:
-                for prop in self.__inheritables__:
+                for prop in self.Meta.get_inheritable_properties():
                     setattr(self, "inherit_%s" % prop, False)
             self.data_changed.emit()
 
@@ -179,7 +179,7 @@ class Component(DataModel, Storable, RefinementGroup):
 
     def _set_inheritable_property_value(self, name, value):
         current = getattr(self, "_%s" % name)
-        if not current is value:
+        if current != value:
             with self.data_changed.hold_and_emit():
                 if name.startswith("ucp_"):
                     if current is not None:
@@ -373,14 +373,14 @@ class Component(DataModel, Storable, RefinementGroup):
         self._linked_with_index = self.get_kwarg(kwargs, -1, "linked_with_index")
 
         # Set inherit flags:
-        self._inherit_d001 = self.get_kwarg(kwargs, False, "inherit_d001")
-        self._inherit_ucp_a = self.get_kwarg(kwargs, False, "inherit_ucp_a", "inherit_cell_a")
-        self._inherit_ucp_b = self.get_kwarg(kwargs, False, "inherit_ucp_b", "inherit_cell_b")
-        self._inherit_default_c = self.get_kwarg(kwargs, False, "inherit_default_c")
-        self._inherit_delta_c = self.get_kwarg(kwargs, False, "inherit_delta_c")
-        self._inherit_layer_atoms = self.get_kwarg(kwargs, False, "inherit_layer_atoms")
-        self._inherit_interlayer_atoms = self.get_kwarg(kwargs, False, "inherit_interlayer_atoms")
-        self._inherit_atom_relations = self.get_kwarg(kwargs, False, "inherit_atom_relations")
+        self.inherit_d001 = self.get_kwarg(kwargs, False, "inherit_d001")
+        self.inherit_ucp_a = self.get_kwarg(kwargs, False, "inherit_ucp_a", "inherit_cell_a")
+        self.inherit_ucp_b = self.get_kwarg(kwargs, False, "inherit_ucp_b", "inherit_cell_b")
+        self.inherit_default_c = self.get_kwarg(kwargs, False, "inherit_default_c")
+        self.inherit_delta_c = self.get_kwarg(kwargs, False, "inherit_delta_c")
+        self.inherit_layer_atoms = self.get_kwarg(kwargs, False, "inherit_layer_atoms")
+        self.inherit_interlayer_atoms = self.get_kwarg(kwargs, False, "inherit_interlayer_atoms")
+        self.inherit_atom_relations = self.get_kwarg(kwargs, False, "inherit_atom_relations")
 
     def __str__(self):
         return ("<Component %s" % self.name) + \

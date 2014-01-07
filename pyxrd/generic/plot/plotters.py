@@ -392,19 +392,19 @@ def plot_specimen(project, specimen, labels, label_offset, plot_left,
             for phase_line in phase_lines:
                 if phase_line in axes.get_lines():
                     axes.remove_line(phase_line)
-                        
+
             # Update & add phase lines:
-            for i in xrange(2,pattern.num_columns):
+            for i in xrange(2, pattern.num_columns):
                 phase_data = pattern.get_xy_data(i)
                 # Get the line object or create it:
                 try:
-                    phase_line = phase_lines[i-2]
+                    phase_line = phase_lines[i - 2]
                 except IndexError:
                     phase_line = matplotlib.lines.Line2D(*phase_data)
                     phase_lines.append(phase_line)
                 # Get the phase color or use a default color:
                 try:
-                    phase_color = pattern.phase_colors[i-2]
+                    phase_color = pattern.phase_colors[i - 2]
                 except IndexError:
                     phase_color = pattern.color
                 # Update the line object properties:
@@ -413,10 +413,10 @@ def plot_specimen(project, specimen, labels, label_offset, plot_left,
                     color=phase_color,
                     linewidth=pattern.lw
                 ))
-                
+
                 # Add to axes:
                 axes.add_line(phase_line)
-                
+
             specimen.__plot_phase_lines = phase_lines
 
     # mineral preview sticks
@@ -521,11 +521,11 @@ def plot_specimens(project, specimens, plot_left, axes):
 
     for i, specimen in enumerate(specimens):
 
-        spec_max_intensity = specimen.max_intensity
+        spec_max_intensity = float(specimen.max_intensity)
 
         # single specimen normalization:
         if project.axes_yscale == 1:
-            scale = (1.0 / spec_max_intensity) if spec_max_intensity != 0 else 1.0
+            scale = (1.0 / spec_max_intensity) if spec_max_intensity != 0.0 else 1.0
 
         spec_y_offset = specimen.display_vshift * scale_unit
         spec_y_pos = current_y_pos * scale_unit + spec_y_offset

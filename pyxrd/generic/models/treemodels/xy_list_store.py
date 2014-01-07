@@ -50,28 +50,29 @@ class XYListStore(BaseObjectListStore, Observer):
     def __init__(self, model):
         BaseObjectListStore.__init__(self, Point)
         Observer.__init__(self, model=model)
+        self.set_property("leak-references", True)
         assert isinstance(model, XYData)
-        
+
         self._model = model
         self._last_length = len(self)
         self._last_num_col = self._model.num_columns
-        
+
         # Force update:
         self._emit_update()
-        
+
     @Observer.observe("data_changed", signal=True)
     def on_data_changed(self, model, name, info):
         if model == self._model:
             self._emit_update()
-        
+
     def _emit_update(self):
         # 1. check if number of columns has changed since last update
-        #    if it has changed, emit the corresponding event       
+        #    if it has changed, emit the corresponding event
         if self._last_num_col != self._model.num_columns:
             self.emit("columns-changed")
             self._last_num_col = self._model.num_columns
 
-        # 2. check if length has changed, if shorter emit removed signals 
+        # 2. check if length has changed, if shorter emit removed signals
         #    for the lost elements, if longer emit insert signals
         row_diff = len(self._model) - self._last_length
         if row_diff > 0:
@@ -83,71 +84,80 @@ class XYListStore(BaseObjectListStore, Observer):
             for i in range(self._last_length, self._last_length + row_diff - 1, -1):
                 path = self.on_get_path(i)
                 self.row_deleted(path)
-        self._last_length = len(self._model)        
-        
+        self._last_length = len(self._model)
+
         # 3. Emit row-changed signals for all other rows:
         for i in range(0, len(self._model)):
             path = self.on_get_path(i)
             itr = self.get_iter(path)
             self.row_changed(path, itr)
-        
+
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------
     def on_get_flags(self):
         return gtk.TREE_MODEL_LIST_ONLY
 
-    def on_get_iter(self, path): # returns a rowref
+    def on_get_iter(self, path): # returns a rowref, they're actually just paths
         try:
             i = path[0]
             if i >= 0 and i < len(self):
-                return (i,)
+                return [i, ]
             else:
                 return None
         except IndexError:
             return None
 
-    def on_get_value(self, i, column):
+    def on_get_value(self, rowref, column):
         if column == self.c_x:
-            return self._model.data_x[i]
+            return self._model.data_x[rowref[0]]
         elif column >= self.c_y:
-            return self._model.data_y[i, column - 1]
+            return self._model.data_y[rowref[0], column - 1]
         else:
             raise AttributeError
 
-    def on_get_path(self, i):
-        return i,
+    def on_get_path(self, rowref): # rowrefs are paths, unless they're None
+        if rowref is None:
+            return ()
+        if isinstance(rowref, tuple):
+            return rowref
+        else:
+            return rowref,
 
-    def on_iter_next(self, i):
-        return self.on_get_iter((i[0] + 1,))
+    def on_iter_next(self, rowref):
+        if rowref is not None:
+            itr = self.on_get_iter((rowref[0] + 1,))
+            return itr
+        else:
+            return None
 
-    def on_iter_children(self, i):
-        if i is not None:
+    def on_iter_children(self, rowref):
+        if rowref is not None:
             return None
         elif len(self) > 0:
-            return 0
+            return self.on_get_iter((0,))
         return None
 
-    def on_iter_has_child(self, i):
-        if i is not None:
+    def on_iter_has_child(self, rowref):
+        if rowref is not None:
             return False
         elif len(self) > 0:
             return True
         return False
 
-    def on_iter_n_children(self, i):
-        if i is not None:
+    def on_iter_n_children(self, rowref):
+        if rowref is not None:
             return 0
         return self._data_x.size
 
-    def on_iter_nth_child(self, i, n):
-        if i is not None:
+    def on_iter_nth_child(self, rowref, n):
+        if rowref is not None:
             return None
         if n < 0 or n >= len(self):
             return None
         return self.on_get_iter((n,))
 
-    def on_iter_parent(self, i):
+    def on_iter_parent(self, rowref):
         return None
 
     def on_get_n_columns(self):

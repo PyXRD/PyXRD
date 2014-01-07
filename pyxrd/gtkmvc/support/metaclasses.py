@@ -88,7 +88,7 @@ class PropertyMeta (type):
         res = type.__init__(cls, name, bases, _dict)
         cls.process_properties(name, bases, _dict)
         return res
-    
+
     def _expand_properties(cls, properties, _dict):  # @NoSelf
         for prop in properties:
             # Check prop is really a PropIntel sub-class:
@@ -97,41 +97,41 @@ class PropertyMeta (type):
                                     " only PropIntel instances (found %s)" %
                                 (cls.__module__, cls.__name__, OBS_TUPLE_NAME,
                                  type(prop)))
-                      
+
             # Determine if the property is concrete or logical:
             concrete = cls.is_concrete_attribute(prop)
-            
+
             # Get the default value:
             default = cls.get_default_value(prop, concrete=concrete, _dict=_dict)
-                
+
             # Check to see if there's some plumbing to do:
             new_properties = cls.expand_property(prop, default, _dict)
-                             
-            # If the expansion generated some new properties, 
+
+            # If the expansion generated some new properties,
             # expand (& add any new generated props) as well:
             for new_prop in cls._expand_properties(new_properties, _dict):
                 yield new_prop
-                
+
             # Wrap property setters and getters:
             cls.wrap_accesors(prop, default)
-            
+
             # Yield this property:
             yield prop
-    
+
     def process_properties(cls, name, bases, _dict):  # @NoSelf
         """Processes the properties defined in the class's metadata class."""
-        
+
         # Get the list of properties for this class type (excluding bases):
         try:
             meta = _dict["Meta"]
         except KeyError:
             if len(bases) == 1:
-                meta = type("Meta", (bases[0].Meta,), dict(properties = []))
+                meta = type("Meta", (bases[0].Meta,), dict(properties=[]))
                 cls.set_attribute(_dict, "Meta", meta)
             else:
-                raise TypeError("PropertyMeta class %s.%s has not defined a Meta class, and has multiple base classes!" % (cls.__module__, cls.__name__)) 
+                raise TypeError("PropertyMeta class %s.%s has not defined a Meta class, and has multiple base classes!" % (cls.__module__, cls.__name__))
         properties = get_unique_list(meta.properties)
-                   
+
         # Check the list of observables is really an iterable:
         if not isinstance(properties, types.ListType):
             raise TypeError("In class %s.%s.Meta attribute '%s' must be a list, not '%s'" %
@@ -145,18 +145,18 @@ class PropertyMeta (type):
             if hasattr(class_type, "Meta"):
                 for prop in getattr(class_type.Meta, ALL_OBS_SET, []):
                     all_properties[prop.name] = prop
-        
+
         # Parse & expand the properties:
-        
+
         for prop in cls._expand_properties(properties, _dict):
             all_properties[prop.name] = prop
-            
+
         # Set the attribute on the metadata class:
         setattr(cls.Meta, ALL_OBS_SET, all_properties.values())
 
         logger.debug("Class %s.%s has properties: %s" \
                      % (cls.__module__, cls.__name__, all_properties))
-            
+
         pass # end of method
 
     def wrap_accesors(cls, prop, default): # @NoSelf
@@ -214,7 +214,7 @@ class PropertyMeta (type):
         """
         if hasattr(prop, "default"):
             return True, prop.default
-        elif concrete: 
+        elif concrete:
             return True, _dict[prop.name]
         elif hasattr(cls, prop.get_private_name()):
             return True, getattr(cls, prop.get_private_name())
@@ -344,7 +344,7 @@ class PropertyMeta (type):
 
             # Set private attribute on the class:
             found_default, default = default
-            if found_default:            
+            if found_default:
                 cls.set_attribute(_dict, pr_prop, default)
             else:
                 cls.set_attribute(_dict, pr_prop, prop.options.values()[0])
@@ -359,10 +359,10 @@ class PropertyMeta (type):
             getter, setter = prop.__create_accesors__(pr_prop, existing_getter, existing_setter)
             cls.set_attribute(_dict, getter_name, getter)
             cls.set_attribute(_dict, setter_name, setter)
-            
+
         return []
-            
-        
+
+
 
     pass # end of class
 # ----------------------------------------------------------------------
@@ -415,8 +415,8 @@ class ObservablePropertyMetaMT (ObservablePropertyMeta):
     ModelMT"""
     def __init__(cls, name, bases, _dict):  # @NoSelf
         ObservablePropertyMeta.__init__(cls, name, bases, _dict)
-        return 
-    
+        return
+
     def get_setter(cls, prop): # @NoSelf
         """The setter follows the rules of the getter. First search
         for property variable, then logical custom getter/setter pair
@@ -428,7 +428,7 @@ class ObservablePropertyMetaMT (ObservablePropertyMeta):
                 _inner_setter(self, val)
         return _setter
 
-    pass #end of class
+    pass # end of class
 # ----------------------------------------------------------------------
 
 class UUIDMeta(ObservablePropertyMetaMT):
@@ -473,12 +473,12 @@ class UUIDMeta(ObservablePropertyMetaMT):
 
         # Create instance:
         instance = ObservablePropertyMetaMT.__call__(cls, *args, **kwargs)
-        
+
         # Set the UUID (will invoke above setter)
         instance.uuid = uuid
 
         return instance
-    
+
     pass # end of class
 # ----------------------------------------------------------------------
 

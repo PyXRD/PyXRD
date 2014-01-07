@@ -31,7 +31,7 @@ def run(args):
         project = Project.load_object(project_file)
         print "Running Project", os.path.basename(project_file), "Trial", k
 
-        for i, mixture in enumerate(project.mixtures.iter_objects()):
+        for i, mixture in enumerate(project.mixtures):
             if i == int(mixture_index):
 
                 # pr = cProfile.Profile()

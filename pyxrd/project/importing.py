@@ -106,7 +106,7 @@ def create_project_from_sybilla_xml(filename, **kwargs):
                         # parse components:
                         for i, layer in enumerate(xmlPhase.findall("./layer_and_edge/layer")):
 
-                            component = phase.components.get_item_by_index(i)
+                            component = phase.components[i]
                             component.name = layer.attrib['name']
 
                             component.d001 = safe_float(layer.attrib['d_spacing']) / 10.0
@@ -172,7 +172,7 @@ def create_project_from_sybilla_xml(filename, **kwargs):
 
 
             # Map phases onto mixture names:
-            for phase in project.phases.iter_objects():
+            for phase in project.phases:
                 for slot, phase_name in enumerate(mixture.phases):
                     if phase.name == phase_name:
                         mixture.set_phase(0, slot, phase)

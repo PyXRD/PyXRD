@@ -28,6 +28,7 @@ class BaseObjectListStore(gtk.GenericTreeModel):
     # ------------------------------------------------------------
     def __init__(self, class_type):
         gtk.GenericTreeModel.__init__(self)
+        self.set_property("leak-references", False)
         if class_type is None:
             raise ValueError, 'Invalid class_type for %s! Expecting object, but None was given' % type(self)
         elif not hasattr(class_type, "Meta") or not hasattr(class_type.Meta, 'get_column_properties'):
@@ -44,7 +45,7 @@ class BaseObjectListStore(gtk.GenericTreeModel):
                 col_type = 'gchararray'
             # TODO map other types we might encounter...
             self._columns.append((title, col_type))
-        
+
         i = 0
         for col in self._columns:
             setattr(self, "c_%s" % col[0], i)
@@ -54,7 +55,7 @@ class BaseObjectListStore(gtk.GenericTreeModel):
     #      Methods & Functions
     # ------------------------------------------------------------
     def on_get_flags(self):
-        return gtk.TREE_MODEL_LIST_ONLY
+        return gtk.TREE_MODEL_LIST_ONLY | gtk.TREE_MODEL_ITERS_PERSIST
 
     def on_get_n_columns(self):
         return len(self._columns)
@@ -66,7 +67,10 @@ class BaseObjectListStore(gtk.GenericTreeModel):
         return self.on_get_iter(path)
 
     def convert(self, col, new_val):
-        return self._columns[col][1](new_val)
+        if isinstance(self._columns[col][1], str):
+            return str(new_val)
+        else:
+            return self._columns[col][1](new_val)
 
     def get_objects(self):
         raise NotImplementedError

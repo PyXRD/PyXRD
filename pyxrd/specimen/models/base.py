@@ -54,7 +54,7 @@ class Specimen(DataModel, Storable):
             PropIntel(name="statistics", label="Statistics", data_type=object, is_column=True),
         ]
         store_id = "Specimen"
-    
+
         file_filters = [parser.file_filter for parser in parsers["xrd"]]
         export_filters = [parser.file_filter for parser in parsers["xrd"] if parser.can_write]
         excl_filters = [parser.file_filter for parser in parsers["exc"]]
@@ -67,7 +67,7 @@ class Specimen(DataModel, Storable):
         self._data_object.range_theta = self.__get_range_theta()
         self._data_object.selected_range = self.get_exclusion_selector(self._data_object.range_theta)
         try:
-            self._data_object.observed_intensity = self.experimental_pattern.data_y[:,0]
+            self._data_object.observed_intensity = self.experimental_pattern.data_y[:, 0]
         except IndexError:
             self._data_object.observed_intensity = np.array([], dtype=float)
         return self._data_object
@@ -195,17 +195,19 @@ class Specimen(DataModel, Storable):
 
     _markers = []
     def get_markers(self): return self._markers
-    def set_markers(self, value): 
+    def set_markers(self, value):
         with self.visuals_changed.hold_and_emit():
             self._markers = value
 
     @property
     def max_intensity(self):
         """The maximum intensity of the current profile (both calculated and observed"""
-        if self.experimental_pattern and self.calculated_pattern:
-            return max(np.max(self.experimental_pattern.max_intensity), np.max(self.calculated_pattern.max_intensity))
-        else:
-            return 0.0
+        _max = 0.0
+        if self.experimental_pattern is not None:
+            _max = max(_max, np.max(self.experimental_pattern.max_intensity))
+        if self.calculated_pattern is not None:
+            _max = max(_max, np.max(self.calculated_pattern.max_intensity))
+        return _max
 
     # ------------------------------------------------------------
     #      Initialisation and other internals
@@ -273,15 +275,16 @@ class Specimen(DataModel, Storable):
 
                 self.goniometer = self.parse_init_arg(
                     self.get_kwarg(kwargs, None, "goniometer", "project_goniometer"),
-                    Goniometer(parent=self), child=True
+                    Goniometer, child=True, default_is_class=True,
+                    parent=self,
                 )
 
                 self.markers = self.get_list(kwargs, None, "markers", "data_markers", parent=self)
                 for marker in self.markers:
                     self.observe_model(marker)
                 self._specimens_observer = ListObserver(
-                    self.on_marker_removed,
                     self.on_marker_inserted,
+                    self.on_marker_removed,
                     prop_name="markers",
                     model=self
                 )
@@ -352,6 +355,13 @@ class Specimen(DataModel, Storable):
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------
+
+    def clear_markers(self):
+        with self.visuals_changed.hold():
+            self.markers[:] = []
+            # for marker in list(self.markers)[::-1]:
+            #    self.markers.remove(marker)
+
     def auto_add_peaks(self, tmodel):
         """
         Automagically add peak markers
@@ -370,7 +380,7 @@ class Specimen(DataModel, Storable):
             for x, y in maxtab: # @UnusedVariable
                 if not x in mpositions:
                     nm = self.goniometer.get_nm_from_2t(x) if x != 0 else 0
-                    new_marker = Marker(label = "%%.%df" % (3 + min(int(log(nm, 10)), 0)) % nm, parent=self, position=x, base=base)
+                    new_marker = Marker(label="%%.%df" % (3 + min(int(log(nm, 10)), 0)) % nm, parent=self, position=x, base=base)
                     self.markers.append(new_marker)
                 i += 1
 
@@ -399,8 +409,8 @@ class Specimen(DataModel, Storable):
         :rtype: a tuple containing 4 numpy ndarray's: the experimental X and Y
         data and the calculated X and Y data
         """
-        ex, ey = self.experimental_pattern.get_xy_data() 
-        cx, cy = self.calculated_pattern.get_xy_data() 
+        ex, ey = self.experimental_pattern.get_xy_data()
+        cx, cy = self.calculated_pattern.get_xy_data()
         selector = self.get_exclusion_selector(ex)
         return ex[selector], ey[selector], cx[selector], cy[selector]
 
@@ -425,7 +435,7 @@ class Specimen(DataModel, Storable):
         """
         if len(phases) == 0:
             self.calculated_pattern.clear()
-        else: 
+        else:
             self.calculated_pattern.set_data(
                  self.__get_range_theta() * 360. / pi,
                  np.vstack((total_intensity, phase_intensities)).transpose()

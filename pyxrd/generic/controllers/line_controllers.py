@@ -167,17 +167,16 @@ class StripPeakController(PatternActionController):
 
     def sample(self, attribute):
 
-        def onclick(edc, x_pos, event):
-            if edc is not None:
-                edc.enabled = False
-                edc.disconnect()
+        def onclick(x_pos, *args):
+            if self.edc is not None:
+                self.edc.enabled = False
+                self.edc.disconnect()
+                self.edc = None
             if x_pos != -1:
                 setattr(self.model, attribute, x_pos)
             self.view.get_toplevel().present()
-            del self.edc
 
         self.edc = EyedropperCursorPlot(
-            self.parent.parent.plot_controller.figure,
             self.parent.parent.plot_controller.canvas,
             self.parent.parent.plot_controller.canvas.get_window(),
             onclick,

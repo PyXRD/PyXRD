@@ -69,14 +69,14 @@ class XYData(DataModel, Storable):
     _y_names = []
     @property
     def y_names(self):
-        if len(self) < len(self._y_names): 
+        if len(self) < len(self._y_names):
             return self._y_names[:len(self)]
         else:
             return self._y_names
     @y_names.setter
     def y_names(self, names):
-        self._y_names = names    
-    
+        self._y_names = names
+
     @property
     def size(self):
         return len(self)
@@ -137,11 +137,11 @@ class XYData(DataModel, Storable):
         """
         self._data_x = np.array([], dtype=float)
         self._data_y = np.zeros(shape=(0, 0), dtype=float)
-        
+
         super(XYData, self).__init__(*args, **kwargs)
         with self.visuals_changed.hold():
             self.y_names = self.get_kwarg(kwargs, self.y_names, "names")
-            
+
             data = self.get_kwarg(kwargs, None, "xy_store", "data")
             if data is not None:
                 if type(data) in types.StringTypes:
@@ -149,7 +149,7 @@ class XYData(DataModel, Storable):
                 elif type(data) is types.DictionaryType:
                     self._set_from_serial_data(data["properties"]["data"])
                 elif isinstance(data, np.ndarray):
-                    self.set_data(data[:,0], data[:,1:])
+                    self.set_data(data[:, 0], data[:, 1:])
                 elif hasattr(data, '__iter__'):
                     self.set_data(*data)
             else:
@@ -164,10 +164,10 @@ class XYData(DataModel, Storable):
         return props
 
     def save_data(self, filename, header=""):
-        if self.data_y.shape[0] > 1:
+        if self.data_y.shape[1] > 1:
             names = ["2θ", header] + (not_none(self.y_names, []))
             header = u",".join(names)
-        ASCIIParser.write(filename, header, self.data_x, self.data_y)
+        ASCIIParser.write(filename, header, self.data_x, self.data_y.transpose())
 
     def load_data(self, parser, filename, clear=True):
         """
@@ -178,12 +178,12 @@ class XYData(DataModel, Storable):
         xrdfiles = parser.parse(filename)
         if xrdfiles:
             self.load_data_from_generator(xrdfiles[0].data, clear=clear)
-                
+
     def load_data_from_generator(self, generator, clear=True):
         with self.data_changed.hold():
             if clear: self.clear()
             for x, y in generator:
-                self.append(x, y)        
+                self.append(x, y)
 
     def _serialize_data(self):
         """
@@ -215,8 +215,8 @@ class XYData(DataModel, Storable):
         if data != []:
             data = np.array(data, dtype=float)
             try:
-                x = data[:,0]
-                y = data[:,1]
+                x = data[:, 0]
+                y = data[:, 1]
             except IndexError:
                 if settings.DEBUG:
                     print "Failed to load xy-data from serial string!"
@@ -228,7 +228,7 @@ class XYData(DataModel, Storable):
     # ------------------------------------------------------------
     def _y_from_user(self, y_value):
         return np.array(y_value, ndmin=2, dtype=float)
-    
+
     def set_data(self, x, y):
         """
             Sets data using the supplied x, y1, ..., yn arrays.
@@ -242,7 +242,7 @@ class XYData(DataModel, Storable):
                 raise ValueError, "Shape mismatch: x (shape = %s) and y (shape = %s) data need to have compatible shapes!" % (tempx.shape, tempy.shape)
             self._data_x = tempx
             self._data_y = tempy
-               
+
     def set_value(self, i, j, value):
         with self.data_changed.hold_and_emit():
             if i < len(self):
@@ -254,7 +254,7 @@ class XYData(DataModel, Storable):
                     raise IndexError, "Column indices must be positive values (is '%d')!" % j
             else:
                 raise IndexError, "Row index '%d' out of bound!" % i
-               
+
     def append(self, x, y):
         """
             Appends data using the supplied x, y1, ..., yn arrays.
@@ -267,7 +267,7 @@ class XYData(DataModel, Storable):
             else:
                 data_y = np.append(self.data_y, _y, axis=0)
             self.set_data(data_x, data_y)
-           
+
     def insert(self, pos, x, y):
         """
             Inserts data using the supplied x, y1, ..., yn arrays at the given
@@ -276,7 +276,7 @@ class XYData(DataModel, Storable):
         with self.data_changed.hold_and_emit():
             self.data_x = np.insert(self.data_x, pos, x)
             self.data_y = np.insert(self.data_y, pos, self._y_from_user(y), axis=0)
-            
+
     def remove_from_indeces(self, *indeces):
         if indeces != []:
             indeces = np.sort(indeces)[::-1]
@@ -291,7 +291,7 @@ class XYData(DataModel, Storable):
         """
             Clears all x and y values.
         """
-        self.set_data(np.zeros((0,), dtype=float), np.zeros((0,0), dtype=float))
+        self.set_data(np.zeros((0,), dtype=float), np.zeros((0, 0), dtype=float))
 
     # ------------------------------------------------------------
     #      Convenience Methods & Functions
@@ -303,10 +303,10 @@ class XYData(DataModel, Storable):
             the first column is returned.
         """
         if len(self) > 0:
-            return self.data_x, self.data_y[:,column-1]
+            return self.data_x, self.data_y[:, column - 1]
         else:
             return np.array([], dtype=float), np.array([], dtype=float)
-    
+
     def get_plotted_y_at_x(self, x):
         """
             Gets the (interpolated) plotted value at the given x position.
@@ -331,7 +331,7 @@ class XYData(DataModel, Storable):
             a given x value
         """
         if self._data_x.size:
-            return np.interp(x, self._data_x, self._data_y[:,column])
+            return np.interp(x, self._data_x, self._data_y[:, column])
         else:
             return 0
 
@@ -354,7 +354,7 @@ class XYData(DataModel, Storable):
             the first y-column is used. Returned y-values are interpolated. 
         """
         column = kwargs.get("column", 0)
-        f = interp1d(self.data_x, self.data_y[:,column])
+        f = interp1d(self.data_x, self.data_y[:, column])
         return zip(x_vals, f(x_vals))
 
     # ------------------------------------------------------------
@@ -362,14 +362,14 @@ class XYData(DataModel, Storable):
     # ------------------------------------------------------------
     def __len__(self):
         return len(self.data_x)
-    
+
     def __getitem__(self, index):
         return self.data_x[index], self.data_y[index].tolist()
-    
+
     def __iter__(self):
         for i in xrange(len(self)):
             yield self[i]
-    
+
     pass # end of class
 
 
@@ -502,7 +502,7 @@ class CalculatedLine(PyXRDLine):
         parent_alias = 'specimen'
         properties = [
             PropIntel(name="phase_colors", data_type=list),
-        ]       
+        ]
         store_id = "CalculatedLine"
         inherit_format = "display_calc_%s"
 
@@ -650,20 +650,20 @@ class ExperimentalLine(PyXRDLine):
     _shift_position = 0.42574
     def get_shift_position(self): return self._shift_position
     def set_shift_position(self, value):
-        with self.visuals_changed.hold_and_emit(): 
+        with self.visuals_changed.hold_and_emit():
             self._shift_position = value
-            self.find_shift_value()
-    
+            self.setup_shift_variables()
+
     _smooth_type = 0
     def get_smooth_type(self): return self._smooth_type
     def set_smooth_type(self, value):
-        with self.visuals_changed.hold_and_emit(): 
+        with self.visuals_changed.hold_and_emit():
             self._smooth_type = value
-            
+
     _bg_type = 0
     def get_bg_type(self): return self._bg_type
     def set_bg_type(self, value):
-        with self.visuals_changed.hold_and_emit(): 
+        with self.visuals_changed.hold_and_emit():
             self._bg_type = value
 
     # ------------------------------------------------------------
@@ -711,7 +711,7 @@ class ExperimentalLine(PyXRDLine):
         with self.data_changed.hold_and_emit():
             if self.smooth_degree > 0:
                 degree = int(self.smooth_degree)
-                self.data_y = smooth(self.data_y[:,0], degree)
+                self.data_y = smooth(self.data_y[:, 0], degree)
             self.smooth_degree = 0.0
 
     def setup_smooth_variables(self):
@@ -728,7 +728,7 @@ class ExperimentalLine(PyXRDLine):
     def add_noise(self):
         with self.data_changed.hold_and_emit():
             if self.noise_fraction > 0:
-                noisified = add_noise(self.data_y[:,0], self.noise_fraction)
+                noisified = add_noise(self.data_y[:, 0], self.noise_fraction)
                 self.set_data(self.data_x, noisified)
             self.noise_fraction = 0.0
 
@@ -756,7 +756,7 @@ class ExperimentalLine(PyXRDLine):
                 max_x = position + 0.5
                 min_x = position - 0.5
                 condition = (self.data_x >= min_x) & (self.data_x <= max_x)
-                section_x, section_y = np.extract(condition, self.data_x), np.extract(condition, self.data_y[:,0])
+                section_x, section_y = np.extract(condition, self.data_x), np.extract(condition, self.data_y[:, 0])
                 try:
                     actual_position = section_x[np.argmax(section_y)]
                 except ValueError:
@@ -775,7 +775,7 @@ class ExperimentalLine(PyXRDLine):
             if self.stripped_pattern is not None:
                 stripx, stripy = self.stripped_pattern
                 indeces = ((self.data_x >= self.strip_startx) & (self.data_x <= self.strip_endx)).nonzero()[0]
-                np.put(self.data_y[:,0], indeces, stripy)
+                np.put(self.data_y[:, 0], indeces, stripy)
             self._strip_startx = 0.0
             self._stripped_pattern = None
             self.strip_endx = 0.0
@@ -788,28 +788,28 @@ class ExperimentalLine(PyXRDLine):
         with self.visuals_changed.hold_and_emit():
             if not self.block_strip:
                 self.block_strip = True
-    
+
                 if new_pos:
                     # calculate average starting point y value
                     condition = (self.data_x >= self.strip_startx - 0.1) & (self.data_x <= self.strip_startx + 0.1)
-                    section = np.extract(condition, self.data_y[:,0])
+                    section = np.extract(condition, self.data_y[:, 0])
                     self.avg_starty = np.average(section)
                     noise_starty = 2 * np.std(section) / self.avg_starty
-    
+
                     # calculate average ending point y value
                     condition = (self.data_x >= self.strip_endx - 0.1) & (self.data_x <= self.strip_endx + 0.1)
-                    section = np.extract(condition, self.data_y[:,0])
+                    section = np.extract(condition, self.data_y[:, 0])
                     self.avg_endy = np.average(section)
                     noise_endy = 2 * np.std(section) / self.avg_starty
-    
+
                     # Calculate new slope and noise level
                     self.strip_slope = (self.avg_starty - self.avg_endy) / (self.strip_startx - self.strip_endx)
                     self.noise_level = (noise_starty + noise_endy) * 0.5
-    
+
                 # Get the x-values in between start and end point:
                 condition = (self.data_x >= self.strip_startx) & (self.data_x <= self.strip_endx)
                 section_x = np.extract(condition, self.data_x)
-    
+
                 # Calculate the new y-values, add noise according to noise_level
                 noise = self.avg_endy * 2 * (np.random.rand(*section_x.shape) - 0.5) * self.noise_level
                 section_y = (self.strip_slope * (section_x - self.strip_startx) + self.avg_starty) + noise
@@ -821,6 +821,6 @@ class ExperimentalLine(PyXRDLine):
             self._strip_startx = 0.0
             self._strip_pattern = None
             self.strip_start_x = 0.0
-        
+
 
     pass # end of class

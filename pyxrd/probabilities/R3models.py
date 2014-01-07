@@ -67,26 +67,16 @@ class R3G2Model(_AbstractProbability):
                 refinable=True, storable=True, has_widget=True
             ) for prop, label, rng in independent_label_map
         ]
-        
+
 
     # PROPERTIES:
     _W0 = 0.0
     def get_W1(self): return self._W0
-    def set_W1(self, value):
-        self._W0 = min(max(value, 2.0 / 3.0), 1.0)
-        self.update()
+    def set_W1(self, value): self._clamp_set_and_update("_W0", value)
 
-    def get_P1111_or_P2112(self):
-        if self._W0 <= 0.75:
-            return self.mP[0, 0, 0, 0]
-        else:
-            return self.mP[1, 0, 0, 1]
-    def set_P1111_or_P2112(self, value):
-        if self._W0 <= 0.75:
-            self.mP[0, 0, 0, 0] = value
-        else:
-            self.mP[1, 0, 0, 1] = value
-        self.update()
+    _P0000_P1001 = 0.0
+    def get_P1111_or_P2112(self): return self._P0000_P1001
+    def set_P1111_or_P2112(self, value): self._clamp_set_and_update("_P0000_P1001", value)
 
     # ------------------------------------------------------------
     #      Initialisation and other internals
@@ -101,20 +91,21 @@ class R3G2Model(_AbstractProbability):
     # ------------------------------------------------------------
     def update(self):
         with self.data_changed.hold_and_emit():
-            W0 = self._W0
-            W1 = 1.0 - W0
+            self.mW[0] = self.W0
+            self.mW[1] = 1.0 - self.W0
 
             # TODO add some boundary checks (e.g. P0000 = 1.0 or 0.0)
             # These make the calculations a lot simpler
             # Now some calcs return NaNs!!
-
-            if W0 <= 0.75: # 0,0,0,0 is given
+            if self.mW[0] <= 0.75: # 0,0,0,0 is given
+                self.mP[0, 0, 0, 0] = self.P1111_or_P2112
                 self.mP[0, 0, 0, 1] = 1.0 - self.mP[0, 0, 0, 0]
-                self.mP[1, 0, 0, 0] = self.mP[0, 0, 0, 1] * (W0 - 2 * W1) / W1
+                self.mP[1, 0, 0, 0] = self.mP[0, 0, 0, 1] * (self.mW[0] - 2 * self.mW[1]) / self.mW[1]
                 self.mP[1, 0, 0, 1] = 1.0 - self.mP[1, 0, 0, 0]
             else: # 1,0,0,1 is given
+                self.mP[1, 0, 0, 1] = self.P1111_or_P2112
                 self.mP[1, 0, 0, 0] = 1.0 - self.mP[1, 0, 0, 1]
-                self.mP[0, 0, 0, 0] = 1.0 - self.mP[1, 0, 0, 0] * W1 / (W0 - 2 * W1)
+                self.mP[0, 0, 0, 0] = 1.0 - self.mP[1, 0, 0, 0] * self.mW[1] / (self.mW[0] - 2 * self.mW[1])
                 self.mP[0, 0, 0, 1] = 1.0 - self.mP[0, 0, 0, 0]
 
             self.mP[0, 0, 1, 0] = 1.0
@@ -135,9 +126,9 @@ class R3G2Model(_AbstractProbability):
             self.mW[1, 0, 1] = self.mW[1, 1, 0] = self.mW[1, 1, 1] = 0.0
 
             t = (1 + 2 * self.mP[0, 0, 0, 1] / self.mP[1, 0, 0, 0])
-            self.mW[0, 0, 0] = W0 / t
-            self.mW[1, 0, 0] = self.mW[0, 1, 0] = self.mW[0, 0, 1] = 0.5 * (W0 - self.mW[0, 0, 0])
-            self.mW[0, 1, 1] = W1 - self.mW[0, 0, 1]
+            self.mW[0, 0, 0] = self.mW[0] / t
+            self.mW[1, 0, 0] = self.mW[0, 1, 0] = self.mW[0, 0, 1] = 0.5 * (self.mW[0] - self.mW[0, 0, 0])
+            self.mW[0, 1, 1] = self.mW[1] - self.mW[0, 0, 1]
 
             self.solve()
             self.validate()

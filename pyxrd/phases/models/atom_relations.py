@@ -14,6 +14,7 @@ from pyxrd.generic.io import storables, Storable, get_case_insensitive_glob
 
 from pyxrd.generic.refinement.mixins import RefinementValue
 from pyxrd.gtkmvc.support.propintel import PropIntel
+from pyxrd.gtkmvc.model import ModelMT
 
 # from gtk import ListStore
 
@@ -75,7 +76,7 @@ class AtomRelation(DataModel, Storable, ComponentPropMixin, RefinementValue):
             PropIntel(name="name", label="Name", data_type=unicode, is_column=True, storable=True, has_widget=True),
             PropIntel(name="value", label="Value", data_type=float, is_column=True, storable=True, has_widget=True, widget_type='float_entry', refinable=True),
             PropIntel(name="enabled", label="Enabled", data_type=bool, is_column=True, storable=True, has_widget=True),
-    
+
             PropIntel(name="data_changed", data_type=object),
         ]
         store_id = "AtomRelation"
@@ -324,18 +325,21 @@ class AtomRatio(AtomRelation):
 
     pass # end of class
 
-class AtomContentObject(object):
+class AtomContentObject(ModelMT):
     """
         Wrapper around an atom object used in the AtomContents model.
         Stores the atom, the property to set and it's default amount.
     """
-    class Meta():
-        def get_column_properties(self):
-            return [
-                ("atom", object),
-                ("prop", object),
-                ("amount", float)
-            ]
+    class Meta(ModelMT.Meta):
+        properties = [
+            PropIntel(name="atom", label="Atom", data_type=object, is_column=True),
+            PropIntel(name="prop", label="Prop", data_type=object, is_column=True),
+            PropIntel(name="amount", label="Amount", data_type=float, is_column=True, minimum=0.0),
+        ]
+
+    atom = None
+    prop = None
+    amount = 0.0
 
     def __init__(self, atom, prop, amount, **kwargs):
         super(AtomContentObject, self).__init__()
@@ -440,7 +444,7 @@ class AtomContents(AtomRelation):
             not cause a circular reference before actually setting it.
         """
         with self.data_changed.hold():
-            atom_content = self.atom_contents.get_item_by_index(int(path[0]))
+            atom_content = self.atom_contents[int(path[0])]
             if atom_content.atom != new_atom:
                 old_atom = atom_content.atom
                 atom_content.atom = None # clear...

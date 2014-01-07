@@ -24,9 +24,10 @@ class PyXRDRefinableMeta(UUIDMeta):
         passes the stripped dictionary to create the actual class instance,
         creates the attributes on the instance and returns it.
         """
+
         # Pop & parse any refinement info keyword arguments that might be present:
         prop_infos = dict()
-        for prop in cls.Meta.properties:
+        for prop in cls.Meta.all_properties:
             if cls._is_refinable(prop):
                 ref_info_name = RefinementInfo.get_attribute_name(prop)
                 info_args = kwargs.pop(ref_info_name, None)
@@ -61,7 +62,7 @@ class PyXRDRefinableMeta(UUIDMeta):
             new_prop = PropIntel(name=attr_name, data_type=object, storable=True)
             cls.set_attribute(_dict, attr_name, None)
             # Yield the created PropIntel so the super class can handle it:
-            return [new_prop,]
+            return [new_prop, ]
         else:
             # Nothing special to do:
             return UUIDMeta.expand_property(cls, prop, default, _dict)

@@ -46,10 +46,8 @@ class _AbstractCSDSDistribution(DataModel, Storable):
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
-    def __init__(self, parent=None, **kwargs):
-        super(_AbstractCSDSDistribution, self).__init__(parent=parent)
-        Storable.__init__(self)
-
+    def __init__(self, *args, **kwargs):
+        super(_AbstractCSDSDistribution, self).__init__(*args, **kwargs)
         self.setup(**kwargs)
 
     def setup(self, **kwargs):
@@ -124,7 +122,7 @@ class _LogNormalMixin(object):
     #      Initialisation and other internals
     # ------------------------------------------------------------
     def setup(self, average=10, alpha_scale=0.9485, alpha_offset=-0.0017,
-            beta_scale=0.1032, beta_offset=0.0034):
+            beta_scale=0.1032, beta_offset=0.0034, **kwargs):
 
         self._data_object = CSDSData()
 
@@ -147,7 +145,7 @@ class _LogNormalMixin(object):
     pass # end of class
 
 @storables.register()
-class LogNormalCSDSDistribution(RefinementGroup, _LogNormalMixin, _AbstractCSDSDistribution):
+class LogNormalCSDSDistribution(_LogNormalMixin, _AbstractCSDSDistribution, RefinementGroup):
 
     # MODEL INTEL:
     class Meta(_AbstractCSDSDistribution.Meta):
@@ -156,7 +154,7 @@ class LogNormalCSDSDistribution(RefinementGroup, _LogNormalMixin, _AbstractCSDSD
             PropIntel(name="maximum", label="Maximum CSDS", minimum=1, maximum=1000, is_column=True, data_type=float),
             PropIntel(name="minimum", label="Minimum CSDS", minimum=1, maximum=1000, is_column=True, data_type=float),
             PropIntel(name="average", label="Average CSDS", minimum=1, maximum=200, is_column=True, data_type=float, refinable=True, storable=True, has_widget=True),
-    
+
             PropIntel(name="alpha_scale", label="α scale factor", minimum=0, maximum=10, is_column=True, data_type=float, refinable=True, storable=True, has_widget=True),
             PropIntel(name="alpha_offset", label="α offset factor", minimum=-5, maximum=5, is_column=True, data_type=float, refinable=True, storable=True, has_widget=True),
             PropIntel(name="beta_scale", label="β² scale factor", minimum=0, maximum=10, is_column=True, data_type=float, refinable=True, storable=True, has_widget=True),
@@ -172,7 +170,7 @@ class LogNormalCSDSDistribution(RefinementGroup, _LogNormalMixin, _AbstractCSDSD
     pass # end of class
 
 @storables.register()
-class DritsCSDSDistribution(RefinementValue, _LogNormalMixin, _AbstractCSDSDistribution):
+class DritsCSDSDistribution(_LogNormalMixin, _AbstractCSDSDistribution, RefinementValue):
 
     # MODEL INTEL:
     class Meta(_AbstractCSDSDistribution.Meta):
@@ -181,7 +179,7 @@ class DritsCSDSDistribution(RefinementValue, _LogNormalMixin, _AbstractCSDSDistr
             PropIntel(name="maximum", label="Maximum CSDS", minimum=1, maximum=1000, is_column=True, data_type=float),
             PropIntel(name="minimum", label="Minimum CSDS", minimum=1, maximum=1000, is_column=True, data_type=float),
             PropIntel(name="average", label="Average CSDS", minimum=1, maximum=200, is_column=True, data_type=float, refinable=True, storable=True, has_widget=True),
-    
+
             PropIntel(name="alpha_scale", label="α scale factor", minimum=0, maximum=10, is_column=True, data_type=float),
             PropIntel(name="alpha_offset", label="α offset factor", minimum=-5, maximum=5, is_column=True, data_type=float),
             PropIntel(name="beta_scale", label="β² scale factor", minimum=0, maximum=10, is_column=True, data_type=float),
@@ -225,7 +223,7 @@ class DritsCSDSDistribution(RefinementValue, _LogNormalMixin, _AbstractCSDSDistr
     # ------------------------------------------------------------
     #      Initialization and other internals
     # ------------------------------------------------------------
-    def setup(self, average=10):
+    def setup(self, average=10, **kwargs):
         super(DritsCSDSDistribution, self).setup(average=average)
 
     pass # end of class

@@ -23,16 +23,15 @@ from pyxrd.specimen.views import (
     DetectPeaksView,
     MatchMineralsView
 )
+from pyxrd.generic.utils import not_none
+from pyxrd.data import settings
 
 class EditMarkerController(BaseController):
 
     def register_view(self, view):
         self.update_sensitivities()
-
-    def register_adapters(self):
-        # Adapt converted position entry:
-        self.view["entry_nanometer"].set_text("%f" % self.model.get_nm_position())
         FloatEntryValidator(self.view["entry_nanometer"])
+        self.update_nanometer()
 
     def update_sensitivities(self):
         for name in ("style", "align", "base", "top", "top_offset", "angle", "color"):
@@ -44,7 +43,8 @@ class EditMarkerController(BaseController):
     @Controller.observe("position", assign=True, after=True)
     def notif_parameter_changed(self, model, prop_name, info):
         if prop_name == "position":
-            self.view["entry_nanometer"].set_text("%f" % self.model.get_nm_position())
+            self.update_nanometer()
+
 
     @Controller.observe("inherit_style", assign=True)
     @Controller.observe("inherit_align", assign=True)
@@ -60,7 +60,6 @@ class EditMarkerController(BaseController):
     #      GTK Signal handlers
     # ------------------------------------------------------------
     def on_style_changed(self, combo, user_data=None):
-        pass
         itr = combo.get_active_iter()
         if itr is not None:
             val = combo.get_model().get_value(itr, 0)
@@ -72,6 +71,10 @@ class EditMarkerController(BaseController):
             self.model.set_nm_position(position)
         except:
             pass
+        pass
+
+    def update_nanometer(self):
+        self.view["entry_nanometer"].set_text("%f" % self.model.get_nm_position())
 
     def on_sample_clicked(self, widget):
 
@@ -98,7 +101,7 @@ class MarkersController(ObjectListStoreController):
     """ 
         Controller for the markers list
     """
-    
+
     file_filters = ("Marker file", get_case_insensitive_glob("*.MRK")),
     treemodel_property_name = "markers"
     treemodel_class_type = Marker
@@ -117,9 +120,14 @@ class MarkersController(ObjectListStoreController):
 
     def setup_treeview_col_c_visible(self, treeview, name, col_descr, col_index, tv_col_nr):
         def toggle_renderer(column, cell, model, itr, data=None):
-            col = column.get_col_attr("active")
-            cell.set_property('active', model.get_value(itr, col))
-            return
+            try:
+                col = column.get_col_attr("active")
+                value = model.get_value(itr, col)
+                cell.set_property('active', not_none(value, False))
+            except TypeError:
+                if settings.DEBUG: raise
+                pass
+
         col = new_toggle_column(" ",
                 toggled_callback=(self.on_marker_visible_toggled, (treeview.get_model(), col_index)),
                 data_func=toggle_renderer,
@@ -164,11 +172,6 @@ class MarkersController(ObjectListStoreController):
 
     def on_find_peaks_clicked(self, widget):
         def after_cb(threshold):
-            if len(self.model.markers) > 0:
-                def on_accept(dialog):
-                    self.model.markers.clear()
-                self.run_confirmation_dialog("Do you want to clear the current markers for this pattern?",
-                                             on_accept, parent=self.view.get_top_widget())
             self.model.auto_add_peaks(threshold)
 
         sel_model = ThresholdSelector(parent=self.model)
@@ -176,7 +179,17 @@ class MarkersController(ObjectListStoreController):
         sel_ctrl = ThresholdController(sel_model, sel_view, parent=self, callback=after_cb)
         sel_model.update_threshold_plot_data()
 
-        sel_view.present()
+        if len(self.model.markers) > 0:
+            def on_accept(dialog):
+                self.model.clear_markers()
+                sel_view.present()
+
+            def on_reject(dialog):
+                sel_view.present()
+            self.run_confirmation_dialog("Do you want to clear the current markers for this pattern?",
+                                         on_accept, on_reject, parent=self.view.get_top_widget())
+        else:
+            sel_view.present()
 
     def on_match_minerals_clicked(self, widget):
         def apply_cb(matches):

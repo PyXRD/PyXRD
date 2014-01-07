@@ -39,11 +39,16 @@ def _get_residual(x, mixture):
                 if settings.BGSHIFT:
                     calc += bgshift
             else:
+                if settings.DEBUG: print "- calc: _get_residual reports: 'No phases found!'"
                 calc = np.zeros_like(specimen.observed_intensity)
             if specimen.observed_intensity.size > 0:
                 exp = specimen.observed_intensity[specimen.selected_range]
                 cal = calc[specimen.selected_range]
                 tot_rp += __residual_method_map[settings.RESIDUAL_METHOD](exp, cal)
+            else:
+                if settings.DEBUG: print "- calc: _get_residual reports: 'Zero observations found!'"
+        else:
+            if settings.DEBUG: print "- calc: _get_residual reports: 'None found!'"
     return tot_rp / float(len(mixture.specimens)) # average this out
 
 def get_residual(mixture, parsed=False):
@@ -69,6 +74,8 @@ def parse_mixture(mixture, parsed=False):
         for specimen in mixture.specimens:
             if specimen is not None:
                 specimen.phase_intensities = get_phase_intensities(specimen)
+            else:
+                if settings.DEBUG: print "- calc: parse_mixture reports: 'None found!'"
 
 @wrap_exceptions
 def optimize_mixture(mixture, parsed=False):
@@ -80,12 +87,15 @@ def optimize_mixture(mixture, parsed=False):
     try:
         parse_mixture(mixture, parsed=parsed)
     except AssertionError:
+        if settings.DEBUG:
+            raise
         return mixture # ignore and return the original object back
 
     # 1. setup start point:
     bounds = [(0, None) for i in range(mixture.m)] + [(0, None) for i in range(mixture.n * 2)]
     x0 = np.ones(shape=(mixture.m + mixture.n * 2,))
     x0[-mixture.n:] = 0.0 # set bg at zero
+    x0[:mixture.m] = 1.0 / mixture.m
 
     # 2. Optimize:
     t1 = time.time()
@@ -99,7 +109,12 @@ def optimize_mixture(mixture, parsed=False):
     )
 
     t2 = time.time()
-    if settings.DEBUG: print '%s took %0.3f ms' % ("optimize_mixture", (t2 - t1) * 1000.0)
+    if settings.DEBUG:
+        print '%s took %0.3f ms' % ("optimize_mixture", (t2 - t1) * 1000.0)
+        print ' Solution:', lastx
+        print ' Residual:', residual
+        print ' Info dict:', info
+
 
     # 3. rescale scales and fractions so they fit into [0-1] range,
     #    and round them to have 6 digits max:

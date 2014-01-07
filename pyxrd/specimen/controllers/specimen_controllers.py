@@ -222,7 +222,7 @@ class SpecimenController(DialogController, TreeViewMixin):
         except ValueError:
             if settings.DEBUG: print "ValueError: Invalid literal for float(): '%s'" % new_text
         else:
-            model.set_value(int(path[0]), col, value)
+            model.set_value(int(path), col, value)
         return True
 
     def on_import_exclusion_ranges_clicked(self, widget, data=None):

@@ -48,7 +48,7 @@ class EditProbabilitiesController(BaseController):
     # ------------------------------------------------------------
     #      Notifications of observable properties
     # ------------------------------------------------------------
-    @Controller.observe("updated", signal=True)
+    @Controller.observe("data_changed", signal=True)
     def notif_updated(self, model, prop_name, info):
         self.update_views()
         return

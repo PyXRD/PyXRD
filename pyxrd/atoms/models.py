@@ -56,7 +56,7 @@ class AtomType(DataModel, Storable, CSVMixin):
             PropIntel(name="par_b%d" % i, is_column=True, data_type=float, storable=True, has_widget=True, widget_type="float_entry") for i in xrange(1, 6)
         ]
         csv_storables = [(prop.name, prop.name) for prop in properties if prop.storable]
-        
+
         file_filters = [
             ("Atom types CSV file", get_case_insensitive_glob("*.atl")),
             ("Atom types JSON file", get_case_insensitive_glob("*.ztl"))
@@ -186,7 +186,7 @@ class AtomType(DataModel, Storable, CSVMixin):
             Returns multiple AtomTypes loaded from a single (JSON) file.
         """
         UUIDMeta.object_pool.change_all_uuids()
-        
+
         if zipfile.is_zipfile(filename):
             with zipfile.ZipFile(filename, 'r') as zfile:
                 for name in zfile.namelist():
@@ -212,7 +212,7 @@ class Atom(DataModel, Storable):
     """
         Atoms have an atom type plus structural parameters (position and proportion)
     """
-    
+
     # MODEL METADATA:
     class Meta(DataModel.Meta):
         store_id = "Atom"
@@ -369,7 +369,7 @@ class Atom(DataModel, Storable):
             assert(self.component.phase is not None)
             assert(self.component.phase.project is not None)
             if getattr(self, "_atom_type_name", None) is not None:
-                for atom_type in self.component.phase.project.atom_types.iter_objects():
+                for atom_type in self.component.phase.project.atom_types:
                     if atom_type.name == self._atom_type_name:
                         self.atom_type = atom_type
             else:

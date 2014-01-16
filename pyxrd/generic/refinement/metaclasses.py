@@ -5,14 +5,12 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from pyxrd.gtkmvc.support.propintel import PropIntel
-from pyxrd.generic.refinement.models import RefinementInfo
-from pyxrd.gtkmvc.support.metaclasses import UUIDMeta
+from pyxrd.mvc.models.metaclasses import ModelMeta
+from .models import RefinementInfo
 
-
-class PyXRDRefinableMeta(UUIDMeta):
+class PyXRDRefinableMeta(ModelMeta):
     """
-        A metaclass for models with refinable properties.
+        A metaclass for regular mvc Models with refinable properties.
     """
 
     # ------------------------------------------------------------
@@ -28,8 +26,8 @@ class PyXRDRefinableMeta(UUIDMeta):
         # Pop & parse any refinement info keyword arguments that might be present:
         prop_infos = dict()
         for prop in cls.Meta.all_properties:
-            if cls._is_refinable(prop):
-                ref_info_name = RefinementInfo.get_attribute_name(prop)
+            if prop.refinable:
+                ref_info_name = prop.get_refinement_info_name()
                 info_args = kwargs.pop(ref_info_name, None)
                 if info_args:
                     prop_infos[ref_info_name] = RefinementInfo.from_json(*info_args)
@@ -37,7 +35,7 @@ class PyXRDRefinableMeta(UUIDMeta):
                     prop_infos[ref_info_name] = RefinementInfo(prop.minimum, prop.maximum, False)
 
         # Create the instance passing the stripped keyword arguments:
-        instance = UUIDMeta.__call__(cls, *args, **kwargs)
+        instance = ModelMeta.__call__(cls, *args, **kwargs)
 
         # Set the refinement attributes on the newly created instance:
         for ref_info_name, ref_info in prop_infos.iteritems():
@@ -45,26 +43,5 @@ class PyXRDRefinableMeta(UUIDMeta):
 
         # Return the instance:
         return instance
-
-    # ------------------------------------------------------------
-    #      Other methods & functions:
-    # ------------------------------------------------------------
-    def _is_refinable(cls, prop):  # @NoSelf
-        """Returns True if 'prop' is a representing a refinable property"""
-        return prop.refinable and prop.data_type in (float, int)
-
-    def expand_property(cls, prop, default, _dict):  # @NoSelf
-        """Expands refinable properties (adds a RefinementInfo attribute)"""
-        if cls._is_refinable(prop):
-            # Get attribute name:
-            attr_name = RefinementInfo.get_attribute_name(prop)
-            # Create a new PropIntel and add the attribute:
-            new_prop = PropIntel(name=attr_name, data_type=object, storable=True)
-            cls.set_attribute(_dict, attr_name, None)
-            # Yield the created PropIntel so the super class can handle it:
-            return [new_prop, ]
-        else:
-            # Nothing special to do:
-            return UUIDMeta.expand_property(cls, prop, default, _dict)
 
     pass # end of class

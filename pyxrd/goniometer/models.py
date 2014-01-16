@@ -8,9 +8,8 @@
 from math import sin, radians, degrees, asin
 import numpy as np
 
-from pyxrd.gtkmvc.support.propintel import PropIntel
+from pyxrd.mvc import PropIntel
 
-from pyxrd.generic.models.treemodels.utils import create_valuestore_from_file, create_treestore_from_directory
 from pyxrd.generic.models import DataModel
 from pyxrd.generic.io import storables, Storable, get_case_insensitive_glob
 from pyxrd.data import settings
@@ -20,12 +19,12 @@ from pyxrd.generic.calculations.goniometer import (
     get_machine_correction_range
 )
 from pyxrd.generic.calculations.data_objects import GonioData
+from pyxrd.generic.io.utils import retrieve_lowercase_extension
 
 @storables.register()
 class Goniometer(DataModel, Storable):
     # MODEL INTEL:
     class Meta(DataModel.Meta):
-        parent_alias = 'project'
         properties = [ # TODO add labels
             PropIntel(name="radius", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
             PropIntel(name="divergence", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
@@ -51,8 +50,9 @@ class Goniometer(DataModel, Storable):
     def data_object(self):
         return self._data_object
 
-    # PROPERTIES:
+    project = property(DataModel.parent.fget, DataModel.parent.fset)
 
+    # PROPERTIES:
     def _set_data_property(self, name, value):
         try: value = self.Meta.get_prop_intel_by_name(name).data_type(value)
         except ValueError: return # ignore faulty values
@@ -147,25 +147,22 @@ class Goniometer(DataModel, Storable):
         return (type(self), ((), self.json_properties()))
 
     @classmethod
-    def create_defaults_store(cls):
+    def get_default_goniometers_path(cls):
         """
-            Creates & returns a gtk.TreeStore containing references to
-            the default Goniometer setup files
+            Returns a tuple containing the location of the default Goniometer
+            setup files and their file extension.
         """
-        return create_treestore_from_directory(# TODO get extensions from file types
+        return (
             settings.DATA_REG.get_directory_path("DEFAULT_GONIOS"),
-            ".gon"
+            retrieve_lowercase_extension(*cls.Meta.file_filters[0][1])
         )
 
     @classmethod
-    def create_wavelengths_store(cls):
+    def get_default_wavelengths_path(cls):
         """
-            Creates & returns a gtk.ListStore containing references to
-            the default wavelengths
+            Returns the location of the default wavelengths file
         """
-        return create_valuestore_from_file(
-            settings.DATA_REG.get_file_path("WAVELENGTHS")
-        )
+        return settings.DATA_REG.get_file_path("WAVELENGTHS")
 
     # ------------------------------------------------------------
     #      Methods & Functions

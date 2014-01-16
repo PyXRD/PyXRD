@@ -52,7 +52,8 @@ class TestAtom(unittest.TestCase):
         class DummyComponent(object):
             def get_interlayer_stretch_factors(self):
                 return lattice_d, factor
-        atom = Atom(parent=DummyComponent())
+        parent = DummyComponent()
+        atom = Atom(parent=parent)
         atom.stretch_values = True
         atom.default_z = default_z
         z = atom.z

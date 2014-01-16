@@ -11,10 +11,11 @@ from warnings import warn
 from itertools import chain, izip
 from collections import OrderedDict
 from contextlib import contextmanager
+import logging
+logger = logging.getLogger(__name__)
 
-from pyxrd.gtkmvc.model import Signal
-from pyxrd.gtkmvc.support.propintel import PropIntel, OptionPropIntel
-from pyxrd.gtkmvc.support.metaclasses import UUIDMeta
+from pyxrd.mvc import Signal, PropIntel, OptionPropIntel
+from pyxrd.mvc.models import TreeNode
 
 import numpy as np
 
@@ -23,11 +24,12 @@ from pyxrd.data import settings
 from pyxrd.generic.io import storables, Storable
 # from pyxrd.generic.utils import print_timing
 from pyxrd.generic.models import DataModel
-from pyxrd.generic.models.treemodels import ObjectTreeStore
 
 from pyxrd.generic.refinement.mixins import RefinementValue, RefinementGroup
 from pyxrd.generic.refinement.wrapper import RefinableWrapper
 from pyxrd.generic.calculations.data_objects import MixtureData
+
+from pyxrd.phases.models.phase import Phase
 
 from .methods import get_all_refine_methods
 from .optimizers import Optimizer
@@ -44,11 +46,10 @@ class Mixture(DataModel, Storable):
     """
     # MODEL INTEL:
     class Meta(DataModel.Meta):
-        parent_alias = "project"
         all_refine_methods = get_all_refine_methods()
         properties = [ # TODO add labels
             PropIntel(name="name", label="Name", data_type=unicode, is_column=True, storable=True, has_widget=True),
-            PropIntel(name="refinables", label="", data_type=object, is_column=True, has_widget=True, widget_type="tree_view"),
+            PropIntel(name="refinables", label="", data_type=object, is_column=True, has_widget=True, widget_type="object_tree_view", class_type=RefinableWrapper),
             PropIntel(name="auto_run", label="", data_type=bool, is_column=True, storable=True, has_widget=True),
             OptionPropIntel(name="refine_method", label="Refinement method", data_type=int, storable=True, has_widget=True, options={ key: method.name for key, method in all_refine_methods.iteritems() }),
             PropIntel(name="needs_reset", label="", data_type=object, storable=False,), # Signal used to indicate the mixture matrix needs to be re-built...
@@ -70,6 +71,8 @@ class Mixture(DataModel, Storable):
                 self._data_object.specimens[i] = None
         return self._data_object
 
+    project = property(DataModel.parent.fget, DataModel.parent.fset)
+
     # SIGNALS:
     needs_reset = None
 
@@ -83,11 +86,11 @@ class Mixture(DataModel, Storable):
 
     refinables = None
     auto_run = False
-    
+
     _refine_method = 0
     def get_refine_method(self): return self._refine_method
-    def set_refine_method(self, value): self._refine_method = int(value)        
-    
+    def set_refine_method(self, value): self._refine_method = int(value)
+
     refine_options = None # TODO make this storable!
 
     # Lists and matrices:
@@ -136,8 +139,6 @@ class Mixture(DataModel, Storable):
                 bg_shifts: a list containing the background shifts for each of
                  the specimens
                 fractions: a list containing the fractions for each phase
-                refinables: an ObjectTreeStore containing the refinable 
-                 properties in this mixture
                 refine_method: which method to use for the refinement (see 
                  mixture.models.methods.get_all_refine_methods) 
                 
@@ -161,7 +162,7 @@ class Mixture(DataModel, Storable):
             phase_uuids = self.get_kwarg(kwargs, None, "phase_uuids")
             phase_indeces = self.get_kwarg(kwargs, None, "phase_indeces")
             if phase_uuids is not None:
-                self.phase_matrix = np.array([[UUIDMeta.object_pool.get_object(uuid) if uuid else None for uuid in row] for row in phase_uuids], dtype=np.object_)
+                self.phase_matrix = np.array([[type(type(self)).object_pool.get_object(uuid) if uuid else None for uuid in row] for row in phase_uuids], dtype=np.object_)
             elif phase_indeces and self.parent is not None:
                 warn("The use of object indices is deprecated since version 0.4. Please switch to using object UUIDs.", DeprecationWarning)
                 self.phase_matrix = np.array([[self.parent.phases.get_user_data_from_index(index) if index != -1 else None for index in row] for row in phase_indeces], dtype=np.object_)
@@ -172,7 +173,7 @@ class Mixture(DataModel, Storable):
             specimen_uuids = self.get_kwarg(kwargs, None, "specimen_uuids")
             specimen_indeces = self.get_kwarg(kwargs, None, "specimen_indeces")
             if specimen_uuids:
-                self.specimens = [UUIDMeta.object_pool.get_object(uuid) if uuid else None for uuid in specimen_uuids]
+                self.specimens = [type(type(self)).object_pool.get_object(uuid) if uuid else None for uuid in specimen_uuids]
             elif specimen_indeces and self.parent is not None:
                 warn("The use of object indices is deprecated since version 0.4. Please switch to using object UUIDs.", DeprecationWarning)
                 self.specimens = [self.parent.specimens.get_user_data_from_index(index) if index != -1 else None for index in specimen_indeces]
@@ -189,7 +190,7 @@ class Mixture(DataModel, Storable):
             # list with phase fractions, indexes match with cols in phase_matrix (=phases)
             self.fractions = np.asarray(self.get_kwarg(kwargs, [0.0] * len(self.phases), "fractions", "data_fractions"))
 
-            self.refinables = self.get_kwarg(kwargs, ObjectTreeStore(RefinableWrapper), "refinables", "data_refinables")
+            self.refinables = TreeNode()
             try:
                 self.refine_method = int(self.get_kwarg(kwargs, self.refine_method, "refine_method", "data_refine_method"))
             except ValueError:
@@ -209,6 +210,7 @@ class Mixture(DataModel, Storable):
             self._observe_specimens()
             self._observe_phases()
             self.update_refinement_treestore()
+            self.update()
 
             pass # end hold data_changed
 
@@ -218,7 +220,16 @@ class Mixture(DataModel, Storable):
     @DataModel.observe("data_changed", signal=True)
     def notify_data_changed(self, model, prop_name, info):
         if not (info.arg == "based_on" and model.based_on is not None and model.based_on in self.phase_matrix):
-            self.data_changed.emit() # Propagate the signal
+            self.update()
+            # self.data_changed.emit() # Propagate the signal
+
+    @DataModel.observe("visuals_changed", signal=True)
+    def notify_visuals_changed(self, model, prop_name, info):
+        if isinstance(model, Phase) and \
+           not (info.arg == "based_on" and model.based_on is not None and model.based_on in self.phase_matrix):
+            for i, specimen in enumerate(self.specimens):
+                if specimen is not None:
+                    specimen.update_visuals(self.phase_matrix[i, :])
 
     # ------------------------------------------------------------
     #      Input/Output stuff
@@ -238,24 +249,17 @@ class Mixture(DataModel, Storable):
 
     @staticmethod
     def from_json(**kwargs):
-        sargs = dict()
-        for key in ("refinables",):
-            if key in kwargs:
-                sargs[key] = kwargs[key]
-                del kwargs[key]
-            else:
-                sargs[key] = None
-
-        mixture = Mixture(**kwargs)
-
-        return mixture
+        # Remove this deprecated kwarg:
+        if "refinables" in kwargs:
+            del kwargs["refinables"]
+        return Mixture(**kwargs)
 
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------
     def unset_phase(self, phase):
         """ Clears a phase slot in the phase matrix """
-        with self.data_changed.hold_and_emit():
+        with self.data_changed.hold():
             shape = self.phase_matrix.shape
             with self._relieve_and_observe_phases():
                 for i in range(shape[0]):
@@ -263,24 +267,29 @@ class Mixture(DataModel, Storable):
                         if self.phase_matrix[i, j] == phase:
                             self.phase_matrix[i, j] = None
             self.update_refinement_treestore()
+            self.update()
 
     def unset_specimen(self, specimen):
         """ Clears a specimen slot in the specimen list """
-        with self.data_changed.hold_and_emit():
+        with self.data_changed.hold():
             with self._relieve_and_observe_specimens():
                 for i, spec in enumerate(self.specimens):
                     if spec == specimen:
                         self.specimens[i] = None
+            self.update()
 
     def set_phase(self, specimen_slot, phase_slot, phase):
         """Sets the phase at the given slot positions"""
-        with self._relieve_and_observe_phases():
-            self.phase_matrix[specimen_slot, phase_slot] = phase
+        with self.data_changed.hold():
+            with self._relieve_and_observe_phases():
+                self.phase_matrix[specimen_slot, phase_slot] = phase
+            self.update()
 
     def set_specimen(self, specimen_slot, specimen):
         """Sets the specimen at the given slot position"""
         with self._relieve_and_observe_specimens():
             self.specimens[specimen_slot] = specimen
+        self.update()
 
     @contextmanager
     def _relieve_and_observe_specimens(self):
@@ -320,7 +329,7 @@ class Mixture(DataModel, Storable):
 
     def add_phase_slot(self, phase_name, fraction):
         """ Adds a new phase column to the phase matrix """
-        with self.data_changed.hold_and_emit():
+        with self.data_changed.hold():
             self.phases.append(phase_name)
             self.fractions = np.append(self.fractions, fraction)
             n, m = self.phase_matrix.shape # @UnusedVariable
@@ -331,16 +340,18 @@ class Mixture(DataModel, Storable):
                 self.phase_matrix = np.concatenate([self.phase_matrix.copy(), [[None]] * n ], axis=1)
                 self.phase_matrix[:, m] = None
             self.update_refinement_treestore()
+            self.update()
         return m
 
     def del_phase_slot(self, phase_slot):
         """ Deletes a phase column using its index """
-        with self.data_changed.hold_and_emit():
+        with self.data_changed.hold():
             with self._relieve_and_observe_phases():
                 # Remove the corresponding phase name, fraction & references:
                 del self.phases[phase_slot]
                 self.fractions = np.delete(self.fractions, phase_slot)
                 self.phase_matrix = np.delete(self.phase_matrix, phase_slot, axis=1)
+            self.update()
             # Update our refinement tree store to reflect current state
             self.update_refinement_treestore()
         # Inform any interested party they need to update their representation
@@ -352,7 +363,7 @@ class Mixture(DataModel, Storable):
 
     def add_specimen_slot(self, specimen, scale, bgs):
         """ Adds a new specimen to the phase matrix (a row) and specimen list """
-        with self.data_changed.hold_and_emit():
+        with self.data_changed.hold():
             self.specimens.append(specimen)
             self.scales = np.append(self.scales, scale)
             self.bgshifts = np.append(self.bgshifts, bgs)
@@ -363,17 +374,19 @@ class Mixture(DataModel, Storable):
             else:
                 self.phase_matrix = np.concatenate([self.phase_matrix.copy(), [[None] * m] ], axis=0)
                 self.phase_matrix[n, :] = None
+            self.update()
         return n
 
     def del_specimen_slot(self, specimen_slot):
         """ Deletes a specimen slot using its slot index """
-        with self.data_changed.hold_and_emit():
+        with self.data_changed.hold():
             # Remove the corresponding specimen name, scale, bg-shift & phases:
             with self._relieve_and_observe_specimens():
                 del self.specimens[specimen_slot]
                 self.scales = np.delete(self.scales, specimen_slot)
                 self.bgshifts = np.delete(self.bgshifts, specimen_slot)
                 self.phase_matrix = np.delete(self.phase_matrix, specimen_slot, axis=0)
+            self.update()
             # Update our refinement tree store to reflect current state
             self.update_refinement_treestore()
         # Inform any interested party they need to update their representation
@@ -384,7 +397,7 @@ class Mixture(DataModel, Storable):
         try:
             self.del_specimen_slot(self.specimens.index(specimen))
         except ValueError, msg:
-            print "Caught a ValueError when deleting a specimen from  mixture '%s': %s" % (self.name, msg)
+            logger.debug("Caught a ValueError when deleting a specimen from  mixture '%s': %s" % (self.name, msg))
 
     # ------------------------------------------------------------
     #      Refinement stuff:
@@ -404,11 +417,12 @@ class Mixture(DataModel, Storable):
 
                 for i, (specimen_data, specimen) in enumerate(izip(mixture.specimens, self.specimens)):
                     if specimen is not None:
-                        specimen.update_pattern(
-                            specimen_data.total_intensity,
-                            specimen_data.phase_intensities * self.fractions[:, np.newaxis] * self.scales[i],
-                            self.phase_matrix[i, :]
-                        )
+                        with specimen.data_changed.ignore():
+                            specimen.update_pattern(
+                                specimen_data.total_intensity,
+                                specimen_data.phase_intensities * self.fractions[:, np.newaxis] * self.scales[i],
+                                self.phase_matrix[i, :]
+                            )
 
     def optimize(self):
         """
@@ -416,6 +430,7 @@ class Mixture(DataModel, Storable):
             phase intensities)
         """
         with self.data_changed.hold_and_emit():
+            # no need to re-calculate, is already done by the optimization
             self.set_data_object(self.optimizer.optimize())
 
     def apply_current_data_object(self):
@@ -447,39 +462,39 @@ class Mixture(DataModel, Storable):
 
         self.refinables.clear()
 
-        def add_property(parent_itr, obj, prop):
+        def add_property(parent_node, obj, prop):
             rp = RefinableWrapper(obj=obj, prop=prop, sensitivity=0, refine=False, parent=self)
-            return self.refinables.append(parent_itr, rp)
+            return parent_node.append(TreeNode(rp))
 
-        def parse_attribute(obj, attr, root_itr):
+        def parse_attribute(obj, attr, root_node):
             """
                 obj: the object
                 attr: the attribute of obj or None if obj is the attribute
-                root_itr: the iter new iters should be put under
+                root_node: the root TreeNode new iters should be put under
             """
             if attr is not None:
                 if hasattr(obj, "get_base_value"):
-                    value = obj.get_base_value(attr)
+                    value = obj.get_base_value(attr) # TODO I believe I pulled this out from the models, check this...
                 else:
                     value = getattr(obj, attr)
             else:
                 value = obj
 
             if isinstance(value, RefinementValue): # AtomRelation and UnitCellProperty
-                new_itr = add_property(root_itr, value, None)
+                new_node = add_property(root_node, value, None)
             elif hasattr(value, "__iter__"): # List or similar
                 for new_obj in value:
-                    parse_attribute(new_obj, None, root_itr)
+                    parse_attribute(new_obj, None, root_node)
             elif isinstance(value, RefinementGroup): # Phase, Component, Probability
                 if len(value.refinables) > 0:
-                    new_itr = add_property(root_itr, value, None)
-                    for prop in value.refinables: parse_attribute(value, prop.name, new_itr)
+                    new_node = add_property(root_node, value, None)
+                    for prop in value.refinables: parse_attribute(value, prop.name, new_node)
             else: # regular values
-                new_itr = add_property(root_itr, obj, attr)
+                new_node = add_property(root_node, obj, attr)
 
         for phase in self.parent.phases:
             if phase in self.phase_matrix:
-                parse_attribute(phase, None, None)
+                parse_attribute(phase, None, self.refinables)
 
     def auto_restrict(self): # TODO set a restrict range attribute on the PropIntels, so we can use custom ranges for each property
         """

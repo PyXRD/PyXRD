@@ -10,7 +10,7 @@
 import gobject
 import unittest
 
-from pyxrd.generic.models.treemodels.base_models import BaseObjectListStore
+from pyxrd.mvc.adapters.gtk_support.treemodels import BaseObjectListStore
 
 __all__ = [
     'TestBaseObjectListStore',

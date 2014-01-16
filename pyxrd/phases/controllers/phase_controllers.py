@@ -6,8 +6,12 @@
 # Complete license can be found in the LICENSE file.
 
 import gtk
+import logging
 
-from pyxrd.gtkmvc import Model, Controller
+logger = logging.getLogger(__name__)
+
+from pyxrd.mvc import Model, Controller
+from pyxrd.mvc.adapters.dummy_adapter import DummyAdapter
 
 from pyxrd.data import settings
 
@@ -16,9 +20,8 @@ from pyxrd.generic.views import ChildObjectListStoreView
 from pyxrd.generic.views.treeview_tools import new_pb_column
 from pyxrd.generic.views.combobox_tools import add_combo_text_column
 from pyxrd.generic.controllers import DialogController, BaseController, ObjectListStoreController
-from pyxrd.generic.controllers.utils import DummyAdapter
 from pyxrd.generic.controllers.objectliststore_controllers import wrap_list_property_to_treemodel
-from pyxrd.generic.models.treemodels.utils import create_treestore_from_directory
+# from pyxrd.generic.models.treemodels.utils import create_treestore_from_directory
 
 from pyxrd.probabilities.models import get_Gbounds_for_R, get_Rbounds_for_G
 from pyxrd.probabilities.controllers import EditProbabilitiesController
@@ -28,12 +31,17 @@ from pyxrd.phases.controllers import EditCSDSTypeController, ComponentsControlle
 from pyxrd.phases.views import EditPhaseView, AddPhaseView, EditCSDSDistributionView
 from pyxrd.phases.models import Phase
 from pyxrd.generic.utils import not_none
+from contextlib import contextmanager
 
 class EditPhaseController(BaseController):
     """ 
         Controller for the phase edit view
     """
+    probabilities_view = None
     probabilities_controller = None
+
+    csds_view = None
+    csds_controller = None
 
     components_view = None
     components_controller = None
@@ -44,7 +52,8 @@ class EditPhaseController(BaseController):
 
     @property
     def phases_treemodel(self):
-        return wrap_list_property_to_treemodel(self.model.project, "phases", Phase)
+        prop = self.model.project.Meta.get_prop_intel_by_name("phases")
+        return wrap_list_property_to_treemodel(self.model.project, prop)
 
     def register_view(self, view):
         BaseController.register_view(self, view)
@@ -69,12 +78,11 @@ class EditPhaseController(BaseController):
     def custom_handler(self, intel, widget): # TODO split out these 4 properties in their own adapters
         if intel.name in ("CSDS_distribution", "components", "probabilities", "based_on"):
             if intel.name == "CSDS_distribution":
-                self.csds_controller = EditCSDSTypeController(model=self.model, view=self.csds_view, parent=self)
+                self.reset_csds_controller()
             elif intel.name == "components":
-                self.components_controller = ComponentsController(model=self.model, view=self.components_view, parent=self)
+                self.reset_components_controller()
             elif intel.name == "probabilities":
-                if self.model.G > 1: # False if model is a multi-component phase
-                    self.probabilities_controller = EditProbabilitiesController(model=self.model.probabilities, view=self.probabilities_view, parent=self)
+                self.reset_probabilities_controller()
             elif intel.name == "based_on":
                 combo = self.view["phase_based_on"]
 
@@ -92,7 +100,27 @@ class EditPhaseController(BaseController):
                         combo.set_active_iter (row.iter)
                         break
 
-            return DummyAdapter(intel.name)
+            return DummyAdapter(controller=self, prop=intel)
+
+    def reset_csds_controller(self):
+        if self.csds_controller is None:
+            self.csds_controller = EditCSDSTypeController(
+                model=self.model, view=self.csds_view, parent=self)
+        else:
+            self.csds_controller.model = self.model
+
+    def reset_components_controller(self):
+        self.components_controller = ComponentsController(
+            model=self.model, view=self.components_view, parent=self)
+
+    def reset_probabilities_controller(self):
+        if self.probabilities_controller is None:
+            if self.model.G > 1: # False if model is a multi-component phase
+                self.probabilities_controller = EditProbabilitiesController(
+                    model=self.model.probabilities,
+                    view=self.probabilities_view, parent=self)
+        else:
+            self.probabilities_controller.model = self.model.probabilities
 
     def register_adapters(self):
         self.update_sensitivities()
@@ -108,11 +136,13 @@ class EditPhaseController(BaseController):
 
         for name in ("CSDS_distribution", "probabilities"):
             sensitive = not (can_inherit and getattr(self.model, "inherit_%s" % name))
+            self.view["phase_inherit_%s" % name].set_sensitive(can_inherit)
             if name == "CSDS_distribution":
                 self.view.set_csds_sensitive(sensitive)
+                self.reset_csds_controller()
             elif name == "probabilities":
                 self.view.set_probabilities_sensitive(sensitive)
-            self.view["phase_inherit_%s" % name].set_sensitive(can_inherit)
+                self.reset_probabilities_controller()
 
     # ------------------------------------------------------------
     #      Notifications of observable properties
@@ -215,19 +245,25 @@ class PhasesController(ObjectListStoreController):
             else:
                 self.model.load_phases(filename, insert_index=index)
 
-        add_model = Model()
-        add_view = AddPhaseView(parent=self.view)
-        add_ctrl = AddPhaseController(add_model, add_view, parent=self.parent, callback=on_accept)
+        # TODO re-use this and reset the COMBO etc.
+        self.add_model = Model()
+        self.add_view = AddPhaseView(parent=self.view)
+        self.add_ctrl = AddPhaseController(self.add_model, self.add_view, parent=self.parent, callback=on_accept)
 
-        add_view.present()
+        self.add_view.present()
         return None
+
+    @contextmanager
+    def _multi_operation_context(self):
+        with self.model.data_changed.hold():
+            yield
 
     # ------------------------------------------------------------
     #      GTK Signal handlers
     # ------------------------------------------------------------
     def on_save_object_clicked(self, event):
         def on_accept(dialog):
-            print "Exporting phases..."
+            logger.info("Exporting phases...")
             filename = self.extract_filename(dialog)
             Phase.save_phases(self.get_selected_objects(), filename=filename)
         self.run_save_dialog("Export phase", on_accept, parent=self.view.get_top_widget())

@@ -7,7 +7,7 @@
 
 from math import pi, log
 
-from pyxrd.gtkmvc.model import Observer
+from pyxrd.mvc import PropIntel
 
 import numpy as np
 
@@ -21,36 +21,36 @@ from pyxrd.generic.calculations.specimen import get_phase_intensities
 from pyxrd.generic.calculations.data_objects import SpecimenData
 
 from pyxrd.goniometer.models import Goniometer
+from pyxrd.generic.utils import not_none
+from pyxrd.generic.models.lines import XYData
+
 from markers import Marker
 from statistics import Statistics
-from pyxrd.generic.utils import not_none
-from pyxrd.gtkmvc.support.propintel import PropIntel
-from pyxrd.generic.models.lines import XYData
+
 
 @storables.register()
 class Specimen(DataModel, Storable):
     # MODEL INTEL:
     class Meta(DataModel.Meta):
-        parent_alias = 'project'
         properties = [
             PropIntel(name="name", label="Name", data_type=unicode, is_column=True, storable=True, has_widget=True),
             PropIntel(name="sample_name", label="Sample", data_type=unicode, is_column=True, storable=True, has_widget=True),
             PropIntel(name="label", label="Label", data_type=unicode, is_column=True),
-            PropIntel(name="sample_length", label="Sample length [cm]", data_type=float, minimum=0.0, is_column=True, storable=True, has_widget=True, widget_type="float_entry"),
-            PropIntel(name="absorption", label="Absorption coeff. (µ*g)", data_type=float, minimum=0.0, is_column=True, storable=True, has_widget=True, widget_type="float_entry"),
+            PropIntel(name="sample_length", label="Sample length [cm]", data_type=float, minimum=0.0, is_column=True, storable=True, has_widget=True, widget_type="spin"),
+            PropIntel(name="absorption", label="Absorption coeff. (µ*g)", data_type=float, minimum=0.0, is_column=True, storable=True, has_widget=True, widget_type="spin"),
             PropIntel(name="display_calculated", label="Display calculated diffractogram", data_type=bool, is_column=True, storable=True, has_widget=True),
             PropIntel(name="display_experimental", label="Display experimental diffractogram", data_type=bool, is_column=True, storable=True, has_widget=True),
             PropIntel(name="display_phases", label="Display phases seperately", data_type=bool, is_column=True, storable=True, has_widget=True),
             PropIntel(name="display_stats_in_lbl", label="Display Rp in label", data_type=bool, is_column=True, storable=True, has_widget=True),
-            PropIntel(name="display_vshift", label="Vertical shift of the plot", data_type=float, is_column=True, storable=True, has_widget=True, widget_type="float_entry"),
-            PropIntel(name="display_vscale", label="Vertical scale of the plot", data_type=float, is_column=True, storable=True, has_widget=True, widget_type="float_entry"),
+            PropIntel(name="display_vshift", label="Vertical shift of the plot", data_type=float, is_column=True, storable=True, has_widget=True, widget_type="spin"),
+            PropIntel(name="display_vscale", label="Vertical scale of the plot", data_type=float, is_column=True, storable=True, has_widget=True, widget_type="spin"),
             PropIntel(name="display_residuals", label="Display residual patterns", data_type=bool, is_column=True, storable=True, has_widget=True),
             PropIntel(name="display_derivatives", label="Display derivative patterns", data_type=bool, is_column=True, storable=True, has_widget=True),
             PropIntel(name="goniometer", label="Goniometer", data_type=object, is_column=True, storable=True, has_widget=True, widget_type="custom"),
-            PropIntel(name="calculated_pattern", label="Calculated diffractogram", data_type=object, is_column=True, storable=True, has_widget=True, widget_type="tree_view"),
-            PropIntel(name="experimental_pattern", label="Experimental diffractogram", data_type=object, is_column=True, storable=True, has_widget=True, widget_type="tree_view"),
-            PropIntel(name="exclusion_ranges", label="Excluded ranges", data_type=object, is_column=True, storable=True, has_widget=True, widget_type="tree_view"),
-            PropIntel(name="markers", label="Markers", data_type=object, is_column=True, storable=True),
+            PropIntel(name="calculated_pattern", label="Calculated diffractogram", data_type=object, is_column=True, storable=True, has_widget=True, widget_type="xy_list_view"),
+            PropIntel(name="experimental_pattern", label="Experimental diffractogram", data_type=object, is_column=True, storable=True, has_widget=True, widget_type="xy_list_view"),
+            PropIntel(name="exclusion_ranges", label="Excluded ranges", data_type=object, is_column=True, storable=True, has_widget=True, widget_type="xy_list_view"),
+            PropIntel(name="markers", label="Markers", data_type=object, is_column=True, storable=True, widget_type="object_list_view", class_type=Marker),
             PropIntel(name="statistics", label="Statistics", data_type=object, is_column=True),
         ]
         store_id = "Specimen"
@@ -71,6 +71,8 @@ class Specimen(DataModel, Storable):
         except IndexError:
             self._data_object.observed_intensity = np.array([], dtype=float)
         return self._data_object
+
+    project = property(DataModel.parent.fget, DataModel.parent.fset)
 
     # PROPERTIES:
     _sample_name = u""
@@ -270,8 +272,10 @@ class Specimen(DataModel, Storable):
                     parent=self,
                     **calc_pattern_old_kwargs
                 )
+                self.observe_model(self.experimental_pattern)
 
                 self.exclusion_ranges = XYData(data=self.get_kwarg(kwargs, None, "exclusion_ranges"), parent=self)
+                self.observe_model(self.exclusion_ranges)
 
                 self.goniometer = self.parse_init_arg(
                     self.get_kwarg(kwargs, None, "goniometer", "project_goniometer"),
@@ -310,16 +314,13 @@ class Specimen(DataModel, Storable):
     # ------------------------------------------------------------
     #      Notifications of observable properties
     # ------------------------------------------------------------
-    @Observer.observe("data_changed", signal=True)
+    @DataModel.observe("data_changed", signal=True)
     def notify_data_changed(self, model, prop_name, info):
         self.data_changed.emit() # propagate signal
 
-    @Observer.observe("visuals_changed", signal=True)
+    @DataModel.observe("visuals_changed", signal=True)
     def notify_visuals_changed(self, model, prop_name, info):
         self.visuals_changed.emit() # propagate signal
-
-    def on_exclusion_range_changed(self, model, item, *args): # TODO FIXME
-        self.data_changed.emit() # propagate signal
 
     def on_marker_removed(self, item):
         with self.visuals_changed.hold_and_emit():
@@ -355,7 +356,6 @@ class Specimen(DataModel, Storable):
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------
-
     def clear_markers(self):
         with self.visuals_changed.hold():
             self.markers[:] = []
@@ -426,6 +426,18 @@ class Specimen(DataModel, Storable):
             self.project.display_plot_offset += delta_y
         pass
 
+    def update_visuals(self, phases):
+        """
+            Update visual representation of phase patterns (if any)
+        """
+        if phases is not None:
+            self.calculated_pattern.y_names = [
+               phase.name if phase is not None else "" for phase in phases
+            ]
+            self.calculated_pattern.phase_colors = [
+                phase.display_color if phase is not None else "#FF00FF" for phase in phases
+            ]
+
     # ------------------------------------------------------------
     #      Intensity calculations:
     # ------------------------------------------------------------
@@ -440,12 +452,7 @@ class Specimen(DataModel, Storable):
                  self.__get_range_theta() * 360. / pi,
                  np.vstack((total_intensity, phase_intensities)).transpose()
             )
-            self.calculated_pattern.y_names = [
-               phase.name if phase is not None else "" for phase in phases
-            ]
-            self.calculated_pattern.phase_colors = [
-                phase.display_color if phase is not None else "#FF00FF" for phase in phases
-            ]
+            self.update_visuals(phases)
         if settings.GUI_MODE:
             self.statistics.update_statistics()
 
@@ -465,7 +472,7 @@ class Specimen(DataModel, Storable):
         else:
             return np.radians(self.experimental_pattern.data_x * 0.5)
 
-    def __str__(self):
-        return "<'%s' Specimen>" % self.name
+    def __repr__(self):
+        return "Specimen(name='%s')" % self.name
 
     pass # end of class

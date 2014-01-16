@@ -9,14 +9,10 @@ import types
 
 from pyxrd.generic.models import DataModel, HoldableSignal
 from pyxrd.generic.models.observers import ListObserver
-from pyxrd.gtkmvc.support.metaclasses import UUIDMeta
 from pyxrd.generic.io import storables, Storable, get_case_insensitive_glob
 
 from pyxrd.generic.refinement.mixins import RefinementValue
-from pyxrd.gtkmvc.support.propintel import PropIntel
-from pyxrd.gtkmvc.model import ModelMT
-
-# from gtk import ListStore
+from pyxrd.mvc import Model, PropIntel
 
 class ComponentPropMixin(object):
     """
@@ -71,7 +67,6 @@ class AtomRelation(DataModel, Storable, ComponentPropMixin, RefinementValue):
 
     # MODEL INTEL:
     class Meta(DataModel.Meta):
-        parent_alias = "component"
         properties = [
             PropIntel(name="name", label="Name", data_type=unicode, is_column=True, storable=True, has_widget=True),
             PropIntel(name="value", label="Value", data_type=float, is_column=True, storable=True, has_widget=True, widget_type='float_entry', refinable=True),
@@ -84,6 +79,8 @@ class AtomRelation(DataModel, Storable, ComponentPropMixin, RefinementValue):
             ("Atom relation", get_case_insensitive_glob("*.atr")),
         ]
     allowed_relations = {}
+
+    component = property(DataModel.parent.fget, DataModel.parent.fset)
 
     # SIGNALS:
     data_changed = None
@@ -222,7 +219,6 @@ class AtomRatio(AtomRelation):
 
     # MODEL INTEL:
     class Meta(AtomRelation.Meta):
-        parent_alias = "component"
         properties = [
             PropIntel(name="sum", label="Sum", data_type=float, widget_type='float_entry', is_column=True, storable=True, has_widget=True, minimum=0.0),
             PropIntel(name="atom1", label="Substituting Atom", data_type=object, is_column=True, storable=True, has_widget=True),
@@ -300,11 +296,11 @@ class AtomRatio(AtomRelation):
 
     def resolve_relations(self):
         if isinstance(self._unresolved_atom1[0], basestring):
-            self._unresolved_atom1[0] = UUIDMeta.object_pool.get_object(self._unresolved_atom1[0])
+            self._unresolved_atom1[0] = type(type(self)).object_pool.get_object(self._unresolved_atom1[0])
         self.atom1 = list(self._unresolved_atom1)
         del self._unresolved_atom1
         if isinstance(self._unresolved_atom2[0], basestring):
-            self._unresolved_atom2[0] = UUIDMeta.object_pool.get_object(self._unresolved_atom2[0])
+            self._unresolved_atom2[0] = type(type(self)).object_pool.get_object(self._unresolved_atom2[0])
         self.atom2 = list(self._unresolved_atom2)
         del self._unresolved_atom2
 
@@ -325,12 +321,12 @@ class AtomRatio(AtomRelation):
 
     pass # end of class
 
-class AtomContentObject(ModelMT):
+class AtomContentObject(Model):
     """
         Wrapper around an atom object used in the AtomContents model.
         Stores the atom, the property to set and it's default amount.
     """
-    class Meta(ModelMT.Meta):
+    class Meta(Model.Meta):
         properties = [
             PropIntel(name="atom", label="Atom", data_type=object, is_column=True),
             PropIntel(name="prop", label="Prop", data_type=object, is_column=True),
@@ -358,7 +354,6 @@ class AtomContents(AtomRelation):
 
     # MODEL INTEL:
     class Meta(AtomRelation.Meta):
-        parent_alias = "component"
         properties = [
             PropIntel(name="atom_contents", label="Atom contents", data_type=object, is_column=True, storable=True, has_widget=True),
         ]
@@ -423,7 +418,7 @@ class AtomContents(AtomRelation):
         # Change rows with string references to objects (uuid's)
         for atom_content in self.atom_contents:
             if isinstance(atom_content.atom, basestring):
-                atom_content.atom = UUIDMeta.object_pool.get_object(atom_content.atom)
+                atom_content.atom = type(type(self)).object_pool.get_object(atom_content.atom)
         # Set the flag to its original value
         self.enabled = enabled
 

@@ -37,7 +37,7 @@ class TestAtomType(unittest.TestCase):
     test_charge = create_object_attribute_test("atom_type", "charge", -5)
     test_debye = create_object_attribute_test("atom_type", "debye", 1.0)
     test_weight = create_object_attribute_test("atom_type", "weight", 60.123)
-    test_atom_nr = create_object_attribute_test("atom_type", "weight", 20)
+    test_atom_nr = create_object_attribute_test("atom_type", "atom_nr", 20)
     test_par_c = create_object_attribute_test("atom_type", "par_c", 10.2)
     test_par_a1 = create_object_attribute_test("atom_type", "par_a1", 10.2)
     test_par_a2 = create_object_attribute_test("atom_type", "par_a2", 10.2)

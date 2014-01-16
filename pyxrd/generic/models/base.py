@@ -6,25 +6,21 @@
 # Complete license can be found in the LICENSE file.
 
 from warnings import warn
+import weakref
 
-from pyxrd.gtkmvc.model_mt import ModelMT
-from pyxrd.gtkmvc.support.propintel import PropIntel
-from pyxrd.gtkmvc.support.metaclasses import UUIDMeta
-from pyxrd.gtkmvc.model import Signal
-
-from pyxrd.generic.models.signals import HoldableSignal
+from pyxrd.mvc import Model, Signal, PropIntel
 from pyxrd.generic.utils import not_none
 
-class PyXRDModel(ModelMT):
+from .signals import HoldableSignal
+
+class PyXRDModel(Model):
     """
-       Standard model for PyXRD models, with support for refinable properties.
+        A UUIDModel with some common PyXRD functionality
     """
 
-    __metaclass__ = UUIDMeta
-    class Meta(ModelMT.Meta):
-        properties = [
-           PropIntel(name="uuid", data_type=str, storable=True, observable=False),
-       ]
+    class Meta(Model.Meta):
+        properties = []
+        pass # end of class
 
     def get_kwarg(self, fun_kwargs, default, *keywords):
         """
@@ -56,6 +52,10 @@ class PyXRDModel(ModelMT):
         return self.parse_list(self.get_kwarg(fun_kwargs, default, *keywords), **kwargs)
 
     def parse_list(self, list_arg, **kwargs):
+        """
+            Parses a list keyword argument (be it an actual list, or a
+            former JSON-serialized ObjectListStore object).
+        """
         if isinstance(list_arg, dict) and "type" in list_arg:
             list_arg = list_arg["properties"]["model_data"]
         if list_arg is not None:
@@ -66,16 +66,6 @@ class PyXRDModel(ModelMT):
         else:
             return list()
 
-    def __init__(self, *args, **kwargs):
-        super(PyXRDModel, self).__init__(*args, **kwargs)
-
-    def get_base(self, attr):
-        intel = self.Meta.get_prop_intel_by_name(attr)
-        if intel.inh_name is not None:
-            return getattr(self, "_%s" % attr)
-        else:
-            return getattr(self, attr)
-
     pass # end of class
 
 class ChildModel(PyXRDModel):
@@ -85,7 +75,6 @@ class ChildModel(PyXRDModel):
 
     # MODEL INTEL:
     class Meta(PyXRDModel.Meta):
-        parent_alias = None
         properties = [
             PropIntel(name="parent", data_type=object, storable=False),
             PropIntel(name="removed", data_type=object, storable=False),
@@ -97,33 +86,35 @@ class ChildModel(PyXRDModel):
     added = None
 
     # PROPERTIES:
-    _parent = None
-    def get_parent(self): return self._parent
-    def set_parent(self, value):
-        if value != self._parent:
-            self._unattach_parent()
-            self._parent = value
-            self._attach_parent()
+
+    __parent = None
+    @property
+    def parent(self):
+        if callable(self.__parent):
+            return self.__parent()
+        else:
+            return self.__parent
+    @parent.setter
+    def parent(self, value):
+        if not self.parent == value:
+            if self.parent is not None:
+                self.removed.emit()
+            try:
+                self.__parent = weakref.ref(value, self.__on_parent_finalize)
+            except TypeError:
+                self.__parent = value
+            if self.parent is not None:
+                self.added.emit()
+
+    def __on_parent_finalize(self, ref):
+        self.removed.emit()
+        self.__parent = None
 
     def __init__(self, parent=None, *args, **kwargs):
         super(ChildModel, self).__init__()
         self.removed = Signal()
         self.added = Signal()
-
-        if self.Meta.parent_alias is not None:
-            setattr(self.__class__, self.Meta.parent_alias, property(lambda self: self.parent))
         self.parent = parent
-
-    # ------------------------------------------------------------
-    #      Methods & Functions
-    # ------------------------------------------------------------
-    def _unattach_parent(self):
-        if self.parent is not None:
-            self.removed.emit()
-
-    def _attach_parent(self):
-        if self.parent is not None:
-            self.added.emit()
 
     pass # end of class
 

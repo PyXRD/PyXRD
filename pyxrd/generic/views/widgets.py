@@ -11,8 +11,6 @@ import types
 import gobject
 import gtk
 
-from pyxrd.gtkmvc.adapters.default import add_adapter
-
 from threading import Lock
 
 from pyxrd.generic.custom_math import round_sig
@@ -138,7 +136,6 @@ class ScaleEntry(gtk.HBox):
     pass # end of class
 
 gobject.type_register(ScaleEntry)
-add_adapter(ScaleEntry, "changed", ScaleEntry.get_value, ScaleEntry.set_value, types.FloatType)
 
 class ThreadedTaskBox(gtk.Table):
     """

@@ -9,12 +9,12 @@ from contextlib import contextmanager
 import os
 import gtk
 
-from pyxrd.gtkmvc import Controller
+from pyxrd.mvc import Controller
+from pyxrd.mvc.adapters import adapter_registry
 
 from pyxrd.generic.io.utils import retrieve_lowercase_extension
-from handlers import widget_handlers
 
-class DialogMixin():
+class DialogMixin(object):
     """
         Generic mixin that provides some functions and methods for handling
         dialogs, e.g. information, warnings, opening & saving files, ...
@@ -31,10 +31,10 @@ class DialogMixin():
     suggest_folder = os.path.expanduser('~')
 
     accept_responses = (
-        gtk.RESPONSE_ACCEPT,
-        gtk.RESPONSE_YES,
-        gtk.RESPONSE_APPLY,
-        gtk.RESPONSE_OK
+        gtk.RESPONSE_ACCEPT, # @UndefinedVariable
+        gtk.RESPONSE_YES, # @UndefinedVariable
+        gtk.RESPONSE_APPLY, # @UndefinedVariable
+        gtk.RESPONSE_OK # @UndefinedVariable
     )
 
     def extract_filename(self, dialog, filters=None):
@@ -222,7 +222,6 @@ class BaseController (Controller, DialogMixin):
 
     file_filters = ("All Files", "*.*")
     widget_handlers = {} # handlers can be string representations of a class method
-    auto_adapt = True
     auto_adapt_included = None
     auto_adapt_excluded = None
 
@@ -241,11 +240,6 @@ class BaseController (Controller, DialogMixin):
             return self.statusbar.get_context_id(self.__class__.__name__)
         else:
             return None
-
-    def __init__(self, model, view, spurious=False, auto_adapt=None, parent=None):
-        self.parent = parent
-        auto_adapt = auto_adapt if auto_adapt is not None else self.auto_adapt
-        Controller.__init__(self, model, view, spurious=spurious, auto_adapt=auto_adapt)
 
     @staticmethod
     def status_message(message, cid=None):
@@ -304,7 +298,7 @@ class BaseController (Controller, DialogMixin):
     def _get_handler_list(self):
         # Add default widget handlers:
         local_handlers = {}
-        local_handlers.update(widget_handlers)
+        local_handlers.update(adapter_registry)
 
         # Override with class instance widget handlers:
         for widget_type, handler in self.widget_handlers.iteritems():

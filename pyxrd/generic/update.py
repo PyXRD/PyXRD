@@ -2,15 +2,22 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from pyxrd.data import settings
-
-import gtk
-
 import urllib2
 import os
 import sys
 from zipfile import ZipFile
 import re
+
+import logging
+logger = logging.getLogger(__name__)
+
+import gtk
+
+from pyxrd.data import settings
+
+###
+# TODO use PyPI!
+# Separate update from view...
 
 def mycmp(version1, version2):
     def normalize(v):
@@ -52,7 +59,7 @@ class Updater(gtk.Dialog):
         else:
             self.bar.grab_add()
 
-            print "Running Updater"
+            logger.info("Running Updater")
 
             try:
                 response = urllib2.urlopen(settings.UPDATE_URL + self.filename)
@@ -74,7 +81,7 @@ class Updater(gtk.Dialog):
                 if self.run: # be sure download wasn't cancelled
                     # Delete files, if a current zip file is present:
                     if os.path.exists(self.currfilename):
-                        print "Removing old files..."
+                        logger.info("Removing old files...")
                         self.update(0.0, "Removing old files...")
                         zfile = ZipFile(self.currfilename)
                         names = zfile.namelist()
@@ -98,27 +105,27 @@ class Updater(gtk.Dialog):
                             except: pass
                             self.update(float(i) / float(n), "Removing old directories...")
 
-                    print "Installing new files..."
+                    logger.info("Installing new files...")
                     self.update(0.0, "Installing new files...")
 
                     zfile = ZipFile(self.tempfilename)
                     zfile.extractall()
                     zfile.close()
 
-                    print "Done."
+                    logger.info("Update done.")
                     self.update(1.0, "Done.")
                     succes = True
 
                 self.run = False
                 self.update(0.0, "Cleaning...")
-                print "Removing temporary file"
+                logger.info("Removing temporary files...")
                 os.rename(self.tempfilename, self.currfilename)
 
                 self.update(1.0, "Done.")
 
                 if succes: # relaunch process
                     args = sys.argv[:]
-                    print "Re-spawning %s" % " ".join(args)
+                    logger.info("Re-spawning %s" % " ".join(args))
                     args.insert(0, sys.executable)
                     if sys.platform == 'win32':
                         args = ['"%s"' % arg for arg in args]
@@ -126,7 +133,7 @@ class Updater(gtk.Dialog):
                     gtk.main_quit()
                     sys.exit(0)
             except urllib2.URLError:
-                print "Updater failed for url: %s" % settings.UPDATE_URL + self.filename
+                logger.info("Updater failed for url: %s" % settings.UPDATE_URL + self.filename)
             else:
                 raise # re-raise uncaught errors
             self.bar.grab_remove()
@@ -154,13 +161,13 @@ def update():
         updates = map(lambda s: s.split(), html.split("\n"))
         last_version, filename = updates[0][0], updates[0][1]
         if mycmp(last_version, settings.VERSION) >= 1:
-            print "New version available (%s), now at (%s)" % (last_version, settings.VERSION)
+            logger.info("New version available (%s), now at (%s)" % (last_version, settings.VERSION))
             dialog = Updater(updates)
             dialog.show_all()
             gtk.main()
         else:
-            print "Most recent version installed (%s), remote is (%s)" % (settings.VERSION, last_version)
+            logger.info("Most recent version installed (%s), remote is (%s)" % (settings.VERSION, last_version))
     except:
-        print "An error occured while trying to acces the update server, current version is (%s)" % (settings.VERSION,)
+        logger.critical("An error occurred while trying to access the update server, current version is (%s)" % (settings.VERSION,))
 
 

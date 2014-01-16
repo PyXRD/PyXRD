@@ -5,10 +5,11 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
+from functools import partial
 from warnings import warn
 import zipfile
 
-from pyxrd.gtkmvc.model import Observer
+from pyxrd.mvc import Observer, PropIntel
 
 import numpy as np
 
@@ -17,8 +18,6 @@ from pyxrd.generic.models import DataModel
 from pyxrd.generic.models.mixins import CSVMixin
 from pyxrd.generic.calculations.data_objects import AtomTypeData, AtomData
 from pyxrd.generic.calculations.atoms import get_atomic_scattering_factor, get_structure_factor
-from pyxrd.gtkmvc.support.propintel import PropIntel
-from pyxrd.gtkmvc.support.metaclasses import UUIDMeta
 
 @storables.register()
 class AtomType(DataModel, Storable, CSVMixin):
@@ -42,18 +41,17 @@ class AtomType(DataModel, Storable, CSVMixin):
     # MODEL METADATA:
     class Meta(DataModel.Meta):
         store_id = "AtomType"
-        parent_alias = 'project'
-        properties = [ # TODO add labels
-            PropIntel(name="atom_nr", is_column=True, data_type=int, storable=True, has_widget=True, widget_type="entry"),
-            PropIntel(name="name", is_column=True, data_type=unicode, storable=True, has_widget=True),
-            PropIntel(name="charge", is_column=True, data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
-            PropIntel(name="weight", is_column=True, data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
-            PropIntel(name="debye", is_column=True, data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
-            PropIntel(name="par_c", is_column=True, data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
+        properties = [
+            PropIntel(name="atom_nr", label="Atom Nr", data_type=int, widget_type="entry", **PropIntel.ST_WID_COL),
+            PropIntel(name="name", label="Name", data_type=unicode, **PropIntel.ST_WID_COL),
+            PropIntel(name="charge", label="Charge", data_type=float, widget_type="float_entry", **PropIntel.ST_WID_COL),
+            PropIntel(name="weight", label="Atomic weight", data_type=float, widget_type="float_entry", **PropIntel.ST_WID_COL),
+            PropIntel(name="debye", label="Debye-Waller factor", data_type=float, widget_type="float_entry", **PropIntel.ST_WID_COL),
+            PropIntel(name="par_c", label="c", data_type=float, widget_type="float_entry", **PropIntel.ST_WID_COL),
         ] + [
-            PropIntel(name="par_a%d" % i, is_column=True, data_type=float, storable=True, has_widget=True, widget_type="float_entry") for i in xrange(1, 6)
+            PropIntel(name="par_a%d" % i, label="a%d" % i, data_type=float, widget_type="float_entry", **PropIntel.ST_WID_COL) for i in xrange(1, 6)
         ] + [
-            PropIntel(name="par_b%d" % i, is_column=True, data_type=float, storable=True, has_widget=True, widget_type="float_entry") for i in xrange(1, 6)
+            PropIntel(name="par_b%d" % i, label="b%d" % i, data_type=float, widget_type="float_entry", **PropIntel.ST_WID_COL) for i in xrange(1, 6)
         ]
         csv_storables = [(prop.name, prop.name) for prop in properties if prop.storable]
 
@@ -62,14 +60,19 @@ class AtomType(DataModel, Storable, CSVMixin):
             ("Atom types JSON file", get_case_insensitive_glob("*.ztl"))
         ]
 
+    project = property(DataModel.parent.fget, DataModel.parent.fset)
+
     # SIGNALS:
     data_changed = None
     visuals_changed = None
 
     # PROPERTIES:
     _name = ""
-    def get_name(self): return self._name
-    def set_name(self, value):
+    @property
+    def name(self):
+        return getattr(self, "_name")
+    @name.setter
+    def name(self, value):
         self._name = value
         self.visuals_changed.emit()
 
@@ -80,67 +83,63 @@ class AtomType(DataModel, Storable, CSVMixin):
     def data_object(self):
         return self._data_object
 
-    def _set_par_a(self, index, value):
+    def __get_par_a(self, index):
+        return self._data_object.par_a[index]
+
+    def __set_par_a(self, value, index):
         assert (index >= 0 and index < 5)
         try: value = float(value)
         except ValueError: return # ignore faulty values
         self._data_object.par_a[index] = value
         self.data_changed.emit()
 
-    def _set_par_b(self, index, value):
+    def __get_par_b(self, index):
+        return self._data_object.par_b[index]
+
+    def __set_par_b(self, value, index):
         assert (index >= 0 and index < 5)
         try: value = float(value)
         except ValueError: return # ignore faulty values
         self._data_object.par_b[index] = value
         self.data_changed.emit()
 
-    def _set_float_data_property(self, name, value):
+    def _set_float_data_property(self, value, name):
         try: value = float(value)
-        except ValueError: return # ignore faulty values
+        except ValueError: raise # ignore faulty values
         setattr(self._data_object, name, value)
         self.data_changed.emit()
 
-    def get_par_a1(self): return self._data_object.par_a[0]
-    def set_par_a1(self, value): self._set_par_a(0, value)
+    par_a1 = property(fget=partial(__get_par_a, index=0), fset=partial(__set_par_a, index=0))
+    par_a2 = property(fget=partial(__get_par_a, index=1), fset=partial(__set_par_a, index=1))
+    par_a3 = property(fget=partial(__get_par_a, index=2), fset=partial(__set_par_a, index=2))
+    par_a4 = property(fget=partial(__get_par_a, index=3), fset=partial(__set_par_a, index=3))
+    par_a5 = property(fget=partial(__get_par_a, index=4), fset=partial(__set_par_a, index=4))
 
-    def get_par_a2(self): return self._data_object.par_a[1]
-    def set_par_a2(self, value): self._set_par_a(1, value)
+    par_b1 = property(fget=partial(__get_par_b, index=0), fset=partial(__set_par_b, index=0))
+    par_b2 = property(fget=partial(__get_par_b, index=1), fset=partial(__set_par_b, index=1))
+    par_b3 = property(fget=partial(__get_par_b, index=2), fset=partial(__set_par_b, index=2))
+    par_b4 = property(fget=partial(__get_par_b, index=3), fset=partial(__set_par_b, index=3))
+    par_b5 = property(fget=partial(__get_par_b, index=4), fset=partial(__set_par_b, index=4))
 
-    def get_par_a3(self): return self._data_object.par_a[2]
-    def set_par_a3(self, value): self._set_par_a(2, value)
+    @property
+    def par_c(self): return self._data_object.par_c
+    @par_c.setter
+    def par_c(self, value): self._set_float_data_property(value, "par_c")
 
-    def get_par_a4(self): return self._data_object.par_a[3]
-    def set_par_a4(self, value): self._set_par_a(3, value)
+    @property
+    def debye(self): return self._data_object.debye
+    @debye.setter
+    def debye(self, value): self._set_float_data_property(value, "debye")
 
-    def get_par_a5(self): return self._data_object.par_a[4]
-    def set_par_a5(self, value): self._set_par_a(4, value)
+    @property
+    def charge(self): return self._data_object.charge
+    @charge.setter
+    def charge(self, value): self._set_float_data_property(value, "charge")
 
-    def get_par_b1(self): return self._data_object.par_b[0]
-    def set_par_b1(self, value): self._set_par_b(0, value)
-
-    def get_par_b2(self): return self._data_object.par_b[1]
-    def set_par_b2(self, value): self._set_par_b(1, value)
-
-    def get_par_b3(self): return self._data_object.par_b[2]
-    def set_par_b3(self, value): self._set_par_b(2, value)
-
-    def get_par_b4(self): return self._data_object.par_b[3]
-    def set_par_b4(self, value): self._set_par_b(3, value)
-
-    def get_par_b5(self): return self._data_object.par_b[4]
-    def set_par_b5(self, value): self._set_par_b(4, value)
-
-    def get_par_c(self): return self._data_object.par_c
-    def set_par_c(self, value): self._set_float_data_property("par_c", value)
-
-    def get_debye(self): return self._data_object.debye
-    def set_debye(self, value): self._set_float_data_property("debye", value)
-
-    def get_charge(self): return self._data_object.charge
-    def set_charge(self, value): self._set_float_data_property("charge", value)
-
-    def get_weight(self): return self._data_object.weight
-    def set_weight(self, value): self._set_float_data_property("weight", value)
+    @property
+    def weight(self): return self._data_object.weight
+    @weight.setter
+    def weight(self, value): self._set_float_data_property(value, "weight")
 
     # ------------------------------------------------------------
     #      Initialization and other internals
@@ -185,7 +184,7 @@ class AtomType(DataModel, Storable, CSVMixin):
         """
             Returns multiple AtomTypes loaded from a single (JSON) file.
         """
-        UUIDMeta.object_pool.change_all_uuids()
+        type(cls).object_pool.change_all_uuids()
 
         if zipfile.is_zipfile(filename):
             with zipfile.ZipFile(filename, 'r') as zfile:
@@ -199,7 +198,7 @@ class AtomType(DataModel, Storable, CSVMixin):
         """
             Saves multiple AtomTypes to a single (JSON) file.
         """
-        UUIDMeta.object_pool.change_all_uuids()
+        type(cls).object_pool.change_all_uuids()
 
         with zipfile.ZipFile(filename, 'w') as zfile:
             for i, atom_type in enumerate(atom_types):
@@ -216,13 +215,12 @@ class Atom(DataModel, Storable):
     # MODEL METADATA:
     class Meta(DataModel.Meta):
         store_id = "Atom"
-        parent_alias = 'component'
         properties = [ # TODO add labels
-            PropIntel(name="name", data_type=unicode, is_column=True, storable=True, has_widget=True),
-            PropIntel(name="default_z", data_type=float, is_column=True, storable=True, has_widget=True),
-            PropIntel(name="z", data_type=float, is_column=True, storable=False, has_widget=True),
-            PropIntel(name="pn", data_type=float, is_column=True, storable=True, has_widget=True),
-            PropIntel(name="atom_type", data_type=object, is_column=True, has_widget=True),
+            PropIntel(name="name", data_type=unicode, **PropIntel.ST_WID_COL),
+            PropIntel(name="default_z", data_type=float, **PropIntel.ST_WID_COL),
+            PropIntel(name="z", data_type=float, **PropIntel.WID_COL),
+            PropIntel(name="pn", data_type=float, **PropIntel.ST_WID_COL),
+            PropIntel(name="atom_type", data_type=object, **PropIntel.WID_COL),
             PropIntel(name="stretch_values", data_type=bool),
         ]
         layer_filters = [
@@ -236,10 +234,14 @@ class Atom(DataModel, Storable):
             self._data_object.atom_type = self.atom_type.data_object
         return self._data_object
 
+    component = property(DataModel.parent.fget, DataModel.parent.fset)
+
     # PROPERTIES:
     _name = ""
-    def get_name(self): return self._name
-    def set_name(self, value):
+    @property
+    def name(self): return self._name
+    @name.setter
+    def name(self, value):
         self._name = value
         self.visuals_changed.emit()
 
@@ -265,12 +267,14 @@ class Atom(DataModel, Storable):
             self._stretch_z = value
             self.data_changed.emit()
 
-    def get_z(self):
+    @property
+    def z(self):
         if self.stretch_values and self.component is not None:
             lattice_d, factor = self.component.get_interlayer_stretch_factors()
             return float(lattice_d + (self.default_z - lattice_d) * factor)
         return self.default_z
-    def set_z(self, value):
+    @z.setter
+    def z(self, value):
         warn("The z property can not be set!", DeprecationWarning)
 
     _pn = None
@@ -361,7 +365,7 @@ class Atom(DataModel, Storable):
     # ------------------------------------------------------------
     def resolve_json_references(self):
         if getattr(self, "_atom_type_uuid", None) is not None:
-            self.atom_type = UUIDMeta.object_pool.get_object(self._atom_type_uuid)
+            self.atom_type = type(type(self)).object_pool.get_object(self._atom_type_uuid)
         if self.atom_type is None and \
                 getattr(self, "_atom_type_name", None) is not None or \
                 getattr(self, "_atom_type_index", None) is not None:

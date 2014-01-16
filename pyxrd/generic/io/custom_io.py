@@ -9,9 +9,10 @@ import os, sys, types
 from shutil import move
 
 import numpy as np
-from pyxrd.gtkmvc.model_base import Model
 from pyxrd.generic.utils import not_none
-from pyxrd.gtkmvc.support.wrappers import ObsWrapper
+
+import logging
+logger = logging.getLogger(__name__)
 
 # Small workaround to provide a unicode-aware open method for PyXRD:
 if sys.version_info[0] < 3: # Pre Python 3.0
@@ -119,7 +120,7 @@ class StorableRegistry(dict):
 
     def register_decorator(self, cls):
         if hasattr(cls, 'Meta') and hasattr(cls.Meta, 'store_id'):
-            if settings.DEBUG: print "Registering %s as storage type with id '%s'" % (cls, cls.Meta.store_id)
+            logger.debug("Registering %s as storage type with id '%s'" % (cls, cls.Meta.store_id))
             self[cls.Meta.store_id] = cls
         else:
             raise TypeError, "Cannot register type '%s' without a Meta.store_id!" % cls
@@ -155,12 +156,13 @@ class PyXRDEncoder(json.JSONEncoder):
     """
 
     def default(self, obj):
+        from pyxrd.mvc.support.observables import ObsWrapper
         if hasattr(obj, "to_json") and callable(getattr(obj, "to_json")):
             return obj.to_json()
         if isinstance(obj, np.ndarray):
             return obj.tolist()
         if isinstance(obj, ObsWrapper):
-            return obj._obj #return the wrapped object
+            return obj._obj # return the wrapped object
         return json.JSONEncoder(self).default(obj)
 
 
@@ -316,7 +318,7 @@ class Storable(object):
                     with unicode_open(filename, 'r') as f:
                         return json.load(f, cls=PyXRDDecoder, parent=parent)
             except Exception as error:
-                if settings.DEBUG: print "Handling run-time error: %s" % error
+                logger.debug("Handling run-time error: %s" % error)
                 tb = format_exc()
                 try:
                     return json.load(filename, cls=PyXRDDecoder, parent=parent)
@@ -354,12 +356,13 @@ class Storable(object):
             except ValueError:
                 alias, attr = val, val
             retval[alias] = getattr(self, attr)
-        
+
+        from pyxrd.mvc.models import Model
         if isinstance(self, Model):
             for prop in self.Meta.all_properties:
                 if prop.storable:
                     add_prop((prop.name, not_none(prop.stor_name, prop.name)))
-        elif hasattr(self, "__storables__"): # Fallback:        
+        elif hasattr(self, "__storables__"): # Fallback:
             for val in self.__storables__:
                 add_prop(val)
         else:

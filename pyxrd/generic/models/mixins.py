@@ -12,10 +12,6 @@ class CSVMixin(object):
     class Meta():
         csv_storables = [] # list of tuples "label", "property_name"
 
-    def __init__(self, *args, **kwargs):
-        # Nothing to do but ignore any extraneous args & kwargs passed down
-        super(CSVMixin, self).__init__()
-
     @classmethod
     def save_as_csv(cls, filename, items):
         atl_writer = csv.writer(open(filename, 'wb'), delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)

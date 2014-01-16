@@ -13,6 +13,8 @@ from scipy.optimize import fmin_l_bfgs_b
 
 from pyxrd.data import settings
 settings.apply_runtime_settings()
+import logging
+logger = logging.getLogger(__name__)
 
 from .specimen import get_phase_intensities
 from .exceptions import wrap_exceptions
@@ -39,16 +41,16 @@ def _get_residual(x, mixture):
                 if settings.BGSHIFT:
                     calc += bgshift
             else:
-                if settings.DEBUG: print "- calc: _get_residual reports: 'No phases found!'"
+                logger.debug("- calc: _get_residual reports: 'No phases found!'")
                 calc = np.zeros_like(specimen.observed_intensity)
             if specimen.observed_intensity.size > 0:
                 exp = specimen.observed_intensity[specimen.selected_range]
                 cal = calc[specimen.selected_range]
                 tot_rp += __residual_method_map[settings.RESIDUAL_METHOD](exp, cal)
             else:
-                if settings.DEBUG: print "- calc: _get_residual reports: 'Zero observations found!'"
+                logger.debug("- calc: _get_residual reports: 'Zero observations found!'")
         else:
-            if settings.DEBUG: print "- calc: _get_residual reports: 'None found!'"
+            logger.debug("- calc: _get_residual reports: 'None found!'")
     return tot_rp / float(len(mixture.specimens)) # average this out
 
 def get_residual(mixture, parsed=False):
@@ -75,7 +77,7 @@ def parse_mixture(mixture, parsed=False):
             if specimen is not None:
                 specimen.phase_intensities = get_phase_intensities(specimen)
             else:
-                if settings.DEBUG: print "- calc: parse_mixture reports: 'None found!'"
+                logger.debug("- calc: parse_mixture reports: 'None found!'")
 
 @wrap_exceptions
 def optimize_mixture(mixture, parsed=False):
@@ -109,13 +111,11 @@ def optimize_mixture(mixture, parsed=False):
     )
 
     t2 = time.time()
-    if settings.DEBUG:
-        print '%s took %0.3f ms' % ("optimize_mixture", (t2 - t1) * 1000.0)
-        print ' Solution:', lastx
-        print ' Residual:', residual
-        print ' Info dict:', info
-
-
+    logger.debug('%s took %0.3f ms' % ("optimize_mixture", (t2 - t1) * 1000.0))
+    logger.debug(' Solution: %s' % lastx)
+    logger.debug(' Residual: %s' % residual)
+    logger.debug(' Info dict: %s' % info)
+    
     # 3. rescale scales and fractions so they fit into [0-1] range,
     #    and round them to have 6 digits max:
     fractions, scales, bgshifts = parse_solution(lastx, mixture.n, mixture.m)

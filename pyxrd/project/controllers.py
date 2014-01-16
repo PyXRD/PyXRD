@@ -10,13 +10,14 @@ import os
 import pango
 import gtk
 
-from pyxrd.gtkmvc import Controller
+from pyxrd.mvc import Controller
 
 from pyxrd.generic.views.treeview_tools import new_text_column, new_toggle_column, new_pb_column
-from pyxrd.generic.controllers import BaseController, ObjectListStoreController, DialogMixin
+from pyxrd.generic.controllers import BaseController, ObjectListStoreController
 from pyxrd.specimen.models import Specimen
+from contextlib import contextmanager
 
-class ProjectController(ObjectListStoreController, DialogMixin):
+class ProjectController(ObjectListStoreController):
 
     treemodel_property_name = "specimens"
     treemodel_class_type = Specimen
@@ -25,9 +26,6 @@ class ProjectController(ObjectListStoreController, DialogMixin):
     auto_adapt = True
 
     file_filters = Specimen.Meta.file_filters
-
-    def __init__(self, *args, **kwargs):
-        super(ProjectController, self).__init__(*args, **kwargs)
 
     def register_view(self, view):
         if view is not None and self.model is not None:
@@ -155,6 +153,10 @@ class ProjectController(ObjectListStoreController, DialogMixin):
         self.edit_specimen()
         return True
 
+    @contextmanager
+    def _multi_operation_context(self):
+        with self.model.data_changed.hold():
+            yield
     # ------------------------------------------------------------
     #      Notifications of observable properties
     # ------------------------------------------------------------
@@ -170,6 +172,8 @@ class ProjectController(ObjectListStoreController, DialogMixin):
     @Controller.observe("layout_mode", assign=True)
     def notif_layout_mode(self, model, prop_name, info):
         self.parent.set_layout_mode(self.model.layout_mode)
+        if self.view is not None:
+            self.setup_treeview(self.view.treeview)
 
     # ------------------------------------------------------------
     #      GTK Signal handlers
@@ -226,7 +230,6 @@ class ProjectController(ObjectListStoreController, DialogMixin):
 
     def objects_tv_selection_changed(self, selection):
         ObjectListStoreController.objects_tv_selection_changed(self, selection)
-        print "GET SELECTED OBJECTS"
         self.parent.model.current_specimens = self.get_selected_objects()
         return True
 

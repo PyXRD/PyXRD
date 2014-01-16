@@ -1,9 +1,49 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
   <!-- interface-requires gtk+ 3.0 -->
-  <object class="GtkTable" id="edit_marker">
+  <object class="GtkAdjustment" id="entry_nanometer">
+    <property name="upper">100</property>
+    <property name="step_increment">0.050000000000000003</property>
+    <property name="page_increment">1</property>
+    <signal name="value-changed" handler="on_nanometer_changed" swapped="no"/>
+  </object>
+  <object class="GtkImage" id="img_sample_graph">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
+    <property name="stock">090-eyedropper</property>
+  </object>
+  <object class="GtkAdjustment" id="marker_angle">
+    <property name="lower">-360</property>
+    <property name="upper">360</property>
+    <property name="step_increment">5</property>
+    <property name="page_increment">45</property>
+  </object>
+  <object class="GtkAdjustment" id="marker_position">
+    <property name="upper">180</property>
+    <property name="step_increment">1</property>
+    <property name="page_increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="marker_top_offset">
+    <property name="lower">-10</property>
+    <property name="upper">10</property>
+    <property name="step_increment">0.10000000000000001</property>
+    <property name="page_increment">0.25</property>
+  </object>
+  <object class="GtkAdjustment" id="marker_x_offset">
+    <property name="lower">-120</property>
+    <property name="upper">120</property>
+    <property name="step_increment">0.5</property>
+    <property name="page_increment">5</property>
+  </object>
+  <object class="GtkAdjustment" id="marker_y_offset">
+    <property name="lower">-10</property>
+    <property name="upper">10</property>
+    <property name="step_increment">0.10000000000000001</property>
+    <property name="page_increment">0.25</property>
+  </object>
+  <object class="GtkTable" id="edit_marker">
+    <property name="visible">True</property>
+    <property name="can_focus">True</property>
     <property name="border_width">5</property>
     <property name="n_rows">16</property>
     <property name="n_columns">6</property>
@@ -97,25 +137,6 @@
       </packing>
     </child>
     <child>
-      <object class="GtkEntry" id="marker_position">
-        <property name="visible">True</property>
-        <property name="can_focus">True</property>
-        <property name="invisible_char">•</property>
-        <property name="width_chars">12</property>
-        <property name="invisible_char_set">True</property>
-        <property name="primary_icon_activatable">False</property>
-        <property name="secondary_icon_activatable">False</property>
-      </object>
-      <packing>
-        <property name="left_attach">2</property>
-        <property name="right_attach">5</property>
-        <property name="top_attach">2</property>
-        <property name="bottom_attach">3</property>
-        <property name="x_options">GTK_FILL</property>
-        <property name="y_options"/>
-      </packing>
-    </child>
-    <child>
       <object class="GtkLabel" id="degrees_lbl">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
@@ -123,10 +144,11 @@
         <property name="label" translatable="yes">°2θ</property>
       </object>
       <packing>
-        <property name="left_attach">5</property>
-        <property name="right_attach">6</property>
+        <property name="left_attach">3</property>
+        <property name="right_attach">4</property>
         <property name="top_attach">2</property>
         <property name="bottom_attach">3</property>
+        <property name="x_options">GTK_FILL</property>
         <property name="y_options"/>
       </packing>
     </child>
@@ -152,7 +174,7 @@
       </object>
       <packing>
         <property name="left_attach">1</property>
-        <property name="right_attach">6</property>
+        <property name="right_attach">4</property>
         <property name="x_options">GTK_FILL</property>
         <property name="y_options"/>
       </packing>
@@ -168,7 +190,7 @@
         <property name="draw_indicator">True</property>
       </object>
       <packing>
-        <property name="left_attach">5</property>
+        <property name="left_attach">4</property>
         <property name="right_attach">6</property>
         <property name="top_attach">6</property>
         <property name="bottom_attach">7</property>
@@ -206,7 +228,7 @@
       </object>
       <packing>
         <property name="left_attach">1</property>
-        <property name="right_attach">5</property>
+        <property name="right_attach">2</property>
         <property name="top_attach">12</property>
         <property name="bottom_attach">13</property>
         <property name="x_options">GTK_FILL</property>
@@ -233,7 +255,7 @@
       </object>
       <packing>
         <property name="left_attach">1</property>
-        <property name="right_attach">6</property>
+        <property name="right_attach">4</property>
         <property name="top_attach">1</property>
         <property name="bottom_attach">2</property>
         <property name="x_options">GTK_FILL</property>
@@ -245,24 +267,22 @@
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">0</property>
-        <property name="xscale">0</property>
         <child>
-          <object class="GtkEntry" id="marker_angle">
-            <property name="width_request">50</property>
+          <object class="GtkSpinButton" id="spb_angle">
             <property name="visible">True</property>
-            <property name="sensitive">False</property>
-            <property name="can_focus">True</property>
+            <property name="can_focus">False</property>
             <property name="invisible_char">•</property>
-            <property name="width_chars">5</property>
-            <property name="invisible_char_set">True</property>
-            <property name="primary_icon_activatable">False</property>
-            <property name="secondary_icon_activatable">False</property>
+            <property name="width_chars">4</property>
+            <property name="truncate_multiline">True</property>
+            <property name="adjustment">marker_angle</property>
+            <property name="digits">1</property>
+            <property name="numeric">True</property>
           </object>
         </child>
       </object>
       <packing>
         <property name="left_attach">1</property>
-        <property name="right_attach">2</property>
+        <property name="right_attach">3</property>
         <property name="top_attach">6</property>
         <property name="bottom_attach">7</property>
         <property name="x_options">GTK_FILL</property>
@@ -274,7 +294,6 @@
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">0</property>
-        <property name="xscale">0</property>
         <child>
           <object class="GtkComboBox" id="marker_base">
             <property name="width_request">200</property>
@@ -285,7 +304,7 @@
       </object>
       <packing>
         <property name="left_attach">1</property>
-        <property name="right_attach">5</property>
+        <property name="right_attach">3</property>
         <property name="top_attach">9</property>
         <property name="bottom_attach">10</property>
         <property name="x_options">GTK_FILL</property>
@@ -297,7 +316,6 @@
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">0</property>
-        <property name="xscale">0</property>
         <child>
           <object class="GtkComboBox" id="marker_style">
             <property name="width_request">200</property>
@@ -308,7 +326,7 @@
       </object>
       <packing>
         <property name="left_attach">1</property>
-        <property name="right_attach">5</property>
+        <property name="right_attach">3</property>
         <property name="top_attach">8</property>
         <property name="bottom_attach">9</property>
         <property name="x_options">GTK_FILL</property>
@@ -366,7 +384,7 @@
         <property name="label" translatable="yes">°2θ</property>
       </object>
       <packing>
-        <property name="left_attach">5</property>
+        <property name="left_attach">3</property>
         <property name="right_attach">6</property>
         <property name="top_attach">14</property>
         <property name="bottom_attach">15</property>
@@ -393,7 +411,6 @@
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">0</property>
-        <property name="xscale">0</property>
         <child>
           <object class="GtkComboBox" id="marker_align">
             <property name="width_request">200</property>
@@ -404,29 +421,9 @@
       </object>
       <packing>
         <property name="left_attach">1</property>
-        <property name="right_attach">5</property>
+        <property name="right_attach">3</property>
         <property name="top_attach">7</property>
         <property name="bottom_attach">8</property>
-        <property name="x_options">GTK_FILL</property>
-        <property name="y_options"/>
-      </packing>
-    </child>
-    <child>
-      <object class="GtkEntry" id="entry_nanometer">
-        <property name="visible">True</property>
-        <property name="can_focus">True</property>
-        <property name="invisible_char">•</property>
-        <property name="width_chars">12</property>
-        <property name="invisible_char_set">True</property>
-        <property name="primary_icon_activatable">False</property>
-        <property name="secondary_icon_activatable">False</property>
-        <signal name="changed" handler="on_nanometer_changed" swapped="no"/>
-      </object>
-      <packing>
-        <property name="left_attach">2</property>
-        <property name="right_attach">5</property>
-        <property name="top_attach">3</property>
-        <property name="bottom_attach">4</property>
         <property name="x_options">GTK_FILL</property>
         <property name="y_options"/>
       </packing>
@@ -440,8 +437,8 @@
         <property name="use_markup">True</property>
       </object>
       <packing>
-        <property name="left_attach">5</property>
-        <property name="right_attach">6</property>
+        <property name="left_attach">3</property>
+        <property name="right_attach">4</property>
         <property name="top_attach">3</property>
         <property name="bottom_attach">4</property>
         <property name="x_options">GTK_FILL</property>
@@ -485,22 +482,22 @@
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">0</property>
-        <property name="xscale">0</property>
         <child>
-          <object class="GtkEntry" id="marker_y_offset">
+          <object class="GtkSpinButton" id="spb_y_offset">
             <property name="width_request">200</property>
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="invisible_char">•</property>
-            <property name="invisible_char_set">True</property>
-            <property name="primary_icon_activatable">False</property>
-            <property name="secondary_icon_activatable">False</property>
+            <property name="shadow_type">etched-in</property>
+            <property name="adjustment">marker_y_offset</property>
+            <property name="digits">2</property>
+            <property name="numeric">True</property>
           </object>
         </child>
       </object>
       <packing>
         <property name="left_attach">1</property>
-        <property name="right_attach">6</property>
+        <property name="right_attach">3</property>
         <property name="top_attach">15</property>
         <property name="bottom_attach">16</property>
         <property name="x_options">GTK_FILL</property>
@@ -532,7 +529,7 @@
         <property name="draw_indicator">True</property>
       </object>
       <packing>
-        <property name="left_attach">5</property>
+        <property name="left_attach">4</property>
         <property name="right_attach">6</property>
         <property name="top_attach">7</property>
         <property name="bottom_attach">8</property>
@@ -547,8 +544,8 @@
         <property name="label" translatable="yes">°2θ</property>
       </object>
       <packing>
-        <property name="left_attach">2</property>
-        <property name="right_attach">5</property>
+        <property name="left_attach">3</property>
+        <property name="right_attach">4</property>
         <property name="top_attach">6</property>
         <property name="bottom_attach">7</property>
         <property name="x_options">GTK_FILL</property>
@@ -566,7 +563,7 @@
         <property name="draw_indicator">True</property>
       </object>
       <packing>
-        <property name="left_attach">5</property>
+        <property name="left_attach">4</property>
         <property name="right_attach">6</property>
         <property name="top_attach">8</property>
         <property name="bottom_attach">9</property>
@@ -584,7 +581,7 @@
         <property name="draw_indicator">True</property>
       </object>
       <packing>
-        <property name="left_attach">5</property>
+        <property name="left_attach">4</property>
         <property name="right_attach">6</property>
         <property name="top_attach">9</property>
         <property name="bottom_attach">10</property>
@@ -602,7 +599,7 @@
         <property name="draw_indicator">True</property>
       </object>
       <packing>
-        <property name="left_attach">5</property>
+        <property name="left_attach">4</property>
         <property name="right_attach">6</property>
         <property name="top_attach">12</property>
         <property name="bottom_attach">13</property>
@@ -614,22 +611,21 @@
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">0</property>
-        <property name="xscale">0</property>
         <child>
-          <object class="GtkEntry" id="marker_x_offset">
+          <object class="GtkSpinButton" id="spb_x_offset">
             <property name="width_request">200</property>
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="invisible_char">•</property>
-            <property name="invisible_char_set">True</property>
-            <property name="primary_icon_activatable">False</property>
-            <property name="secondary_icon_activatable">False</property>
+            <property name="adjustment">marker_x_offset</property>
+            <property name="digits">2</property>
+            <property name="numeric">True</property>
           </object>
         </child>
       </object>
       <packing>
         <property name="left_attach">1</property>
-        <property name="right_attach">5</property>
+        <property name="right_attach">3</property>
         <property name="top_attach">14</property>
         <property name="bottom_attach">15</property>
         <property name="x_options">GTK_FILL</property>
@@ -656,7 +652,6 @@
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">0</property>
-        <property name="xscale">0</property>
         <child>
           <object class="GtkComboBox" id="marker_top">
             <property name="width_request">200</property>
@@ -667,7 +662,7 @@
       </object>
       <packing>
         <property name="left_attach">1</property>
-        <property name="right_attach">5</property>
+        <property name="right_attach">3</property>
         <property name="top_attach">10</property>
         <property name="bottom_attach">11</property>
         <property name="x_options">GTK_FILL</property>
@@ -685,24 +680,10 @@
         <property name="draw_indicator">True</property>
       </object>
       <packing>
-        <property name="left_attach">5</property>
+        <property name="left_attach">4</property>
         <property name="right_attach">6</property>
         <property name="top_attach">10</property>
         <property name="bottom_attach">11</property>
-        <property name="y_options"/>
-      </packing>
-    </child>
-    <child>
-      <object class="GtkLabel" id="empty_lbl">
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="xalign">1</property>
-        <property name="justify">right</property>
-      </object>
-      <packing>
-        <property name="top_attach">11</property>
-        <property name="bottom_attach">12</property>
-        <property name="x_options">GTK_FILL</property>
         <property name="y_options"/>
       </packing>
     </child>
@@ -716,8 +697,6 @@
         <property name="max_width_chars">5</property>
       </object>
       <packing>
-        <property name="left_attach">1</property>
-        <property name="right_attach">3</property>
         <property name="top_attach">11</property>
         <property name="bottom_attach">12</property>
         <property name="x_options">GTK_FILL</property>
@@ -730,20 +709,20 @@
         <property name="can_focus">False</property>
         <property name="xalign">0</property>
         <child>
-          <object class="GtkEntry" id="marker_top_offset">
+          <object class="GtkSpinButton" id="spb_top_offset">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="invisible_char">•</property>
-            <property name="width_chars">5</property>
-            <property name="invisible_char_set">True</property>
-            <property name="primary_icon_activatable">False</property>
-            <property name="secondary_icon_activatable">False</property>
+            <property name="width_chars">4</property>
+            <property name="adjustment">marker_top_offset</property>
+            <property name="digits">2</property>
+            <property name="numeric">True</property>
           </object>
         </child>
       </object>
       <packing>
-        <property name="left_attach">3</property>
-        <property name="right_attach">5</property>
+        <property name="left_attach">1</property>
+        <property name="right_attach">3</property>
         <property name="top_attach">11</property>
         <property name="bottom_attach">12</property>
         <property name="x_options">GTK_FILL</property>
@@ -761,17 +740,101 @@
         <property name="draw_indicator">True</property>
       </object>
       <packing>
-        <property name="left_attach">5</property>
+        <property name="left_attach">4</property>
         <property name="right_attach">6</property>
         <property name="top_attach">11</property>
         <property name="bottom_attach">12</property>
         <property name="y_options"/>
       </packing>
     </child>
-  </object>
-  <object class="GtkImage" id="img_sample_graph">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="stock">090-eyedropper</property>
+    <child>
+      <object class="GtkLabel" id="lbl_empty">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="xalign">0</property>
+      </object>
+      <packing>
+        <property name="left_attach">3</property>
+        <property name="right_attach">6</property>
+        <property name="top_attach">15</property>
+        <property name="bottom_attach">16</property>
+        <property name="y_options"/>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkLabel" id="lbl_empty1">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="xalign">0</property>
+      </object>
+      <packing>
+        <property name="left_attach">3</property>
+        <property name="right_attach">4</property>
+        <property name="top_attach">6</property>
+        <property name="bottom_attach">13</property>
+        <property name="x_options">GTK_FILL</property>
+        <property name="y_options"/>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkLabel" id="lbl_empty6">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="xalign">0</property>
+      </object>
+      <packing>
+        <property name="left_attach">2</property>
+        <property name="right_attach">3</property>
+        <property name="top_attach">12</property>
+        <property name="bottom_attach">13</property>
+        <property name="x_options">GTK_FILL</property>
+        <property name="y_options"/>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkLabel" id="lbl_empty7">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="xalign">0</property>
+      </object>
+      <packing>
+        <property name="left_attach">4</property>
+        <property name="right_attach">6</property>
+        <property name="bottom_attach">5</property>
+        <property name="y_options">GTK_FILL</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkSpinButton" id="spb_position">
+        <property name="visible">True</property>
+        <property name="can_focus">True</property>
+        <property name="invisible_char">•</property>
+        <property name="adjustment">marker_position</property>
+        <property name="digits">5</property>
+        <property name="numeric">True</property>
+      </object>
+      <packing>
+        <property name="left_attach">2</property>
+        <property name="right_attach">3</property>
+        <property name="top_attach">2</property>
+        <property name="bottom_attach">3</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkSpinButton" id="spb_nanometer">
+        <property name="visible">True</property>
+        <property name="can_focus">True</property>
+        <property name="invisible_char">•</property>
+        <property name="adjustment">entry_nanometer</property>
+        <property name="digits">5</property>
+        <property name="numeric">True</property>
+      </object>
+      <packing>
+        <property name="left_attach">2</property>
+        <property name="right_attach">3</property>
+        <property name="top_attach">3</property>
+        <property name="bottom_attach">4</property>
+      </packing>
+    </child>
   </object>
 </interface>

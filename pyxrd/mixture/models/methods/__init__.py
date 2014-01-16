@@ -6,6 +6,8 @@
 # Complete license can be found in the LICENSE file.
 
 from pyxrd.data import settings
+import logging
+logger = logging.getLogger('pyxrd')
 
 def get_all_refine_methods():
 
@@ -21,7 +23,7 @@ def get_all_refine_methods():
         from .deap_swarm import RefineMPSORun
         methods[2] = RefineMPSORun()
     except ImportError:
-        print "Could not import DEAP refinement algorithms, is DEAP installed?"
+        logger.warning("Could not import DEAP refinement algorithms, is DEAP installed?")
 
     try:
         from .custom_brute import RefineBruteForceRun

@@ -5,13 +5,12 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from pyxrd.gtkmvc.model import Signal
+from pyxrd.mvc import Signal, PropIntel, OptionPropIntel
 
 import numpy as np
 from scipy import stats
 from scipy.interpolate import interp1d
 
-from pyxrd.gtkmvc.support.propintel import PropIntel, OptionPropIntel
 from pyxrd.data import settings
 from pyxrd.generic.io import unicode_open, storables, Storable
 from pyxrd.generic.models import ChildModel, DataModel
@@ -286,9 +285,9 @@ class Marker(DataModel, Storable, CSVMixin):
         properties = [ # TODO add labels
             PropIntel(name="label", data_type=unicode, storable=True, has_widget=True, is_column=True),
             PropIntel(name="visible", data_type=bool, storable=True, has_widget=True, is_column=True),
-            PropIntel(name="position", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
-            PropIntel(name="x_offset", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
-            PropIntel(name="y_offset", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
+            PropIntel(name="position", data_type=float, storable=True, has_widget=True, widget_type="spin"),
+            PropIntel(name="x_offset", data_type=float, storable=True, has_widget=True, widget_type="spin"),
+            PropIntel(name="y_offset", data_type=float, storable=True, has_widget=True, widget_type="spin"),
             OptionPropIntel(name="align", data_type=str, storable=True, has_widget=True, inh_name="inherit_align", options=settings.MARKER_ALIGNS),
             PropIntel(name="inherit_align", data_type=bool, storable=True, has_widget=True),
             PropIntel(name="color", data_type=str, storable=True, has_widget=True, inh_name="inherit_color", widget_type="color"),
@@ -297,9 +296,9 @@ class Marker(DataModel, Storable, CSVMixin):
             PropIntel(name="inherit_base", data_type=bool, storable=True, has_widget=True),
             OptionPropIntel(name="top", data_type=int, storable=True, has_widget=True, inh_name="inherit_top", options=settings.MARKER_TOPS),
             PropIntel(name="inherit_top", data_type=bool, storable=True, has_widget=True),
-            PropIntel(name="top_offset", data_type=float, storable=True, has_widget=True, inh_name="inherit_top_offset", widget_type="float_entry"),
+            PropIntel(name="top_offset", data_type=float, storable=True, has_widget=True, inh_name="inherit_top_offset", widget_type="spin"),
             PropIntel(name="inherit_top_offset", data_type=bool, storable=True, has_widget=True),
-            PropIntel(name="angle", data_type=float, storable=True, has_widget=True, inh_name="inherit_angle", widget_type="float_entry"),
+            PropIntel(name="angle", data_type=float, storable=True, has_widget=True, inh_name="inherit_angle", widget_type="spin"),
             PropIntel(name="inherit_angle", data_type=bool, storable=True, has_widget=True),
             OptionPropIntel(name="style", data_type=str, storable=True, has_widget=True, inh_name="inherit_style", options=settings.MARKER_STYLES),
             PropIntel(name="inherit_style", data_type=bool, storable=True, has_widget=True),

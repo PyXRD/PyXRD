@@ -5,7 +5,6 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from utils import ComboAdapter
 from objectliststore_controllers import (
     TreeViewMixin,
     TreeModelMixin,
@@ -21,7 +20,6 @@ from base_controllers import (
 )
 
 __all__ = [
-    "ComboAdapter",
     "TreeViewMixin",
     "TreeModelMixin",
     "TreeControllerMixin",

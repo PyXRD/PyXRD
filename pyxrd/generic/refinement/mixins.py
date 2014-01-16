@@ -5,10 +5,6 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from pyxrd.gtkmvc.model import ModelMT
-
-from pyxrd.generic.refinement.metaclasses import PyXRDRefinableMeta
-
 class _RefinementBase(object):
     """
     Base class for `RefinementGroup` and `RefinementValue` mixins. It's 
@@ -33,10 +29,6 @@ class _RefinementBase(object):
         overriden by deriving classes.
         
     """
-    __metaclass__ = PyXRDRefinableMeta
-
-    class Meta(ModelMT.Meta):
-        properties = []
 
     def __init__(self, *args, **kwargs):
         # Nothing to do but ignore any extraneous args & kwargs passed down

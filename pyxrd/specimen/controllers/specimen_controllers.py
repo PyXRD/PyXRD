@@ -6,11 +6,14 @@
 # Complete license can be found in the LICENSE file.
 
 import os, locale
+import logging
+logger = logging.getLogger(__name__)
 
 import gtk
 
+from pyxrd.mvc.adapters import DummyAdapter
+from pyxrd.mvc.adapters.gtk_support.tree_view_adapters import wrap_xydata_to_treemodel
 from pyxrd.generic.controllers import BaseController, DialogController, TreeViewMixin
-from pyxrd.generic.controllers.utils import DummyAdapter
 from pyxrd.generic.views.treeview_tools import setup_treeview, new_text_column
 
 from pyxrd.goniometer.controllers import InlineGoniometerController
@@ -32,7 +35,6 @@ from pyxrd.generic.views.line_views import (
     ShiftDataView,
     StripPeakView
 )
-from pyxrd.generic.controllers.objectliststore_controllers import wrap_xydata_to_treemodel
 from pyxrd.data import settings
 
 class SpecimenController(DialogController, TreeViewMixin):
@@ -59,7 +61,7 @@ class SpecimenController(DialogController, TreeViewMixin):
     def custom_handler(self, intel, widget):
         if intel.name in ("goniometer"):
             self.gonio_ctrl = InlineGoniometerController(view=self.view.gonio_view, model=self.model.goniometer, parent=self)
-            ad = DummyAdapter(intel.name)
+            ad = DummyAdapter(controller=self, prop=intel) # TODO FIXME
             return ad
 
     def setup_experimental_pattern_tree_view(self, store, widget):
@@ -112,11 +114,11 @@ class SpecimenController(DialogController, TreeViewMixin):
     #      Methods & Functions
     # ------------------------------------------------------------
     def get_experimental_pattern_tree_model(self):
-        return wrap_xydata_to_treemodel(self.model.experimental_pattern)
+        return wrap_xydata_to_treemodel(self.model, self.model.Meta.get_prop_intel_by_name("experimental_pattern"))
     def get_calculated_pattern_tree_model(self):
-        return wrap_xydata_to_treemodel(self.model.calculated_pattern)
+        return wrap_xydata_to_treemodel(self.model, self.model.Meta.get_prop_intel_by_name("calculated_pattern"))
     def get_exclusion_ranges_tree_model(self):
-        return wrap_xydata_to_treemodel(self.model.exclusion_ranges)
+        return wrap_xydata_to_treemodel(self.model, self.model.Meta.get_prop_intel_by_name("exclusion_ranges"))
 
     def update_calc_treeview(self, tv):
         """
@@ -141,7 +143,7 @@ class SpecimenController(DialogController, TreeViewMixin):
             Opens the 'remove background' dialog.
         """
         bg_view = BackgroundView(parent=self.view)
-        BackgroundController(self.model.experimental_pattern, bg_view, parent=self)
+        BackgroundController(model=self.model.experimental_pattern, view=bg_view, parent=self)
         bg_view.present()
 
     def add_noise(self):
@@ -149,7 +151,7 @@ class SpecimenController(DialogController, TreeViewMixin):
             Opens the 'add noise' dialog.
         """
         an_view = AddNoiseView(parent=self.view)
-        AddNoiseController(self.model.experimental_pattern, an_view, parent=self)
+        AddNoiseController(model=self.model.experimental_pattern, view=an_view, parent=self)
         an_view.present()
 
     def smooth_data(self):
@@ -157,7 +159,7 @@ class SpecimenController(DialogController, TreeViewMixin):
             Opens the 'smooth data' dialog.
         """
         sd_view = SmoothDataView(parent=self.view)
-        SmoothDataController(self.model.experimental_pattern, sd_view, parent=self)
+        SmoothDataController(model=self.model.experimental_pattern, view=sd_view, parent=self)
         sd_view.present()
 
     def shift_data(self):
@@ -165,7 +167,7 @@ class SpecimenController(DialogController, TreeViewMixin):
             Opens the 'shift data' dialog.
         """
         sh_view = ShiftDataView(parent=self.view)
-        ShiftDataController(self.model.experimental_pattern, sh_view, parent=self)
+        ShiftDataController(model=self.model.experimental_pattern, view=sh_view, parent=self)
         sh_view.present()
 
     def strip_peak(self):
@@ -173,7 +175,7 @@ class SpecimenController(DialogController, TreeViewMixin):
             Opens the 'strip peak' dialog.
         """
         st_view = StripPeakView(parent=self.view)
-        StripPeakController(self.model.experimental_pattern, st_view, parent=self)
+        StripPeakController(model=self.model.experimental_pattern, view=st_view, parent=self)
         st_view.present()
 
     # ------------------------------------------------------------
@@ -220,7 +222,7 @@ class SpecimenController(DialogController, TreeViewMixin):
         try:
             value = float(locale.atof(new_text))
         except ValueError:
-            if settings.DEBUG: print "ValueError: Invalid literal for float(): '%s'" % new_text
+            logger.debug("ValueError: Invalid literal for float(): '%s'" % new_text)
         else:
             model.set_value(int(path), col, value)
         return True

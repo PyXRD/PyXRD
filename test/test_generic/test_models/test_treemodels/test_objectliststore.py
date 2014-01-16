@@ -7,27 +7,17 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-import gtk, gobject
+import gobject
 import unittest
 
-from pyxrd.generic.io import storables
-from pyxrd.generic.models import DataModel, ObjectListStore
-from pyxrd.gtkmvc.support.propintel import PropIntel
+from pyxrd.generic.models import DataModel
+from pyxrd.mvc.adapters.gtk_support.treemodels import ObjectListStore
+from pyxrd.mvc import PropIntel
 
 __all__ = [
     'TestObjectListStore',
 ]
 
-class _DummyParent(DataModel):
-    class Meta(DataModel.Meta):
-
-        properties = [
-            PropIntel(name="attrib", data_type=object),
-        ]
-        
-    attrib = []
-
-    pass # end of class
 
 class _DummyObject(DataModel):
     class Meta(DataModel.Meta):
@@ -36,18 +26,31 @@ class _DummyObject(DataModel):
             PropIntel(name="number", data_type=float, is_column=True),
             PropIntel(name="test", data_type=object, is_column=True),
         ]
-        
+
     name = ""
     number = 0
     test = object()
 
     pass # end of class
 
+class _DummyParent(DataModel):
+    class Meta(DataModel.Meta):
+
+        properties = [
+            PropIntel(name="attrib", data_type=object, class_type=_DummyObject),
+        ]
+
+    attrib = []
+
+    pass # end of class
+
+
 class TestObjectListStore(unittest.TestCase):
 
     def setUp(self):
         self.model = _DummyParent()
-        self.store = ObjectListStore(_DummyObject, self.model, "attrib")
+        prop = self.model.Meta.get_prop_intel_by_name("attrib")
+        self.store = ObjectListStore(self.model, prop)
 
     def tearDown(self):
         super(TestObjectListStore, self).tearDown()

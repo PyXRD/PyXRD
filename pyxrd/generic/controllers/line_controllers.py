@@ -9,7 +9,6 @@ import os
 
 from pyxrd.generic.io.file_parsers import parsers
 from pyxrd.generic.controllers import BaseController, DialogController
-from pyxrd.generic.controllers.handlers import float_entry_widget_handler
 from pyxrd.generic.plot.controllers import EyedropperCursorPlot
 
 
@@ -202,16 +201,6 @@ class BackgroundController(PatternActionController):
     model_setup_method = "find_bg_position"
     model_action_method = "remove_background"
     model_cancel_method = "clear_bg_variables"
-
-    def register_adapters(self):
-        # Add duplicate entry
-        # FIXME in the future, this better become a separate view ...?
-        float_entry_widget_handler(
-            self,
-            self.model.Meta.get_prop_intel_by_name("bg_position"),
-            self.view['bg_offset']
-        )
-        super(BackgroundController, self).register_adapters()
 
     def register_view(self, view):
         super(BackgroundController, self).register_view(view)

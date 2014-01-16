@@ -8,10 +8,9 @@
 # Complete license can be found in the LICENSE file.
 
 import multiprocessing
-
-from traceback import print_exc
 import warnings
 import argparse, os
+import logging
 
 try:
     import gtk
@@ -59,10 +58,33 @@ def _check_for_updates():
     from pyxrd.generic.update import update
     update()
 
+def _setup_logging(debug, log_file):
+    if not os.path.exists(os.path.dirname(log_file)):
+        os.makedirs(os.path.dirname(log_file))
+
+    logging.basicConfig(level=logging.DEBUG if debug else logging.INFO,
+                        format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+                        datefmt='%m-%d %H:%M',
+                        filename=log_file,
+                        filemode='w')
+
+    # Get logger:
+    logger = logging.getLogger()
+    full = logging.Formatter("%(name)s - %(levelname)s: %(message)s")
+
+    # Setup error stream:
+    console = logging.StreamHandler()
+    console.setLevel(logging.DEBUG if debug else logging.ERROR)
+    console.setFormatter(full)
+    logger.addHandler(console)
+
 def _apply_settings(args, pool):
+
     from pyxrd.data import settings
     # apply settings
     settings.apply_runtime_settings(no_gui=args.script, debug=args.debug, pool=pool)
+
+    _setup_logging(settings.DEBUG, settings.LOG_FILENAME)
 
     # clean out the file cache if asked and from time to time:
     if settings.CACHE == "FILE":
@@ -72,7 +94,7 @@ def _apply_settings(args, pool):
         else:
             from pyxrd.generic.io import get_size, sizeof_fmt
             size = get_size(memory.cachedir, settings.CACHE_SIZE)
-            print "Cache size is (at least):", sizeof_fmt(size)
+            logging.info("Cache size is (at least): %s" % sizeof_fmt(size))
             if size > settings.CACHE_SIZE:
                 memory.clear()
 
@@ -80,19 +102,17 @@ def _run_user_script(args):
     """
         Runs the user script specified in the command-line arguments.
     """
-    from pyxrd.data import settings
     try:
         import imp
         user_script = imp.load_source('user_script', args.script)
-    except:
-        if settings.DEBUG: pass
-        print_exc()
-        raise ImportError, "Error when trying to import %s" % args.script
+    except any as err:
+        err.args = "Error when trying to import %s: %s" % (args.script, err.args)
+        raise
     user_script.run(args)
 
 def _close_pool(pool):
-    print "Closing pool ..."
     # Close the pool:
+    logging.info("Closing multiprocessing pool ...")
     pool.close()
     pool.join()
 
@@ -111,10 +131,10 @@ def _run_gui(args, splash=None):
     project = None
     if args.filename != "":
         try:
-            print "Opening: %s" % args.filename
+            logging.info("Opening project: %s" % args.filename)
             project = Project.load_object(args.filename)
         except IOError:
-            print 'Could not load file %s: IOError' % args.filename
+            logging.info("Could not load project file %s: IOError" % args.filename)
             # FIXME the user should be informed of this in a dialog...
 
     # Disable unity overlay scrollbars as they cause bugs with modal windows
@@ -122,7 +142,7 @@ def _run_gui(args, splash=None):
     os.environ['UBUNTU_MENUPROXY'] = ""
 
     if not settings.DEBUG:
-        warnings.simplefilter('ignore', Warning)
+        warnings.filterwarnings(action='ignore', category=Warning)
 
     # Close splash screen
     if splash: splash.close()
@@ -143,32 +163,6 @@ def _run_gui(args, splash=None):
     # lets get this show on the road:
     gtk.main()
 
-def run_user_script(args=None):
-
-    # Check if this is already provided:
-    if not isinstance(args, argparse.ArgumentParser):
-        args = _parse_args()
-
-    # Initialize multiprocessing pool:
-    pool = _initialize_pool()
-
-    # start our logging service, prints to stdout and errors.log file
-    from pyxrd.generic.loggers import PyXRDLogger
-    PyXRDLogger.start_logging()
-
-    # Apply settings
-    _apply_settings(args, pool)
-
-    # Run user script:
-    try:
-        _run_user_script(args)
-    except:
-        raise # re-raise the error
-    finally:
-        _close_pool(pool)
-
-    PyXRDLogger.stop_logging()
-
 def run_gui(args=None):
 
     # Display a splash screen showing the loading status...
@@ -183,34 +177,13 @@ def run_gui(args=None):
     if not isinstance(args, argparse.ArgumentParser):
         args = _parse_args()
 
-    # Initialize multiprocessing pool:
-    splash.set_message("Initializing pool ...")
-    pool = _initialize_pool()
-
-    # Start our logging service, prints to stdout and errors.log file
-    splash.set_message("Setting up logger ...")
-    from pyxrd.generic.loggers import PyXRDLogger
-    PyXRDLogger.start_logging()
-
     # Check for updates
     splash.set_message("Checking for updates ...")
     _check_for_updates()
 
-    # Apply settings
-    splash.set_message("Applying settings ...")
-    _apply_settings(args, pool)
-
     # Run GUI:
     splash.set_message("Loading GUI ...")
-    try:
-        _run_gui(args, splash)
-    except:
-        raise # re-raise the error
-    finally:
-        _close_pool(pool)
-
-    # Stop the logger:
-    PyXRDLogger.stop_logging()
+    _run_gui(args, splash)
 
 def run_main():
     """
@@ -220,9 +193,20 @@ def run_main():
     # Setup & parse keyword arguments:
     args = _parse_args()
 
-    if args.script:
-        # Run the specified user script:
-        run_user_script(args)
-    else:
-        # Run the GUI:
-        run_gui(args)
+    # Initialize multiprocessing pool:
+    pool = _initialize_pool()
+
+    # Apply settings
+    _apply_settings(args, pool)
+
+    try:
+        if args.script:
+            # Run the specified user script:
+            _run_user_script(args)
+        else:
+            # Run the GUI:
+            run_gui(args)
+    except:
+        raise # re-raise the error
+    finally:
+        _close_pool(pool)

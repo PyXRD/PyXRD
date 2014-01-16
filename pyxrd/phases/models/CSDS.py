@@ -15,19 +15,20 @@ from pyxrd.generic.models import DataModel
 from pyxrd.generic.io import storables, Storable
 
 from pyxrd.generic.refinement.mixins import RefinementGroup, RefinementValue
-from pyxrd.gtkmvc.support.propintel import PropIntel
+from pyxrd.mvc import PropIntel
 
 class _AbstractCSDSDistribution(DataModel, Storable):
 
     # MODEL INTEL:
     class Meta(DataModel.Meta):
-        parent_alias = "phase"
         description = "Abstract CSDS distr."
         explanation = ""
         properties = [
             PropIntel(name="distrib", label="CSDS Distribution", data_type=object, is_column=True),
             PropIntel(name="inherited", label="Inherited", data_type=bool),
         ]
+
+    phase = property(DataModel.parent.fget, DataModel.parent.fset)
 
     # PROPERTIES:
     inherited = False

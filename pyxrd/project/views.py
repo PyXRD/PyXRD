@@ -36,7 +36,6 @@ class ProjectView(DialogView):
 
     def __init__(self, *args, **kwargs):
         DialogView.__init__(self, *args, **kwargs)
-        self["specimen_popup"].set_accel_group(self.parent["PyXRDGroup"])
         self["popup_menu_item_add_specimen"].set_related_action(self.parent["add_specimen"])
         self["popup_menu_item_edit_specimen"].set_related_action(self.parent["edit_specimen"])
         self["popup_menu_item_import_specimens"].set_related_action(self.parent["import_specimens"])

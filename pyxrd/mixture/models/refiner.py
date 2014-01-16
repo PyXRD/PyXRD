@@ -6,17 +6,18 @@
 # Complete license can be found in the LICENSE file.
 
 from copy import deepcopy
-from traceback import format_exc
+from traceback import print_exc
+import logging
+logger = logging.getLogger('pyxrd')
 
 import time
 
 import numpy as np
 
-#from pyxrd.generic.utils import print_timing
+# from pyxrd.generic.utils import print_timing
 
-from pyxrd.gtkmvc import Signal
+from pyxrd.mvc import PropIntel, Signal
 from pyxrd.generic.models import ChildModel
-from pyxrd.gtkmvc.support.propintel import PropIntel
 
 class RefineContext(ChildModel):
     """
@@ -28,7 +29,6 @@ class RefineContext(ChildModel):
         ranges and initial values.
     """
     class Meta(ChildModel.Meta):
-        parent_alias = "mixture"    
         properties = [ # TODO add labels
             PropIntel(name="solution_added"),
             PropIntel(name="status", column=True, data_type=str, has_widget=False),
@@ -36,6 +36,8 @@ class RefineContext(ChildModel):
             PropIntel(name="last_residual", column=True, data_type=float, has_widget=True, widget_type='label'),
             PropIntel(name="best_residual", column=True, data_type=float, has_widget=True, widget_type='label'),
         ]
+
+    mixture = property(ChildModel.parent.fget, ChildModel.parent.fset)
 
     # SIGNALS:
     solution_added = None
@@ -197,8 +199,8 @@ class Refiner(ChildModel):
                     try:
                         self.mixture.get_refine_method()(self.context, stop=stop)
                     except any as error:
-                        print "Handling run-time error: %s" % error
-                        print format_exc()
+                        error.args += ("Handling run-time error: %s" % error,)
+                        print_exc()
                         self.context.status = "error"
                     else:
                         if stop.is_set():
@@ -206,7 +208,7 @@ class Refiner(ChildModel):
                         else:
                             self.context.status = "finished"
                     t2 = time.time()
-                    print '%s took %0.3f ms' % ("Total refinement", (t2 - t1) * 1000.0)
+                    logger.info('%s took %0.3f ms' % ("Total refinement", (t2 - t1) * 1000.0))
                 else: # nothing selected for refinement
                     self.context.status = "error"
 

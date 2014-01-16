@@ -8,6 +8,9 @@
 from traceback import format_exc
 import itertools
 
+import logging
+logger = logging.getLogger('pyxrd')
+
 import numpy as np
 import scipy
 import scipy.spatial.qhull as qhull
@@ -101,7 +104,7 @@ class ParameterSpaceGenerator(object):
             points, values, centroid_indexes, mins, maxs = \
                 self.parse_solutions(centroid, density=density)
 
-            print "Plotting image using %d points" % len(points)
+            logger.info("Plotting image using %d points" % len(points))
 
             # How many parameters?
             dims = points.shape[1]

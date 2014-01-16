@@ -7,9 +7,8 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from traceback import format_exc
+from traceback import print_exc
 
-import time
 from threading import Thread, Event
 
 class CancellableThread(Thread):
@@ -40,9 +39,9 @@ class CancellableThread(Thread):
                 self.on_complete(data)
         except KeyboardInterrupt:
             self.cancel()
-        except:
-            print "Unhandled exception in CancellableThread run():"
-            print format_exc()
+        except any as err:
+            err.args += ("Unhandled exception in CancellableThread run()",)
+            print_exc()
 
     def stop(self):
         """

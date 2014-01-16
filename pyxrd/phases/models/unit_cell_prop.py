@@ -10,8 +10,7 @@ from pyxrd.generic.models import DataModel
 from pyxrd.generic.refinement.mixins import RefinementValue
 
 from .atom_relations import ComponentPropMixin
-from pyxrd.gtkmvc.support.propintel import PropIntel
-from pyxrd.gtkmvc.support.metaclasses import UUIDMeta
+from pyxrd.mvc import PropIntel
 
 @storables.register()
 class UnitCellProperty(DataModel, Storable, ComponentPropMixin, RefinementValue):
@@ -29,7 +28,6 @@ class UnitCellProperty(DataModel, Storable, ComponentPropMixin, RefinementValue)
 
     # MODEL INTEL:
     class Meta(DataModel.Meta):
-        parent_alias = "component"
         properties = [
             PropIntel(name="name", label="Name", data_type=unicode, is_column=True),
             PropIntel(name="value", label="Value", data_type=float, widget_type='float_entry', storable=True, has_widget=True, refinable=True),
@@ -41,6 +39,8 @@ class UnitCellProperty(DataModel, Storable, ComponentPropMixin, RefinementValue)
             PropIntel(name="inherited", label="Inherited", data_type=bool)
         ]
         store_id = "UnitCellProperty"
+
+    component = property(DataModel.parent.fget, DataModel.parent.fset)
 
     # PROPERTIES:
     _name = ""
@@ -154,7 +154,8 @@ class UnitCellProperty(DataModel, Storable, ComponentPropMixin, RefinementValue)
             # Try to replace objects with their uuid's:
             try:
                 retval["prop"] = [getattr(retval["prop"][0], 'uuid', retval["prop"][0]), retval["prop"][1]]
-            except:
+            except any as err:
+                err.args += ("Error when trying to interpret UCP JSON properties",)
                 from traceback import print_exc
                 print_exc()
                 pass # ignore
@@ -164,7 +165,7 @@ class UnitCellProperty(DataModel, Storable, ComponentPropMixin, RefinementValue)
         if getattr(self, "_temp_prop", None):
             self._temp_prop = list(self._temp_prop)
             if isinstance(self._temp_prop[0], basestring):
-                obj = UUIDMeta.object_pool.get_object(self._temp_prop[0])
+                obj = type(type(self)).object_pool.get_object(self._temp_prop[0])
                 if obj:
                     self._temp_prop[0] = obj
                     self.prop = self._temp_prop

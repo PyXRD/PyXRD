@@ -11,7 +11,7 @@ import unittest
 
 from test.utils import create_object_attribute_test
 
-from pyxrd.gtkmvc.model import Observer
+from pyxrd.mvc import Observer
 from pyxrd.generic.models import (
     PyXRDLine,
     CalculatedLine,
@@ -59,10 +59,10 @@ class TestLineMixin():
         self.observer.needs_update_recieved = False
         self._set_some_data()
         self.assertTrue(self.observer.needs_update_recieved)
-    
+
     def test_data(self):
         self._set_some_data()
-        self.assertEqual(self.line.num_columns, 3)        
+        self.assertEqual(self.line.num_columns, 3)
         self.assertEqual(self.line.max_intensity, 160)
         self.assertEqual(self.line.size, 20)
         self.assertEqual(self.line.get_y_at_x(7), 10)
@@ -74,14 +74,14 @@ class TestLineMixin():
         names = ["TestName"]
         self.line.y_names = names
         self.assertEqual(self.line.get_y_name(0), names[0])
-        
+
     def test_append_valid(self):
         self.line.append(0, 0)
         self.assertEqual(self.line[0], (0.0, [0.0]))
 
     def test_append_valid_multi(self):
         self.line.append(0, [0, 1, 2])
-        self.assertEqual(self.line[0], (0.0, [0.0,1.0,2.0]))
+        self.assertEqual(self.line[0], (0.0, [0.0, 1.0, 2.0]))
 
     def test_signal(self):
         self.observer.needs_update_recieved = False

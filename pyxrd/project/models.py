@@ -7,8 +7,7 @@
 
 import time
 
-from pyxrd.gtkmvc.model import Observer
-from pyxrd.gtkmvc.support.propintel import PropIntel, OptionPropIntel
+from pyxrd.mvc import Observer, PropIntel, OptionPropIntel
 
 from pyxrd.data import settings
 
@@ -20,47 +19,43 @@ from pyxrd.phases.models import Phase
 from pyxrd.atoms.models import AtomType
 from pyxrd.mixture.models.mixture import Mixture
 from pyxrd.generic.utils import not_none
-
-prop_kwargs = dict(
-    storable=True,
-    has_widget=True
-)
+from pyxrd.specimen.models.base import Specimen
 
 @storables.register()
 class Project(DataModel, Storable):
     # MODEL INTEL:
     class Meta(DataModel.Meta):
-        properties = [ # TODO add labels
-            PropIntel(name="name", data_type=str, **prop_kwargs),
-            PropIntel(name="date", data_type=str, **prop_kwargs),
-            PropIntel(name="description", data_type=str, widget_type="text_view", **prop_kwargs),
-            PropIntel(name="author", data_type=str, **prop_kwargs),
-            OptionPropIntel(name="layout_mode", data_type=str, options=settings.DEFAULT_LAYOUTS, **prop_kwargs),
-            OptionPropIntel(name="display_marker_align", data_type=str, options=settings.MARKER_ALIGNS, **prop_kwargs),
-            PropIntel(name="display_marker_color", data_type=str, widget_type="color", **prop_kwargs),
-            OptionPropIntel(name="display_marker_base", data_type=int, options=settings.MARKER_BASES, **prop_kwargs),
-            OptionPropIntel(name="display_marker_top", data_type=int, options=settings.MARKER_TOPS, **prop_kwargs),
-            PropIntel(name="display_marker_top_offset", data_type=float, widget_type="float_entry", **prop_kwargs),
-            PropIntel(name="display_marker_angle", data_type=float, widget_type="float_entry", **prop_kwargs),
-            OptionPropIntel(name="display_marker_style", data_type=str, options=settings.MARKER_STYLES, **prop_kwargs),
-            PropIntel(name="display_calc_color", data_type=str, widget_type="color", **prop_kwargs),
-            PropIntel(name="display_exp_color", data_type=str, widget_type="color", **prop_kwargs),
-            PropIntel(name="display_calc_lw", data_type=int, widget_type="spin", **prop_kwargs),
-            PropIntel(name="display_exp_lw", data_type=int, widget_type="spin", **prop_kwargs),
-            PropIntel(name="display_plot_offset", data_type=float, widget_type="float_entry", **prop_kwargs),
-            PropIntel(name="display_group_by", data_type=int, **prop_kwargs),
-            PropIntel(name="display_label_pos", data_type=float, widget_type="float_entry", **prop_kwargs),
-            OptionPropIntel(name="axes_xscale", data_type=int, options=settings.AXES_XSCALES, **prop_kwargs),
-            PropIntel(name="axes_xmin", data_type=float, widget_type="float_entry", **prop_kwargs),
-            PropIntel(name="axes_xmax", data_type=float, widget_type="float_entry", **prop_kwargs),
-            PropIntel(name="axes_xstretch", data_type=bool, **prop_kwargs),
-            OptionPropIntel(name="axes_yscale", data_type=int, options=settings.AXES_YSCALES, **prop_kwargs),
-            PropIntel(name="axes_yvisible", data_type=bool, **prop_kwargs),
-            PropIntel(name="specimens", data_type=object, widget_type="tree_view", **prop_kwargs),
-            PropIntel(name="phases", data_type=object, has_widget=False, storable=True),
-            PropIntel(name="mixtures", data_type=object, has_widget=False, storable=True),
-            PropIntel(name="atom_types", data_type=object, has_widget=False, storable=True),
-            PropIntel(name="needs_saving", data_type=bool, has_widget=False, storable=False),
+        properties = [
+            PropIntel(name="name", label="Name", data_type=str, **PropIntel.ST_WID),
+            PropIntel(name="date", label="Date", data_type=str, **PropIntel.ST_WID),
+            PropIntel(name="description", label="Description", data_type=str, widget_type="text_view", **PropIntel.ST_WID),
+            PropIntel(name="author", label="Author", data_type=str, **PropIntel.ST_WID),
+            OptionPropIntel(name="layout_mode", label="Layout mode", data_type=str, options=settings.DEFAULT_LAYOUTS, **PropIntel.ST_WID),
+            PropIntel(name="display_marker_color", label="Color", data_type=str, widget_type="color", **PropIntel.ST_WID),
+            PropIntel(name="display_marker_top_offset", label="Offset from base", data_type=float, widget_type="float_entry", **PropIntel.ST_WID),
+            PropIntel(name="display_marker_angle", label="Angle", data_type=float, widget_type="float_entry", **PropIntel.ST_WID),
+            OptionPropIntel(name="display_marker_align", label="Label alignment", data_type=str, options=settings.MARKER_ALIGNS, **PropIntel.ST_WID),
+            OptionPropIntel(name="display_marker_base", label="Base connection", data_type=int, options=settings.MARKER_BASES, **PropIntel.ST_WID),
+            OptionPropIntel(name="display_marker_top", label="Top connection", data_type=int, options=settings.MARKER_TOPS, **PropIntel.ST_WID),
+            OptionPropIntel(name="display_marker_style", label="Line style", data_type=str, options=settings.MARKER_STYLES, **PropIntel.ST_WID),
+            PropIntel(name="display_calc_color", label="Calculated color", data_type=str, widget_type="color", **PropIntel.ST_WID),
+            PropIntel(name="display_exp_color", label="Experimental color", data_type=str, widget_type="color", **PropIntel.ST_WID),
+            PropIntel(name="display_calc_lw", label="Calculated linewidth", data_type=int, widget_type="spin", **PropIntel.ST_WID),
+            PropIntel(name="display_exp_lw", label="Experimental linewidth", data_type=int, widget_type="spin", **PropIntel.ST_WID),
+            PropIntel(name="display_plot_offset", label="Pattern offset", data_type=float, widget_type="float_entry", **PropIntel.ST_WID),
+            PropIntel(name="display_group_by", label="Group patterns by", data_type=int, **PropIntel.ST_WID),
+            PropIntel(name="display_label_pos", label="Default label position", data_type=float, widget_type="float_entry", **PropIntel.ST_WID),
+            OptionPropIntel(name="axes_xscale", label="X scale", data_type=int, options=settings.AXES_XSCALES, **PropIntel.ST_WID),
+            PropIntel(name="axes_xmin", label="min. [°2T]", data_type=float, widget_type="float_entry", **PropIntel.ST_WID),
+            PropIntel(name="axes_xmax", label="max. [°2T]", data_type=float, widget_type="float_entry", **PropIntel.ST_WID),
+            PropIntel(name="axes_xstretch", label="Stretch X-axis to fit window", data_type=bool, **PropIntel.ST_WID),
+            OptionPropIntel(name="axes_yscale", label="Y scale", data_type=int, options=settings.AXES_YSCALES, **PropIntel.ST_WID),
+            PropIntel(name="axes_yvisible", label="Y-axis visible", data_type=bool, **PropIntel.ST_WID),
+            PropIntel(name="specimens", label="Specimens", data_type=object, widget_type="object_list_view", class_type=Specimen, **PropIntel.ST_WID),
+            PropIntel(name="phases", data_type=object, class_type=Phase, **PropIntel.ST),
+            PropIntel(name="mixtures", data_type=object, class_type=Mixture, **PropIntel.ST),
+            PropIntel(name="atom_types", data_type=object, class_type=AtomType, **PropIntel.ST),
+            PropIntel(name="needs_saving", data_type=bool),
         ]
         store_id = "Project"
         file_filters = [
@@ -79,7 +74,8 @@ class Project(DataModel, Storable):
     needs_saving = True
 
     _layout_mode = settings.DEFAULT_LAYOUT
-    def get_layout_mode(self): return self._layout_mode
+    def get_layout_mode(self):
+        return self._layout_mode
     def set_layout_mode(self, value):
         with self.visuals_changed.hold_and_emit():
             self._layout_mode = value
@@ -261,7 +257,7 @@ class Project(DataModel, Storable):
                 goniometer: the project-level goniometer, is passed on to the
                  specimens
         """
-        super(Project, self).__init__(**kwargs)
+        super(Project, self).__init__(*args, **kwargs)
 
         with self.data_changed.hold():
             with self.visuals_changed.hold():
@@ -296,46 +292,47 @@ class Project(DataModel, Storable):
                 if goniometer_kwargs:
                     goniometer = self.parse_init_arg(goniometer_kwargs, None, child=True)
 
+                # Set up and observe atom types:
                 self.atom_types = self.get_list(kwargs, [], "atom_types", "data_atom_types", parent=self)
-                self.phases = self.get_list(kwargs, [], "phases", "data_phases", parent=self)
-                self.specimens = self.get_list(kwargs, [], "specimens", "data_specimens", parent=self)
-                self.mixtures = self.get_list(kwargs, [], "mixtures", "data_mixtures", parent=self)
+                self._atom_types_observer = ListObserver(
+                    self.on_atom_type_inserted,
+                    self.on_atom_type_removed,
+                    prop_name="atom_types",
+                    model=self
+                )
 
                 # Resolve json references & observe phases
+                self.phases = self.get_list(kwargs, [], "phases", "data_phases", parent=self)
                 for phase in self.phases:
                     phase.resolve_json_references()
                     self.observe_model(phase)
-                # Set goniometer if required & observe specimens
-                for specimen in self.specimens:
-                    if goniometer: specimen.goniometer = goniometer
-                    self.observe_model(specimen)
-                # Observe mixtures:
-                for mixture in self.mixtures:
-                    self.observe_model(mixture)
-
-                # Connect signals to lists and dicts:
                 self._phases_observer = ListObserver(
                     self.on_phase_inserted,
                     self.on_phase_removed,
                     prop_name="phases",
                     model=self
                 )
+
+                # Set goniometer if required & observe specimens
+                self.specimens = self.get_list(kwargs, [], "specimens", "data_specimens", parent=self)
+                for specimen in self.specimens:
+                    if goniometer: specimen.goniometer = goniometer
+                    self.observe_model(specimen)
                 self._specimens_observer = ListObserver(
                     self.on_specimen_inserted,
                     self.on_specimen_removed,
                     prop_name="specimens",
                     model=self
                 )
+
+                # Observe mixtures:
+                self.mixtures = self.get_list(kwargs, [], "mixtures", "data_mixtures", parent=self)
+                for mixture in self.mixtures:
+                    self.observe_model(mixture)
                 self._mixtures_observer = ListObserver(
                     self.on_mixture_inserted,
                     self.on_mixture_removed,
                     prop_name="mixtures",
-                    model=self
-                )
-                self._atom_types_observer = ListObserver(
-                    self.on_atom_type_inserted,
-                    self.on_atom_type_removed,
-                    prop_name="atom_types",
                     model=self
                 )
 
@@ -418,10 +415,7 @@ class Project(DataModel, Storable):
     @Observer.observe("data_changed", signal=True)
     def notify_data_changed(self, model, prop_name, info):
         self.needs_saving = True
-        if isinstance(model, Mixture):
-            with model.data_changed.ignore():
-                model.update()
-            self.data_changed.emit()
+        self.data_changed.emit()
 
     @Observer.observe("visuals_changed", signal=True)
     def notify_visuals_changed(self, model, prop_name, info):
@@ -481,7 +475,8 @@ class Project(DataModel, Storable):
 
     def update_all_mixtures(self):
         for mixture in self.mixtures:
-            mixture.update()
+            with self.data_changed.ignore():
+                mixture.update()
 
     # ------------------------------------------------------------
     #      Specimen list related

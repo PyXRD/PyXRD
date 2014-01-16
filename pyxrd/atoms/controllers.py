@@ -9,7 +9,7 @@ from contextlib import contextmanager
 
 import numpy as np
 
-from pyxrd.gtkmvc import Controller
+from pyxrd.mvc import Controller
 
 from pyxrd.generic.controllers import BaseController, ObjectListStoreController
 from pyxrd.atoms.models import AtomType

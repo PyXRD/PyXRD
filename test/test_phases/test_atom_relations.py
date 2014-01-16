@@ -39,14 +39,14 @@ class TestAtomRatio(unittest.TestCase):
     def setUp(self):
         self.atom1 = DummyAtom()
         self.atom2 = DummyAtom()
-
+        self.parent = DummyParent()
         self.atom_ratio = AtomRatio(
             name="TestRatio",
             sum=2,
             value=0.5,
             atom1=[self.atom1, "attribute"],
             atom2=[self.atom2, "attribute"],
-            parent=DummyParent()
+            parent=self.parent
         )
         self.atom_ratio.resolve_relations()
 
@@ -61,6 +61,7 @@ class TestAtomRatio(unittest.TestCase):
         self.assertIsNotNone(self.atom_ratio.atom2[0])
 
     def test_apply_relation(self):
+        self.atom_ratio.enabled = True
         self.atom_ratio.apply_relation()
         self.assertEqual(self.atom1.attribute, 1.0)
         self.assertEqual(self.atom2.attribute, 1.0)

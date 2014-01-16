@@ -8,10 +8,10 @@
 import zipfile
 from warnings import warn
 
-from pyxrd.gtkmvc.model import Observer
+from pyxrd.mvc import PropIntel
 
 from pyxrd.generic.io import storables, Storable
-from pyxrd.generic.models import DataModel
+from pyxrd.generic.models import DataModel, ListObserver, HoldableSignal
 from pyxrd.generic.calculations.components import get_factors
 from pyxrd.generic.calculations.data_objects import ComponentData
 from pyxrd.generic.refinement.mixins import RefinementGroup
@@ -19,17 +19,12 @@ from pyxrd.generic.refinement.mixins import RefinementGroup
 from pyxrd.atoms.models import Atom
 from .atom_relations import AtomRelation
 from .unit_cell_prop import UnitCellProperty
-from pyxrd.generic.models.observers import ListObserver
-from pyxrd.generic.models.signals import HoldableSignal
-from pyxrd.gtkmvc.support.propintel import PropIntel
-from pyxrd.gtkmvc.support.metaclasses import UUIDMeta
 
 @storables.register()
 class Component(DataModel, Storable, RefinementGroup):
 
     # MODEL INTEL:
     class Meta(DataModel.Meta):
-        parent_alias = "phase"
         properties = [
             PropIntel(name="name", data_type=unicode, label="Name", is_column=True, has_widget=True, storable=True),
             PropIntel(name="linked_with", data_type=object, label="Linked with", widget_type='custom', is_column=True, has_widget=True),
@@ -47,9 +42,9 @@ class Component(DataModel, Storable, RefinementGroup):
             PropIntel(name="inherit_layer_atoms", data_type=bool, label="Inh. layer atoms", is_column=True, has_widget=True, storable=True),
             PropIntel(name="inherit_interlayer_atoms", data_type=bool, label="Inh. interlayer atoms", is_column=True, has_widget=True, storable=True),
             PropIntel(name="inherit_atom_relations", data_type=bool, label="Inh. atom relations", is_column=True, has_widget=True, storable=True),
-            PropIntel(name="atom_relations", data_type=object, label="Atom relations", is_column=True, has_widget=True, storable=True, widget_type="custom", refinable=True, inh_name="inherit_atom_relations", stor_name="_atom_relations"),
-            PropIntel(name="layer_atoms", data_type=object, label="Layer atoms", is_column=True, has_widget=True, storable=True, widget_type="custom", inh_name="inherit_layer_atoms", stor_name="_layer_atoms"),
-            PropIntel(name="interlayer_atoms", data_type=object, label="Interlayer atoms", is_column=True, has_widget=True, storable=True, widget_type="custom", inh_name="inherit_interlayer_atoms", stor_name="_interlayer_atoms"),
+            PropIntel(name="atom_relations", data_type=object, label="Atom relations", is_column=True, has_widget=True, storable=True, widget_type="custom", refinable=True, inh_name="inherit_atom_relations", stor_name="_atom_relations", class_type=AtomRelation),
+            PropIntel(name="layer_atoms", data_type=object, label="Layer atoms", is_column=True, has_widget=True, storable=True, widget_type="custom", inh_name="inherit_layer_atoms", stor_name="_layer_atoms", class_type=Atom),
+            PropIntel(name="interlayer_atoms", data_type=object, label="Interlayer atoms", is_column=True, has_widget=True, storable=True, widget_type="custom", inh_name="inherit_interlayer_atoms", stor_name="_interlayer_atoms", class_type=Atom),
             PropIntel(name="atoms_changed", data_type=object, is_column=False, storable=False, has_widget=False)
         ]
         store_id = "Component"
@@ -77,6 +72,8 @@ class Component(DataModel, Storable, RefinementGroup):
         self._data_object.lattice_d = self._lattice_d
 
         return self._data_object
+
+    phase = property(DataModel.parent.fget, DataModel.parent.fset)
 
     # SIGNALS:
     atoms_changed = None
@@ -382,14 +379,13 @@ class Component(DataModel, Storable, RefinementGroup):
         self.inherit_interlayer_atoms = self.get_kwarg(kwargs, False, "inherit_interlayer_atoms")
         self.inherit_atom_relations = self.get_kwarg(kwargs, False, "inherit_atom_relations")
 
-    def __str__(self):
-        return ("<Component %s" % self.name) + \
-            (" linked with %s>" % self.linked_with if self.linked_with else ">")
+    def __repr__(self):
+        return "Component(name='%s', linked_with=%r)" % (self.name, self.linked_with)
 
     # ------------------------------------------------------------
     #      Notifications of observable properties
     # ------------------------------------------------------------
-    @Observer.observe("data_changed", signal=True)
+    @DataModel.observe("data_changed", signal=True)
     def on_data_model_changed(self, model, prop_name, info):
         # Check whether the changed model is an AtomRelation or Atom, if so
         # re-apply the atom_relations.
@@ -400,7 +396,7 @@ class Component(DataModel, Storable, RefinementGroup):
             if isinstance(model, UnitCellProperty):
                 self.data_changed.emit() # propagate signal
 
-    @Observer.observe("removed", signal=True)
+    @DataModel.observe("removed", signal=True)
     def on_data_model_removed(self, model, prop_name, info):
         # Check whether the removed component is linked with this one, if so
         # clears the link and emits the data_changed signal.
@@ -466,7 +462,7 @@ class Component(DataModel, Storable, RefinementGroup):
         self._ucp_b.update_value()
 
         if getattr(self, "_linked_with_uuid", None):
-            self.linked_with = UUIDMeta.object_pool.get_object(self._linked_with_uuid)
+            self.linked_with = type(type(self)).object_pool.get_object(self._linked_with_uuid)
             del self._linked_with_uuid
         elif getattr(self, "_linked_with_index", None) and self._linked_with_index != -1:
             warn("The use of object indeces is deprected since version 0.4. Please switch to using object UUIDs.", DeprecationWarning)
@@ -478,7 +474,7 @@ class Component(DataModel, Storable, RefinementGroup):
         """
             Saves multiple components to a single file.
         """
-        UUIDMeta.object_pool.change_all_uuids()
+        type(cls).object_pool.change_all_uuids()
         Component.export_atom_types = True
         for comp in components:
             comp.save_links = False
@@ -494,7 +490,7 @@ class Component(DataModel, Storable, RefinementGroup):
         """
             Returns multiple components loaded from a single file.
         """
-        UUIDMeta.object_pool.change_all_uuids()
+        type(cls).object_pool.change_all_uuids()
         if zipfile.is_zipfile(filename):
             with zipfile.ZipFile(filename, 'r') as zfile:
                 for uuid in zfile.namelist():

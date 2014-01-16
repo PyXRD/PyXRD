@@ -5,11 +5,9 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from pyxrd.gtkmvc.model import Observer, Signal
+from pyxrd.mvc import Signal, PropIntel
 
 from pyxrd.generic.models import PyXRDModel
-from pyxrd.gtkmvc.support.metaclasses import UUIDMeta
-from pyxrd.gtkmvc.support.propintel import PropIntel
 
 class AppModel(PyXRDModel):
     """
@@ -17,7 +15,7 @@ class AppModel(PyXRDModel):
         Should never be made persistent.
         
         Attributes:
-            needs_plot_update: a gtkmvc.Signal to indicate the plot needs an
+            needs_plot_update: a mvc.Signal to indicate the plot needs an
                 update. This models listens for the 'needs_update' signal on the
                 loaded project and propagates this accordingly.
             current_project: the currently loaded project
@@ -52,7 +50,7 @@ class AppModel(PyXRDModel):
     def set_current_project(self, value):
         if self._current_project is not None: self.relieve_model(self._current_project)
         self._current_project = value
-        UUIDMeta.object_pool.clear()
+        type(type(self)).object_pool.clear()
         if self._current_project is not None: self.observe_model(self._current_project)
         self.clear_selected()
         self.needs_plot_update.emit()
@@ -109,8 +107,8 @@ class AppModel(PyXRDModel):
     # ------------------------------------------------------------
     #      Notifications of observable properties
     # ------------------------------------------------------------
-    @Observer.observe("data_changed", signal=True)
-    @Observer.observe("visuals_changed", signal=True)
+    @PyXRDModel.observe("data_changed", signal=True)
+    @PyXRDModel.observe("visuals_changed", signal=True)
     def notify_needs_update(self, model, prop_name, info):
         self.needs_plot_update.emit()
 

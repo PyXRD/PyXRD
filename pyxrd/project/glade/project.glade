@@ -403,7 +403,7 @@
         <child>
           <object class="GtkSpinButton" id="spin_display_exp_lw">
             <property name="visible">True</property>
-            <property name="can_focus">False</property>
+            <property name="can_focus">True</property>
             <property name="invisible_char">●</property>
             <property name="width_chars">4</property>
             <property name="adjustment">project_display_exp_lw</property>
@@ -422,7 +422,7 @@
         <child>
           <object class="GtkSpinButton" id="spin_display_calc_lw">
             <property name="visible">True</property>
-            <property name="can_focus">False</property>
+            <property name="can_focus">True</property>
             <property name="invisible_char">●</property>
             <property name="width_chars">4</property>
             <property name="invisible_char_set">True</property>
@@ -442,7 +442,7 @@
         <child>
           <object class="GtkSpinButton" id="spin_display_group_by">
             <property name="visible">True</property>
-            <property name="can_focus">False</property>
+            <property name="can_focus">True</property>
             <property name="invisible_char">●</property>
             <property name="width_chars">2</property>
             <property name="invisible_char_set">True</property>
@@ -1001,12 +1001,13 @@
   </object>
   <object class="GtkMenu" id="specimen_popup">
     <property name="can_focus">False</property>
+    <property name="accel_path">&lt;PyXRDGroup&gt;/</property>
     <child>
       <object class="GtkImageMenuItem" id="popup_menu_item_add_specimen">
         <property name="label" translatable="yes">Add specimen</property>
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="accel_path">&lt;Actions&gt;/project_actions/add_specimen</property>
+        <property name="accel_path">&lt;PyXRD_Main&gt;/project_actions/add_specimen</property>
         <property name="image">img_add_specimen</property>
         <property name="use_stock">False</property>
         <property name="always_show_image">True</property>
@@ -1017,7 +1018,6 @@
         <property name="label" translatable="yes">Import specimens</property>
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="accel_path">&lt;Actions&gt;/project_actions/import_specimens</property>
         <property name="image">img_import_specimen</property>
         <property name="use_stock">False</property>
       </object>
@@ -1033,7 +1033,6 @@
         <property name="label" translatable="yes">Edit specimen</property>
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="accel_path">&lt;Actions&gt;/specimen_actions/edit_specimen</property>
         <property name="image">img_edit_specimen</property>
         <property name="use_stock">False</property>
       </object>
@@ -1043,7 +1042,6 @@
         <property name="label" translatable="yes">Replace data</property>
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="accel_path">&lt;Actions&gt;/specimen_actions/replace_specimen_data</property>
         <property name="image">img_replace_data</property>
         <property name="use_stock">False</property>
       </object>
@@ -1053,7 +1051,6 @@
         <property name="label" translatable="yes">Export data</property>
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="accel_path">&lt;Actions&gt;/specimen_actions/export_specimen_data</property>
         <property name="image">img_export_data</property>
         <property name="use_stock">False</property>
       </object>
@@ -1069,7 +1066,6 @@
         <property name="label" translatable="yes">Delete specimen</property>
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="accel_path">&lt;Actions&gt;/specimens_actions/del_specimen</property>
         <property name="image">img_del_specimen</property>
         <property name="use_stock">False</property>
         <property name="always_show_image">True</property>

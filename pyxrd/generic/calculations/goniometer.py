@@ -38,7 +38,7 @@ def get_machine_correction_range(specimen):
     correction_range = np.ones_like(specimen.range_theta)
     # Correct for automatic divergence slits first:
     if bool(goniometer.has_ads):
-        ads = (np.sin(goniometer.ads_phase_fact * specimen.range_theta + radians(goniometer.ads_phase_shift)) - goniometer.ads_const) / (radians(goniometer.divergence) * goniometer.ads_fact)
+        ads = (np.sin(goniometer.ads_phase_fact * specimen.range_theta + radians(goniometer.ads_phase_shift)) - goniometer.ads_const) / goniometer.ads_fact
         correction_range *= ads
     # Then correct for sample absorption:
     if specimen.absorption > 0.0:

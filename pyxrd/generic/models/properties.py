@@ -5,9 +5,6 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-# import gtk
-from warnings import warn
-
 class IndexProperty(object):
     """decorator used to create indexable properties (e.g. W[1,1])"""
 

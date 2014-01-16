@@ -8,7 +8,7 @@
 from pyxrd.generic.models.base import ChildModel
 
 from pyxrd.generic.refinement.mixins import _RefinementBase, RefinementValue, RefinementGroup
-from pyxrd.gtkmvc.support.propintel import PropIntel
+from pyxrd.mvc import PropIntel
 
 class RefinableWrapper(ChildModel):
     """

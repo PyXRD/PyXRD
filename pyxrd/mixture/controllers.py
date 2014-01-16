@@ -7,7 +7,7 @@
 
 import gtk
 
-from pyxrd.gtkmvc import Controller, Observer
+from pyxrd.mvc import Controller, Observer
 
 from pyxrd.generic.views.treeview_tools import new_text_column, new_pb_column, new_toggle_column
 from pyxrd.generic.mathtext_support import create_pb_from_mathtext
@@ -19,6 +19,7 @@ from pyxrd.mixture.views import EditMixtureView, RefinementView, RefinementResul
 from pyxrd.specimen.models.base import Specimen
 from pyxrd.generic.controllers.objectliststore_controllers import wrap_list_property_to_treemodel
 from pyxrd.phases.models.phase import Phase
+from contextlib import contextmanager
 
 class RefinementResultsController(DialogController):
     """
@@ -351,7 +352,6 @@ class RefinementController(DialogController):
             del self.results_controller
         if hasattr(self, "model"):
             self.relieve_model(self.model)
-            del self.model
 
     pass # end of class
 
@@ -366,11 +366,13 @@ class EditMixtureController(BaseController):
 
     @property
     def specimens_treemodel(self):
-        return wrap_list_property_to_treemodel(self.model.project, "specimens", Specimen)
+        prop = self.model.project.Meta.get_prop_intel_by_name("specimens")
+        return wrap_list_property_to_treemodel(self.model.project, prop)
 
     @property
     def phases_treemodel(self):
-        return wrap_list_property_to_treemodel(self.model.project, "phases", Phase)
+        prop = self.model.project.Meta.get_prop_intel_by_name("phases")
+        return wrap_list_property_to_treemodel(self.model.project, prop)
 
     def register_adapters(self):
         self.create_ui()
@@ -467,7 +469,7 @@ class EditMixtureController(BaseController):
             self.on_add_phase(widget, *args)
 
     def on_optimize_clicked(self, widget, *args):
-        self.model.optimizer.optimize()
+        self.model.optimize()
 
     def on_refine_clicked(self, widget, *args):
         self.model.update_refinement_treestore()
@@ -475,7 +477,7 @@ class EditMixtureController(BaseController):
             self.ref_view.hide()
             self.ref_ctrl.cleanup()
         self.ref_view = RefinementView(parent=self.parent.view)
-        self.ref_ctrl = RefinementController(self.model, self.ref_view, parent=self)
+        self.ref_ctrl = RefinementController(model=self.model, view=self.ref_view, parent=self)
         self.ref_view.present()
 
     def on_composition_clicked(self, widget, *args):
@@ -513,5 +515,10 @@ class MixturesController(ObjectListStoreController):
 
     def create_new_object_proxy(self):
         return Mixture(parent=self.model)
+
+    @contextmanager
+    def _multi_operation_context(self):
+        with self.model.data_changed.hold():
+            yield
 
     pass # end of class

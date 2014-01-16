@@ -5,17 +5,20 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from pyxrd.gtkmvc import Controller
+import logging
+logger = logging.getLogger(__name__)
+
+from pyxrd.mvc import Controller
+from pyxrd.mvc.adapters.dummy_adapter import DummyAdapter
 
 from pyxrd.generic.views import InlineObjectListStoreView
 from pyxrd.generic.views.combobox_tools import add_combo_text_column
 from pyxrd.generic.controllers import BaseController, ChildObjectListStoreController
-from pyxrd.generic.controllers.utils import DummyAdapter
 from pyxrd.generic.io.utils import get_case_insensitive_glob
 
 from pyxrd.phases.controllers import EditLayerController, EditAtomRelationsController, EditUnitCellPropertyController
 from pyxrd.phases.views import EditComponentView, EditUnitCellPropertyView
-from pyxrd.phases.models.component import Component
+from pyxrd.phases.models import Phase, Component
 from pyxrd.generic.controllers.objectliststore_controllers import wrap_list_property_to_treemodel
 
 class EditComponentController(BaseController):
@@ -44,27 +47,10 @@ class EditComponentController(BaseController):
     @property
     def components_treemodel(self):
         if self.model.phase.based_on:
-            return wrap_list_property_to_treemodel(self.model.phase.based_on, "components", Component)
+            prop = Phase.Meta.get_prop_intel_by_name("components")
+            return wrap_list_property_to_treemodel(self.model.phase.based_on, prop)
         else:
             return None
-
-    def __init__(self, *args, **kwargs):
-        BaseController.__init__(self, *args, **kwargs)
-
-        self.layer_view = InlineObjectListStoreView(parent=self.view)
-        self.layer_controller = EditLayerController(treemodel_property_name="layer_atoms", model=self.model, view=self.layer_view, parent=self)
-
-        self.interlayer_view = InlineObjectListStoreView(parent=self.view)
-        self.interlayer_controller = EditLayerController(treemodel_property_name="interlayer_atoms", model=self.model, view=self.interlayer_view, parent=self)
-
-        self.atom_relations_view = InlineObjectListStoreView(parent=self.view)
-        self.atom_relations_controller = EditAtomRelationsController(treemodel_property_name="atom_relations", model=self.model, view=self.atom_relations_view, parent=self)
-
-        self.ucpa_view = EditUnitCellPropertyView(parent=self.view)
-        self.ucpa_controller = EditUnitCellPropertyController(extra_props=[(self.model, "cell_b", "B cell length"), ], model=self.model._ucp_a, view=self.ucpa_view, parent=self)
-
-        self.ucpb_view = EditUnitCellPropertyView(parent=self.view)
-        self.ucpb_controller = EditUnitCellPropertyController(extra_props=[(self.model, "cell_a", "A cell length"), ], model=self.model._ucp_b, view=self.ucpb_view, parent=self)
 
     def reset_combo_box(self):
         """
@@ -77,7 +63,8 @@ class EditComponentController(BaseController):
             if self.components_treemodel is not None:
                 add_combo_text_column(combo, text_col=self.components_treemodel.c_name)
                 for row in self.components_treemodel:
-                    if self.components_treemodel.get_user_data(row.iter) == self.model.linked_with:
+                    comp = self.components_treemodel.get_user_data(row.iter)
+                    if comp == self.model.linked_with:
                         combo.set_active_iter (row.iter)
                         break
 
@@ -94,7 +81,25 @@ class EditComponentController(BaseController):
             self.view.set_ucpb_view(self.ucpb_view.get_top_widget())
         elif intel.name == "linked_with":
             self.reset_combo_box()
-        return DummyAdapter(intel.name)
+        return DummyAdapter(controller=self, prop=intel)
+
+    def register_view(self, view):
+        super(EditComponentController, self).register_view(view)
+
+        self.layer_view = InlineObjectListStoreView(parent=view)
+        self.layer_controller = EditLayerController(treemodel_property_name="layer_atoms", model=self.model, view=self.layer_view, parent=self)
+
+        self.interlayer_view = InlineObjectListStoreView(parent=view)
+        self.interlayer_controller = EditLayerController(treemodel_property_name="interlayer_atoms", model=self.model, view=self.interlayer_view, parent=self)
+
+        self.atom_relations_view = InlineObjectListStoreView(parent=view)
+        self.atom_relations_controller = EditAtomRelationsController(treemodel_property_name="atom_relations", model=self.model, view=self.atom_relations_view, parent=self)
+
+        self.ucpa_view = EditUnitCellPropertyView(parent=view)
+        self.ucpa_controller = EditUnitCellPropertyController(extra_props=[(self.model, "cell_b", "B cell length"), ], model=self.model._ucp_a, view=self.ucpa_view, parent=self)
+
+        self.ucpb_view = EditUnitCellPropertyView(parent=view)
+        self.ucpb_controller = EditUnitCellPropertyController(extra_props=[(self.model, "cell_a", "A cell length"), ], model=self.model._ucp_b, view=self.ucpb_view, parent=self)
 
     def register_adapters(self):
         self.update_sensitivities()
@@ -125,10 +130,6 @@ class EditComponentController(BaseController):
     @Controller.observe("inherit_delta_c", assign=True)
     def notif_change_inherit(self, model, prop_name, info):
         self.update_sensitivities()
-
-    @Controller.observe("name", assign=True)
-    def notif_name_changed(self, model, prop_name, info):
-        self.model.parent.components.on_item_changed(self.model)
 
     @Controller.observe("linked_with", assign=True)
     def notif_linked_with_changed(self, model, prop_name, info):
@@ -176,7 +177,7 @@ class ComponentsController(ChildObjectListStoreController):
                 return
             else:
                 self.select_object(None)
-                print "Importing components..."
+                logger.info("Importing components...")
                 # replace component(s):
                 for old_comp, new_comp in zip(old_comps, new_comps):
                     self.liststore.replace_item(old_comp, new_comp)
@@ -190,7 +191,7 @@ class ComponentsController(ChildObjectListStoreController):
     # ------------------------------------------------------------
     def on_save_object_clicked(self, event):
         def on_accept(dialog):
-            print "Exporting components..."
+            logger.info("Exporting components...")
             filename = self.extract_filename(dialog)
             Component.save_components(self.get_selected_objects(), filename=filename)
         self.run_save_dialog("Export components", on_accept, parent=self.view.get_toplevel())

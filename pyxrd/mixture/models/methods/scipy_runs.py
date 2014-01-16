@@ -10,6 +10,9 @@ import scipy
 
 from .refine_run import RefineRun
 
+import logging
+logger = logging.getLogger(__name__)
+
 class RefineLBFGSBRun(RefineRun):
     name = "L BFGS B algorithm"
     description = "Refinement using the L BFGS B algorithm"
@@ -28,7 +31,7 @@ class RefineLBFGSBRun(RefineRun):
             epsilon=1e-4,
             callback=context.update
         )
-        print d
+        logger.debug("fmin_l_bfgs_b returned: %s" % d)
 
     pass # end of class
 

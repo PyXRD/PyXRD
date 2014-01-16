@@ -67,7 +67,7 @@ def _mk_exception(exception, name=None):
 def _mk_common_exceptions():
     namespace = dict()
     if sys.version_info[0] == 3:
-        import builtins as _builtin_exceptions
+        import builtins as _builtin_exceptions # @UnresolvedImport
         common_exceptions = filter(
             lambda x: x.endswith('Error'),
             dir(_builtin_exceptions))

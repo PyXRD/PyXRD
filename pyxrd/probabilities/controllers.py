@@ -5,7 +5,7 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from pyxrd.gtkmvc import Controller
+from pyxrd.mvc import Controller
 
 from pyxrd.generic.controllers import BaseController
 
@@ -38,9 +38,21 @@ class EditProbabilitiesController(BaseController):
         self.independents_controller, self.dependents_controller = get_correct_probability_controllers(self.model, self, self.independents_view, self.dependents_view)
         view.set_views(self.independents_view, self.dependents_view)
 
+    @BaseController.model.setter
+    def model(self, model):
+        if self.view is not None:
+            self.independents_controller.model = None # model
+            self.dependents_controller.model = None # model
+        super(EditProbabilitiesController, self)._set_model(model)
+        if self.view is not None:
+            self.independents_controller.model = model
+            self.dependents_controller.model = model
+            self.update_views()
+
     def update_views(self): # needs to be called whenever an independent value changes
-        self.dependents_view.update_matrices(self.model)
-        self.independents_view.update_matrices(self.model)
+        with self.model.data_changed.hold():
+            self.dependents_view.update_matrices(self.model)
+            self.independents_view.update_matrices(self.model)
 
     def register_adapters(self):
         return

@@ -13,7 +13,7 @@ from appdirs import user_data_dir, user_cache_dir, user_log_dir
 VERSION = __version__
 
 DEBUG = False
-BGSHIFT = False
+BGSHIFT = True
 
 LOG_FILENAME = os.path.join(user_log_dir('PyXRD'), 'errors.log')
 
@@ -41,7 +41,7 @@ POOL = None
 #  - FILE_FETCH_ONLY (recommended) - Cache before a refinement starts, then only fetch results form disk.
 #  - MEMORY (not advisable) - Cache in-memory (can cause lock-ups on low-end PC's)
 #  - None - Do not cache, or try to use a cache.
-CACHE = None # "FILE_FETCH_ONLY"
+CACHE = "FILE" # _FETCH_ONLY"
 CACHE_SIZE = 500 * (1024 * 1024) # size of on-disk cache in bytes (10 Mb)
 GUI_MODE = True
 
@@ -246,7 +246,10 @@ def apply_runtime_settings(no_gui=True, debug=False, pool=None):
         import gc
         gc.collect()
 
-        print "Runtime settings applied"
+        # Log that we did all of this:
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info("Runtime settings applied")
     __apply_lock__ = False
     SETTINGS_APPLIED = True
 

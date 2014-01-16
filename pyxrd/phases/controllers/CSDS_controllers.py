@@ -5,11 +5,11 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from traceback import format_exc
+from traceback import print_exc
 
 import gtk
 
-from pyxrd.gtkmvc import Controller
+from pyxrd.mvc import Controller
 
 from pyxrd.generic.controllers import BaseController
 
@@ -24,36 +24,45 @@ class EditCSDSTypeController(BaseController):
     distributions_controller = None
 
     def reset_type_store(self):
-        combo = self.view["cmb_type"]
-        store = gtk.ListStore(str, object)
+        if self.view is not None:
+            combo = self.view["cmb_type"]
+            store = gtk.ListStore(str, object) # @UndefinedVariable
 
-        for cls in CSDS_distribution_types:
-            store.append([cls.Meta.description, cls])
-        combo.set_model(store)
+            for cls in CSDS_distribution_types:
+                store.append([cls.Meta.description, cls])
+            combo.set_model(store)
 
-        for row in store:
-            if type(self.model.CSDS_distribution) == store.get_value(row.iter, 1):
-                combo.set_active_iter(row.iter)
-                break
-        return store
+            for row in store:
+                if type(self.model.CSDS_distribution) == store.get_value(row.iter, 1):
+                    combo.set_active_iter(row.iter)
+                    break
+            return store
 
     def register_view(self, view):
+        self.view = view
         combo = self.view["cmb_type"]
         combo.connect('changed', self.on_changed)
-        cell = gtk.CellRendererText()
+        cell = gtk.CellRendererText() # @UndefinedVariable
         combo.pack_start(cell, True)
         combo.add_attribute(cell, 'markup', 0)
+        self.reset_type_store()
+        self.reset_distributions_controller()
 
-    def register_adapters(self):
-        if self.model is not None:
-            store = self.reset_type_store()
-            if self.distributions_controller == None:
+    @BaseController.model.setter
+    def _set_model(self, model):
+        super(EditCSDSTypeController, self)._set_model(model)
+        self.reset_distributions_controller()
+
+
+    def reset_distributions_controller(self):
+        if self.view is not None:
+            if self.distributions_controller is None:
                 self.distributions_controller = EditCSDSDistributionController(
                     model=self.model.CSDS_distribution,
                     view=self.view,
                     parent=self)
             else:
-                self.distributions_controller.reset_model(self.model)
+                self.distributions_controller.model = self.model.CSDS_distribution
 
     # ------------------------------------------------------------
     #      GTK Signal handlers
@@ -77,13 +86,6 @@ class EditCSDSDistributionController(BaseController):
 
     # auto_adapt = False
 
-    def reset_model(self, new_model):
-        self.relieve_model(self.model)
-        self.model = new_model
-        self.observe_model(new_model)
-        if self.view is not None:
-            self.register_view(self.view)
-
     def register_view(self, view):
         if self.model is not None:
             view.reset_params()
@@ -104,7 +106,7 @@ class EditCSDSDistributionController(BaseController):
         if self.model.distrib is not None and not self.model.phase.project.before_needs_update_lock:
             try: self.view.update_figure(self.model.distrib[0])
             except any as error:
-                print "Caught unhandled exception: %s" % error
-                print format_exc()
+                error.args += ("Caught unhandled exception: %s" % error,) 
+                print_exc()
 
     pass # end of class

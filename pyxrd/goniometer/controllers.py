@@ -9,6 +9,8 @@ import gtk
 
 from pyxrd.generic.controllers import BaseController
 from pyxrd.goniometer.models import Goniometer
+from pyxrd.mvc.adapters.gtk_support.treemodels.utils import (
+    create_treestore_from_directory, create_valuestore_from_file)
 
 class InlineGoniometerController(BaseController):
     """
@@ -26,8 +28,10 @@ class InlineGoniometerController(BaseController):
         self.generate_wavelength_combo()
 
     def generate_import_combo(self):
+        # TODO seperate this more the gtk level...
         self.view.import_combo_box.clear()
-        cmb_model = Goniometer.create_defaults_store()
+        path, ext = Goniometer.get_default_goniometers_path()
+        cmb_model = create_treestore_from_directory(path, ext)
         self.view.import_combo_box.set_model(cmb_model)
         cell = gtk.CellRendererText()
         self.view.import_combo_box.pack_start(cell, True)
@@ -35,8 +39,10 @@ class InlineGoniometerController(BaseController):
         self.view.import_combo_box.add_attribute(cell, 'sensitive', 2)
 
     def generate_wavelength_combo(self):
+        # TODO seperate this more the gtk level...
         self.view.wavelength_combo_box.clear()
-        cmb_model = Goniometer.create_wavelengths_store()
+        path = Goniometer.get_default_wavelengths_path()
+        cmb_model = create_valuestore_from_file(path)
         self.view.wavelength_combo_box.set_model(cmb_model)
         cell = gtk.CellRendererText()
         self.view.wavelength_combo_box.pack_start(cell, True)

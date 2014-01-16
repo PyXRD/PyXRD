@@ -13,6 +13,8 @@ from pyxrd.generic.caching import cache
 from pyxrd.generic.calculations.CSDS import calculate_distribution
 from pyxrd.generic.calculations.components import get_factors
 from pyxrd.data import settings
+import logging
+logger = logging.getLogger(__name__)
 
 @cache(64)
 def get_structure_factors(range_stl, G, comp_list):
@@ -43,7 +45,7 @@ def get_absolute_scales(components, CSDS_real_mean, W):
             mean_d001 += comp.d001 * W[i]
             mean_density += (comp.weight * W[i] / comp.volume)
         else:
-            if settings.DEBUG: print "- calc: get_absolute_scales reports: 'Zero observations found!'"
+            logger.debug("- calc: get_absolute_scales reports: 'Zero observations found!'") 
 
     return mean_d001 / (CSDS_real_mean * mean_volume ** 2 * mean_density)
 
@@ -51,7 +53,7 @@ def get_absolute_scales(components, CSDS_real_mean, W):
 def get_diffracted_intensity(range_stl, phase):
     # Check probability model, if invalid return zeros instead of the actual pattern:
     if not phase.valid_probs:
-        if settings.DEBUG: print "- calc: get_diffracted_intensity reports: 'Invalid probability found!'"
+        logger.debug("- calc: get_diffracted_intensity reports: 'Invalid probability found!'")
         return np.zeros_like(range_stl)
     else:
         # Calculate CSDS distribution

@@ -11,7 +11,7 @@ from pyxrd.generic.views.treeview_tools import new_text_column, new_combo_column
 from pyxrd.generic.controllers.objectliststore_controllers import wrap_list_property_to_treemodel
 from pyxrd.generic.controllers import InlineObjectListStoreController
 
-from pyxrd.atoms.models import Atom, AtomType
+from pyxrd.atoms.models import Atom
 
 
 class EditLayerController(InlineObjectListStoreController):
@@ -25,7 +25,8 @@ class EditLayerController(InlineObjectListStoreController):
 
     @property
     def atom_types_treemodel(self):
-        return wrap_list_property_to_treemodel(self.model.phase.project, "atom_types", AtomType)
+        prop = self.model.phase.project.Meta.get_prop_intel_by_name("atom_types")
+        return wrap_list_property_to_treemodel(self.model.phase.project, prop)
 
     # ------------------------------------------------------------
     #      Initialization and other internals

@@ -8,6 +8,8 @@
 from pkg_resources import resource_filename # @UnresolvedImport
 
 import gtk
+import logging
+logger = logging.getLogger(__name__)
 
 import matplotlib
 import matplotlib.transforms as transforms
@@ -72,7 +74,7 @@ class PlotController(DialogMixin):
             self.figure.canvas.draw()
             self.fix_after_drawing()
         except ParseFatalException as e:
-            print "Catching unhandled exception: %s" % e
+            logger.debug("Caught unhandled exception: %s" % e)
 
     def fix_after_drawing(self):
         pass # nothing to fix
@@ -292,7 +294,7 @@ class MainPlotController (PlotController):
                     bboxi = bbox.inverse_transformed(self.figure.transFigure)
                     bboxes.append(bboxi)
             except RuntimeError as e:
-                print "Catching unhandled exception: %s" % e
+                logger.debug("Caught unhandled exception: %s" % e)
                 return # don't continue
 
             # this is the bbox that bounds all the bboxes, again in relative

@@ -6,14 +6,15 @@
 # Complete license can be found in the LICENSE file.
 
 from contextlib import contextmanager
+import logging
+logger = logging.getLogger(__name__)
 
 import gtk
 
-from pyxrd.gtkmvc import Controller
+from pyxrd.mvc import Controller
 
 from pyxrd.generic.plot.controllers import DraggableVLine, EyedropperCursorPlot
 from pyxrd.generic.controllers import DialogController, BaseController, ObjectListStoreController
-from pyxrd.generic.views.validators import FloatEntryValidator
 from pyxrd.generic.views.treeview_tools import setup_treeview, new_text_column, new_toggle_column
 from pyxrd.generic.io.utils import get_case_insensitive_glob
 
@@ -30,12 +31,13 @@ class EditMarkerController(BaseController):
 
     def register_view(self, view):
         self.update_sensitivities()
-        FloatEntryValidator(self.view["entry_nanometer"])
         self.update_nanometer()
 
     def update_sensitivities(self):
-        for name in ("style", "align", "base", "top", "top_offset", "angle", "color"):
+        for name in ("style", "base", "align", "top", "color"):
             self.view["marker_%s" % name].set_sensitive(not getattr(self.model, "inherit_%s" % name))
+        for name in ("angle", "top_offset"):
+            self.view["spb_%s" % name].set_sensitive(not getattr(self.model, "inherit_%s" % name))
 
     # ------------------------------------------------------------
     #      Notifications of observable properties
@@ -44,7 +46,6 @@ class EditMarkerController(BaseController):
     def notif_parameter_changed(self, model, prop_name, info):
         if prop_name == "position":
             self.update_nanometer()
-
 
     @Controller.observe("inherit_style", assign=True)
     @Controller.observe("inherit_align", assign=True)
@@ -59,39 +60,32 @@ class EditMarkerController(BaseController):
     # ------------------------------------------------------------
     #      GTK Signal handlers
     # ------------------------------------------------------------
-    def on_style_changed(self, combo, user_data=None):
-        itr = combo.get_active_iter()
-        if itr is not None:
-            val = combo.get_model().get_value(itr, 0)
-            self.model.style = val
-
     def on_nanometer_changed(self, widget):
         try:
-            position = float(widget.get_text())
+            position = float(widget.get_value())
+        except ValueError:
+            logger.debug("User set nanometers to an invalid value: %s", widget.get_value())
+        else:
             self.model.set_nm_position(position)
-        except:
-            pass
         pass
 
     def update_nanometer(self):
-        self.view["entry_nanometer"].set_text("%f" % self.model.get_nm_position())
+        self.view["entry_nanometer"].set_value(self.model.get_nm_position())
 
     def on_sample_clicked(self, widget):
 
-        def click_callback(edc, x_pos, event):
-            if edc is not None:
-                edc.enabled = False
-                edc.disconnect()
+        def click_callback(edc, x_pos):
+            if self.edc is not None:
+                self.edc.enabled = False
+                self.edc.disconnect()
             self.view.get_toplevel().present()
             if x_pos != -1:
                 self.model.position = x_pos
 
         self.edc = EyedropperCursorPlot(
-            self.parent.plot_controller.figure,
             self.parent.plot_controller.canvas,
             self.parent.plot_controller.canvas.get_window(),
-            click_callback,
-            True, True
+            click_callback, True, True
         )
 
         self.view.get_toplevel().hide()
@@ -152,7 +146,6 @@ class MarkersController(ObjectListStoreController):
             with self._multi_operation_context():
                 Marker.get_from_csv(dialog.get_filename(), self.model.markers.append)
         self.run_load_dialog("Import markers", on_accept, parent=self.view.get_top_widget())
-
 
     def on_save_object_clicked(self, event):
         def on_accept(dialog):
@@ -234,11 +227,13 @@ class MatchMineralController(DialogController):
         self.close_callback = close_callback
 
     def register_adapters(self):
+        super(MatchMineralController, self).register_adapters()
         if self.model is not None:
             self.reload_minerals()
             self.reload_matches()
 
     def register_view(self, view):
+        super(MatchMineralController, self).register_view(view)
         if view is not None:
             # MATCHES Treeview:
             tv = self.view['tv_matches']

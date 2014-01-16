@@ -5,18 +5,21 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
+import types
+import json
+import logging
+logger = logging.getLogger('pyxrd')
+
 import numpy as np
 from scipy.interpolate import interp1d
 
-from pyxrd.gtkmvc.support.propintel import PropIntel, OptionPropIntel
+from pyxrd.mvc import PropIntel, OptionPropIntel
 
 from pyxrd.data import settings
 from pyxrd.generic.io import storables, Storable
 from pyxrd.generic.custom_math import smooth, add_noise
 
-from base import DataModel
-import types
-import json
+from pyxrd.generic.models.base import DataModel
 from pyxrd.generic.io.file_parsers import ASCIIParser
 from pyxrd.generic.utils import not_none
 
@@ -209,17 +212,16 @@ class XYData(DataModel, Storable):
         data = json.JSONDecoder().decode(data)
         return data
 
-    def _set_from_serial_data(self, data):
+    def _set_from_serial_data(self, sdata):
         """Internal method, do not use!"""
-        data = self._deserialize_data(data)
+        data = self._deserialize_data(sdata)
         if data != []:
             data = np.array(data, dtype=float)
             try:
                 x = data[:, 0]
                 y = data[:, 1]
             except IndexError:
-                if settings.DEBUG:
-                    print "Failed to load xy-data from serial string!"
+                logger.debug("Failed to load xy-data from serial string: %s" % sdata)
             else:
                 self.set_data(x, y)
 
@@ -499,12 +501,13 @@ class CalculatedLine(PyXRDLine):
 
     # MODEL INTEL:
     class Meta(PyXRDLine.Meta):
-        parent_alias = 'specimen'
         properties = [
             PropIntel(name="phase_colors", data_type=list),
         ]
         store_id = "CalculatedLine"
         inherit_format = "display_calc_%s"
+
+    specimen = property(DataModel.parent.fget, DataModel.parent.fset)
 
     # PROPERTIES:
     _color = settings.CALCULATED_COLOR
@@ -521,7 +524,6 @@ class ExperimentalLine(PyXRDLine):
 
     # MODEL INTEL:
     class Meta(PyXRDLine.Meta):
-        parent_alias = 'specimen'
         properties = [
             PropIntel(name="bg_position", data_type=float, has_widget=True, widget_type="float_entry"),
             PropIntel(name="bg_scale", data_type=float, has_widget=True, widget_type="float_entry"),
@@ -539,6 +541,8 @@ class ExperimentalLine(PyXRDLine):
             PropIntel(name="stripped_pattern", data_type=object),
         ]
         store_id = "ExperimentalLine"
+
+    specimen = property(DataModel.parent.fget, DataModel.parent.fset)
 
     # PROPERTIES:
     _color = settings.EXPERIMENTAL_COLOR
@@ -689,7 +693,7 @@ class ExperimentalLine(PyXRDLine):
             elif self.bg_type == 1 and self.bg_pattern is not None and not (self.bg_position == 0 and self.bg_scale == 0):
                 bg = self.bg_pattern * self.bg_scale + self.bg_position
             if bg is not None:
-                self.data_y -= bg
+                self.data_y[:, 0] -= bg
             self.clear_bg_variables()
 
     def find_bg_position(self):
@@ -711,7 +715,7 @@ class ExperimentalLine(PyXRDLine):
         with self.data_changed.hold_and_emit():
             if self.smooth_degree > 0:
                 degree = int(self.smooth_degree)
-                self.data_y = smooth(self.data_y[:, 0], degree)
+                self.data_y[:, 0] = smooth(self.data_y[:, 0], degree)
             self.smooth_degree = 0.0
 
     def setup_smooth_variables(self):

@@ -9,6 +9,9 @@ from functools import wraps
 from collections import OrderedDict
 from pyxrd.data import settings
 
+import logging
+logger = logging.getLogger(__name__)
+
 import hashlib
 import marshal
 from numpy import *
@@ -76,7 +79,6 @@ class PersistentHasher(object):
             # Just try to hash it
             try:
                 self.hashAlg.update(str(hash(obj)))
-                # print '  updating with obj hash', str(hash(obj))
             except TypeError:
                 if type(obj) is tuple or type(obj) is list:
                     # Tuples are only hashable if all their components are.
@@ -84,8 +86,7 @@ class PersistentHasher(object):
                     for item in obj:
                         self.update(item, level=level + 1)  # recursive call
                 else:
-                    print 'UNSUPPORTED TYPE: FIX THIS:',
-                    print type(obj), obj
+                    logger.critical('UNSUPPORTED TYPE: FIX THIS: %s, %s' % (type(obj), obj))
 
         self.counter += 1
 
@@ -94,7 +95,7 @@ class PersistentHasher(object):
         return self.hashAlg.hexdigest()
 
 def cache(maxsize=16):
-    if not settings.USE_CACHES:
+    if not settings.USE_CACHES: # @UndefinedVariable
         def dummy(func):
             func.func = func
             return func

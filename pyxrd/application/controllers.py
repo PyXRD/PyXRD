@@ -11,7 +11,7 @@ from os.path import basename, dirname
 import gtk
 import gobject
 
-from pyxrd.gtkmvc import Controller
+from pyxrd.mvc import Controller
 
 from pyxrd.data import settings
 
@@ -42,7 +42,7 @@ class AppController (BaseController, DialogMixin):
     # ------------------------------------------------------------
     def __init__(self, model, view, spurious=False, auto_adapt=False, parent=None):
         """ Initializes an AppController with the given arguments. """
-        super(AppController, self).__init__(model, view, spurious=spurious, auto_adapt=auto_adapt, parent=parent)
+        super(AppController, self).__init__(model=model, view=view, spurious=spurious, auto_adapt=auto_adapt, parent=parent)
 
         # Plot controller:
         self.plot_controller = MainPlotController(self)

@@ -9,6 +9,8 @@ from pyxrd.generic.io import get_size, sizeof_fmt
 
 # Apply settings
 from pyxrd.data import settings
+import logging
+logger = logging.getLogger(__name__)
 
 if not settings.SETTINGS_APPLIED:
     settings.apply_runtime_settings()
@@ -16,7 +18,7 @@ if not settings.SETTINGS_APPLIED:
 # Check what cache we're using and load it:
 if settings.CACHE in ("FILE", "FILE_FETCH_ONLY"):
     # best choice for numpy stuff:
-    print "Using joblib cache (%s)" % settings.CACHE
+    logger.info("Using joblib cache (%s)" % settings.CACHE)
     from pyxrd.joblib import Memory
 
     cachedir = settings.DATA_REG.get_directory_path("CACHE_DIR")
@@ -42,11 +44,11 @@ if settings.CACHE in ("FILE", "FILE_FETCH_ONLY"):
             memory.clear()
 
 elif settings.CACHE == "MEMORY":
-    print "Using in-memory cache... (NOT RECOMMENDED)"
+    logger.warning("Using in-memory cache... (NOT RECOMMENDED!)")
     from pyxrd.generic.cache_collection import cache
 
 elif settings.CACHE == None:
-    print "Not using cache"
+    logger.info("Not using cache")
     def cache(maxsize, cache=None, timeout=None):
 
         def dummy(func):

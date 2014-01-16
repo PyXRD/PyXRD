@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
   <!-- interface-requires gtk+ 3.0 -->
-  <object class="GtkAccelGroup" id="PyXRDGroup"/>
+  <object class="GtkAccelGroup" id="PyXRD_Main"/>
   <object class="GtkActionGroup" id="persistent_actions">
-    <property name="accel_group">PyXRDGroup</property>
+    <property name="accel_group">PyXRD_Main</property>
     <child>
       <object class="GtkAction" id="import_project_sybilla">
         <property name="label" translatable="yes">Import Sybilla XML</property>
@@ -49,7 +49,7 @@
   </object>
   <object class="GtkActionGroup" id="project_actions">
     <property name="sensitive">False</property>
-    <property name="accel_group">PyXRDGroup</property>
+    <property name="accel_group">PyXRD_Main</property>
     <child>
       <object class="GtkAction" id="edit_mixtures">
         <property name="label" translatable="yes">Edit Mixtures</property>
@@ -143,7 +143,7 @@
   </object>
   <object class="GtkActionGroup" id="specimen_actions">
     <property name="sensitive">False</property>
-    <property name="accel_group">PyXRDGroup</property>
+    <property name="accel_group">PyXRD_Main</property>
     <child>
       <object class="GtkAction" id="shift_data">
         <property name="label" translatable="yes">Shift pattern</property>
@@ -265,7 +265,7 @@
   </object>
   <object class="GtkActionGroup" id="specimens_actions">
     <property name="sensitive">False</property>
-    <property name="accel_group">PyXRDGroup</property>
+    <property name="accel_group">PyXRD_Main</property>
     <child>
       <object class="GtkAction" id="save_graph">
         <property name="label" translatable="yes">Save Graph</property>
@@ -334,7 +334,22 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</property>
     <property name="authors">Mathijs Dumon
 Gael Varoquaux (joblib)
 Johan Van Der Wauw</property>
-    <property name="license_type">custom</property>
+    <child internal-child="vbox">
+      <object class="GtkBox" id="aboutdialog-vbox1">
+        <property name="can_focus">False</property>
+        <child internal-child="action_area">
+          <object class="GtkButtonBox" id="aboutdialog-action_area1">
+            <property name="can_focus">False</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="pack_type">end</property>
+            <property name="position">0</property>
+          </packing>
+        </child>
+      </object>
+    </child>
   </object>
   <object class="GtkImage" id="image2">
     <property name="visible">True</property>
@@ -352,12 +367,13 @@ Johan Van Der Wauw</property>
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="title" translatable="yes">PyXRD</property>
+    <property name="role">PyXRD_Main</property>
     <property name="window_position">center</property>
     <property name="default_width">800</property>
     <property name="default_height">600</property>
     <property name="icon">../icons/pyxrd2.svg</property>
     <accel-groups>
-      <group name="PyXRDGroup"/>
+      <group name="PyXRD_Main"/>
     </accel-groups>
     <signal name="delete-event" handler="on_main_window_delete_event" swapped="no"/>
     <child>
@@ -378,7 +394,7 @@ Johan Van Der Wauw</property>
                   <object class="GtkMenu" id="menu_project">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="accel_group">PyXRDGroup</property>
+                    <property name="accel_group">PyXRD_Main</property>
                     <child>
                       <object class="GtkImageMenuItem" id="menu_item_new_project">
                         <property name="related_action">new_project</property>
@@ -477,7 +493,7 @@ Johan Van Der Wauw</property>
                   <object class="GtkMenu" id="menu2">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="accel_group">PyXRDGroup</property>
+                    <property name="accel_group">PyXRD_Main</property>
                     <child>
                       <object class="GtkImageMenuItem" id="menu_item_refresh">
                         <property name="related_action">refresh_graph</property>
@@ -545,12 +561,13 @@ Johan Van Der Wauw</property>
                   <object class="GtkMenu" id="menu_data">
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="accel_group">PyXRDGroup</property>
+                    <property name="accel_group">PyXRD_Main</property>
                     <child>
                       <object class="GtkImageMenuItem" id="main_menu_item_add_specimen">
                         <property name="related_action">add_specimen</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="accel_path">&lt;PyXRD_Main&gt;/project_actions/add_specimen</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                         <property name="always_show_image">True</property>

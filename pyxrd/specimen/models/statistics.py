@@ -5,18 +5,19 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from traceback import format_exc
+from traceback import print_exc
+import logging
+logger = logging.getLogger(__name__)
 
 
 from pyxrd.generic.models import PyXRDLine, ChildModel
 from pyxrd.generic.calculations.statistics import Rp, derive
-from pyxrd.gtkmvc.support.propintel import PropIntel
+from pyxrd.mvc import PropIntel
 
 class Statistics(ChildModel):
 
     # MODEL INTEL:
     class Meta(ChildModel.Meta):
-        parent_alias = 'specimen'
         properties = [ # TODO add labels
             PropIntel(name="points", data_type=int, has_widget=True),
             PropIntel(name="residual_pattern", data_type=object),
@@ -28,9 +29,12 @@ class Statistics(ChildModel):
         ]
 
     # PROPERTIES:
-    def set_parent(self, value):
-        ChildModel.set_parent(self, value)
+    @ChildModel.parent.setter
+    def parent(self, value):
+        super(Statistics, self.__class__).parent.fset(self, value)
         self.update_statistics()
+
+    specimen = property(ChildModel.parent.fget, ChildModel.parent.fset)
 
     def get_points(self):
         try:
@@ -114,7 +118,7 @@ class Statistics(ChildModel):
             self.residual_pattern.clear()
             self.der_exp_pattern.clear()
             self.der_calc_pattern.clear()
-            print "Error occured when trying to calculate statistics, aborting calculation!"
-            print format_exc()
+            logger.debug("Error occured when trying to calculate statistics, aborting calculation!")
+            print_exc()
 
     pass # end of class

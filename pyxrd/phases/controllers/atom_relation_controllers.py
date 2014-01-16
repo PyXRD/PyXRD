@@ -7,9 +7,8 @@
 
 import gtk
 
-from pyxrd.gtkmvc import Controller
-
-from pyxrd.generic.controllers.utils import DummyAdapter
+from pyxrd.mvc import Controller
+from pyxrd.mvc.adapters.dummy_adapter import DummyAdapter
 
 from pyxrd.generic.views.treeview_tools import (
     new_text_column,
@@ -158,7 +157,7 @@ class EditAtomContentsController(DialogController):
     def widget_handler(self, intel, widget):
         if intel.name == "atom_contents":
             self.view.set_contents_list_view(self.contents_list_view.get_top_widget())
-        return DummyAdapter(intel.name)
+            return DummyAdapter(controller=self, prop=intel)
 
     pass # end of class
 
@@ -205,7 +204,7 @@ class ContentsListController(InlineObjectListStoreController):
             try:
                 model.set_value(itr, col, float(new_text))
             except ValueError:
-                print "Invalid value entered ('%s')!" % new_text
+                logger.debug("Invalid value entered ('%s')!" % new_text)
             return True
         tv.append_column(new_text_column('Default contents', text_col=2, xalign=0.0,
             editable=True,

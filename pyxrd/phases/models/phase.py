@@ -9,20 +9,18 @@ from random import choice
 import zipfile
 from warnings import warn
 
-from pyxrd.gtkmvc.model import Observer
+from pyxrd.mvc import Observer, PropIntel
 
 from pyxrd.generic.io import storables, Storable, get_case_insensitive_glob
-from pyxrd.generic.models import DataModel
+from pyxrd.generic.models import DataModel, ListObserver
 from pyxrd.generic.calculations.phases import get_diffracted_intensity
 from pyxrd.generic.calculations.data_objects import PhaseData
 from pyxrd.generic.refinement.mixins import RefinementGroup
 
 from pyxrd.probabilities.models import get_correct_probability_model
+
 from .CSDS import DritsCSDSDistribution
 from .component import Component
-from pyxrd.gtkmvc.support.metaclasses import UUIDMeta
-from pyxrd.gtkmvc.support.propintel import PropIntel
-from pyxrd.generic.models.observers import ListObserver
 
 
 @storables.register()
@@ -30,7 +28,6 @@ class Phase(DataModel, Storable, RefinementGroup):
 
     # MODEL INTEL:
     class Meta(DataModel.Meta):
-        parent_alias = 'project'
         properties = [
             PropIntel(name="name", data_type=unicode, label="Name", is_column=True, has_widget=True, storable=True),
             PropIntel(name="display_color", data_type=str, label="Display color", is_column=True, has_widget=True, widget_type='color', storable=True, inh_name="inherit_display_color", stor_name="_display_color"),
@@ -44,7 +41,7 @@ class Phase(DataModel, Storable, RefinementGroup):
             PropIntel(name="inherit_sigma_star", data_type=bool, label="Inh. sigma star", is_column=True, has_widget=True, storable=True),
             PropIntel(name="inherit_probabilities", data_type=bool, label="Inh. probabilities", is_column=True, has_widget=True, storable=True),
             PropIntel(name="probabilities", data_type=object, label="Probabilities", is_column=True, has_widget=True, storable=True, refinable=True, widget_type="custom", inh_name="inherit_probabilities", stor_name="_probabilities"),
-            PropIntel(name="components", data_type=object, label="Components", is_column=True, has_widget=True, storable=True, refinable=True, widget_type="custom"),
+            PropIntel(name="components", data_type=object, label="Components", is_column=True, has_widget=True, storable=True, refinable=True, widget_type="custom", class_type=Component),
         ]
         store_id = "Phase"
         file_filters = [
@@ -77,6 +74,8 @@ class Phase(DataModel, Storable, RefinementGroup):
             self._data_object.components = None
 
         return self._data_object
+
+    project = property(DataModel.parent.fget, DataModel.parent.fset)
 
     # PROPERTIES:
     name = "New Phase"
@@ -267,9 +266,8 @@ class Phase(DataModel, Storable, RefinementGroup):
             self._based_on_uuid = self.get_kwarg(kwargs, None, "based_on_uuid")
             self._based_on_index = self.get_kwarg(kwargs, None, "based_on_index")
 
-    def __str__(self):
-        return ("<Phase %s" % self.name) + \
-            (" based on %s>" % self.based_on if self.based_on else ">")
+    def __repr__(self):
+        return "Phase(name='%s', based_on=%r)" % (self.name, self.based_on)
 
     # ------------------------------------------------------------
     #      Notifications of observable properties
@@ -302,7 +300,7 @@ class Phase(DataModel, Storable, RefinementGroup):
     def resolve_json_references(self):
         # Set the based on and linked with variables:
         if hasattr(self, "_based_on_uuid") and self._based_on_uuid is not None:
-            self.based_on = UUIDMeta.object_pool.get_object(self._based_on_uuid)
+            self.based_on = type(type(self)).object_pool.get_object(self._based_on_uuid)
             del self._based_on_uuid
         elif hasattr(self, "_based_on_index") and self._based_on_index is not None and self._based_on_index != -1:
             warn("The use of object indices is deprecated since version 0.4. Please switch to using object UUIDs.", DeprecationWarning)
@@ -316,7 +314,7 @@ class Phase(DataModel, Storable, RefinementGroup):
         """
             Saves multiple phases to a single file.
         """
-        UUIDMeta.object_pool.change_all_uuids()
+        type(cls).object_pool.change_all_uuids()
         for phase in phases:
             if phase.based_on != "" and not phase.based_on in phases:
                 phase.save_links = False
@@ -348,7 +346,7 @@ class Phase(DataModel, Storable, RefinementGroup):
         """
             Returns multiple phases loaded from a single file.
         """
-        UUIDMeta.object_pool.change_all_uuids()
+        type(cls).object_pool.change_all_uuids()
         if zipfile.is_zipfile(filename):
             with zipfile.ZipFile(filename, 'r') as zfile:
                 for name in zfile.namelist():

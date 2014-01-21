@@ -64,7 +64,7 @@ class EditMarkerController(BaseController):
         try:
             position = float(widget.get_value())
         except ValueError:
-            logger.debug("User set nanometers to an invalid value: %s", widget.get_value())
+            logger.exception("User set nanometers to an invalid value: %s", widget.get_value())
         else:
             self.model.set_nm_position(position)
         pass
@@ -74,7 +74,7 @@ class EditMarkerController(BaseController):
 
     def on_sample_clicked(self, widget):
 
-        def click_callback(edc, x_pos):
+        def click_callback(x_pos, event):
             if self.edc is not None:
                 self.edc.enabled = False
                 self.edc.disconnect()
@@ -154,7 +154,7 @@ class MarkersController(ObjectListStoreController):
         self.run_save_dialog("Export markers", on_accept, parent=self.view.get_top_widget())
 
     def create_new_object_proxy(self):
-        return Marker(name="New Marker", parent=self.model)
+        return Marker(label="New Marker", parent=self.model)
 
     def on_marker_visible_toggled(self, cell, path, model, colnr):
         if model is not None:
@@ -169,7 +169,7 @@ class MarkersController(ObjectListStoreController):
 
         sel_model = ThresholdSelector(parent=self.model)
         sel_view = DetectPeaksView(parent=self.view)
-        sel_ctrl = ThresholdController(sel_model, sel_view, parent=self, callback=after_cb)
+        sel_ctrl = ThresholdController(model=sel_model, view=sel_view, parent=self, callback=after_cb)
         sel_model.update_threshold_plot_data()
 
         if len(self.model.markers) > 0:
@@ -222,7 +222,7 @@ class MatchMineralController(DialogController):
     #      Initialisation and other internals
     # ------------------------------------------------------------
     def __init__(self, model, view, spurious=False, auto_adapt=False, parent=None, apply_callback=None, close_callback=None):
-        DialogController.__init__(self, model, view, spurious=spurious, auto_adapt=auto_adapt, parent=parent)
+        DialogController.__init__(self, model=model, view=view, spurious=spurious, auto_adapt=auto_adapt, parent=parent)
         self.apply_callback = apply_callback
         self.close_callback = close_callback
 

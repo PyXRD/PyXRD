@@ -70,8 +70,8 @@ class HoldableSignal(Signal):
     # STANDARD EMIT OVERRID:
     def emit(self, *args, **kwargs):
         if self._counter == 0:
-            super(HoldableSignal, self).emit(*args, **kwargs)
             self._emissions_pending = False
+            super(HoldableSignal, self).emit(*args, **kwargs)
         else:
             self._emit_pending()
 

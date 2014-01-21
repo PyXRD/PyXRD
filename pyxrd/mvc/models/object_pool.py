@@ -26,7 +26,7 @@ from weakref import WeakValueDictionary
 import threading
 import multiprocessing
 import logging
-logger = logging.getLogger('pyxrd')
+logger = logging.getLogger(__name__)
 
 from pyxrd.generic.utils import get_new_uuid
 
@@ -57,7 +57,7 @@ class ObjectPool(object):
         else:
             # Just change the objects uuid, will break refs, but
             # it prevents issues with inherited properties etc.
-            logger.debug("A duplicate UUID was passed to an ObjectPool for a %s object." % obj)
+            logger.warning("A duplicate UUID was passed to an ObjectPool for a %s object." % obj)
             obj.uuid = get_new_uuid()
 
     def change_all_uuids(self):

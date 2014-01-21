@@ -25,7 +25,7 @@
 from contextlib import contextmanager
 
 from .abstract_adapter import AbstractAdapter
-from ..observer import Observer
+from ..observers import Observer
 from ..models import Model, PropIntel
 
 from pyxrd.generic.utils import not_none # TODO separate this?

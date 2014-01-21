@@ -12,7 +12,7 @@ from pyxrd.mvc import Observer, PropIntel, OptionPropIntel
 from pyxrd.data import settings
 
 from pyxrd.generic.models import DataModel
-from pyxrd.generic.models.observers import ListObserver
+from pyxrd.mvc.observers import ListObserver
 from pyxrd.generic.io import storables, Storable, get_case_insensitive_glob
 
 from pyxrd.phases.models import Phase
@@ -257,7 +257,12 @@ class Project(DataModel, Storable):
                 goniometer: the project-level goniometer, is passed on to the
                  specimens
         """
+        my_kwargs = self.pop_kwargs(kwargs,
+            "goniometer", "data_goniometer", "data_atom_types", "data_phases",
+            *[names[0] for names in type(self).Meta.get_local_storable_properties()]
+        )
         super(Project, self).__init__(*args, **kwargs)
+        kwargs = my_kwargs
 
         with self.data_changed.hold():
             with self.visuals_changed.hold():
@@ -415,7 +420,8 @@ class Project(DataModel, Storable):
     @Observer.observe("data_changed", signal=True)
     def notify_data_changed(self, model, prop_name, info):
         self.needs_saving = True
-        self.data_changed.emit()
+        if isinstance(model, Mixture):
+            self.data_changed.emit()
 
     @Observer.observe("visuals_changed", signal=True)
     def notify_visuals_changed(self, model, prop_name, info):

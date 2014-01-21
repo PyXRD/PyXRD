@@ -8,7 +8,7 @@
 from copy import deepcopy
 from traceback import print_exc
 import logging
-logger = logging.getLogger('pyxrd')
+logger = logging.getLogger(__name__)
 
 import time
 
@@ -68,15 +68,21 @@ class RefineContext(ChildModel):
         super(RefineContext, self).__init__(parent=parent)
         self.options = options
 
+        logger.info("Creating RefineContext with the following refinables:")
+
         if parent is not None:
             self.ref_props = []
             self.values = []
             self.ranges = ()
-            for ref_prop in parent.refinables.iter_objects():
+            for node in parent.refinables.iter_children():
+                ref_prop = node.object
                 if ref_prop.refine and ref_prop.refinable:
+                    logger.info("\t%s from %r" % (ref_prop.title, ref_prop.obj))
                     self.ref_props.append(ref_prop)
                     self.values.append(ref_prop.value)
                     self.ranges += ((ref_prop.value_min, ref_prop.value_max),)
+
+
 
         if store: self.store_project_state()
 
@@ -106,17 +112,19 @@ class RefineContext(ChildModel):
 
     def apply_solution(self, solution):
         solution = np.asanyarray(solution)
-        with self.mixture.data_changed.hold():
-            for i, ref_prop in enumerate(self.ref_props):
-                if not (solution.shape == ()):
-                    ref_prop.value = float(solution[i])
-                else:
-                    ref_prop.value = float(solution[()])
+        with self.mixture.needs_update.hold():
+            with self.mixture.data_changed.hold():
+                for i, ref_prop in enumerate(self.ref_props):
+                    if not (solution.shape == ()):
+                        ref_prop.value = float(solution[i])
+                    else:
+                        ref_prop.value = float(solution[()])
 
     def get_data_object_for_solution(self, solution):
-        with self.mixture.data_changed.ignore():
-            self.apply_solution(solution)
-            return deepcopy(self.mixture.data_object)
+        with self.mixture.needs_update.ignore():
+            with self.mixture.data_changed.ignore():
+                self.apply_solution(solution)
+                return deepcopy(self.mixture.data_object)
 
     def get_residual_for_solution(self, solution):
         self.apply_solution(solution)
@@ -154,7 +162,7 @@ class Refiner(ChildModel):
         A simple model that plugs onto the Mixture model. It provides
         the functionality related to refinement of parameters.
     """
-    parent_alias = "mixture"
+    mixture = property(ChildModel.parent.fget, ChildModel.parent.fset)
 
     # ------------------------------------------------------------
     #      Methods & Functions
@@ -190,27 +198,28 @@ class Refiner(ChildModel):
             self.refine_lock = True
 
             # Suppress updates:
-            with self.mixture.data_changed.hold():
+            with self.mixture.needs_update.hold():
+                with self.mixture.data_changed.hold():
 
-                # If something has been selected: continue...
-                if len(self.context.ref_props) > 0:
-                    # Run until it ends or it raises an exception:
-                    t1 = time.time()
-                    try:
-                        self.mixture.get_refine_method()(self.context, stop=stop)
-                    except any as error:
-                        error.args += ("Handling run-time error: %s" % error,)
-                        print_exc()
-                        self.context.status = "error"
-                    else:
-                        if stop.is_set():
-                            self.context.status = "stopped"
+                    # If something has been selected: continue...
+                    if len(self.context.ref_props) > 0:
+                        # Run until it ends or it raises an exception:
+                        t1 = time.time()
+                        try:
+                            self.mixture.get_refinement_method()(self.context, stop=stop)
+                        except any as error:
+                            error.args += ("Handling run-time error: %s" % error,)
+                            print_exc()
+                            self.context.status = "error"
                         else:
-                            self.context.status = "finished"
-                    t2 = time.time()
-                    logger.info('%s took %0.3f ms' % ("Total refinement", (t2 - t1) * 1000.0))
-                else: # nothing selected for refinement
-                    self.context.status = "error"
+                            if stop.is_set():
+                                self.context.status = "stopped"
+                            else:
+                                self.context.status = "finished"
+                        t2 = time.time()
+                        logger.info('%s took %0.3f ms' % ("Total refinement", (t2 - t1) * 1000.0))
+                    else: # nothing selected for refinement
+                        self.context.status = "error"
 
             # Unlock this method
             self.refine_lock = False

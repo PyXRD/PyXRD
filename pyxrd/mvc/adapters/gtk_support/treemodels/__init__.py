@@ -22,10 +22,10 @@
 #  Boston, MA 02110, USA.
 #  -------------------------------------------------------------------------
 
-from object_list_store import ObjectListStore
-from base_models import BaseObjectListStore
-from object_tree_store import ObjectTreeStore
-from xy_list_store import XYListStore
+from .object_list_store import ObjectListStore
+from .base_models import BaseObjectListStore
+from .object_tree_store import ObjectTreeStore
+from .xy_list_store import XYListStore
 
 __all__ = [
     "BaseObjectListStore",

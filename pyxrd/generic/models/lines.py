@@ -5,15 +5,14 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-import types
-import json
 import logging
-logger = logging.getLogger('pyxrd')
+logger = logging.getLogger(__name__)
 
 import numpy as np
 from scipy.interpolate import interp1d
 
 from pyxrd.mvc import PropIntel, OptionPropIntel
+from pyxrd.mvc.models.xydata import XYData
 
 from pyxrd.data import settings
 from pyxrd.generic.io import storables, Storable
@@ -24,139 +23,31 @@ from pyxrd.generic.io.file_parsers import ASCIIParser
 from pyxrd.generic.utils import not_none
 
 @storables.register()
-class XYData(DataModel, Storable):
+class StorableXYData(XYData, Storable):
     """
-        An XYData is data model holding a list of x-y numbers with additional
-        I/O and CRUD abilities.  
-        Its values can be indexed, e.g.:
-         >>> xydata = XYData(data=([1, 2, 3], [[4, 5], [6, 7], [8, 9]]))
-         >>> xydata[0]
-         (1, [4, 5])
-         
-        and iterated:
-         >>> xydata = XYData(data=([1, 2, 3], [[4, 5], [6, 7], [8, 9]]))
-         >>> for row in xydata:
-         ...  print row
-         ...
-         (1, [4, 5])
-         (2, [6, 7])
-         (3, [8, 9])
-         
-        You can also associate names with each column:
-         >>> xydata = XYData(data=([1, 2, 3], [[4, 5], [6, 7], [8, 9]]))
-         >>> xydata.y_names = ["First Column", "Second Column"]
-         >>> xydata.y_names.get(0, "")
-         'First Column'
-         
-         
+        A storable XYData model with additional I/O and CRUD abilities.
     """
-    # MODEL INTEL:
-    class Meta(DataModel.Meta):
-        properties = [
-            PropIntel(name="data_x", data_type=object),
-            PropIntel(name="data_y", data_type=object),
-        ]
-        store_id = "XYData"
 
-    # OBSERVABLE PROPERTIES:
-    _data_x = None
-    def get_data_x(self): return self._data_x
-    def set_data_x(self, value):
-        self.set_data(value, self._data_y)
-    _data_y = None
-    def get_data_y(self): return self._data_y
-    def set_data_y(self, value):
-        self.set_data(self._data_x, value)
-
-    # REGULAR PROPERTIES:
-    _y_names = []
-    @property
-    def y_names(self):
-        if len(self) < len(self._y_names):
-            return self._y_names[:len(self)]
-        else:
-            return self._y_names
-    @y_names.setter
-    def y_names(self, names):
-        self._y_names = names
-
-    @property
-    def size(self):
-        return len(self)
-
-    @property
-    def num_columns(self):
-        return 1 + self.data_y.shape[1]
-
-    @property
-    def max_y(self):
-        if len(self.data_x) > 1:
-            return np.max(self.data_y)
-        else:
-            return 0
-
-    @property
-    def min_y(self):
-        if len(self.data_x) > 1:
-            return np.min(self.data_y)
-        else:
-            return 0
-
-    @property
-    def abs_max_y(self):
-        if len(self.data_x) > 1:
-            return np.max(np.absolute(self.data_y))
-        else:
-            return 0
-
-    @property
-    def abs_min_y(self):
-        if len(self.data_x) > 1:
-            return np.min(np.absolute(self.data_y))
-        else:
-            return 0
+    class Meta(XYData.Meta):
+        store_id = "StorableXYData"
+        properties = []
 
     # ------------------------------------------------------------
-    #      Initialization and other internals
+    #      Initialisation and other internals
     # ------------------------------------------------------------
     def __init__(self, *args, **kwargs):
         """
-            Valid keyword arguments for an XYData are:
-                data: the actual data containing x and y values, this can be a:
-                 - JSON string: "[[x1, x2, ..., xn], [y11, y21, ..., yn1], ..., [y1m, y2m, ..., ynm]]"
-                 - A dictionary from a (deprecated) XYObjectListStore, containing
-                   a data property, which contains a JSON string as above.
-                 - A 2D-numpy array, in which its first axes contains the 
-                   data rows, and its second axes contains the columns, first 
-                   column being the x-data, and following columns the y-data, e.g.:
-                    np.array([[x1,y11,...,y1m],
-                              [x2,y21,...,y2m],
-                              ...,
-                              [xn,yn1,...,ynm]])
-                  - An iterable containing the x-data and y-data as if it would be
-                    passed to set_data(*data), e.g.:
-                     ([1, 2, 3], [[4, 5], [6, 7], [8, 9]])
-                names: names for the y columns (optional)
+            Valid keyword arguments for a PyXRDLine are:
+                data: the actual data containing x and y values
+                label: the label for this line
+                color: the color of this line
+                inherit_color: whether to use the parent-level color or its own
+                lw: the line width of this line
+                inherit_lw: whether to use the parent-level line width or its own
         """
-        self._data_x = np.array([], dtype=float)
-        self._data_y = np.zeros(shape=(0, 0), dtype=float)
-
-        super(XYData, self).__init__(*args, **kwargs)
-        with self.visuals_changed.hold():
-            self.y_names = self.get_kwarg(kwargs, self.y_names, "names")
-
-            data = self.get_kwarg(kwargs, None, "xy_store", "data")
-            if data is not None:
-                if type(data) in types.StringTypes:
-                    self._set_from_serial_data(data)
-                elif type(data) is types.DictionaryType:
-                    self._set_from_serial_data(data["properties"]["data"])
-                elif isinstance(data, np.ndarray):
-                    self.set_data(data[:, 0], data[:, 1:])
-                elif hasattr(data, '__iter__'):
-                    self.set_data(*data)
-            else:
-                self.clear()
+        if "xy_store" in kwargs:
+            kwargs["data"] = kwargs.pop("xy_store")
+        super(StorableXYData, self).__init__(*args, **kwargs)
 
     # ------------------------------------------------------------
     #      Input/Output stuff
@@ -188,195 +79,11 @@ class XYData(DataModel, Storable):
             for x, y in generator:
                 self.append(x, y)
 
-    def _serialize_data(self):
-        """
-            Internal method, should normally not be used!
-            If you want to write data to a file, use the save_data method instead!
-        """
-        conc = np.insert(self.data_y, 0, self.data_x, axis=1)
-        return "[" + ",".join(
-                ["[" + ",".join(["%f" % val for val in row]) + "]" for row in conc]
-            ) + "]"
-
-    def _deserialize_data(self, data):
-        """
-            Internal method, should normally not be used!
-            If you want to load data from a file, use the generic.io.file_parsers
-            classes in combination with the load_data_from_generator instead!
-            'data' argument should be a json string, containing a list of lists
-            of x and y values, i.e.:
-            [[x1, x2, ..., xn], [y11, y21, ..., yn1], ..., [y1m, y2m, ..., ynm]]
-            If there are n data points and m+1 columns.
-        """
-        data = data.replace("nan", "0.0")
-        data = json.JSONDecoder().decode(data)
-        return data
-
-    def _set_from_serial_data(self, sdata):
-        """Internal method, do not use!"""
-        data = self._deserialize_data(sdata)
-        if data != []:
-            data = np.array(data, dtype=float)
-            try:
-                x = data[:, 0]
-                y = data[:, 1]
-            except IndexError:
-                logger.debug("Failed to load xy-data from serial string: %s" % sdata)
-            else:
-                self.set_data(x, y)
-
-    # ------------------------------------------------------------
-    #      X-Y Data Management Methods & Functions
-    # ------------------------------------------------------------
-    def _y_from_user(self, y_value):
-        return np.array(y_value, ndmin=2, dtype=float)
-
-    def set_data(self, x, y):
-        """
-            Sets data using the supplied x, y1, ..., yn arrays.
-        """
-        with self.data_changed.hold_and_emit():
-            tempx = np.asanyarray(x)
-            tempy = np.asanyarray(y)
-            if tempy.ndim == 1:
-                tempy = tempy.reshape((tempy.size, 1))
-            if tempx.shape[0] != tempy.shape[0]:
-                raise ValueError, "Shape mismatch: x (shape = %s) and y (shape = %s) data need to have compatible shapes!" % (tempx.shape, tempy.shape)
-            self._data_x = tempx
-            self._data_y = tempy
-
-    def set_value(self, i, j, value):
-        with self.data_changed.hold_and_emit():
-            if i < len(self):
-                if j == 0:
-                    self.data_x[i] = value
-                elif j >= 1:
-                    self.data_y[i, j - 1] = np.array(value, dtype=float)
-                else:
-                    raise IndexError, "Column indices must be positive values (is '%d')!" % j
-            else:
-                raise IndexError, "Row index '%d' out of bound!" % i
-
-    def append(self, x, y):
-        """
-            Appends data using the supplied x, y1, ..., yn arrays.
-        """
-        with self.data_changed.hold_and_emit():
-            data_x = np.append(self.data_x, x)
-            _y = self._y_from_user(y)
-            if self.data_y.size == 0:
-                data_y = _y
-            else:
-                data_y = np.append(self.data_y, _y, axis=0)
-            self.set_data(data_x, data_y)
-
-    def insert(self, pos, x, y):
-        """
-            Inserts data using the supplied x, y1, ..., yn arrays at the given
-            position.
-        """
-        with self.data_changed.hold_and_emit():
-            self.data_x = np.insert(self.data_x, pos, x)
-            self.data_y = np.insert(self.data_y, pos, self._y_from_user(y), axis=0)
-
-    def remove_from_indeces(self, *indeces):
-        if indeces != []:
-            indeces = np.sort(indeces)[::-1]
-            with self.data_changed.hold_and_emit():
-                for index in indeces:
-                    self.set_data(
-                        np.delete(self.data_x, index, axis=0),
-                        np.delete(self.data_y, index, axis=0)
-                    )
-
-    def clear(self):
-        """
-            Clears all x and y values.
-        """
-        self.set_data(np.zeros((0,), dtype=float), np.zeros((0, 0), dtype=float))
-
-    # ------------------------------------------------------------
-    #      Convenience Methods & Functions
-    # ------------------------------------------------------------
-    def get_xy_data(self, column=1):
-        """
-            Returns a two-tuple containing 1D-numpy arrays with the x-data and
-            the y-data for a given column. If the column keyword is not passed, 
-            the first column is returned.
-        """
-        if len(self) > 0:
-            return self.data_x, self.data_y[:, column - 1]
-        else:
-            return np.array([], dtype=float), np.array([], dtype=float)
-
-    def get_plotted_y_at_x(self, x):
-        """
-            Gets the (interpolated) plotted value at the given x position.
-            If this line has not been plotted (or does not have
-            access to a '__plot_line' attribute set by the plotting routines)
-            it will return 0.
-        """
-        try:
-            xdata, ydata = getattr(self, "__plot_line").get_data()
-        except AttributeError:
-            if settings.DEBUG:
-                from traceback import print_exc
-                print_exc()
-        else:
-            if len(xdata) > 0 and len(ydata) > 0:
-                return np.interp(x, xdata, ydata)
-        return 0
-
-    def get_y_at_x(self, x, column=0):
-        """ 
-            Get the (interpolated) value for the y-column 'column' for
-            a given x value
-        """
-        if self._data_x.size:
-            return np.interp(x, self._data_x, self._data_y[:, column])
-        else:
-            return 0
-
-    def get_y_name(self, column):
-        """
-            Returns the name of the given column. If the y_names attribute is 
-            not properly set (e.g. too small or empty), it will return an empty
-            string. This method is 'safer' to use then directly accessing the
-            y_names attribute (may result in an IndexError).
-        """
-        try:
-            return self.y_names[column]
-        except IndexError:
-            return ""
-
-    def interpolate(self, *x_vals, **kwargs):
-        """
-            Returns a list of (x, y) tuples for the passed x values. An optional
-            column keyword argument can be passed to select a column, by default
-            the first y-column is used. Returned y-values are interpolated. 
-        """
-        column = kwargs.get("column", 0)
-        f = interp1d(self.data_x, self.data_y[:, column])
-        return zip(x_vals, f(x_vals))
-
-    # ------------------------------------------------------------
-    #      Iterable & Indexable implementation
-    # ------------------------------------------------------------
-    def __len__(self):
-        return len(self.data_x)
-
-    def __getitem__(self, index):
-        return self.data_x[index], self.data_y[index].tolist()
-
-    def __iter__(self):
-        for i in xrange(len(self)):
-            yield self[i]
 
     pass # end of class
 
-
 @storables.register()
-class PyXRDLine(XYData):
+class PyXRDLine(DataModel, StorableXYData):
     """
         A PyXRDLine is an attribute holder for a real 'Line' object, whatever the
         plotting library used may be. Attributes are line width and
@@ -384,7 +91,7 @@ class PyXRDLine(XYData):
     """
 
     # MODEL INTEL:
-    class Meta(XYData.Meta):
+    class Meta(StorableXYData.Meta):
         properties = [
             PropIntel(name="label", data_type=unicode, storable=True),
             PropIntel(name="color", data_type=str, storable=True, has_widget=True, widget_type="color"),
@@ -469,7 +176,12 @@ class PyXRDLine(XYData):
                 lw: the line width of this line
                 inherit_lw: whether to use the parent-level line width or its own
         """
+        my_kwargs = self.pop_kwargs(kwargs,
+            *[names[0] for names in PyXRDLine.Meta.get_local_storable_properties()]
+        )
         super(PyXRDLine, self).__init__(*args, **kwargs)
+        kwargs = my_kwargs
+
         with self.visuals_changed.hold():
             self.label = self.get_kwarg(kwargs, self.label, "label")
             self.color = self.get_kwarg(kwargs, self.color, "color")
@@ -493,6 +205,68 @@ class PyXRDLine(XYData):
             del kwargs["data_label"]
             del kwargs["xy_data"]
         return cls(**kwargs)
+
+    def set_data(self, x, y):
+        """
+            Sets data using the supplied x, y1, ..., yn arrays.
+        """
+        with self.data_changed.hold_and_emit():
+            super(PyXRDLine, self).set_data(x, y)
+
+    def set_value(self, i, j, value):
+        with self.data_changed.hold_and_emit():
+            super(PyXRDLine, self).set_value(i, j, value)
+
+    def append(self, x, y):
+        """
+            Appends data using the supplied x, y1, ..., yn arrays.
+        """
+        with self.data_changed.hold_and_emit():
+            super(PyXRDLine, self).append(x, y)
+
+    def insert(self, pos, x, y):
+        """
+            Inserts data using the supplied x, y1, ..., yn arrays at the given
+            position.
+        """
+        with self.data_changed.hold_and_emit():
+            super(PyXRDLine, self).insert(pos, x, y)
+
+    def remove_from_indeces(self, *indeces):
+        with self.data_changed.hold_and_emit():
+            super(PyXRDLine, self).remove_from_indeces(*indeces)
+
+    # ------------------------------------------------------------
+    #      Convenience Methods & Functions
+    # ------------------------------------------------------------
+    def interpolate(self, *x_vals, **kwargs):
+        """
+            Returns a list of (x, y) tuples for the passed x values. An optional
+            column keyword argument can be passed to select a column, by default
+            the first y-column is used. Returned y-values are interpolated. 
+        """
+        column = kwargs.get("column", 0)
+        f = interp1d(self.data_x, self.data_y[:, column])
+        return zip(x_vals, f(x_vals))
+
+    def get_plotted_y_at_x(self, x):
+        """
+            Gets the (interpolated) plotted value at the given x position.
+            If this line has not been plotted (or does not have
+            access to a '__plot_line' attribute set by the plotting routines)
+            it will return 0.
+        """
+        try:
+            xdata, ydata = getattr(self, "__plot_line").get_data()
+        except AttributeError:
+            if settings.DEBUG:
+                from traceback import print_exc
+                print_exc()
+        else:
+            if len(xdata) > 0 and len(ydata) > 0:
+                return np.interp(x, xdata, ydata)
+        return 0
+
 
     pass # end of class
 
@@ -673,14 +447,14 @@ class ExperimentalLine(PyXRDLine):
     # ------------------------------------------------------------
     #      Initialization and other internals
     # ------------------------------------------------------------
-    def __init__(self, *args, **kwargs):
+    def __init__(self, cap_value=0.0, *args, **kwargs):
         """
             Valid keyword arguments for a ExperimentalLine are:
                 cap_value: the value (in raw counts) at which to cap
                  the experimental pattern  
         """
         super(ExperimentalLine, self).__init__(*args, **kwargs)
-        self.cap_value = self.get_kwarg(kwargs, 0.0, "cap_value")
+        self.cap_value = cap_value
 
     # ------------------------------------------------------------
     #      Background Removal
@@ -755,7 +529,8 @@ class ExperimentalLine(PyXRDLine):
 
     def setup_shift_variables(self):
         with self.visuals_changed.hold_and_emit():
-            position = self.parent.goniometer.get_2t_from_nm(self.shift_position)
+            print self.specimen, self.parent
+            position = self.specimen.goniometer.get_2t_from_nm(self.shift_position)
             if position > 0.1:
                 max_x = position + 0.5
                 min_x = position - 0.5

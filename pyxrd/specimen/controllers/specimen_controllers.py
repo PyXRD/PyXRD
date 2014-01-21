@@ -133,7 +133,7 @@ class SpecimenController(DialogController, TreeViewMixin):
             cell.set_property('text', '%.3f' % model.get_value(itr, column.get_col_attr('text')))
 
         tv.append_column(new_text_column(u'2θ', text_col=model.c_x, data_func=get_num))
-        tv.append_column(new_text_column(u'Cal', text_col=model.c_x, data_func=get_num))
+        tv.append_column(new_text_column(u'Cal', text_col=model.c_y, data_func=get_num))
         for i in range(model.get_n_columns() - 3):
             tv.append_column(new_text_column(
                 self.model.calculated_pattern.get_y_name(i), text_col=i + 2, data_func=get_num))
@@ -222,7 +222,7 @@ class SpecimenController(DialogController, TreeViewMixin):
         try:
             value = float(locale.atof(new_text))
         except ValueError:
-            logger.debug("ValueError: Invalid literal for float(): '%s'" % new_text)
+            logger.exception("ValueError: Invalid literal for float(): '%s'" % new_text)
         else:
             model.set_value(int(path), col, value)
         return True

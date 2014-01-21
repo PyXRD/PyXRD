@@ -132,10 +132,11 @@ class PropIntel(object):
     )
 
     inh_name = None
+    inh_from = None
     stor_name = None
 
-    minimum = None
-    maximum = None
+    minimum = 0.0
+    maximum = 0.0
 
     is_column = False
     data_type = object # type of the value instance

@@ -2,7 +2,7 @@
 # ex:ts=4:sw=4:et=on
 #  -------------------------------------------------------------------------
 #  Copyright (C) 2014 by Mathijs Dumon <mathijs dot dumon at gmail dot com>
-#  Copyright (C) 2007 by Roberto Cavada <roboogle@gmail.com>
+#  Copyright (C) 2006 by Roberto Cavada <roboogle@gmail.com>
 #
 #  mvc is a framework derived from the original pygtkmvc framework
 #  hosted at: <http://sourceforge.net/projects/pygtkmvc/>
@@ -23,14 +23,17 @@
 #  Boston, MA 02110, USA.
 #  -------------------------------------------------------------------------
 
-from .adapter_registry import AdapterRegistry
-from .abstract_adapter import AbstractAdapter
-from .dummy_adapter import DummyAdapter
-from .model_adapter import ModelAdapter
+from .base import Observer, NTInfo
+from .dict_observer import DictObserver
+from .list_item_observer import ListItemObserver
+from .list_observer import ListObserver
+from .tree_observer import TreeObserver
 
 __all__ = [
-    "AdapterRegistry",
-    "AbstractAdapter",
-    "DummyAdapter",
-    "ModelAdapter",
+    "NTInfo",
+    "Observer",
+    "DictObserver",
+    "ListItemObserver",
+    "ListObserver",
+    "TreeObserver"
 ]

@@ -18,7 +18,7 @@ def get_atomic_scattering_factor(angstrom_range, atom_type):
     if atom_type is not None:
         return np.sum(atom_type.par_a * np.exp(-atom_type.par_b * angstrom_range[..., np.newaxis]), axis=1) + atom_type.par_c
     else:
-        logger.debug("- calc: get_atomic_scattering_factor reports: 'None found!'")
+        logger.warning("get_atomic_scattering_factor reports: 'None found!'")
         return np.zeros_like(angstrom_range)
 
 def get_structure_factor(stl_range, atom):
@@ -34,5 +34,5 @@ def get_structure_factor(stl_range, atom):
 
         return asf * atom.pn * np.exp(2 * pi * atom.z * stl_range * 1j)
     else:
-        logger.debug("- calc: get_structure_factor reports: 'None found!'")
+        logger.warning("get_structure_factor reports: 'None found!'")
         return np.zeros_like(stl_range)

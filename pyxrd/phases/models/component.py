@@ -9,9 +9,10 @@ import zipfile
 from warnings import warn
 
 from pyxrd.mvc import PropIntel
+from pyxrd.mvc.observers import ListObserver
 
 from pyxrd.generic.io import storables, Storable
-from pyxrd.generic.models import DataModel, ListObserver, HoldableSignal
+from pyxrd.generic.models import DataModel, HoldableSignal
 from pyxrd.generic.calculations.components import get_factors
 from pyxrd.generic.calculations.data_objects import ComponentData
 from pyxrd.generic.refinement.mixins import RefinementGroup
@@ -19,21 +20,23 @@ from pyxrd.generic.refinement.mixins import RefinementGroup
 from pyxrd.atoms.models import Atom
 from .atom_relations import AtomRelation
 from .unit_cell_prop import UnitCellProperty
+from pyxrd.generic.refinement.metaclasses import PyXRDRefinableMeta
 
 @storables.register()
 class Component(DataModel, Storable, RefinementGroup):
 
     # MODEL INTEL:
+    __metaclass__ = PyXRDRefinableMeta
     class Meta(DataModel.Meta):
         properties = [
             PropIntel(name="name", data_type=unicode, label="Name", is_column=True, has_widget=True, storable=True),
             PropIntel(name="linked_with", data_type=object, label="Linked with", widget_type='custom', is_column=True, has_widget=True),
-            PropIntel(name="d001", data_type=float, label="Cell length c [nm]", is_column=True, has_widget=True, storable=True, refinable=True, minimum=0.0, maximum=5.0, inh_name="inherit_d001", stor_name="_d001"),
+            PropIntel(name="d001", data_type=float, label="Cell length c [nm]", is_column=True, has_widget=True, storable=True, refinable=True, minimum=0.0, maximum=5.0, inh_name="inherit_d001", stor_name="_d001", inh_from="linked_with"),
             PropIntel(name="lattice_d", data_type=float, label="Lattice c length [nm]"),
-            PropIntel(name="default_c", data_type=float, label="Default c length [nm]", is_column=True, has_widget=True, storable=True, minimum=0.0, maximum=5.0, inh_name="inherit_default_c", stor_name="_default_c"),
-            PropIntel(name="delta_c", data_type=float, label="C length dev. [nm]", is_column=True, has_widget=True, storable=True, refinable=True, minimum=0.0, maximum=0.05, inh_name="inherit_delta_c", stor_name="_delta_c"),
-            PropIntel(name="ucp_a", data_type=object, label="Cell length a [nm]", is_column=True, has_widget=True, storable=True, refinable=True, inh_name="inherit_ucp_a", stor_name="_ucp_a"),
-            PropIntel(name="ucp_b", data_type=object, label="Cell length b [nm]", is_column=True, has_widget=True, storable=True, refinable=True, inh_name="inherit_ucp_b", stor_name="_ucp_b"),
+            PropIntel(name="default_c", data_type=float, label="Default c length [nm]", is_column=True, has_widget=True, storable=True, minimum=0.0, maximum=5.0, inh_name="inherit_default_c", stor_name="_default_c", inh_from="linked_with"),
+            PropIntel(name="delta_c", data_type=float, label="C length dev. [nm]", is_column=True, has_widget=True, storable=True, refinable=True, minimum=0.0, maximum=0.05, inh_name="inherit_delta_c", stor_name="_delta_c", inh_from="linked_with"),
+            PropIntel(name="ucp_a", data_type=object, label="Cell length a [nm]", is_column=True, has_widget=True, storable=True, refinable=True, inh_name="inherit_ucp_a", stor_name="_ucp_a", inh_from="linked_with"),
+            PropIntel(name="ucp_b", data_type=object, label="Cell length b [nm]", is_column=True, has_widget=True, storable=True, refinable=True, inh_name="inherit_ucp_b", stor_name="_ucp_b", inh_from="linked_with"),
             PropIntel(name="inherit_d001", data_type=bool, label="Inh. cell length c", is_column=True, has_widget=True, storable=True),
             PropIntel(name="inherit_ucp_b", data_type=bool, label="Inh. cell length b", is_column=True, has_widget=True, storable=True),
             PropIntel(name="inherit_ucp_a", data_type=bool, label="Inh. cell length a", is_column=True, has_widget=True, storable=True),
@@ -42,9 +45,9 @@ class Component(DataModel, Storable, RefinementGroup):
             PropIntel(name="inherit_layer_atoms", data_type=bool, label="Inh. layer atoms", is_column=True, has_widget=True, storable=True),
             PropIntel(name="inherit_interlayer_atoms", data_type=bool, label="Inh. interlayer atoms", is_column=True, has_widget=True, storable=True),
             PropIntel(name="inherit_atom_relations", data_type=bool, label="Inh. atom relations", is_column=True, has_widget=True, storable=True),
-            PropIntel(name="atom_relations", data_type=object, label="Atom relations", is_column=True, has_widget=True, storable=True, widget_type="custom", refinable=True, inh_name="inherit_atom_relations", stor_name="_atom_relations", class_type=AtomRelation),
-            PropIntel(name="layer_atoms", data_type=object, label="Layer atoms", is_column=True, has_widget=True, storable=True, widget_type="custom", inh_name="inherit_layer_atoms", stor_name="_layer_atoms", class_type=Atom),
-            PropIntel(name="interlayer_atoms", data_type=object, label="Interlayer atoms", is_column=True, has_widget=True, storable=True, widget_type="custom", inh_name="inherit_interlayer_atoms", stor_name="_interlayer_atoms", class_type=Atom),
+            PropIntel(name="atom_relations", data_type=object, label="Atom relations", is_column=True, has_widget=True, storable=True, widget_type="custom", refinable=True, inh_name="inherit_atom_relations", stor_name="_atom_relations", inh_from="linked_with", class_type=AtomRelation),
+            PropIntel(name="layer_atoms", data_type=object, label="Layer atoms", is_column=True, has_widget=True, storable=True, widget_type="custom", inh_name="inherit_layer_atoms", stor_name="_layer_atoms", inh_from="linked_with", class_type=Atom),
+            PropIntel(name="interlayer_atoms", data_type=object, label="Interlayer atoms", is_column=True, has_widget=True, storable=True, widget_type="custom", inh_name="inherit_interlayer_atoms", stor_name="_interlayer_atoms", inh_from="linked_with", class_type=Atom),
             PropIntel(name="atoms_changed", data_type=object, is_column=False, storable=False, has_widget=False)
         ]
         store_id = "Component"
@@ -165,15 +168,6 @@ class Component(DataModel, Storable, RefinementGroup):
 
 
     # INHERITABLE PROPERTIES:
-
-    # TODO COMBINE THIS IN A BASE CLASS FOR PHASES AS WELL...
-    def _get_inheritable_property_value(self, name):
-        inh_name = self.Meta.get_prop_intel_by_name(name).inh_name
-        if self.linked_with is not None and getattr(self, inh_name):
-            return getattr(self.linked_with, name)
-        else:
-            return getattr(self, "_%s" % name)
-
     def _set_inheritable_property_value(self, name, value):
         current = getattr(self, "_%s" % name)
         if current != value:
@@ -207,31 +201,19 @@ class Component(DataModel, Storable, RefinementGroup):
     def set_delta_c(self, value): self._set_inheritable_property_value("delta_c", float(value))
 
     _layer_atoms = []
-    def get_layer_atoms(self):
-        if self.linked_with is not None and self.inherit_layer_atoms:
-            return self.linked_with.layer_atoms
-        else:
-            return self._layer_atoms
+    def get_layer_atoms(self): return self._get_inheritable_property_value("layer_atoms")
     def set_layer_atoms(self, value):
         with self.data_changed.hold_and_emit():
             self._layer_atoms = value
 
     _interlayer_atoms = []
-    def get_interlayer_atoms(self):
-        if self.linked_with is not None and self.inherit_interlayer_atoms:
-            return self.linked_with.interlayer_atoms
-        else:
-            return self._interlayer_atoms
+    def get_interlayer_atoms(self): return self._get_inheritable_property_value("interlayer_atoms")
     def set_interlayer_atoms(self, value):
         with self.data_changed.hold_and_emit():
             self._interlayer_atoms = value
 
     _atom_relations = []
-    def get_atom_relations(self):
-        if self.linked_with is not None and self.inherit_atom_relations:
-            return self.linked_with.atom_relations
-        else:
-            return self._atom_relations
+    def get_atom_relations(self): return self._get_inheritable_property_value("atom_relations")
     def set_atom_relations(self, value):
         with self.data_changed.hold_and_emit():
             self._atom_relations = value
@@ -283,7 +265,16 @@ class Component(DataModel, Storable, RefinementGroup):
                 linked_with_index: the index for the component this one is 
                  linked with in the ObjectListStore of the parent based on phase.
         """
+
+        my_kwargs = self.pop_kwargs(kwargs,
+            "data_name", "data_layer_atoms", "data_interlayer_atoms", "data_atom_relations",
+            "data_atom_ratios", "data_d001", "data_default_c", "data_delta_c",
+            "data_cell_a", "data_ucp_a", "data_cell_b", "data_ucp_b",
+            "linked_with_uuid", "linked_with_index", "inherit_cell_a", "inherit_cell_b",
+            *[names[0] for names in type(self).Meta.get_local_storable_properties()]
+        )
         super(Component, self).__init__(**kwargs)
+        kwargs = my_kwargs
 
         # Setup signals:
         self.atoms_changed = HoldableSignal()
@@ -319,6 +310,7 @@ class Component(DataModel, Storable, RefinementGroup):
         for relation in self.atom_relations:
             relation.resolve_relations()
             self.observe_model(relation)
+            print "Observing", relation
 
         # Connect signals to lists and dicts:
         self._layer_atoms_observer = ListObserver(
@@ -334,8 +326,8 @@ class Component(DataModel, Storable, RefinementGroup):
             model=self
         )
         self._atom_relations_observer = ListObserver(
-            self.on_atom_relation_removed,
             self.on_atom_relation_inserted,
+            self.on_atom_relation_removed,
             prop_name="atom_relations",
             model=self
         )
@@ -390,6 +382,8 @@ class Component(DataModel, Storable, RefinementGroup):
         # Check whether the changed model is an AtomRelation or Atom, if so
         # re-apply the atom_relations.
         with self.data_changed.hold():
+            if isinstance(model, AtomRelation):
+                print "Component got data_changed from", model
             if isinstance(model, AtomRelation) or isinstance(model, Atom):
                 self.apply_atom_relations()
                 self.update_ucp_values()

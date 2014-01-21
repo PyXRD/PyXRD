@@ -26,16 +26,10 @@ from traceback import print_exc
 import logging
 logger = logging.getLogger(__name__)
 
-try:
-    import gtk, gobject
-except ImportError:
-    GOBJECT_AVAILABLE = False
-else:
-    GOBJECT_AVAILABLE = True
+import gtk, gobject
 
-from base_models import BaseObjectListStore
-from pyxrd.generic.models.observers import TreeObserver
-from pyxrd.mvc.models import TreeNode
+from .base_models import BaseObjectListStore
+from ....observers import TreeObserver
 
 class ObjectTreeStore(BaseObjectListStore):
     """
@@ -58,10 +52,7 @@ class ObjectTreeStore(BaseObjectListStore):
     #      Initialization and other internals
     # ------------------------------------------------------------
     def __init__(self, model, prop):
-        # First check if this is possible:
         _root = getattr(model, prop.name, None)
-        assert isinstance(_root, TreeNode), "Can only wrap TreeNode (or" + \
-            " subclasses) instances to an ObjectTreeStore, got '%s' instead." % _root
 
         # Then continue:
         BaseObjectListStore.__init__(self, prop.class_type)
@@ -98,9 +89,8 @@ class ObjectTreeStore(BaseObjectListStore):
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------
-    if GOBJECT_AVAILABLE:
-        def on_get_flags(self):
-            return gtk.TREE_MODEL_ITERS_PERSIST
+    def on_get_flags(self):
+        return gtk.TREE_MODEL_ITERS_PERSIST
 
     def on_get_iter(self, path):
         try:
@@ -156,7 +146,7 @@ class ObjectTreeStore(BaseObjectListStore):
         return node.parent
 
     def iter_objects(self):
-        for node in self._root_node.iter_children(recursive=True):
+        for node in self._root_node.iter_children():
             yield node.object
 
     def get_tree_node(self, itr):
@@ -175,5 +165,4 @@ class ObjectTreeStore(BaseObjectListStore):
 
     pass # end of class
 
-if GOBJECT_AVAILABLE:
-    gobject.type_register(ObjectTreeStore) # @UndefinedVariable
+gobject.type_register(ObjectTreeStore) # @UndefinedVariable

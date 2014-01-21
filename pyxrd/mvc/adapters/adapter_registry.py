@@ -22,11 +22,41 @@
 #  Boston, MA 02110, USA.
 #  -------------------------------------------------------------------------
 
+import importlib
 import logging
 logger = logging.getLogger(__name__)
 
-# TODO move this elsewhere or make it dynamic
-ALLOWED_TOOLKIT = 'gtk'
+
+class ToolkitRegistry(dict):
+
+    # These will be loaded automatically when this module is first loaded:
+    toolkit_modules = [
+        ".gtk_support"
+    ]
+    selected_toolkit = None
+
+    def get_or_create_registry(self, toolkit_name):
+        if not toolkit_name in self:
+            adapter_registry = AdapterRegistry()
+            self.register(toolkit_name, adapter_registry)
+            if self.selected_toolkit is None:
+                self.selected_toolkit = "gtk"
+        return self[toolkit_name]
+
+    def register(self, toolkit_name, adapter_registry):
+        self[toolkit_name] = adapter_registry
+
+    def select_toolkit(self, toolkit_name):
+        if not toolkit_name in self:
+            raise ValueError, "Cannot select unknown toolkit '%s'" % toolkit_name
+        else:
+            self.selected_toolkit = toolkit_name
+
+    def get_selected_adapter_registry(self):
+        if self.selected_toolkit is None:
+            raise ValueError, "No toolkit has been selected!"
+        else:
+            return self[self.selected_toolkit]
 
 class AdapterRegistry(dict):
     """
@@ -34,22 +64,43 @@ class AdapterRegistry(dict):
         can handle. This relies on these classes being registered using
         the 'register' decorator also provided by this class.
     """
-    def register_decorator(self):
+
+    toolkit_registry = ToolkitRegistry()
+
+    @classmethod
+    def get_selected_adapter_registry(cls):
+        return cls.toolkit_registry.get_selected_adapter_registry()
+
+    @classmethod
+    def get_adapter_for_widget_type(cls, widget_type):
+        return cls.toolkit_registry.get_selected_adapter_registry()[widget_type]
+
+    @classmethod
+    def register_decorator(cls):
         """
             Returns a decorator that will register Adapter classes.
         """
-        return self.register
+        return cls.register
 
-    def register(self, cls):
-        if hasattr(cls, "widget_types") and hasattr(cls, "toolkit"):
-            if cls.toolkit == ALLOWED_TOOLKIT: # FIXME
-                logger.debug("Registering %s as handler for widget types '%s'" % (cls, cls.widget_types))
-                for widget_type in cls.widget_types:
-                    self[widget_type] = cls
+    @classmethod
+    def register(cls, adapter_cls):
+        if hasattr(adapter_cls, "widget_types") and hasattr(adapter_cls, "toolkit"):
+            adapter_registry = cls.toolkit_registry.get_or_create_registry(adapter_cls.toolkit)
+            logger.debug("Registering %s as handler for widget types '%s' in toolkit '%s'" % (adapter_cls, adapter_cls.widget_types, adapter_cls.toolkit))
+            for widget_type in adapter_cls.widget_types:
+                adapter_registry[widget_type] = adapter_cls
         else:
-            logger.debug("Ignoring %s as handler" % cls)
-        return cls
+            logger.debug("Ignoring '%s' as handler: no 'toolkit' or 'widget_types' defined" % adapter_cls)
+        return adapter_cls
 
     pass # end of class
 
-adapter_registry = AdapterRegistry()
+for toolkit_module in ToolkitRegistry.toolkit_modules:
+    if toolkit_module.startswith('.'):
+        package = __name__.rpartition('.')[0]
+        try:
+            mod = importlib.import_module(toolkit_module, package=package)
+            mod.load_all_adapters()
+        except ImportError:
+            logger.warning("Could not load toolkit support module '%s'" % (toolkit_module,))
+

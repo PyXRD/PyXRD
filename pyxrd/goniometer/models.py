@@ -122,7 +122,14 @@ class Goniometer(DataModel, Storable):
             I*(2theta) = I(2theta) * ((divergence * ads_fact) / 
                 (np.sin(ads_phase_fact * 2theta + radians(ads_phase_shift)) - ads_const))
         """
+
+        my_kwargs = self.pop_kwargs(kwargs,
+            "data_radius", "data_divergence", "data_soller1", "data_soller2",
+            "data_min_2theta", "data_max_2theta", "data_lambda", "lambda",
+            *[names[0] for names in type(self).Meta.get_local_storable_properties()]
+        )
         super(Goniometer, self).__init__(*args, **kwargs)
+        kwargs = my_kwargs
 
         self._data_object = GonioData()
 

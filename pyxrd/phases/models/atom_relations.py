@@ -7,12 +7,13 @@
 
 import types
 
-from pyxrd.generic.models import DataModel, HoldableSignal
-from pyxrd.generic.models.observers import ListObserver
-from pyxrd.generic.io import storables, Storable, get_case_insensitive_glob
-
-from pyxrd.generic.refinement.mixins import RefinementValue
+from pyxrd.mvc.observers import ListObserver
 from pyxrd.mvc import Model, PropIntel
+
+from pyxrd.generic.models import DataModel, HoldableSignal
+from pyxrd.generic.io import storables, Storable, get_case_insensitive_glob
+from pyxrd.generic.refinement.mixins import RefinementValue
+from pyxrd.generic.refinement.metaclasses import PyXRDRefinableMeta
 
 class ComponentPropMixin(object):
     """
@@ -66,13 +67,12 @@ class ComponentPropMixin(object):
 class AtomRelation(DataModel, Storable, ComponentPropMixin, RefinementValue):
 
     # MODEL INTEL:
+    __metaclass__ = PyXRDRefinableMeta
     class Meta(DataModel.Meta):
         properties = [
             PropIntel(name="name", label="Name", data_type=unicode, is_column=True, storable=True, has_widget=True),
             PropIntel(name="value", label="Value", data_type=float, is_column=True, storable=True, has_widget=True, widget_type='float_entry', refinable=True),
             PropIntel(name="enabled", label="Enabled", data_type=bool, is_column=True, storable=True, has_widget=True),
-
-            PropIntel(name="data_changed", data_type=object),
         ]
         store_id = "AtomRelation"
         file_filters = [
@@ -81,9 +81,6 @@ class AtomRelation(DataModel, Storable, ComponentPropMixin, RefinementValue):
     allowed_relations = {}
 
     component = property(DataModel.parent.fget, DataModel.parent.fset)
-
-    # SIGNALS:
-    data_changed = None
 
     # PROPERTIES:
     _value = 0.0
@@ -143,9 +140,13 @@ class AtomRelation(DataModel, Storable, ComponentPropMixin, RefinementValue):
                 enabled: boolean indicating whether or not this AtomRelation is 
                  enabled
         """
+        my_kwargs = self.pop_kwargs(kwargs,
+            "data_name", "data_ratio", "ratio",
+            *[names[0] for names in AtomRelation.Meta.get_local_storable_properties()]
+        )
         super(AtomRelation, self).__init__(*args, **kwargs)
+        kwargs = my_kwargs
 
-        self.data_changed = HoldableSignal()
         self.name = self.get_kwarg(kwargs, "", "name", "data_name")
         self.value = self.get_kwarg(kwargs, "", "value", "ratio", "data_ratio")
         self.enabled = bool(self.get_kwarg(kwargs, True, "enabled"))
@@ -278,7 +279,12 @@ class AtomRatio(AtomRelation):
                 atom2: a tuple containing the first atom and its property name to read/set
             The value property is the 'ratio' of the first atom over the sum of both
         """
+        my_kwargs = self.pop_kwargs(kwargs,
+            "data_sum", "prop1", "data_prop1", "data_prop2", "prop2",
+            *[names[0] for names in AtomRatio.Meta.get_local_storable_properties()]
+        )
         super(AtomRatio, self).__init__(*args, **kwargs)
+        kwargs = my_kwargs
 
         self.sum = self.get_kwarg(kwargs, self.sum, "sum", "data_sum")
 
@@ -378,7 +384,11 @@ class AtomContents(AtomRelation):
                 atom_contents: a list of tuples containing the atom content 
                  object uuids, property names and default amounts 
         """
+        my_kwargs = self.pop_kwargs(kwargs,
+            *[names[0] for names in type(self).Meta.get_local_storable_properties()]
+        )
         super(AtomContents, self).__init__(*args, **kwargs)
+        kwargs = my_kwargs
 
         # Load atom contents:
         self._atom_contents = []

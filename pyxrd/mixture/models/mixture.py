@@ -12,6 +12,7 @@ from itertools import chain, izip
 from collections import OrderedDict
 from contextlib import contextmanager
 import logging
+from pyxrd.generic.models.signals import HoldableSignal
 logger = logging.getLogger(__name__)
 
 from pyxrd.mvc import Signal, PropIntel, OptionPropIntel
@@ -51,7 +52,9 @@ class Mixture(DataModel, Storable):
             PropIntel(name="name", label="Name", data_type=unicode, is_column=True, storable=True, has_widget=True),
             PropIntel(name="refinables", label="", data_type=object, is_column=True, has_widget=True, widget_type="object_tree_view", class_type=RefinableWrapper),
             PropIntel(name="auto_run", label="", data_type=bool, is_column=True, storable=True, has_widget=True),
+            PropIntel(name="auto_bg", label="", data_type=bool, is_column=True, storable=True, has_widget=True),
             OptionPropIntel(name="refine_method", label="Refinement method", data_type=int, storable=True, has_widget=True, options={ key: method.name for key, method in all_refine_methods.iteritems() }),
+            PropIntel(name="needs_update", label="", data_type=object, storable=False), # Signal used to indicate the mixture needs an update
             PropIntel(name="needs_reset", label="", data_type=object, storable=False,), # Signal used to indicate the mixture matrix needs to be re-built...
         ]
         store_id = "Mixture"
@@ -60,6 +63,7 @@ class Mixture(DataModel, Storable):
     @property
     def data_object(self):
         self._data_object.specimens = [None] * len(self.specimens)
+        self._data_object.auto_bg = self.auto_bg
         for i, specimen in enumerate(self.specimens):
             if specimen is not None:
                 data_object = specimen.data_object
@@ -75,6 +79,7 @@ class Mixture(DataModel, Storable):
 
     # SIGNALS:
     needs_reset = None
+    needs_update = None
 
     # INTERNALS:
     _name = ""
@@ -86,6 +91,7 @@ class Mixture(DataModel, Storable):
 
     refinables = None
     auto_run = False
+    auto_bg = True
 
     _refine_method = 0
     def get_refine_method(self): return self._refine_method
@@ -122,13 +128,16 @@ class Mixture(DataModel, Storable):
     # ------------------------------------------------------------
     #      Initialization and other internals
     # ------------------------------------------------------------
-    def __init__(self, **kwargs):
+    def __init__(self, *args, **kwargs):
         """
             Valid keyword arguments for a Mixture are:
                 name: the name of this mixture
                 auto_run: a flag indicating whether or not this Mixture should
                  change the fractions, bg_shifts and scales when a specimen or
                  a phase has emitted a data_changed signal
+                auto_bg: a flag indicating whether or not this Mixture should
+                 adjust the background automatically or just use the current
+                 values
                 phase_uuids: a list containing the UUID's for the phases in the
                  mixture
                 specimen_uuids: a list containing the UUID's for the specimens
@@ -148,15 +157,26 @@ class Mixture(DataModel, Storable):
                 specimen_indeces: a list containing the indices of the specimens
                  in the ObjectListStore at the project level
         """
-        super(Mixture, self).__init__(**kwargs)
+
+        my_kwargs = self.pop_kwargs(kwargs,
+            "data_name", "phase_uuids", "phase_indeces", "specimen_uuids",
+            "specimen_indeces", "data_phases", "data_scales", "data_bgshifts",
+            "data_fractions", "data_refine_method", "fractions",
+            "bgshifts", "scales", "phases",
+            *[names[0] for names in type(self).Meta.get_local_storable_properties()]
+        )
+        super(Mixture, self).__init__(*args, **kwargs)
+        kwargs = my_kwargs
 
         with self.data_changed.hold():
 
             self._data_object = MixtureData()
 
             self.needs_reset = Signal()
+            self.needs_update = HoldableSignal()
             self.name = self.get_kwarg(kwargs, "New Mixture", "name", "data_name")
             self.auto_run = self.get_kwarg(kwargs, False, "auto_run")
+            self.auto_bg = self.get_kwarg(kwargs, True, "auto_bg")
 
             # 2D matrix, rows match specimens, columns match mixture 'phases'; contains the actual phase objects
             phase_uuids = self.get_kwarg(kwargs, None, "phase_uuids")
@@ -212,16 +232,24 @@ class Mixture(DataModel, Storable):
             self.update_refinement_treestore()
             self.update()
 
+            self.observe_model(self)
+
             pass # end hold data_changed
 
     # ------------------------------------------------------------
     #      Notifications of observable properties
     # ------------------------------------------------------------
+    @DataModel.observe("needs_update", signal=True)
+    def notify_needs_update(self, model, prop_name, info):
+        with self.data_changed.hold():
+            self.update()
+
     @DataModel.observe("data_changed", signal=True)
     def notify_data_changed(self, model, prop_name, info):
-        if not (info.arg == "based_on" and model.based_on is not None and model.based_on in self.phase_matrix):
-            self.update()
-            # self.data_changed.emit() # Propagate the signal
+        if not model == self and not (
+            info.arg == "based_on" and model.based_on is not None and
+            model.based_on in self.phase_matrix):
+                self.needs_update.emit()
 
     @DataModel.observe("visuals_changed", signal=True)
     def notify_visuals_changed(self, model, prop_name, info):
@@ -282,12 +310,17 @@ class Mixture(DataModel, Storable):
         """Sets the phase at the given slot positions"""
         with self.data_changed.hold():
             with self._relieve_and_observe_phases():
+                if phase is not None and not phase in self.parent.phases:
+                    self.parent.phases.append(phase)
                 self.phase_matrix[specimen_slot, phase_slot] = phase
+            self.update_refinement_treestore()
             self.update()
 
     def set_specimen(self, specimen_slot, specimen):
         """Sets the specimen at the given slot position"""
         with self._relieve_and_observe_specimens():
+            if specimen is not None and not specimen in self.parent.specimens:
+                self.parent.specimens.append(specimen)
             self.specimens[specimen_slot] = specimen
         self.update()
 
@@ -329,31 +362,31 @@ class Mixture(DataModel, Storable):
 
     def add_phase_slot(self, phase_name, fraction):
         """ Adds a new phase column to the phase matrix """
-        with self.data_changed.hold():
-            self.phases.append(phase_name)
-            self.fractions = np.append(self.fractions, fraction)
-            n, m = self.phase_matrix.shape # @UnusedVariable
-            if self.phase_matrix.size == 0:
-                self.phase_matrix = np.resize(self.phase_matrix.copy(), (n, m + 1))
-                self.phase_matrix[:] = None
-            else:
-                self.phase_matrix = np.concatenate([self.phase_matrix.copy(), [[None]] * n ], axis=1)
-                self.phase_matrix[:, m] = None
-            self.update_refinement_treestore()
-            self.update()
+        with self.needs_update.hold_and_emit():
+            with self.data_changed.hold():
+                self.phases.append(phase_name)
+                self.fractions = np.append(self.fractions, fraction)
+                n, m = self.phase_matrix.shape # @UnusedVariable
+                if self.phase_matrix.size == 0:
+                    self.phase_matrix = np.resize(self.phase_matrix.copy(), (n, m + 1))
+                    self.phase_matrix[:] = None
+                else:
+                    self.phase_matrix = np.concatenate([self.phase_matrix.copy(), [[None]] * n ], axis=1)
+                    self.phase_matrix[:, m] = None
+                self.update_refinement_treestore()
         return m
 
     def del_phase_slot(self, phase_slot):
         """ Deletes a phase column using its index """
-        with self.data_changed.hold():
-            with self._relieve_and_observe_phases():
-                # Remove the corresponding phase name, fraction & references:
-                del self.phases[phase_slot]
-                self.fractions = np.delete(self.fractions, phase_slot)
-                self.phase_matrix = np.delete(self.phase_matrix, phase_slot, axis=1)
-            self.update()
-            # Update our refinement tree store to reflect current state
-            self.update_refinement_treestore()
+        with self.needs_update.hold_and_emit():
+            with self.data_changed.hold():
+                with self._relieve_and_observe_phases():
+                    # Remove the corresponding phase name, fraction & references:
+                    del self.phases[phase_slot]
+                    self.fractions = np.delete(self.fractions, phase_slot)
+                    self.phase_matrix = np.delete(self.phase_matrix, phase_slot, axis=1)
+                # Update our refinement tree store to reflect current state
+                self.update_refinement_treestore()
         # Inform any interested party they need to update their representation
         self.needs_reset.emit()
 
@@ -363,32 +396,34 @@ class Mixture(DataModel, Storable):
 
     def add_specimen_slot(self, specimen, scale, bgs):
         """ Adds a new specimen to the phase matrix (a row) and specimen list """
-        with self.data_changed.hold():
-            self.specimens.append(specimen)
-            self.scales = np.append(self.scales, scale)
-            self.bgshifts = np.append(self.bgshifts, bgs)
-            n, m = self.phase_matrix.shape
-            if self.phase_matrix.size == 0:
-                self.phase_matrix = np.resize(self.phase_matrix.copy(), (n + 1, m))
-                self.phase_matrix[:] = None
-            else:
-                self.phase_matrix = np.concatenate([self.phase_matrix.copy(), [[None] * m] ], axis=0)
-                self.phase_matrix[n, :] = None
-            self.update()
+        with self.needs_update.hold_and_emit():
+            with self.data_changed.hold():
+                self.specimens.append(None)
+                self.scales = np.append(self.scales, scale)
+                self.bgshifts = np.append(self.bgshifts, bgs)
+                n, m = self.phase_matrix.shape
+                if self.phase_matrix.size == 0:
+                    self.phase_matrix = np.resize(self.phase_matrix.copy(), (n + 1, m))
+                    self.phase_matrix[:] = None
+                else:
+                    self.phase_matrix = np.concatenate([self.phase_matrix.copy(), [[None] * m] ], axis=0)
+                    self.phase_matrix[n, :] = None
+                if specimen is not None:
+                    self.set_specimen(n, specimen)
         return n
 
     def del_specimen_slot(self, specimen_slot):
         """ Deletes a specimen slot using its slot index """
-        with self.data_changed.hold():
-            # Remove the corresponding specimen name, scale, bg-shift & phases:
-            with self._relieve_and_observe_specimens():
-                del self.specimens[specimen_slot]
-                self.scales = np.delete(self.scales, specimen_slot)
-                self.bgshifts = np.delete(self.bgshifts, specimen_slot)
-                self.phase_matrix = np.delete(self.phase_matrix, specimen_slot, axis=0)
-            self.update()
-            # Update our refinement tree store to reflect current state
-            self.update_refinement_treestore()
+        with self.needs_update.hold_and_emit():
+            with self.data_changed.hold():
+                # Remove the corresponding specimen name, scale, bg-shift & phases:
+                with self._relieve_and_observe_specimens():
+                    del self.specimens[specimen_slot]
+                    self.scales = np.delete(self.scales, specimen_slot)
+                    self.bgshifts = np.delete(self.bgshifts, specimen_slot)
+                    self.phase_matrix = np.delete(self.phase_matrix, specimen_slot, axis=0)
+                # Update our refinement tree store to reflect current state
+                self.update_refinement_treestore()
         # Inform any interested party they need to update their representation
         self.needs_reset.emit()
 
@@ -396,8 +431,8 @@ class Mixture(DataModel, Storable):
         """ Deletes a specimen slot using the actual object """
         try:
             self.del_specimen_slot(self.specimens.index(specimen))
-        except ValueError, msg:
-            logger.debug("Caught a ValueError when deleting a specimen from  mixture '%s': %s" % (self.name, msg))
+        except ValueError:
+            logger.exception("Caught a ValueError when deleting a specimen from  mixture '%s'" % self.name)
 
     # ------------------------------------------------------------
     #      Refinement stuff:
@@ -407,39 +442,42 @@ class Mixture(DataModel, Storable):
             Sets the fractions, scales and bgshifts of this mixture.
         """
         if mixture is not None:
-            with self.data_changed.hold_and_emit():
-                self.fractions[:] = list(mixture.fractions)
-                self.scales[:] = list(mixture.scales)
-                self.bgshifts[:] = list(mixture.bgshifts)
+            with self.needs_update.ignore():
+                with self.data_changed.hold_and_emit():
+                    self.fractions[:] = list(mixture.fractions)
+                    self.scales[:] = list(mixture.scales)
+                    self.bgshifts[:] = list(mixture.bgshifts)
 
-                if calculate: # (re-)calculate if requested:
-                    mixture = self.optimizer.calculate(mixture)
+                    if calculate: # (re-)calculate if requested:
+                        mixture = self.optimizer.calculate(mixture)
 
-                for i, (specimen_data, specimen) in enumerate(izip(mixture.specimens, self.specimens)):
-                    if specimen is not None:
-                        with specimen.data_changed.ignore():
-                            specimen.update_pattern(
-                                specimen_data.total_intensity,
-                                specimen_data.phase_intensities * self.fractions[:, np.newaxis] * self.scales[i],
-                                self.phase_matrix[i, :]
-                            )
+                    for i, (specimen_data, specimen) in enumerate(izip(mixture.specimens, self.specimens)):
+                        if specimen is not None:
+                            with specimen.data_changed.ignore():
+                                specimen.update_pattern(
+                                    specimen_data.total_intensity,
+                                    specimen_data.phase_intensities * self.fractions[:, np.newaxis] * self.scales[i],
+                                    self.phase_matrix[i, :]
+                                )
 
     def optimize(self):
         """
             Optimize the current solution (fractions, scales, bg shifts & calculate
             phase intensities)
         """
-        with self.data_changed.hold_and_emit():
-            # no need to re-calculate, is already done by the optimization
-            self.set_data_object(self.optimizer.optimize())
+        with self.needs_update.ignore():
+            with self.data_changed.hold():
+                # no need to re-calculate, is already done by the optimization
+                self.set_data_object(self.optimizer.optimize())
 
     def apply_current_data_object(self):
         """
             Recalculates the intensities using the current fractions, scales
             and bg shifts without optimization
         """
-        with self.data_changed.hold_and_emit():
-            self.set_data_object(self.data_object, calculate=True)
+        with self.needs_update.ignore():
+            with self.data_changed.hold():
+                self.set_data_object(self.data_object, calculate=True)
 
     # @print_timing
     def update(self):
@@ -447,11 +485,12 @@ class Mixture(DataModel, Storable):
             Optimizes or re-applies the current mixture 'solution'.
             Effectively re-calculates the entire patterns.
         """
-        with self.data_changed.hold_and_emit():
-            if self.auto_run:
-                self.optimize()
-            else:
-                self.apply_current_data_object()
+        with self.needs_update.ignore():
+            with self.data_changed.hold():
+                if self.auto_run:
+                    self.optimize()
+                else:
+                    self.apply_current_data_object()
 
     def update_refinement_treestore(self):
         """
@@ -462,35 +501,36 @@ class Mixture(DataModel, Storable):
 
         self.refinables.clear()
 
-        def add_property(parent_node, obj, prop):
-            rp = RefinableWrapper(obj=obj, prop=prop, sensitivity=0, refine=False, parent=self)
+        def add_property(parent_node, obj, prop, is_grouper):
+            rp = RefinableWrapper(obj=obj, prop=prop, parent=self, is_grouper=is_grouper)
             return parent_node.append(TreeNode(rp))
 
-        def parse_attribute(obj, attr, root_node):
+        def parse_attribute(obj, prop, root_node):
             """
                 obj: the object
-                attr: the attribute of obj or None if obj is the attribute
+                attr: the attribute of obj or None if obj contains attributes
                 root_node: the root TreeNode new iters should be put under
             """
-            if attr is not None:
-                if hasattr(obj, "get_base_value"):
-                    value = obj.get_base_value(attr) # TODO I believe I pulled this out from the models, check this...
+            if prop is not None:
+                if hasattr(obj, "get_uninherited_property_value"):
+                    value = obj.get_uninherited_property_value(prop.name)
                 else:
-                    value = getattr(obj, attr)
+                    value = getattr(obj, prop.name)
             else:
                 value = obj
 
             if isinstance(value, RefinementValue): # AtomRelation and UnitCellProperty
-                new_node = add_property(root_node, value, None)
+                new_node = add_property(root_node, value, prop, False)
             elif hasattr(value, "__iter__"): # List or similar
                 for new_obj in value:
                     parse_attribute(new_obj, None, root_node)
             elif isinstance(value, RefinementGroup): # Phase, Component, Probability
                 if len(value.refinables) > 0:
-                    new_node = add_property(root_node, value, None)
-                    for prop in value.refinables: parse_attribute(value, prop.name, new_node)
+                    new_node = add_property(root_node, value, prop, True)
+                    for prop in value.refinables:
+                        parse_attribute(value, prop, new_node)
             else: # regular values
-                new_node = add_property(root_node, obj, attr)
+                new_node = add_property(root_node, obj, prop, False)
 
         for phase in self.parent.phases:
             if phase in self.phase_matrix:
@@ -501,11 +541,12 @@ class Mixture(DataModel, Storable):
             Convenience function that restricts the selected properties 
             automatically by setting their minimum and maximum values.
         """
-        for ref_prop in self.refinables.iter_objects():
-            if ref_prop.refine and ref_prop.refinable:
-                ref_prop.value_min = ref_prop.value * 0.8
-                ref_prop.value_max = ref_prop.value * 1.2
-        return
+        with self.needs_update.hold():
+            for node in self.refinables.iter_children():
+                ref_prop = node.object
+                if ref_prop.refine and ref_prop.refinable:
+                    ref_prop.value_min = ref_prop.value * 0.8
+                    ref_prop.value_max = ref_prop.value * 1.2
 
     def randomize(self):
         """
@@ -513,10 +554,12 @@ class Mixture(DataModel, Storable):
             Respects the current minimum and maximum values.
             Executes an optimization after the randomization.
         """
-        with self.data_changed.hold():
-            for ref_prop in self.refinables.iter_objects():
-                if ref_prop.refine and ref_prop.refinable:
-                    ref_prop.value = random.uniform(ref_prop.value_min, ref_prop.value_max)
+        with self.data_changed.hold_and_emit():
+            with self.needs_update.hold_and_emit():
+                for node in self.refinables.iter_children():
+                    ref_prop = node.object
+                    if ref_prop.refine and ref_prop.refinable:
+                        ref_prop.value = random.uniform(ref_prop.value_min, ref_prop.value_max)
 
     def get_refinement_method(self):
         return self.Meta.all_refine_methods[self.refine_method]

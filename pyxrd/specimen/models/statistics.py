@@ -118,7 +118,7 @@ class Statistics(ChildModel):
             self.residual_pattern.clear()
             self.der_exp_pattern.clear()
             self.der_calc_pattern.clear()
-            logger.debug("Error occured when trying to calculate statistics, aborting calculation!")
+            logger.excption("Error occurred when trying to calculate statistics, aborting calculation!")
             print_exc()
 
     pass # end of class

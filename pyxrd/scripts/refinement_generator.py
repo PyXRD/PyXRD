@@ -97,12 +97,11 @@ def run(args):
                         for record in context.records:
                             f.write(", ".join(map(lambda f: "%.7f" % f, record)) + "\n")
                         f.write("################################################################################\n")
-                    """context.apply_best_solution()
+
+                    context.apply_best_solution()
                     mixture.optimizer.optimize()
-                    for bg, scale in izip(mixture.scales, mixture.bg_shifts):
-                        print "BG1:", bg, "SCALE1:", scale
-                    for fraction, phase in izip(mixture.fractions, mixture.phases):
-                        print phase, "contents:", "%.1f" % fraction*100, " wt%"
-                    f.write("################################################################################\n")"""
+
+                    project_file_output = base_path + "/" + os.path.basename(project_file).replace(".pyxrd", "") + " - mixture %s - trial %s.pyxrd" % (str(i), str(k))
+                    project.save_object(file=project_file_output)
 
         pass # end

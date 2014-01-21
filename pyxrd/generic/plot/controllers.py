@@ -73,8 +73,8 @@ class PlotController(DialogMixin):
         try:
             self.figure.canvas.draw()
             self.fix_after_drawing()
-        except ParseFatalException as e:
-            logger.debug("Caught unhandled exception: %s" % e)
+        except ParseFatalException:
+            logger.exception("Caught unhandled exception when drawing")
 
     def fix_after_drawing(self):
         pass # nothing to fix
@@ -293,8 +293,8 @@ class MainPlotController (PlotController):
                     # want the inverse of that
                     bboxi = bbox.inverse_transformed(self.figure.transFigure)
                     bboxes.append(bboxi)
-            except RuntimeError as e:
-                logger.debug("Caught unhandled exception: %s" % e)
+            except RuntimeError:
+                logger.exception("Caught unhandled exception when fixing after drawing")
                 return # don't continue
 
             # this is the bbox that bounds all the bboxes, again in relative

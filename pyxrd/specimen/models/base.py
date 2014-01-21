@@ -8,13 +8,13 @@
 from math import pi, log
 
 from pyxrd.mvc import PropIntel
+from pyxrd.mvc.observers import ListObserver
 
 import numpy as np
 
 from pyxrd.data import settings
 from pyxrd.generic.io import storables, Storable
 from pyxrd.generic.io.file_parsers import parsers
-from pyxrd.generic.models.observers import ListObserver
 from pyxrd.generic.models import ExperimentalLine, CalculatedLine, DataModel
 from pyxrd.generic.peak_detection import peakdetect
 from pyxrd.generic.calculations.specimen import get_phase_intensities
@@ -22,7 +22,7 @@ from pyxrd.generic.calculations.data_objects import SpecimenData
 
 from pyxrd.goniometer.models import Goniometer
 from pyxrd.generic.utils import not_none
-from pyxrd.generic.models.lines import XYData
+from pyxrd.generic.models.lines import PyXRDLine
 
 from markers import Marker
 from statistics import Statistics
@@ -236,7 +236,18 @@ class Specimen(DataModel, Storable):
                 display_stats_in_lbl: whether or not to display the Rp values 
                  in the pattern label
         """
+
+        my_kwargs = self.pop_kwargs(kwargs,
+            "data_name", "data_sample", "data_sample_length",
+            "data_calculated_pattern", "data_experimental_pattern",
+            "calc_color", "calc_lw", "inherit_calc_color", "inherit_calc_lw",
+            "exp_color", "exp_lw", "inherit_exp_color", "inherit_exp_lw",
+            "project_goniometer", "data_markers", "bg_shift", "abs_scale",
+            "exp_cap_value",
+            *[names[0] for names in self.Meta.get_local_storable_properties()]
+        )
         super(Specimen, self).__init__(*args, **kwargs)
+        kwargs = my_kwargs
 
         self._data_object = SpecimenData()
 
@@ -274,7 +285,7 @@ class Specimen(DataModel, Storable):
                 )
                 self.observe_model(self.experimental_pattern)
 
-                self.exclusion_ranges = XYData(data=self.get_kwarg(kwargs, None, "exclusion_ranges"), parent=self)
+                self.exclusion_ranges = PyXRDLine(data=self.get_kwarg(kwargs, None, "exclusion_ranges"), parent=self)
                 self.observe_model(self.exclusion_ranges)
 
                 self.goniometer = self.parse_init_arg(

@@ -27,15 +27,12 @@ logger = logging.getLogger(__name__)
 
 from traceback import print_exc
 
-from base_models import BaseObjectListStore
-from pyxrd.generic.models.observers import ListObserver, ListItemObserver
-from weakref import WeakKeyDictionary
-from pyxrd.generic.utils import not_none
+from ....observers import ListObserver, ListItemObserver
 
-try:
-    import gobject
-except ImportError:
-    from pyxrd.generic.gtk_tools import dummy_gobject as gobject
+from base_models import BaseObjectListStore
+from weakref import WeakKeyDictionary
+
+import gobject
 
 class ObjectListStore(BaseObjectListStore):
     """
@@ -138,7 +135,7 @@ class ObjectListStore(BaseObjectListStore):
             default = self._columns[column][1]()
         except TypeError:
             default = ""
-        return not_none(value, default)
+        return value if value is not None else default
 
     def on_iter_next(self, rowref):
         n, = self.on_get_path(rowref)
@@ -178,4 +175,4 @@ class ObjectListStore(BaseObjectListStore):
 
     pass # end of class
 
-gobject.type_register(ObjectListStore)
+gobject.type_register(ObjectListStore) # @UndefinedVariable

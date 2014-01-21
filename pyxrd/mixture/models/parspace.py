@@ -9,7 +9,7 @@ from traceback import format_exc
 import itertools
 
 import logging
-logger = logging.getLogger('pyxrd')
+logger = logging.getLogger(__name__)
 
 import numpy as np
 import scipy

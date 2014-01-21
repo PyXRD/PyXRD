@@ -8,6 +8,7 @@
 from pyxrd.generic.io import storables, Storable
 from pyxrd.generic.models import DataModel
 from pyxrd.generic.refinement.mixins import RefinementValue
+from pyxrd.generic.refinement.metaclasses import PyXRDRefinableMeta
 
 from .atom_relations import ComponentPropMixin
 from pyxrd.mvc import PropIntel
@@ -27,6 +28,7 @@ class UnitCellProperty(DataModel, Storable, ComponentPropMixin, RefinementValue)
 
 
     # MODEL INTEL:
+    __metaclass__ = PyXRDRefinableMeta
     class Meta(DataModel.Meta):
         properties = [
             PropIntel(name="name", label="Name", data_type=unicode, is_column=True),
@@ -72,7 +74,6 @@ class UnitCellProperty(DataModel, Storable, ComponentPropMixin, RefinementValue)
             self.update_value()
 
     _value = 1.0
-    value_range = [0, 2.0]
     def get_value(self): return self._value
     def set_value(self, value):
         try: value = float(value)
@@ -132,7 +133,11 @@ class UnitCellProperty(DataModel, Storable, ComponentPropMixin, RefinementValue)
     #      Initialisation and other internals
     # ------------------------------------------------------------
     def __init__(self, *args, **kwargs):
+        keys = [names[0] for names in UnitCellProperty.Meta.get_local_storable_properties()]
+        keys.extend(["data_%s" % names[0] for names in UnitCellProperty.Meta.get_local_storable_properties()])
+        my_kwargs = self.pop_kwargs(kwargs, "name", *keys)
         super(UnitCellProperty, self).__init__(*args, **kwargs)
+        kwargs = my_kwargs
 
         with self.data_changed.hold_and_emit():
             self._name = self.get_kwarg(kwargs, self.name, "name", "data_name")

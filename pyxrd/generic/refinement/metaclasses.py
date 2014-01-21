@@ -22,7 +22,6 @@ class PyXRDRefinableMeta(ModelMeta):
         passes the stripped dictionary to create the actual class instance,
         creates the attributes on the instance and returns it.
         """
-
         # Pop & parse any refinement info keyword arguments that might be present:
         prop_infos = dict()
         for prop in cls.Meta.all_properties:

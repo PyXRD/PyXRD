@@ -22,7 +22,8 @@ def run(args):
             mixture.update_refinement_treestore()
             refs = []
             props = ("d001", "F1", "F2", "F3", "F4", "W1", "P11_or_P22",)
-            for ref in mixture.refinables.iter_objects():
+            for node in mixture.refinables.iter_children():
+                ref = node.object
                 if ref.refinable and ref.prop in props:
                     val = ref.value
                     delta = 0.1

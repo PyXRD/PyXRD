@@ -24,8 +24,8 @@
 
 from collections import namedtuple
 
-from pyxrd.mvc.observer import Observer
-from pyxrd.generic.models.lines import XYData
+from ....observers import Observer
+from ....models.xydata import XYData
 
 try:
     import gtk, gobject

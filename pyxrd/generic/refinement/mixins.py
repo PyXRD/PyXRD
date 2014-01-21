@@ -17,7 +17,7 @@ class _RefinementBase(object):
         
     .. attribute:: is_refinable
 
-        Wether or not this instance is refinable
+        Whether or not this instance is refinable
         
     .. attribute:: refinables
         
@@ -68,7 +68,7 @@ class RefinementGroup(_RefinementBase):
     
     .. attribute:: children_refinable
 
-        Wether or not the child properties of this group can be refinable.
+        Whether or not the child properties of this group can be refinable.
         This should normally always be True, unless for example if the entire
         group of properties have a single inherit property.
     

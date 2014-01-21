@@ -11,8 +11,6 @@ from os.path import basename, dirname
 import gtk
 import gobject
 
-from pyxrd.mvc import Controller
-
 from pyxrd.data import settings
 
 from pyxrd.generic.controllers import BaseController, DialogMixin
@@ -90,22 +88,22 @@ class AppController (BaseController, DialogMixin):
     # ------------------------------------------------------------
     #      Notifications of observable properties
     # ------------------------------------------------------------
-    @Controller.observe("needs_plot_update", signal=True)
+    @BaseController.observe("needs_plot_update", signal=True)
     def notif_needs_plot_update(self, model, prop_name, info):
         # This is emitted by the Application model, in effect it is either a
         #  forwarded data_changed or visuals_changed signal coming from the
         #  project model.
         self.idle_redraw_plot()
 
-    @Controller.observe("current_project", assign=True, after=True)
+    @BaseController.observe("current_project", assign=True, after=True)
     def notif_project_update(self, model, prop_name, info):
         self.reset_project_controller()
         self.view.update_project_sensitivities(self.model.project_loaded)
         self.set_layout_mode(self.model.current_project.layout_mode)
         self.update_title()
 
-    @Controller.observe("current_specimen", assign=True, after=True)
-    @Controller.observe("current_specimens", assign=True, after=True)
+    @BaseController.observe("current_specimen", assign=True, after=True)
+    @BaseController.observe("current_specimens", assign=True, after=True)
     def notif_specimen_changed(self, model, prop_name, info):
         self.reset_specimen_controller()
         self.view.update_specimen_sensitivities(
@@ -121,20 +119,20 @@ class AppController (BaseController, DialogMixin):
     _idle_redraw_id = None
     def idle_redraw_plot(self):
         """Adds a redraw plot function as 'idle' action to the main GTK loop."""
-        self._idle_redraw_id = gobject.idle_add(self.redraw_plot)
+        if self._idle_redraw_id is None:
+            self._idle_redraw_id = gobject.idle_add(self.redraw_plot)
 
     @BaseController.status_message("Updating display...")
     def redraw_plot(self):
         """Updates the plot"""
+        if self._idle_redraw_id is not None:
+            gobject.source_remove(self._idle_redraw_id)
+            self._idle_redraw_id = None
         self.plot_controller.update(
             clear=True,
             project=self.model.current_project,
             specimens=self.model.current_specimens[::-1]
         )
-        # If we still have an idle id, try to remove it and clear the attribute:
-        if self._idle_redraw_id is not None:
-            gobject.source_remove(self._idle_redraw_id)
-            self._idle_redraw_id = None
 
     def update_title(self):
         """Convenience method for setting the application view's title"""

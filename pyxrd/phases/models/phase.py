@@ -10,37 +10,39 @@ import zipfile
 from warnings import warn
 
 from pyxrd.mvc import Observer, PropIntel
+from pyxrd.mvc.observers import ListObserver
 
 from pyxrd.generic.io import storables, Storable, get_case_insensitive_glob
-from pyxrd.generic.models import DataModel, ListObserver
+from pyxrd.generic.models import DataModel
 from pyxrd.generic.calculations.phases import get_diffracted_intensity
 from pyxrd.generic.calculations.data_objects import PhaseData
 from pyxrd.generic.refinement.mixins import RefinementGroup
+from pyxrd.generic.refinement.metaclasses import PyXRDRefinableMeta
 
 from pyxrd.probabilities.models import get_correct_probability_model
 
 from .CSDS import DritsCSDSDistribution
 from .component import Component
 
-
 @storables.register()
 class Phase(DataModel, Storable, RefinementGroup):
 
     # MODEL INTEL:
+    __metaclass__ = PyXRDRefinableMeta
     class Meta(DataModel.Meta):
         properties = [
             PropIntel(name="name", data_type=unicode, label="Name", is_column=True, has_widget=True, storable=True),
-            PropIntel(name="display_color", data_type=str, label="Display color", is_column=True, has_widget=True, widget_type='color', storable=True, inh_name="inherit_display_color", stor_name="_display_color"),
             PropIntel(name="based_on", data_type=object, label="Based on phase", is_column=True, has_widget=True, widget_type='custom'),
             PropIntel(name="G", data_type=int, label="# of components", is_column=True, has_widget=True, widget_type="entry", storable=True),
             PropIntel(name="R", data_type=int, label="Reichweite", is_column=True, has_widget=True, widget_type="entry"),
-            PropIntel(name="CSDS_distribution", data_type=object, label="CSDS Distribution", is_column=True, has_widget=True, storable=True, refinable=True, widget_type="custom", inh_name="inherit_CSDS_distribution", stor_name="_CSDS_distribution"),
-            PropIntel(name="sigma_star", data_type=float, label="$\sigma^*$ [°]", is_column=True, has_widget=True, storable=True, refinable=True, minimum=0.0, maximum=90.0, inh_name="inherit_sigma_star", stor_name="_sigma_star"),
+            PropIntel(name="sigma_star", data_type=float, label="$\sigma^*$ [°]", is_column=True, has_widget=True, storable=True, refinable=True, minimum=0.0, maximum=90.0, inh_name="inherit_sigma_star", stor_name="_sigma_star", inh_from="based_on"),
+            PropIntel(name="display_color", data_type=str, label="Display color", is_column=True, has_widget=True, widget_type='color', storable=True, inh_name="inherit_display_color", stor_name="_display_color", inh_from="based_on"),
+            PropIntel(name="inherit_sigma_star", data_type=bool, label="Inh. sigma star", is_column=True, has_widget=True, storable=True),
             PropIntel(name="inherit_display_color", data_type=bool, label="Inh. display color", is_column=True, has_widget=True, storable=True),
             PropIntel(name="inherit_CSDS_distribution", data_type=bool, label="Inh. mean CSDS", is_column=True, has_widget=True, storable=True),
-            PropIntel(name="inherit_sigma_star", data_type=bool, label="Inh. sigma star", is_column=True, has_widget=True, storable=True),
             PropIntel(name="inherit_probabilities", data_type=bool, label="Inh. probabilities", is_column=True, has_widget=True, storable=True),
-            PropIntel(name="probabilities", data_type=object, label="Probabilities", is_column=True, has_widget=True, storable=True, refinable=True, widget_type="custom", inh_name="inherit_probabilities", stor_name="_probabilities"),
+            PropIntel(name="CSDS_distribution", data_type=object, label="CSDS Distribution", is_column=True, has_widget=True, storable=True, refinable=True, widget_type="custom", inh_name="inherit_CSDS_distribution", stor_name="_CSDS_distribution", inh_from="based_on"),
+            PropIntel(name="probabilities", data_type=object, label="Probabilities", is_column=True, has_widget=True, storable=True, refinable=True, widget_type="custom", inh_name="inherit_probabilities", stor_name="_probabilities", inh_from="based_on"),
             PropIntel(name="components", data_type=object, label="Components", is_column=True, has_widget=True, storable=True, refinable=True, widget_type="custom", class_type=Component),
         ]
         store_id = "Phase"
@@ -134,13 +136,6 @@ class Phase(DataModel, Storable, RefinementGroup):
             return self
 
     # INHERITABLE PROPERTIES:
-    def _get_inheritable_property_value(self, name):
-        inh_name = self.Meta.get_prop_intel_by_name(name).inh_name
-        if self.based_on is not None and getattr(self, inh_name):
-            return getattr(self.based_on, name)
-        else:
-            return getattr(self, "_%s" % name)
-
     _sigma_star = 3.0
     def get_sigma_star(self): return self._get_inheritable_property_value("sigma_star")
     def set_sigma_star(self, value):
@@ -216,7 +211,14 @@ class Phase(DataModel, Storable, RefinementGroup):
     #      Initialization and other internals
     # ------------------------------------------------------------
     def __init__(self, *args, **kwargs):
+
+        my_kwargs = self.pop_kwargs(kwargs,
+            "data_name", "data_CSDS_distribution", "data_sigma_star", "data_components",
+            "data_G", "R", "data_R", "data_probabilities", "based_on_uuid", "based_on_index",
+            *[names[0] for names in Phase.Meta.get_local_storable_properties()]
+        )
         super(Phase, self).__init__(*args, **kwargs)
+        kwargs = my_kwargs
 
         with self.data_changed.hold():
             self._data_object = PhaseData()

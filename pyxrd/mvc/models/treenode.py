@@ -148,10 +148,10 @@ class TreeNode(object):
         return self.get_child_node(*indeces).object
 
     def clear(self):
-        for c in self.iter_children(reverse=True, recursive=True):
+        for c in self.iter_children(reverse=True):
             c.parent = None
 
-    def iter_children(self, reverse=False, recursive=False):
+    def iter_children(self, reverse=False, recursive=True):
         children = self._children if not reverse else self._children[::-1]
         for child_node in children:
             if recursive and child_node.has_children:

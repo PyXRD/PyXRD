@@ -21,12 +21,13 @@ from pyxrd.generic.peak_detection import multi_peakdetect, score_minerals
 class MineralScorer(DataModel):
     # MODEL INTEL:
     class Meta(DataModel.Meta):
-        parent_alias = 'specimen'
         properties = [
             PropIntel(name="matches", data_type=list, has_widget=True),
             PropIntel(name="minerals", data_type=list, has_widget=True),
             PropIntel(name="matches_changed", data_type=object, has_widget=False, storable=False)
         ]
+
+    specimen = property(DataModel.parent.fget, DataModel.parent.fset)
 
     matches_changed = None
 
@@ -105,7 +106,6 @@ class ThresholdSelector(ChildModel):
     # MODEL INTEL:
 
     class Meta(DataModel.Meta):
-        parent_alias = 'specimen'
         properties = [ # TODO add labels
             OptionPropIntel(name="pattern", data_type=str, storable=True, has_widget=True, options={ "exp": "Experimental Pattern", "calc": "Calculated Pattern" }),
             PropIntel(name="max_threshold", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
@@ -115,7 +115,7 @@ class ThresholdSelector(ChildModel):
             PropIntel(name="threshold_plot_data", data_type=object, storable=True),
         ]
 
-
+    specimen = property(DataModel.parent.fget, DataModel.parent.fset)
 
     # PROPERTIES:
 
@@ -281,7 +281,6 @@ class Marker(DataModel, Storable, CSVMixin):
 
     # MODEL INTEL:
     class Meta(DataModel.Meta):
-        parent_alias = 'specimen'
         properties = [ # TODO add labels
             PropIntel(name="label", data_type=unicode, storable=True, has_widget=True, is_column=True),
             PropIntel(name="visible", data_type=bool, storable=True, has_widget=True, is_column=True),
@@ -305,6 +304,8 @@ class Marker(DataModel, Storable, CSVMixin):
         ]
         csv_storables = [ (prop.name, prop.name) for prop in properties ]
         store_id = "Marker"
+
+    specimen = property(DataModel.parent.fget, DataModel.parent.fset)
 
     # PROPERTIES:
     _label = "New Marker"
@@ -422,7 +423,14 @@ class Marker(DataModel, Storable, CSVMixin):
     #      Initialisation and other internals
     # ------------------------------------------------------------
     def __init__(self, *args, **kwargs):
+
+        my_kwargs = self.pop_kwargs(kwargs,
+            "data_label", "data_visible", "data_position", "data_x_offset", "data_y_offset"
+            "data_color", "data_base", "data_angle", "data_align",
+            *[names[0] for names in type(self).Meta.get_local_storable_properties()]
+        )
         super(Marker, self).__init__(*args, **kwargs)
+        kwargs = my_kwargs
 
         self.label = self.get_kwarg(kwargs, "", "label", "data_label")
         self.visible = self.get_kwarg(kwargs, True, "visible", "data_visible")

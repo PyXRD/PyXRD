@@ -145,7 +145,12 @@ class AtomType(DataModel, Storable, CSVMixin):
     #      Initialization and other internals
     # ------------------------------------------------------------
     def __init__(self, *args, **kwargs):
+
+        keys = [ "data_%s" % names[0] for names in type(self).Meta.get_local_storable_properties()]
+        keys.extend([ names[0] for names in type(self).Meta.get_local_storable_properties()])
+        my_kwargs = self.pop_kwargs(kwargs, * keys)
         super(AtomType, self).__init__(*args, **kwargs)
+        kwargs = my_kwargs
 
         # Set up data object
         self._data_object = AtomTypeData(
@@ -311,7 +316,13 @@ class Atom(DataModel, Storable):
     #      Initialization and other internals
     # ------------------------------------------------------------
     def __init__(self, *args, **kwargs):
+        my_kwargs = self.pop_kwargs(kwargs,
+            "data_name", "data_z", "z", "data_pn", "data_atom_type",
+            "atom_type_uuid", "atom_type_name", "atom_type_index",
+            *[names[0] for names in type(self).Meta.get_local_storable_properties()]
+        )
         super(Atom, self).__init__(*args, **kwargs)
+        kwargs = my_kwargs
 
         # Set up data object
         self._data_object = AtomData(

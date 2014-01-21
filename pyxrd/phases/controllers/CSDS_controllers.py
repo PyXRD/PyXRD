@@ -106,7 +106,7 @@ class EditCSDSDistributionController(BaseController):
         if self.model.distrib is not None and not self.model.phase.project.before_needs_update_lock:
             try: self.view.update_figure(self.model.distrib[0])
             except any as error:
-                error.args += ("Caught unhandled exception: %s" % error,) 
+                error.args += ("Caught unhandled exception: %s" % error,)
                 print_exc()
 
     pass # end of class

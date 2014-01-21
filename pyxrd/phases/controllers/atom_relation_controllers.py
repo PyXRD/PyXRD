@@ -5,6 +5,9 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
+import logging
+logger = logging.getLogger(__name__)
+
 import gtk
 
 from pyxrd.mvc import Controller
@@ -204,7 +207,7 @@ class ContentsListController(InlineObjectListStoreController):
             try:
                 model.set_value(itr, col, float(new_text))
             except ValueError:
-                logger.debug("Invalid value entered ('%s')!" % new_text)
+                logger.exception("Invalid value entered ('%s')!" % new_text)
             return True
         tv.append_column(new_text_column('Default contents', text_col=2, xalign=0.0,
             editable=True,

@@ -32,7 +32,6 @@ from collections import OrderedDict
 from .prop_intel import PropIntel
 from .object_pool import ThreadedObjectPool
 from .treenode import TreeNode
-from ..support import observables
 
 from pyxrd.generic.utils import get_unique_list, get_new_uuid # TODO
 
@@ -120,6 +119,8 @@ class ModelMeta(type):
 
         # Generates the list of _all_ properties available for this class's bases
         all_properties = OrderedDict()
+        cls.Meta.all_properties = all_properties
+
         # Reverse order of the bases:
         for class_type in bases[::-1]:
             # Loop over properties, and update the dictionary:
@@ -146,6 +147,11 @@ class ModelMeta(type):
                 raise TypeError("In class %s.%s.Meta attribute 'properties' must contain"\
                                     " only PropIntel instances (found %s)" %
                                 (cls.__module__, cls.__name__, type(prop)))
+
+            if prop.name in cls.Meta.all_properties:
+                logger.warning("Cannot expand property '%s' of class '%s' twice, ignoring!" % (prop.name, cls))
+                yield prop
+                continue
 
             # Determine if the property is concrete or logical:
             # concrete = cls.is_concrete_attribute(prop)
@@ -242,6 +248,7 @@ class ModelMeta(type):
         If true, a call to model._reset_property_notification should
         be called in order to re-register the new property instance
         or type"""
+        from ..support import observables
         return  type(old) != type(new) or \
                isinstance(old, observables.ObsWrapperBase) and (old != new)
 
@@ -263,6 +270,7 @@ class ModelMeta(type):
         assignment. model is different from None when the value is
         changed (a model exists). Otherwise, during property creation
         model is None"""
+        from ..support import observables
 
         if isinstance(val, tuple):
             # this might be a class instance to be wrapped

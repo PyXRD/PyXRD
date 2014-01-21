@@ -7,12 +7,12 @@
 
 from pyxrd.data import settings
 import logging
-logger = logging.getLogger('pyxrd')
+logger = logging.getLogger(__name__)
 
 def get_all_refine_methods():
 
     methods = {}
-    
+
     from .scipy_runs import RefineLBFGSBRun, RefineBasinHoppingRun
     methods[0] = RefineLBFGSBRun()
     methods[4] = RefineBasinHoppingRun()

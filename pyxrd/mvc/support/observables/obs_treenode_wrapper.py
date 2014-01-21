@@ -26,9 +26,7 @@
 
 from .obs_wrapper import ObsWrapper
 
-from pyxrd.mvc.models.treenode import TreeNode
-
-class ObsTreeNodeWrapper(ObsWrapper, TreeNode):
+class ObsTreeNodeWrapper(ObsWrapper):
     def __init__(self, t):
         methods = ("insert", "remove", "on_grandchild_inserted", "on_grandchild_removed")
         ObsWrapper.__init__(self, t, methods)

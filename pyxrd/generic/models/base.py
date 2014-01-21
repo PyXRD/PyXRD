@@ -22,6 +22,12 @@ class PyXRDModel(Model):
         properties = []
         pass # end of class
 
+    def pop_kwargs(self, kwargs, *keys):
+        popped = {}
+        for key in keys:
+            popped[key] = kwargs.pop(key, None)
+        return popped
+
     def get_kwarg(self, fun_kwargs, default, *keywords):
         """
         Convenience function to get a certain keyword 'kw' value from the passed
@@ -71,6 +77,10 @@ class PyXRDModel(Model):
 class ChildModel(PyXRDModel):
     """
         A PyXRDModel with child-parent relation support.
+        Additionally, if you have properties that can actually be 'inherited'
+        from their parent, it provides two functions to facilitate this:
+            - '_get_inheritable_property_value'
+            - '_get_uninherited_property_value'
     """
 
     # MODEL INTEL:
@@ -111,10 +121,37 @@ class ChildModel(PyXRDModel):
         self.__parent = None
 
     def __init__(self, parent=None, *args, **kwargs):
-        super(ChildModel, self).__init__()
+        super(ChildModel, self).__init__(*args, **kwargs)
         self.removed = Signal()
         self.added = Signal()
         self.parent = parent
+
+    def get_uninherited_property_value(self, name):
+        """
+            Gets the 'private' value for the given attribute name
+            from the object, by-passing the regular inheritance rules.
+        """
+        prop_intel = self.Meta.get_prop_intel_by_name(name)
+        if prop_intel.inh_name is not None:
+            return self._get_inheritable_property_value(name, apply_inheritance=False)
+        else:
+            return getattr(self, prop_intel.name)
+
+    def _get_inheritable_property_value(self, name, apply_inheritance=True):
+        """
+            Gets either the own or the inherited value for the given attribute 
+            name, applying the inheritance rules if the keyword 
+            'apply_inheritance' is True
+        """
+        prop_intel = self.Meta.get_prop_intel_by_name(name)
+        if prop_intel.inh_from is not None:
+            inh_from = getattr(self, prop_intel.inh_from, None)
+        else:
+            inh_from = None
+        if apply_inheritance and inh_from is not None and getattr(self, prop_intel.inh_name):
+            return getattr(inh_from, name)
+        else:
+            return getattr(self, "_%s" % name)
 
     pass # end of class
 

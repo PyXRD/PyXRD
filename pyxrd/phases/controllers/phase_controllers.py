@@ -7,6 +7,7 @@
 
 import gtk
 import logging
+from pyxrd.mvc.adapters.gtk_support.treemodels.utils import create_treestore_from_directory
 
 logger = logging.getLogger(__name__)
 
@@ -248,7 +249,10 @@ class PhasesController(ObjectListStoreController):
         # TODO re-use this and reset the COMBO etc.
         self.add_model = Model()
         self.add_view = AddPhaseView(parent=self.view)
-        self.add_ctrl = AddPhaseController(self.add_model, self.add_view, parent=self.parent, callback=on_accept)
+        self.add_ctrl = AddPhaseController(
+            model=self.add_model, view=self.add_view, parent=self.parent,
+            callback=on_accept
+        )
 
         self.add_view.present()
         return None
@@ -280,8 +284,12 @@ class AddPhaseController(DialogController):
     """ 
         Controller for the add phase dialog
     """
-    def __init__(self, model, view, callback=None, parent=None):
-        DialogController.__init__(self, model, view, spurious=False, auto_adapt=False, parent=parent)
+
+    auto_adapt = False
+
+    def __init__(self, model=None, view=None, parent=None, callback=None):
+        super(AddPhaseController, self).__init__(
+            model=model, view=view, parent=parent)
         self.callback = callback
 
     def register_view(self, view):
@@ -293,14 +301,16 @@ class AddPhaseController(DialogController):
 
     def update_R_bounds(self):
         if self.view is not None:
-            min_R, max_R, R = get_Rbounds_for_G(self.view.get_G(), self.view.get_R())
+            min_R, max_R, R = get_Rbounds_for_G(
+                self.view.get_G(), self.view.get_R())
             self.view["adj_R"].set_upper(max_R)
             self.view["adj_R"].set_lower(min_R)
             self.view["R"].set_value(R)
 
     def update_G_bounds(self):
         if self.view is not None:
-            min_G, max_G, G = get_Gbounds_for_R(self.view.get_R(), self.view.get_G())
+            min_G, max_G, G = get_Gbounds_for_R(
+                self.view.get_R(), self.view.get_G())
             self.view["adj_G"].set_upper(max_G)
             self.view["adj_G"].set_lower(min_G)
             self.view["G"].set_value(G)
@@ -311,10 +321,12 @@ class AddPhaseController(DialogController):
 
     def generate_combo(self):
         self.reload_combo_model()
-        add_combo_text_column(self.view.phase_combo_box, text_col=0, sensitive_col=2)
+        add_combo_text_column(
+            self.view.phase_combo_box, text_col=0, sensitive_col=2)
 
     def reload_combo_model(self):
-        cmb_model = create_treestore_from_directory(settings.DATA_REG.get_directory_path("DEFAULT_PHASES"), ".phs")
+        cmb_model = create_treestore_from_directory(
+            settings.DATA_REG.get_directory_path("DEFAULT_PHASES"), ".phs")
         self.view.phase_combo_box.set_model(cmb_model)
 
     # ------------------------------------------------------------
@@ -322,7 +334,8 @@ class AddPhaseController(DialogController):
     # ------------------------------------------------------------
     def on_btn_ok_clicked(self, event):
         self.view.hide()
-        self.callback(self.view.get_phase(), self.view.get_G(), self.view.get_R())
+        self.callback(
+            self.view.get_phase(), self.view.get_G(), self.view.get_R())
         return True
 
     def on_btn_generate_phases_clicked(self, event):
@@ -359,7 +372,8 @@ class AddPhaseController(DialogController):
             return True
         if event.keyval == gtk.keysyms.Return:
             self.view.hide()
-            self.callback(self.view.get_phase(), self.view.get_G(), self.view.get_R())
+            self.callback(
+                self.view.get_phase(), self.view.get_G(), self.view.get_R())
             return True
 
     def on_window_edit_dialog_delete_event(self, event, args=None):

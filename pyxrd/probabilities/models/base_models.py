@@ -14,12 +14,13 @@ from pyxrd.generic.models import DataModel
 from pyxrd.generic.models.properties import IndexProperty
 
 from pyxrd.generic.refinement.mixins import RefinementGroup
+from pyxrd.generic.refinement.metaclasses import PyXRDRefinableMeta
 from pyxrd.mvc import PropIntel
-
 
 class _AbstractProbability(DataModel, Storable, RefinementGroup):
 
     # MODEL INTEL:
+    __metaclass__ = PyXRDRefinableMeta
     class Meta(DataModel.Meta):
         independent_label_map = []
         properties = [
@@ -80,14 +81,17 @@ class _AbstractProbability(DataModel, Storable, RefinementGroup):
         return self.name
 
     @property
-    def children_refinable(self):
+    def children_refinable(self): # TODO fix this: give each parameter its own inherited flag
         return (not self.parent.inherit_probabilities) if self.parent else True
 
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
     def __init__(self, *args, **kwargs):
+        my_kwargs = self.pop_kwargs(kwargs, *[names[0] for names in type(self).Meta.get_local_storable_properties()])
         super(_AbstractProbability, self).__init__(*args, **kwargs)
+        kwargs = my_kwargs
+
         self.setup(**kwargs)
         self.update()
 

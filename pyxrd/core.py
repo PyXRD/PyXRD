@@ -22,7 +22,8 @@ def _worker_initializer(*args):
     from pyxrd.data import settings
     if settings.CACHE == "FILE":
         settings.CACHE = "FILE_FETCH_ONLY"
-    settings.apply_runtime_settings(no_gui=True)
+    _apply_settings(True, settings.DEBUG, False, None)
+    logging.getLogger(__name__).info("Worker process initialized")
 
 def _initialize_pool():
     # Set this up before we do anything else,
@@ -58,38 +59,48 @@ def _check_for_updates():
     from pyxrd.generic.update import update
     update()
 
-def _setup_logging(debug, log_file):
+def _setup_logging(debug, log_file, scripted=False):
     if not os.path.exists(os.path.dirname(log_file)):
         os.makedirs(os.path.dirname(log_file))
 
-    logging.basicConfig(level=logging.DEBUG if debug else logging.INFO,
-                        format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
-                        datefmt='%m-%d %H:%M',
-                        filename=log_file,
-                        filemode='w')
+    if not scripted:
+        logging.basicConfig(level=logging.DEBUG if debug else logging.INFO,
+                            format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+                            datefmt='%m-%d %H:%M',
+                            filename=log_file,
+                            filemode='w')
 
-    # Get logger:
-    logger = logging.getLogger()
-    full = logging.Formatter("%(name)s - %(levelname)s: %(message)s")
+        # Get root logger:
+        logger = logging.getLogger()
 
-    # Setup error stream:
-    console = logging.StreamHandler()
-    console.setLevel(logging.DEBUG if debug else logging.ERROR)
-    console.setFormatter(full)
-    logger.addHandler(console)
+        # Setup error stream:
+        console = logging.StreamHandler()
+        console.setLevel(
+            logging.DEBUG if debug else
+            logging.WARNING if not scripted else
+            logging.INFO
+        )
+        full = logging.Formatter("%(name)s - %(levelname)s: %(message)s")
+        console.setFormatter(full)
 
-def _apply_settings(args, pool):
+        # Add console logger to the root logger:
+        logger.addHandler(console)
+    else:
+        # Very basic output for the root object:
+        logging.basicConfig(format='%(name)s - %(levelname)s: %(message)s')
+
+def _apply_settings(no_gui, debug, clear_cache, pool):
 
     from pyxrd.data import settings
     # apply settings
-    settings.apply_runtime_settings(no_gui=args.script, debug=args.debug, pool=pool)
+    settings.apply_runtime_settings(no_gui=no_gui, debug=debug, pool=pool)
 
-    _setup_logging(settings.DEBUG, settings.LOG_FILENAME)
+    _setup_logging(settings.DEBUG, settings.LOG_FILENAME, no_gui)
 
     # clean out the file cache if asked and from time to time:
     if settings.CACHE == "FILE":
         from pyxrd.generic.caching import memory
-        if args.clear_cache:
+        if clear_cache:
             memory.clear()
         else:
             from pyxrd.generic.io import get_size, sizeof_fmt
@@ -197,7 +208,7 @@ def run_main():
     pool = _initialize_pool()
 
     # Apply settings
-    _apply_settings(args, pool)
+    _apply_settings(bool(args.script), args.debug, args.clear_cache, pool)
 
     try:
         if args.script:

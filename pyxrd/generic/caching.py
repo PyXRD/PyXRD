@@ -39,13 +39,13 @@ if settings.CACHE in ("FILE", "FILE_FETCH_ONLY"):
 
     def check_cache_size(verbose=False):
         size = get_size(memory.cachedir)
-        if verbose: print "Cache size is:", sizeof_fmt(size)
+        if verbose: logger.info("Cache size is:", sizeof_fmt(size))
         if size > settings.CACHE_SIZE:
             memory.clear()
 
 elif settings.CACHE == "MEMORY":
-    logger.warning("Using in-memory cache... (NOT RECOMMENDED!)")
-    from pyxrd.generic.cache_collection import cache
+    logger.warn("Using in-memory cache... (NOT RECOMMENDED!)")
+    from pyxrd.generic.cache_collection import cache # @UnusedImport
 
 elif settings.CACHE == None:
     logger.info("Not using cache")

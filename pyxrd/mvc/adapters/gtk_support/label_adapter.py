@@ -32,8 +32,9 @@ class LabelAdapter(GtkAdapter):
     widget_types = ["label"]
     _check_widget_type = gtk.Label
 
-    _wid_read = GtkAdapter.static_to_class(gtk.Label.get_text)
-    _wid_write = GtkAdapter.static_to_class(gtk.Label.set_text)
-    _signal = "changed"
+    _wid_read = lambda c, w: gtk.Label.get_text(w)
+    _wid_write = lambda c, w, v: gtk.Label.set_text(w, str(v))
+
+    _signal = None
 
     pass # end of class

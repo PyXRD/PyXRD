@@ -25,38 +25,53 @@ __residual_method_map = {
     "Rpder": Rpder
 }
 
-def parse_solution(x, n, m):
-    fractions = np.asanyarray(x[:m])[:, np.newaxis]
-    scales = np.asanyarray(x[m:m + n])
-    bgshifts = np.asanyarray(x[-n:] if settings.BGSHIFT else np.zeros(shape=(n,)))
+def parse_solution(x, mixture):
+    fractions = np.asanyarray(x[:mixture.m])[:, np.newaxis]
+    scales = np.asanyarray(x[mixture.m:mixture.m + mixture.n])
+    if mixture.auto_bg:
+        bgshifts = np.asanyarray(x[-mixture.n:])
+    else:
+        bgshifts = mixture.bgshifts
     return fractions, scales, bgshifts
 
+def get_solution(mixture):
+    if mixture.auto_bg:
+        return np.concatenate((mixture.fractions, mixture.scales, mixture.bgshifts))
+    else:
+        return np.concatenate((mixture.fractions, mixture.scales))
+
+def get_zero_solution(mixture):
+    if mixture.auto_bg:
+        x0 = np.ones(shape=(mixture.m + mixture.n * 2,))
+        x0[-mixture.n:] = 0.0 # set bg at zero
+    else:
+        x0 = np.ones(shape=(mixture.m + mixture.n * 1,))
+    x0[:mixture.m] = 1.0 / mixture.m
+    return x0
+
 def _get_residual(x, mixture):
-    fractions, scales, bgshifts = parse_solution(x, mixture.n, mixture.m)
+    fractions, scales, bgshifts = parse_solution(x, mixture)
     tot_rp = 0.0
     for scale, bgshift, specimen in izip(scales, bgshifts, mixture.specimens):
         if specimen is not None:
             if specimen.phase_intensities is not None:
-                calc = (scale * np.sum(specimen.phase_intensities * fractions, axis=0))
-                if settings.BGSHIFT:
-                    calc += bgshift
+                calc = (scale * np.sum(specimen.phase_intensities * fractions, axis=0)) + bgshift
             else:
-                logger.debug("- calc: _get_residual reports: 'No phases found!'")
+                logger.warning("_get_residual reports: 'No phases found!'")
                 calc = np.zeros_like(specimen.observed_intensity)
             if specimen.observed_intensity.size > 0:
                 exp = specimen.observed_intensity[specimen.selected_range]
                 cal = calc[specimen.selected_range]
                 tot_rp += __residual_method_map[settings.RESIDUAL_METHOD](exp, cal)
             else:
-                logger.debug("- calc: _get_residual reports: 'Zero observations found!'")
+                logger.warning("_get_residual reports: 'Zero observations found!'")
         else:
-            logger.debug("- calc: _get_residual reports: 'None found!'")
+            logger.warning("_get_residual reports: 'None found!'")
     return tot_rp / float(len(mixture.specimens)) # average this out
 
 def get_residual(mixture, parsed=False):
     parse_mixture(mixture, parsed=parsed)
-    x = np.concatenate((mixture.fractions, mixture.scales, mixture.bgshifts))
-    return _get_residual(x, mixture)
+    return _get_residual(get_solution(mixture), mixture)
 
 def parse_mixture(mixture, parsed=False):
     if not parsed:
@@ -77,7 +92,7 @@ def parse_mixture(mixture, parsed=False):
             if specimen is not None:
                 specimen.phase_intensities = get_phase_intensities(specimen)
             else:
-                logger.debug("- calc: parse_mixture reports: 'None found!'")
+                logger.warning("parse_mixture reports: 'None found!'")
 
 @wrap_exceptions
 def optimize_mixture(mixture, parsed=False):
@@ -94,10 +109,8 @@ def optimize_mixture(mixture, parsed=False):
         return mixture # ignore and return the original object back
 
     # 1. setup start point:
-    bounds = [(0, None) for i in range(mixture.m)] + [(0, None) for i in range(mixture.n * 2)]
-    x0 = np.ones(shape=(mixture.m + mixture.n * 2,))
-    x0[-mixture.n:] = 0.0 # set bg at zero
-    x0[:mixture.m] = 1.0 / mixture.m
+    x0 = get_zero_solution(mixture)
+    bounds = [(0, None) for i in range(len(x0))] # @UnusedVariable
 
     # 2. Optimize:
     t1 = time.time()
@@ -115,13 +128,13 @@ def optimize_mixture(mixture, parsed=False):
     logger.debug(' Solution: %s' % lastx)
     logger.debug(' Residual: %s' % residual)
     logger.debug(' Info dict: %s' % info)
-    
+
     # 3. rescale scales and fractions so they fit into [0-1] range,
     #    and round them to have 6 digits max:
-    fractions, scales, bgshifts = parse_solution(lastx, mixture.n, mixture.m)
+    fractions, scales, bgshifts = parse_solution(lastx, mixture)
     fractions = fractions.flatten()
-    if settings.BGSHIFT:
-        bgshifts = bgshifts.round(6)
+    # if mixture.BGSHIFT:
+    #    bgshifts = bgshifts.round(6)
 
     sum_frac = np.sum(fractions)
     if sum_frac == 0.0 and len(fractions) > 0: # prevent NaN errors

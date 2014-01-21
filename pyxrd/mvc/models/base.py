@@ -30,13 +30,13 @@ logger = logging.getLogger(__name__)
 try: import threading as threading
 except ImportError: import dummy_threading as threading
 try: import gobject
-except ImportError: from generic.gtktools import dummy_gobject as gobject
+except ImportError: from pyxrd.generic.gtk_tools import dummy_gobject as gobject
 
 from pyxrd.generic.utils import not_none # TODO
 
 from .metaclasses import ModelMeta
 from ..support.observables import ObsWrapperBase, Signal
-from ..observer import Observer, NTInfo
+from ..observers import Observer, NTInfo
 from .prop_intel import UUIDPropIntel
 
 class Model(Observer):
@@ -89,10 +89,11 @@ class Model(Observer):
                 raise RuntimeError, "Meta class '%s' has not been initialized" \
                     " properly: 'all_properties' is not set!" % type(cls)
             else:
-                cls._mem_storables = getattr(cls, "_mem_storables", None)
-                if cls._mem_storables is None:
-                    cls._mem_storables = [(prop.name, not_none(prop.stor_name, prop.name)) for prop in cls.all_properties if prop.storable]
-                return cls._mem_storables
+                return [(prop.name, not_none(prop.stor_name, prop.name)) for prop in cls.all_properties if prop.storable]
+
+        @classmethod
+        def get_local_storable_properties(cls):
+            return [(prop.name, not_none(prop.stor_name, prop.name)) for prop in cls.properties if prop.storable]
 
         @classmethod
         def get_inheritable_properties(cls):
@@ -100,10 +101,7 @@ class Model(Observer):
                 raise RuntimeError, "Meta class '%s' has not been initialized" \
                     " properly: 'all_properties' is not set!" % type(cls)
             else:
-                cls._mem_inheritables = getattr(cls, "_mem_inheritables", None)
-                if cls._mem_inheritables is None:
-                    cls._mem_inheritables = [prop for prop in cls.all_properties if prop.inh_name]
-                return cls._mem_inheritables
+                return [prop for prop in cls.all_properties if prop.inh_name]
 
         @classmethod
         def get_refinable_properties(cls):
@@ -111,10 +109,7 @@ class Model(Observer):
                 raise RuntimeError, "Meta class '%s' has not been initialized" \
                     " properly: 'all_properties' is not set!" % type(self)
             else:
-                cls._mem_refinables = getattr(cls, "_mem_refinables", None)
-                if cls._mem_refinables is None:
-                    cls._mem_refinables = [prop for prop in cls.all_properties if prop.refinable]
-                return cls._mem_refinables
+                return [prop for prop in cls.all_properties if prop.refinable]
 
         @classmethod
         def get_viewless_properties(cls):
@@ -122,10 +117,7 @@ class Model(Observer):
                 raise RuntimeError, "Meta class '%s' has not been initialized" \
                     " properly: 'all_properties' is not set!" % type(self)
             else:
-                cls._mem_viewless = getattr(cls, "_mem_viewless", None)
-                if cls._mem_viewless is None:
-                    cls._mem_viewless = [prop for prop in cls.all_properties if not prop.has_widget]
-                return cls._mem_viewless
+                return [prop for prop in cls.all_properties if not prop.has_widget]
 
         @classmethod
         def get_viewable_properties(cls):
@@ -133,17 +125,12 @@ class Model(Observer):
                 raise RuntimeError, "Meta class '%s' has not been initialized" \
                     " properly: 'all_properties' is not set!" % type(self)
             else:
-                cls._mem_viewables = getattr(cls, "_mem_viewables", None)
-                if cls._mem_viewables is None:
-                    cls._mem_viewables = [prop for prop in cls.all_properties if prop.has_widget]
-                return cls._mem_viewables
+                return [prop for prop in cls.all_properties if prop.has_widget]
 
         @classmethod
         def get_prop_intel_by_name(cls, name):
-            cls._mem_properties = getattr(cls, "_mem_properties", None)
-            if cls._mem_properties is None:
-                cls._mem_properties = { prop.name: prop for prop in cls.all_properties }
-            return cls._mem_properties[name]
+            _mem_properties = { prop.name: prop for prop in cls.all_properties }
+            return _mem_properties[name]
 
         pass # end of class
 

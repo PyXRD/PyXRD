@@ -23,7 +23,6 @@
 #  -------------------------------------------------------------------------
 
 import gtk
-from .treemodels import ObjectListStore, XYListStore, ObjectTreeStore
 from ..abstract_adapter import AbstractAdapter
 
 def wrap_property_to_treemodel_type(model, prop, treemodel_type):
@@ -42,6 +41,7 @@ def wrap_treenode_property_to_treemodel(model, prop):
         to an ObjectTreeStore. If the property is a gtk.TreeModel instance,
         it returns it without wrapping.
     """
+    from .treemodels import ObjectTreeStore
     return wrap_property_to_treemodel_type(model, prop, ObjectTreeStore)
 
 def wrap_list_property_to_treemodel(model, prop):
@@ -50,6 +50,7 @@ def wrap_list_property_to_treemodel(model, prop):
         to an ObjectListStore. If the property is an gtk.TreeModel instance,
         it returns it without wrapping.
     """
+    from .treemodels import ObjectListStore
     return wrap_property_to_treemodel_type(model, prop, ObjectListStore)
 
 def wrap_xydata_to_treemodel(model, prop):
@@ -58,6 +59,7 @@ def wrap_xydata_to_treemodel(model, prop):
         to an XYListStore. If the property is an gtk.TreeModel instance,
         it returns it without wrapping.
     """
+    from .treemodels import XYListStore
     return wrap_property_to_treemodel_type(model, prop, XYListStore)
 
 class AbstractTreeViewAdapter(AbstractAdapter):

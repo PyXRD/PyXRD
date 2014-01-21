@@ -8,12 +8,10 @@
 from signals import DefaultSignal, HoldableSignal
 from base import PyXRDModel, ChildModel, DataModel
 from lines import PyXRDLine, CalculatedLine, ExperimentalLine
-from observers import ListObserver, DictObserver
 
 __all__ = [
     "DefaultSignal",
     "HoldableSignal",
     "PyXRDModel", "ChildModel", "DataModel",
     "PyXRDLine", "CalculatedLine", "ExperimentalLine",
-    "ListObserver", "DictObserver"
 ]

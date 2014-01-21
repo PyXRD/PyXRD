@@ -22,14 +22,14 @@ def get_structure_factors(range_stl, G, comp_list):
     SF = np.zeros(shape, dtype=np.complex_)
     PF = np.zeros(shape, dtype=np.complex_)
     for i, comp in enumerate(comp_list):
-        SF[:, i], PF[:, i] = get_factors.func(range_stl, comp)
+        SF[:, i], PF[:, i] = get_factors.func(range_stl, comp) # @UndefinedVariable
     return SF, PF
 
 @cache(64)
 def get_Q_matrices(Q, CSDS_max):
-    Qn = np.zeros((CSDS_max,) + Q.shape, dtype=complex)
+    Qn = np.zeros((CSDS_max + 1,) + Q.shape, dtype=complex)
     Qn[0, ...] = np.copy(Q)
-    for n in range(1, CSDS_max):
+    for n in range(1, CSDS_max + 1):
         Qn[n, ...] = mmult(Qn[n - 1, ...], Q)
     return Qn
 
@@ -45,7 +45,7 @@ def get_absolute_scales(components, CSDS_real_mean, W):
             mean_d001 += comp.d001 * W[i]
             mean_density += (comp.weight * W[i] / comp.volume)
         else:
-            logger.debug("- calc: get_absolute_scales reports: 'Zero observations found!'") 
+            logger.debug("- calc: get_absolute_scales reports: 'Zero observations found!'")
 
     return mean_d001 / (CSDS_real_mean * mean_volume ** 2 * mean_density)
 
@@ -86,7 +86,7 @@ def get_diffracted_intensity(range_stl, phase):
         # Create Q phase factor matrices:
         PF = np.repeat(PF[..., np.newaxis, :], reps, axis=1)
         Q = np.multiply(np.repeat(np.repeat(PF, reps, axis=2), reps, axis=1), P)
-        Qn = get_Q_matrices.func(Q, phase.CSDS.maximum + 1)
+        Qn = get_Q_matrices.func(Q, phase.CSDS.maximum)
 
         # Calculate the intensity:
         sub_total = np.zeros(Q.shape, dtype=np.complex)

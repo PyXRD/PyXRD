@@ -49,40 +49,19 @@ Shortcuts are provided to the following classes defined in submodules:
 
 """
 
-__all__ = ["Model",
-           "ModelMT",
-           "Controller", "View", "Observer",
-           "Observable",
-           "PropIntel", "OptionPropIntel", "UUIDPropIntel", "AliasPropIntel",
-           "observable", "observer", "adapters", # packages
-           ]
-
-__version = (1, 99, 1)
-
-# Load this so logging is properly set up
-import logging
-logger = logging.getLogger(__name__)
-
-# visible classes
+# Class shortcuts:
+from .observers import Observer
+from .support.observables import Signal, Observable
 from .models import *
-try:
-    from .model import TreeStoreModel, ListStoreModel, TextBufferModel
-except ImportError:
-    pass
-else:
-    __all__ += [ "TreeStoreModel", "ListStoreModel", "TextBufferModel" ]
 
 try:
-    from .controller import Controller
     from .view import View
+    from .controller import Controller
 except ImportError:
-    pass
+    import logging
+    logging.getLogger(__name__).warning("ImportError when trying to load View and/or Controller: do you have PyGTK/GObject installed?")
 
-from .observer import Observer
-from .support.observables import Observable, Signal
-
-# visible modules
-import support, observer, adapters
+__version = (2, 0, 0)
 
 def get_version():
     """

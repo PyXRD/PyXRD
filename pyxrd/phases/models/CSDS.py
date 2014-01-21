@@ -15,11 +15,14 @@ from pyxrd.generic.models import DataModel
 from pyxrd.generic.io import storables, Storable
 
 from pyxrd.generic.refinement.mixins import RefinementGroup, RefinementValue
+from pyxrd.generic.refinement.metaclasses import PyXRDRefinableMeta
 from pyxrd.mvc import PropIntel
+
 
 class _AbstractCSDSDistribution(DataModel, Storable):
 
     # MODEL INTEL:
+    __metaclass__ = PyXRDRefinableMeta
     class Meta(DataModel.Meta):
         description = "Abstract CSDS distr."
         explanation = ""
@@ -43,16 +46,6 @@ class _AbstractCSDSDistribution(DataModel, Storable):
         if self._distrib == None:
             self.update_distribution()
         return self._distrib
-
-    # ------------------------------------------------------------
-    #      Initialisation and other internals
-    # ------------------------------------------------------------
-    def __init__(self, *args, **kwargs):
-        super(_AbstractCSDSDistribution, self).__init__(*args, **kwargs)
-        self.setup(**kwargs)
-
-    def setup(self, **kwargs):
-        raise NotImplementedError
 
     # ------------------------------------------------------------
     #      Methods & Functions
@@ -120,10 +113,12 @@ class _LogNormalMixin(object):
                 self._update_distribution()
 
     # ------------------------------------------------------------
-    #      Initialisation and other internals
+    #      Initialization and other internals
     # ------------------------------------------------------------
-    def setup(self, average=10, alpha_scale=0.9485, alpha_offset=-0.0017,
-            beta_scale=0.1032, beta_offset=0.0034, **kwargs):
+    def __init__(self, average=10, alpha_scale=0.9485, alpha_offset=-0.0017,
+            beta_scale=0.1032, beta_offset=0.0034, *args, **kwargs):
+
+        super(_LogNormalMixin, self).__init__(*args, **kwargs)
 
         self._data_object = CSDSData()
 
@@ -224,8 +219,10 @@ class DritsCSDSDistribution(_LogNormalMixin, _AbstractCSDSDistribution, Refineme
     # ------------------------------------------------------------
     #      Initialization and other internals
     # ------------------------------------------------------------
-    def setup(self, average=10, **kwargs):
-        super(DritsCSDSDistribution, self).setup(average=average)
+    def __init__(self, *args, **kwargs):
+        for key in ["alpha_scale", "alpha_offset", "beta_scale", "beta_offset"]:
+            kwargs.pop(key, None)
+        super(DritsCSDSDistribution, self).__init__(*args, **kwargs)
 
     pass # end of class
 

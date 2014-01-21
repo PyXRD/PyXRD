@@ -22,7 +22,7 @@
 #  Boston, MA 02110, USA.
 #  -------------------------------------------------------------------------
 
-from .adapter_registry import adapter_registry
+from .adapter_registry import AdapterRegistry
 
 class MetaAdapter(type):
     """
@@ -31,7 +31,7 @@ class MetaAdapter(type):
     """
     def __new__(cls, clsname, bases, attrs):
         newclass = super(MetaAdapter, cls).__new__(cls, clsname, bases, attrs)
-        adapter_registry.register(newclass)
+        AdapterRegistry.register(newclass)
         return newclass
 
     pass # end of class

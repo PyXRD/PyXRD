@@ -16,9 +16,7 @@ from pyxrd.generic.controllers import DialogController, BaseController, ObjectLi
 from pyxrd.mixture.models.parspace import ParameterSpaceGenerator
 from pyxrd.mixture.models import Mixture
 from pyxrd.mixture.views import EditMixtureView, RefinementView, RefinementResultView
-from pyxrd.specimen.models.base import Specimen
 from pyxrd.generic.controllers.objectliststore_controllers import wrap_list_property_to_treemodel
-from pyxrd.phases.models.phase import Phase
 from contextlib import contextmanager
 
 class RefinementResultsController(DialogController):
@@ -121,8 +119,10 @@ class RefinementController(DialogController):
 
         # Editable floats:
         def get_value(column, cell, model, itr, *args):
-            value = model.get_value(itr, column.get_col_attr('markup'))
-            try: value = "%.5f" % value
+            col = column.get_col_attr('markup')
+            try:
+                value = model.get_value(itr, col)
+                value = "%.5f" % value
             except TypeError: value = ""
             cell.set_property("markup", value)
             return

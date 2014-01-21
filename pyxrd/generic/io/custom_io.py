@@ -229,7 +229,7 @@ class Storable(object):
 
     def __init__(self, *args, **kwargs):
         # Nothing to do but ignore any extraneous args & kwargs passed down
-        super(Storable, self).__init__()
+        object.__init__(self)
 
     ###########################################################################
     # High-level JSON (de)serialisiation related methods & functions:

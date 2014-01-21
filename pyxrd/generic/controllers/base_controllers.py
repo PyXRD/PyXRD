@@ -9,8 +9,7 @@ from contextlib import contextmanager
 import os
 import gtk
 
-from pyxrd.mvc import Controller
-from pyxrd.mvc.adapters import adapter_registry
+from pyxrd.mvc.controller import Controller
 
 from pyxrd.generic.io.utils import retrieve_lowercase_extension
 
@@ -267,45 +266,6 @@ class BaseController (Controller, DialogMixin):
             cid = self.status_cid
         if cid is not None:
             self.statusbar.pop(cid)
-
-    def _find_widget_match(self, prop_name):
-        """
-            Checks if the view has defined a 'widget_format' attribute.
-            If so, it uses this format the search for the widget in the view,
-            if not it takes the first widget with a name ending with the
-            property name.
-            Will also try to add certain widgets to the view if they're not
-            present.
-        """
-
-        widget_name = None
-        widget_format = getattr(self.view, 'widget_format', "%s")
-
-        if widget_format:
-            widget_name = widget_format % prop_name
-            if not widget_name in self.view:
-                intel = self.model.Meta.get_prop_intel_by_name(prop_name)
-                if intel is not None and intel.widget_type == 'scale':
-                    self.view.add_scale_widget(intel, widget_format=widget_format)
-        else:
-            for wid_name in self.view:
-                if wid_name.lower().endswith(prop_name.lower()):
-                    widget_name = wid_name
-                    break
-
-        return widget_name
-
-    def _get_handler_list(self):
-        # Add default widget handlers:
-        local_handlers = {}
-        local_handlers.update(adapter_registry)
-
-        # Override with class instance widget handlers:
-        for widget_type, handler in self.widget_handlers.iteritems():
-            if isinstance(handler, basestring):
-                self.widget_handlers[widget_type] = getattr(self, handler)
-        local_handlers.update(self.widget_handlers)
-        return local_handlers
 
     pass # end of class
 

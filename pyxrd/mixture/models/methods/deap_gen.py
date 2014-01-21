@@ -5,6 +5,10 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
+import logging
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
 from itertools import izip, imap
 
 import numpy as np
@@ -160,6 +164,8 @@ class RefineCMAESRun(RefineRun):
             factr_lambda=FACTR_LAMBDA, factr_init_lambda=FACTR_INIT_LAMBDA,
             max_init_lambda=MAX_INIT_LAMBDA, min_init_lambda=MIN_INIT_LAMBDA, **kwargs):
 
+        logger.info("Setting up the DEAP CMA-ES refinement algorithm")
+
         N = len(context.ref_props)
         init_lambda = max(min(N * factr_init_lambda, max_init_lambda), min_init_lambda)
         lambda_ = min(N * factr_lambda, MAX_LAMBDA)
@@ -186,24 +192,30 @@ class RefineCMAESRun(RefineRun):
         # Setup strategy:
         strategy = CustomStrategy(centroid=context.initial_solution, sigma=2, lambda_=lambda_)
 
+        logger.info("Pre-feeding with a normal distributed population ...")
         # Pre-feed the strategy with a normal distributed population over the entire domain (large population):
         solutions = np.random.normal(size=(init_lambda, N))
         solutions = (solutions - solutions.min()) / (solutions.max() - solutions.min()) # stretch to [0-1] interval
         solutions = bounds[:, 0] + solutions * (bounds[:, 1] - bounds[:, 0])
+        logger.info("\t generated solution")
         population = []
         results = []
         for ind in imap(create_individual, solutions):
             result = pool.apply_async(toolbox.evaluate, (ind,))
             population.append(ind)
             results.append(result)
+        logger.info("\t queued solutions for evaluation")
         for ind, result in izip(population, results):
             ind.fitness.values = result.get()
+        logger.info("\t retrieved all solution evaluations")
         del results # clear some memory
+        logger.info("\t updating population")
         strategy.update(population)
 
         toolbox.register("update", strategy.update)
         toolbox.register("generate", strategy.generate, create_individual)
 
+        logger.info("Creating hall-off-fame and statistics")
         # Hall of fame:
         halloffame = tools.HallOfFame(1)
 
@@ -218,6 +230,7 @@ class RefineCMAESRun(RefineRun):
         if pool is not None:
             toolbox.register("map", lambda f, i: pool.map(f, i, 10))
 
+        logger.info("Running the CMA-ES algorithm...")
         final = eaGenerateUpdateStagn(
             toolbox,
             ngen=ngen,

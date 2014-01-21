@@ -20,6 +20,11 @@ __all__ = [
     'TestMixture',
 ]
 
+# Requires properly working:
+#  - Phase
+#  - Specimen
+#  - Project
+
 class TestMixture(unittest.TestCase):
 
     atom_type = None
@@ -153,14 +158,70 @@ class TestMixture(unittest.TestCase):
         self.mixture.unset_phase(dummy)
         self.assertEqual(self.mixture.phase_matrix[0, 0], None)
 
+    def test_randomize_empty_mixture(self):
+        self.mixture.randomize()
+
+    def _refinement_setup(self):
+        # TODO maybe add some more variation in the type of Phases?
+        specimen = Specimen(name="Test Specimen", parent=self.project)
+        phase1 = Phase(name="Test Phase1", parent=self.project)
+        phase2 = Phase(name="Test Phase2", parent=self.project)
+        self.mixture.add_specimen_slot(specimen, 0.5, 0)
+        self.mixture.add_phase_slot("Test Phase1", 0.5)
+        self.mixture.add_phase_slot("Test Phase2", 0.5)
+        self.mixture.set_phase(0, 0, phase1)
+        self.mixture.set_phase(0, 1, phase2)
+
+    def test_randomize(self):
+        self._refinement_setup()
+
+        # Mark the attribute(s) for refinement & get their values:
+        refinables = []
+        for node in self.mixture.refinables.iter_children():
+            ref_prop = node.object
+            if ref_prop.refinable:
+                ref_prop.refine = True
+                refinables.append((ref_prop, ref_prop.value))
+
+        # Randomize:
+        self.mixture.randomize()
+
+        # Check all of them have been randomized:
+        # It is possible (but unlikely) that the randomized value
+        # is the same as the pre-randomized value. If so run this test again
+        # to make sure it is really failing.
+        for ref_prop, pre_val in refinables:
+            self.assertNotEqual(pre_val, ref_prop.value)
+
+    def test_auto_restrict_empy_mixture(self):
+        self.mixture.auto_restrict()
+
+    def test_auto_restrict(self):
+        self._refinement_setup()
+
+        # Mark the attribute(s) for refinement & get their values:
+        refinables = []
+        for node in self.mixture.refinables.iter_children():
+            ref_prop = node.object
+            if ref_prop.refinable:
+                ref_prop.refine = True
+                refinables.append((ref_prop, ref_prop.value))
+
+        # Randomize:
+        self.mixture.auto_restrict()
+
+        # Check all of them have been restricted:
+        for ref_prop, pre_val in refinables:
+            self.assertEqual(pre_val * 0.8, ref_prop.value_min)
+            self.assertEqual(pre_val * 1.2, ref_prop.value_max)
+
+
     # TODO:
     #  - set_data_object
     #  - optimize
     #  - apply_current_data_object
     #  - update
     #  - update_refinement_treestore
-    #  - auto_restrict
-    #  - randomize
     #  - get_refinement_method
     #  - setup_refine_options
 

@@ -24,9 +24,8 @@
 #  Boston, MA 02110, USA.
 #  -------------------------------------------------------------------------
 
-# TODO remove Builder: deprecated!
+# TODO remove gladeXML: deprecated!
 
-from pyxrd.mvc.controller import Controller
 from pyxrd.mvc.support.exceptions import ViewError
 
 import gtk
@@ -40,7 +39,6 @@ import types
 # ----------------------------------------------------------------------
 
 class View (object):
-    glade = None
     top = None
     builder = None
 
@@ -52,35 +50,19 @@ class View (object):
         argument is empty a class attribute of the same name is used. This
         does not work for *parent*.
 
-        *builder* is a path to an XML file defining widgets in GtkBuilder
-        format.
-
-           .. versionadded:: 1.99.1
+        *builder* is a path to a Glade XML file.
 
         *top* is a string or a list of strings containing the names of our top
-        level widgets. When using libglade only their children are loaded.
+        level widgets.
 
         *parent* is used to call :meth:`set_parent_view`.
 
-        The last two only work if *glade* or *builder* are used, not if you
+        The last two only work if *builder* is used, not if you
         intend to create widgets later from code.
-
-        .. deprecated:: 1.99.1
-           In future versions the functionality will be split into the new class
-           :class:`ManualView` and its child :class:`BuilderView`.
         """
-        if isinstance(builder, Controller):
-            raise NotImplementedError("This version of GTKMVC does not"
-                " support the 1.99.0 API")
-        if parent and not isinstance(parent, View):
-            raise NotImplementedError("This version of GTKMVC does not"
-                " support the unreleased first GtkBuilder API")
-
         self.manualWidgets = {}
         self.autoWidgets = {}
         self.__autoWidgets_calculated = False
-
-        self.glade_xmlWidgets = []
 
         if top: _top = top
         else: _top = self.top
@@ -139,14 +121,6 @@ class View (object):
             # then try with glade and builder, starting from memoized
             if self.autoWidgets.has_key(key): wid = self.autoWidgets[key]
             else:
-                # try with glade
-                for xml in self.glade_xmlWidgets:
-                    wid = xml.get_widget(key)
-                    if wid is not None:
-                        self.autoWidgets[key] = wid
-                        break
-                    pass
-
                 # try with gtk.builder
                 if wid is None and self._builder is not None:
                     wid = self._builder.get_object(key)
@@ -162,7 +136,7 @@ class View (object):
     def __setitem__(self, key, wid):
         """
         Add a widget. This overrides widgets of the same name that were loaded
-        fom XML. It does not affect GTK container/child relations.
+        from XML. It does not affect GTK container/child relations.
         
         If no top widget is known, this sets it.
         """

@@ -26,7 +26,7 @@
 import logging
 logger = logging.getLogger(__name__)
 
-from .observer import Observer
+from .observers import Observer
 from .support.exceptions import TooManyCandidatesError
 
 import types
@@ -252,36 +252,39 @@ class Controller (Observer):
 
     def _find_widget_match(self, prop_name):
         """
-        Used to search ``self.view`` when :meth:`adapt` is not given a widget 
-        name.
-        
-        *prop_name* is the name of a property in the model.
-        
-        Returns a string with the best match. Raises
-        :class:`TooManyCandidatesError` or ``ValueError`` when nothing is
-        found.
-
-        Subclasses can customise this. No super call necessary. The default
-        implementation converts *prop_name* to lower case and allows prefixes
-        like ``entry_``.
+        Checks if the view has defined a 'widget_format' attribute (e.g. 
+        "view_%s") If so, it uses this format to search for the widget in 
+        the view, if not it takes the *first* widget with a name ending with the
+        property name.
         """
-        names = []
-        for wid_name in self.view:
-            # if widget names ends with given property name: we skip
-            # any prefix in widget name
-            if wid_name.lower().endswith(prop_name.lower()): names.append(wid_name)
-            pass
 
-        if len(names) == 0:
-            raise ValueError("No widget candidates match property '%s': %s" % \
-                                 (prop_name, names))
+        # TODO this should really be implemented by the view...
+        # PropIntel could provide hooks for adding/creating (custom) widgets
 
-        if len(names) > 1:
-            raise TooManyCandidatesError("%d widget candidates match property '%s': %s" % \
-                                             (len(names), prop_name, names))
+        widget_name = None
+        widget_format = getattr(self.view, 'widget_format', "%s")
 
-        return names[0]
+        if widget_format:
+            widget_name = widget_format % prop_name
+            widget = self.view[widget_name]
+            if widget is None: # not in view
+                intel = self.model.Meta.get_prop_intel_by_name(prop_name)
+                if intel is not None and intel.widget_type == 'scale':
+                        self.view.add_scale_widget(intel, widget_format=widget_format)
+                else:
+                    widget_name = None
 
+        else:
+            for wid_name in self.view:
+                if wid_name.lower().endswith(prop_name.lower()):
+                    widget_name = wid_name
+                    break
+
+        if widget_name == None:
+            logger.setLevel(logging.INFO)
+            raise ValueError("No widget candidates match property '%s'" % prop_name)
+
+        return widget_name
 
     # performs Controller's signals auto-connection:
     def __autoconnect_signals(self):
@@ -295,16 +298,28 @@ class Controller (Observer):
             dic[name] = method
             pass
 
-        # autoconnects glade in the view (if available any)
-        for xml in self.view.glade_xmlWidgets: xml.signal_autoconnect(dic)
-
-        # autoconnects builder if available
+        # Auto connect builder if available:
         if self.view._builder is not None:
             self.view._builder.connect_signals(dic)
             pass
 
         return
 
+    def _get_handler_list(self):
+        from .adapters import AdapterRegistry
+
+        # Add default widget handlers:
+        local_handlers = {}
+        adapter_registry = AdapterRegistry.get_selected_adapter_registry()
+        local_handlers.update(adapter_registry)
+
+        # Override with class instance widget handlers:
+        for widget_type, handler in self.widget_handlers.iteritems():
+            if isinstance(handler, basestring):
+                self.widget_handlers[widget_type] = getattr(self, handler)
+        local_handlers.update(self.widget_handlers)
+
+        return local_handlers
 
     def __create_adapters__(self, prop, wid_name):
         """

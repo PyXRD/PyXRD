@@ -433,7 +433,7 @@ class Component(DataModel, Storable, RefinementGroup):
         self.observe_model(item)
         self.apply_atom_relations()
 
-    def on_atom_relation_removed(self, model, item):
+    def on_atom_relation_removed(self, item):
         self.relieve_model(item)
         item.parent = None
         self.apply_atom_relations()

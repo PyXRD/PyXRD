@@ -513,7 +513,7 @@ class Mixture(DataModel, Storable):
             """
             if prop is not None:
                 if hasattr(obj, "get_uninherited_property_value"):
-                    value = obj.get_uninherited_property_value(prop.name)
+                    value = obj.get_uninherited_property_value(prop)
                 else:
                     value = getattr(obj, prop.name)
             else:

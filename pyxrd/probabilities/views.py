@@ -12,6 +12,7 @@ import gtk
 from pyxrd.generic.views.widgets import ScaleEntry
 from pyxrd.generic.views import BaseView, HasChildView
 from pyxrd.probabilities.models import RGbounds
+from pyxrd.generic.utils import rec_getattr
 
 def get_correct_probability_views(probability, parent_view):
     """
@@ -23,8 +24,7 @@ def get_correct_probability_views(probability, parent_view):
         R = probability.R
         rank = probability.rank
         if (RGbounds[R, G - 1] > 0):
-            labels = probability.get_independent_label_map()
-            return IndependentsView(labels=labels, parent=parent_view), MatrixView(R=R, G=G, rank=rank, parent=parent_view)
+            return IndependentsView(meta=probability.Meta, parent=parent_view), MatrixView(R=R, G=G, rank=rank, parent=parent_view)
         else:
             raise ValueError, "Cannot (yet) handle R%d for %d layer structures!" % (R, G)
 
@@ -62,7 +62,7 @@ class IndependentsView(BaseView, HasChildView, ProbabilityViewMixin):
     """
         Generic view that is able to generate an two-column list of inputs and 
         labels using the 'labels' argument passed upon creation.
-        'labels' should be a list of tuples holding the attribute name and the
+        'labels' should be a list of tuples holding a PropIntel object and a
         label. This label is parsed using a mathtext parser, if this causes an 
         error the raw label is displayed. The __independent_label_map__ of the
         model this view is representing should normally be passed as 'labels'.
@@ -76,39 +76,58 @@ class IndependentsView(BaseView, HasChildView, ProbabilityViewMixin):
 
     widget_format = "prob_%s"
 
-    def __init__(self, labels=[], **kwargs):
+    def __init__(self, meta, **kwargs):
+        assert (meta is not None), "IndependentsView needs a model's Meta class!"
         BaseView.__init__(self, **kwargs)
 
-        self.labels = labels
+        self.props = [ prop for prop in meta.all_properties if getattr(prop, "is_independent", False) ]
 
-        N = len(labels)
+        N = len(self.props)
 
         def create_inputs(table):
             input_widgets = [None] * N
-            for i, (prop, lbl, rng) in enumerate(labels):
+            check_widgets = [None] * N
 
-                new_lbl = self.create_mathtext_widget(lbl)
 
-                new_inp = ScaleEntry(lower=rng[0], upper=rng[1], enforce_range=True)
-                new_inp.set_tooltip_text(lbl)
-                new_inp.set_name(self.widget_format % prop)
-                self[self.widget_format % prop] = new_inp
+            num_columns = 2
+            column_width = 3
+
+            for i, prop in enumerate(self.props):
+
+                new_lbl = self.create_mathtext_widget(prop.math_label)
+
+                new_inp = ScaleEntry(lower=prop.minimum, upper=prop.maximum, enforce_range=True)
+                new_inp.set_tooltip_text(prop.label)
+                new_inp.set_name(self.widget_format % prop.name)
+                self[self.widget_format % prop.name] = new_inp
                 input_widgets[i] = new_inp
 
-                j = (i % 2) * 2
-                table.attach(new_lbl, 0 + j, 1 + j, i / 2, (i / 2) + 1, xpadding=2, ypadding=2)
-                table.attach(new_inp, 1 + j, 2 + j, i / 2, (i / 2) + 1, xpadding=2, ypadding=2)
+                j = (i % num_columns) * column_width
+                table.attach(new_lbl, 0 + j, 1 + j, i / num_columns, (i / num_columns) + 1, xpadding=2, ypadding=2)
+                table.attach(new_inp, 2 + j, 3 + j, i / num_columns, (i / num_columns) + 1, xpadding=2, ypadding=2)
+
+                if prop.inh_name is not None:
+                    inh_prop = meta.get_prop_intel_by_name(prop.inh_name)
+
+                    new_check = gtk.CheckButton(label="")
+                    new_check.set_tooltip_text(inh_prop.label)
+                    new_check.set_name(self.widget_format % inh_prop.name)
+                    new_check.set_sensitive(False)
+                    self[self.widget_format % inh_prop.name] = new_check
+                    check_widgets[i] = new_check
+                    table.attach(new_check, 1 + j, 2 + j, i / num_columns, (i / num_columns) + 1, xpadding=2, ypadding=2, xoptions=gtk.FILL)
+
 
                 del new_inp, new_lbl
-            return input_widgets
+            return input_widgets, check_widgets
         self.i_box = self['i_box']
 
         num_rows = (N + 1) / 2
         if not num_rows == 0:
             self.i_table = gtk.Table((N + 1) / 2, 4, False)
-            self.i_inputs = create_inputs(self.i_table)
+            self.i_inputs, self.i_checks = create_inputs(self.i_table)
         else:
-            self.i_inputs = []
+            self.i_inputs, self.i_checks = [], []
         if len(self.i_inputs) == 0:
             self[self.lbl_widget].set_no_show_all(True)
             self[self.sep_widget].set_no_show_all(True)
@@ -118,9 +137,20 @@ class IndependentsView(BaseView, HasChildView, ProbabilityViewMixin):
             self._add_child_view(self.i_table, self.i_box)
 
     def update_matrices(self, model):
-        for i, inp in enumerate(self.i_inputs):
-            prop, lbl, rng = self.labels[i]
-            inp.set_value(getattr(model, prop))
+        for i, (inp, check) in enumerate(zip(self.i_inputs, self.i_checks)):
+            prop = self.props[i]
+            inp.set_value(getattr(model, prop.name))
+            if prop.inh_name is not None:
+                # Set checkbox sensitivity:
+                inh_from = rec_getattr(model, prop.inh_from, None)
+                check.set_sensitive(not inh_from is None)
+                # Set checkbox state:
+                inh_value = getattr(model, prop.inh_name)
+                check.set_active(inh_value)
+                # Set inherit value sensitivity
+                inp.set_sensitive(not inh_value)
+            elif check is not None:
+                check.set_senstive(False)
 
     pass # end of class
 

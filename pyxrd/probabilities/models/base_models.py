@@ -80,12 +80,8 @@ class _AbstractProbability(DataModel, Storable, RefinementGroup):
     def refine_title(self):
         return self.name
 
-    @property
-    def children_refinable(self): # TODO fix this: give each parameter its own inherited flag
-        return (not self.parent.inherit_probabilities) if self.parent else True
-
     # ------------------------------------------------------------
-    #      Initialisation and other internals
+    #      Initialization and other internals
     # ------------------------------------------------------------
     def __init__(self, *args, **kwargs):
         my_kwargs = self.pop_kwargs(kwargs, *[names[0] for names in type(self).Meta.get_local_storable_properties()])

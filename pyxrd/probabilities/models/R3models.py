@@ -11,6 +11,7 @@ from pyxrd.generic.io import storables
 from pyxrd.mvc import PropIntel
 
 from .base_models import _AbstractProbability
+from pyxrd.probabilities.models.properties import ProbabilityProperty
 
 @storables.register()
 class R3G2Model(_AbstractProbability):
@@ -53,35 +54,38 @@ class R3G2Model(_AbstractProbability):
     # MODEL METADATA:
     class Meta(_AbstractProbability.Meta):
         store_id = "R3G2Model"
-        independent_label_map = [
-            ("W1", r"$W_1$", [2.0 / 3.0, 1.0]),
-            ("P1111_or_P2112",
-             r"$P_{1111} %s$ or $\newline P_{2112} %s$" % (
-                mt_range(2.0 / 3.0, "W_1", 3.0 / 4.0),
-                mt_range(3.0 / 4.0, "W_1", 1.0)
-             ), [0.0, 1.0]),
+        ind_properties = [
+            PropIntel(name="W1", label="W1", math_label=r"$W_1$",
+                stor_name="_W1", inh_name="inherit_W1", inh_from="parent.based_on.probabilities",
+                is_independent=True, # flag for the view creation
+                minimum=2.0 / 3.0, maximum=1.0, data_type=float, **PropIntel.REF_ST_WID),
+            PropIntel(name="P1111_or_P2112", label="P1111_or_P2112",
+                stor_name="_P1111_or_P2112", inh_name="inherit_P1111_or_P2112",
+                inh_from="parent.based_on.probabilities",
+                is_independent=True, # flag for the view creation
+                math_label=r"$P_{1111} %s$ or $\newline P_{2112} %s$" % (
+                    mt_range(2.0 / 3.0, "W_1", 3.0 / 4.0),
+                    mt_range(3.0 / 4.0, "W_1", 1.0)),
+                minimum=0.0, maximum=1.0, data_type=float, **PropIntel.REF_ST_WID),
         ]
-        properties = [
-            PropIntel(
-                name=prop, label=label,
-                minimum=rng[0], maximum=rng[1],
-                data_type=float,
-                refinable=True, storable=True, has_widget=True
-            ) for prop, label, rng in independent_label_map
+        inh_properties = [
+            PropIntel(name="inherit_%s" % prop.name, label="Inherit flag for %s" % prop.name,
+                data_type=bool, refinable=False, storable=True, has_widget=True,
+                widget_type="toggle") \
+                for prop in ind_properties
         ]
+        properties = ind_properties + inh_properties
 
 
     # PROPERTIES:
-    _W0 = 0.0
-    def get_W1(self): return self._W0
-    def set_W1(self, value): self._clamp_set_and_update("_W0", value)
+    W1 = ProbabilityProperty(default=0.85, minimum=2.0 / 3.0, clamp=True, cast_to=float)
+    inherit_W1 = ProbabilityProperty(default=False, cast_to=bool)
 
-    _P0000_P1001 = 0.0
-    def get_P1111_or_P2112(self): return self._P0000_P1001
-    def set_P1111_or_P2112(self, value): self._clamp_set_and_update("_P0000_P1001", value)
+    P1111_or_P2112 = ProbabilityProperty(default=0.75, clamp=True, cast_to=float)
+    inherit_P1111_or_P2112 = ProbabilityProperty(default=False, cast_to=bool)
 
     # ------------------------------------------------------------
-    #      Initialisation and other internals
+    #      Initialization and other internals
     # ------------------------------------------------------------
     def setup(self, W1=0.85, P1111_or_P2112=0.75, **kwargs):
         _AbstractProbability.setup(self, R=3)

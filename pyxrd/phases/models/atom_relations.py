@@ -86,19 +86,19 @@ class AtomRelation(DataModel, Storable, ComponentPropMixin, RefinementValue):
     _value = 0.0
     def get_value(self): return self._value
     def set_value(self, value):
-        self._value = value
+        self._value = float(value)
         self.data_changed.emit()
 
     _name = ""
     def get_name(self): return self._name
     def set_name(self, value):
-        self._name = value
+        self._name = str(value)
         self.visuals_changed.emit()
 
     _enabled = False
     def get_enabled(self): return self._enabled
     def set_enabled(self, value):
-        self._enabled = value
+        self._enabled = bool(value)
         self.data_changed.emit()
 
     @property
@@ -148,7 +148,7 @@ class AtomRelation(DataModel, Storable, ComponentPropMixin, RefinementValue):
         kwargs = my_kwargs
 
         self.name = self.get_kwarg(kwargs, "", "name", "data_name")
-        self.value = self.get_kwarg(kwargs, "", "value", "ratio", "data_ratio")
+        self.value = self.get_kwarg(kwargs, 0.0, "value", "ratio", "data_ratio")
         self.enabled = bool(self.get_kwarg(kwargs, True, "enabled"))
 
     # ------------------------------------------------------------
@@ -361,7 +361,7 @@ class AtomContents(AtomRelation):
     # MODEL INTEL:
     class Meta(AtomRelation.Meta):
         properties = [
-            PropIntel(name="atom_contents", label="Atom contents", data_type=object, is_column=True, storable=True, has_widget=True),
+            PropIntel(name="atom_contents", label="Atom contents", class_type=AtomContentObject, data_type=object, is_column=True, storable=True, has_widget=True),
         ]
         store_id = "AtomContents"
 

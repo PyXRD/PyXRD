@@ -9,9 +9,10 @@ from warnings import warn
 import weakref
 
 from pyxrd.mvc import Model, Signal, PropIntel
-from pyxrd.generic.utils import not_none
+from pyxrd.generic.utils import not_none, rec_getattr
 
 from .signals import HoldableSignal
+import types
 
 class PyXRDModel(Model):
     """
@@ -126,32 +127,42 @@ class ChildModel(PyXRDModel):
         self.added = Signal()
         self.parent = parent
 
-    def get_uninherited_property_value(self, name):
+    def get_uninherited_property_value(self, prop):
         """
             Gets the 'private' value for the given attribute name
             from the object, by-passing the regular inheritance rules.
         """
-        prop_intel = self.Meta.get_prop_intel_by_name(name)
-        if prop_intel.inh_name is not None:
-            return self._get_inheritable_property_value(name, apply_inheritance=False)
+        if prop.inh_name is not None:
+            return self._get_inheritable_property_value(prop.name, apply_inheritance=False)
         else:
-            return getattr(self, prop_intel.name)
+            return getattr(self, prop.name)
 
-    def _get_inheritable_property_value(self, name, apply_inheritance=True):
+    def _get_inheritable_property_value(self, prop, apply_inheritance=True):
         """
             Gets either the own or the inherited value for the given attribute 
-            name, applying the inheritance rules if the keyword 
-            'apply_inheritance' is True
+            name or PropIntel object, applying the inheritance rules if the keyword 
+            'apply_inheritance' is True.
         """
-        prop_intel = self.Meta.get_prop_intel_by_name(name)
-        if prop_intel.inh_from is not None:
-            inh_from = getattr(self, prop_intel.inh_from, None)
+        if isinstance(prop, types.StringTypes):
+            prop = self.Meta.get_prop_intel_by_name(prop)
+        inh_from = self._get_inherit_from(prop)
+        if apply_inheritance and self._is_inheritable(prop) and inh_from is not None:
+            return getattr(inh_from, prop.name)
         else:
-            inh_from = None
-        if apply_inheritance and inh_from is not None and getattr(self, prop_intel.inh_name):
-            return getattr(inh_from, name)
+            return getattr(self, prop.get_private_name())
+
+    def _get_inherit_from(self, prop):
+        if isinstance(prop, types.StringTypes):
+            prop = self.Meta.get_prop_intel_by_name(prop)
+        if prop.inh_from is not None:
+            return rec_getattr(self, prop.inh_from, None)
         else:
-            return getattr(self, "_%s" % name)
+            return None
+
+    def _is_inheritable(self, prop):
+        if isinstance(prop, types.StringTypes):
+            prop = self.Meta.get_prop_intel_by_name(prop)
+        return prop.inh_name is not None and getattr(self, prop.inh_name, False)
 
     pass # end of class
 

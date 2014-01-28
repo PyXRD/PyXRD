@@ -5,8 +5,29 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
+from pyxrd.mvc.models.properties import LabeledProperty
+
+class SignalProperty(LabeledProperty):
+    """
+     A descriptor that will invoke a signal on the instance
+     owning this property when set. 
+     Expects it's label to be set or passed to __init__.
+    """
+
+    label = None
+
+    def __init__(self, signal_name="data_changed", *args, **kwargs):
+        super(SignalProperty, self).__init__(*args, **kwargs)
+        self.signal_name = signal_name
+
+    def __set__(self, instance, value):
+        with getattr(instance, "signal_name").hold_and_emit():
+            super(SignalProperty, self).__set__(instance, value)
+
+    pass # end of class
+
 class IndexProperty(object):
-    """decorator used to create indexable properties (e.g. W[1,1])"""
+    """Descriptor used to create indexable properties (e.g. W[1,1])"""
 
     def __init__(self, fget=None, fset=None, fdel=None, doc=None):
         if doc is None and fget is not None and hasattr(fget, "__doc__"):

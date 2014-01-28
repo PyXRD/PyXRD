@@ -71,8 +71,9 @@ class GtkAdapter(ModelAdapter):
         if self._check_widget_type is not None:
             widget_type = type(widget)
             if not isinstance(widget, self._check_widget_type):
-                msg = "A '%s' can only be used for (a subclass of) a '%s' widget," + \
-                    " and not for a '%s'!" % (type(self), self._check_widget_type, widget_type)
+                msg = "Property '%s' has a widget type '%s', which can only be " \
+                      "used for (a subclass of) a '%s' widget, " \
+                      "and not for a '%s'!" % (prop.name, type(self), self._check_widget_type, widget_type)
                 raise TypeError, msg
         # Connect the widget:
         self._connect_widget()

@@ -180,9 +180,8 @@ class ComponentsController(ChildObjectListStoreController):
                 logger.info("Importing components...")
                 # replace component(s):
                 for old_comp, new_comp in zip(old_comps, new_comps):
-                    self.liststore.replace_item(old_comp, new_comp)
-                    # this will break any links as well with other components:
-                    old_comp.parent = None
+                    i = self.model.components.index(old_comp)
+                    self.model.components[i] = new_comp
         else:
             self.run_information_dialog("No components selected to replace!")
 

@@ -45,9 +45,6 @@ class EditPhaseView(BaseView, HasChildView):
             self._add_child_view(view.get_top_widget(), self[self.probabilities_view_container])
         return view
 
-    def set_probabilities_sensitive(self, sens):
-        self[self.probabilities_view_container].set_sensitive(sens)
-
     def remove_probabilities(self):
         num = self["book_wrapper"].page_num(self[self.probabilities_view_container])
         self["book_wrapper"].remove_page(num)

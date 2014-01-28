@@ -135,15 +135,11 @@ class EditPhaseController(BaseController):
             self.view[widget_name].set_visible(not (can_inherit and getattr(self.model, "inherit_%s" % name)))
             self.view["phase_inherit_%s" % name].set_sensitive(can_inherit)
 
-        for name in ("CSDS_distribution", "probabilities"):
+        for name in ("CSDS_distribution",):
             sensitive = not (can_inherit and getattr(self.model, "inherit_%s" % name))
             self.view["phase_inherit_%s" % name].set_sensitive(can_inherit)
-            if name == "CSDS_distribution":
-                self.view.set_csds_sensitive(sensitive)
-                self.reset_csds_controller()
-            elif name == "probabilities":
-                self.view.set_probabilities_sensitive(sensitive)
-                self.reset_probabilities_controller()
+            self.view.set_csds_sensitive(sensitive)
+            self.reset_csds_controller()
 
     # ------------------------------------------------------------
     #      Notifications of observable properties
@@ -151,17 +147,13 @@ class EditPhaseController(BaseController):
     @Controller.observe("inherit_display_color", assign=True)
     @Controller.observe("inherit_sigma_star", assign=True)
     @Controller.observe("inherit_CSDS_distribution", assign=True)
-    @Controller.observe("inherit_probabilities", assign=True)
     def notif_change_inherit(self, model, prop_name, info):
         self.update_sensitivities()
         return
 
     @Controller.observe("probabilities", assign=True)
     def notif_change_probabilities(self, model, prop_name, info):
-        if hasattr(self, "probabilities_controller"):
-            self.probabilities_controller.relieve_model(self.probabilities_controller.model)
-            del self.probabilities_controller
-        self.probabilities_controller = EditProbabilitiesController(model=self.model.probabilities, view=self.probabilities_view, parent=self)
+        self.reset_probabilities_controller()
         return
 
     @Controller.observe("name", assign=True)
@@ -259,8 +251,9 @@ class PhasesController(ObjectListStoreController):
 
     @contextmanager
     def _multi_operation_context(self):
-        with self.model.data_changed.hold():
-            yield
+        with self.model.hold_mixtures_data_changed():
+            with self.model.hold_phases_data_changed():
+                yield
 
     # ------------------------------------------------------------
     #      GTK Signal handlers

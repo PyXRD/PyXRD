@@ -397,6 +397,7 @@ class Storable(object):
             if not default_is_class:
                 return default
             else:
+                if child: kwargs["parent"] = self
                 return default(**kwargs)
         elif isinstance(arg, dict) and "type" in arg and "properties" in arg:
             arg = PyXRDDecoder(parent=self if child else None).__pyxrd_decode__(arg, **kwargs)

@@ -155,8 +155,10 @@ class ProjectController(ObjectListStoreController):
 
     @contextmanager
     def _multi_operation_context(self):
-        with self.model.data_changed.hold():
-            yield
+        with self.model.hold_mixtures_data_changed():
+            with self.model.data_changed.hold():
+                yield
+
     # ------------------------------------------------------------
     #      Notifications of observable properties
     # ------------------------------------------------------------

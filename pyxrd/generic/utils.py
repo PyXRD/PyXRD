@@ -9,6 +9,22 @@ import time
 import hashlib
 from uuid import uuid4 as get_uuid
 
+def rec_getattr(obj, attr, default):
+    """Get object's attribute. May use dot notation.
+
+    >>> class C(object): pass
+    >>> a = C()
+    >>> a.b = C()
+    >>> a.b.c = 4
+    >>> rec_getattr(a, 'b.c')
+    4
+    """
+    if '.' not in attr:
+        return getattr(obj, attr, default)
+    else:
+        attr, attrs = attr.split('.', 1)
+        return rec_getattr(getattr(obj, attr), attrs, default)
+
 def not_none(passed, default):
     """Convenience function to check if a value is None and return a default if so"""
     return passed if passed is not None else default

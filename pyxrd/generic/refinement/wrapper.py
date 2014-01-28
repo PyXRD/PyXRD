@@ -63,7 +63,10 @@ class RefinableWrapper(ChildModel):
         if (isinstance(self.obj, RefinementGroup) and self.is_grouper) or isinstance(self.obj, RefinementValue):
             return self.obj.refine_title
         else:
-            return self.prop_intel.label
+            if self.prop_intel.math_label is not None:
+                return self.prop_intel.math_label
+            else:
+                return self.prop_intel.label
 
     # The actual value of the refinable property:
     def get_value(self):

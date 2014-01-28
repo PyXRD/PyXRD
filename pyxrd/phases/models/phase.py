@@ -23,6 +23,7 @@ from pyxrd.probabilities.models import get_correct_probability_model
 
 from .CSDS import DritsCSDSDistribution
 from .component import Component
+from pyxrd.probabilities.models.base_models import _AbstractProbability
 
 @storables.register()
 class Phase(DataModel, Storable, RefinementGroup):
@@ -40,9 +41,8 @@ class Phase(DataModel, Storable, RefinementGroup):
             PropIntel(name="inherit_sigma_star", data_type=bool, label="Inh. sigma star", is_column=True, has_widget=True, storable=True),
             PropIntel(name="inherit_display_color", data_type=bool, label="Inh. display color", is_column=True, has_widget=True, storable=True),
             PropIntel(name="inherit_CSDS_distribution", data_type=bool, label="Inh. mean CSDS", is_column=True, has_widget=True, storable=True),
-            PropIntel(name="inherit_probabilities", data_type=bool, label="Inh. probabilities", is_column=True, has_widget=True, storable=True),
             PropIntel(name="CSDS_distribution", data_type=object, label="CSDS Distribution", is_column=True, has_widget=True, storable=True, refinable=True, widget_type="custom", inh_name="inherit_CSDS_distribution", stor_name="_CSDS_distribution", inh_from="based_on"),
-            PropIntel(name="probabilities", data_type=object, label="Probabilities", is_column=True, has_widget=True, storable=True, refinable=True, widget_type="custom", inh_name="inherit_probabilities", stor_name="_probabilities", inh_from="based_on"),
+            PropIntel(name="probabilities", data_type=object, label="Probabilities", is_column=True, has_widget=True, storable=True, refinable=True, widget_type="custom"),
             PropIntel(name="components", data_type=object, label="Components", is_column=True, has_widget=True, storable=True, refinable=True, widget_type="custom", class_type=Component),
         ]
         store_id = "Phase"
@@ -102,12 +102,6 @@ class Phase(DataModel, Storable, RefinementGroup):
             if value != self._inherit_sigma_star:
                 with self.data_changed.hold_and_emit():
                     self._inherit_sigma_star = value
-
-    _inherit_probabilities = False
-    def get_inherit_probabilities(self): return self._inherit_probabilities
-    def set_inherit_probabilities(self, value):
-        with self.data_changed.hold_and_emit():
-            self._inherit_probabilities = bool(value)
 
     _based_on_index = None # temporary property
     _based_on_uuid = None # temporary property
@@ -215,12 +209,14 @@ class Phase(DataModel, Storable, RefinementGroup):
         my_kwargs = self.pop_kwargs(kwargs,
             "data_name", "data_CSDS_distribution", "data_sigma_star", "data_components",
             "data_G", "R", "data_R", "data_probabilities", "based_on_uuid", "based_on_index",
+            "inherit_probabilities",
             *[names[0] for names in Phase.Meta.get_local_storable_properties()]
         )
         super(Phase, self).__init__(*args, **kwargs)
         kwargs = my_kwargs
 
         with self.data_changed.hold():
+
             self._data_object = PhaseData()
 
             self.name = self.get_kwarg(kwargs, self.name, "name", "data_name")
@@ -260,10 +256,14 @@ class Phase(DataModel, Storable, RefinementGroup):
                 model=self
             )
 
-            self.probabilities = self.parse_init_arg(self.get_kwarg(kwargs, None, "probabilities", "data_probabilities"),
-                get_correct_probability_model(self, R, G), child=True)
+            self.probabilities = self.parse_init_arg(
+                self.get_kwarg(kwargs, None, "probabilities", "data_probabilities"),
+                get_correct_probability_model(R, G), default_is_class=True, child=True)
             self.probabilities.update() # force an update
-            self.inherit_probabilities = self.get_kwarg(kwargs, False, "inherit_probabilities")
+            inherit_probabilities = kwargs.pop("inherit_probabilities")
+            if inherit_probabilities is not None:
+                for prop in self.probabilities.Meta.get_inheritable_properties():
+                    setattr(self.probabilities, prop.inh_name, bool(inherit_probabilities))
 
             self._based_on_uuid = self.get_kwarg(kwargs, None, "based_on_uuid")
             self._based_on_index = self.get_kwarg(kwargs, None, "based_on_index")
@@ -288,7 +288,10 @@ class Phase(DataModel, Storable, RefinementGroup):
     @Observer.observe("data_changed", signal=True)
     def notify_data_changed(self, model, prop_name, info):
         if isinstance(model, Phase) and model == self.based_on:
-            self.data_changed.emit(arg="based_on")
+            with self.data_changed.hold():
+                # make sure inherited probabilities are up-to-date
+                self.probabilities.update()
+                self.data_changed.emit(arg="based_on")
         else:
             self.data_changed.emit()
 
@@ -310,6 +313,9 @@ class Phase(DataModel, Storable, RefinementGroup):
             del self._based_on_index
         for component in self.components:
             component.resolve_json_references()
+        with self.data_changed.hold():
+            # make sure inherited probabilities are up-to-date
+            self.probabilities.update()
 
     @classmethod
     def save_phases(cls, phases, filename):

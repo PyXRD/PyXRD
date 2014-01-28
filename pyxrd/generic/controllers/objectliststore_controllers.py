@@ -250,7 +250,7 @@ class TreeControllerMixin(TreeViewMixin, TreeModelMixin):
             if path is not None: selection.select_path(path)
 
     def select_objects(self, objs):
-        for obj in objs: self.select_object(obj, False)
+        for obj in objs: self.select_object(obj, unselect_all=False)
 
     def add_object(self, new_object):
         if new_object is not None:
@@ -457,11 +457,14 @@ class InlineObjectListStoreController(BaseController, TreeControllerMixin):
     def get_all_objects(self):
         return TreeViewMixin.get_all_objects(self, self.treeview)
 
-    def select_object(self, obj, unselect_all=True):
+    def select_object(self, obj, path=None, unselect_all=True):
         selection = self.treeview.get_selection()
         if unselect_all: selection.unselect_all()
-        if hasattr(self.treemodel, "on_get_path"):
+        assert obj is not None or path is not None
+        if obj is not None and hasattr(self.treemodel, "on_get_path"):
             selection.select_path(self.treemodel.on_get_path(obj))
+        else:
+            selection.select_path(path)
 
     def create_new_object_proxy(self):
         raise NotImplementedError

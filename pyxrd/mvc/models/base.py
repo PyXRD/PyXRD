@@ -129,8 +129,9 @@ class Model(Observer):
 
         @classmethod
         def get_prop_intel_by_name(cls, name):
-            _mem_properties = { prop.name: prop for prop in cls.all_properties }
-            return _mem_properties[name]
+            for prop in cls.all_properties:
+                if prop.name == name:
+                    return prop
 
         pass # end of class
 

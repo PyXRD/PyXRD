@@ -11,7 +11,7 @@ from pyxrd.generic.mathtext_support import mt_range
 from pyxrd.generic.io import storables
 
 from .base_models import _AbstractProbability
-
+from pyxrd.probabilities.models.properties import ProbabilityProperty
 
 @storables.register()
 class R1G2Model(_AbstractProbability):
@@ -32,35 +32,47 @@ class R1G2Model(_AbstractProbability):
 
     # MODEL METADATA:
     class Meta(_AbstractProbability.Meta):
-        independent_label_map = [
-            ("W1", r"$W_1$", [0.0, 1.0, ]),
-            ("P11_or_P22", r"$P_{11} %s$ or $\newline P_{22} %s$" % (
-                mt_range(0.0, "W_1", 0.5),
-                mt_range(0.5, "W_1", 1.0)),
-             [0.0, 1.0, ]),
-         ]
-        properties = [
-            PropIntel(name=prop, label=label, minimum=0.0, maximum=1.0, data_type=float, refinable=True, storable=True, has_widget=True) \
-                for prop, label, range in independent_label_map
+        ind_properties = [
+            PropIntel(name="W1", label="W1", math_label=r"$W_1$",
+                stor_name="_W1", inh_name="inherit_W1",
+                inh_from="parent.based_on.probabilities",
+                is_independent=True, # flag for the view creation
+                minimum=0.0, maximum=1.0, data_type=float, **PropIntel.REF_ST_WID),
+            PropIntel(name="P11_or_P22", label="P11_or_P22",
+                stor_name="_P11_or_P22", inh_name="inherit_P11_or_P22",
+                inh_from="parent.based_on.probabilities",
+                is_independent=True, # flag for the view creation
+                math_label=r"$P_{11} %s$ or $\newline P_{22} %s$" % (
+                    mt_range(0.0, "W_1", 0.5),
+                    mt_range(0.5, "W_1", 1.0)),
+                minimum=0.0, maximum=1.0, data_type=float, **PropIntel.REF_ST_WID),
         ]
+        inh_properties = [
+            PropIntel(name="inherit_%s" % prop.name, label="Inherit flag for %s" % prop.name,
+                data_type=bool, refinable=False, storable=True, has_widget=True,
+                widget_type="toggle") \
+                for prop in ind_properties
+        ]
+        properties = ind_properties + inh_properties
+
         store_id = "R1G2Model"
 
     # PROPERTIES:
-    _W0 = 0.0
-    def get_W1(self): return self._W0
-    def set_W1(self, value): self._clamp_set_and_update("_W0", value)
+    inherit_W1 = ProbabilityProperty(default=False, cast_to=bool)
+    W1 = ProbabilityProperty(default=0.0, clamp=True, cast_to=float)
 
-    _P00_P11 = 0.0
-    def get_P11_or_P22(self): return self._P00_P11
-    def set_P11_or_P22(self, value):  self._clamp_set_and_update("_P00_P11", value)
+    inherit_P11_or_P22 = ProbabilityProperty(default=False, cast_to=bool)
+    P11_or_P22 = ProbabilityProperty(default=0.0, clamp=True, cast_to=float)
 
     # ------------------------------------------------------------
-    #      Initialisation and other internals
+    #      Initialization and other internals
     # ------------------------------------------------------------
-    def setup(self, W1=0.25, P11_or_P22=0.5, **kwargs):
+    def setup(self, W1=0.25, P11_or_P22=0.5, inherit_W1=False, inherit_P11_or_P22=False, **kwargs):
         _AbstractProbability.setup(self, R=1)
         self.W1 = W1
+        self.inherit_W1 = inherit_W1
         self.P11_or_P22 = P11_or_P22
+        self.inherit_P11_or_P22 = inherit_P11_or_P22
 
     # ------------------------------------------------------------
     #      Methods & Functions
@@ -103,60 +115,84 @@ class R1G3Model(_AbstractProbability):
 
     # MODEL METADATA:
     class Meta(_AbstractProbability.Meta):
-        independent_label_map = [
-            ("W1", r"$W_1$", [0.0, 1.0, ]),
-            ("P11_or_P22", r"$P_{11} %s$ or $\newline P_{22} %s$" % (
-                mt_range(0.0, "W_1", 0.5),
-                mt_range(0.5, "W_1", 1.0)),
-             [0.0, 1.0, ]
-            ),
-            ("G1", r"$\large\frac{W_2}{W_3 + W_2}$", [0.0, 1.0, ]),
-            ("G2", r"$\large\frac{W_{22} + W_{23}}{W_{22} + W_{23} + W_{32} + W_{33}}$", [0.0, 1.0, ]),
-            ("G3", r"$\large\frac{W_{22}}{W_{22} + W_{23}}$", [0.0, 1.0, ]),
-            ("G4", r"$\large\frac{W_{32}}{W_{32} + W_{33}}$", [0.0, 1.0, ]),
+        ind_properties = [
+            PropIntel(name="W1", label="W1", math_label=r"$W_1$",
+                stor_name="_W1", inh_name="inherit_W1", inh_from="parent.based_on.probabilities",
+                is_independent=True, # flag for the view creation
+                minimum=0.0, maximum=1.0, data_type=float, **PropIntel.REF_ST_WID),
+            PropIntel(name="P11_or_P22", label="P11_or_P22",
+                stor_name="_P11_or_P22", inh_name="inherit_P11_or_P22",
+                inh_from="parent.based_on.probabilities",
+                is_independent=True, # flag for the view creation
+                math_label=r"$P_{11} %s$ or $\newline P_{22} %s$" % (
+                    mt_range(0.0, "W_1", 0.5),
+                    mt_range(0.5, "W_1", 1.0)),
+                minimum=0.0, maximum=1.0, data_type=float, **PropIntel.REF_ST_WID),
+            PropIntel(name="G1", label="W2/(W2+W3)", math_label=r"$\large\frac{W_2}{W_3 + W_2}$",
+                stor_name="_G1", inh_name="inherit_G1", inh_from="parent.based_on.probabilities",
+                is_independent=True, # flag for the view creation
+                minimum=0.0, maximum=1.0, data_type=float, **PropIntel.REF_ST_WID),
+            PropIntel(name="G2", label="(W22+W23)/(W22+W23+W32+W33)",
+                stor_name="_G2", inh_name="inherit_G2", inh_from="parent.based_on.probabilities",
+                is_independent=True, # flag for the view creation
+                math_label=r"$\large\frac{W_{22} + W_{23}}{W_{22} + W_{23} + W_{32} + W_{33}}$",
+                minimum=0.0, maximum=1.0, data_type=float, **PropIntel.REF_ST_WID),
+            PropIntel(name="G3", label="W22/(W22+W23)", math_label=r"$\large\frac{W_{22}}{W_{22} + W_{23}}$",
+                stor_name="_G3", inh_name="inherit_G3", inh_from="parent.based_on.probabilities",
+                is_independent=True, # flag for the view creation
+                minimum=0.0, maximum=1.0, data_type=float, **PropIntel.REF_ST_WID),
+            PropIntel(name="G4", label="W23/(W32+W33)", math_label=r"$\large\frac{W_{22}}{W_{22} + W_{23}}$",
+                stor_name="_G4", inh_name="inherit_G4", inh_from="parent.based_on.probabilities",
+                is_independent=True, # flag for the view creation
+                minimum=0.0, maximum=1.0, data_type=float, **PropIntel.REF_ST_WID)
         ]
-        properties = [
-            PropIntel(name=prop, label=label, minimum=minimum, maximum=maximum, data_type=float, refinable=True, storable=True, has_widget=True) \
-                for prop, label, (minimum, maximum) in independent_label_map
+        inh_properties = [
+            PropIntel(name="inherit_%s" % prop.name, label="Inherit flag for %s" % prop.name,
+                data_type=bool, refinable=False, storable=True, has_widget=True,
+                widget_type="toggle") \
+                for prop in ind_properties
         ]
+        properties = ind_properties + inh_properties
         store_id = "R1G3Model"
 
     # PROPERTIES
-    _W0 = 0.0
-    def get_W1(self): return self._W0
-    def set_W1(self, value): self._clamp_set_and_update("_W0", value)
+    inherit_W1 = ProbabilityProperty(default=False, cast_to=bool)
+    W1 = ProbabilityProperty(default=0.0, clamp=True, cast_to=float)
 
-    _P00_P11 = 0.0
-    def get_P11_or_P22(self): return self._P00_P11
-    def set_P11_or_P22(self, value):  self._clamp_set_and_update("_P00_P11", value)
+    inherit_P11_or_P22 = ProbabilityProperty(default=False, cast_to=bool)
+    P11_or_P22 = ProbabilityProperty(default=0.0, clamp=True, cast_to=float)
 
-    _G1 = 0.0
-    def get_G1(self): return self._G1
-    def set_G1(self, value): self._clamp_set_and_update("_G1", value)
+    inherit_G1 = ProbabilityProperty(default=False, cast_to=bool)
+    G1 = ProbabilityProperty(default=0.0, clamp=True, cast_to=float)
 
-    _G2 = 0
-    def get_G2(self): return self._G2
-    def set_G2(self, value): self._clamp_set_and_update("_G2", value)
+    inherit_G2 = ProbabilityProperty(default=False, cast_to=bool)
+    G2 = ProbabilityProperty(default=0.0, clamp=True, cast_to=float)
 
-    _G3 = 0
-    def get_G3(self): return self._G3
-    def set_G3(self, value): self._clamp_set_and_update("_G3", value)
+    inherit_G3 = ProbabilityProperty(default=False, cast_to=bool)
+    G3 = ProbabilityProperty(default=0.0, clamp=True, cast_to=float)
 
-    _G4 = 0
-    def get_G4(self): return self._G4
-    def set_G4(self, value): self._clamp_set_and_update("_G4", value)
+    inherit_G4 = ProbabilityProperty(default=False, cast_to=bool)
+    G4 = ProbabilityProperty(default=0.0, clamp=True, cast_to=float)
 
     # ------------------------------------------------------------
     #      Initialization and other internals
     # ------------------------------------------------------------
-    def setup(self, W1=0.6, P11_or_P22=0.3, G1=0.5, G2=0.4, G3=0.5, G4=0.2, **kwargs):
+    def setup(self, W1=0.6, P11_or_P22=0.3, G1=0.5, G2=0.4, G3=0.5, G4=0.2,
+            inherit_W1=False, inherit_P11_or_P22=False, inherit_G1=False,
+            inherit_G2=False, inherit_G3=False, inherit_G4=False, **kwargs):
         _AbstractProbability.setup(self, R=1)
         self.W1 = W1
+        self.inherit_W1 = bool(inherit_W1)
         self.P11_or_P22 = P11_or_P22
+        self.inherit_P11_or_P22 = bool(inherit_P11_or_P22)
         self.G1 = G1
+        self.inherit_G1 = bool(inherit_G1)
         self.G2 = G2
+        self.inherit_G2 = bool(inherit_G2)
         self.G3 = G3
+        self.inherit_G3 = bool(inherit_G3)
         self.G4 = G4
+        self.inherit_G4 = bool(inherit_G4)
 
     # ------------------------------------------------------------
     #      Methods & Functions
@@ -236,97 +272,147 @@ class R1G4Model(_AbstractProbability):
 
     # MODEL METADATA:
     class Meta(_AbstractProbability.Meta):
-        independent_label_map = [
-            ("W1", r"$W_1$", [0.0, 1.0]),
-            ("R1", r"$\large\frac{W_2}{W_2 + W_3 + W_4}$", [0.0, 1.0]),
-            ("R2", r"$\large\frac{W_3}{W_3 + W_4}$", [0.0, 1.0]),
-            ("P11_or_P22",
-             r"$P_{11} %s$ or $\newline P_{22} %s$" % (
-                mt_range(0.0, "W_1", 0.5),
-                mt_range(0.5, "W_1", 1.0)
-             ), [0.0, 1.0]),
-            ("G1", r"$\large\frac{\sum_{j=2}^{4} W_{2j}}{\sum_{i=2}^{4} \sum_{j=2}^{4} W_{ij}}$", [0.0, 1.0]),
-            ("G2", r"$\large\frac{\sum_{j=2}^{4} W_{3j}}{\sum_{i=3}^{4} \sum_{j=2}^{4} W_{ij}}$", [0.0, 1.0]),
-            ("G11", r"$\large\frac{W_{22}}{\sum_{j=2}^{4} W_{2j}}$", [0.0, 1.0]),
-            ("G12", r"$\large\frac{W_{23}}{\sum_{j=3}^{4} W_{2j}}$", [0.0, 1.0]),
-            ("G21", r"$\large\frac{W_{32}}{\sum_{j=2}^{4} W_{3j}}$", [0.0, 1.0]),
-            ("G22", r"$\large\frac{W_{33}}{\sum_{j=3}^{4} W_{3j}}$", [0.0, 1.0]),
-            ("G31", r"$\large\frac{W_{42}}{\sum_{j=2}^{4} W_{4j}}$", [0.0, 1.0]),
-            ("G32", r"$\large\frac{W_{43}}{\sum_{j=3}^{4} W_{4j}}$", [0.0, 1.0]),
+        ind_properties = [
+            PropIntel(name="W1", label="W1", math_label=r"$W_1$",
+                stor_name="_W1", inh_name="inherit_W1", inh_from="parent.based_on.probabilities",
+                is_independent=True, # flag for the view creation
+                minimum=0.0, maximum=1.0, data_type=float, **PropIntel.REF_ST_WID),
+            PropIntel(name="P11_or_P22", label="P11_or_P22",
+                stor_name="_P11_or_P22", inh_name="inherit_P11_or_P22", inh_from="parent.based_on.probabilities",
+                is_independent=True, # flag for the view creation
+                math_label=r"$P_{11} %s$ or $\newline P_{22} %s$" % (
+                    mt_range(0.0, "W_1", 0.5),
+                    mt_range(0.5, "W_1", 1.0)),
+                minimum=0.0, maximum=1.0, data_type=float, **PropIntel.REF_ST_WID),
+            PropIntel(name="R1", label="W2/(W2+W3+W4)", math_label=r"$\large\frac{W_2}{W_2 + W_3 + W_4}$",
+                stor_name="_R1", inh_name="inherit_R1", inh_from="parent.based_on.probabilities",
+                is_independent=True, # flag for the view creation
+                minimum=0.0, maximum=1.0, data_type=float, **PropIntel.REF_ST_WID),
+            PropIntel(name="R2", label="W3)/(W3+W4)", math_label=r"$\large\frac{W_3}{W_3 + W_4}$",
+                stor_name="_R2", inh_name="inherit_R2", inh_from="parent.based_on.probabilities",
+                is_independent=True, # flag for the view creation
+                minimum=0.0, maximum=1.0, data_type=float, **PropIntel.REF_ST_WID),
+            PropIntel(name="G1", label="(W22+W23+W24)/(W22+W23+W24+W32+W33+W34+W42+W43+W44)",
+                stor_name="_G1", inh_name="inherit_G1", inh_from="parent.based_on.probabilities",
+                is_independent=True, # flag for the view creation
+                math_label=r"$\large\frac{\sum_{j=2}^{4} W_{2j}}{\sum_{i=2}^{4} \sum_{j=2}^{4} W_{ij}}$",
+                minimum=0.0, maximum=1.0, data_type=float, **PropIntel.REF_ST_WID),
+            PropIntel(name="G2", label="(W32+W33+W34)/(W32+W33+W34+W42+W43+W44)",
+                stor_name="_G2", inh_name="inherit_G2", inh_from="parent.based_on.probabilities",
+                is_independent=True, # flag for the view creation
+                math_label=r"$\large\frac{\sum_{j=2}^{4} W_{3j}}{\sum_{i=3}^{4} \sum_{j=2}^{4} W_{ij}}$",
+                minimum=0.0, maximum=1.0, data_type=float, **PropIntel.REF_ST_WID),
+            PropIntel(name="G11", label="W22/(W22+W23+W24)",
+                stor_name="_G11", inh_name="inherit_G11", inh_from="parent.based_on.probabilities",
+                is_independent=True, # flag for the view creation
+                math_label=r"$\large\frac{W_{22}}{\sum_{j=2}^{4} W_{2j}}$",
+                minimum=0.0, maximum=1.0, data_type=float, **PropIntel.REF_ST_WID),
+            PropIntel(name="G12", label="W23/(W23+W24)",
+                stor_name="_G12", inh_name="inherit_G12", inh_from="parent.based_on.probabilities",
+                is_independent=True, # flag for the view creation
+                math_label=r"$\large\frac{W_{23}}{\sum_{j=3}^{4} W_{2j}}$",
+                minimum=0.0, maximum=1.0, data_type=float, **PropIntel.REF_ST_WID),
+            PropIntel(name="G21", label="W32/(W32+W33+W34)",
+                stor_name="_G21", inh_name="inherit_G21", inh_from="parent.based_on.probabilities",
+                is_independent=True, # flag for the view creation
+                math_label=r"$\large\frac{W_{32}}{\sum_{j=2}^{4} W_{3j}}$",
+                minimum=0.0, maximum=1.0, data_type=float, **PropIntel.REF_ST_WID),
+            PropIntel(name="G22", label="W33/(W32+W34)",
+                stor_name="_G22", inh_name="inherit_G22", inh_from="parent.based_on.probabilities",
+                is_independent=True, # flag for the view creation
+                math_label=r"$\large\frac{W_{33}}{\sum_{j=3}^{4} W_{3j}}$",
+                minimum=0.0, maximum=1.0, data_type=float, **PropIntel.REF_ST_WID),
+            PropIntel(name="G31", label="W42/(W42+W43+W44)",
+                stor_name="_G31", inh_name="inherit_G31", inh_from="parent.based_on.probabilities",
+                is_independent=True, # flag for the view creation
+                math_label=r"$\large\frac{W_{42}}{\sum_{j=2}^{4} W_{4j}}$",
+                minimum=0.0, maximum=1.0, data_type=float, **PropIntel.REF_ST_WID),
+            PropIntel(name="G32", label="W43/(W43+W44)",
+                stor_name="_G32", inh_name="inherit_G32", inh_from="parent.based_on.probabilities",
+                is_independent=True, # flag for the view creation
+                math_label=r"$\large\frac{W_{43}}{\sum_{j=3}^{4} W_{4j}}$",
+                minimum=0.0, maximum=1.0, data_type=float, **PropIntel.REF_ST_WID)
         ]
-        properties = [
-            PropIntel(name=prop, label=label, minimum=rng[0], maximum=rng[1], data_type=float, refinable=True, storable=True, has_widget=True) \
-                for prop, label, rng in independent_label_map
+        inh_properties = [
+            PropIntel(name="inherit_%s" % prop.name, label="Inherit flag for %s" % prop.name,
+                data_type=bool, refinable=False, storable=True, has_widget=True,
+                widget_type="toggle") \
+                for prop in ind_properties
         ]
+        properties = ind_properties + inh_properties
         store_id = "R1G4Model"
 
     # PROPERTIES
-    _W0 = 0.0
-    def get_W1(self): return self._W0
-    def set_W1(self, value): self._clamp_set_and_update("_W0", value)
+    inherit_W1 = ProbabilityProperty(default=False, cast_to=bool)
+    W1 = ProbabilityProperty(default=0.6, clamp=True, cast_to=float)
 
-    _P00_P11 = 0.0
-    def get_P11_or_P22(self): return self._P00_P11
-    def set_P11_or_P22(self, value): self._clamp_set_and_update("_P00_P11", value)
+    inherit_P11_or_P22 = ProbabilityProperty(default=False, cast_to=bool)
+    P11_or_P22 = ProbabilityProperty(default=0.25, clamp=True, cast_to=float)
 
-    _R1 = 0
-    def get_R1(self): return self._R1
-    def set_R1(self, value): self._clamp_set_and_update("_R1", value)
+    inherit_R1 = ProbabilityProperty(default=False, cast_to=bool)
+    R1 = ProbabilityProperty(default=0.5, clamp=True, cast_to=float)
 
-    _R2 = 0
-    def get_R2(self): return self._R2
-    def set_R2(self, value): self._clamp_set_and_update("_R2", value)
+    inherit_R2 = ProbabilityProperty(default=False, cast_to=bool)
+    R2 = ProbabilityProperty(default=0.5, clamp=True, cast_to=float)
 
-    _G1 = 0
-    def get_G1(self): return self._G1
-    def set_G1(self, value): self._clamp_set_and_update("_G1", value)
+    inherit_G1 = ProbabilityProperty(default=False, cast_to=bool)
+    G1 = ProbabilityProperty(default=0.5, clamp=True, cast_to=float)
 
-    _G2 = 0
-    def get_G2(self): return self._G2
-    def set_G2(self, value): self._clamp_set_and_update("_G2", value)
+    inherit_G2 = ProbabilityProperty(default=False, cast_to=bool)
+    G2 = ProbabilityProperty(default=0.4, clamp=True, cast_to=float)
 
-    _G11 = 0
-    def get_G11(self): return self._G11
-    def set_G11(self, value): self._clamp_set_and_update("_G11", value)
+    inherit_G11 = ProbabilityProperty(default=False, cast_to=bool)
+    G11 = ProbabilityProperty(default=0.5, clamp=True, cast_to=float)
 
-    _G12 = 0
-    def get_G12(self): return self._G12
-    def set_G12(self, value): self._clamp_set_and_update("_G12", value)
+    inherit_G12 = ProbabilityProperty(default=False, cast_to=bool)
+    G12 = ProbabilityProperty(default=0.2, clamp=True, cast_to=float)
 
-    _G21 = 0
-    def get_G21(self): return self._G21
-    def set_G21(self, value): self._clamp_set_and_update("_G21", value)
+    inherit_G21 = ProbabilityProperty(default=False, cast_to=bool)
+    G21 = ProbabilityProperty(default=0.80, clamp=True, cast_to=float)
 
-    _G22 = 0
-    def get_G22(self): return self._G22
-    def set_G22(self, value): self._clamp_set_and_update("_G22", value)
+    inherit_G22 = ProbabilityProperty(default=False, cast_to=bool)
+    G22 = ProbabilityProperty(default=0.75, clamp=True, cast_to=float)
 
-    _G31 = 0
-    def get_G31(self): return self._G31
-    def set_G31(self, value): self._clamp_set_and_update("_G31", value)
+    inherit_G31 = ProbabilityProperty(default=False, cast_to=bool)
+    G31 = ProbabilityProperty(default=0.7, clamp=True, cast_to=float)
 
-    _G32 = 0
-    def get_G32(self): return self._G32
-    def set_G32(self, value): self._clamp_set_and_update("_G32", value)
+    inherit_G32 = ProbabilityProperty(default=False, cast_to=bool)
+    G32 = ProbabilityProperty(default=0.5, clamp=True, cast_to=float)
 
     # ------------------------------------------------------------
-    #      Initialisation and other internals
+    #      Initialization and other internals
     # ------------------------------------------------------------
     def setup(self, W1=0.6, P11_or_P22=0.25, R1=0.5, R2=0.5, G1=0.5, G2=0.4,
-            G11=0.5, G12=0.2, G21=0.8, G22=0.75, G31=0.7, G32=0.5, **kwargs):
+            G11=0.5, G12=0.2, G21=0.8, G22=0.75, G31=0.7, G32=0.5,
+            inherit_W1=False, inherit_P11_or_P22=False, inherit_R1=False,
+            inherit_R2=False, inherit_G1=False, inherit_G2=False,
+            inherit_G11=False, inherit_G12=False, inherit_G21=False,
+            inherit_G22=False, inherit_G31=False, inherit_G32=False, **kwargs):
         _AbstractProbability.setup(self, R=1)
         self.W1 = W1
+        self.inherit_W1 = inherit_W1
         self.P11_or_P22 = P11_or_P22
+        self.inherit_P11_or_P22 = inherit_P11_or_P22
         self.R1 = R1
+        self.inherit_R1 = inherit_R1
         self.R2 = R2
+        self.inherit_R2 = inherit_R2
         self.G1 = G1
+        self.inherit_G1 = inherit_G1
         self.G2 = G2
+        self.inherit_G2 = inherit_G2
         self.G11 = G11
+        self.inherit_G11 = inherit_G11
         self.G12 = G12
+        self.inherit_G12 = inherit_G12
         self.G21 = G21
+        self.inherit_G21 = inherit_G21
         self.G22 = G22
+        self.inherit_G22 = inherit_G22
         self.G31 = G31
+        self.inherit_G31 = inherit_G31
         self.G32 = G32
+        self.inherit_G32 = inherit_G32
 
 
     # ------------------------------------------------------------

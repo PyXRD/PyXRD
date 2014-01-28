@@ -101,6 +101,8 @@ class PropIntel(object):
     def get_refinement_info_name(self):
         return self.refinement_info_format % { 'prop_name': self.name }
 
+    math_label = None
+    text_label = None
     label = ""
 
     ST = dict(
@@ -129,6 +131,12 @@ class PropIntel(object):
         has_widget=True,
         storable=True,
         is_column=True
+    )
+
+    REF_ST_WID = dict(
+        refinable=True,
+        has_widget=True,
+        storable=True
     )
 
     inh_name = None

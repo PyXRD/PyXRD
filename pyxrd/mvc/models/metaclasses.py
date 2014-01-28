@@ -29,6 +29,7 @@ logger = logging.getLogger(__name__)
 
 from collections import OrderedDict
 
+from .properties import LabeledProperty
 from .prop_intel import PropIntel
 from .object_pool import ThreadedObjectPool
 from .treenode import TreeNode
@@ -91,11 +92,16 @@ class ModelMeta(type):
     # ------------------------------------------------------------
     #      Type creation:
     # ------------------------------------------------------------
+    def __new__(cls, name, bases, _dict):
+        # find all data descriptors, auto-set their labels
+        for n, v in _dict.items():
+            if isinstance(v, LabeledProperty):
+                v.label = n
+        return super(ModelMeta, cls).__new__(cls, name, bases, _dict)
+
     def __init__(cls, name, bases, _dict):
-        """class constructor"""
         cls.process_properties(name, bases, _dict)
-        tpe = type.__init__(cls, name, bases, _dict)
-        return tpe
+        return super(ModelMeta, cls).__init__(name, bases, _dict)
 
     def process_properties(cls, name, bases, _dict):  # @NoSelf
         """Processes the properties defined in the class's metadata class."""
@@ -209,8 +215,13 @@ class ModelMeta(type):
         # Generate the setter wrapper:
         _setter = cls.wrap_setter(_dict, prop, _getter)
 
-        # Clear the property (if it exists):
         if hasattr(cls, prop.name):
+            # If this is a LabeledProperty descriptor, make sure we have created
+            # the private attribute as well:
+            attr = getattr(cls, prop.name)
+            if isinstance(attr, LabeledProperty) and not prop.get_private_name() in _dict:
+                cls.set_attribute(_dict, prop.get_private_name(), attr.default)
+            # Clear the property:
             cls.del_attribute(_dict, prop.name)
 
         # Create the property:
@@ -231,8 +242,6 @@ class ModelMeta(type):
          - if it's a concrete property: the current (public)value
          - if it's a logical property: by getting the private attribute 
            '_%{prop_name}s' if this exists
-        If the property is concrete, the concrete flag should be set to True and
-        the (local) dictionary should be passed to this method.
         If no default value is defined anywhere, None is returned.
         """
         if hasattr(prop, "default"):

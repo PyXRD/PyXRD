@@ -151,7 +151,7 @@
               <object class="GtkSpinButton" id="sample_length_spb">
                 <property name="width_request">175</property>
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can_focus">True</property>
                 <property name="invisible_char">●</property>
                 <property name="adjustment">specimen_sample_length</property>
                 <property name="digits">2</property>
@@ -194,7 +194,7 @@
               <object class="GtkSpinButton" id="abs_scale_spb">
                 <property name="width_request">175</property>
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can_focus">True</property>
                 <property name="invisible_char">●</property>
                 <property name="adjustment">specimen_abs_scale</property>
                 <property name="digits">2</property>
@@ -221,7 +221,7 @@
               <object class="GtkSpinButton" id="bg_shift_spb">
                 <property name="width_request">175</property>
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can_focus">True</property>
                 <property name="invisible_char">●</property>
                 <property name="adjustment">specimen_bg_shift</property>
                 <property name="digits">2</property>
@@ -248,7 +248,7 @@
               <object class="GtkSpinButton" id="absorption_spb">
                 <property name="width_request">175</property>
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can_focus">True</property>
                 <property name="invisible_char">●</property>
                 <property name="adjustment">specimen_absorption</property>
                 <property name="digits">3</property>
@@ -431,7 +431,7 @@
               <object class="GtkSpinButton" id="display_vshift_spb">
                 <property name="width_request">175</property>
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can_focus">True</property>
                 <property name="invisible_char">●</property>
                 <property name="adjustment">specimen_display_vshift</property>
                 <property name="digits">3</property>
@@ -458,7 +458,7 @@
               <object class="GtkSpinButton" id="display_vscale_spb">
                 <property name="width_request">175</property>
                 <property name="visible">True</property>
-                <property name="can_focus">False</property>
+                <property name="can_focus">True</property>
                 <property name="invisible_char">●</property>
                 <property name="adjustment">specimen_display_vscale</property>
                 <property name="digits">2</property>

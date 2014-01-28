@@ -5,6 +5,9 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
+import logging
+logger = logging.getLogger(__name__)
+
 import time
 
 from pyxrd.mvc import Observer, PropIntel, OptionPropIntel
@@ -20,6 +23,8 @@ from pyxrd.atoms.models import AtomType
 from pyxrd.mixture.models.mixture import Mixture
 from pyxrd.generic.utils import not_none
 from pyxrd.specimen.models.base import Specimen
+from pyxrd.generic.exit_stack import ExitStack
+from contextlib import contextmanager
 
 @storables.register()
 class Project(DataModel, Storable):
@@ -479,7 +484,48 @@ class Project(DataModel, Storable):
                 max_intensity = max(specimen.max_intensity, max_intensity)
         return max_intensity
 
+    @contextmanager
+    def hold_mixtures_needs_update(self):
+        logger.info("Holding back all 'needs_update' signals from Mixtures")
+        with ExitStack() as stack:
+            for mixture in self.mixtures:
+                stack.enter_context(mixture.needs_update.hold())
+            yield
+
+    @contextmanager
+    def hold_mixtures_data_changed(self):
+        logger.info("Holding back all 'data_changed' signals from Mixtures")
+        with ExitStack() as stack:
+            for mixture in self.mixtures:
+                stack.enter_context(mixture.data_changed.hold())
+            yield
+
+    @contextmanager
+    def hold_phases_data_changed(self):
+        logger.info("Holding back all 'data_changed' signals from Phases")
+        with ExitStack() as stack:
+            for phase in self.phases:
+                stack.enter_context(phase.data_changed.hold())
+            yield
+
+    @contextmanager
+    def hold_atom_types_data_changed(self):
+        logger.info("Holding back all 'data_changed' signals from AtomTypes")
+        with ExitStack() as stack:
+            for atom_type in self.atom_types:
+                stack.enter_context(atom_type.data_changed.hold())
+            yield
+
+    @contextmanager
+    def hold_specimens_data_changed(self):
+        logger.info("Holding back all 'data_changed' signals from Specimens")
+        with ExitStack() as stack:
+            for specimen in self.specimens:
+                stack.enter_context(specimen.data_changed.hold())
+            yield
+
     def update_all_mixtures(self):
+        print "UPDATING ALL MIXTURES FROM PROJECT LEVEL"
         for mixture in self.mixtures:
             with self.data_changed.ignore():
                 mixture.update()

@@ -46,7 +46,7 @@ def R0_model_generator(pasG):
         """
 
         # ------------------------------------------------------------
-        #      Initialisation and other internals
+        #      Initialization and other internals
         # ------------------------------------------------------------
         def setup(self, **kwargs):
             _AbstractProbability.setup(self, R=0)

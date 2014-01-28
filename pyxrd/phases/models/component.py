@@ -310,7 +310,6 @@ class Component(DataModel, Storable, RefinementGroup):
         for relation in self.atom_relations:
             relation.resolve_relations()
             self.observe_model(relation)
-            print "Observing", relation
 
         # Connect signals to lists and dicts:
         self._layer_atoms_observer = ListObserver(
@@ -382,8 +381,6 @@ class Component(DataModel, Storable, RefinementGroup):
         # Check whether the changed model is an AtomRelation or Atom, if so
         # re-apply the atom_relations.
         with self.data_changed.hold():
-            if isinstance(model, AtomRelation):
-                print "Component got data_changed from", model
             if isinstance(model, AtomRelation) or isinstance(model, Atom):
                 self.apply_atom_relations()
                 self.update_ucp_values()

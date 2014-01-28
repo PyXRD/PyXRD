@@ -9,6 +9,7 @@ from pyxrd.mvc import PropIntel
 
 from pyxrd.generic.models.base import PyXRDModel
 from pyxrd.generic.io import storables, Storable
+from pyxrd.generic.utils import not_none
 
 @storables.register()
 class RefinementInfo(PyXRDModel, Storable):
@@ -27,8 +28,8 @@ class RefinementInfo(PyXRDModel, Storable):
             PropIntel(name="refine", data_type=bool, storable=True),
         ]
 
-    minimum = None
-    maximum = None
+    minimum = 0.0
+    maximum = 1.0
     refine = False
 
     def __init__(self, minimum, maximum, refine, *args, **kwargs):
@@ -40,8 +41,8 @@ class RefinementInfo(PyXRDModel, Storable):
         """
         super(RefinementInfo, self).__init__()
         self.refine = refine
-        self.minimum = minimum
-        self.maximum = maximum
+        self.minimum = not_none(minimum, 0.0)
+        self.maximum = not_none(maximum, 1.0)
 
     def to_json(self):
         return self.json_properties()

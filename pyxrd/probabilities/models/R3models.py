@@ -13,6 +13,10 @@ from pyxrd.mvc import PropIntel
 from .base_models import _AbstractProbability
 from pyxrd.probabilities.models.properties import ProbabilityProperty
 
+__all__ = [
+    "R3G2Model"
+]
+
 @storables.register()
 class R3G2Model(_AbstractProbability):
     """
@@ -78,6 +82,8 @@ class R3G2Model(_AbstractProbability):
 
 
     # PROPERTIES:
+    _G = 2
+
     W1 = ProbabilityProperty(default=0.85, minimum=2.0 / 3.0, clamp=True, cast_to=float)
     inherit_W1 = ProbabilityProperty(default=False, cast_to=bool)
 

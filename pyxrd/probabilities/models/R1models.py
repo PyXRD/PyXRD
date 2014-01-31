@@ -13,6 +13,12 @@ from pyxrd.generic.io import storables
 from .base_models import _AbstractProbability
 from pyxrd.probabilities.models.properties import ProbabilityProperty
 
+__all__ = [
+    "R1G2Model",
+    "R1G3Model",
+    "R1G4Model",
+]
+
 @storables.register()
 class R1G2Model(_AbstractProbability):
     """
@@ -58,6 +64,8 @@ class R1G2Model(_AbstractProbability):
         store_id = "R1G2Model"
 
     # PROPERTIES:
+    _G = 2
+
     inherit_W1 = ProbabilityProperty(default=False, cast_to=bool)
     W1 = ProbabilityProperty(default=0.0, clamp=True, cast_to=float)
 
@@ -156,6 +164,8 @@ class R1G3Model(_AbstractProbability):
         store_id = "R1G3Model"
 
     # PROPERTIES
+    _G = 3
+
     inherit_W1 = ProbabilityProperty(default=False, cast_to=bool)
     W1 = ProbabilityProperty(default=0.0, clamp=True, cast_to=float)
 
@@ -343,6 +353,8 @@ class R1G4Model(_AbstractProbability):
         store_id = "R1G4Model"
 
     # PROPERTIES
+    _G = 4
+
     inherit_W1 = ProbabilityProperty(default=False, cast_to=bool)
     W1 = ProbabilityProperty(default=0.6, clamp=True, cast_to=float)
 

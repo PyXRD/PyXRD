@@ -5,4 +5,9 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
+"""
+    A python implementation of the matrix algorithm developed for the X-ray
+        diffraction analysis of disordered lamellar structures
+"""
+
 from __version import __version__

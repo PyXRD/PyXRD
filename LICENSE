@@ -2,7 +2,7 @@
     A python implementation of the matrix algorithm developed for the X-ray    
         diffraction analysis of disordered lamellar structures
          
-                       Copyright (c) 2013, Mathijs Dumon                       
+                     Copyright (c) 2013-2014, Mathijs Dumon                       
 
        This software is licensed under a BSD-2 Clause ("FreeBSD") License,       
    except for the mvc module, which is a derived work from the pygtkmvc library 

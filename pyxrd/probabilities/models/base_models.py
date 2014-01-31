@@ -47,12 +47,10 @@ class _AbstractProbability(DataModel, Storable, RefinementGroup):
     def rank(self):
         return self.G ** max(self.R, 1)
 
+    _G = 0
     @property
     def G(self):
-        if self.parent is not None:
-            return self.parent.G
-        else:
-            return None
+        return self._G
 
     _W = None
     _P = None

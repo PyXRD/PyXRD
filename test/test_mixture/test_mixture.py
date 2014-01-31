@@ -221,7 +221,6 @@ class TestMixture(unittest.TestCase):
     #  - optimize
     #  - apply_current_data_object
     #  - update
-    #  - update_refinement_treestore
     #  - get_refinement_method
     #  - setup_refine_options
 

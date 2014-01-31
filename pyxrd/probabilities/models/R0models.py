@@ -101,7 +101,7 @@ def R0_model_generator(pasG):
         setattr(_BaseR0Model, name, value)
 
     # MODEL METADATA:
-    set_attribute("G", property(lambda s: pasG))
+    set_attribute("_G", pasG)
     _dict["Meta"] = _R0Meta
 
     # PROPERTIES:
@@ -129,3 +129,12 @@ R0G3Model = R0_model_generator(3)
 R0G4Model = R0_model_generator(4)
 R0G5Model = R0_model_generator(5)
 R0G6Model = R0_model_generator(6)
+
+__all__ = [
+    "R0G1Model",
+    "R0G2Model",
+    "R0G3Model",
+    "R0G4Model",
+    "R0G5Model",
+    "R0G6Model"
+]

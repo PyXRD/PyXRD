@@ -1,0 +1,3 @@
+"""
+Main application interface namespace.
+"""

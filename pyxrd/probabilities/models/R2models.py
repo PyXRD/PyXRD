@@ -12,6 +12,11 @@ from pyxrd.generic.io import storables
 from .base_models import _AbstractProbability
 from pyxrd.probabilities.models.properties import ProbabilityProperty
 
+__all__ = [
+    "R2G2Model",
+    "R2G3Model"
+]
+
 @storables.register()
 class R2G2Model(_AbstractProbability):
     """
@@ -82,6 +87,7 @@ class R2G2Model(_AbstractProbability):
         properties = ind_properties + inh_properties
 
     # PROPERTIES:
+    _G = 2
     twothirds = 2.0 / 3.0
 
     W1 = ProbabilityProperty(minimum=0.5, default=0.75, clamp=True, cast_to=float)
@@ -131,10 +137,16 @@ class R2G2Model(_AbstractProbability):
 
             if self.mW[0] <= self.twothirds:
                 self.mP[0, 0, 1] = self.P112_or_P211
-                self.mP[1, 0, 0] = self.mP[0, 0, 1] * self.mW[0, 0] / self.mW[1, 0]
+                if self.mW[1, 0] == 0.0:
+                    self.mP[1, 0, 0] = 0.0
+                else:
+                    self.mP[1, 0, 0] = self.mP[0, 0, 1] * self.mW[0, 0] / self.mW[1, 0]
             else:
                 self.mP[1, 0, 0] = self.P112_or_P211
-                self.mP[0, 0, 1] = self.mP[1, 0, 0] * self.mW[1, 0] / self.mW[0, 0]
+                if self.mW[0, 0] == 0.0:
+                    self.mP[0, 0, 1] = 0.0
+                else:
+                    self.mP[0, 0, 1] = self.mP[1, 0, 0] * self.mW[1, 0] / self.mW[0, 0]
             self.mP[1, 0, 1] = 1.0 - self.mP[1, 0, 0]
             self.mP[0, 0, 0] = 1.0 - self.mP[0, 0, 1]
 
@@ -261,6 +273,7 @@ class R2G3Model(_AbstractProbability):
         properties = ind_properties + inh_properties
 
     # PROPERTIES:
+    _G = 3
     twothirds = 2.0 / 3.0
 
     W1 = ProbabilityProperty(default=0.75, minimum=0.5, clamp=True, cast_to=float)
@@ -311,26 +324,29 @@ class R2G3Model(_AbstractProbability):
             # G4inv = (1.0 / self.G4) - 1.0 if self.G4 > 0 else 0.0
 
             # calculate Wx's (0-based!!):
-            W0 = self.W1
-            W1 = (1.0 - W0) * self.G1
-            W2 = 1.0 - W0 - W1
+            self.mW[0] = self.W1
+            self.mW[1] = (1.0 - self.mW[0]) * self.G1
+            self.mW[2] = 1.0 - self.mW[0] - self.mW[1]
 
             # consequences of restrictions:
-            self.mW[1, 0] = self.mW[0, 1] = W1
-            self.mW[2, 0] = self.mW[0, 2] = W2
-            self.mW[0, 0] = 2.0 * W0 - 1.0
+            self.mW[1, 0] = self.mW[0, 1] = self.mW[1]
+            self.mW[2, 0] = self.mW[0, 2] = self.mW[2]
+            self.mW[0, 0] = 2.0 * self.mW[0] - 1.0
 
             # continue calculations:
-            if W0 < self.twothirds:
+            if self.mW[0] < self.twothirds:
                 self.mP[0, 0, 0] = self.P111_or_P212
-                self.mP[1, 0, 1] = self.G2 * self.G3 * (self.mW[0, 0] * (self.mP[0, 0, 0] - 1.0) + 2.0) / W1
+                if self.mW[1] == 0:
+                    self.mP[1, 0, 1] = 0.0
+                else:
+                    self.mP[1, 0, 1] = self.G2 * self.G3 * (self.mW[0, 0] * (self.mP[0, 0, 0] - 1.0) + 2.0) / self.mW[1]
             else:
                 self.mP[1, 0, 1] = self.P111_or_P212
             self.mP[1, 0, 2] = (self.mP[1, 0, 1] * ((1.0 / self.G3) - 1.0)) if self.G3 > 0 else 1.0
             # self.mP[0,0,0] = 1.0 - self.mP[1,0,1] - self.mP[1,0,2]
 
-            self.mW[1, 0, 1] = self.mP[1, 0, 1] * W1
-            self.mW[1, 0, 2] = self.mP[1, 0, 2] * W1
+            self.mW[1, 0, 1] = self.mP[1, 0, 1] * self.mW[1]
+            self.mW[1, 0, 2] = self.mP[1, 0, 2] * self.mW[1]
             self.mW[1, 0, 0] = self.mW[1, 0] - self.mW[1, 0, 1] - self.mW[1, 0, 2]
 
             self.mW[2, 0, 1] = (self.G4 * (1.0 - self.G2) / (self.G2 * self.G3) * self.mW[1, 0, 1]) if (self.G2 * self.G3) > 0 else 0.0

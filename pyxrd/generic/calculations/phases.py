@@ -33,7 +33,7 @@ def get_Q_matrices(Q, CSDS_max):
         Qn[n, ...] = mmult(Qn[n - 1, ...], Q)
     return Qn
 
-def get_absolute_scales(components, CSDS_real_mean, W):
+def get_absolute_scale(components, CSDS_real_mean, W):
     W = np.diag(W)
     mean_volume = 0.0
     mean_d001 = 0.0
@@ -45,9 +45,13 @@ def get_absolute_scales(components, CSDS_real_mean, W):
             mean_d001 += comp.d001 * W[i]
             mean_density += (comp.weight * W[i] / comp.volume)
         else:
-            logger.debug("- calc: get_absolute_scales reports: 'Zero observations found!'")
+            logger.debug("- calc: get_absolute_scale reports: 'Zero observations found!'")
 
-    return mean_d001 / (CSDS_real_mean * mean_volume ** 2 * mean_density)
+    mean_mass = (CSDS_real_mean * mean_volume ** 2 * mean_density)
+    if mean_mass != 0.0:
+        return mean_d001 / mean_mass
+    else:
+        return 0.0
 
 @cache(64)
 def get_diffracted_intensity(range_stl, phase):
@@ -60,7 +64,7 @@ def get_diffracted_intensity(range_stl, phase):
         CSDS_arr, CSDS_real_mean = calculate_distribution(phase.CSDS)
 
         # Get absolute scale
-        abs_scale = get_absolute_scales(phase.components, CSDS_real_mean, phase.W)
+        abs_scale = get_absolute_scale(phase.components, CSDS_real_mean, phase.W)
 
         # Create a helper function to 'expand' certain arrays, for
         # results which are independent of the 2-theta range

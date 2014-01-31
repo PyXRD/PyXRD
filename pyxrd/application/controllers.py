@@ -57,6 +57,7 @@ class AppController (BaseController, DialogMixin):
         self.push_status_msg("Done.")
 
     def register_view(self, view):
+        """ Registers the view with this controller """
         if self.model.project_loaded:
             self.update_sensitivities()
             view.set_layout_mode(self.model.current_project.layout_mode)
@@ -64,10 +65,12 @@ class AppController (BaseController, DialogMixin):
             view.set_layout_mode(settings.DEFAULT_LAYOUT)
 
     def set_model(self, model):
+        """ Sets the model in this controller """
         super(self, AppController).set_model(model)
         self.reset_project_controller()
 
     def reset_project_controller(self):
+        """ Recreates all child controllers """
         self.view.reset_all_views()
         self.project = ProjectController(model=self.model.current_project, view=self.view.project, parent=self)
         self.phases = PhasesController(model=self.model.current_project, view=self.view.phases, parent=self)
@@ -76,6 +79,7 @@ class AppController (BaseController, DialogMixin):
         self.reset_specimen_controller()
 
     def reset_specimen_controller(self):
+        """ Recreates only the specimen controllers """
         if self.model.specimen_selected:
             specimen_view = self.view.reset_child_view("specimen")
             self.specimen = SpecimenController(model=self.model.current_specimen, view=specimen_view, parent=self)
@@ -90,9 +94,12 @@ class AppController (BaseController, DialogMixin):
     # ------------------------------------------------------------
     @BaseController.observe("needs_plot_update", signal=True)
     def notif_needs_plot_update(self, model, prop_name, info):
-        # This is emitted by the Application model, in effect it is either a
-        #  forwarded data_changed or visuals_changed signal coming from the
-        #  project model.
+        """ 
+            This handles needs_plot_update signals emitted by the Application
+            model, in effect it is either a forwarded 'data_changed' or 
+            'visuals_changed' signal coming from the 
+            :class:`pyxrd.project.models.Project` model.
+        """
         self.idle_redraw_plot()
 
     @BaseController.observe("current_project", assign=True, after=True)

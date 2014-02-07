@@ -33,6 +33,11 @@ from pyxrd.generic.utils import get_new_uuid
 class ObjectPool(object):
     """
         This class allows to fetch mvc model objects using their UUID.
+        This requires to model to have a property called "uuid". All
+        class inheriting from the base 'Model' class will have this.
+        If implementing a custom model, the UUID property is responsible
+        for the removal and addition to the pool when it changes values.
+        Also see the UUIDPropIntel class for an example implementation.
         We can use this to store complex relations between objects where 
         references to each other can be replaced with the UUID.
         For a multi-threaded version see ThreadedObjectPool. 
@@ -61,7 +66,7 @@ class ObjectPool(object):
             obj.uuid = get_new_uuid()
 
     def change_all_uuids(self):
-        # first get a copy of all objects & uuids:
+        # first get a copy off all uuids & objects:
         items = self._objects.items()
         for uuid, obj in items: # @UnusedVariable
             obj.uuid = get_new_uuid()

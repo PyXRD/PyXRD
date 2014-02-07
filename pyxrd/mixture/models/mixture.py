@@ -287,42 +287,50 @@ class Mixture(DataModel, Storable):
     # ------------------------------------------------------------
     def unset_phase(self, phase):
         """ Clears a phase slot in the phase matrix """
-        with self.data_changed.hold():
-            shape = self.phase_matrix.shape
-            with self._relieve_and_observe_phases():
-                for i in range(shape[0]):
-                    for j in range(shape[1]):
-                        if self.phase_matrix[i, j] == phase:
-                            self.phase_matrix[i, j] = None
-            self.update_refinement_treestore()
-            self.update()
+        with self.needs_update.hold_and_emit():
+            with self.data_changed.hold():
+                shape = self.phase_matrix.shape
+                with self._relieve_and_observe_phases():
+                    for i in range(shape[0]):
+                        for j in range(shape[1]):
+                            if self.phase_matrix[i, j] == phase:
+                                self.phase_matrix[i, j] = None
+                self.update_refinement_treestore()
 
     def unset_specimen(self, specimen):
         """ Clears a specimen slot in the specimen list """
-        with self.data_changed.hold():
-            with self._relieve_and_observe_specimens():
-                for i, spec in enumerate(self.specimens):
-                    if spec == specimen:
-                        self.specimens[i] = None
-            self.update()
+        with self.needs_update.hold_and_emit():
+            with self.data_changed.hold():
+                with self._relieve_and_observe_specimens():
+                    for i, spec in enumerate(self.specimens):
+                        if spec == specimen:
+                            self.specimens[i] = None
+
+    def get_phase(self, specimen_slot, phase_slot):
+        """Returns the phase at the given slot positions or None if not set"""
+        return self.phase_matrix[specimen_slot, phase_slot]
 
     def set_phase(self, specimen_slot, phase_slot, phase):
         """Sets the phase at the given slot positions"""
-        with self.data_changed.hold():
-            with self._relieve_and_observe_phases():
-                if phase is not None and not phase in self.parent.phases:
-                    self.parent.phases.append(phase)
-                self.phase_matrix[specimen_slot, phase_slot] = phase
-            self.update_refinement_treestore()
-            self.update()
+        with self.needs_update.hold_and_emit():
+            with self.data_changed.hold():
+                with self._relieve_and_observe_phases():
+                    if phase is not None and not phase in self.parent.phases:
+                        raise RuntimeError, "Cannot add a phase to a Mixture which is not inside the project!"
+                    self.phase_matrix[specimen_slot, phase_slot] = phase
+                self.update_refinement_treestore()
+
+    def get_specimen(self, specimen_slot):
+        """Returns the specimen at the given slot position or None if not set"""
+        return self.specimens[specimen_slot]
 
     def set_specimen(self, specimen_slot, specimen):
         """Sets the specimen at the given slot position"""
-        with self._relieve_and_observe_specimens():
-            if specimen is not None and not specimen in self.parent.specimens:
-                self.parent.specimens.append(specimen)
-            self.specimens[specimen_slot] = specimen
-        self.update()
+        with self.needs_update.hold_and_emit():
+            with self._relieve_and_observe_specimens():
+                if specimen is not None and not specimen in self.parent.specimens:
+                    self.parent.specimens.append(specimen)
+                self.specimens[specimen_slot] = specimen
 
     @contextmanager
     def _relieve_and_observe_specimens(self):

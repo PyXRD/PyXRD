@@ -446,6 +446,16 @@ class Project(DataModel, Storable):
         Storable.save_object(self, file, zipped=True)
         self.needs_saving = False
 
+    def to_json_multi_part(self):
+        to_json = self.to_json()
+        properties = to_json["properties"]
+
+        for name in ("phases", "specimens", "atom_types", "mixtures"):
+            yield (name, properties.pop(name))
+            properties[name] = "file://%s" % name
+
+        yield ("content", to_json)
+
     @staticmethod
     def create_from_sybilla_xml(filename, **kwargs):
         from pyxrd.project.importing import create_project_from_sybilla_xml
@@ -483,6 +493,16 @@ class Project(DataModel, Storable):
             for specimen in self.parent.current_specimens:
                 max_intensity = max(specimen.max_intensity, max_intensity)
         return max_intensity
+
+    @contextmanager
+    def hold_child_signals(self):
+        logger.info("Holding back all project child object signals")
+        with self.hold_mixtures_needs_update():
+            with self.hold_mixtures_data_changed():
+                with self.hold_phases_data_changed():
+                    with self.hold_specimens_data_changed():
+                        with self.hold_atom_types_data_changed():
+                            yield
 
     @contextmanager
     def hold_mixtures_needs_update(self):

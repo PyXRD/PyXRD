@@ -460,10 +460,9 @@ class InlineObjectListStoreController(BaseController, TreeControllerMixin):
     def select_object(self, obj, path=None, unselect_all=True):
         selection = self.treeview.get_selection()
         if unselect_all: selection.unselect_all()
-        assert obj is not None or path is not None
         if obj is not None and hasattr(self.treemodel, "on_get_path"):
             selection.select_path(self.treemodel.on_get_path(obj))
-        else:
+        elif path is not None:
             selection.select_path(path)
 
     def create_new_object_proxy(self):

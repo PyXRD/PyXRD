@@ -465,7 +465,6 @@ class Component(DataModel, Storable, RefinementGroup):
         """
             Saves multiple components to a single file.
         """
-        type(cls).object_pool.change_all_uuids()
         Component.export_atom_types = True
         for comp in components:
             comp.save_links = False
@@ -476,11 +475,19 @@ class Component(DataModel, Storable, RefinementGroup):
             comp.save_links = True
         Component.export_atom_types = False
 
+        # After export we change all the UUID's
+        # This way, we're sure that we're not going to import objects with
+        # duplicate UUID's!
+        type(cls).object_pool.change_all_uuids()
+
     @classmethod
     def load_components(cls, filename, parent=None):
         """
             Returns multiple components loaded from a single file.
         """
+        # Before import, we change all the UUID's
+        # This way we're sure that we're not going to import objects
+        # with duplicate UUID's!
         type(cls).object_pool.change_all_uuids()
         if zipfile.is_zipfile(filename):
             with zipfile.ZipFile(filename, 'r') as zfile:

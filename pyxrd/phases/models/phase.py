@@ -23,7 +23,6 @@ from pyxrd.probabilities.models import get_correct_probability_model
 
 from .CSDS import DritsCSDSDistribution
 from .component import Component
-from pyxrd.probabilities.models.base_models import _AbstractProbability
 
 @storables.register()
 class Phase(DataModel, Storable, RefinementGroup):
@@ -322,7 +321,7 @@ class Phase(DataModel, Storable, RefinementGroup):
         """
             Saves multiple phases to a single file.
         """
-        type(cls).object_pool.change_all_uuids()
+
         for phase in phases:
             if phase.based_on != "" and not phase.based_on in phases:
                 phase.save_links = False
@@ -349,11 +348,19 @@ class Phase(DataModel, Storable, RefinementGroup):
                 component.save_links = True
             Component.export_atom_types = False
 
+        # After export we change all the UUID's
+        # This way, we're sure that we're not going to import objects with
+        # duplicate UUID's!
+        type(cls).object_pool.change_all_uuids()
+
     @classmethod
     def load_phases(cls, filename, parent=None):
         """
             Returns multiple phases loaded from a single file.
         """
+        # Before import, we change all the UUID's
+        # This way we're sure that we're not going to import objects
+        # with duplicate UUID's!
         type(cls).object_pool.change_all_uuids()
         if zipfile.is_zipfile(filename):
             with zipfile.ZipFile(filename, 'r') as zfile:

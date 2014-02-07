@@ -57,7 +57,7 @@ class BaseView(View):
         try:
             widget = create_image_from_mathtext(text)
         except any as err:
-            err.args += ("Exception when trying to render mathtext widget",) 
+            err.args += ("Exception when trying to render mathtext widget",)
             print_exc()
             widget = gtk.Label(text)
             widget.set_use_markup(True)
@@ -247,9 +247,6 @@ class ObjectListStoreViewMixin(HasChildView):
             Sets the state of the view to correspond with the number of currently
             selected objects. Value is either None or a number indicating the number of selected objects.
         """
-        if self.edit_view is not None:
-            # self.edit_view.get_top_widget().set_sensitive(value is not None)
-            pass
         self["button_del_object"].set_sensitive(value is not None)
         self["button_save_object"].set_sensitive(value is not None)
 
@@ -267,11 +264,24 @@ class ObjectListStoreViewMixin(HasChildView):
             self.extra_widget = self._builder.get_object(self.extra_widget_toplevel)
         return
 
+    _on_sr_id = None
+    def on_size_requested(self, *args):
+        sr = self.child_view.size_request()
+        self[self.edit_view_container].set_size_request(sr[0] + 20, -1)
+
     def set_edit_view(self, view):
+        if self._on_sr_id is not None and self.child_view is not None:
+            self.child_view.disconnect(self._on_sr_id)
         self.edit_view = view
-        self._add_child_view(view.get_top_widget(), self[self.edit_view_container])
+        self.child_view = view.get_top_widget()
+        self._add_child_view(self.child_view, self[self.edit_view_container])
         if isinstance(self[self.edit_view_container], gtk.ScrolledWindow):
+            sr = self.child_view.get_size_request()
+            self[self.edit_view_container].set_size_request(sr[0], -1)
             self[self.edit_view_container].set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
+            self._on_sr_id = self.child_view.connect("size-request", self.on_size_requested)
+
+
         return self.edit_view
 
 class ObjectListStoreView(DialogView, ObjectListStoreViewMixin):

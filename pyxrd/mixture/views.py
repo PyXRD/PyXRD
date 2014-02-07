@@ -164,6 +164,9 @@ class EditMixtureView(BaseView):
 
         self.labels = [ self["lbl_scales"], self["lbl_fractions"], self["lbl_phases"], self["lbl_bgshifts"], self["lbl_specimens"] ]
 
+        self["scolled_window"].set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
+        self.matrix.connect("size-request", self.on_size_requested)
+
         self.reset_view()
 
     def reset_view(self):
@@ -178,6 +181,24 @@ class EditMixtureView(BaseView):
         self.scale_inputs = []
         self.bgs_inputs = []
         self.phase_combos = np.empty(shape=(0, 0), dtype=np.object_) # 2D list
+
+        self.on_size_requested()
+
+    def on_size_requested(self, *args):
+        sr = self.matrix.size_request()
+        self[self.top].set_size_request(sr[0] + 100, -1)
+
+    def set_edit_view(self, view):
+        if self._on_sr_id is not None and self.child_view is not None:
+            self.child_view.disconnect(self._on_sr_id)
+        self.edit_view = view
+        self.child_view = view.get_top_widget()
+        self._add_child_view(self.child_view, self[self.edit_view_container])
+        if isinstance(self[self.edit_view_container], gtk.ScrolledWindow):
+            sr = self.child_view.get_size_request()
+            self[self.edit_view_container].set_size_request(sr[0], -1)
+
+
 
     def update_all(self, fractions, scales, bgs):
         for i, fraction in enumerate(fractions):
@@ -280,7 +301,7 @@ class EditMixtureView(BaseView):
         combobox.set_size_request(75, -1)
         cell = gtk.CellRendererText()
         combobox.pack_start(cell) # , False)
-        combobox.add_attribute(cell, 'text', text_column) 
+        combobox.add_attribute(cell, 'text', text_column)
         if default is not None:
             index = model.on_get_path(default)[0]
             combobox.set_active(index)

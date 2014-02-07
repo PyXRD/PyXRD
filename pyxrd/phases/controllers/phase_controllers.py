@@ -252,8 +252,9 @@ class PhasesController(ObjectListStoreController):
     @contextmanager
     def _multi_operation_context(self):
         with self.model.hold_mixtures_data_changed():
-            with self.model.hold_phases_data_changed():
-                yield
+            with self.model.hold_mixtures_needs_update():
+                with self.model.hold_phases_data_changed():
+                    yield
 
     # ------------------------------------------------------------
     #      GTK Signal handlers

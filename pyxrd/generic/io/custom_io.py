@@ -182,6 +182,21 @@ class PyXRDDecoder(json.JSONDecoder):
         json.JSONDecoder.__init__(self, **kwargs)
         self.parent = parent
 
+    @staticmethod
+    def decode_multi_part(obj, parts={}, **kwargs):
+        """
+            Utility function that allows for multi-part (ZipFile) JSON objects
+            Shortens the length of the main file, e.g. by splitting out lists of
+            other objects into separate files.
+        """
+        decoder = PyXRDDecoder(**kwargs)
+        obj = json.JSONDecoder.decode(decoder, obj)
+        if not hasattr(obj, "update"):
+            raise RuntimeError, "Decoding a multi-part JSON object requires the root to be a dictionary object!"
+        for partname, partobj in parts.iteritems():
+            obj["properties"][partname] = json.JSONDecoder.decode(decoder, partobj)
+        return decoder.__pyxrd_decode__(obj) or obj
+
     def decode(self, obj):
         obj = json.JSONDecoder.decode(self, obj)
         return self.__pyxrd_decode__(obj) or obj
@@ -274,7 +289,8 @@ class Storable(object):
             if zipped:
                 # Try to safe the file as a zipfile:
                 with ZipFile(file, mode="w", compression=ZIP_DEFLATED) as f:
-                    f.writestr('content', json.dumps(self, indent=4, cls=PyXRDEncoder))
+                    for partname, json_object in self.to_json_multi_part():
+                        f.writestr(partname, json.dumps(json_object, indent=4, cls=PyXRDEncoder))
             else:
                 # Regular text file:
                 if filename is not None:
@@ -295,8 +311,8 @@ class Storable(object):
             # Rename temporary saved file:
             move(file, filename)
 
-    @staticmethod
-    def load_object(filename, data=None, parent=None):
+    @classmethod
+    def load_object(cls, filename, data=None, parent=None):
         """
         Tries to create an instance from the file 'filename' (see below), or
         from the JSON string 'data'. If data is passed, filename should be None,
@@ -312,8 +328,13 @@ class Storable(object):
             try:
                 if is_zipfile(filename): # ZIP files
                     with ZipFile(filename, 'r') as zf:
+                        parts = dict()
+                        for name in zf.namelist():
+                            if name != "content":
+                                with zf.open(name) as pf:
+                                    parts[name] = pf.read()
                         with zf.open('content') as cf:
-                            return json.load(cf, cls=PyXRDDecoder, parent=parent)
+                            return PyXRDDecoder.decode_multi_part(cf.read(), parts=parts, parent=parent)
                 else: # REGULAR files
                     with unicode_open(filename, 'r') as f:
                         return json.load(f, cls=PyXRDDecoder, parent=parent)
@@ -344,9 +365,22 @@ class Storable(object):
             "properties": self.json_properties()
         }
 
+    def to_json_multi_part(self):
+        """
+            This should generate two-tuples:
+            (partname, json_dict), (partname, json_dict), ...
+        """
+        yield ('content', self.to_json())
+
+    # Inherited classes can also implement:
+    # def multi_file_to_json(self):
+    # this should return a list of two-tuples:
+    #  (filename, json_dict) (filename, json_dict), ...
+    # The combination
+
     def json_properties(self):
         """
-        Method that should return a dict containg all the properties neccesary to 
+        Method that should return a dict containing all the properties necessary to 
         re-create the object when serialized as JSON.
         """
         retval = OrderedDict()

@@ -115,11 +115,6 @@ class EditUnitCellPropertyController(BaseController, AtomComboMixin):
     def notif_enabled_changed(self, model, prop_name, info):
         self.update_sensitivities()
 
-    @BaseController.observe("removed", signal=True)
-    def notif_removed(self, model, prop_name, info):
-        AtomComboMixin._disconnect_from_layers(self)
-        AtomComboMixin._disconnect_from_interlayers(self)
-
     pass # end of class
 
 class EditAtomRatioController(DialogController, AtomComboMixin):
@@ -130,14 +125,6 @@ class EditAtomRatioController(DialogController, AtomComboMixin):
     widget_handlers = {
         'custom': 'custom_handler',
     }
-
-    # ------------------------------------------------------------
-    #      Notifications of observable properties
-    # ------------------------------------------------------------
-    @Controller.observe("removed", signal=True)
-    def notif_removed(self, model, prop_name, info):
-        AtomComboMixin._disconnect_from_layers(self)
-        AtomComboMixin._disconnect_from_interlayers(self)
 
     pass # end of class
 

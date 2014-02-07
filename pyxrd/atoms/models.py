@@ -189,6 +189,9 @@ class AtomType(DataModel, Storable, CSVMixin):
         """
             Returns multiple AtomTypes loaded from a single (JSON) file.
         """
+        # Before import, we change all the UUID's
+        # This way we're sure that we're not going to import objects
+        # with duplicate UUID's!
         type(cls).object_pool.change_all_uuids()
 
         if zipfile.is_zipfile(filename):
@@ -208,6 +211,11 @@ class AtomType(DataModel, Storable, CSVMixin):
         with zipfile.ZipFile(filename, 'w') as zfile:
             for i, atom_type in enumerate(atom_types):
                 zfile.writestr("%d###%s" % (i, atom_type.uuid), atom_type.dump_object())
+
+        # After export we change all the UUID's
+        # This way, we're sure that we're not going to import objects with
+        # duplicate UUID's!
+        type(cls).object_pool.change_all_uuids()
 
     pass # end of class
 

@@ -74,7 +74,7 @@ class EditCSDSTypeController(BaseController):
             if not type(self.model.CSDS_distribution) == cls:
                 new_csds_model = cls(parent=self.model)
                 self.model.CSDS_distribution = new_csds_model
-                self.distributions_controller.reset_model(new_csds_model)
+                self.distributions_controller.set_model(new_csds_model)
 
     pass # end of class
 
@@ -86,17 +86,24 @@ class EditCSDSDistributionController(BaseController):
 
     # auto_adapt = False
 
+    def reset_view(self):
+        self.view.reset_params()
+        for prop in self.model.Meta.all_properties:
+            if prop.refinable:
+                self.view.add_param_widget(
+                    self.view.widget_format % prop.name, prop.label,
+                    prop.minimum, prop.maximum
+                )
+        self.view.update_figure(self.model.distrib[0])
+
     def register_view(self, view):
         if self.model is not None:
-            view.reset_params()
-            for prop in self.model.Meta.all_properties:
-                if prop.refinable:
-                    view.add_param_widget(
-                        view.widget_format % prop.name, prop.label,
-                        prop.minimum, prop.maximum
-                    )
-            view.update_figure(self.model.distrib[0])
+            self.reset_view()
 
+
+    def set_model(self, model):
+        super(EditCSDSDistributionController, self).set_model(model)
+        self.reset_view()
 
     # ------------------------------------------------------------
     #      Notifications of observable properties

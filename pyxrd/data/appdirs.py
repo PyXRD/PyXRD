@@ -55,24 +55,29 @@ def user_data_dir(appname=None, appauthor=None, version=None, roaming=False):
 
     For Unix, we follow the XDG spec and support $XDG_DATA_HOME.
     That means, by deafult "~/.local/share/<AppName>".
+    
+    On all platforms we support overriding all of this by setting the 
+    $PYXRD_USER_DATA_DIR environment variable to the value of choice.
     """
-    if sys.platform == "win32":
-        if appauthor is None:
-            appauthor = appname
-        const = roaming and "CSIDL_APPDATA" or "CSIDL_LOCAL_APPDATA"
-        path = os.path.normpath(_get_win_folder(const))
-        if appname:
-            path = os.path.join(path, appauthor, appname)
-    elif sys.platform == 'darwin':
-        path = os.path.expanduser('~/Library/Application Support/')
-        if appname:
-            path = os.path.join(path, appname)
-    else:
-        path = os.getenv('XDG_DATA_HOME', os.path.expanduser("~/.local/share"))
-        if appname:
-            path = os.path.join(path, appname)
-    if appname and version:
-        path = os.path.join(path, version)
+    path = os.getenv("PYXRD_USER_DATA_DIR", None)
+    if path is None:
+        if sys.platform == "win32":
+            if appauthor is None:
+                appauthor = appname
+            const = roaming and "CSIDL_APPDATA" or "CSIDL_LOCAL_APPDATA"
+            path = os.path.normpath(_get_win_folder(const))
+            if appname:
+                path = os.path.join(path, appauthor, appname)
+        elif sys.platform == 'darwin':
+            path = os.path.expanduser('~/Library/Application Support/')
+            if appname:
+                path = os.path.join(path, appname)
+        else:
+            path = os.getenv('XDG_DATA_HOME', os.path.expanduser("~/.local/share"))
+            if appname:
+                path = os.path.join(path, appname)
+        if appname and version:
+            path = os.path.join(path, version)
     return path
 
 
@@ -257,25 +262,30 @@ def user_cache_dir(appname=None, appauthor=None, version=None, opinion=True):
         ...\Acme\SuperApp\Cache\1.0
     OPINION: This function appends "Cache" to the `CSIDL_LOCAL_APPDATA` value.
     This can be disabled with the `opinion=False` option.
+    
+    On all platforms we support overriding all of this by setting the 
+    $PYXRD_USER_CACHE_DIR environment variable to the value of choice.
     """
-    if sys.platform == "win32":
-        if appauthor is None:
-            appauthor = appname
-        path = os.path.normpath(_get_win_folder("CSIDL_LOCAL_APPDATA"))
-        if appname:
-            path = os.path.join(path, appauthor, appname)
-            if opinion:
-                path = os.path.join(path, "Cache")
-    elif sys.platform == 'darwin':
-        path = os.path.expanduser('~/Library/Caches')
-        if appname:
-            path = os.path.join(path, appname)
-    else:
-        path = os.getenv('XDG_CACHE_HOME', os.path.expanduser('~/.cache'))
-        if appname:
-            path = os.path.join(path, appname)
-    if appname and version:
-        path = os.path.join(path, version)
+    path = os.getenv("PYXRD_USER_CACHE_DIR", None)
+    if path is None:
+        if sys.platform == "win32":
+            if appauthor is None:
+                appauthor = appname
+            path = os.path.normpath(_get_win_folder("CSIDL_LOCAL_APPDATA"))
+            if appname:
+                path = os.path.join(path, appauthor, appname)
+                if opinion:
+                    path = os.path.join(path, "Cache")
+        elif sys.platform == 'darwin':
+            path = os.path.expanduser('~/Library/Caches')
+            if appname:
+                path = os.path.join(path, appname)
+        else:
+            path = os.getenv('XDG_CACHE_HOME', os.path.expanduser('~/.cache'))
+            if appname:
+                path = os.path.join(path, appname)
+        if appname and version:
+            path = os.path.join(path, version)
     return path
 
 def user_log_dir(appname=None, appauthor=None, version=None, opinion=True):

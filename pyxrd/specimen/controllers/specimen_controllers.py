@@ -268,17 +268,14 @@ class SpecimenController(DialogController, TreeViewMixin):
             parser = ffilter.get_data("parser")
             try:
                 self.model.experimental_pattern.load_data(parser, filename, clear=True)
-            except Exception as msg:
-                if settings.DEBUG:
-                    from traceback import print_exc
-                    print_exc()
-                message = "An unexpected error has occured when trying to parse %s:\n\n<i>" % os.path.basename(filename)
-                message += str(msg) + "</i>\n\n"
+            except Exception:
+                message = "An unexpected error has occured when trying to parse '%s'.\n" % os.path.basename(filename)
                 message += "This is most likely caused by an invalid or unsupported file format."
                 self.run_information_dialog(
                     message=message,
                     parent=self.view.get_top_widget()
                 )
+                raise
         self.run_load_dialog(title="Open XRD file for import",
                             on_accept_callback=on_accept,
                              parent=self.view.get_top_widget())

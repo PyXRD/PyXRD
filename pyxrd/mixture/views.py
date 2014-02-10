@@ -19,6 +19,7 @@ from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanva
 from pyxrd.generic.views import BaseView, DialogView
 from pyxrd.generic.views.widgets import ThreadedTaskBox
 from pyxrd.generic.views.validators import FloatEntryValidator
+from pyxrd.generic.utils import not_none
 
 class RefinementView(DialogView):
     title = "Refine Phase Parameters"
@@ -81,9 +82,10 @@ class RefinementView(DialogView):
         self["refinables"].set_visible(True)
         self["refinables"].set_no_show_all(False)
 
-    def update_refinement_info(self, current_rp=None):
+    def update_refinement_info(self, current_rp=None, message=None):
         if not isnan(current_rp):
             self["current_residual"].set_text("%.2f" % current_rp)
+        self["message"].set_text(not_none(message, ""))
 
     def complete_function(self, widget, data=None):
         self.refine_spin_box.set_status("Processing...")

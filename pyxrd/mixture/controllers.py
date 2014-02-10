@@ -316,7 +316,7 @@ class RefinementController(DialogController):
         # Setup mixture based on chosen refinement options:
         self.model.refine_options = {}
         option_store = self.view['tv_method_options'].get_model()
-        for name, value, arg, typ, default, limits in option_store:
+        for name, value, arg, typ, default, limits in option_store: # @UnusedVariable
             self.model.refine_options[arg] = value
 
         # Setup context and results controller:
@@ -331,17 +331,21 @@ class RefinementController(DialogController):
         # Run the refinement thread:
         self.view.show_refinement_info(
             self.model.refiner.refine, # REFINE METHOD
-            self.update_residual,      # GUI UPDATER
+            self.update_gui,      # GUI UPDATER
             self.on_complete           # ON COMPLETE CALLBACK
         )
 
     def on_complete(self, context, *args, **kwargs):
+        self.model.context.status_message = "Generating parameter space plots..."
         self.results_controller.generate_images()
         self.results_view.present()
         self.view.hide()
 
-    def update_residual(self):
-        self.view.update_refinement_info(self.model.refiner.context.last_residual)
+    def update_gui(self):
+        self.view.update_refinement_info(
+            self.model.refiner.context.last_residual,
+            self.model.refiner.context.status_message
+        )
 
     def cleanup(self):
         if hasattr(self, "view"):

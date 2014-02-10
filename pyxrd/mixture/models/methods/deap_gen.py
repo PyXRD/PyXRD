@@ -11,10 +11,19 @@ logger.setLevel(logging.INFO)
 
 from itertools import izip, imap
 
+from multiprocessing.pool import AsyncResult
+
 import numpy as np
 from deap import creator, base, cma, tools
 
-from pyxrd.data.settings import POOL as pool
+# TODO integrate this in a single class somewhere...
+try:
+    from scoop import futures as pool
+    from scoop._types import Result as ScoopResult
+except ImportError:
+    logger.warning("Could not import SCOOP, falling back to multiprocessing pool!")
+    ScoopResult = object # make sure we don't get errors...
+    from pyxrd.data.settings import POOL as pool
 
 from .refine_run import RefineRun
 from .deap_utils import pyxrd_array, evaluate
@@ -31,6 +40,38 @@ STAGN_TOL = 0.5
 
 # Needs to be shared for multiprocessing to work properly
 creator.create("FitnessMin", base.Fitness, weights=(-1.0,))
+
+def submit_async_call(func, *args):
+    """ Utility that passes function calls either to SCOOP (if it's available)
+    or down to a multiprocessing call."""
+    if hasattr(pool, "submit"): # SCOOP
+        result = pool.submit(func, args)
+    elif hasattr(pool, "apply_async"): # Regular multiprocessing pool
+        result = pool.apply_async(func, args)
+    else: # No parallelization:
+        result = func(*args)
+    return result
+
+def fetch_async_result(result):
+    """ Utility that parses the result object returned by submit_async_call"""
+    if isinstance(result, AsyncResult): # Multiprocessing pool result object
+        return result.get()
+    elif isinstance(result, ScoopResult): # SCOOP result object
+        return result.result()
+    else:
+        return result
+
+def do_async_evaluation(population, toolbox):
+    """ Utility that combines a submit and fetch cycle in a single
+    function call"""
+    results = []
+    for ind in toolbox.generate():
+        result = submit_async_call(toolbox.evaluate, ind)
+        population.append(ind)
+        results.append(result)
+    for ind, result in izip(population, results):
+        ind.fitness.values = fetch_async_result(result)
+    del results
 
 def eaGenerateUpdateStagn(toolbox, ngen, halloffame=None, stats=None,
                      verbose=__debug__, stagn_ngen=10, stagn_tol=0.001, context=None):
@@ -49,6 +90,7 @@ def eaGenerateUpdateStagn(toolbox, ngen, halloffame=None, stats=None,
     :param verbose: Whether or not to log the statistics.
     :param stagn_gens: The number of generations to check for stagnation
     :param stagn_tol: The maximum tolerance for the last `stagn_gens` best fitnesses.
+    :param context: PyXRD refinement context object
 
     :returns: The final population.
     
@@ -71,30 +113,21 @@ def eaGenerateUpdateStagn(toolbox, ngen, halloffame=None, stats=None,
         logger.logHeader()
 
     best_fitnesses = []
-
     for gen in xrange(ngen):
-
-        # Generate a new population
+        context.status_message = "Creating generation #%d" % (gen + 1)
+        # Generate a new population:
         population = []
-        results = []
-        for ind in toolbox.generate():
-            result = pool.apply_async(toolbox.evaluate, (ind,))
-            population.append(ind)
-            results.append(result)
-
-        # Get the fitness results:
-        for ind, result in izip(population, results):
-            ind.fitness.values = result.get()
-
-        del results # clear some memory
-
+        do_async_evaluation(population, toolbox)
         if halloffame is not None:
             halloffame.update(population)
+
+        context.status_message = "Updating strategy"
         # Update the strategy with the evaluated individuals
         toolbox.update(population)
         if stats is not None:
             stats.update(population)
         best = population[0]
+        pop_size = len(population)
         context.update(best, best.fitness.values[0])
 
         best_fitnesses.append(best.fitness.values)
@@ -104,7 +137,7 @@ def eaGenerateUpdateStagn(toolbox, ngen, halloffame=None, stats=None,
         if context is not None:
             context.record_state_data([
                 ("gen", gen),
-                ("pop", len(population)),
+                ("pop", pop_size),
                 ("min", float(stats.min[-1][-1][-1])),
                 ("avg", float(stats.avg[-1][-1][-1])),
                 ("max", float(stats.max[-1][-1][-1])),
@@ -112,7 +145,9 @@ def eaGenerateUpdateStagn(toolbox, ngen, halloffame=None, stats=None,
             ] + [ ("par%d" % i, float(val)) for i, val in enumerate(best)])
 
         if verbose:
-            logger.logGeneration(evals=len(population), gen=gen, stats=stats)
+            logger.logGeneration(evals=pop_size, gen=gen, stats=stats)
+
+        context.status_message = "Checking for stagnation"
         # Check for stagnation
         if gen >= stagn_ngen: # 10
             stagnation = True
@@ -192,34 +227,31 @@ class RefineCMAESRun(RefineRun):
         # Setup strategy:
         strategy = CustomStrategy(centroid=context.initial_solution, sigma=2, lambda_=lambda_)
 
-        logger.info("Pre-feeding with a normal distributed population ...")
+        # Create Generation 0:
+        logger.info("Creating generation #0:")
+        context.message = "Creating generation #0"
+
+        logger.info("\t evaluating uniformly distributed solutions...")
         # Pre-feed the strategy with a normal distributed population over the entire domain (large population):
         solutions = np.random.normal(size=(init_lambda, N))
         solutions = (solutions - solutions.min()) / (solutions.max() - solutions.min()) # stretch to [0-1] interval
         solutions = bounds[:, 0] + solutions * (bounds[:, 1] - bounds[:, 0])
-        logger.info("\t generated solution")
+        toolbox.register("generate", imap, create_individual, solutions)
         population = []
-        results = []
-        for ind in imap(create_individual, solutions):
-            result = pool.apply_async(toolbox.evaluate, (ind,))
-            population.append(ind)
-            results.append(result)
-        logger.info("\t queued solutions for evaluation")
-        for ind, result in izip(population, results):
-            ind.fitness.values = result.get()
-        logger.info("\t retrieved all solution evaluations")
-        del results # clear some memory
-        logger.info("\t updating population")
-        strategy.update(population)
+        do_async_evaluation(population, toolbox)
 
+        logger.info("\t updating population...")
+        strategy.update(population)
+        del population
+        logger.info("\t Done.")
+
+        # Register the correct functions:
         toolbox.register("update", strategy.update)
         toolbox.register("generate", strategy.generate, create_individual)
 
-        logger.info("Creating hall-off-fame and statistics")
         # Hall of fame:
+        logger.info("Creating hall-off-fame and statistics")
         halloffame = tools.HallOfFame(1)
-
-        # Stats:
         stats = tools.Statistics(lambda ind: ind.fitness.values)
         stats.register("avg", tools.mean)
         stats.register("std", tools.std)
@@ -231,6 +263,8 @@ class RefineCMAESRun(RefineRun):
             toolbox.register("map", lambda f, i: pool.map(f, i, 10))
 
         logger.info("Running the CMA-ES algorithm...")
+        context.status = "running"
+        context.message = "Running CMA strategy ..."
         final = eaGenerateUpdateStagn(
             toolbox,
             ngen=ngen,
@@ -241,6 +275,7 @@ class RefineCMAESRun(RefineRun):
             stagn_tol=STAGN_TOL
         )
 
+        context.message = "Parsing results..."
         fitnesses = toolbox.map(evaluate, final)
 
         bestf = None
@@ -254,5 +289,6 @@ class RefineCMAESRun(RefineRun):
 
         context.last_residual = bestf
         context.last_solution = np.array(besti, dtype=float)
+        context.status = "finished"
 
     pass # end of class

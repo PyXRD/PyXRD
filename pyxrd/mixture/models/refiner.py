@@ -32,6 +32,7 @@ class RefineContext(ChildModel):
         properties = [ # TODO add labels
             PropIntel(name="solution_added"),
             PropIntel(name="status", column=True, data_type=str, has_widget=False),
+            PropIntel(name="status_message", column=True, data_type=str, has_widget=False),
             PropIntel(name="initial_residual", column=True, data_type=float, has_widget=True, widget_type='label'),
             PropIntel(name="last_residual", column=True, data_type=float, has_widget=True, widget_type='label'),
             PropIntel(name="best_residual", column=True, data_type=float, has_widget=True, widget_type='label'),
@@ -60,6 +61,7 @@ class RefineContext(ChildModel):
     ranges = None
 
     status = "not initialized"
+    status_message = ""
 
     record_header = None
     records = None
@@ -211,15 +213,19 @@ class Refiner(ChildModel):
                             error.args += ("Handling run-time error: %s" % error,)
                             print_exc()
                             self.context.status = "error"
+                            self.context.status_message = "Error occurred..."
                         else:
                             if stop.is_set():
                                 self.context.status = "stopped"
+                                self.context.status_message = "Stopping ..."
                             else:
                                 self.context.status = "finished"
+                                self.context.status_message = "Finished"
                         t2 = time.time()
                         logger.info('%s took %0.3f ms' % ("Total refinement", (t2 - t1) * 1000.0))
                     else: # nothing selected for refinement
                         self.context.status = "error"
+                        self.context.status_message = "No parameters selected!"
 
             # Unlock this method
             self.refine_lock = False

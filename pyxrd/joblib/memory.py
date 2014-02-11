@@ -540,12 +540,12 @@ class Memory(Logger):
                                    timestamp=self.timestamp,
                                    state_getter=self.state_getter)
 
-    def clear(self, warn=True):
+    def clear(self, warn=True, onerror=None):
         """ Erase the complete cache directory.
         """
         if warn:
             self.warn('Flushing completely the cache')
-        rm_subdirs(self.cachedir)
+        rm_subdirs(self.cachedir, onerror=onerror)
 
     def eval(self, func, *args, **kwargs):
         """ Eval function func with arguments `*args` and `**kwargs`,

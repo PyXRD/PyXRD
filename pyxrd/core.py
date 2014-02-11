@@ -101,7 +101,11 @@ def _apply_settings(no_gui, debug, clear_cache, pool):
     if settings.CACHE == "FILE":
         from pyxrd.generic.caching import memory
         if clear_cache:
-            memory.clear()
+            def onerror(*args):
+                # ignore errors if not debugging
+                if not settings.DEBUG: pass
+                else: raise
+            memory.clear(onerror=onerror)
         else:
             from pyxrd.generic.io import get_size, sizeof_fmt
             size = get_size(memory.cachedir, settings.CACHE_SIZE)

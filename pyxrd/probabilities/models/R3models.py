@@ -20,40 +20,81 @@ __all__ = [
 
 @storables.register()
 class R3G2Model(_AbstractProbability):
-    """
-	Reichweite = 3 / Components = 2
-	Restrictions:
-	2/3 <= W0 <= 1.0
-	P11 = 0
-	P101 = 0
+    r"""
+    (Restricted) probability model for Reichweite 3 with 2 components.
+    
+    The (due to restrictions only) 2 independent variables are:
+    
+    .. math::
+        :nowrap:
+        
+        \begin{align*}
+            & W_1
+            & P_{1111} \text{(if $\nicefrac{2}{3} \leq W_1 < \nicefrac{3}{4}$) or} P_{2112} \text{(if $\nicefrac{3}{4} \leq W_1 \leq 1)$} \\
+        \end{align*}
+    
+    This model can only describe mixed layers with more than 
+    :math:`\nicefrac{2}{3}` of the layers being of the first type, no two layers
+    of the second type occur after each other, and in which the probability of
+    finding a layer of the first type in between two layers of the second type
+    is zero. This translates to the following conditions:
+    
+    .. math::
+        :nowrap:
+        
+        \begin{align*}
+	        & \nicefrac{2}{3} <= W_1 <= 1 \\
+	        & P_{22} = 0  \\
+	        & P_{212} = 0 \\
+	        & \\
+	        & \text{Since $P_{22} = 0$ and $P_{212} = 0$:} \\
+            & P_{1122} = P_{1212} = 0 \\
+            & \text{And thus:} \\
+            & P_{1121} = P_{1211} = 1 \\
+        \end{align*} 
+        
+    The following probabilities are undefined, but are set to zero or one to
+    make the validation correct. This doesn't matter much, since the weight
+    fractions these probabilities are multiplied with, equal zero anyway
+    (e.g. :math:`W_{2211} = W_{22} * P_{221} * P_{2211}` and :math:`W_{22}` 
+    is zero since :math:`P_{22}` is zero):
+        
+    .. math::
+        :nowrap:
+        
+        \begin{align*}
+            & P_{1121} &= P_{1211} &= P_{2211} 
+            &= P_{2121} &= P_{2221} &= P_{1221} = 0 \\
+            & P_{1122} &= P_{1212} &= P_{2212} 
+            &= P_{2122} &= P_{2222} &= P_{1222} = 1 \\
+        \end{align*}  
+
+    The remaining probabilities and weight fractions can be calculated as 
+    follows:
+    
+   .. math::
+        :nowrap:
+        
+        \begin{align*}
+            & W_2 = 1 - W_1 \\
+            & \\
+            & \text{if $W_1 < \nicefrac{3}{4}$:} \\
+            & \quad \text{$P_{1111}$ is given}\\
+            & \quad P_{1112} = 1 - P_{1111} \\
+            & \quad P_{2111} = P_{1112} * \frac{W_1 - 2 \cdot W_2}{W_2} \\
+            & \quad P_{2112} = 1 - P_{2111} \\  
+            & \\
+            & \text{if $W_1 \geq \nicefrac{3}{4}$:} \\
+            & \quad \text{$P_{2112}$ is given}\\
+            & \quad P_{2111} = 1 - P_{2112} \\
+            & \quad P_{1111} = P_{2111} * \frac{W_2}{W_1 - 2 \cdot W_2} \\
+            & \quad P_{1112} = 1 - P_{1111} \\  
+            & \\
+            & W_{111} = 3 \cdot W_1 - 2 \\
+            & W_{212} = W_{221} = W_{222} = W_{122} = 0 \\
+            & W_{211} = W_{121} = W_{112} = 1 - W_1 \\
+        \end{align*}
 	
-	independent variables = 2
-	W0
-	P0000 (W0<3/4) of P1001 (W0>3/4)
-        
-        W1 = 1 – W0
-        
-        P0000 given (W0 < 3/4):
-            W100/W000 = W1 / (W0 - 2*W1) 
-            P0001 = 1-P0000
-            P1000 = P0001 * W100/W000
-            P1001 = 1 - P1000
-        P1001 given (W0 >= 3/4):
-            W000/W100 = (W0 - 2*W1) / W1
-            P1000 = 1-P1001
-            P0000 = 1 - P1000 * W100/W000
-            P0001 = 1 - P0000
-            
-        P0010 = 1
-        P0011 = 0
-        
-        P0100 = 1
-        P0101 = 0
-        
-        since P11=0 and P101=0:
-        P1100 = P1101 = P1010 = P1011 = P1110 = P1111 = P0110 = P0111 = 0
-	
-	indexes are NOT zero-based in external property names!
 	"""
 
     # MODEL METADATA:
@@ -107,42 +148,39 @@ class R3G2Model(_AbstractProbability):
             self.mW[0] = self.W1
             self.mW[1] = 1.0 - self.W1
 
-            # TODO add some boundary checks (e.g. P0000 = 1.0 or 0.0)
-            # These make the calculations a lot simpler
-            # Now some calcs return NaNs!!
             if self.mW[0] <= 0.75: # 0,0,0,0 is given
                 self.mP[0, 0, 0, 0] = self.P1111_or_P2112
-                self.mP[0, 0, 0, 1] = abs(1.0 - self.mP[0, 0, 0, 0])
-                self.mP[1, 0, 0, 0] = self.mP[0, 0, 0, 1] * (self.mW[0] - 2 * self.mW[1]) / self.mW[1]
-                self.mP[1, 0, 0, 1] = abs(1.0 - self.mP[1, 0, 0, 0])
+                self.mP[0, 0, 0, 1] = max(min(1.0 - self.mP[0, 0, 0, 0], 1.0), 0.0)
+                self.mP[1, 0, 0, 0] = max(min(self.mP[0, 0, 0, 1] * (self.mW[0] - 2 * self.mW[1]) / self.mW[1], 1.0), 0.0)
+                self.mP[1, 0, 0, 1] = max(min(1.0 - self.mP[1, 0, 0, 0], 1.0), 0.0)
             else: # 1,0,0,1 is given
                 self.mP[1, 0, 0, 1] = self.P1111_or_P2112
-                self.mP[1, 0, 0, 0] = abs(1.0 - self.mP[1, 0, 0, 1])
-                self.mP[0, 0, 0, 0] = abs(1.0 - self.mP[1, 0, 0, 0] * self.mW[1] / (self.mW[0] - 2 * self.mW[1]))
-                self.mP[0, 0, 0, 1] = abs(1.0 - self.mP[0, 0, 0, 0])
+                self.mP[1, 0, 0, 0] = max(min(1.0 - self.mP[1, 0, 0, 1], 1.0), 0.0)
+                self.mP[0, 0, 0, 0] = max(min(1.0 - self.mP[1, 0, 0, 0] * self.mW[1] / (self.mW[0] - 2 * self.mW[1]), 1.0), 0.0)
+                self.mP[0, 0, 0, 1] = max(min(1.0 - self.mP[0, 0, 0, 0], 1.0), 0.0)
 
+            # since P11=0 and P101=0, actual values don't matter:
             self.mP[0, 0, 1, 0] = 1.0
-            self.mP[0, 1, 0, 0] = 1.0
-
             self.mP[0, 0, 1, 1] = 0.0
+
+            self.mP[0, 1, 0, 0] = 1.0
             self.mP[0, 1, 0, 1] = 0.0
-            self.mP[0, 1, 1, 0] = 0.0
+
+            self.mP[0, 1, 1, 0] = 1.0
             self.mP[0, 1, 1, 1] = 0.0
-            self.mP[1, 0, 1, 0] = 0.0
+
+            self.mP[1, 0, 1, 0] = 1.0
             self.mP[1, 0, 1, 1] = 0.0
-            self.mP[1, 1, 0, 0] = 0.0
+
+            self.mP[1, 1, 0, 0] = 1.0
             self.mP[1, 1, 0, 1] = 0.0
-            self.mP[1, 1, 1, 0] = 0.0
+
+            self.mP[1, 1, 1, 0] = 1.0
             self.mP[1, 1, 1, 1] = 0.0
 
-            # since P11=0 and P101=0:
-            self.mW[1, 0, 1] = self.mW[1, 1, 0] = self.mW[1, 1, 1] = 0.0
-
-            # Uses absolute values to prevent negative rounding errors
-            t = (1 + 2 * self.mP[0, 0, 0, 1] / self.mP[1, 0, 0, 0])
-            self.mW[0, 0, 0] = self.mW[0] / t
-            self.mW[1, 0, 0] = self.mW[0, 1, 0] = self.mW[0, 0, 1] = 0.5 * abs(self.mW[0] - self.mW[0, 0, 0])
-            self.mW[0, 1, 1] = abs(self.mW[1] - self.mW[0, 0, 1])
+            self.mW[0, 0, 0] = max(min(3 * self.mW[0] - 2, 1.0), 0.0)
+            self.mW[1, 0, 1] = self.mW[1, 1, 0] = self.mW[1, 1, 1] = self.mW[0, 1, 1] = 0.0
+            self.mW[1, 0, 0] = self.mW[0, 1, 0] = self.mW[0, 0, 1] = max(min(1 - self.mW[0], 1.0), 0.0)
 
             self.solve()
             self.validate()

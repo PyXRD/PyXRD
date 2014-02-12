@@ -28,6 +28,17 @@ from contextlib import contextmanager
 
 @storables.register()
 class Project(DataModel, Storable):
+    """
+    This is the top-level object that servers the purpose of combining the
+    different objects (most notably :class:`~.atoms.models.AtomType`'s,
+    :class:`~.phases.models.Phase`'s, :class:`~.specimen.models.Specimen`'s and
+    :class:`~.mixture.models.Mixture`'s).
+    
+    It also provides a large number of display-related 'default' properties 
+    (e.g. for patterns and their markers, axes etc.). For more details: see the
+    property descriptions. 
+    """
+
     # MODEL INTEL:
     class Meta(DataModel.Meta):
         properties = [
@@ -75,35 +86,56 @@ class Project(DataModel, Storable):
         ]
 
     # PROPERTIES:
+    #: The project name
     name = ""
+    #: The project data (string)
     date = ""
+    #: The project description
     description = None
+    #: The project author
     author = ""
 
+    #: Flag indicating whether this project has been changed since it was last saved.
     needs_saving = True
 
     _layout_mode = settings.DEFAULT_LAYOUT
-    def get_layout_mode(self):
+    @property
+    def layout_mode(self):
+        """The layout mode this project should be displayed in"""
         return self._layout_mode
-    def set_layout_mode(self, value):
+    @layout_mode.setter
+    def layout_mode(self, value):
         with self.visuals_changed.hold_and_emit():
             self._layout_mode = value
 
     _axes_xmin = settings.AXES_MANUAL_XMIN
-    def get_axes_xmin(self): return self._axes_xmin
-    def set_axes_xmin(self, value):
+    @property
+    def axes_xmin(self):
+        """ The manual lower limit for the X-axis"""
+        return self._axes_xmin
+    @axes_xmin.setter
+    def axes_xmin(self, value):
         self._axes_xmin = max(float(value), 0.0)
         self.visuals_changed.emit()
 
     _axes_xmax = settings.AXES_MANUAL_XMAX
-    def get_axes_xmax(self): return self._axes_xmax
-    def set_axes_xmax(self, value):
+    @property
+    def axes_xmax(self):
+        """ The manual upper limit for the X-axis """
+        return self._axes_xmax
+    @axes_xmax.setter
+    def axes_xmax(self, value):
         self._axes_xmax = max(float(value), 0.0)
         self.visuals_changed.emit()
 
     _axes_xstretch = settings.AXES_XSTRETCH
-    def get_axes_xstretch(self): return self._axes_xstretch
-    def set_axes_xstretch(self, value):
+    @property
+    def axes_xstretch(self):
+        """ Whether or not to stretch the X-axis over the entire
+        available display """
+        return self._axes_xstretch
+    @axes_xstretch.setter
+    def axes_xstretch(self, value):
         self._axes_xstretch = bool(value)
         self.visuals_changed.emit()
 
@@ -114,130 +146,217 @@ class Project(DataModel, Storable):
         self.visuals_changed.emit()
 
     _axes_yvisible = settings.AXES_YVISIBLE
-    def get_axes_yvisible(self): return self._axes_yvisible
-    def set_axes_yvisible(self, value):
+    @property
+    def axes_yvisible(self):
+        """ Whether or not the y-axis should be shown """
+        return self._axes_yvisible
+    @axes_yvisible.setter
+    def axes_yvisible(self, value):
         self._axes_yvisible = bool(value)
         self.visuals_changed.emit()
 
     _axes_ymin = settings.AXES_MANUAL_YMIN
-    def get_axes_ymin(self): return self._axes_ymin
-    def set_axes_ymin(self, value):
+    @property
+    def axes_ymin(self):
+        """ The manual lower limit for the Y-axis (in counts) """
+        return self._axes_ymin
+    @axes_ymin.setter
+    def axes_ymin(self, value):
         self._axes_ymin = max(float(value), 0.0)
         self.visuals_changed.emit()
 
     _axes_ymax = settings.AXES_MANUAL_YMAX
-    def get_axes_ymax(self): return self._axes_ymax
-    def set_axes_ymax(self, value):
+    @property
+    def axes_ymax(self):
+        """ The manual upper limit for the Y-axis (in counts) """
+        return self._axes_ymax
+    @axes_ymax.setter
+    def axes_ymax(self, value):
         self._axes_ymax = max(float(value), 0.0)
         self.visuals_changed.emit()
 
     _display_plot_offset = settings.PLOT_OFFSET
-    def get_display_plot_offset(self): return self._display_plot_offset
-    def set_display_plot_offset(self, value):
+    @property
+    def display_plot_offset(self):
+        """ The offset between patterns as a fraction of the maximum
+         intensity """
+        return self._display_plot_offset
+    @display_plot_offset.setter
+    def display_plot_offset(self, value):
         self._display_plot_offset = max(float(value), 0.0)
         self.visuals_changed.emit()
 
     _display_group_by = settings.PATTERN_GROUP_BY
-    def get_display_group_by(self): return self._display_group_by
-    def set_display_group_by(self, value):
+    @property
+    def display_group_by(self):
+        """ The number of patterns to group (having no offset) """
+        return self._display_group_by
+    @display_group_by.setter
+    def display_group_by(self, value):
         self._display_group_by = max(int(value), 1)
         self.visuals_changed.emit()
 
     _display_marker_angle = settings.MARKER_ANGLE
-    def get_display_marker_angle(self): return self._display_marker_angle
-    def set_display_marker_angle(self, value):
+    @property
+    def display_marker_angle(self):
+        """ The default angle at which marker labels are displayed """
+        return self._display_marker_angle
+    @display_marker_angle.setter
+    def display_marker_angle(self, value):
         self._display_marker_angle = float(value)
         self.visuals_changed.emit()
 
     _display_marker_top_offset = settings.MARKER_TOP_OFFSET
-    def get_display_marker_top_offset(self): return self._display_marker_top_offset
-    def set_display_marker_top_offset(self, value):
+    @property
+    def display_marker_top_offset(self):
+        """ The default offset for marker labels """
+        return self._display_marker_top_offset
+    @display_marker_top_offset.setter
+    def display_marker_top_offset(self, value):
         self._display_marker_top_offset = float(value)
         self.visuals_changed.emit()
 
     _display_label_pos = settings.LABEL_POSITION
-    def get_display_label_pos(self): return self._display_label_pos
-    def set_display_label_pos(self, value):
+    @property
+    def display_label_pos(self):
+        """ The relative position (from the pattern offset) for pattern labels
+        as a fraction of the patterns intensity"""
+        return self._display_label_pos
+    @display_label_pos.setter
+    def display_label_pos(self, value):
         self._display_label_pos = float(value)
         self.visuals_changed.emit()
 
     _axes_xlimit = settings.AXES_XLIMIT
-    def get_axes_xlimit(self): return self._axes_xlimit
-    def set_axes_xlimit(self, value):
+    @property
+    def axes_xlimit(self):
+        """ What type of scale to use for X-axis, automatic or manual """
+        return self._axes_xlimit
+    @axes_xlimit.setter
+    def axes_xlimit(self, value):
         self._axes_xlimit = value
         self.visuals_changed.emit()
 
     _axes_ynormalize = settings.AXES_YNORMALIZE
-    def get_axes_ynormalize(self): return self._axes_ynormalize
-    def set_axes_ynormalize(self, value):
+    @property
+    def axes_ynormalize(self):
+        """ What type of y-axis to use: raw counts, single or 
+        multi-normalized units """
+        return self._axes_ynormalize
+    @axes_ynormalize.setter
+    def axes_ynormalize(self, value):
         self._axes_ynormalize = value
         self.visuals_changed.emit()
 
     _axes_ylimit = settings.AXES_YLIMIT
-    def get_axes_ylimit(self): return self._axes_ylimit
-    def set_axes_ylimit(self, value):
+    @property
+    def axes_ylimit(self):
+        """ Whether to use automatic or manual Y limits """
+        return self._axes_ylimit
+    @axes_ylimit.setter
+    def axes_ylimit(self, value):
         self._axes_ylimit = value
         self.visuals_changed.emit()
 
     _display_marker_align = settings.MARKER_ALIGN
-    def get_display_marker_align(self): return self._display_marker_align
-    def set_display_marker_align(self, value):
+    @property
+    def display_marker_align(self):
+        """ The default marker label alignment (one of settings.MARKER_ALIGNS) """
+        return self._display_marker_align
+    @display_marker_align.setter
+    def display_marker_align(self, value):
         self._display_marker_align = value
         self.visuals_changed.emit()
 
     _display_marker_base = settings.MARKER_BASE
-    def get_display_marker_base(self): return self._display_marker_base
-    def set_display_marker_base(self, value):
+    @property
+    def display_marker_base(self):
+        """ The default marker label base (one of settings.MARKER_BASES) """
+        return self._display_marker_base
+    @display_marker_base.setter
+    def display_marker_base(self, value):
         self._display_marker_base = value
         self.visuals_changed.emit()
 
     _display_marker_top = settings.MARKER_TOP
-    def get_display_marker_top(self): return self._display_marker_top
-    def set_display_marker_top(self, value):
+    @property
+    def display_marker_top(self):
+        """ The default marker label top (one of settings.MARKER_TOPS) """
+        return self._display_marker_top
+    @display_marker_top.setter
+    def display_marker_top(self, value):
         self._display_marker_top = value
         self.visuals_changed.emit()
 
     _display_marker_style = settings.MARKER_STYLE
-    def get_display_marker_style(self): return self._display_marker_style
-    def set_display_marker_style(self, value):
+    @property
+    def display_marker_style(self):
+        """ The default marker style (one of settings.MARKER_STYLES)"""
+        return self._display_marker_style
+    @display_marker_style.setter
+    def display_marker_style(self, value):
         self._display_marker_style = value
         self.visuals_changed.emit()
 
     _display_calc_color = settings.CALCULATED_COLOR
-    def get_display_calc_color(self): return self._display_calc_color
-    def set_display_calc_color(self, value):
+    @property
+    def display_calc_color(self):
+        """ The default calculated profile color """
+        return self._display_calc_color
+    @display_calc_color.setter
+    def display_calc_color(self, value):
         self._display_calc_color = value
         self.visuals_changed.emit()
 
     _display_exp_color = settings.EXPERIMENTAL_COLOR
-    def get_display_exp_color(self): return self._display_exp_color
-    def set_display_exp_color(self, value):
+    @property
+    def display_exp_color(self):
+        """ The default experimental profile color """
+        return self._display_exp_color
+    @display_exp_color.setter
+    def display_exp_color(self, value):
         self._display_exp_color = value
         self.visuals_changed.emit()
 
     _display_marker_color = settings.MARKER_COLOR
-    def get_display_marker_color(self): return self._display_marker_color
-    def set_display_marker_color(self, value):
+    @property
+    def display_marker_color(self):
+        """ The default marker color """
+        return self._display_marker_color
+    @display_marker_color.setter
+    def display_marker_color(self, value):
         self._display_marker_color = value
         self.visuals_changed.emit()
 
     _display_calc_lw = settings.CALCULATED_LINEWIDTH
-    def get_display_calc_lw(self): return self._display_calc_lw
-    def set_display_calc_lw(self, value):
+    @property
+    def display_calc_lw(self):
+        """ The default calculated profile line width """
+        return self._display_calc_lw
+    @display_calc_lw.setter
+    def display_calc_lw(self, value):
         if value != self._display_calc_lw:
             self._display_calc_lw = float(value)
             self.visuals_changed.emit()
 
     _display_exp_lw = settings.EXPERIMENTAL_LINEWIDTH
-    def get_display_exp_lw(self): return self._display_exp_lw
-    def set_display_exp_lw(self, value):
+    @property
+    def display_exp_lw(self):
+        """ The default experimental profile line width """
+        return self._display_exp_lw
+    @display_exp_lw.setter
+    def display_exp_lw(self, value):
         if value != self._display_exp_lw:
             self._display_exp_lw = float(value)
             self.visuals_changed.emit()
 
+    #: The list of specimens
     specimens = []
+    #: The list of phases
     phases = []
+    #: The list of atom types
     atom_types = []
+    #: The list of mixtures
     mixtures = []
 
     # ------------------------------------------------------------
@@ -245,55 +364,18 @@ class Project(DataModel, Storable):
     # ------------------------------------------------------------
     def __init__(self, *args, **kwargs):
         """
-            Valid keyword arguments for a Project are:
-                name: the project name
-                description: the project description
-                author: the project author(s)
-                date: the data at which the project was created
-                layout_mode: the layout mode this project should be displayed in
-                display_calc_color: 'default' calculated profile color
-                display_calc_lw: 'default' calculated profile line width
-                display_exp_color: 'default' experimental profile color
-                display_exp_lw: 'default' experimental profile line width
-                display_plot_offset: the offset between patterns as a fraction of
-                 the maximum intensity
-                display_group_by: the number of patterns to group (having no offset)
-                display_label_pos: the relative position  from the pattern offset
-                 for pattern labels as a fraction of the patterns intensity
-                axes_xlimit: whether to use automatic or manual Y limits
-                axes_xmin: the manual lower limit for the X-axis (in 2theta)
-                axes_xmax: the manual upper limit for the X-axis (in 2theta)
-                axes_xstretch: whether or not to stretch the X-axis over the entire
-                 available display
-                axes_ynormalize: what type of y-axis to use: raw counts, single or
-                 multi-normalized units
-                axes_ylimit: whether to use automatic or manual Y limits
-                axes_ymin: the manual lower limit for the Y-axis (in counts)
-                axes_ymax: the manual upper limit for the Y-axis (in counts)
-                axes_yvisible: whether or not the y-axis should be shown
-                atom_types: a list of AtomTypes
-                phases: a list of Phases
-                specimens: a list of Specimens
-                mixtures: a list of Mixtures
-                load_default_data: whether or not to load default data (i.e. 
-                 atom type definitions)
+            Constructor takes any of its properties as a keyword argument 
+            except for:
+                - needs_saving
+            
+            In addition to the above, the constructor still supports the 
+            following deprecated keywords, mapping to a current keyword:
+                - goniometer: the project-level goniometer, is passed on to the
+                  specimens
+                - axes_xscale: deprecated alias for axes_xlimit
+                - axes_yscale: deprecated alias for axes_ynormalize
                 
-            Keyword arguments controlling the 'default' layout for markers:
-                display_marker_align
-                display_marker_color
-                display_marker_base
-                display_marker_top
-                display_marker_top_offset
-                display_marker_angle
-                display_marker_style
-            See the 'specimen.models.marker' model for an explenation on what
-             these mean.
-             
-            Deprecated (but still supported) keyword arguments:
-                goniometer: the project-level goniometer, is passed on to the
-                 specimens
-                axes_xscale: deprecated alias for axes_xlimits
-                axes_yscale: deprecated alias for axes_ynormalize
+            Any other arguments or keywords are passed to the base class.
         """
         my_kwargs = self.pop_kwargs(kwargs,
             "goniometer", "data_goniometer", "data_atom_types", "data_phases",

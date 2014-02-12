@@ -40,10 +40,15 @@ from .refiner import Refiner
 class Mixture(DataModel, Storable):
     """
         The base model for optimization and refinement of calculated data
-        and experimental data. It uses two helper models to achieve this;
-        the Optimizer and Refiner. This model is responsible for storing
-        any information worthy of storage and keeping the lists of phases and
-        specimens aligned.
+        and experimental data. This is the main model you want to interact with,
+        lower-level classes' functionality (mainly 
+        :class:`~pyxrd.mixture.models.optimizers.Optimizer` and 
+        :class:`~pyxrd.mixture.models.refiner.Refiner`) are integrated into this
+        class. 
+        
+        The Mixture is responsible for managing the phases and specimens lists
+        and combination-matrix and for delegating any optimization, calculation
+        or refinement calls to the appropriate helper class.
     """
     # MODEL INTEL:
     class Meta(DataModel.Meta):
@@ -79,35 +84,54 @@ class Mixture(DataModel, Storable):
     project = property(DataModel.parent.fget, DataModel.parent.fset)
 
     # SIGNALS:
+    #: Signal, emitted when the # of phases or specimens changes
     needs_reset = None
+    #: Signal, emitted when the patterns of the specimens need an update
     needs_update = None
 
     # INTERNALS:
     _name = ""
-    def get_name(self):
+    @property
+    def name(self):
+        """ The name of this mixture """
         return self._name
-    def set_name(self, value):
+    @name.setter
+    def name(self, value):
         self._name = value
         self.visuals_changed.emit()
 
+    #: The tree of refinable properties
     refinables = None
+    #: Flag, True if after refinement plots should be generated of the parameter space
     make_psp_plots = False
+    #: Flag, True if the mixture will automatically adjust phase fractions and scales
     auto_run = False
+    #: Flag, True if the mixture is allowed to also update the background level
     auto_bg = True
 
     _refine_method = 0
-    def get_refine_method(self): return self._refine_method
-    def set_refine_method(self, value): self._refine_method = int(value)
+    @property
+    def refine_method(self):
+        """ An integer describing which method to use for the refinement (see 
+        mixture.models.methods.get_all_refine_methods) """
+        return self._refine_method
+    @refine_method.setter
+    def refine_method(self, value): self._refine_method = int(value)
 
+    #: A dict containing the refinement options
     refine_options = None # TODO make this storable!
 
     # Lists and matrices:
+    #: A 2D numpy object array containing the combination matrix
     phase_matrix = None
+    #: The list of specimen objects
     specimens = None
+    #: The list of phase names
     phases = None
 
     @property
     def scales(self):
+        """ A list of floats containing the absolute scales for the calculated patterns """
         return self._data_object.scales
     @scales.setter
     def scales(self, value):
@@ -115,6 +139,7 @@ class Mixture(DataModel, Storable):
 
     @property
     def bgshifts(self):
+        """ A list of background shifts for the calculated patterns """
         return self._data_object.bgshifts
     @bgshifts.setter
     def bgshifts(self, value):
@@ -122,6 +147,7 @@ class Mixture(DataModel, Storable):
 
     @property
     def fractions(self):
+        """ A list of phase fractions for this mixture """
         return self._data_object.fractions
     @fractions.setter
     def fractions(self, value):
@@ -132,32 +158,18 @@ class Mixture(DataModel, Storable):
     # ------------------------------------------------------------
     def __init__(self, *args, **kwargs):
         """
-            Valid keyword arguments for a Mixture are:
-                name: the name of this mixture
-                auto_run: a flag indicating whether or not this Mixture should
-                 change the fractions, bg_shifts and scales when a specimen or
-                 a phase has emitted a data_changed signal
-                auto_bg: a flag indicating whether or not this Mixture should
-                 adjust the background automatically or just use the current
-                 values
-                phase_uuids: a list containing the UUID's for the phases in the
-                 mixture
-                specimen_uuids: a list containing the UUID's for the specimens
-                 in the mixture
-                phases: a list containing the names for each 'phase row'
-                scales: a list containing the absolute scales for each of the
-                 specimens
-                bg_shifts: a list containing the background shifts for each of
-                 the specimens
-                fractions: a list containing the fractions for each phase
-                refine_method: which method to use for the refinement (see 
-                 mixture.models.methods.get_all_refine_methods) 
+            Constructor takes any of its properties as a keyword argument.
+            It also support two UUID list keyword arguments:
+                - phase_uuids: a list of UUID's for the phases in the mixture
+                - specimen_uuids: a list of UUID's for the specimens in the mixture
+            These should be *instead* of the phases and specimens keywords.
+            
+            In addition to the above, the constructor still supports the 
+            following deprecated keywords, mapping to a current keyword:
+                - phase_indeces: a list of project indices for the phases in the mixture
+                - specimen_indeces: a list of project indices for the specimens in the mixture
                 
-            Deprecated, but still supported, keyword arguments:
-                phase_indeces: a list containing the indices of the phases in
-                 the ObjectListStore at the project level
-                specimen_indeces: a list containing the indices of the specimens
-                 in the ObjectListStore at the project level
+            Any other arguments or keywords are passed to the base class.
         """
 
         my_kwargs = self.pop_kwargs(kwargs,
@@ -572,9 +584,16 @@ class Mixture(DataModel, Storable):
                         ref_prop.value = random.uniform(ref_prop.value_min, ref_prop.value_max)
 
     def get_refinement_method(self):
+        """
+            Returns the actual refinement method by translating the 
+            `refine_method` attribute using the `Meta.all_refine_methods` dict
+        """
         return self.Meta.all_refine_methods[self.refine_method]
 
     def setup_refine_options(self):
+        """
+            Constructs a refinement options dictionary containing default settings 
+        """
         if self.refine_options == None:
             options = self.get_refinement_method().options
             self.refine_options = {

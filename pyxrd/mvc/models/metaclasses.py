@@ -25,6 +25,7 @@
 
 import types
 import logging
+from functools import wraps
 logger = logging.getLogger(__name__)
 
 from collections import OrderedDict
@@ -331,6 +332,7 @@ class ModelMeta(type):
         if not hasattr(cls, prop.name):
             _private_getter = getattr(cls, prop.get_getter_name(), None)
             if callable(_private_getter):
+                @wraps(_private_getter)
                 def _getter(self):
                     with self._prop_lock:
                         return _private_getter(self)
@@ -351,6 +353,7 @@ class ModelMeta(type):
                 def _getter(self):
                     with self._prop_lock:
                         return _descr_get(self, cls)
+                _getter.__doc__ = getattr(attr, "__doc__")
             else:
                 # Property is not a data descriptor,
                 # copy the value to a private attribute:
@@ -371,6 +374,7 @@ class ModelMeta(type):
         if not hasattr(cls, prop.name):
             _private_setter = getattr(cls, prop.get_setter_name(), None)
             if callable(_private_setter):
+                @wraps(_private_setter)
                 def _inner_setter(self, value):
                     with self._prop_lock:
                         return _private_setter(self, value)
@@ -391,6 +395,7 @@ class ModelMeta(type):
                 def _inner_setter(self, value):
                     with self._prop_lock:
                         return _descr_set(self, value)
+                _inner_setter.__doc__ = getattr(attr, "__doc__")
             else:
                 # Property is not a data descriptor
                 def _inner_setter(self, value):
@@ -398,6 +403,7 @@ class ModelMeta(type):
                         return setattr(self, prop.get_private_name(), value)
 
         # 2. Wrap the setter so we can have notifications
+        @wraps(_inner_setter)
         def _setter(self, val):
             with self._prop_lock:
                 # Get the old value

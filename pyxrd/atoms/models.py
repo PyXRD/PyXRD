@@ -22,20 +22,8 @@ from pyxrd.calculations.atoms import get_atomic_scattering_factor, get_structure
 @storables.register()
 class AtomType(DataModel, Storable, CSVMixin):
     """
-        AtomType models contain all physical & chemical information for one element 
-        in a certain state (e.g. Fe3+ & Fe2+ are two different AtomTypes)
-        
-        AtomTypes have built-in support for `generic.models.treemodels.ObjectIndexStore`
-        
-        Attributes:
-            atom_nr: integer, the atomic number or a unique number if a compound
-            name: string, the atom type name (e.g. Al3+)
-            charge: integer, the charge of the 'atom' (eg. 3 for Al3+)
-            weight: float, the atomic weight
-            debye: float, Debye-Waller scattering factor
-            par_aN, par_bN and par_c: the atomic scattering factor parameters with N=[0:5]
-            data_object: the internal data object that is used in the
-                calculations framework (see `generic.calculations.atoms`) 
+    An AtomType model contains all the physical & chemical information for 
+    one ion, e.g. Fe3+ & Fe2+ are two different AtomTypes.
     """
 
     # MODEL METADATA:
@@ -60,27 +48,30 @@ class AtomType(DataModel, Storable, CSVMixin):
             ("Atom types JSON file", get_case_insensitive_glob("*.ztl"))
         ]
 
+    #: The project this AtomType belongs to or None. Effectively an alias for `parent`.
     project = property(DataModel.parent.fget, DataModel.parent.fset)
 
-    # SIGNALS:
-    data_changed = None
-    visuals_changed = None
-
-    # PROPERTIES:
     _name = ""
     @property
     def name(self):
-        return getattr(self, "_name")
+        """Name of the AtomType (e.g. :math:`Fe^{2+}`)"""
+        return self._name
     @name.setter
     def name(self, value):
         self._name = value
         self.visuals_changed.emit()
 
+    #: The atomic number, or an arbitrarily high number (+300) for compounds
     atom_nr = 0
 
     _data_object = None
     @property
     def data_object(self):
+        """
+        The data object that is used in the calculations framework 
+        (see :mod:`pyxrd.generic.calculations.atoms`).
+        Is an instance of :class:`~pyxrd.generic.calculations.data_objects.AtomTypeData`
+        """
         return self._data_object
 
     def __get_par_a(self, index):
@@ -109,35 +100,53 @@ class AtomType(DataModel, Storable, CSVMixin):
         setattr(self._data_object, name, value)
         self.data_changed.emit()
 
+    #: Atomic scattering factor :math:`a_1`
     par_a1 = property(fget=partial(__get_par_a, index=0), fset=partial(__set_par_a, index=0))
+    #: Atomic scattering factor :math:`a_2`
     par_a2 = property(fget=partial(__get_par_a, index=1), fset=partial(__set_par_a, index=1))
+    #: Atomic scattering factor :math:`a_3`
     par_a3 = property(fget=partial(__get_par_a, index=2), fset=partial(__set_par_a, index=2))
+    #: Atomic scattering factor :math:`a_4`
     par_a4 = property(fget=partial(__get_par_a, index=3), fset=partial(__set_par_a, index=3))
+    #: Atomic scattering factor :math:`a_5`
     par_a5 = property(fget=partial(__get_par_a, index=4), fset=partial(__set_par_a, index=4))
 
+    #: Atomic scattering factor :math:`b_1`
     par_b1 = property(fget=partial(__get_par_b, index=0), fset=partial(__set_par_b, index=0))
+    #: Atomic scattering factor :math:`b_2`
     par_b2 = property(fget=partial(__get_par_b, index=1), fset=partial(__set_par_b, index=1))
+    #: Atomic scattering factor :math:`b_3`
     par_b3 = property(fget=partial(__get_par_b, index=2), fset=partial(__set_par_b, index=2))
+    #: Atomic scattering factor :math:`b_4`
     par_b4 = property(fget=partial(__get_par_b, index=3), fset=partial(__set_par_b, index=3))
+    #: Atomic scattering factor :math:`b_5`
     par_b5 = property(fget=partial(__get_par_b, index=4), fset=partial(__set_par_b, index=4))
 
     @property
-    def par_c(self): return self._data_object.par_c
+    def par_c(self):
+        """Atomic scattering factor c"""
+        return self._data_object.par_c
     @par_c.setter
     def par_c(self, value): self._set_float_data_property(value, "par_c")
 
     @property
-    def debye(self): return self._data_object.debye
+    def debye(self):
+        """Debye-Waller scattering factor"""
+        return self._data_object.debye
     @debye.setter
     def debye(self, value): self._set_float_data_property(value, "debye")
 
     @property
-    def charge(self): return self._data_object.charge
+    def charge(self):
+        """The charge of the ion (eg. 3.0 for :math:`Al^{3+}`)"""
+        return self._data_object.charge
     @charge.setter
     def charge(self, value): self._set_float_data_property(value, "charge")
 
     @property
-    def weight(self): return self._data_object.weight
+    def weight(self):
+        """The atomic weight for this ion"""
+        return self._data_object.weight
     @weight.setter
     def weight(self, value): self._set_float_data_property(value, "weight")
 
@@ -145,7 +154,10 @@ class AtomType(DataModel, Storable, CSVMixin):
     #      Initialization and other internals
     # ------------------------------------------------------------
     def __init__(self, *args, **kwargs):
-
+        """
+            Constructor takes any of its properties as a keyword argument.
+            Any other arguments or keywords are passed to the base class.
+        """
         keys = [ "data_%s" % names[0] for names in type(self).Meta.get_local_storable_properties()]
         keys.extend([ names[0] for names in type(self).Meta.get_local_storable_properties()])
         my_kwargs = self.pop_kwargs(kwargs, * keys)
@@ -178,6 +190,10 @@ class AtomType(DataModel, Storable, CSVMixin):
         return "<AtomType %s (%s)>" % (self.name, id(self))
 
     def get_atomic_scattering_factors(self, stl_range):
+        """
+        Returns the atomic scattering factor for this `AtomType` for the given range
+        of sin(theta)/lambda (`stl_range`) values. 
+        """
         angstrom_range = ((stl_range * 0.05) ** 2)
         return get_atomic_scattering_factor(angstrom_range, self.data_object)
 
@@ -222,7 +238,8 @@ class AtomType(DataModel, Storable, CSVMixin):
 @storables.register()
 class Atom(DataModel, Storable):
     """
-        Atoms have an atom type plus structural parameters (position and proportion)
+    Atom objects combine structural information (z coordinate and proportion)
+    and an AtomType. 
     """
 
     # MODEL METADATA:
@@ -243,6 +260,11 @@ class Atom(DataModel, Storable):
     _data_object = None
     @property
     def data_object(self):
+        """
+        The data object that is used in the calculations framework 
+        (see :mod:`pyxrd.generic.calculations.atoms`).
+        Is an instance of :class:`~pyxrd.generic.calculations.data_objects.AtomData`  
+        """
         if self.atom_type is not None:
             self._data_object.atom_type = self.atom_type.data_object
         return self._data_object
@@ -252,19 +274,21 @@ class Atom(DataModel, Storable):
     # PROPERTIES:
     _name = ""
     @property
-    def name(self): return self._name
+    def name(self):
+        """ The name of the Atom """
+        return self._name
     @name.setter
     def name(self, value):
         self._name = value
         self.visuals_changed.emit()
 
-    _sf_array = None
-    _atom_array = None
-
     _default_z = None
-    def get_default_z(self):
+    @property
+    def default_z(self):
+        """Default z coordinate for this Atom. Also see `z`"""
         return self._data_object.default_z
-    def set_default_z(self, value):
+    @default_z.setter
+    def default_z(self, value):
         try: value = float(value)
         except ValueError: return
         if value != self._data_object.default_z:
@@ -272,8 +296,15 @@ class Atom(DataModel, Storable):
             self.data_changed.emit()
 
     _stretch_z = False
-    def get_stretch_values(self): return bool(self._stretch_z)
-    def set_stretch_values(self, value):
+    @property
+    def stretch_values(self):
+        """Flag indicating whether or not z coordinates should be stretched 
+        using the silicate lattice and unit cell dimensions from the Component.
+        Should be set for interlayer atoms, so their z coordinates are adjusted 
+        when the component basal spacing is changed. Also see `z`."""
+        return bool(self._stretch_z)
+    @stretch_values.setter
+    def stretch_values(self, value):
         try: value = bool(value)
         except ValueError: return
         if value != self._stretch_z:
@@ -282,6 +313,17 @@ class Atom(DataModel, Storable):
 
     @property
     def z(self):
+        """
+        The z coordinate for this atom. If `stretch_values` is False or if 
+        this Atom's component is None, then this will return the `default_z`
+        value. If `stretch_values` is True and a component is set on this Atom,
+        it is calculated as::
+        
+            `lattice_d + (default_z - lattice_d) * factor`
+            
+        where `lattice_d` and `factor` are given by calling 
+        `get_interlayer_stretch_factors` on the :class:`~pyxrd.phases.models.Component`.
+        """
         if self.stretch_values and self.component is not None:
             lattice_d, factor = self.component.get_interlayer_stretch_factors()
             return float(lattice_d + (self.default_z - lattice_d) * factor)
@@ -291,8 +333,12 @@ class Atom(DataModel, Storable):
         warn("The z property can not be set!", DeprecationWarning)
 
     _pn = None
-    def get_pn(self): return self._data_object.pn
-    def set_pn(self, value):
+    @property
+    def pn(self):
+        """The # of atoms (projected onto the c-axis for the considered unit cell)"""
+        return self._data_object.pn
+    @pn.setter
+    def pn(self, value):
         try: value = float(value)
         except ValueError: return
         if value != self._data_object.pn:
@@ -301,6 +347,7 @@ class Atom(DataModel, Storable):
 
     @property
     def weight(self):
+        """The total weight for this Atom, taking `pn` into consideration."""
         if self.atom_type is not None:
             return self.pn * self.atom_type.weight
         else:
@@ -310,8 +357,12 @@ class Atom(DataModel, Storable):
     _atom_type_uuid = None
     _atom_type = None
     _atom_type_name = None
-    def get_atom_type(self): return self._atom_type
-    def set_atom_type(self, value):
+    @property
+    def atom_type(self):
+        """The AtomType to be used for this Atom."""
+        return self._atom_type
+    @atom_type.setter
+    def atom_type(self, value):
         if self._atom_type != value: # prevent spurious events
             with self.data_changed.hold_and_emit():
                 if self._atom_type is not None:
@@ -324,6 +375,16 @@ class Atom(DataModel, Storable):
     #      Initialization and other internals
     # ------------------------------------------------------------
     def __init__(self, *args, **kwargs):
+        """
+            Constructor takes any of its properties as a keyword argument.
+            
+            In addition to the above, the constructor still supports the 
+            following deprecated keywords, maping to a current keyword:
+                - z: maps to the 'default_z' keyword.
+                
+            Any other arguments or keywords are passed to the base class.
+        """
+
         my_kwargs = self.pop_kwargs(kwargs,
             "data_name", "data_z", "z", "data_pn", "data_atom_type",
             "atom_type_uuid", "atom_type_name", "atom_type_index",
@@ -374,6 +435,10 @@ class Atom(DataModel, Storable):
     #      Methods & Functions
     # ------------------------------------------------------------
     def get_structure_factors(self, stl_range):
+        """
+        Get the atom's structure factor for a given range of 2*sin(θ) / λ values.
+        Expects λ to be in nanometers!
+        """
         if self.atom_type is not None:
             return float(get_structure_factor(stl_range, self.data_object))
         else:
@@ -413,6 +478,13 @@ class Atom(DataModel, Storable):
 
     @staticmethod
     def get_from_csv(filename, callback=None, parent=None):
+        """
+        Returns a list of atoms fetched from the .CSV file `filename`.
+        If parent is passed, this will be used to resolve AtomType references,
+        and will be passed to the constructor of the Atom as a keyword.
+        If callback is passes it will be called with the loaded atom as the
+        first and only argument.
+        """
         import csv
         atl_reader = csv.reader(open(filename, 'rb'), delimiter=',', quotechar='"') # TODO create csv dialect!
         header = True
@@ -446,6 +518,9 @@ class Atom(DataModel, Storable):
 
     @staticmethod
     def save_as_csv(filename, atoms):
+        """
+        Saves a list of atoms to the passed filename.
+        """
         import csv
         atl_writer = csv.writer(open(filename, 'wb'), delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
         atl_writer.writerow(["Atom", "z", "def_z", "pn", "Element"])

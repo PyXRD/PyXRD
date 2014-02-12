@@ -22,19 +22,41 @@ __all__ = [
 
 @storables.register()
 class R1G2Model(_AbstractProbability):
-    """
-    Reichweite = 1 / Components = 2
-    g*(g-1) independent variables = 2
-    W0 & P00 (W0<0,5) of P11 (W0>0,5)
+    r"""
+    Probability model for Reichweite 1 with 2 components.
     
-    W1 = 1 – W0
-
-    P00 given:                  or      P11 given:
-    P01 = 1 - P00               or      P10 = 1 – P11
-    P11 = (1 - P01*W0) / W1     or      P00 = (1 - P10*W1) / W0
-    P10 = 1 - P11               or      P01 = 1 - P00
+    The 2(=g*(g-1)) independent variables are:
     
-    indexes are NOT zero-based in external property names!
+    .. math::
+        :nowrap:
+        
+        \begin{flalign*}
+            & W_1 \\
+            & \text{$P_{11} (W_1 < 0.5)$ or $P_{22} (W_1 > 0.5)$}
+        \end{flalign*}
+    
+    Calculation of the other variables happens as follows:
+    
+    .. math::
+        :nowrap:
+        
+        \begin{align*}
+            & W_2 = 1 – W_1 \\
+            & \begin{aligned}
+                & \text{$P_{11}$ is given:}  \\
+                & \quad P_{12} = 1 - P_{11} \\
+                & \quad P_{21} = \frac{W_1 \cdot P_{12}}{W2} \\
+                & \quad P_{22} = 1 - P_{21} \\
+            \end{aligned}
+            \quad \quad
+            \begin{aligned}
+                & \text{$P_{22}$ is given:} \\
+                & \quad P_{21} = 1 - P_{22} \\
+                & \quad P_{12} = \frac{W_2 \cdot P_{21}}{W1} \\
+                & \quad P_{11} = 1 - P_{12} \\            
+            \end{aligned} \\
+        \end{align*}
+        
     """
 
     # MODEL METADATA:
@@ -108,18 +130,98 @@ class R1G2Model(_AbstractProbability):
 
 @storables.register()
 class R1G3Model(_AbstractProbability):
-    """
-    Reichweite = 1 / Components = 3
-    g*(g-1) independent variables = 6
-    W0 & P00 (W0<0,5) of P11 (W0>0,5)
-    W1/(W2+W1) = G1
+    r"""
+    Probability model for Reichweite 1 with 3 components.
     
-    (W11+W12) / (W11+W12+W21+W22) = G2
-
-    W11/(W11+W12) = G3
-    W21/(W21+W22) = G4
+    The 6 (=g*(g-1)) independent variables are:
+    
+    .. math::
+        :nowrap:
         
-    indexes are NOT zero-based in external property names!
+        \begin{align*}
+                & W_1
+                & \text{$P_{11} (W_1 < 0.5)$ or $P_{22} (W_1 > 0.5)$} \\
+                & G_1 = \frac{W_2}{W_2 + W_3}
+                & G_2 = \frac{W_{22} + W_{23}}{W_{22} + W_{23} + W_{32} + W_{33}} \\
+                & G_3 = \frac{W_{22}}{W_{22} + W_{23}}
+                & G_4 = \frac{W_{32}}{W_{32} + W_{33}} \\
+        \end{align*}
+            
+    Calculation of the other variables happens as follows:
+    
+    .. math::
+        :nowrap:
+        
+        \begin{align*}
+            & \text{Calculate the 'inverted' ratios of $G_2$, $G_3$ and $G_4$ as follows:} \\
+            & \quad G_i^{\text{-1}} =
+            \begin{cases}
+                G_i^{-1} - 1.0, & \text{if } G_i > 0 \\
+                0,              & \text{otherwise}
+            \end{cases} \quad \forall i \in \left\{ {2, 3, 4}\right\} \\
+            & \\
+            & \text{Calculate the base weight fractions of each component:} \\
+            & \quad W_2 = (1 - W_1) \cdot G_1\\
+            & \quad W_3 = 1.0 - W_1 - W_2 \\
+            & \\
+            & \text{if $W_1 \leq 0.5$:} \\
+            & \quad \text{$P_{11}$ is given}\\
+            & \quad P_{22} =
+            \begin{dcases}
+                G_{2} \cdot G_{3} \cdot {\frac{W_1 \cdot (P_{11} - 1) + W_2 + W_3}{W_2}}, & \text{if $W_2 > 0$} \\
+                0, & \text{otherwise}
+            \end{dcases} \\
+            & \\
+            & \text{if $W_1 > 0.5$:} \\
+            & \quad \text{$P_{22}$ is given and $P_{11}$ is derived further down} \\
+            & \\
+            & W_{22} = P_{22} \cdot W_2 \\
+            & W_{23} = W_{22} \cdot G_3^{-1} \\
+            & \\
+            & W_{32} = {G_4 \cdot G_2^{-1}} \cdot {(W_{22} + W_{23})} \\
+            & W_{33} = G_4^{-1} \cdot W_{21} \\
+            & \\
+            & W_{23} = W_{22} * G_3^{-1} \\
+            & W_{32} = {G_4 \cdot G_2} \cdot {(W_{22} + W_{23})} \\
+            & W_{33} = G_4^{-1} \cdot W_{32} \\
+            & \\
+            & P_{23} = 
+            \begin{dcases}
+                \dfrac{W_{23}}{W_2}, & \text{if $W_2 > 0$} \\
+                0, & \text{otherwise}
+            \end{dcases} \\
+            & P_{12} = 1 - P_{22} - P_{23} \\
+            & \\
+            & P_{32} =
+            \begin{dcases}
+                \frac{W_{32}}{W_3}, & \text{if $W_3 > 0$} \\
+                0, & \text{otherwise}
+            \end{dcases} \\
+            & P_{33} =
+            \begin{dcases}
+                \frac{W_{33}}{W_3}, & \text{if $W_3 > 0$} \\
+                0, & \text{otherwise}
+            \end{dcases} \\
+            & P_{31} = 1 - P_{32} - P_{33} \\
+            & \\
+            & P_{12} =
+            \begin{dcases}
+                \frac{W_2 - W_{22} - W_{32}}{W_1}, & \text{if $W_1 > 0$} \\
+                0, & \text{otherwise}
+            \end{dcases} \\
+            & P_{13} =
+            \begin{dcases}
+                \frac{W_3 - W_{23} - W_{33}}{W_1}, & \text{if $W_1 > 0$} \\
+                0, & \text{otherwise}
+            \end{dcases} \\
+            & \\
+            & \text{if $W_1 > 0.5$}: \\
+            & \quad P_{11} = 1 - P_{12} - P_{13} \\
+            & \\
+            & \text{Remainder of weight fraction can be calculated as follows:} \\
+            & \quad W_{ij} = {W_{ii}} \cdot {P_{ij}} \quad \forall {i,j} \in \left[ {1, 3} \right] \\
+        \end{align*}
+        
     """
 
     # MODEL METADATA:
@@ -257,28 +359,140 @@ class R1G3Model(_AbstractProbability):
 
 @storables.register()
 class R1G4Model(_AbstractProbability):
-    """
-    Reichweite = 1 / Components = 4
-    g*(g-1) independent variables = 12
-    
-    W0
-    W1/(W1+W2+W3) = R1
-    W2/(W2+W3) = R2
 
-    P00 (W0<0,5) of P11 (W0>0,5)
-    (W11+W12+W13) / sum{i:1-3;j:1-3}(Wij) = G1
-    (W21+W22+W23) / sum{i:2-3;j:1-3}(Wij) = G2
+    r"""
+    Probability model for Reichweite 1 with 4 components.
     
-    W11 / (W11 + W12 + W13) = G11
-    W12/(W12+W13) = G12
+    The independent variables (# = g*(g-1) = 12) are:
     
-    W21 / (W21 + W22 + W23) = G21
-    W22/(W22+W23) = G22
-    
-    W31 / (W31 + W32 + W33) = G31
-    W32/(W32+W33) = G32
+    .. math::
+        :nowrap:
         
-    indexes are NOT zero-based in external property names!
+            \begin{align*}
+                & W_1
+                & P_{11} (W_1 < 0,5)\text{ or }P_{22} (W_1 > 0,5) \\
+                & R_2 = \frac{ W_2 }{W_2 + W_3 + W_4}
+                & R_3 = \frac{ W_3 }{W_3 + W_4} \\
+                & G_2 = \frac{W_{22} + W_{23} + W_{24}}{\sum_{i=2}^{4}\sum_{j=2}^4{W_{ij}}}
+                & G_3 = \frac{W_{32} + W_{33} + W_{34}}{\sum_{i=3}^{4}\sum_{j=2}^4{W_{ij}}} \\
+                & G_{22} = \frac{W_{22}}{W_{22} + W_{23} + W_{24}}
+                & G_{23} = \frac{W_{23}}{W_{23} + W_{24}} \\
+                & G_{32} = \frac{W_{32}}{W_{32} + W_{33} + W_{34}}
+                & G_{33} = \frac{W_{33}}{W_{33} + W_{34}} \\
+                & G_{42} = \frac{W_{42}}{W_{42} + W_{43} + W_{44}}
+                & G_{44} = \frac{W_{43}}{W_{43} + W_{44}}
+            \end{align*} 
+    
+    Calculation of the other variables happens as follows:
+    
+    .. math::
+        :nowrap:
+        
+        \begin{align*}
+            & \text{Calculate the 'inverted' ratios of $G_1$ and $G_11$ as follows:} \\
+            & \quad G_i^{\text{-1}} =
+            \begin{cases}
+                G^{-1} - 1.0, & \text{if } G > 0 \\
+                0,              & \text{otherwise}
+            \end{cases} \quad \forall G \in \left\{ {G_1, G_{11}}\right\} \\
+            & \\
+            & \text{Calculate the base weight fractions of each component:} \\
+            & W_2 = (1 - W_1) \cdot R_1 \\
+            & W_3 = (1 - W_1 - W_2) \cdot R_2 \\
+            & W_4 = (1 - W_1 - W_2 - W_3) \\
+            & \\
+            & \text{if $W_1 \leq 0.5$:} \\
+            & \quad \text{$P_{11}$ is given}\\
+            & \quad W_{11} = W_1 \cdot P_{11} \\
+            & \quad P_{22} =
+            \begin{dcases}
+                G_2 \cdot G_3 \cdot (W_{11} - 2 \cdot W_1 + 1), & \text{if $W_2 > 0$} \\
+                0, & \text{otherwise}
+            \end{dcases} \\
+            & \\
+            & \text{if $W_1 > 0.5$:} \\
+            & \quad \text{$P_{22}$ is given and $P_{11}$ is derived further down} \\ 
+            & \\
+            & W_{22} = P_{22} \cdot W_2 \\
+            & W_{23} = W_{22} \cdot G_{11}^{-1} \cdot G_{12} \\
+            & W_{24} = W_{22} \cdot G_{11}^{-1} \cdot (1 - G_{12}) \\ 
+            & \text{Caclulate a partial sum of the $2^{nd}$ component's contributions: } \\
+            & S_{2i} = W_{22} + W_{23} + W_{24} \\
+            & \\
+            & \text{Calculate a partial sum of the $3^{d}$ component's contributions:} \\
+            & S_{3i} = G_1^{-1} \cdot G_2 \cdot S_{2i} \\
+            & W_{32} = S_{3i} \cdot G_{32} \\
+            & W_{33} = (S_{3i} - W_{32}) \cdot G_{33} \\
+            & W_{34} = S_{3i} - W_{32} - W_{32} \\
+            & \\
+            & \text{Calculate a partial sum of the $4^{th}$ component's contributions:} \\
+            & S_{4i} = G_1^{-1} \cdot (1 - G_2) \cdot S_{2i} \\
+            & W_{42} = S_{4i} \cdot G_{42} \\ 
+            & W_{43} = (S_{4i} - W_{42}) \cdot G_{43} \\
+            & W_{44} = S_{4i} - W_{42} - W_{43} \\
+            & \\
+            & P_{23} =
+            \begin{dcases}
+                \frac{W_{23}}{W_2}, & \text{if $W_2 > 0$} \\
+                0, & \text{otherwise}
+            \end{dcases} \\
+            & P_{24} =
+            \begin{dcases}
+                \frac{W_{24}}{W_2}, & \text{if $W_2 > 0$} \\
+                0, & \text{otherwise}
+            \end{dcases} \\
+            & P_{21} = 1 - P_{22} - P_{23} - P_{24} \\
+            & \\
+            & P_{32} =
+            \begin{dcases}
+                \frac{W_{32}}{W_3}, & \text{if $W_3 > 0$} \\
+                0, & \text{otherwise}
+            \end{dcases} \\
+            & P_{33} =
+            \begin{dcases}
+                \frac{W_{33}}{W_3}, & \text{if $W_3 > 0$} \\
+                0, & \text{otherwise}
+            \end{dcases} \\
+            & P_{34} =
+            \begin{dcases}
+                \frac{W_{34}}{W_3}, & \text{if $W_3 > 0$} \\
+                0, & \text{otherwise}
+            \end{dcases} \\
+            & P_{31} = 1 - P_{32} - P_{33} - P_{34} \\
+            & \\
+            & P_{42} = \begin{dcases}
+                \frac{W_{42}}{W_4}, & \text{if $W_4 > 0$} \\
+                0, & \text{otherwise}
+            \end{dcases} \\
+            & P_{43} = \begin{dcases}
+                \frac{W_{43}}{W_4}, & \text{if $W_4 > 0$} \\
+                0, & \text{otherwise}
+            \end{dcases} \\
+            & P_{44} = \begin{dcases}
+                \frac{W_{44}}{W_4}, & \text{if $W_4 > 0$} \\
+                0, & \text{otherwise}
+            \end{dcases} \\
+            & P_{41} = 1 - P_{42} - P_{43} - P_{44} \\
+            & \\
+            & P_{12} = \begin{dcases}
+                \frac{W_2 - W_{22} - W_{32} - W_{42}}{W_1}, & \text{if $W_1 > 0$} \\
+                0, & \text{otherwise}
+            \end{dcases} \\
+            & P_{13} = \begin{dcases}
+                \frac{W_3 - W_{23} - W_{33} - W_{43}}{W_1}, & \text{if $W_1 > 0$} \\
+                0, & \text{otherwise}
+            \end{dcases} \\
+            & P_{14} = \begin{dcases}
+                \frac{W_4 - W_{24} - W_{34} - W_{44}}{W_1}, & \text{if $W_1 > 0$} \\
+                0, & \text{otherwise}
+            \end{dcases} \\
+            & \\
+            & \text{if $W_1 \leq 0.5$}: \\
+            & \quad P_{11} = 1 - P_{12} - P_{13} - P_{14} \\
+            & \\
+            & \text{Remainder of weight fraction can be calculated as follows:} \\
+            & \quad W_{ij} = {W_{ii}} \cdot {P_{ij}} \quad \forall {i,j} \in \left[ {1, 4} \right] \\
+        \end{align*}
     """
 
     # MODEL METADATA:

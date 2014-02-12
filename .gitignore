@@ -3,10 +3,8 @@
 *.backup
 *.log
 TODO*
-output.txt
 batch_file_*
-data_runner.py
-scripts/refinement_generator.py
+setuptools-*
 
 # Directories
 data/CACHE
@@ -45,5 +43,12 @@ nosetests.xml
 .project
 .pydevproject
 .settings/
+.texlipse
 *.spec
 dependency installers/
+
+#Rendered docs
+docs/_build
+docs/_static
+docs/_templates
+/pyxrd

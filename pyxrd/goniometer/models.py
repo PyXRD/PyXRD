@@ -25,6 +25,10 @@ from pyxrd.generic.io.utils import retrieve_lowercase_extension
 
 @storables.register()
 class Goniometer(DataModel, Storable):
+    """
+    The Goniometer class contains all the information related to the
+    X-ray diffraction goniometer, e.g. wavelength, radius, slit sizes, ...
+    """
     # MODEL INTEL:
     class Meta(DataModel.Meta):
         properties = [ # TODO add labels
@@ -61,70 +65,117 @@ class Goniometer(DataModel, Storable):
         setattr(self._data_object, name, value)
         self.data_changed.emit()
 
-    def get_min_2theta(self): return self._data_object.min_2theta
-    def set_min_2theta(self, value): self._set_data_property("min_2theta", value)
+    @property
+    def min_2theta(self):
+        """Start angle (in °2-theta, only  used when calculating without 
+        experimental data)"""
+        return self._data_object.min_2theta
+    @min_2theta.setter
+    def min_2theta(self, value): self._set_data_property("min_2theta", value)
 
-    def get_max_2theta(self): return self._data_object.max_2theta
-    def set_max_2theta(self, value): self._set_data_property("max_2theta", value)
+    @property
+    def max_2theta(self):
+        """End angle (in °2-theta, only  used when calculating without 
+        experimental data)"""
+        return self._data_object.max_2theta
+    @max_2theta.setter
+    def max_2theta(self, value): self._set_data_property("max_2theta", value)
 
-    def get_steps(self): return self._data_object.steps
-    def set_steps(self, value): self._set_data_property("steps", value)
+    @property
+    def steps(self):
+        """The number of steps between start and end angle"""
+        return self._data_object.steps
+    @steps.setter
+    def steps(self, value): self._set_data_property("steps", value)
 
-    def get_wavelength(self): return self._data_object.wavelength
-    def set_wavelength(self, value): self._set_data_property("wavelength", value)
+    @property
+    def wavelength(self):
+        """The wavelength of the generated X-rays (in nm)"""
+        return self._data_object.wavelength
+    @wavelength.setter
+    def wavelength(self, value): self._set_data_property("wavelength", value)
 
-    def get_soller1(self): return self._data_object.soller1
-    def set_soller1(self, value): self._set_data_property("soller1", value)
+    @property
+    def soller1(self):
+        """The first Soller slit size (in °)"""
+        return self._data_object.soller1
+    @soller1.setter
+    def soller1(self, value): self._set_data_property("soller1", value)
 
-    def get_soller2(self): return self._data_object.soller2
-    def set_soller2(self, value): self._set_data_property("soller2", value)
+    @property
+    def soller2(self):
+        """The second Soller slit size (in °)"""
+        return self._data_object.soller2
+    @soller2.setter
+    def soller2(self, value): self._set_data_property("soller2", value)
 
-    def get_radius(self): return self._data_object.radius
-    def set_radius(self, value): self._set_data_property("radius", value)
+    @property
+    def radius(self):
+        """The radius of the goniometer (in cm)"""
+        return self._data_object.radius
+    @radius.setter
+    def radius(self, value): self._set_data_property("radius", value)
 
-    def get_divergence(self): return self._data_object.divergence
-    def set_divergence(self, value): self._set_data_property("divergence", value)
+    @property
+    def divergence(self):
+        """The divergence slit size of the goniometer (in °)"""
+        return self._data_object.divergence
+    @divergence.setter
+    def divergence(self, value): self._set_data_property("divergence", value)
 
-    def get_has_ads(self): return self._data_object.has_ads
-    def set_has_ads(self, value): self._set_data_property("has_ads", value)
+    @property
+    def has_ads(self):
+        """
+        Flag indicating whether an automatic divergence slit was used, and a
+        correction should be applied:
+            I*(2t) = I(2t) * ((divergence * ads_fact) / (np.sin(ads_phase_fact * 2t + ads_phase_shift) - ads_const))
+        Where I* is the corrected and I is the uncorrected intensity.
+        """
+        return self._data_object.has_ads
+    @has_ads.setter
+    def has_ads(self, value): self._set_data_property("has_ads", value)
 
-    def get_ads_fact(self): return self._data_object.ads_fact
-    def set_ads_fact(self, value): self._set_data_property("ads_fact", value)
+    @property
+    def ads_fact(self):
+        """The factor in the ads equation (see `has_ads`)"""
+        return self._data_object.ads_fact
+    @ads_fact.setter
+    def ads_fact(self, value): self._set_data_property("ads_fact", value)
 
-    def get_ads_phase_fact(self): return self._data_object.ads_phase_fact
-    def set_ads_phase_fact(self, value): self._set_data_property("ads_phase_fact", value)
+    @property
+    def ads_phase_fact(self):
+        """The phase factor in the ads equation (see `has_ads`)"""
+        return self._data_object.ads_phase_fact
+    @ads_phase_fact.setter
+    def ads_phase_fact(self, value): self._set_data_property("ads_phase_fact", value)
 
-    def get_ads_phase_shift(self): return self._data_object.ads_phase_shift
-    def set_ads_phase_shift(self, value): self._set_data_property("ads_phase_shift", value)
+    @property
+    def ads_phase_shift(self):
+        """The phase shift (in °) in the ads equation (see `has_ads`)"""
+        return self._data_object.ads_phase_shift
+    @ads_phase_shift.setter
+    def ads_phase_shift(self, value): self._set_data_property("ads_phase_shift", value)
 
-    def get_ads_const(self): return self._data_object.ads_const
-    def set_ads_const(self, value): self._set_data_property("ads_const", value)
+    @property
+    def ads_const(self):
+        """The constant in the ads equation (see `has_ads`)"""
+        return self._data_object.ads_const
+    @ads_const.setter
+    def ads_const(self, value): self._set_data_property("ads_const", value)
 
     # ------------------------------------------------------------
     #      Initialisation and other internals
     # ------------------------------------------------------------
     def __init__(self, *args, **kwargs):
         """
-            Valid keyword arguments for a Goniometer are:
-                radius: the radius of the goniometer
-                divergence: the divergence slit size of the goniometer (in °)
-                has_ads: flag indicating whether an automatic divergence slit is used
-                ads_fact: the factor in the ads equation (see below) 
-                ads_phase_fact: the phase factor in the ads equation (see below
-                ads_phase_shift: the phase shift in the ads equation (see below)
-                ads_const: the constant in the ads equation (see below)
-                soller1: the first Soller slit
-                soller2: the second Soller slit
-                min_2theta: the starting angle
-                max_2theta: the ending angle
-                steps: the number of steps between start and end angle
-                wavelength: the wavelength of the generated X-rays
+            Constructor takes any of its properties as a keyword argument.
+            
+            In addition to the above, the constructor still supports the 
+            following deprecated keywords, mapping to a current keyword:
+                - lambda: maps to wavelength
                 
-            The ADS equation is defined as follows:
-            I*(2theta) = I(2theta) * ((divergence * ads_fact) / 
-                (np.sin(ads_phase_fact * 2theta + radians(ads_phase_shift)) - ads_const))
+            Any other arguments or keywords are passed to the base class.
         """
-
         my_kwargs = self.pop_kwargs(kwargs,
             "data_radius", "data_divergence", "data_soller1", "data_soller2",
             "data_min_2theta", "data_max_2theta", "data_lambda", "lambda",
@@ -177,6 +228,10 @@ class Goniometer(DataModel, Storable):
     #      Methods & Functions
     # ------------------------------------------------------------
     def reset_from_file(self, path):
+        """
+        Loads & sets the parameters from the goniometer JSON file
+        specified by `path`
+        """
         new_gonio = Goniometer.load_object(path, parent=None)
         with self.data_changed.hold():
             for prop in self.Meta.all_properties:
@@ -184,24 +239,33 @@ class Goniometer(DataModel, Storable):
                     setattr(self, prop.name, getattr(new_gonio, prop.name))
 
     def get_nm_from_t(self, theta):
+        """Converts a theta position to a nanometer value"""
         return get_nm_from_t(
             theta,
             wavelength=self.wavelength, zero_for_inf=True
         )
 
     def get_nm_from_2t(self, twotheta):
+	"""Converts a 2-theta position to a nanometer value"""
         return get_nm_from_2t(
             twotheta,
             wavelength=self.wavelength, zero_for_inf=True
         )
 
     def get_t_from_nm(self, nm):
+        """ Converts a nanometer value to a theta position"""
         return get_t_from_nm(nm, wavelength=self.wavelength)
 
     def get_2t_from_nm(self, nm):
+        """ Converts a nanometer value to a 2-theta position"""
         return get_2t_from_nm(nm, wavelength=self.wavelength)
 
     def get_default_theta_range(self, as_radians=True):
+        """
+        Returns a numpy array containing the theta values as radians from
+        `min_2theta` to `max_2theta` with `steps` controlling the interval.
+        When `as_radians` is set to False the values are returned as degrees. 
+        """
         def torad(val):
             if as_radians:
                 return radians(val)

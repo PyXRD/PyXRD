@@ -38,7 +38,7 @@ def R0_model_generator(pasG):
 
     class _BaseR0Model():
         """
-        Reichweite = 0
+        Probability model for Reichweite = 0
         (g-1) independent variables:
         
         W0 = W0/sum(W0>Wg)

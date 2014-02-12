@@ -21,6 +21,29 @@ ADDED 0.01 NOISE
 from pyxrd.data import settings
 
 def run(args):
+    """
+    This is a simple script that will open a PyXRD project file,
+    will run a refinement for a certain mixture, and store the results
+    in an overview file and the best solution as a new project file.
+    The refinement setup is left unchanged, so be sure you have correctly 
+    defined parameter ranges and chosen a good refinement strategy (CMA-ES
+    is recommended).
+    
+    To use this script, launch it using PyXRD's core.py launcher script as:
+      python core.py -s pyxrd/scripts/refinement_generator.py "$FILENAME###$I###$J"
+    in which: 
+        - $FILENAME can be replaced with the absolute path to the actual
+          project filename
+        - $I is the index of the mixture to refine and
+        - $J is the 'trial' number, which is added to the record file and to the
+          best solution project file.
+        - leave the three # (hashes) where they are, they are used as separators 
+        
+    You can use this script (e.g. on high-performance computing clusters) to
+    run several iterations of the same project. Reasaons why you would want 
+    to do this are for benchmarking, checking solution reliability, ... 
+    Just change the trial number from e.g. 0 to 49 to have 50 iterations.
+    """
     if args and args.filename != "":
         print "Proccessing args..."
         project_file, k, mixture_index = tuple(args.filename.split("###", 2))

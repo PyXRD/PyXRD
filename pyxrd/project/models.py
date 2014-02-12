@@ -444,7 +444,13 @@ class Project(DataModel, Storable):
 
     def save_object(self, file): # @ReservedAssignment
         Storable.save_object(self, file, zipped=True)
+        type(self).object_pool.change_all_uuids()
         self.needs_saving = False
+
+    @classmethod
+    def load_object(cls, filename, data=None, parent=None):
+        type(cls).object_pool.change_all_uuids()
+        return Storable.load_object(filename, data=data, parent=parent)
 
     def to_json_multi_part(self):
         to_json = self.to_json()
@@ -545,7 +551,10 @@ class Project(DataModel, Storable):
             yield
 
     def update_all_mixtures(self):
-        print "UPDATING ALL MIXTURES FROM PROJECT LEVEL"
+        """
+        Forces all mixtures in this project to update. If they have auto
+        optimization enabled, this will also optimize them. 
+        """
         for mixture in self.mixtures:
             with self.data_changed.ignore():
                 mixture.update()
@@ -554,12 +563,18 @@ class Project(DataModel, Storable):
     #      Specimen list related
     # ------------------------------------------------------------
     def move_specimen_up(self, specimen):
-        """Move the passed specimen up one slot"""
+        """
+        Move the passed :class:`~pyxrd.specimen.models.Specimen` up one slot.
+        Will raise and IndexError if the passed specimen is not in this project.
+        """
         index = self.specimens.index(specimen)
         self.specimens.insert(min(index + 1, len(self.specimens)), self.specimens.pop(index))
 
     def move_specimen_down(self, specimen):
-        """Move the passed specimen down one slot"""
+        """
+        Move the passed :class:`~pyxrd.specimen.models.Specimen` down one slot
+        Will raise and IndexError if the passed specimen is not in this project.
+        """
         index = self.specimens.index(specimen)
         self.specimens.insert(max(index - 1, 0), self.specimens.pop(index))
         pass
@@ -569,8 +584,9 @@ class Project(DataModel, Storable):
     # ------------------------------------------------------------
     def load_phases(self, filename, insert_index=None):
         """
-            Loads the phases from the file 'filename'. An optional index can
-            be given where the phases need to be inserted at.
+        Loads all :class:`~pyxrd.phase.models.Phase` objects from the file
+        'filename'. An optional index can be given where the phases need to be
+        inserted at.
         """
         insert_index = not_none(insert_index, 0)
         for phase in Phase.load_phases(filename, parent=self):
@@ -582,14 +598,16 @@ class Project(DataModel, Storable):
     # ------------------------------------------------------------
     def load_atom_types_from_csv(self, filename):
         """
-            Loads the atom types from the CSV file 'filename'.
+        Loads all :class:`~pyxrd.atoms.models.AtomType` objects from the CSV
+        file specified by *filename*.
         """
         for atom_type in AtomType.get_from_csv(filename, parent=self):
             self.atom_types.append(atom_type)
 
     def load_atom_types(self, filename):
         """
-            Loads the atom types from the (JSON) file 'filename'.
+        Loads all :class:`~pyxrd.atoms.models.AtomType` objects from the JSON
+        file specified by *filename*.
         """
         for atom_type in AtomType.load_atom_types(filename, parent=self):
             self.atom_types.append(atom_type)

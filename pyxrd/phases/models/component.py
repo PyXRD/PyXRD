@@ -81,6 +81,17 @@ class Component(DataModel, Storable, RefinementGroup):
     # SIGNALS:
     atoms_changed = None
 
+    # UNIT CELL DIMENSION SHORTCUTS:
+    @property
+    def cell_a(self):
+        return self._ucp_a.value
+    @property
+    def cell_b(self):
+        return self._ucp_b.value
+    @property
+    def cell_c(self):
+        return self.d001
+
     # PROPERTIES:
     _name = ""
     def get_name(self): return self._name
@@ -234,36 +245,36 @@ class Component(DataModel, Storable, RefinementGroup):
     # ------------------------------------------------------------
     def __init__(self, **kwargs):
         """
-            Valid keyword arguments for a Component are:
-                ucp_a: unit cell property along a axis
-                ucp_b: unit cell property along b axis
-                d001: unit cell length c (aka d001)
-                default_c: default c-value
-                delta_c: the variation in basal spacing due to defects
-                layer_atoms: ObjectListStore of layer Atoms
-                interlayer_atoms: ObjectListStore of interlayer Atoms
-                atom_relations: ObjectListStore of AtomRelations
-                inherit_ucp_a: whether or not to inherit the ucp_a property from
-                 the linked component (if linked)
-                inherit_ucp_b: whether or not to inherit the ucp_b property from
-                 the linked component (if linked)
-                inherit_d001: whether or not to inherit the d001 property from
-                 the linked component (if linked)
-                inherit_default_c: whether or not to inherit the default_c 
-                 property from the linked component (if linked)
-                inherit_delta_c: whether or not to inherit the delta_c 
-                 property from the linked component (if linked)
-                inherit_layer_atoms: whether or not to inherit the layer_atoms 
-                 property from the linked component (if linked)
-                inherit_interlayer_atoms: whether or not to inherit the
-                 interlayer_atoms property from the linked component (if linked)
-                inherit_atom_relations: whether or not to inherit the 
-                 atom_relations property from the linked component (if linked)
-                linked_with_uuid: the UUID for the component this one is linked
-                 with
-            Deprecated, but still supported:
-                linked_with_index: the index for the component this one is 
-                 linked with in the ObjectListStore of the parent based on phase.
+        Valid keyword arguments for a Component are:
+        *ucp_a*: unit cell property along a axis
+        *ucp_b*: unit cell property along b axis
+        *d001*: unit cell length c (aka d001)
+        *default_c*: default c-value
+        *delta_c*: the variation in basal spacing due to defects
+        *layer_atoms*: ObjectListStore of layer Atoms
+        *interlayer_atoms*: ObjectListStore of interlayer Atoms
+        *atom_relations*: ObjectListStore of AtomRelations
+        *inherit_ucp_a*: whether or not to inherit the ucp_a property from
+         the linked component (if linked)
+        *inherit_ucp_b*: whether or not to inherit the ucp_b property from
+         the linked component (if linked)
+        *inherit_d001*: whether or not to inherit the d001 property from
+         the linked component (if linked)
+        *inherit_default_c*: whether or not to inherit the default_c 
+         property from the linked component (if linked)
+        *inherit_delta_c*: whether or not to inherit the delta_c 
+         property from the linked component (if linked)
+        *inherit_layer_atoms*: whether or not to inherit the layer_atoms 
+         property from the linked component (if linked)
+        *inherit_interlayer_atoms*: whether or not to inherit the
+         interlayer_atoms property from the linked component (if linked)
+        *inherit_atom_relations*: whether or not to inherit the 
+         atom_relations property from the linked component (if linked)
+        *linked_with_uuid*: the UUID for the component this one is linked
+         with
+    Deprecated, but still supported:
+        *linked_with_index*: the index of the component this one is 
+         linked with in the ObjectListStore of the parent based on phase.
         """
 
         my_kwargs = self.pop_kwargs(kwargs,
@@ -313,20 +324,20 @@ class Component(DataModel, Storable, RefinementGroup):
 
         # Connect signals to lists and dicts:
         self._layer_atoms_observer = ListObserver(
-            self.on_layer_atom_inserted,
-            self.on_layer_atom_removed,
+            self._on_layer_atom_inserted,
+            self._on_layer_atom_removed,
             prop_name="layer_atoms",
             model=self
         )
         self._interlayer_atoms_observer = ListObserver(
-            self.on_interlayer_atom_inserted,
-            self.on_interlayer_atom_removed,
+            self._on_interlayer_atom_inserted,
+            self._on_interlayer_atom_removed,
             prop_name="interlayer_atoms",
             model=self
         )
         self._atom_relations_observer = ListObserver(
-            self.on_atom_relation_inserted,
-            self.on_atom_relation_removed,
+            self._on_atom_relation_inserted,
+            self._on_atom_relation_removed,
             prop_name="atom_relations",
             model=self
         )
@@ -377,25 +388,25 @@ class Component(DataModel, Storable, RefinementGroup):
     #      Notifications of observable properties
     # ------------------------------------------------------------
     @DataModel.observe("data_changed", signal=True)
-    def on_data_model_changed(self, model, prop_name, info):
+    def _on_data_model_changed(self, model, prop_name, info):
         # Check whether the changed model is an AtomRelation or Atom, if so
         # re-apply the atom_relations.
         with self.data_changed.hold():
             if isinstance(model, AtomRelation) or isinstance(model, Atom):
-                self.apply_atom_relations()
-                self.update_ucp_values()
+                self._apply_atom_relations()
+                self._update_ucp_values()
             if isinstance(model, UnitCellProperty):
                 self.data_changed.emit() # propagate signal
 
     @DataModel.observe("removed", signal=True)
-    def on_data_model_removed(self, model, prop_name, info):
+    def _on_data_model_removed(self, model, prop_name, info):
         # Check whether the removed component is linked with this one, if so
         # clears the link and emits the data_changed signal.
         if model != self and self.linked_with is not None and self.linked_with == model:
             with self.data_changed.hold_and_emit():
                 self.linked_with = None
 
-    def on_layer_atom_inserted(self, atom):
+    def _on_layer_atom_inserted(self, atom):
         """Sets the atoms parent and stretch_values property,
         updates the components lattice d-value, and emits a data_changed signal"""
         with self.data_changed.hold_and_emit():
@@ -405,7 +416,7 @@ class Component(DataModel, Storable, RefinementGroup):
                 self.observe_model(atom)
                 self.update_lattice_d()
 
-    def on_layer_atom_removed(self, atom):
+    def _on_layer_atom_removed(self, atom):
         """Clears the atoms parent, updates the components lattice d-value, and
         emits a data_changed signal"""
         with self.data_changed.hold_and_emit():
@@ -414,29 +425,29 @@ class Component(DataModel, Storable, RefinementGroup):
                 atom.parent = None
                 self.update_lattice_d()
 
-    def on_interlayer_atom_inserted(self, atom):
+    def _on_interlayer_atom_inserted(self, atom):
         """Sets the atoms parent and stretch_values property, 
         and emits a data_changed signal"""
         with self.data_changed.hold_and_emit():
             with self.atoms_changed.hold_and_emit():
                 atom.stretch_values = True
                 atom.parent = self
-    def on_interlayer_atom_removed(self, atom):
+    def _on_interlayer_atom_removed(self, atom):
         """Clears the atoms parent property, 
         and emits a data_changed signal"""
         with self.data_changed.hold_and_emit():
             with self.atoms_changed.hold_and_emit():
                 atom.parent = None
 
-    def on_atom_relation_inserted(self, item):
+    def _on_atom_relation_inserted(self, item):
         item.parent = self
         self.observe_model(item)
-        self.apply_atom_relations()
+        self._apply_atom_relations()
 
-    def on_atom_relation_removed(self, item):
+    def _on_atom_relation_removed(self, item):
         self.relieve_model(item)
         item.parent = None
-        self.apply_atom_relations()
+        self._apply_atom_relations()
 
     # ------------------------------------------------------------
     #      Input/Output stuff
@@ -511,6 +522,10 @@ class Component(DataModel, Storable, RefinementGroup):
     #      Methods & Functions
     # ------------------------------------------------------------
     def get_factors(self, range_stl):
+        """
+        Get the structure factor for the given range of sin(theta)/lambda values.
+        :param range_stl: A 1D numpy ndarray
+        """
         return get_factors(range_stl, self.data_object)
 
     def get_interlayer_stretch_factors(self):
@@ -519,41 +534,64 @@ class Component(DataModel, Storable, RefinementGroup):
 
     def update_lattice_d(self):
         """
-            Updates the lattice_d attribute for this component. 
+            Updates the lattice_d attribute for this :class:`~.Component`. 
             Should normally not be called from outside the component.
         """
         for atom in self.layer_atoms:
             self._lattice_d = float(max(self.lattice_d, atom.default_z))
 
-    def apply_atom_relations(self):
+    def _apply_atom_relations(self):
         """
-            Applies the atom relation rules in this component.
-            Should normally not be called from outside the component.
+        Applies the :class:`~..atom_relations.AtomRelation` objects
+        in this component. Should normally not be called from outside the component.
         """
         with self.data_changed.hold_and_emit():
             for relation in self.atom_relations:
                 relation.apply_relation()
 
-    def update_ucp_values(self):
+    def _update_ucp_values(self):
+        """
+        Updates the :class:`~..unit_cell_prop.UnitCellProperty` objects in this
+        component. Should normally not be called from outside the component.
+        """
         with self.data_changed.hold():
             for ucp in [self._ucp_a, self._ucp_b]:
                 ucp.update_value()
 
-    @property
-    def cell_a(self):
-        return self._ucp_a.value
-    @property
-    def cell_b(self):
-        return self._ucp_b.value
-    @property
-    def cell_c(self):
-        return self.d001
-
     def get_volume(self):
+        """
+        Get the volume for this :class:`~.Component`.
+        Will always return a value >= 1e-25, to prevent division-by-zero
+        errors in calculation code.  
+        """
         return max(self.cell_a * self.cell_b * self.cell_c, 1e-25)
 
     def get_weight(self):
+        """
+        Get the total atomic weight for this 
+        :class:`~.Component`. 
+        """
         weight = 0
         for atom in (self.layer_atoms + self.interlayer_atoms):
             weight += atom.weight
         return weight
+
+    # ------------------------------------------------------------
+    #      AtomRelation list related
+    # ------------------------------------------------------------
+    def move_atom_relation_up(self, relation):
+        """
+        Move the passed :class:`~..atom_relations.AtomRelation`
+        up one slot
+        """
+        index = self.atom_relations.index(relation)
+        self.atom_relations.insert(min(index - 1, 0), self.atom_relations.pop(index))
+
+    def move_atom_relation_down(self, relation):
+        """
+        Move the passed :class:`~..atom_relations.AtomRelation`
+        down one slot
+        """
+        index = self.atom_relations.index(relation)
+        self.atom_relations.insert(max(index + 1, len(self.atom_relations)), self.atom_relations.pop(index))
+        pass

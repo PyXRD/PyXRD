@@ -297,10 +297,10 @@ class EditAtomRelationsController(InlineObjectListStoreController):
                 self._edit_item(relation)
                 return True
             elif column == "Up":
-                model.move_item_up(relation)
+                self.model.move_atom_relation_up(relation)
                 return True
             elif column == "Down":
-                model.move_item_down(relation)
+                self.model.move_atom_relation_down(relation)
                 return True
 
 

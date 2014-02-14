@@ -122,6 +122,9 @@ class Phase(DataModel, Storable, RefinementGroup):
             else:
                 for prop in self.Meta.get_inheritable_properties():
                     setattr(self, prop.inh_name, False)
+                for prop in self.probabilities.Meta.get_inheritable_properties():
+                    setattr(self.probabilities, prop.inh_name, False)
+
     def get_based_on_root(self):
         if self.based_on is not None:
             return self.based_on.get_based_on_root()

@@ -62,12 +62,12 @@ def _get_residual(x, mixture):
             if specimen.observed_intensity.size > 0:
                 exp = specimen.observed_intensity[specimen.selected_range]
                 cal = calc[specimen.selected_range]
-                tot_rp += __residual_method_map[settings.RESIDUAL_METHOD](exp, cal)
+                tot_rp = max(__residual_method_map[settings.RESIDUAL_METHOD](exp, cal), tot_rp)
             else:
                 logger.warning("_get_residual reports: 'Zero observations found!'")
         else:
             logger.warning("_get_residual reports: 'None found!'")
-    return tot_rp / float(len(mixture.specimens)) # average this out
+    return tot_rp #/ float(len(mixture.specimens)) # average this out
 
 def get_residual(mixture, parsed=False):
     parse_mixture(mixture, parsed=parsed)

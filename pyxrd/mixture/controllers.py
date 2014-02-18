@@ -336,7 +336,7 @@ class RefinementController(DialogController):
         )
 
     def on_complete(self, context, *args, **kwargs):
-        self.model.context.status_message = "Generating parameter space plots..."
+        self.model.refiner.context.status_message = "Generating parameter space plots..."
         self.results_controller.generate_images()
         self.results_view.present()
         self.view.hide()

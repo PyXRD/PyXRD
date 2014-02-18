@@ -10,10 +10,12 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 from itertools import izip, imap
-
+from math import log
 from multiprocessing.pool import AsyncResult
 
 import numpy as np
+import scipy
+
 from deap import creator, base, cma, tools
 
 # TODO integrate this in a single class somewhere...
@@ -29,11 +31,6 @@ from .refine_run import RefineRun
 from .deap_utils import pyxrd_array, evaluate
 
 # Default settings:
-FACTR_LAMBDA = 10
-FACTR_INIT_LAMBDA = 20
-MAX_INIT_LAMBDA = 300
-MIN_INIT_LAMBDA = 100
-MAX_LAMBDA = MAX_INIT_LAMBDA
 NGEN = 100
 STAGN_NGEN = 10
 STAGN_TOL = 0.5
@@ -74,7 +71,7 @@ def do_async_evaluation(population, toolbox):
     del results
 
 def eaGenerateUpdateStagn(toolbox, ngen, halloffame=None, stats=None,
-                     verbose=__debug__, stagn_ngen=10, stagn_tol=0.001, context=None):
+                     verbose=__debug__, stagn_ngen=STAGN_NGEN, stagn_tol=STAGN_TOL, context=None):
     """This is algorithm implements the ask-tell model proposed in 
     [Colette2010]_, where ask is called `generate` and tell is called `update`.
     
@@ -148,8 +145,13 @@ def eaGenerateUpdateStagn(toolbox, ngen, halloffame=None, stats=None,
             logger.logGeneration(evals=pop_size, gen=gen, stats=stats)
 
         context.status_message = "Checking for stagnation"
-        # Check for stagnation
         if gen >= stagn_ngen: # 10
+
+            yvals = stats.std[-1][-1][-(stagn_ngen - 1):]
+            xvals = range(len(yvals))
+            slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(xvals, yvals) #@UnusedVariable
+            stagnation = bool(p_value >= 0.95)
+
             stagnation = True
             last_fitn = np.array(best_fitnesses[-1])
             for fitn in best_fitnesses[-(stagn_ngen - 1):]:
@@ -162,7 +164,12 @@ def eaGenerateUpdateStagn(toolbox, ngen, halloffame=None, stats=None,
 
     return population
 
-class CustomStrategy(cma.Strategy):
+class CustomStrategy(cma.StrategyOnePlusLambda):
+
+    def __init__(self, centroid, sigma, **kwargs):
+        if not "lambda_" in kwargs:
+            kwargs["lambda_"] = int(50 + min(3 * log(len(centroid)), 150)) #@UndefinedVariable
+        super(CustomStrategy, self).__init__(centroid, sigma, ** kwargs)
 
     def generate(self, ind_init):
         """Generate a population from the current strategy using the 
@@ -172,10 +179,16 @@ class CustomStrategy(cma.Strategy):
                          individual from a list.
         :returns: an iterator yielding the generated individuals.
         """
-        arz = np.random.standard_normal((self.lambda_, self.dim))
-        arz = self.centroid + self.sigma * np.dot(arz, self.BD.T)
+        arz = np.random.standard_normal((self.lambda_, self.dim)) #@UndefinedVariable
+        if hasattr(self, "BD"):
+            arz = np.array(self.centroid) + self.sigma * np.dot(arz, self.BD.T) #@UndefinedVariable
+        else:
+            arz = np.array(self.parent) + self.sigma * np.dot(arz, self.A.T) #@UndefinedVariable
+
         for arr in arz:
             yield ind_init(arr)
+
+
 
 class RefineCMAESRun(RefineRun):
     """
@@ -188,22 +201,13 @@ class RefineCMAESRun(RefineRun):
         ('Maximum # of generations', 'ngen', int, NGEN, [1, 10000]),
         ('Minimum # of generations', 'stagn_ngen', int, STAGN_NGEN, [1, 10000]),
         ('Fitness stagnation tolerance', 'stagn_tol', float, STAGN_TOL, [0., 100.]),
-
-        ('Lambda factor', 'factr_lambda', int, FACTR_LAMBDA, [1, 10000]),
-        ('Init lambda factor', 'factr_init_lambda', int, FACTR_INIT_LAMBDA, [1, 10000]),
-        ('Maximum init lambda', 'max_init_lambda', int, MAX_INIT_LAMBDA, [1, 10000]),
-        ('Minimum init lambda', 'min_init_lambda', int, MIN_INIT_LAMBDA, [1, 10000]),
     ]
 
-    def run(self, context, ngen=NGEN, stagn_ngen=STAGN_NGEN, stagn_tol=STAGN_TOL,
-            factr_lambda=FACTR_LAMBDA, factr_init_lambda=FACTR_INIT_LAMBDA,
-            max_init_lambda=MAX_INIT_LAMBDA, min_init_lambda=MIN_INIT_LAMBDA, **kwargs):
+    def run(self, context, ngen=NGEN, stagn_ngen=STAGN_NGEN, stagn_tol=STAGN_TOL, **kwargs):
 
         logger.info("Setting up the DEAP CMA-ES refinement algorithm")
 
         N = len(context.ref_props)
-        init_lambda = max(min(N * factr_init_lambda, max_init_lambda), min_init_lambda)
-        lambda_ = min(N * factr_lambda, MAX_LAMBDA)
 
         # Individual generation:
         bounds = np.array(context.ranges)
@@ -225,15 +229,23 @@ class RefineCMAESRun(RefineRun):
         toolbox.register("evaluate", evaluate)
 
         # Setup strategy:
-        strategy = CustomStrategy(centroid=context.initial_solution, sigma=2, lambda_=lambda_)
+        method = "1plusCMA"
+        if method == "1plusCMA":
+            centroid = create_individual(context.initial_solution)
+            sigma = np.array(abs(bounds[:, 0] - bounds[:, 1]) / 20.0)
+        else:
+            centroid = context.initial_solution
+            sigma = max(abs(bounds[:, 0] - bounds[:, 1]) / 20.0)
+
+        strategy = CustomStrategy(centroid=centroid, sigma=sigma)
 
         # Create Generation 0:
         logger.info("Creating generation #0:")
-        context.message = "Creating generation #0"
+        context.status_message = "Creating generation #0"
 
         logger.info("\t evaluating uniformly distributed solutions...")
-        # Pre-feed the strategy with a normal distributed population over the entire domain (large population):
-        solutions = np.random.normal(size=(init_lambda, N))
+        # Pre-feed the strategy with a normal distributed population over the entire domain:
+        solutions = np.random.normal(size=(strategy.lambda_, N))
         solutions = (solutions - solutions.min()) / (solutions.max() - solutions.min()) # stretch to [0-1] interval
         solutions = bounds[:, 0] + solutions * (bounds[:, 1] - bounds[:, 0])
         toolbox.register("generate", imap, create_individual, solutions)
@@ -264,7 +276,7 @@ class RefineCMAESRun(RefineRun):
 
         logger.info("Running the CMA-ES algorithm...")
         context.status = "running"
-        context.message = "Running CMA strategy ..."
+        context.status_message = "Running CMA-ES algorithm ..."
         final = eaGenerateUpdateStagn(
             toolbox,
             ngen=ngen,
@@ -275,20 +287,7 @@ class RefineCMAESRun(RefineRun):
             stagn_tol=STAGN_TOL
         )
 
-        context.message = "Parsing results..."
-        fitnesses = toolbox.map(evaluate, final)
-
-        bestf = None
-        besti = None
-        for ind, fitness in izip(final, fitnesses):
-            fitness, = fitness
-            if bestf == None or bestf > fitness:
-                bestf = float(fitness)
-                besti = ind
-            context.update(ind, fitness)
-
-        context.last_residual = bestf
-        context.last_solution = np.array(besti, dtype=float)
+        context.status_message = "CMA-ES converged ..."
         context.status = "finished"
 
     pass # end of class

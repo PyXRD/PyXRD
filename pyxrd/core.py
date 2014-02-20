@@ -131,7 +131,27 @@ def _close_pool(pool):
     pool.close()
     pool.join()
 
-def _run_gui(args, splash=None):
+def _run_gui(args):
+
+    # Display a splash screen showing the loading status...
+    from pkg_resources import resource_filename # @UnresolvedImport
+    from pyxrd.generic.views.splash import SplashScreen
+    from pyxrd import __version__
+    filename = resource_filename(__name__, "application/icons/pyxrd.png")
+    splash = SplashScreen(filename, __version__)
+
+    # Check if this is already provided:
+    splash.set_message("Parsing arguments ...")
+    if not isinstance(args, argparse.ArgumentParser):
+        args = _parse_args()
+
+    # Check for updates
+    splash.set_message("Checking for updates ...")
+    _check_for_updates()
+
+    # Run GUI:
+    splash.set_message("Loading GUI ...")
+    
     # Now we can load these:
     from pyxrd.data import settings
     from pyxrd.project.models import Project
@@ -139,8 +159,6 @@ def _run_gui(args, splash=None):
     from pyxrd.application.views import AppView
     from pyxrd.application.controllers import AppController
     from pyxrd.generic.gtk_tools.gtkexcepthook import plugin_gtk_excepthook
-
-    # Initialize threads
 
     # Check if a filename was passed, if so try to load it
     project = None
@@ -178,28 +196,6 @@ def _run_gui(args, splash=None):
     # lets get this show on the road:
     gtk.main()
 
-def run_gui(args=None):
-
-    # Display a splash screen showing the loading status...
-    from pkg_resources import resource_filename # @UnresolvedImport
-    from pyxrd.generic.views.splash import SplashScreen
-    from pyxrd import __version__
-    filename = resource_filename(__name__, "application/icons/pyxrd.png")
-    splash = SplashScreen(filename, __version__)
-
-    # Check if this is already provided:
-    splash.set_message("Parsing arguments ...")
-    if not isinstance(args, argparse.ArgumentParser):
-        args = _parse_args()
-
-    # Check for updates
-    splash.set_message("Checking for updates ...")
-    _check_for_updates()
-
-    # Run GUI:
-    splash.set_message("Loading GUI ...")
-    _run_gui(args, splash)
-
 def run_main():
     """
         Parsers command line arguments and launches PyXRD accordingly.
@@ -220,7 +216,7 @@ def run_main():
             _run_user_script(args)
         else:
             # Run the GUI:
-            run_gui(args)
+            _run_gui(args)
     except:
         raise # re-raise the error
     finally:

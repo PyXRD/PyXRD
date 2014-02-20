@@ -131,6 +131,7 @@ class TestMixture(unittest.TestCase):
 
     def test_del_specimen_slot_by_object(self):
         dummy = Specimen(name="Test Specimen", parent=self.project)
+        self.project.specimens.append(dummy)
         self.mixture.add_specimen_slot(dummy, 0.5, 0)
         self.mixture.del_specimen_slot_by_object(dummy)
         self.assertEqual(len(self.mixture.specimens), 0)
@@ -138,22 +139,26 @@ class TestMixture(unittest.TestCase):
 
     def test_set_specimen(self):
         dummy = Specimen(name="Test Specimen", parent=self.project)
+        self.project.specimens.append(dummy)
         self.mixture.add_specimen_slot(None, 0.5, 0)
         self.mixture.set_specimen(0, dummy)
         self.assertEqual(self.mixture.specimens[0], dummy)
 
     def test_unset_specimen(self):
         dummy = Specimen(name="Test Specimen", parent=self.project)
+        self.project.specimens.append(dummy)
         self.mixture.add_specimen_slot(dummy, 0.5, 0)
         self.mixture.unset_specimen(dummy)
         self.assertEqual(self.mixture.specimens[0], None)
 
     def test_unset_phase(self):
         specimen = Specimen(name="Test Specimen", parent=self.project)
+        self.project.specimens.append(specimen)
         self.mixture.add_specimen_slot(specimen, 0.5, 0)
         self.mixture.add_phase_slot("Test Phase1", 0.5)
 
         dummy = Phase(name="Test Phase", parent=self.project)
+        self.project.phases.append(dummy)
         self.mixture.set_phase(0, 0, dummy)
         self.mixture.unset_phase(dummy)
         self.assertEqual(self.mixture.phase_matrix[0, 0], None)
@@ -164,8 +169,11 @@ class TestMixture(unittest.TestCase):
     def _refinement_setup(self):
         # TODO maybe add some more variation in the type of Phases?
         specimen = Specimen(name="Test Specimen", parent=self.project)
+        self.project.specimens.append(specimen)
         phase1 = Phase(name="Test Phase1", parent=self.project)
+        self.project.phases.append(phase1)
         phase2 = Phase(name="Test Phase2", parent=self.project)
+        self.project.phases.append(phase2)
         self.mixture.add_specimen_slot(specimen, 0.5, 0)
         self.mixture.add_phase_slot("Test Phase1", 0.5)
         self.mixture.add_phase_slot("Test Phase2", 0.5)

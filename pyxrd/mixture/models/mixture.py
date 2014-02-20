@@ -329,7 +329,7 @@ class Mixture(DataModel, Storable):
         with self.needs_update.hold_and_emit():
             with self._relieve_and_observe_specimens():
                 if specimen is not None and not specimen in self.parent.specimens:
-                    self.parent.specimens.append(specimen)
+                    raise RuntimeError, "Cannot add a specimen to a Mixture which is not inside the project!"
                 self.specimens[specimen_slot] = specimen
 
     @contextmanager

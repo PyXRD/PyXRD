@@ -40,7 +40,7 @@ class Optimizer(ChildModel):
             Gets an optimized residual for the current mixture setup. If no
             data_object is passed it is retrieved from the mixture.
         """
-        return get_optimized_residual(*self.get_data_object(data_object))
+        return get_optimized_residual(*self.get_data_object(data_object))[0]
 
     get_residual_async = create_async(get_residual, "get_data_object")
     def get_residual(self, data_object=None):
@@ -49,7 +49,7 @@ class Optimizer(ChildModel):
             the given optimization arguments. If no data_object is passed it is 
             retrieved from the mixture.
         """
-        return get_residual(*self.get_data_object(data_object))
+        return get_residual(*self.get_data_object(data_object))[0]
 
     calculate_async = create_async(calculate_mixture, "get_data_object")
     def calculate(self, data_object=None):

@@ -49,9 +49,9 @@ def get_zero_solution(mixture):
     x0[:mixture.m] = 1.0 / mixture.m
     return x0
 
-def _get_residual(x, mixture):
+def _get_residuals(x, mixture):
     fractions, scales, bgshifts = parse_solution(x, mixture)
-    tot_rp = 0.0
+    rps = [0.0, ]
     for scale, bgshift, specimen in izip(scales, bgshifts, mixture.specimens):
         if specimen is not None:
             if specimen.phase_intensities is not None:
@@ -62,16 +62,21 @@ def _get_residual(x, mixture):
             if specimen.observed_intensity.size > 0:
                 exp = specimen.observed_intensity[specimen.selected_range]
                 cal = calc[specimen.selected_range]
-                tot_rp = max(__residual_method_map[settings.RESIDUAL_METHOD](exp, cal), tot_rp)
+                rp = __residual_method_map[settings.RESIDUAL_METHOD](exp, cal)
+                rps.append(rp)
             else:
                 logger.warning("_get_residual reports: 'Zero observations found!'")
         else:
             logger.warning("_get_residual reports: 'None found!'")
-    return tot_rp #/ float(len(mixture.specimens)) # average this out
+    rps[0] = np.average(rps[1:])
+    return tuple(rps)
+
+def _get_average_residual(x, mixture):
+    return _get_residuals(x, mixture)[0]
 
 def get_residual(mixture, parsed=False):
     parse_mixture(mixture, parsed=parsed)
-    return _get_residual(get_solution(mixture), mixture)
+    return _get_residuals(get_solution(mixture), mixture)
 
 def parse_mixture(mixture, parsed=False):
     if not parsed:
@@ -115,7 +120,7 @@ def optimize_mixture(mixture, parsed=False):
     # 2. Optimize:
     t1 = time.time()
     lastx, residual, info = fmin_l_bfgs_b(
-        _get_residual,
+        _get_average_residual,
         x0,
         args=(mixture,),
         approx_grad=True,
@@ -126,7 +131,7 @@ def optimize_mixture(mixture, parsed=False):
     t2 = time.time()
     logger.debug('%s took %0.3f ms' % ("optimize_mixture", (t2 - t1) * 1000.0))
     logger.debug(' Solution: %s' % lastx)
-    logger.debug(' Residual: %s' % residual)
+    logger.debug(' Average residual: %s' % residual)
     logger.debug(' Info dict: %s' % info)
 
     # 3. rescale scales and fractions so they fit into [0-1] range,
@@ -167,9 +172,16 @@ def calculate_mixture(mixture, parsed=False):
         return mixture
     fractions = np.asanyarray(mixture.fractions)
 
+    mixture.residuals = [0.0, ]
     for scale, bgshift, specimen in izip(mixture.scales, mixture.bgshifts, mixture.specimens):
         if specimen is not None:
             specimen.total_intensity = scale * np.sum(fractions[:, np.newaxis] * specimen.phase_intensities, axis=0) + (bgshift if settings.BGSHIFT else 0.0)
+            if specimen.observed_intensity.size > 0:
+                exp = specimen.observed_intensity[specimen.selected_range]
+                cal = specimen.total_intensity[specimen.selected_range]
+                rp = __residual_method_map[settings.RESIDUAL_METHOD](exp, cal)
+                mixture.residuals.append(rp)
+    mixture.residuals[0] = np.average(mixture.residuals[1:])
 
     return mixture
 
@@ -190,7 +202,7 @@ def get_optimized_residual(mixture):
     """
         Calculates total intensities for the current mixture, after optimizing
         fractions, scales & background shifts.
-        Returns the residual instead of the mixture data object.
+        Returns the average residual instead of the mixture data object.
     """
     return get_optimized_mixture(mixture).residual
 

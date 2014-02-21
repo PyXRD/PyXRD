@@ -13,7 +13,7 @@ except ImportError:
 import numpy as np
 from deap import creator
 
-from pyxrd.generic.calculations.mixture import get_optimized_residual
+from pyxrd.generic.calculations.mixture import get_optimized_mixture
 
 class pyxrd_array(creator._numpy_array):
     """
@@ -71,6 +71,6 @@ def evaluate(individual):
         (or have a data_object attribute)
     """
     if individual.data_object is not None:
-        return get_optimized_residual(individual.data_object),
+        return get_optimized_mixture(individual.data_object).residuals
     else:
         return 100.,

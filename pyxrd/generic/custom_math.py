@@ -50,8 +50,11 @@ def lognormal(T, a, b):
     return sqrt2pi * exp(-(log(T) - a) ** 2 / (2.0 * (b ** 2))) / (abs(b) * T)
 
 def add_noise(x, noise_fraction=0.05):
-    abs_value = noise_fraction * np.amax(x)
-    return x + np.random.standard_normal(x.shape) * abs_value
+    if x.size > 0:
+        abs_value = noise_fraction * np.amax(x)
+        return x + np.random.standard_normal(x.shape) * abs_value
+    else:
+        return x
 
 def smooth(x, half_window_len=3, window='blackman'):
     """smooth the data using a window with requested size.

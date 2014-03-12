@@ -138,12 +138,7 @@ class Algorithm(AsyncEvaluatedAlgorithm):
             self.logbook = tools.Logbook()
             self.logbook.header = column_names
 
-        for gen in range(self.ngen):
-            if gen > 15:
-                logger.info("THIS CANNOT BE!! %d %d" % (gen, self.logbook.buffindex))
-            if self.logbook.buffindex > 15:
-                logger.info("THIS CANNOT BE 2!! %d %d" % (gen, self.logbook.buffindex))
-
+        for _ in range(self.ngen):
             # Check if the user has cancelled:
             if self._user_cancelled():
                 logger.info("User cancelled execution, stopping ...")

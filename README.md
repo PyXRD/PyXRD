@@ -29,14 +29,16 @@ Other features are (incomplete list):
  - automatic parameter refinement using several algorithms, e.g.:
     - L BFGS B
     - Brute Force
-    - Covariation Matrix Adapation Evolutionary Strategy (CMA-ES; using DEAP)
-    - Multiple Particle Swarm Optimization (MPSO; using DEAP)
- - scripting support
+    - Covariation Matrix Adapation Evolutionary Strategy (CMA-ES; using DEAP 1.0)
+    - Multiple Particle Swarm Optimization (MPSO; using DEAP 1.0)
+    - Chained MPSO and parallel CMA-ES harnassing the global search powers of MPSO
+      and the local refinement powers of CMA-ES in a single strategy (using DEAP 1.0)
+ - as it is open-source: extensive scripting support
 
 DISCLAIMER
 ==========
 PyXRD is still very much work in progress. Currently there is no strict 
-development cycle as it is still a one-mans project. This also means little
+development cycle as it is still a one-man project. This also means little
 time is going into testing and adding new tests for new features. Most of the
 codebase therefore remains untested at this point and Things May Break as a 
 result.
@@ -66,7 +68,7 @@ This is what should be present on your system.
  * Scipy 0.11.0 or later
  * Matplotlib 1.2.1 or later
  * PyParsing 1.5.7 or later
- * (optional) DEAP 0.9.1 or later
+ * (optional) DEAP 1.0.0 or later
 
 Windows
 -------

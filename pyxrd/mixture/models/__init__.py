@@ -5,7 +5,7 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from  mixture import Mixture
+from mixture import Mixture
 
 __all__ = [
     "Mixture",

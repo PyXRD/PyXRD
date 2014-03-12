@@ -18,11 +18,16 @@ def get_all_refine_methods():
     methods[4] = RefineBasinHoppingRun()
 
     try:
-        from .deap_gen import RefineCMAESRun
+        from .deap_cma import RefineCMAESRun
         methods[1] = RefineCMAESRun()
         from .deap_swarm import RefineMPSORun
         methods[2] = RefineMPSORun()
+        from .deap_pcma import RefinePCMAESRun
+        methods[5] = RefinePCMAESRun()
+        from .deap_pso_cma import RefineMPSOCMAESRun
+        methods[6] = RefineMPSOCMAESRun()
     except ImportError:
+        raise
         logger.warning("Could not import DEAP refinement algorithms, is DEAP installed?")
 
     try:

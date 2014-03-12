@@ -115,11 +115,16 @@ def run(args):
                         ])
                         f.write(line + "\n")
                     f.write("################################################################################\n")
-                    if context.record_header is not None:
-                        f.write(", ".join(context.record_header) + "\n")
-                        for record in context.records:
+                    def write_records(f, header, records):
+                        f.write(", ".join(record_header) + "\n")
+                        for record in records:
                             f.write(", ".join(map(lambda f: "%.7f" % f, record)) + "\n")
                         f.write("################################################################################\n")
+                    if context.record_header is not None:
+                        write_records(f, context.record_header, context.records)
+                    if hasattr(context, "pcma_records"):
+                        for record_header, records in context.pcma_records:
+                            write_records(f, record_header, records)
 
                     context.apply_best_solution()
                     mixture.optimizer.optimize()

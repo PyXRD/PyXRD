@@ -14,11 +14,11 @@ from pyxrd.generic.models import DataModel
 from pyxrd.generic.io import storables, Storable, get_case_insensitive_glob
 from pyxrd.data import settings
 
-from pyxrd.generic.calculations.goniometer import (
+from pyxrd.calculations.goniometer import (
     get_lorentz_polarisation_factor,
     get_machine_correction_range
 )
-from pyxrd.generic.calculations.data_objects import GonioData
+from pyxrd.calculations.data_objects import GonioData
 from pyxrd.generic.io.utils import retrieve_lowercase_extension
 
 @storables.register()

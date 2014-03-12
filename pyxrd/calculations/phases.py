@@ -10,9 +10,8 @@ import numpy as np
 from pyxrd.generic.custom_math import mmult
 from pyxrd.generic.caching import cache
 
-from pyxrd.generic.calculations.CSDS import calculate_distribution
-from pyxrd.generic.calculations.components import get_factors
-from pyxrd.data import settings
+from pyxrd.calculations.CSDS import calculate_distribution
+from pyxrd.calculations.components import get_factors
 import logging
 logger = logging.getLogger(__name__)
 

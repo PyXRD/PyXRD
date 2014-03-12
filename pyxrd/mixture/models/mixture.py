@@ -28,7 +28,7 @@ from pyxrd.generic.models import DataModel
 
 from pyxrd.generic.refinement.mixins import RefinementValue, RefinementGroup
 from pyxrd.generic.refinement.wrapper import RefinableWrapper
-from pyxrd.generic.calculations.data_objects import MixtureData
+from pyxrd.calculations.data_objects import MixtureData
 
 from pyxrd.phases.models.phase import Phase
 

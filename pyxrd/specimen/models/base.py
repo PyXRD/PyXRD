@@ -17,8 +17,8 @@ from pyxrd.generic.io import storables, Storable
 from pyxrd.generic.io.file_parsers import parsers
 from pyxrd.generic.models import ExperimentalLine, CalculatedLine, DataModel
 from pyxrd.generic.peak_detection import peakdetect
-from pyxrd.generic.calculations.specimen import get_phase_intensities
-from pyxrd.generic.calculations.data_objects import SpecimenData
+from pyxrd.calculations.specimen import get_phase_intensities
+from pyxrd.calculations.data_objects import SpecimenData
 
 from pyxrd.goniometer.models import Goniometer
 from pyxrd.generic.utils import not_none

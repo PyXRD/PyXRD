@@ -7,28 +7,16 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-import multiprocessing
 import warnings
 import argparse, os
 import logging
+logger = logging.getLogger(__name__)
 
 try:
     import gtk
     gtk.gdk.threads_init() # @UndefinedVariable
 except ImportError:
     pass
-
-def _worker_initializer(*args):
-    from pyxrd.data import settings
-    if settings.CACHE == "FILE":
-        settings.CACHE = "FILE_FETCH_ONLY"
-    _apply_settings(True, settings.DEBUG, False, None)
-    logging.getLogger(__name__).info("Worker process initialized")
-
-def _initialize_pool():
-    # Set this up before we do anything else,
-    # creates 'clean' subprocesses
-    return multiprocessing.Pool(maxtasksperchild=100, initializer=_worker_initializer)
 
 def _parse_args():
     parser = argparse.ArgumentParser()
@@ -89,11 +77,11 @@ def _setup_logging(debug, log_file, scripted=False):
         # Very basic output for the root object:
         logging.basicConfig(format='%(name)s - %(levelname)s: %(message)s')
 
-def _apply_settings(no_gui, debug, clear_cache, pool):
+def _apply_settings(no_gui, debug, clear_cache):
 
     from pyxrd.data import settings
     # apply settings
-    settings.apply_runtime_settings(no_gui=no_gui, debug=debug, pool=pool)
+    settings.apply_runtime_settings(no_gui=no_gui, debug=debug)
 
     _setup_logging(settings.DEBUG, settings.LOG_FILENAME, no_gui)
 
@@ -113,6 +101,8 @@ def _apply_settings(no_gui, debug, clear_cache, pool):
             if size > settings.CACHE_SIZE:
                 memory.clear()
 
+    return settings
+
 def _run_user_script(args):
     """
         Runs the user script specified in the command-line arguments.
@@ -124,12 +114,6 @@ def _run_user_script(args):
         err.args = "Error when trying to import %s: %s" % (args.script, err.args)
         raise
     user_script.run(args)
-
-def _close_pool(pool):
-    # Close the pool:
-    logging.info("Closing multiprocessing pool ...")
-    pool.close()
-    pool.join()
 
 def _run_gui(args):
 
@@ -151,7 +135,7 @@ def _run_gui(args):
 
     # Run GUI:
     splash.set_message("Loading GUI ...")
-    
+
     # Now we can load these:
     from pyxrd.data import settings
     from pyxrd.project.models import Project
@@ -204,11 +188,8 @@ def run_main():
     # Setup & parse keyword arguments:
     args = _parse_args()
 
-    # Initialize multiprocessing pool:
-    pool = _initialize_pool()
-
     # Apply settings
-    _apply_settings(bool(args.script), args.debug, args.clear_cache, pool)
+    settings = _apply_settings(bool(args.script), args.debug, args.clear_cache)
 
     try:
         if args.script:
@@ -220,4 +201,5 @@ def run_main():
     except:
         raise # re-raise the error
     finally:
-        _close_pool(pool)
+        for finalizer in settings.FINALIZERS:
+            finalizer()

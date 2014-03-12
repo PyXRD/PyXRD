@@ -7,8 +7,7 @@
 
 from pyxrd.generic.models import ChildModel
 
-from pyxrd.generic.pool import create_async
-from pyxrd.generic.calculations.mixture import (
+from pyxrd.calculations.mixture import (
     get_optimized_mixture,
     calculate_mixture,
     get_residual,
@@ -34,7 +33,6 @@ class Optimizer(ChildModel):
         """
         return self.get_residual()
 
-    get_optimized_residual_async = create_async(get_optimized_residual, "get_data_object")
     def get_optimized_residual(self, data_object=None):
         """
             Gets an optimized residual for the current mixture setup. If no
@@ -42,7 +40,6 @@ class Optimizer(ChildModel):
         """
         return get_optimized_residual(*self.get_data_object(data_object))[0]
 
-    get_residual_async = create_async(get_residual, "get_data_object")
     def get_residual(self, data_object=None):
         """
             Calculates the residual for the given solution in combination with
@@ -51,7 +48,6 @@ class Optimizer(ChildModel):
         """
         return get_residual(*self.get_data_object(data_object))[0]
 
-    calculate_async = create_async(calculate_mixture, "get_data_object")
     def calculate(self, data_object=None):
         """
             Calculates the total and phase intensities. If no data_object is
@@ -59,7 +55,6 @@ class Optimizer(ChildModel):
         """
         return calculate_mixture(*self.get_data_object(data_object))
 
-    optimize_async = create_async(get_optimized_mixture, "get_data_object")
     def optimize(self, data_object=None):
         """
             Optimizes the mixture fractions, scales and bg shifts and returns the

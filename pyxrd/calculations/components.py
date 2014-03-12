@@ -11,7 +11,7 @@ from math import pi
 import numpy as np
 
 from pyxrd.generic.caching import cache
-from pyxrd.generic.calculations.atoms import get_structure_factor
+from pyxrd.calculations.atoms import get_structure_factor
 
 def calculate_z(default_z, lattice_d, z_factor):
     return lattice_d + z_factor * (default_z - lattice_d)

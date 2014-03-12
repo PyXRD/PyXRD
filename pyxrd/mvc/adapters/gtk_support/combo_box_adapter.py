@@ -35,8 +35,8 @@ class ComboBoxAdapter(GtkAdapter):
     widget_types = ["option_list", ]
     _check_widget_type = gtk.ComboBox
 
-    _wid_read = GtkAdapter.static_to_class(gtk.ComboBox.get_active_iter)
-    _wid_write = GtkAdapter.static_to_class(gtk.ComboBox.set_active_iter)
+    _wid_read = lambda c, w, *a: gtk.ComboBox.get_active_iter(w, *a)
+    _wid_write = lambda c, w, *a: gtk.ComboBox.set_active_iter(w, *a)
     _signal = "changed"
 
     _prop_cast = False

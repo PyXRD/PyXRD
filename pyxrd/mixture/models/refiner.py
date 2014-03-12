@@ -208,6 +208,9 @@ class Refiner(ChildModel):
                         # Run until it ends or it raises an exception:
                         t1 = time.time()
                         try:
+                            if stop is not None:
+                                stop.clear()
+                            print "Calling:", self.mixture.get_refinement_method()
                             self.mixture.get_refinement_method()(self.context, stop=stop)
                         except any as error:
                             error.args += ("Handling run-time error: %s" % error,)

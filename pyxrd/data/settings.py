@@ -13,6 +13,7 @@ from appdirs import user_data_dir, user_cache_dir, user_log_dir
 VERSION = __version__
 
 DEBUG = False
+FINALIZERS = [] #A list of callables that are called before the main function is left
 BGSHIFT = True
 
 LOG_FILENAME = os.path.join(user_log_dir('PyXRD'), 'errors.log')
@@ -32,16 +33,13 @@ RESIDUAL_METHOD = "Rp"
 ### Default wavelength if no Goniometer is available ###
 DEFAULT_LAMBDA = 0.154056
 
-### This is the global multiprocessing pool. It gets initialized on Runtime. ###
-POOL = None
-
 ### Cache settings ###
 # CAHCE: one of
 #  - FILE  -  Store results on-disk (also see CACHE_DIR in the DATA_DIRS list)
 #  - FILE_FETCH_ONLY (recommended) - Cache before a refinement starts, then only fetch results form disk.
 #  - MEMORY (not advisable) - Cache in-memory (can cause lock-ups on low-end PC's)
 #  - None - Do not cache, or try to use a cache.
-CACHE = "FILE" # _FETCH_ONLY"
+CACHE = None #"FILE" # _FETCH_ONLY"
 CACHE_SIZE = 500 * (1024 * 1024) # size of on-disk cache in bytes (10 Mb)
 GUI_MODE = True
 
@@ -179,7 +177,7 @@ PARSER_MODULES = [
 ### Runtime Settings Retrieval ###
 SETTINGS_APPLIED = False
 __apply_lock__ = False
-def apply_runtime_settings(no_gui=True, debug=False, pool=None):
+def apply_runtime_settings(no_gui=True, debug=False):
     """Apply runtime settings, can and needs to be called only once"""
     global __apply_lock__, SETTINGS_APPLIED
     if not __apply_lock__ and not SETTINGS_APPLIED:
@@ -188,12 +186,10 @@ def apply_runtime_settings(no_gui=True, debug=False, pool=None):
         GUI_MODE = not no_gui
 
         global DEBUG
-        global POOL
         global DATA_REG, DATA_DIRS, DATA_FILES
 
         # Set debug flag
         DEBUG = debug
-        POOL = pool
 
         # Setup data registry:
         import sys

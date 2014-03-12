@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 from pyxrd.generic.models import PyXRDLine, ChildModel
-from pyxrd.generic.calculations.statistics import Rp, derive
+from pyxrd.calculations.statistics import Rp, derive
 from pyxrd.mvc import PropIntel
 
 class Statistics(ChildModel):

@@ -9,8 +9,8 @@ from math import isnan
 
 from pyxrd.data import settings
 
-from pyxrd.generic.calculations.CSDS import calculate_distribution
-from pyxrd.generic.calculations.data_objects import CSDSData
+from pyxrd.calculations.CSDS import calculate_distribution
+from pyxrd.calculations.data_objects import CSDSData
 from pyxrd.generic.models import DataModel
 from pyxrd.generic.io import storables, Storable
 

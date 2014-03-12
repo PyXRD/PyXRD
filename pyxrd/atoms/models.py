@@ -16,8 +16,8 @@ import numpy as np
 from pyxrd.generic.io import storables, Storable, get_case_insensitive_glob
 from pyxrd.generic.models import DataModel
 from pyxrd.generic.models.mixins import CSVMixin
-from pyxrd.generic.calculations.data_objects import AtomTypeData, AtomData
-from pyxrd.generic.calculations.atoms import get_atomic_scattering_factor, get_structure_factor
+from pyxrd.calculations.data_objects import AtomTypeData, AtomData
+from pyxrd.calculations.atoms import get_atomic_scattering_factor, get_structure_factor
 
 @storables.register()
 class AtomType(DataModel, Storable, CSVMixin):

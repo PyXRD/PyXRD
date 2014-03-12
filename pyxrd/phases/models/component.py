@@ -13,8 +13,8 @@ from pyxrd.mvc.observers import ListObserver
 
 from pyxrd.generic.io import storables, Storable
 from pyxrd.generic.models import DataModel, HoldableSignal
-from pyxrd.generic.calculations.components import get_factors
-from pyxrd.generic.calculations.data_objects import ComponentData
+from pyxrd.calculations.components import get_factors
+from pyxrd.calculations.data_objects import ComponentData
 from pyxrd.generic.refinement.mixins import RefinementGroup
 
 from pyxrd.atoms.models import Atom

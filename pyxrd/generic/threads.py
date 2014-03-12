@@ -15,25 +15,21 @@ class CancellableThread(Thread):
     """
         Class for use by ThreadedTaskBox.
     """
-    def __init__(self, run_function, on_complete, params=None):
+    def __init__(self, run_function, on_complete, stop=None):
         Thread.__init__(self)
         self.setDaemon(True)
         self.run_function = run_function
-        self.params = params
         self.on_complete = on_complete
         # Shared flag, passed on to the run_function as 'stop' keyword
-        self.__stop = Event()
+        self.__stop = stop
+        if self.__stop is None: self.__stop = Event()
         # Internal flag, for checking wether the user cancelled or stopped.
         self.__cancel = Event()
 
     def run(self):
         try:
-            # Set up params and include the stop event
-            if self.params == None:
-                self.params = {}
-            self.params["stop"] = self.__stop
             # Tell the function to run
-            data = self.run_function(**self.params)
+            data = self.run_function(stop=self.__stop)
             # Return function results, if not cancelled
             if not self.__cancel.is_set():
                 self.on_complete(data)

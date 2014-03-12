@@ -7,7 +7,6 @@
 # To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/3.0/ or send
 # a letter to Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
 
-import types
 import gobject
 import gtk
 
@@ -15,6 +14,8 @@ from threading import Lock
 
 from pyxrd.generic.custom_math import round_sig
 from pyxrd.generic.threads import CancellableThread
+from pyxrd.generic import pool
+pool.get_pool()
 
 class ScaleEntry(gtk.HBox):
     """
@@ -23,7 +24,7 @@ class ScaleEntry(gtk.HBox):
     """
 
     __gsignals__ = {
-        'changed' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, []),
+        'changed' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, []), #@UndefinedVariable
     }
 
     @property
@@ -135,7 +136,7 @@ class ScaleEntry(gtk.HBox):
 
     pass # end of class
 
-gobject.type_register(ScaleEntry)
+gobject.type_register(ScaleEntry) #@UndefinedVariable
 
 class ThreadedTaskBox(gtk.Table):
     """
@@ -145,12 +146,12 @@ class ThreadedTaskBox(gtk.Table):
     """
 
     __gsignals__ = {
-        'complete' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
-        'cancelrequested' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)),
-        'stoprequested' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,))
+        'complete' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)), #@UndefinedVariable
+        'cancelrequested' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)), #@UndefinedVariable
+        'stoprequested' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, (gobject.TYPE_PYOBJECT,)) #@UndefinedVariable
     }
 
-    def __init__(self, run_function, gui_callback, params=None, cancelable=True):
+    def __init__(self, run_function, gui_callback, cancelable=True):
         """
             Create a ThreadedTaskBox
 
@@ -167,7 +168,6 @@ class ThreadedTaskBox(gtk.Table):
         self.gui_callback = gui_callback
         self.gui_timeout_id = None
         self.work_thread = None
-        self.params = params
 
         self.stop_lock = Lock()
         self.stopped = False
@@ -220,8 +220,9 @@ class ThreadedTaskBox(gtk.Table):
         self.spinner.start()
 
         # Create and start a thread to run the users task
-        # pass in a callback and the user's params
-        self.work_thread = CancellableThread(self.run_function, self.__on_complete, self.params)
+        # pass in a callback and the user's args
+        self.work_thread = CancellableThread(
+            self.run_function, self.__on_complete, stop=pool.pool_stop)
         self.work_thread.start()
 
         # create a thread to display the user feedback
@@ -246,7 +247,7 @@ class ThreadedTaskBox(gtk.Table):
             # tell the users function tostop if it's thread exists
             if self.work_thread is not None:
                 if cancel:
-                    self.work_thread.cancel()
+                    self.work_thread.kill()
                 else:
                     self.work_thread.stop()
                 if join: self.work_thread.join()
@@ -284,8 +285,8 @@ class ThreadedTaskBox(gtk.Table):
         # called when the widget is destroyed, attempts to clean up
         # the work thread and the pulse thread
         if self.work_thread is not None:
-            self.work_thread.cancel()
+            self.work_thread.kill()
 
     pass # end of class
 
-gobject.type_register(ThreadedTaskBox)
+gobject.type_register(ThreadedTaskBox) #@UndefinedVariable

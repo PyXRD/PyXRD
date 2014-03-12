@@ -9,31 +9,20 @@ import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-from itertools import izip
-from math import log, sqrt
-from multiprocessing.pool import AsyncResult
+from math import log
 
 import numpy as np
 import scipy
 
-from deap import creator, base, cma, tools
-
-# TODO integrate this in a single class somewhere...
-try:
-    from scoop import futures as pool
-    from scoop._types import Result as ScoopResult
-except ImportError:
-    logger.warning("Could not import SCOOP, falling back to multiprocessing pool!")
-    ScoopResult = object # make sure we don't get errors...
-    from pyxrd.data.settings import POOL as pool
+from deap import creator, base, cma, tools #@UnresolvedImport
 
 from .refine_run import RefineRun
-from .deap_utils import pyxrd_array, evaluate
+from .deap_utils import pyxrd_array, evaluate, AsyncEvaluatedAlgorithm, PyXRDParetoFront, FitnessMin
 
 # Default settings:
 NGEN = 100
 STAGN_NGEN = 10
-STAGN_TOL = 0.95
+STAGN_TOL = 0.001
 
 class Strategy(cma.StrategyOnePlusLambda):
     """
@@ -46,7 +35,7 @@ class Strategy(cma.StrategyOnePlusLambda):
 
     def __init__(self, centroid, sigma, **kwargs):
         if not "lambda_" in kwargs:
-            kwargs["lambda_"] = int(50 + min(3 * log(len(centroid)), 150)) #@UndefinedVariable
+            kwargs["lambda_"] = int(25 + min(3 * log(len(centroid)), 75)) #@UndefinedVariable
         super(Strategy, self).__init__(centroid, sigma, ** kwargs)
 
     def generate(self, ind_init):
@@ -62,7 +51,7 @@ class Strategy(cma.StrategyOnePlusLambda):
         for arr in arz:
             yield ind_init(arr)
 
-class Algorithm(object):
+class Algorithm(AsyncEvaluatedAlgorithm):
     """
         This algorithm implements the ask-tell model proposed in 
         [Colette2010]_, where ask is called `generate` and tell is called `update`.
@@ -70,10 +59,20 @@ class Algorithm(object):
         Modified (Mathijs Dumon) so it checks for stagnation.
     """
 
-    ngen = 100
+    @property
+    def ngen(self):
+        return self._ngen
+    @ngen.setter
+    def ngen(self, value):
+        self._ngen = value
+        logger.info("Setting ngen to %d" % value)
+    _ngen = 100
+
     gen = -1
     halloffame = None
+
     context = None
+
     toolbox = None
     stats = None
     stagn_ngen = None
@@ -83,13 +82,13 @@ class Algorithm(object):
     #--------------------------------------------------------------------------
     #    Initialization
     #--------------------------------------------------------------------------
-    def __init__(self, toolbox, ngen, halloffame, stats,
+    def __init__(self, toolbox, halloffame, stats, ngen=NGEN,
                          verbose=__debug__, stagn_ngen=STAGN_NGEN,
-                         stagn_tol=STAGN_TOL, context=None):
+                         stagn_tol=STAGN_TOL, context=None, stop=None):
         """
         :param toolbox: A :class:`~deap.base.Toolbox` that contains the evolution
                         operators.
-        :param ngen: The number of generation.
+        :param ngen: The number of generations.
         :param halloffame: A :class:`~deap.tools.ParetoFront` object that will
                            contain the best individuals.
         :param stats: A :class:`~deap.tools.Statistics` object that is updated
@@ -125,6 +124,8 @@ class Algorithm(object):
         self.stagn_tol = stagn_tol
         self.context = context
 
+        self._stop = stop
+
     #--------------------------------------------------------------------------
     #    Run method:
     #--------------------------------------------------------------------------
@@ -134,10 +135,20 @@ class Algorithm(object):
             column_names = ["gen", "evals", "best"]
             if self.stats is not None:
                 column_names += self.stats.functions.keys()
-            self.logbook = tools.Logbook() #@UndefinedVariable
+            self.logbook = tools.Logbook()
             self.logbook.header = column_names
 
-        for g in xrange(self.ngen): #@UnusedVariable
+        for gen in range(self.ngen):
+            if gen > 15:
+                logger.info("THIS CANNOT BE!! %d %d" % (gen, self.logbook.buffindex))
+            if self.logbook.buffindex > 15:
+                logger.info("THIS CANNOT BE 2!! %d %d" % (gen, self.logbook.buffindex))
+
+            # Check if the user has cancelled:
+            if self._user_cancelled():
+                logger.info("User cancelled execution, stopping ...")
+                break
+
             #ASK: Generate a new population:
             population = self._ask()
             #TELL: Update the strategy with the evaluated individuals
@@ -146,6 +157,7 @@ class Algorithm(object):
             self._record(population)
             #CHECK: whether we are stagnating:
             if self._is_stagnating():
+                logging.info("CMA: stagnation detected!")
                 break
 
         return self.context.best_solution, population
@@ -153,9 +165,10 @@ class Algorithm(object):
     #--------------------------------------------------------------------------
     #    Stagnation calls:
     #--------------------------------------------------------------------------
-    def _is_flat(self, yvals, xvals, tolerance=0.95):
+    def _is_flat(self, yvals, xvals, slope_tolerance=0.001):
         slope, intercept, r_value, p_value, std_err = scipy.stats.linregress(xvals, yvals) #@UndefinedVariable @UnusedVariable
-        return bool(p_value >= tolerance)
+        val = bool(abs(slope) <= slope_tolerance)
+        return val
 
     def _is_stagnating(self):
         self.context.status_message = "Checking for stagnation"
@@ -178,7 +191,7 @@ class Algorithm(object):
         self.gen += 1
         self.context.status_message = "Creating generation #%d" % (self.gen + 1)
         population = []
-        Algorithm.do_async_evaluation(population, self.toolbox)
+        self.do_async_evaluation(population)
         if self.halloffame is not None:
             self.halloffame.update(population)
 
@@ -190,7 +203,7 @@ class Algorithm(object):
 
     def _record(self, population):
         # Get the best solution so far:
-        best = self._get_best()
+        best = self.halloffame.get_best()
         best_f = best.fitness.values[0]
         pop_size = len(population)
 
@@ -212,56 +225,12 @@ class Algorithm(object):
             ("par%d" % i, float(val)) for i, val in enumerate(best)
         ])
 
-    def _get_best(self):
-        best_d = None
-        best_ind = None
-        for ind in self.halloffame:
-            d = 0.0
-            for f in ind.fitness.wvalues:
-                d += f ** 2
-            d = sqrt(d)
-            if best_d is None or d < best_d:
-                best_d = d
-                best_ind = ind
-        return best_ind
-
     #--------------------------------------------------------------------------
     #    Async calls:
     #--------------------------------------------------------------------------
-    @staticmethod
-    def submit_async_call(func, *args):
-        """ Utility that passes function calls either to SCOOP (if it's available)
-        or down to a multiprocessing call."""
-        if hasattr(pool, "submit"): # SCOOP
-            result = pool.submit(func, args)
-        elif hasattr(pool, "apply_async"): # Regular multiprocessing pool
-            result = pool.apply_async(func, args)
-        else: # No parallelization:
-            result = func(*args)
-        return result
-
-    @staticmethod
-    def fetch_async_result(result):
-        """ Utility that parses the result object returned by submit_async_call"""
-        if isinstance(result, AsyncResult): # Multiprocessing pool result object
-            return result.get()
-        elif isinstance(result, ScoopResult): # SCOOP result object
-            return result.result()
-        else:
-            return result
-
-    @staticmethod
-    def do_async_evaluation(population, toolbox):
-        """ Utility that combines a submit and fetch cycle in a single
-        function call"""
-        results = []
-        for ind in toolbox.generate():
-            result = Algorithm.submit_async_call(toolbox.evaluate, ind)
-            population.append(ind)
-            results.append(result)
-        for ind, result in izip(population, results):
-            ind.fitness.values = Algorithm.fetch_async_result(result)
-        del results
+    def do_async_evaluation(self, population):
+        super(Algorithm, self).do_async_evaluation(
+            population, self.toolbox.generate, self.toolbox.evaluate)
 
     pass #end of class
 
@@ -275,70 +244,80 @@ class RefineCMAESRun(RefineRun):
     options = [
         ('Maximum # of generations', 'ngen', int, NGEN, [1, 10000]),
         ('Minimum # of generations', 'stagn_ngen', int, STAGN_NGEN, [1, 10000]),
-        ('Fitness stagnation tolerance', 'stagn_tol', float, STAGN_TOL, [0., 100.]),
+        ('Fitness slope tolerance', 'stagn_tol', float, STAGN_TOL, [0., 100.]),
     ]
 
     def _individual_creator(self, context, num_weights, bounds):
-        creator.create("FitnessMin", base.Fitness, weights=(-1.0,) * num_weights)
         creator.create(
             "Individual", pyxrd_array,
-            fitness=creator.FitnessMin, # @UndefinedVariable
+            fitness=FitnessMin, # @UndefinedVariable
             context=context,
             min_bounds=bounds[:, 0].copy(),
             max_bounds=bounds[:, 1].copy(),
         )
 
         def create_individual(lst):
-            arr = np.array(lst).clip(bounds[:, 0], bounds[:, 1])
+            arr = np.array(lst).clip(bounds[:, 0], bounds[:, 1]) #@UndefinedVariable
             return creator.Individual(arr) # @UndefinedVariable
 
         return create_individual
 
     def _create_stats(self):
         stats = tools.Statistics(lambda ind: ind.fitness.values)
-        stats.register("avg", np.mean, axis=0)
-        stats.register("std", np.std, axis=0)
-        stats.register("min", np.min, axis=0)
-        stats.register("max", np.max, axis=0)
+        stats.register("avg", np.mean, axis=0) #@UndefinedVariable
+        stats.register("std", np.std, axis=0) #@UndefinedVariable
+        stats.register("min", np.min, axis=0) #@UndefinedVariable
+        stats.register("max", np.max, axis=0) #@UndefinedVariable
         return stats
 
-    def run(self, context, ngen=NGEN, stagn_ngen=STAGN_NGEN, stagn_tol=STAGN_TOL, **kwargs):
+    _has_been_setup = False
+    def _setup(self, context, ngen=NGEN, stagn_ngen=STAGN_NGEN, stagn_tol=STAGN_TOL, **kwargs):
+        if not self._has_been_setup:
+            logger.info("Setting up the DEAP CMA-ES refinement algorithm (ngen=%d)" % ngen)
 
-        logger.info("Setting up the DEAP CMA-ES refinement algorithm")
+            # Process some general stuff:
+            bounds = np.array(context.ranges) #@UndefinedVariable
+            num_weights = len(context.mixture.specimens) + 1
+            create_individual = self._individual_creator(context, num_weights, bounds)
 
-        # Process some general stuff:
-        bounds = np.array(context.ranges)
-        num_weights = len(context.mixture.specimens) + 1
-        create_individual = self._individual_creator(context, num_weights, bounds)
+            # Setup strategy:
+            centroid = create_individual(context.initial_solution)
+            sigma = np.array(abs(bounds[:, 0] - bounds[:, 1]) / 20.0) #@UndefinedVariable
+            strat_kwargs = {}
+            if "lambda_" in kwargs:
+                strat_kwargs["lambda_"] = kwargs.pop("lambda_")
+            strategy = Strategy(
+                centroid=centroid, sigma=sigma,
+                stop=self._stop, **strat_kwargs
+            )
 
-        # Setup strategy:
-        centroid = create_individual(context.initial_solution)
-        sigma = np.array(abs(bounds[:, 0] - bounds[:, 1]) / 20.0)
-        strategy = Strategy(centroid=centroid, sigma=sigma)
+            # Toolbox setup:
+            toolbox = base.Toolbox()
+            toolbox.register("evaluate", evaluate)
+            toolbox.register("generate", strategy.generate, create_individual)
+            toolbox.register("update", strategy.update)
 
-        # Toolbox setup:
-        toolbox = base.Toolbox()
-        toolbox.register("evaluate", evaluate)
-        toolbox.register("generate", strategy.generate, create_individual)
-        toolbox.register("update", strategy.update)
-        if pool is not None:
-            toolbox.register("map", lambda f, i: pool.map(f, i, 10))
+            # Hall of fame & stats:
+            logger.info("Creating hall-off-fame and statistics")
+            halloffame = PyXRDParetoFront(similar=lambda a1, a2: np.all(a1 == a2)) #@UndefinedVariable
+            stats = self._create_stats()
 
-        # Hall of fame & stats:
-        logger.info("Creating hall-off-fame and statistics")
-        halloffame = tools.ParetoFront()
-        stats = self._create_stats()
+            # Create algorithm
+            self.algorithm = Algorithm(
+                toolbox, halloffame, stats, ngen=ngen,
+                stagn_ngen=stagn_ngen, stagn_tol=stagn_tol, context=context, stop=self._stop)
 
-        # Create algorithm
-        algorithm = Algorithm(
-            toolbox, ngen, halloffame, stats,
-            stagn_ngen=stagn_ngen, stagn_tol=stagn_tol, context=context)
+            self._has_been_setup = True
+        return self.algorithm
 
+    def run(self, context, **kwargs):
+        logger.info("CMA-ES run invoked with %s" % kwargs)
+        algorithm = self._setup(context, **kwargs)
         # Get this show on the road:
         logger.info("Running the CMA-ES algorithm...")
         context.status = "running"
         context.status_message = "Running CMA-ES algorithm ..."
-        algorithm.run() # returns (best, population) tuple
+        algorithm.run()
         context.status_message = "CMA-ES finished ..."
         context.status = "finished"
 

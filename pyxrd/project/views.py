@@ -19,9 +19,9 @@ class ProjectView(DialogView):
 
     widget_groups = {
         'full_mode_only': [
-            "project_display_calc_color",
+            "algn_calc_color",
             "lbl_calccolor",
-            "project_display_calc_lw",
+            "algn_calc_lw",
             "calc_lw_lbl"
         ]
     }
@@ -55,6 +55,9 @@ class ProjectView(DialogView):
 
     def set_x_range_sensitive(self, sensitive):
         self["box_manual_xrange"].set_sensitive(sensitive)
+
+    def set_y_range_sensitive(self, sensitive):
+        self["box_manual_yrange"].set_sensitive(sensitive)
 
     def set_selection_state(self, value):
         if value is None:

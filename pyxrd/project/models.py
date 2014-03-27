@@ -48,13 +48,19 @@ class Project(DataModel, Storable):
             PropIntel(name="display_calc_lw", label="Calculated linewidth", data_type=int, widget_type="spin", **PropIntel.ST_WID),
             PropIntel(name="display_exp_lw", label="Experimental linewidth", data_type=int, widget_type="spin", **PropIntel.ST_WID),
             PropIntel(name="display_plot_offset", label="Pattern offset", data_type=float, widget_type="float_entry", **PropIntel.ST_WID),
-            PropIntel(name="display_group_by", label="Group patterns by", data_type=int, **PropIntel.ST_WID),
+            PropIntel(name="display_group_by", label="Group patterns by", data_type=int, widget_type="spin", **PropIntel.ST_WID),
             PropIntel(name="display_label_pos", label="Default label position", data_type=float, widget_type="float_entry", **PropIntel.ST_WID),
-            OptionPropIntel(name="axes_xscale", label="X scale", data_type=int, options=settings.AXES_XSCALES, **PropIntel.ST_WID),
-            PropIntel(name="axes_xmin", label="min. [°2T]", data_type=float, widget_type="float_entry", **PropIntel.ST_WID),
-            PropIntel(name="axes_xmax", label="max. [°2T]", data_type=float, widget_type="float_entry", **PropIntel.ST_WID),
+            OptionPropIntel(name="axes_xlimit", label="X limit", data_type=int, options=settings.AXES_XLIMITS, **PropIntel.ST_WID),
+            PropIntel(name="axes_xmin", label="min. [°2T]", data_type=float, widget_type="spin", **PropIntel.ST_WID),
+            PropIntel(name="axes_xmax", label="max. [°2T]", data_type=float, widget_type="spin", **PropIntel.ST_WID),
             PropIntel(name="axes_xstretch", label="Stretch X-axis to fit window", data_type=bool, **PropIntel.ST_WID),
-            OptionPropIntel(name="axes_yscale", label="Y scale", data_type=int, options=settings.AXES_YSCALES, **PropIntel.ST_WID),
+
+            #OptionPropIntel(name="axes_yscale", label="Y scale", data_type=int, options=settings.AXES_YSCALES, **PropIntel.ST_WID),
+            OptionPropIntel(name="axes_ynormalize", label="Y scaling", data_type=int, options=settings.AXES_YNORMALIZERS, **PropIntel.ST_WID),
+            OptionPropIntel(name="axes_ylimit", label="Y limit", data_type=int, options=settings.AXES_YLIMITS, **PropIntel.ST_WID),
+            PropIntel(name="axes_ymin", label="min. [counts]", data_type=float, widget_type="spin", **PropIntel.ST_WID),
+            PropIntel(name="axes_ymax", label="max. [counts]", data_type=float, widget_type="spin", **PropIntel.ST_WID),
+
             PropIntel(name="axes_yvisible", label="Y-axis visible", data_type=bool, **PropIntel.ST_WID),
             PropIntel(name="specimens", label="Specimens", data_type=object, widget_type="object_list_view", class_type=Specimen, **PropIntel.ST_WID),
             PropIntel(name="phases", data_type=object, class_type=Phase, **PropIntel.ST),
@@ -109,6 +115,18 @@ class Project(DataModel, Storable):
         self._axes_yvisible = bool(value)
         self.visuals_changed.emit()
 
+    _axes_ymin = settings.AXES_MANUAL_YMIN
+    def get_axes_ymin(self): return self._axes_ymin
+    def set_axes_ymin(self, value):
+        self._axes_ymin = max(float(value), 0.0)
+        self.visuals_changed.emit()
+
+    _axes_ymax = settings.AXES_MANUAL_YMAX
+    def get_axes_ymax(self): return self._axes_ymax
+    def set_axes_ymax(self, value):
+        self._axes_ymax = max(float(value), 0.0)
+        self.visuals_changed.emit()
+
     _display_plot_offset = settings.PLOT_OFFSET
     def get_display_plot_offset(self): return self._display_plot_offset
     def set_display_plot_offset(self, value):
@@ -139,16 +157,22 @@ class Project(DataModel, Storable):
         self._display_label_pos = float(value)
         self.visuals_changed.emit()
 
-    _axes_xscale = settings.AXES_XSCALE
-    def get_axes_xscale(self): return self._axes_xscale
-    def set_axes_xscale(self, value):
-        self._axes_xscale = value
+    _axes_xlimit = settings.AXES_XLIMIT
+    def get_axes_xlimit(self): return self._axes_xlimit
+    def set_axes_xlimit(self, value):
+        self._axes_xlimit = value
         self.visuals_changed.emit()
 
-    _axes_yscale = settings.AXES_YSCALE
-    def get_axes_yscale(self): return self._axes_yscale
-    def set_axes_yscale(self, value):
-        self._axes_yscale = value
+    _axes_ynormalize = settings.AXES_YNORMALIZE
+    def get_axes_ynormalize(self): return self._axes_ynormalize
+    def set_axes_ynormalize(self, value):
+        self._axes_ynormalize = value
+        self.visuals_changed.emit()
+
+    _axes_ylimit = settings.AXES_YLIMIT
+    def get_axes_ylimit(self): return self._axes_ylimit
+    def set_axes_ylimit(self, value):
+        self._axes_ylimit = value
         self.visuals_changed.emit()
 
     _display_marker_align = settings.MARKER_ALIGN
@@ -232,13 +256,16 @@ class Project(DataModel, Storable):
                 display_group_by: the number of patterns to group (having no offset)
                 display_label_pos: the relative position  from the pattern offset
                  for pattern labels as a fraction of the patterns intensity
-                axes_xscale: what type of scale to use for X-axis, automatic or manual
-                axes_xmin: the manual lower limit for the X-axis
-                axes_xmax: the manual upper limit for the X-axis
+                axes_xlimit: whether to use automatic or manual Y limits
+                axes_xmin: the manual lower limit for the X-axis (in 2theta)
+                axes_xmax: the manual upper limit for the X-axis (in 2theta)
                 axes_xstretch: whether or not to stretch the X-axis over the entire
                  available display
-                axes_yscale: what type of y-axis to use: raw counts, single or
+                axes_ynormalize: what type of y-axis to use: raw counts, single or
                  multi-normalized units
+                axes_ylimit: whether to use automatic or manual Y limits
+                axes_ymin: the manual lower limit for the Y-axis (in counts)
+                axes_ymax: the manual upper limit for the Y-axis (in counts)
                 axes_yvisible: whether or not the y-axis should be shown
                 atom_types: a list of AtomTypes
                 phases: a list of Phases
@@ -261,9 +288,12 @@ class Project(DataModel, Storable):
             Deprecated (but still supported) keyword arguments:
                 goniometer: the project-level goniometer, is passed on to the
                  specimens
+                axes_xscale: deprecated alias for axes_xlimits
+                axes_yscale: deprecated alias for axes_ynormalize
         """
         my_kwargs = self.pop_kwargs(kwargs,
             "goniometer", "data_goniometer", "data_atom_types", "data_phases",
+            "axes_yscale", "axes_xscale",
             *[names[0] for names in type(self).Meta.get_local_storable_properties()]
         )
         super(Project, self).__init__(*args, **kwargs)
@@ -290,12 +320,15 @@ class Project(DataModel, Storable):
                 self.display_group_by = self.get_kwarg(kwargs, self.display_group_by, "display_group_by")
                 self.display_label_pos = self.get_kwarg(kwargs, self.display_label_pos, "display_label_pos")
 
-                self.axes_xscale = self.get_kwarg(kwargs, self.axes_xscale, "axes_xscale")
+                self.axes_xlimit = self.get_kwarg(kwargs, self.axes_xlimit, "axes_xlimit", "axes_xscale")
                 self.axes_xmin = self.get_kwarg(kwargs, self.axes_xmin, "axes_xmin")
                 self.axes_xmax = self.get_kwarg(kwargs, self.axes_xmax, "axes_xmax")
                 self.axes_xstretch = self.get_kwarg(kwargs, self.axes_xstretch, "axes_xstretch")
-                self.axes_yscale = self.get_kwarg(kwargs, self.axes_yscale, "axes_yscale")
+                self.axes_ylimit = self.get_kwarg(kwargs, self.axes_ylimit, "axes_ylimit")
+                self.axes_ynormalize = self.get_kwarg(kwargs, self.axes_ynormalize, "axes_ynormalize", "axes_yscale")
                 self.axes_yvisible = self.get_kwarg(kwargs, self.axes_yvisible, "axes_yvisible")
+                self.axes_ymin = self.get_kwarg(kwargs, self.axes_ymin, "axes_ymin")
+                self.axes_ymax = self.get_kwarg(kwargs, self.axes_ymax, "axes_ymax")
 
                 goniometer = None
                 goniometer_kwargs = self.get_kwarg(kwargs, None, "goniometer", "data_goniometer")
@@ -478,20 +511,20 @@ class Project(DataModel, Storable):
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------
-    def get_scale_factor(self, specimen):
+    def get_scale_factor(self, specimen=None):
         """
         Get the factor with which to scale raw data and the scaled offset
                 
         :rtype: tuple containing the scale factor and the (scaled) offset
         """
-        if self.axes_yscale == 0:
-            return (1.0 / (self.get_max_intensity() or 1.0), self.display_offset)
-        elif self.axes_yscale == 1:
-            return (1.0 / (specimen.max_intensity or 1.0), self.display_offset)
-        elif self.axes_yscale == 2:
-            return (1.0, self.display_offset * self.get_max_intensity())
+        if self.axes_ynormalize == 0 or (self.axes_ynormalize == 1 and specimen is None):
+            return (1.0 / (self.get_max_intensity() or 1.0), 1.0)
+        elif self.axes_ynormalize == 1:
+            return (1.0 / (specimen.max_intensity or 1.0), 1.0)
+        elif self.axes_ynormalize == 2:
+            return (1.0, self.get_max_intensity())
         else:
-            raise ValueError, "Wrong value for 'axes_yscale' in %s: %d; should be 0, 1 or 2" % (self, self.axes_yscale)
+            raise ValueError, "Wrong value for 'axes_ysnormalize' in %s: %d; should be 0, 1 or 2" % (self, self.axes_yscale)
 
     def get_max_intensity(self):
         max_intensity = 0

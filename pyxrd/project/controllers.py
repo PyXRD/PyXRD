@@ -167,9 +167,13 @@ class ProjectController(ObjectListStoreController):
         self.parent.update_title()
         return
 
-    @Controller.observe("axes_xscale", assign=True)
-    def notif_xscale_toggled(self, model, prop_name, info):
-        self.view.set_x_range_sensitive(self.model.axes_xscale == 1)
+    @Controller.observe("axes_xlimit", assign=True)
+    def notif_xlimit_toggled(self, model, prop_name, info):
+        self.view.set_x_range_sensitive(self.model.axes_xlimit == 1)
+
+    @Controller.observe("axes_ylimit", assign=True)
+    def notif_ylimit_toggled(self, model, prop_name, info):
+        self.view.set_y_range_sensitive(self.model.axes_ylimit == 1)
 
     @Controller.observe("layout_mode", assign=True)
     def notif_layout_mode(self, model, prop_name, info):

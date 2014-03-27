@@ -53,19 +53,28 @@ DEFAULT_LAYOUTS = {
 AXES_MANUAL_XMIN = 0.0
 AXES_MANUAL_XMAX = 70.0
 AXES_XSTRETCH = False
-AXES_YVISIBLE = False
 
-AXES_XSCALE = 0
-AXES_XSCALES = {
-    0: "Auto",
+AXES_XLIMIT = 0
+AXES_XLIMITS = {
+    0: "Automatic",
     1: "Manual"
 }
 
-AXES_YSCALE = 0
-AXES_YSCALES = {
+AXES_MANUAL_YMIN = 0.0
+AXES_MANUAL_YMAX = 0.0
+AXES_YVISIBLE = False
+
+AXES_YNORMALIZE = 0
+AXES_YNORMALIZERS = {
     0: "Multi normalised",
     1: "Single normalised",
-    2: "Unchanged raw counts"
+    2: "Unchanged raw counts",
+}
+
+AXES_YLIMIT = 0
+AXES_YLIMITS = {
+    0: "Automatic",
+    1: "Manual"
 }
 
 EXPERIMENTAL_COLOR = "#000000"

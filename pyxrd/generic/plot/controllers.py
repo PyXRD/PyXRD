@@ -57,7 +57,7 @@ class PlotController(DialogMixin):
 
     def setup_figure(self):
         style = gtk.Style()
-        self.figure = Figure(dpi=72, edgecolor=str(style.bg[2]), facecolor=str(style.bg[3]))
+        self.figure = Figure(dpi=72, edgecolor=str(style.bg[2]), facecolor=str(style.bg[0]))
         self.figure.subplots_adjust(hspace=0.0, wspace=0.0)
 
     def setup_canvas(self):
@@ -266,14 +266,27 @@ class MainPlotController (PlotController):
 
         self.plot.set_ylim(bottom=0, auto=True)
 
-        # xaxis = self.plot.get_xaxis()
+        # Adjust limits if needed:
         xmin, xmax = 0.0, 20.0
-        if project == None or project.axes_xscale == 0:
+        if project is None or project.axes_xlimit == 0:
             xmin, xmax = self.plot.get_xlim()
             xmin, xmax = max(xmin, 0.0), max(xmax, 20.0)
         else:
             xmin, xmax = max(project.axes_xmin, 0.0), project.axes_xmax
         self.plot.set_xlim(left=xmin, right=xmax, auto=False)
+
+        if project is not None and project.axes_ylimit != 0:
+            scale, _ = project.get_scale_factor()
+
+            ymin = max(project.axes_ymin, 0.0)
+            ymax = project.axes_ymax
+            if ymax <= 0:
+                ymax = self.plot.get_ylim()[1]
+            else:
+                ymax = ymax * scale
+            ymin = ymin * scale
+
+            self.plot.set_ylim(bottom=ymin, top=ymax, auto=False)
 
     # ------------------------------------------------------------
     #      Plot position and size calculations

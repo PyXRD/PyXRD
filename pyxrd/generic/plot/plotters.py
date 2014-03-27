@@ -34,7 +34,7 @@ def plot_marker_text(project, marker, offset, marker_scale, base_y, axes):
     """
     text = getattr(marker, "__plot_text", None)
     within_range = bool(
-        project.axes_xscale == 0 or
+        project.axes_xlimit == 0 or
         (marker.position >= project.axes_xmin and
         marker.position <= project.axes_xmax)
     )
@@ -77,7 +77,7 @@ def plot_marker_line(project, marker, offset, base_y, axes):
     """
     line = getattr(marker, "__plot_line", None)
     within_range = bool(
-        project.axes_xscale == 0 or
+        project.axes_xlimit == 0 or
         (marker.position >= project.axes_xmin and
         marker.position <= project.axes_xmax)
     )
@@ -491,26 +491,11 @@ def plot_specimens(project, specimens, plot_left, axes):
         Plots multiple specimens within the context of a project
     """
 
-    scale = 1.0
-    scale_unit = 1.0
-
     base_offset = project.display_plot_offset
     base_height = 1.0
     label_offset = project.display_label_pos
 
-    max_intensity = project.get_max_intensity()
-    if project.axes_yscale == 0:
-        # Normalize all patterns using the global maximum intensity
-        scale = (1.0 / max_intensity) if max_intensity != 0 else 1.0
-        scale_unit = 1.0
-    elif project.axes_yscale == 1:
-        # Normalize all patterns using their own maximum intensity
-        # scale = ... to be calculated in the for loop
-        scale_unit = 1.0
-    elif project.axes_yscale == 2:
-        # Plot raw counts, no normalization
-        scale = 1.0
-        scale_unit = max_intensity
+    scale, scale_unit = project.get_scale_factor()
 
     labels = list()
     current_y_pos = 0
@@ -519,12 +504,12 @@ def plot_specimens(project, specimens, plot_left, axes):
 
     ylim = 0 # used to keep track of maximum y-value, for a tight y-axis
 
-    for i, specimen in enumerate(specimens):
+    for _, specimen in enumerate(specimens):
 
         spec_max_intensity = float(specimen.max_intensity)
 
         # single specimen normalization:
-        if project.axes_yscale == 1:
+        if project.axes_ynormalize == 1:
             scale = (1.0 / spec_max_intensity) if spec_max_intensity != 0.0 else 1.0
 
         spec_y_offset = specimen.display_vshift * scale_unit

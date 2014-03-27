@@ -85,13 +85,17 @@ class RefinementResultsController(DialogController):
             density=density
         )
 
+    def clear_images(self):
+        self.parspace_gen.clear_image(figure=self.view.figure)
+
     pass # end of class
 
 class RefinementController(DialogController):
 
     auto_adapt_included = [
         "refine_method",
-        "refinables"
+        "refinables",
+        "make_psp_plots",
     ]
 
     @property
@@ -337,7 +341,8 @@ class RefinementController(DialogController):
 
     def on_complete(self, context, *args, **kwargs):
         self.model.refiner.context.status_message = "Generating parameter space plots..."
-        self.results_controller.generate_images()
+        if self.model.make_psp_plots:
+            self.results_controller.generate_images()
         self.results_view.present()
         self.view.hide()
 
@@ -363,7 +368,8 @@ class EditMixtureController(BaseController):
 
     auto_adapt_excluded = [
         "refine_method",
-        "refinables"
+        "refinables",
+        "make_psp_plots"
     ]
 
     ref_view = None

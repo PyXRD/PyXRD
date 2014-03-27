@@ -89,6 +89,10 @@ class ParameterSpaceGenerator(object):
             density=density
         )
 
+    def clear_image(self, figure):
+        figure.clear()
+        figure.text(0.5, 0.5, "Interpolation Error", va="center", ha="center")
+
     def plot_images(self, figure, centroid, labels, density=200, smooth=0.5):
         """
             Generate the parameter space plots

@@ -9,6 +9,7 @@ from pyxrd.mvc import PropIntel
 
 from pyxrd.generic.mathtext_support import mt_range
 from pyxrd.generic.io import storables
+from pyxrd.generic.utils import not_none
 
 from .base_models import _AbstractProbability
 from pyxrd.probabilities.models.properties import ProbabilityProperty
@@ -75,11 +76,11 @@ class R1G2Model(_AbstractProbability):
     # ------------------------------------------------------------
     #      Initialization and other internals
     # ------------------------------------------------------------
-    def setup(self, W1=0.25, P11_or_P22=0.5, inherit_W1=False, inherit_P11_or_P22=False, **kwargs):
+    def setup(self, W1=0.75, P11_or_P22=0.5, inherit_W1=False, inherit_P11_or_P22=False, **kwargs):
         _AbstractProbability.setup(self, R=1)
-        self.W1 = W1
+        self.W1 = not_none(W1, 0.75)
         self.inherit_W1 = inherit_W1
-        self.P11_or_P22 = P11_or_P22
+        self.P11_or_P22 = not_none(P11_or_P22, 0.5)
         self.inherit_P11_or_P22 = inherit_P11_or_P22
 
     # ------------------------------------------------------------
@@ -191,17 +192,17 @@ class R1G3Model(_AbstractProbability):
             inherit_W1=False, inherit_P11_or_P22=False, inherit_G1=False,
             inherit_G2=False, inherit_G3=False, inherit_G4=False, **kwargs):
         _AbstractProbability.setup(self, R=1)
-        self.W1 = W1
+        self.W1 = not_none(W1, 0.8)
         self.inherit_W1 = bool(inherit_W1)
-        self.P11_or_P22 = P11_or_P22
+        self.P11_or_P22 = not_none(P11_or_P22, 0.7)
         self.inherit_P11_or_P22 = bool(inherit_P11_or_P22)
-        self.G1 = G1
+        self.G1 = not_none(G1, 0.7)
         self.inherit_G1 = bool(inherit_G1)
-        self.G2 = G2
+        self.G2 = not_none(G2, 0.7)
         self.inherit_G2 = bool(inherit_G2)
-        self.G3 = G3
+        self.G3 = not_none(G3, 0.7)
         self.inherit_G3 = bool(inherit_G3)
-        self.G4 = G4
+        self.G4 = not_none(G4, 0.7)
         self.inherit_G4 = bool(inherit_G4)
 
     # ------------------------------------------------------------
@@ -401,29 +402,29 @@ class R1G4Model(_AbstractProbability):
             inherit_G11=False, inherit_G12=False, inherit_G21=False,
             inherit_G22=False, inherit_G31=False, inherit_G32=False, **kwargs):
         _AbstractProbability.setup(self, R=1)
-        self.W1 = W1
+        self.W1 = not_none(W1, 0.6)
         self.inherit_W1 = inherit_W1
-        self.P11_or_P22 = P11_or_P22
+        self.P11_or_P22 = not_none(P11_or_P22, 0.25)
         self.inherit_P11_or_P22 = inherit_P11_or_P22
-        self.R1 = R1
+        self.R1 = not_none(R1, 0.5)
         self.inherit_R1 = inherit_R1
-        self.R2 = R2
+        self.R2 = not_none(R2, 0.5)
         self.inherit_R2 = inherit_R2
-        self.G1 = G1
+        self.G1 = not_none(G1, 0.5)
         self.inherit_G1 = inherit_G1
-        self.G2 = G2
+        self.G2 = not_none(G2, 0.4)
         self.inherit_G2 = inherit_G2
-        self.G11 = G11
+        self.G11 = not_none(G11, 0.5)
         self.inherit_G11 = inherit_G11
-        self.G12 = G12
+        self.G12 = not_none(G12, 0.2)
         self.inherit_G12 = inherit_G12
-        self.G21 = G21
+        self.G21 = not_none(G21, 0.8)
         self.inherit_G21 = inherit_G21
-        self.G22 = G22
+        self.G22 = not_none(G22, 0.75)
         self.inherit_G22 = inherit_G22
-        self.G31 = G31
+        self.G31 = not_none(G31, 0.7)
         self.inherit_G31 = inherit_G31
-        self.G32 = G32
+        self.G32 = not_none(G32, 0.5)
         self.inherit_G32 = inherit_G32
 
 

@@ -17,7 +17,6 @@ display = gtk.gdk.display_get_default()
 screen = display.get_default_screen()
 dpi = screen.get_resolution() or 96
 
-
 def create_pb_from_mathtext(text, align='center', weight='heavy', color='b', style='normal'):
     global pbmt_cache
     global dpi
@@ -35,6 +34,7 @@ def create_pb_from_mathtext(text, align='center', weight='heavy', color='b', sty
         rcParams["font.weight"] = weight
         rcParams["text.color"] = color
         rcParams["font.style"] = style
+        
         # Create parser and load png fragments
         parser = mathtext.MathTextParser("Bitmap")
         for part in parts:

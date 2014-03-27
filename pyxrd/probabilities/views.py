@@ -94,7 +94,7 @@ class IndependentsView(BaseView, HasChildView, ProbabilityViewMixin):
 
             for i, prop in enumerate(self.props):
 
-                new_lbl = self.create_mathtext_widget(prop.math_label)
+                new_lbl = self.create_mathtext_widget(prop.math_label, prop.label)
 
                 new_inp = ScaleEntry(lower=prop.minimum, upper=prop.maximum, enforce_range=True)
                 new_inp.set_tooltip_text(prop.label)

@@ -8,6 +8,7 @@
 from pyxrd.mvc import PropIntel
 from pyxrd.generic.mathtext_support import mt_range
 from pyxrd.generic.io import storables
+from pyxrd.generic.utils import not_none
 
 from .base_models import _AbstractProbability
 from pyxrd.probabilities.models.properties import ProbabilityProperty
@@ -52,16 +53,16 @@ class R2G2Model(_AbstractProbability):
     class Meta(_AbstractProbability.Meta):
         store_id = "R2G2Model"
         ind_properties = [
-            PropIntel(name="W1", label="W1", math_label=r"$W_1$",
+            PropIntel(name="W1", label="W1 (> 0.5)", math_label=r"$W_1$",
                 stor_name="_W1", inh_name="inherit_W1", inh_from="parent.based_on.probabilities",
                 is_independent=True, # flag for the view creation
-                minimum=0.0, maximum=1.0, data_type=float, **PropIntel.REF_ST_WID),
-            PropIntel(name="P112_or_P211", label="P112_or_P211",
+                minimum=0.5, maximum=1.0, data_type=float, **PropIntel.REF_ST_WID),
+            PropIntel(name="P112_or_P211", label="P112 (W1 < 2/3) or\nP211 (W1 > 2/3)",
                 stor_name="_P112_or_P211", inh_name="inherit_P112_or_P211",
                  inh_from="parent.based_on.probabilities",
                 is_independent=True, # flag for the view creation
                 math_label=r"$P_{112} %s$ or $\newlineP_{211} %s$" % (
-                    mt_range(0.0, "W_1", 2.0 / 3.0),
+                    mt_range(1.0 / 2.0, "W_1", 2.0 / 3.0),
                     mt_range(2.0 / 3.0, "W_1", 1.0)),
                 minimum=0.0, maximum=1.0, data_type=float, **PropIntel.REF_ST_WID),
             PropIntel(name="P21", label="P21", math_label=r"$P_{21}$",
@@ -110,13 +111,13 @@ class R2G2Model(_AbstractProbability):
             inherit_P21=False, inherit_P122_or_P221=False, **kwargs):
         _AbstractProbability.setup(self, R=2)
         with self.data_changed.hold():
-            self.W1 = W1
+            self.W1 = not_none(W1, 0.75)
             self.inherit_W1 = inherit_W1
-            self.P112_or_P211 = P112_or_P211
+            self.P112_or_P211 = not_none(P112_or_P211, 0.75)
             self.inherit_P112_or_P211 = inherit_P112_or_P211
-            self.P21 = P21
+            self.P21 = not_none(P21, 0.75)
             self.inherit_P21 = inherit_P21
-            self.P122_or_P221 = P122_or_P221
+            self.P122_or_P221 = not_none(P122_or_P221, 0.75)
             self.inherit_P122_or_P221 = inherit_P122_or_P221
 
     # ------------------------------------------------------------
@@ -232,11 +233,11 @@ class R2G3Model(_AbstractProbability):
     class Meta(_AbstractProbability.Meta):
         store_id = "R2G3Model"
         ind_properties = [
-            PropIntel(name="W1", label="W1", math_label=r"$W_1$",
+            PropIntel(name="W1", label="W1 (> 0.5)", math_label=r"$W_1$",
                 stor_name="_W1", inh_name="inherit_W1", inh_from="parent.based_on.probabilities",
                 is_independent=True, # flag for the view creation
-                minimum=0.0, maximum=1.0, data_type=float, **PropIntel.REF_ST_WID),
-            PropIntel(name="P111_or_P212", label="P111_or_P212",
+                minimum=0.5, maximum=1.0, data_type=float, **PropIntel.REF_ST_WID),
+            PropIntel(name="P111_or_P212", label="P111 (W1 < 2/3) or\nP212 (W1 > 2/3)",
                 stor_name="_P111_or_P212", inh_name="inherit_P111_or_P212",
                 inh_from="parent.based_on.probabilities",
                 is_independent=True, # flag for the view creation
@@ -276,43 +277,44 @@ class R2G3Model(_AbstractProbability):
     _G = 3
     twothirds = 2.0 / 3.0
 
-    W1 = ProbabilityProperty(default=0.75, minimum=0.5, clamp=True, cast_to=float)
+    W1 = ProbabilityProperty(default=0.8, minimum=0.5, clamp=True, cast_to=float)
     inherit_W1 = ProbabilityProperty(default=False, cast_to=bool)
 
-    P111_or_P212 = ProbabilityProperty(default=0.0, clamp=True, cast_to=float)
+    P111_or_P212 = ProbabilityProperty(default=0.9, clamp=True, cast_to=float)
     inherit_P111_or_P212 = ProbabilityProperty(default=False, cast_to=bool)
 
-    G1 = ProbabilityProperty(default=0.0, clamp=True, cast_to=float)
+    G1 = ProbabilityProperty(default=0.9, clamp=True, cast_to=float)
     inherit_G1 = ProbabilityProperty(default=False, cast_to=bool)
 
-    G2 = ProbabilityProperty(default=0.0, clamp=True, cast_to=float)
+    G2 = ProbabilityProperty(default=0.9, clamp=True, cast_to=float)
     inherit_G2 = ProbabilityProperty(default=False, cast_to=bool)
 
-    G3 = ProbabilityProperty(default=0.0, clamp=True, cast_to=float)
+    G3 = ProbabilityProperty(default=0.9, clamp=True, cast_to=float)
     inherit_G3 = ProbabilityProperty(default=False, cast_to=bool)
 
-    G4 = ProbabilityProperty(default=0.0, clamp=True, cast_to=float)
+    G4 = ProbabilityProperty(default=0.9, clamp=True, cast_to=float)
     inherit_G4 = ProbabilityProperty(default=False, cast_to=bool)
 
     # ------------------------------------------------------------
     #      Initialization and other internals
     # ------------------------------------------------------------
-    def setup(self, W1=0.75, P111_or_P212=0.5, G1=0.5, G2=0.5, G3=0.5, G4=0.5,
+    def setup(self, W1=0.8, P111_or_P212=0.9, G1=0.9, G2=0.9, G3=0.9, G4=0.9,
         inherit_W1=False, inherit_P111_or_P212=False, inherit_G1=False,
         inherit_G2=False, inherit_G3=False, inherit_G4=False, **kwargs):
         _AbstractProbability.setup(self, R=2)
-        self.W1 = W1
+        self.W1 = not_none(W1, 0.8)
         self.inherit_W1 = inherit_W1
-        self.P111_or_P212 = P111_or_P212
+        self.P111_or_P212 = not_none(P111_or_P212, 0.9)
         self.inherit_P111_or_P212 = inherit_P111_or_P212
-        self.G1 = G1
+        self.G1 = not_none(G1, 0.9)
         self.inherit_G1 = inherit_G1
-        self.G2 = G2
+        self.G2 = not_none(G2, 0.9)
         self.inherit_G2 = inherit_G2
-        self.G3 = G3
+        self.G3 = not_none(G3, 0.9)
         self.inherit_G3 = inherit_G3
-        self.G4 = G4
+        self.G4 = not_none(G4, 0.9)
         self.inherit_G4 = inherit_G4
+        print "SETUP! FOR R2G3 using=", W1, G1, G2, G3, G4
 
     # ------------------------------------------------------------
     #      Methods & Functions
@@ -322,7 +324,7 @@ class R2G3Model(_AbstractProbability):
             # G2inv = (1.0 / self.G2) - 1.0 if self.G2 > 0 else 0.0
             # G3inv = (1.0 / self.G3) - 1.0 if self.G3 > 0 else 0.0
             # G4inv = (1.0 / self.G4) - 1.0 if self.G4 > 0 else 0.0
-
+    
             # calculate Wx's (0-based!!):
             self.mW[0] = self.W1
             self.mW[1] = (1.0 - self.mW[0]) * self.G1

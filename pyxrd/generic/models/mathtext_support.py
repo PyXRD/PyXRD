@@ -5,6 +5,7 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
+import re
 from fractions import Fraction
 
 ###############################
@@ -67,3 +68,43 @@ def mt_range(lower, name, upper):
 
 def get_plot_safe(expression):
     return r"".join(_handle_customs(expression)[0])
+
+def get_string_safe(expression):
+
+    print expression
+    
+    replacers = [
+        (r"$", r""),
+        (r"\larger", r""),
+        (r"\left", r""),
+        (r"\right", r""),
+        (r"\leq", r"≤"),
+        (r"\geq", r"≥"),
+        (r"\large", r""),
+        (r"\newline", "\n"),
+    ]
+    for val, rep in replacers:
+        expression = expression.replace(val, rep)
+
+    print expression
+
+    regex_replacers = [
+        (r"\\sum_\{(\S+)\}\^\{(\S+)\}", r"Σ(\1->\2)"),
+        (r"(\S+)_(?:\{(\S+)\})", r"\1\2"),
+        (r"(\S+)_(\S+)", r"\1\2"),
+        (r"\\frac\{([^}])\}\{([^}])\}", r"\1\\\2"), # single characters
+        (r"\\frac\{(.+)\}\{(.+)\}", r"(\1)\\(\2)"), # multi charachters
+        (r"\(\{([^})]+)\}\)", r"(\1)")
+    ]
+    for regexpr, sub in regex_replacers:
+        pattern = re.compile(regexpr)
+        expression = pattern.sub(sub, expression)
+
+    print expression
+
+    return expression
+    
+
+
+
+    

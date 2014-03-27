@@ -27,7 +27,6 @@ def get_all_refine_methods():
         from .deap_pso_cma import RefineMPSOCMAESRun
         methods[6] = RefineMPSOCMAESRun()
     except ImportError:
-        raise
         logger.warning("Could not import DEAP refinement algorithms, is DEAP installed?")
 
     try:

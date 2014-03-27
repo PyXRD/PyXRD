@@ -7,6 +7,7 @@
 
 from pyxrd.generic.mathtext_support import mt_range
 from pyxrd.generic.io import storables
+from pyxrd.generic.utils import not_none
 
 from pyxrd.mvc import PropIntel
 
@@ -59,11 +60,11 @@ class R3G2Model(_AbstractProbability):
     class Meta(_AbstractProbability.Meta):
         store_id = "R3G2Model"
         ind_properties = [
-            PropIntel(name="W1", label="W1", math_label=r"$W_1$",
+            PropIntel(name="W1", label="W1 (> 2/3)", math_label=r"$W_1$",
                 stor_name="_W1", inh_name="inherit_W1", inh_from="parent.based_on.probabilities",
                 is_independent=True, # flag for the view creation
                 minimum=2.0 / 3.0, maximum=1.0, data_type=float, **PropIntel.REF_ST_WID),
-            PropIntel(name="P1111_or_P2112", label="P1111_or_P2112",
+            PropIntel(name="P1111_or_P2112", label="P1111 (W1 < 3/4) or\nP2112 (W1 > 3/4)",
                 stor_name="_P1111_or_P2112", inh_name="inherit_P1111_or_P2112",
                 inh_from="parent.based_on.probabilities",
                 is_independent=True, # flag for the view creation
@@ -95,8 +96,8 @@ class R3G2Model(_AbstractProbability):
     # ------------------------------------------------------------
     def setup(self, W1=0.85, P1111_or_P2112=0.75, **kwargs):
         _AbstractProbability.setup(self, R=3)
-        self.W1 = W1
-        self.P1111_or_P2112 = P1111_or_P2112
+        self.W1 = not_none(W1, 0.85)
+        self.P1111_or_P2112 = not_none(P1111_or_P2112, 0.75)
 
     # ------------------------------------------------------------
     #      Methods & Functions

@@ -233,6 +233,10 @@ class Refiner(ChildModel):
             # Unlock this method
             self.refine_lock = False
 
+            # Print some stuff for the user:
+            print self.context.best_solution
+            print self.context.last_solution
+
             # Return the context to whatever called this
             return self.context
 

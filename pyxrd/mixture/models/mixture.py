@@ -51,6 +51,7 @@ class Mixture(DataModel, Storable):
         properties = [ # TODO add labels
             PropIntel(name="name", label="Name", data_type=unicode, is_column=True, storable=True, has_widget=True),
             PropIntel(name="refinables", label="", data_type=object, is_column=True, has_widget=True, widget_type="object_tree_view", class_type=RefinableWrapper),
+            PropIntel(name="make_psp_plots", label="", data_type=bool, is_colum=False, has_widget=True, storable=False),
             PropIntel(name="auto_run", label="", data_type=bool, is_column=True, storable=True, has_widget=True),
             PropIntel(name="auto_bg", label="", data_type=bool, is_column=True, storable=True, has_widget=True),
             OptionPropIntel(name="refine_method", label="Refinement method", data_type=int, storable=True, has_widget=True, options={ key: method.name for key, method in all_refine_methods.iteritems() }),
@@ -90,6 +91,7 @@ class Mixture(DataModel, Storable):
         self.visuals_changed.emit()
 
     refinables = None
+    make_psp_plots = False
     auto_run = False
     auto_bg = True
 

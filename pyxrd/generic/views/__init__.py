@@ -17,6 +17,7 @@ from pyxrd.mvc.view import View
 from pyxrd.data import settings
 from pyxrd.generic.views.widgets import ScaleEntry
 from pyxrd.generic.mathtext_support import create_image_from_mathtext
+from pyxrd.generic.models.mathtext_support import get_string_safe
 
 class BaseView(View):
     """
@@ -53,12 +54,11 @@ class BaseView(View):
         if self.parent:
             self.set_layout_mode(self.parent.current_layout_state)
 
-    def create_mathtext_widget(self, text):
+    def create_mathtext_widget(self, text, fallback_text=""):
         try:
             widget = create_image_from_mathtext(text)
-        except any as err:
-            err.args += ("Exception when trying to render mathtext widget",)
-            print_exc()
+        except:
+            if fallback_text: text = fallback_text
             widget = gtk.Label(text)
             widget.set_use_markup(True)
             widget.set_property('justify', gtk.JUSTIFY_CENTER)

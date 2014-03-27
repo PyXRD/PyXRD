@@ -57,7 +57,7 @@ class PlotController(DialogMixin):
 
     def setup_figure(self):
         style = gtk.Style()
-        self.figure = Figure(dpi=72, edgecolor=str(style.bg[2]), facecolor=str(style.bg[2]))
+        self.figure = Figure(dpi=72, edgecolor=str(style.bg[2]), facecolor=str(style.bg[3]))
         self.figure.subplots_adjust(hspace=0.0, wspace=0.0)
 
     def setup_canvas(self):

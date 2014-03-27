@@ -15,7 +15,7 @@ class CSVMixin(object):
     @classmethod
     def save_as_csv(cls, filename, items):
         atl_writer = csv.writer(open(filename, 'wb'), delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-        labels, props = zip(*type.Meta.csv_storables)
+        labels, props = zip(*cls.Meta.csv_storables)
         atl_writer.writerow(labels)
         for item in items:
             prop_row = []

@@ -9,6 +9,7 @@ import numpy as np
 
 from pyxrd.mvc import PropIntel
 from pyxrd.generic.io import storables
+from pyxrd.generic.utils import not_none
 
 from .base_models import _AbstractProbability
 from pyxrd.probabilities.models.properties import ProbabilityProperty
@@ -19,7 +20,7 @@ def R0_model_generator(pasG):
         store_id = "R0G%dModel" % pasG
         properties = [
             PropIntel(
-                name="F%d" % (g + 1), minimum=0.0, maximum=1.0, default=1.0,
+                name="F%d" % (g + 1), minimum=0.0, maximum=1.0, default=0.8,
                 label="W%(g)d/Sum(W%(g)d+...+W%(G)d)" % {'g':g + 1, 'G':pasG },
                 math_label=r"$\large\frac{W_{%(g)d}}{\sum_{i=%(g)d}^{%(G)d} W_i}$" % {'g':g + 1, 'G':pasG },
                 data_type=float, refinable=True, storable=True, has_widget=True,
@@ -62,7 +63,7 @@ def R0_model_generator(pasG):
             if self.G > 1 and "W1" in kwargs: # old-style model
                 for i in range(self.G - 1):
                     name = "W%d" % (i + 1)
-                    self.mW[i] = kwargs.get(name, 0.0 if i > 0 else 1.0)
+                    self.mW[i] = not_none(kwargs.get(name, None), 0.8)
                     name = "F%d" % (i + 1)
                     setattr(self, name, self.mW[i] / (np.sum(np.diag(self._W)[i:]) or 1.0))
             else:
@@ -70,7 +71,7 @@ def R0_model_generator(pasG):
                     name = "inherit_F%d" % (i + 1)
                     setattr(self, name, kwargs.get(name, False))
                     name = "F%d" % (i + 1)
-                    setattr(self, name, kwargs.get(name, 0.0 if i > 0 else 1.0))
+                    setattr(self, name, not_none(kwargs.get(name, None), 0.8))
 
         # ------------------------------------------------------------
         #      Methods & Functions

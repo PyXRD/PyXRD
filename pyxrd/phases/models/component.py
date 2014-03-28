@@ -547,6 +547,10 @@ class Component(DataModel, Storable, RefinementGroup):
         """
         with self.data_changed.hold_and_emit():
             for relation in self.atom_relations:
+                # Clear the 'driven by' flags:
+                relation.driven_by_other = False
+            for relation in self.atom_relations:
+                # Apply the relations, will also take care of flag setting:
                 relation.apply_relation()
 
     def _update_ucp_values(self):
@@ -585,7 +589,8 @@ class Component(DataModel, Storable, RefinementGroup):
         up one slot
         """
         index = self.atom_relations.index(relation)
-        self.atom_relations.insert(min(index - 1, 0), self.atom_relations.pop(index))
+        del self.atom_relations[index]
+        self.atom_relations.insert(max(index - 1, 0), relation)
 
     def move_atom_relation_down(self, relation):
         """
@@ -593,5 +598,7 @@ class Component(DataModel, Storable, RefinementGroup):
         down one slot
         """
         index = self.atom_relations.index(relation)
-        self.atom_relations.insert(max(index + 1, len(self.atom_relations)), self.atom_relations.pop(index))
-        pass
+        del self.atom_relations[index]
+        self.atom_relations.insert(min(index + 1, len(self.atom_relations)), relation)
+
+    pass # end of class

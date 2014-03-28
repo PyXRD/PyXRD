@@ -64,6 +64,7 @@ def run(args=None, ui_callback=None):
     """
     code_length = 4
     aliases = {
+        'C   ': '%sChlorite.cmp',
         'K   ': '%sKaolinite.cmp',
         'I   ': '%sIllite.cmp',
         'Se  ': '%sSerpentine.cmp',
@@ -83,13 +84,6 @@ def run(args=None, ui_callback=None):
         'tS2g': '%sTri-Smectite/Tri-Smectite - Ca 2GLY.cmp',
         'tS1g': '%sTri-Smectite/Tri-Smectite - Ca 1GLY.cmp',
         'tSht': '%sTri-Smectite/Tri-Smectite - Ca Heated.cmp',
-        'C   ': '%sChlorite/Chlorite 100%%.cmp',
-        'C100': '%sChlorite/Chlorite 100%%.cmp',
-        'C80 ': '%sChlorite/Chlorite 80%%.cmp',
-        'C60 ': '%sChlorite/Chlorite 60%%.cmp',
-        'C50 ': '%sChlorite/Chlorite 50%%.cmp',
-        'C40 ': '%sChlorite/Chlorite 40%%.cmp',
-        'C20 ': '%sChlorite/Chlorite 20%%.cmp',
     }
     default_phases = []
 

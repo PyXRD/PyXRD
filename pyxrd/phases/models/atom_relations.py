@@ -5,12 +5,22 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
+
+
+
+"""
+
+ - an AtomRatio's sum (not the ratio itself) can be driven by another AtomRatio or from an AtomContents
+ - an AtomContents' value can be driven  
+
+"""
+
 import types
 
 from pyxrd.mvc.observers import ListObserver
 from pyxrd.mvc import Model, PropIntel
 
-from pyxrd.generic.models import DataModel, HoldableSignal
+from pyxrd.generic.models import DataModel
 from pyxrd.generic.io import storables, Storable, get_case_insensitive_glob
 from pyxrd.generic.refinement.mixins import RefinementValue
 from pyxrd.generic.refinement.metaclasses import PyXRDRefinableMeta
@@ -73,12 +83,13 @@ class AtomRelation(DataModel, Storable, ComponentPropMixin, RefinementValue):
             PropIntel(name="name", label="Name", data_type=unicode, is_column=True, storable=True, has_widget=True),
             PropIntel(name="value", label="Value", data_type=float, is_column=True, storable=True, has_widget=True, widget_type='float_entry', refinable=True),
             PropIntel(name="enabled", label="Enabled", data_type=bool, is_column=True, storable=True, has_widget=True),
+            PropIntel(name="driven_by_other", label="Driven by other", data_type=bool, is_column=True, storable=False, has_widget=False)
         ]
         store_id = "AtomRelation"
         file_filters = [
             ("Atom relation", get_case_insensitive_glob("*.atr")),
         ]
-    allowed_relations = {}
+        allowed_relations = {}
 
     component = property(DataModel.parent.fget, DataModel.parent.fset)
 
@@ -101,10 +112,23 @@ class AtomRelation(DataModel, Storable, ComponentPropMixin, RefinementValue):
         self._enabled = bool(value)
         self.data_changed.emit()
 
+
+    _driven_by_other = False
+    @property
+    def driven_by_other(self):
+        """
+        Is True when the AtomRelation's value is driven by another AtomRelation.
+        Should never be set directly or things might break!
+        """
+        return self._driven_by_other
+    @driven_by_other.setter
+    def driven_by_other(self, value):
+        self._driven_by_other = bool(value)
+
     @property
     def applicable(self):
         """
-        Is true when this AtomRelations was passed a component of which the atom
+        Is True when this AtomRelation was passed a component of which the atom
         ratios are not set to be inherited from another component.
         """
         return (self.parent is not None and not self.parent.inherit_atom_relations)
@@ -170,9 +194,9 @@ class AtomRelation(DataModel, Storable, ComponentPropMixin, RefinementValue):
                 store.append([atom, "pn", lambda o: o.name])
             for relation in self.component._atom_relations:
                 tp = relation.Meta.store_id
-                if tp in self.allowed_relations:
-                    prop, name = self.allowed_relations[tp]
-                    store.append([relation, prop, name])
+                if tp in self.Meta.allowed_relations:
+                    for prop, name in self.Meta.allowed_relations[tp]:
+                        store.append([relation, prop, name])
             return store
 
     def iter_references(self):
@@ -210,6 +234,11 @@ class AtomRelation(DataModel, Storable, ComponentPropMixin, RefinementValue):
 
         return False
 
+    def _set_driven_flag_for_prop(self, prop=None):
+        """Internal method used to safely set the driven_by_other flag on an object.
+        Subclasses can override to provide a check on the property set by the driver."""
+        self.driven_by_other = True
+
     def apply_relation(self):
         raise NotImplementedError, "Subclasses should implement the apply_relation method!"
 
@@ -227,8 +256,11 @@ class AtomRatio(AtomRelation):
         ]
         store_id = "AtomRatio"
         allowed_relations = {
-            "AtomRatio": ("__internal_sum__", lambda o: o.name),
-            "AtomContents": ("value", lambda o: o.name),
+            "AtomRatio": [
+                ("__internal_sum__", lambda o: "%s: SUM" % o.name),
+                ("value", lambda o: "%s: RATIO" % o.name),
+            ],
+            "AtomContents": [("value", lambda o: o.name)],
         }
 
     # SIGNALS:
@@ -251,6 +283,12 @@ class AtomRatio(AtomRelation):
         self._sum = float(value)
         self.apply_relation()
     __internal_sum__ = property(fset=__internal_sum__)
+
+    def _set_driven_flag_for_prop(self, prop, *args):
+        """Internal method used to safely set the driven_by_other flag on an object.
+        Subclasses can override to provide a check on the property set by the driver."""
+        if prop != "__internal_sum__":
+            super(AtomRatio, self)._set_driven_flag_for_prop(prop)
 
     _atom1 = [None, None]
     def get_atom1(self): return self._atom1
@@ -320,6 +358,8 @@ class AtomRatio(AtomRelation):
                     # do not fire events, just set attributes:
                     with atom.data_changed.ignore():
                         setattr(atom, prop, value * self.sum)
+                        if hasattr(atom, "_set_driven_flag_for_prop"):
+                            atom._set_driven_flag_for_prop(prop)
 
     def iter_references(self):
         for atom in [self.atom1[0], self.atom2[0]]:
@@ -350,8 +390,11 @@ class AtomContentObject(Model):
         self.amount = amount
 
     def update_atom(self, value):
-        if not (self.atom == "" or self.atom == None or self.prop == None):
-            setattr(self.atom, self.prop, self.amount * value);
+        if not (self.atom == "" or self.atom is None or self.prop is None):
+            with self.atom.data_changed.ignore():
+                setattr(self.atom, self.prop, self.amount * value)
+                if hasattr(self.atom, "_set_driven_flag_for_prop"):
+                    self.atom._set_driven_flag_for_prop(self.prop)
 
     pass
 
@@ -364,10 +407,12 @@ class AtomContents(AtomRelation):
             PropIntel(name="atom_contents", label="Atom contents", class_type=AtomContentObject, data_type=object, is_column=True, storable=True, has_widget=True),
         ]
         store_id = "AtomContents"
-
-    allowed_relations = {
-        "AtomRatio": ("__internal_sum__", lambda o: o.name),
-    }
+        allowed_relations = {
+            "AtomRatio": [
+                ("__internal_sum__", lambda o: "%s: SUM" % o.name),
+                ("value", lambda o: "%s: RATIO" % o.name),
+            ],
+        }
 
     # SIGNALS:
 
@@ -438,10 +483,7 @@ class AtomContents(AtomRelation):
     def apply_relation(self):
         if self.enabled and self.applicable:
             for atom_content in self.atom_contents:
-                # do not fire events, just set attributes:
-                if atom_content.atom is not None:
-                    with atom_content.atom.data_changed.ignore():
-                        atom_content.update_atom(self.value)
+                atom_content.update_atom(self.value)
 
     def set_atom_content_values(self, path, new_atom, new_prop):
         """    

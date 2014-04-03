@@ -45,6 +45,8 @@ class ObjectListStore(BaseObjectListStore):
     """
 
     # PROPERTIES:
+    _deleted_paths = None
+
     @property
     def _data(self):
         return getattr(self._model, self._prop_name, None)
@@ -59,6 +61,8 @@ class ObjectListStore(BaseObjectListStore):
         BaseObjectListStore.__init__(self, prop.class_type)
         self._model = model
         self._prop_name = prop.name
+
+        self._deleted_paths = []
 
         self._observer = ListObserver(
             self.on_item_inserted, self.on_item_deleted,
@@ -97,7 +101,6 @@ class ObjectListStore(BaseObjectListStore):
             logger.debug("Invalid rowref passed: %s", item)
             pass # invalid rowref
 
-    _deleted_paths = []
     def on_item_deleted_before(self, item):
         self._unobserve_item(item)
         self._deleted_paths.append((self._data.index(item),))
@@ -106,6 +109,7 @@ class ObjectListStore(BaseObjectListStore):
         for path in self._deleted_paths:
             self.row_deleted(path)
         self._deleted_paths = []
+
 
     # ------------------------------------------------------------
     #      Methods & Functions

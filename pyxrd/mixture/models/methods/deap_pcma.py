@@ -72,7 +72,6 @@ class RefinePCMAESRun(RefineRun, HasAsyncCalls):
 
         # Number of generations per 'reset':
         kwargs["ngen"] = int(kwargs.pop("total_ngen") / num_restarts)
-        print "PARALLEL CMA WITH", kwargs
 
         # Scripts can pass the "bsol" kwarg containing a list
         # of numpy arrays (begin point solutions).

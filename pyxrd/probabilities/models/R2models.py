@@ -314,7 +314,6 @@ class R2G3Model(_AbstractProbability):
         self.inherit_G3 = inherit_G3
         self.G4 = not_none(G4, 0.9)
         self.inherit_G4 = inherit_G4
-        print "SETUP! FOR R2G3 using=", W1, G1, G2, G3, G4
 
     # ------------------------------------------------------------
     #      Methods & Functions
@@ -324,7 +323,7 @@ class R2G3Model(_AbstractProbability):
             # G2inv = (1.0 / self.G2) - 1.0 if self.G2 > 0 else 0.0
             # G3inv = (1.0 / self.G3) - 1.0 if self.G3 > 0 else 0.0
             # G4inv = (1.0 / self.G4) - 1.0 if self.G4 > 0 else 0.0
-    
+
             # calculate Wx's (0-based!!):
             self.mW[0] = self.W1
             self.mW[1] = (1.0 - self.mW[0]) * self.G1

@@ -63,9 +63,6 @@ def _setup_logging(debug, log_file, scripted=False):
 
         # Setup error stream:
         console = logging.StreamHandler()
-        if scripted:
-            # Low level of reporting when scripted, increases speed slightly
-            console.setLevel(logging.INFO)
         full = logging.Formatter("%(name)s - %(levelname)s: %(message)s")
         console.setFormatter(full)
 

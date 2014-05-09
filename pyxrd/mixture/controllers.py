@@ -41,6 +41,7 @@ class RefinementResultsController(DialogController):
     def __init__(self, *args, **kwargs):
         super(RefinementResultsController, self).__init__(*args, **kwargs)
         self.parspace_gen = ParameterSpaceGenerator()
+        self.parspace_gen.initialize(self.model.ranges, 199)
 
     # ------------------------------------------------------------
     #      Notifications of observable properties

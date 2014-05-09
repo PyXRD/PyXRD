@@ -21,23 +21,56 @@ from mpl_toolkits.axes_grid1 import Divider
 from pyxrd.generic.mathtext_support import get_plot_safe
 
 from pyxrd.generic.sorted_collection import SortedCollection
-
+    
 class ParameterSpaceGenerator(object):
 
-    solutions = None
+    grid = None
 
-    def record(self, solution, residual):
+    def initialize(self, ranges, density):
+        """
+            Create a new generator with the given minimum and maximum values
+            and the given grid density (expressed as # of data points for that 
+            parameter axis).
+        """
+        
+        self.num_params = len(ranges)
+        
+        ranges = np.asarray(ranges, dtype=float)
+        
+        self.minima = np.asarray(ranges[:,0])
+        self.maxima = np.asarray(ranges[:,1])
+        self.density = 199
+
+        self.grid_dtype = [("point", object), ("value", float), ("distance", float)]
+        self.grid = np.empty(shape=(self.density,)*self.num_params, dtype=self.grid_dtype)
+            
+    def _find_closest_grid_index(self, solution):
+        """ Returns the closest grid point's indexes """
+        closest = (np.asarray(solution) - self.minima) / (self.maxima - self.minima)
+        return np.array(np.round(closest * (self.density - 1)), dtype=int)
+
+    def record(self, new_solution, new_residual):
         """
             Add a new solution to the list of solutions
         """
-        try:
-            new_record = solution
-        except TypeError: # not an iterable
-            new_record = np.array([solution, ], dtype=float)
-        if self.solutions == None:
-            max_items = 2000
-            self.solutions = SortedCollection(key=lambda s: s[0], max_items=max_items)
-        self.solutions.insert((residual, new_record))
+        closest = self._find_closest_grid_index(new_solution)
+        grid_location = (self.density - 1) * (new_solution - self.minima) / (self.maxima - self.minima)
+        
+        new_distance = np.linalg.norm(closest - grid_location)
+        old_item = self.grid[tuple(closest)]
+        old_solution = old_item["point"]
+        old_residual = old_item["value"]
+        old_distance = old_item["distance"]
+        
+        # If we have a previous point, check which one is closer:
+        if old_solution is not None and new_distance > old_distance: 
+            return
+        else:
+            # If we got here, we can store the result:
+            self.grid[tuple(closest)] = (new_solution, new_residual, new_distance)
+        
+    def clear(self):
+        del self.grid    
 
     def get_extents(self, centroid, mins, maxs, density=10):
         """
@@ -55,6 +88,7 @@ class ParameterSpaceGenerator(object):
         for c, mn, mx in zip(centroid, mins, maxs):
             # Correct small offsets from the centroid.
             # This assumes the centroid to be in the min and max ranges
+            print mn, mx, density
             normal = np.linspace(mn, mx, density)
             idx = (np.abs(normal - c)).argmin()
             centroid_indexes.append(idx)
@@ -76,11 +110,15 @@ class ParameterSpaceGenerator(object):
                 - centroid indeces in the final grid
                 - grid minimum and maximum values shifted as explained in get_extents
         """
-        points = np.array([point for value, point in self.solutions]) # @UnusedVariable
-        values = np.array([value for value, point in self.solutions])
 
-        mins = points.min(axis=0)
-        maxs = points.max(axis=0)
+        flat_grid = self.grid.flatten()
+        points = np.array([item["point"] for item in flat_grid if item["point"] is not None])
+        values = np.array([item["value"] for item in flat_grid if item["point"] is not None])
+
+        mins = points.min(axis=0)# shape=(self.num_params,))
+        print mins
+        maxs = points.max(axis=0)# shape=(self.num_params,))
+        print maxs
 
         return (points, values) + self.get_extents(
             centroid=np.array(centroid),
@@ -116,11 +154,11 @@ class ParameterSpaceGenerator(object):
             if dims == 1: # Only one parameter refined
                 points = points.flatten()
                 values = values.flatten()
-
-                xy = np.column_stack((points, values))
-                xy.view('float16,float16').sort(order=['f1'], axis=0)
-                points = xy[:, 0]
-                values = xy[:, 1]
+                xy = np.array(zip(points, values), dtype=[('x', float),('y', float)])
+                xy.sort(order=['x'], axis=0)
+                print "STACKED:", xy, points, values
+                points = xy['x']
+                values = xy['y']
 
                 ax = figure.add_subplot(1, 1, 1)
                 ax.plot(points, values)

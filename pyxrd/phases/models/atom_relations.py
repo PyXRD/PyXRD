@@ -146,8 +146,12 @@ class AtomRelation(DataModel, Storable, ComponentPropMixin, RefinementValue):
         self.value = value
 
     @property
+    def inside_linked_component(self):
+        return (self.component.linked_with is not None) and self.component.inherit_atom_relations
+
+    @property
     def is_refinable(self):
-        return self.enabled
+        return self.enabled and not self.driven_by_other and not self.inside_linked_component
 
     @property
     def refine_info(self):

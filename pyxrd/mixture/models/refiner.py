@@ -218,7 +218,7 @@ class Refiner(ChildModel):
                             self.context.status = "error"
                             self.context.status_message = "Error occurred..."
                         else:
-                            if stop.is_set():
+                            if stop is not None and stop.is_set():
                                 self.context.status = "stopped"
                                 self.context.status_message = "Stopping ..."
                             else:
@@ -233,9 +233,10 @@ class Refiner(ChildModel):
             # Unlock this method
             self.refine_lock = False
 
-            # Print some stuff for the user:
-            print self.context.best_solution
-            print self.context.last_solution
+            # Return the context to whatever called this
+            return self.context
+
+    pass # end of class
 
             # Return the context to whatever called this
             return self.context

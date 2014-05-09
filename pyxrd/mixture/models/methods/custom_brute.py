@@ -5,21 +5,24 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-import multiprocessing
-from time import sleep
 from importlib import import_module
 from collections import deque
-from itertools import product
-
-from threading import Thread, Event
-from Queue import Queue, Empty
+import functools
+from itertools import product, izip
 
 import numpy as np
 import scipy
 
-from .refine_run import RefineRun
+from pyxrd.calculations.mixture import get_optimized_mixture
 
-class RefineBruteForceRun(RefineRun):
+from .refine_run import RefineRun
+from pyxrd.generic.async import HasAsyncCalls
+
+        
+def evaluate(data_object):
+    return get_optimized_mixture(data_object).residual
+
+class RefineBruteForceRun(RefineRun, HasAsyncCalls):
     name="Brute force algorithm"
     description="Refinement using a Brute Force algorithm"
     options=[
@@ -31,8 +34,6 @@ class RefineBruteForceRun(RefineRun):
         """
             Refinement using a Brute Force algorithm
         """
-        
-        pool = multiprocessing.Pool()
 
         #TODO interpolate best solution ?        
         num_params = len(context.ranges)
@@ -42,43 +43,43 @@ class RefineBruteForceRun(RefineRun):
         npranges = npbounds[:,1] - npbounds[:,0]
     
         #Producer thread & queue: (with a maxsize for memory management)
-        results = Queue(maxsize=1000)
-        producer_stopped = Event()
-        def producer(pool, res_queue, mins, ranges):
+        
+        solutions = []
+        
+        self.context = context
+        
+        def generate():
             for indeces in product(range(num_samples), repeat=num_params):
-                if stop.is_set(): break
+                if self._user_cancelled(): break
                 npindeces = np.array(indeces, dtype=float) / float(num_samples-1)
-                solution = mins + ranges * npindeces
-                
-                context.apply_solution(solution)
-                result = context.mixture.optimizer.get_optimized_residual_async(pool)
-                res_queue.put((solution, result))
-            producer_stopped.set()
-
-        produce_thread = Thread(target=producer, args=(pool, results, npmins, npranges))
-        produce_thread.start() #start producing
-
-        #Fetch loop:
-        keep_fetching = True
-        while keep_fetching:
-            try:
-                solution, result = results.get(True, 0.005)
-            except Empty:
-                if not producer_stopped.is_set():
-                    continue #go for another run
-                else:
-                    keep_fetching = False                        
-            else:
-                if not stop.is_set():
-                    residual = result.get()
-                    context.update(solution, residual)
-        produce_thread.join()
+                solution = npmins + npranges * npindeces
+                yield context.get_data_object_for_solution(solution), solution
+        
+        self.do_async_evaluation(solutions, generate, evaluate)        
         context.apply_solution(context.initial_solution)
         
-        pool.close()        
-        if not stop.is_set():
-            pool.join()
-        else:
-            pool.terminate()
+        del self.context
+              
+    def do_async_evaluation(self, solutions, iter_func, eval_func):
+        """ Utility that combines a submit and fetch cycle in a single
+        function call"""
+        results = []
+        if solutions is None:
+            solutions = []
+        for data_object, solution in iter_func():
+            result = HasAsyncCalls.submit_async_call(functools.partial(eval_func, data_object))
+            solutions.append(solution)
+            results.append(result)
+            if self._user_cancelled(): # Stop submitting new individuals
+                break
+        for solution, result in izip(solutions, results):
+            residual = HasAsyncCalls.fetch_async_result(result)
+            self.context.update(solution, residual)
+            self.context.record_state_data([
+                ("param%d" % d, solution[d]) for d in range(solution.size)
+            ] + [
+                ("residual", residual)
+            ])
+        pass # end of method
         
     pass #end of class

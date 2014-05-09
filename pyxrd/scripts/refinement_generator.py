@@ -9,6 +9,9 @@
 
 # import cProfile, pstats, StringIO
 
+import logging
+logger = logging.getLogger(__name__)
+
 import multiprocessing
 import os
 import codecs
@@ -45,14 +48,14 @@ def run(args):
     Just change the trial number from e.g. 0 to 49 to have 50 iterations.
     """
     if args and args.filename != "":
-        print "Proccessing args..."
+        logging.info("Proccessing args...")
         project_file, k, mixture_index = tuple(args.filename.split("###", 2))
         base_path = os.path.dirname(args.filename)
         stop_event = multiprocessing.Event()
 
-        print "Loading project file..."
+        logging.info("Loading project file...")
         project = Project.load_object(project_file)
-        print "Running Project", os.path.basename(project_file), "Trial", k
+        logging.info(" ".join(["Running Project", os.path.basename(project_file), "Trial", k]))
 
         for i, mixture in enumerate(project.mixtures):
             if i == int(mixture_index):

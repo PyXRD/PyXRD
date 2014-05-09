@@ -134,7 +134,7 @@ class SpecimenController(DialogController, TreeViewMixin):
 
         tv.append_column(new_text_column(u'2θ', text_col=model.c_x, data_func=get_num))
         tv.append_column(new_text_column(u'Cal', text_col=model.c_y, data_func=get_num))
-        for i in range(model.get_n_columns() - 3):
+        for i in range(model.get_n_columns() - 2):
             tv.append_column(new_text_column(
                 self.model.calculated_pattern.get_y_name(i), text_col=i + 2, data_func=get_num))
 

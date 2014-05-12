@@ -203,7 +203,7 @@ class UnitCellProperty(DataModel, Storable, ComponentPropMixin, RefinementValue)
 
     def update_value(self):
         if self.enabled and self.ready:
-            self.value = float(self.factor * self.get_value_of_prop() + self.constant)
+            self._value = float(self.factor * self.get_value_of_prop() + self.constant)
             self.data_changed.emit()
 
     pass # end of class

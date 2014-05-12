@@ -58,11 +58,17 @@ class TestPhase(unittest.TestCase):
         self.ucp.factor = 0.5
         self.ucp.constant = 1.0
 
+        #Check that if the prop is disabled, it can be set manually:
         self.ucp.value = 0.075
         self.assertEqual(self.ucp.value, 0.075)
 
+        #Check that if the prop is enabled, it is calculated automatically:
         self.ucp.enabled = True
         self.assertEqual(self.ucp.value, 0.5 * 0.5 + 1.0)
+
+        #Check that if the prop is enabled, it can't be set manually:
+        self.ucp.value = 0.075
+        self.assertNotEqual(self.ucp.value, 0.075)
 
     test_name = create_object_attribute_test("ucp", "name", "Test Name")
     test_name = create_object_attribute_test("ucp", "value", 0.5)

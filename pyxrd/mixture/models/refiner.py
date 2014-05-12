@@ -237,8 +237,3 @@ class Refiner(ChildModel):
             return self.context
 
     pass # end of class
-
-            # Return the context to whatever called this
-            return self.context
-
-    pass # end of class

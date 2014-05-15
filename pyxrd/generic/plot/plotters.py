@@ -5,6 +5,9 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
+import logging
+logger = logging.getLogger(__name__)
+
 from itertools import izip
 
 from pyxrd.data import settings
@@ -70,6 +73,7 @@ def plot_marker_text(project, marker, offset, marker_scale, base_y, axes):
         try: text.remove()
         except: pass
     marker.__plot_text = text
+    return text
 
 def plot_marker_line(project, marker, offset, base_y, axes):
     """
@@ -121,14 +125,13 @@ def plot_marker_line(project, marker, offset, base_y, axes):
         except: pass
     marker.__plot_line = line
 
-def plot_markers(project, specimen, offset, scale, marker_scale, axes):
+def plot_markers(project, specimen, marker_lbls, offset, scale, marker_scale, axes):
     """
         Plots a specimens markers using the given offset and scale
     """
 
     for marker in specimen.markers:
         base_y = 0
-
         if marker.base == 1:
             base_y = specimen.experimental_pattern.get_plotted_y_at_x(marker.position)
         elif marker.base == 2:
@@ -145,8 +148,9 @@ def plot_markers(project, specimen, offset, scale, marker_scale, axes):
             )
 
         plot_marker_line(project, marker, offset, base_y, axes)
-        plot_marker_text(project, marker, offset, marker_scale, base_y, axes)
-
+        text = plot_marker_text(project, marker, offset, marker_scale, base_y, axes)
+        if text is not None:
+            marker_lbls.append((text, marker.base == 0, marker.y_offset))
 
 def plot_hatches(project, specimen, offset, scale, axes):
     """
@@ -237,7 +241,7 @@ def make_draggable(artist, drag_x_handler=None, drag_y_handler=None):
             draggable.update(artist, drag_x_handler, drag_y_handler)
         artist.__draggable = draggable
 
-def plot_specimen(project, specimen, labels, label_offset, plot_left,
+def plot_specimen(project, specimen, labels, marker_lbls, label_offset, plot_left,
         offset, scale, marker_scale, axes):
     """
         Plots a specimens patterns, markers and hatches using the given
@@ -450,7 +454,7 @@ def plot_specimen(project, specimen, labels, label_offset, plot_left,
     # exclusion ranges;
     plot_hatches(project, specimen, offset, scale, axes)
     # markers;
-    plot_markers(project, specimen, offset, scale, marker_scale, axes)
+    plot_markers(project, specimen, marker_lbls, offset, scale, marker_scale, axes)
     # & label:
     plot_label(specimen, labels, label_offset, plot_left, axes)
     make_draggable(getattr(specimen, "__plot_label_artist", None), drag_y_handler=project.on_label_dragged)
@@ -497,7 +501,7 @@ def plot_specimens(project, specimens, plot_left, axes):
 
     scale, scale_unit = project.get_scale_factor()
 
-    labels = list()
+    labels, marker_lbls = list(), list()
     current_y_pos = 0
     lbl_y_offset = 0
     group_counter = 0 # 'group by' specimen counter
@@ -543,7 +547,7 @@ def plot_specimens(project, specimens, plot_left, axes):
             )
 
         plot_specimen(
-            project, specimen, labels,
+            project, specimen, labels, marker_lbls,
             lbl_y_pos, plot_left, spec_y_pos, spec_scale, scale_unit,
             axes
         )
@@ -556,7 +560,7 @@ def plot_specimens(project, specimens, plot_left, axes):
 
     axes.set_ylim(top=ylim)
 
-    return labels
+    return labels, marker_lbls
 
 def plot_mixtures(project, mixtures, axes):
     legend = getattr(project, "__plot_mixture_legend", None)

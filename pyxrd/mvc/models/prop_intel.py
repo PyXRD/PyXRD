@@ -103,7 +103,7 @@ class PropIntel(object):
 
     math_label = None
     text_label = None
-    label = ""
+    label = None
 
     ST = dict(
         storable=True
@@ -158,6 +158,8 @@ class PropIntel(object):
 
     def __init__(self, **kwargs):
         object.__init__(self)
+
+        self.label = ""
 
         if "ctype" in kwargs:
             # deprecated and ignored!

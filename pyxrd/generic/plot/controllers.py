@@ -10,6 +10,7 @@ from pkg_resources import resource_filename # @UnresolvedImport
 import gtk
 import logging
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 import matplotlib
 import matplotlib.transforms as transforms
@@ -180,10 +181,14 @@ class MainPlotController (PlotController):
     # ------------------------------------------------------------
     def __init__(self, app_controller, *args, **kwargs):
         self.labels = list()
+        self.marker_lbls = list()
         self.scale = 1.0
         self.stats = False
         self.xdiff = 30.0
         self.plot_left = settings.PLOT_LEFT
+        self.plot_bottom = settings.PLOT_BOTTOM
+        self.plot_top = settings.PLOT_TOP
+
         self.app_controller = app_controller
         PlotController.__init__(self, *args, **kwargs)
 
@@ -212,7 +217,7 @@ class MainPlotController (PlotController):
         if clear: self.plot.cla()
 
         if project and specimens:
-            self.labels = plot_specimens(project, specimens, self.plot_left, self.plot)
+            self.labels, self.marker_lbls = plot_specimens(project, specimens, self.plot_left, self.plot)
             # get mixtures for the selected specimens:
             mixtures = []
             for mixture in project.mixtures:
@@ -291,34 +296,75 @@ class MainPlotController (PlotController):
     # ------------------------------------------------------------
     #      Plot position and size calculations
     # ------------------------------------------------------------
+    def _get_joint_bbox(self, container):
+        renderer = self._find_renderer()
+        bboxes = []
+        try:
+            for text in container:
+                bbox = text.get_window_extent(renderer=renderer)
+                # the figure transform goes from relative coords->pixels and we
+                # want the inverse of that
+                bboxi = bbox.inverse_transformed(self.figure.transFigure)
+                bboxes.append(bboxi)
+        except RuntimeError:
+            logger.exception("Caught unhandled exception when joining boundig boxes")
+            return None # don't continue
+        # this is the bbox that bounds all the bboxes, again in relative
+        # figure coords
+        bbox = transforms.Bbox.union(bboxes)
+        return bbox
+
+    def _find_renderer(self):
+
+        if hasattr(self.figure.canvas, "get_renderer"):
+            #Some backends, such as TkAgg, have the get_renderer method, which
+            #makes this easy.
+            renderer = self.figure.canvas.get_renderer()
+        else:
+            #Other backends do not have the get_renderer method, so we have a work
+            #around to find the renderer.  Print the figure to a temporary file
+            #object, and then grab the renderer that was used.
+            #(I stole this trick from the matplotlib backend_bases.py
+            #print_figure() method.)
+            import io
+            self.figure.canvas.print_pdf(io.BytesIO())
+            renderer = self.figure._cachedRenderer
+        return renderer
+
     def fix_after_drawing(self, *args):
         """
             Fixes alignment issues due to longer labels or smaller windows
             Is executed after an initial draw event, since we can then retrieve
             the actual label dimensions and shift/resize the plot accordingly.
         """
+        # Fix left side for wide specimen labels:
         if len(self.labels) > 0:
-            bboxes = []
-            try:
-                for label in self.labels:
-                    bbox = label.get_window_extent()
-                    # the figure transform goes from relative coords->pixels and we
-                    # want the inverse of that
-                    bboxi = bbox.inverse_transformed(self.figure.transFigure)
-                    bboxes.append(bboxi)
-            except RuntimeError:
-                logger.exception("Caught unhandled exception when fixing after drawing")
-                return # don't continue
+            bbox = self._get_joint_bbox(self.labels)
+            self.plot_left = 0.05 + bbox.width
+        # Fix top for high marker labels:
+        if len(self.marker_lbls) > 0:
+            bbox = self._get_joint_bbox([ label for label, flag, _ in self.marker_lbls if flag ])
+            self.plot_top = 1.0 - (0.05 + bbox.height) #Figure top - marker margin
+        # Fix bottom for x-axis label:
+        bottom_label = self.plot.axis["bottom"].label
+        if bottom_label is not None:
+            bbox = self._get_joint_bbox([bottom_label])
+            self.plot_bottom = 0.10 - min(bbox.ymin, 0.0)
+            print self.plot_bottom, bbox.ymin, bbox.ymax
 
-            # this is the bbox that bounds all the bboxes, again in relative
-            # figure coords
-            bbox = transforms.Bbox.union(bboxes)
-            self.plot_left = 0.05 + bbox.xmax - bbox.xmin
-            plot_pos = self.get_plot_position()
-            self.plot.set_position(plot_pos)
+        # Calculate new plot position & set it:
+        plot_pos = self.get_plot_position()
+        self.plot.set_position(plot_pos)
 
-            for label in self.labels:
-                label.set_x(plot_pos[0] - 0.025)
+        # Adjust specimen label position
+        for label in self.labels:
+            label.set_x(plot_pos[0] - 0.025)
+
+        # Adjust marker label position
+        for label, flag, y_offset in self.marker_lbls:
+            if flag:
+                label.set_y(plot_pos[1] + plot_pos[3] + y_offset - 0.025)
+
         self.figure.canvas.draw()
 
         return False
@@ -330,15 +376,22 @@ class MainPlotController (PlotController):
         else:
             return min((self.xdiff / 70), 1.0) * MAX_PLOT_WIDTH
 
+    def _get_plot_height(self):
+        return abs(self.plot_top - self.plot_bottom)
+
     def get_plot_position(self):
         """Get the position list of the main plot: [LEFT, BOTTOM, WIDTH, HEIGHT] """
-        return [self.plot_left, settings.PLOT_BOTTOM, self._get_plot_width(), settings.PLOT_HEIGHT]
+        return [self.plot_left, self.plot_bottom, self._get_plot_width(), self._get_plot_height()]
 
     def get_plot_right(self):
         """Get the rightmost position of the main plot: LEFT + WIDTH """
         PLOT_WIDTH = self._get_plot_width()
         return self.plot_left + PLOT_WIDTH
 
+    def get_plot_top(self):
+        """Get the topmost position of the main plot: BOTTOM + HEIGHT """
+        PLOT_HEIGHT = self._get_plot_height()
+        return self.plot_bottom + PLOT_HEIGHT
 
     def get_user_x_coordinate(self, callback):
         def onclick(x_pos, event):

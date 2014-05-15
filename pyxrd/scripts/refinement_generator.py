@@ -94,6 +94,7 @@ def run(args):
                     f.write("Property name, initial, best, min, max" + "\n")
                     for j, ref_prop in enumerate(context.ref_props):
 
+                        #TODO move this somehwere in the main code:
                         if ref_prop.obj.Meta.store_id == 'Phase':
                             descriptor = ref_prop.obj.name.encode("utf-8")
                             descriptor += u" | * | "
@@ -106,6 +107,9 @@ def run(args):
                             descriptor = ref_prop.obj.phase.name.encode("utf-8") + u" | " + ref_prop.obj.name + u" | " + ref_prop.title.decode("utf-8")
                         elif ref_prop.obj.Meta.store_id == 'UnitCellProperty':
                             descriptor = ref_prop.obj.component.phase.name.encode("utf-8") + u" | " + ref_prop.component.name + u" | " + ref_prop.title.decode("utf-8")
+                        else:
+                            logging.warning("Unkown ref prop when getting title for %r" % ref_prop)
+                            descriptor = "?Unkown?"
                         # else:
                         #    descriptor = ref_prop.title
 

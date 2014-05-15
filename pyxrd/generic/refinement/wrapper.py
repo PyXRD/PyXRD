@@ -5,6 +5,9 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
+import logging
+logger = logging.getLogger(__name__)
+
 from pyxrd.generic.models.base import ChildModel
 
 from pyxrd.generic.refinement.mixins import _RefinementBase, RefinementValue, RefinementGroup
@@ -67,6 +70,17 @@ class RefinableWrapper(ChildModel):
                 return self.prop_intel.math_label
             else:
                 return self.prop_intel.label
+
+    def get_descriptor(self):
+        """ Return a longer title that also describes this property's relations """
+
+        # This gets the phase and/or component name for the group or value:
+        data = self.obj.refine_descriptor_data
+
+        # Here we still need to get the actual property title:
+        data["property_name"] = self.title
+
+        return "%(phase_name)s | %(component_name)s | %(property_name)s" % data
 
     # The actual value of the refinable property:
     def get_value(self):

@@ -14,6 +14,10 @@ class _RefinementBase(object):
     .. attribute:: refine_title
 
         A string used as the title for the group in the refinement tree
+
+    .. attribute:: refine_descriptor
+
+        A longer title string which gives more information (phase, component, etc) 
         
     .. attribute:: is_refinable
 
@@ -37,6 +41,10 @@ class _RefinementBase(object):
     @property
     def refine_title(self):
         return "Refinement Base"
+
+    @property
+    def refine_descriptor_data(self):
+        return dict()
 
     @property
     def is_refinable(self):

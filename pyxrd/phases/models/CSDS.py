@@ -163,6 +163,13 @@ class LogNormalCSDSDistribution(_LogNormalMixin, _AbstractCSDSDistribution, Refi
     def refine_title(self):
         return "CSDS Distribution"
 
+    @property
+    def refine_descriptor_data(self):
+        return dict(
+            phase_name=self.phase.name,
+            component_name="*"
+        )
+
     pass # end of class
 
 @storables.register()
@@ -200,6 +207,14 @@ class DritsCSDSDistribution(_LogNormalMixin, _AbstractCSDSDistribution, Refineme
     @property
     def refine_title(self):
         return "Average CSDS"
+
+    @property
+    def refine_descriptor_data(self):
+        return dict(
+            phase_name=self.phase.name,
+            component_name="*",
+            property_name=self.refine_title
+        )
 
     @property
     def refine_value(self):

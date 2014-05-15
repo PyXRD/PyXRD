@@ -139,6 +139,13 @@ class AtomRelation(DataModel, Storable, ComponentPropMixin, RefinementValue):
         return self.name
 
     @property
+    def refine_descriptor_data(self):
+        return dict(
+            phase_name=self.component.phase.refine_title,
+            component_name=self.component.refine_title
+        )
+
+    @property
     def refine_value(self):
         return self.value
     @refine_value.setter

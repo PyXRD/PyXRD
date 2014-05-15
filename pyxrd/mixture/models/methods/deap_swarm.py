@@ -110,13 +110,12 @@ class MultiPSOStrategy(object):
                         reinit_swarms.add(s2)
         return reinit_swarms
 
-    def give_converged_swarms(self, population, conv_factr):
+    def give_converged_swarms(self, population, conv_factr, converged_bests=[]):
         """ Returns the number of converged swarms and the worst swarm index """
         # Convergence check:
         not_converged = 0
         worst_swarm_idx = None
         worst_swarm = None
-        converged_bests = []
         for i, swarm in enumerate(population):
             # Compute the diameter of the swarm:
             std = np.std([ind.fitness.values for ind in swarm])
@@ -128,6 +127,8 @@ class MultiPSOStrategy(object):
                     worst_swarm = swarm
             else:
                 converged_bests.append(swarm.best)
+
+        converged_bests.sort(lambda i: i.fitness)
 
         return not_converged, worst_swarm_idx, converged_bests
 
@@ -158,6 +159,7 @@ class MPSOAlgorithm(AsyncEvaluatedAlgorithm):
         """
             TODO
         """
+        self.converged_bests = []
         self.toolbox = toolbox
         self.bounds = bounds
         self.norms = norms
@@ -257,7 +259,7 @@ class MPSOAlgorithm(AsyncEvaluatedAlgorithm):
                 population[sindex] = self._create_and_evaluate_swarm()
 
         # Get unconverged swarm count and worst swarm id:
-        not_converged, worst_swarm_idx, self.converged_bests = self.toolbox.give_converged_swarms(population, self.conv_factr)
+        not_converged, worst_swarm_idx, self.converged_bests = self.toolbox.give_converged_swarms(population, self.conv_factr, self.converged_bests)
 
         # If all swarms have converged, add a swarm:
         if not_converged == 0:

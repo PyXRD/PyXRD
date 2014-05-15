@@ -66,6 +66,7 @@ class RefineMPSOCMAESRun(RefineRun, HasAsyncCalls):
         bsol = []
         logger.setLevel(logging.INFO)
         logger.info("Multiple PSO converged on these points:")
+
         for b in converged_bests:
             bsol.append(np.array(b))
             logger.info(" - %r" % list(b))

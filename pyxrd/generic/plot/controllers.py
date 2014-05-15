@@ -315,19 +315,13 @@ class MainPlotController (PlotController):
         return bbox
 
     def _find_renderer(self):
-
         if hasattr(self.figure.canvas, "get_renderer"):
             #Some backends, such as TkAgg, have the get_renderer method, which
             #makes this easy.
             renderer = self.figure.canvas.get_renderer()
         else:
-            #Other backends do not have the get_renderer method, so we have a work
-            #around to find the renderer.  Print the figure to a temporary file
-            #object, and then grab the renderer that was used.
-            #(I stole this trick from the matplotlib backend_bases.py
-            #print_figure() method.)
-            import io
-            self.figure.canvas.print_pdf(io.BytesIO())
+            #Others don't, but since this is called in the 'fix_after_drawing',
+            # a renderer has been created, so we can get it like this:
             renderer = self.figure._cachedRenderer
         return renderer
 
@@ -350,7 +344,6 @@ class MainPlotController (PlotController):
         if bottom_label is not None:
             bbox = self._get_joint_bbox([bottom_label])
             self.plot_bottom = 0.10 - min(bbox.ymin, 0.0)
-            print self.plot_bottom, bbox.ymin, bbox.ymax
 
         # Calculate new plot position & set it:
         plot_pos = self.get_plot_position()

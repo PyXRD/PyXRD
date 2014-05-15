@@ -7,7 +7,9 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-# import cProfile, pstats, StringIO
+B_DO_PROFILING = False
+if B_DO_PROFILING:
+    import cProfile, pstats
 
 import logging
 logger = logging.getLogger(__name__)
@@ -60,27 +62,28 @@ def run(args):
         for i, mixture in enumerate(project.mixtures):
             if i == int(mixture_index):
 
-                # pr = cProfile.Profile()
-                # pr.enable()
-                # try:
-                with mixture.data_changed.hold():
-                    settings.CACHE = "FILE" # enable active caching
-                    mixture.update_refinement_treestore()
-                    mixture.randomize()
-                    mixture.optimizer.optimize()
+                if B_DO_PROFILING:
+                    pr = cProfile.Profile()
+                    pr.enable()
+                try:
+                    with mixture.data_changed.hold():
+                        settings.CACHE = "FILE" # enable active caching
+                        mixture.update_refinement_treestore()
+                        mixture.randomize()
+                        mixture.optimizer.optimize()
 
-                    settings.CACHE = "FILE_FETCH_ONLY" # disable active caching
-                    mixture.refiner.setup_context(store=True)
-                    mixture.refiner.refine(stop=stop_event)
-                # except:
-                #    pass
-                # finally:
-                #    pr.disable()
-                #    with open("pyxrd_stats", "w+") as f:
-                #        sortby = 'cumulative'
-                #        ps = pstats.Stats(pr, stream=f).sort_stats(sortby)
-                #        ps.print_stats()
-                #    print "STATS DUMPED!"
+                        settings.CACHE = "FILE_FETCH_ONLY" # disable active caching
+                        mixture.refiner.setup_context(store=True)
+                        mixture.refiner.refine(stop=stop_event)
+                except:
+                    raise
+                finally:
+                    if B_DO_PROFILING:
+                        pr.disable()
+                        with open("pyxrd_stats", "w+") as f:
+                            sortby = 'cumulative'
+                            ps = pstats.Stats(pr, stream=f).sort_stats(sortby)
+                            ps.print_stats()
 
                 context = mixture.refiner.context
 
@@ -93,28 +96,8 @@ def run(args):
                     f.write("Mixture " + str(i) + " and trial " + str(k) + "\n")
                     f.write("Property name, initial, best, min, max" + "\n")
                     for j, ref_prop in enumerate(context.ref_props):
-
-                        #TODO move this somehwere in the main code:
-                        if ref_prop.obj.Meta.store_id == 'Phase':
-                            descriptor = ref_prop.obj.name.encode("utf-8")
-                            descriptor += u" | * | "
-                            descriptor += ref_prop.title.decode("utf-8")
-                        elif ref_prop.obj.Meta.store_id in ('DritsCSDSDistribution', 'LogNormalCSDSDistribution'):
-                            descriptor = ref_prop.obj.phase.name.encode("utf-8") + u" | * | " + ref_prop.title.decode("utf-8")
-                        elif ref_prop.obj.name == 'Probabilities':
-                            descriptor = ref_prop.obj.phase.name.encode("utf-8") + u" | * | " + ref_prop.title.decode("utf-8")
-                        elif ref_prop.obj.Meta.store_id == 'Component':
-                            descriptor = ref_prop.obj.phase.name.encode("utf-8") + u" | " + ref_prop.obj.name + u" | " + ref_prop.title.decode("utf-8")
-                        elif ref_prop.obj.Meta.store_id == 'UnitCellProperty':
-                            descriptor = ref_prop.obj.component.phase.name.encode("utf-8") + u" | " + ref_prop.component.name + u" | " + ref_prop.title.decode("utf-8")
-                        else:
-                            logging.warning("Unkown ref prop when getting title for %r" % ref_prop)
-                            descriptor = "?Unkown?"
-                        # else:
-                        #    descriptor = ref_prop.title
-
                         line = ", ".join([
-                            descriptor,
+                            ref_prop.get_descriptor(),
                             str(context.initial_solution[j]),
                             str(context.best_solution[j]),
                             str(ref_prop.value_min),
@@ -133,6 +116,7 @@ def run(args):
                         for record_header, records in context.pcma_records:
                             write_records(f, record_header, records)
 
+                    # Apply found solution and save:
                     context.apply_best_solution()
                     mixture.optimizer.optimize()
 

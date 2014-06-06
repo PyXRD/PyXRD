@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
-  <!-- interface-requires gtk+ 3.0 -->
   <object class="GtkAccelGroup" id="PyXRD_Main"/>
   <object class="GtkActionGroup" id="persistent_actions">
     <property name="accel_group">PyXRD_Main</property>
@@ -262,6 +261,15 @@
         <signal name="activate" handler="on_add_noise" swapped="no"/>
       </object>
     </child>
+    <child>
+      <object class="GtkAction" id="peak_area">
+        <property name="label" translatable="yes">Peak area</property>
+        <property name="short_label" translatable="yes">Peak area</property>
+        <property name="stock_id">430-area</property>
+        <property name="always_show_image">True</property>
+        <signal name="activate" handler="on_peak_area" swapped="no"/>
+      </object>
+    </child>
   </object>
   <object class="GtkActionGroup" id="specimens_actions">
     <property name="sensitive">False</property>
@@ -294,60 +302,6 @@
         <property name="stock_id">191-circle-minus</property>
         <property name="always_show_image">True</property>
         <signal name="activate" handler="on_del_specimen_activate" swapped="no"/>
-      </object>
-    </child>
-  </object>
-  <object class="GtkAboutDialog" id="about_window">
-    <property name="can_focus">False</property>
-    <property name="border_width">5</property>
-    <property name="modal">True</property>
-    <property name="destroy_with_parent">True</property>
-    <property name="type_hint">dialog</property>
-    <property name="transient_for">main_window</property>
-    <property name="program_name">PyXRD</property>
-    <property name="copyright" translatable="yes">Copyright 2013 - Mathijs Dumon</property>
-    <property name="website">http://users.ugent.be/~madumon/pyxrd/</property>
-    <property name="website_label" translatable="yes">Online Manual</property>
-    <property name="license" translatable="yes">Copyright (c) 2013, Mathijs Dumon
-All rights reserved - BSD-2-Clause ("FreeBSD") License.
-
-Redistribution and use in source and binary forms, with or without modification,
-are permitted provided that the following conditions are met:
-
-- Redistributions of source code must retain the above copyright notice,
-  this list of conditions and the following disclaimer.
-
-- Redistributions in binary form must reproduce the above copyright notice,
-  this list of conditions and the following disclaimer in the documentation 
-  and/or other materials provided with the distribution.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
-ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
-WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
-ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
-(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; 
-LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
-ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
-SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</property>
-    <property name="authors">Mathijs Dumon
-Gael Varoquaux (joblib)
-Johan Van Der Wauw</property>
-    <child internal-child="vbox">
-      <object class="GtkBox" id="aboutdialog-vbox1">
-        <property name="can_focus">False</property>
-        <child internal-child="action_area">
-          <object class="GtkButtonBox" id="aboutdialog-action_area1">
-            <property name="can_focus">False</property>
-          </object>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">True</property>
-            <property name="pack_type">end</property>
-            <property name="position">0</property>
-          </packing>
-        </child>
       </object>
     </child>
   </object>
@@ -749,6 +703,7 @@ Johan Van Der Wauw</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>
+                    <property name="homogeneous">False</property>
                   </packing>
                 </child>
                 <child>
@@ -769,6 +724,7 @@ Johan Van Der Wauw</property>
                     <property name="related_action">smooth_data</property>
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
+                    <property name="label" translatable="yes">Smooth data</property>
                     <property name="use_underline">True</property>
                   </object>
                   <packing>
@@ -795,6 +751,7 @@ Johan Van Der Wauw</property>
                     <property name="related_action">shift_data</property>
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
+                    <property name="label" translatable="yes">Shift data</property>
                     <property name="use_underline">True</property>
                   </object>
                   <packing>
@@ -807,7 +764,20 @@ Johan Van Der Wauw</property>
                     <property name="related_action">strip_peak</property>
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="label" translatable="yes">toolbutton3</property>
+                    <property name="label" translatable="yes">Strip peaks</property>
+                    <property name="use_underline">True</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="homogeneous">True</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkToolButton" id="tbtn_peak_area">
+                    <property name="related_action">peak_area</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="label" translatable="yes">Peak area</property>
                     <property name="use_underline">True</property>
                   </object>
                   <packing>
@@ -1073,6 +1043,60 @@ Johan Van Der Wauw</property>
             <property name="fill">True</property>
             <property name="pack_type">end</property>
             <property name="position">4</property>
+          </packing>
+        </child>
+      </object>
+    </child>
+  </object>
+  <object class="GtkAboutDialog" id="about_window">
+    <property name="can_focus">False</property>
+    <property name="border_width">5</property>
+    <property name="modal">True</property>
+    <property name="destroy_with_parent">True</property>
+    <property name="type_hint">dialog</property>
+    <property name="transient_for">main_window</property>
+    <property name="program_name">PyXRD</property>
+    <property name="copyright" translatable="yes">Copyright 2013 - Mathijs Dumon</property>
+    <property name="website">http://users.ugent.be/~madumon/pyxrd/</property>
+    <property name="website_label" translatable="yes">Online Manual</property>
+    <property name="license" translatable="yes">Copyright (c) 2013, Mathijs Dumon
+All rights reserved - BSD-2-Clause ("FreeBSD") License.
+
+Redistribution and use in source and binary forms, with or without modification,
+are permitted provided that the following conditions are met:
+
+- Redistributions of source code must retain the above copyright notice,
+  this list of conditions and the following disclaimer.
+
+- Redistributions in binary form must reproduce the above copyright notice,
+  this list of conditions and the following disclaimer in the documentation 
+  and/or other materials provided with the distribution.
+
+THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR
+ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+(INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; 
+LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</property>
+    <property name="authors">Mathijs Dumon
+Gael Varoquaux (joblib)
+Johan Van Der Wauw</property>
+    <child internal-child="vbox">
+      <object class="GtkBox" id="aboutdialog-vbox1">
+        <property name="can_focus">False</property>
+        <child internal-child="action_area">
+          <object class="GtkButtonBox" id="aboutdialog-action_area1">
+            <property name="can_focus">False</property>
+          </object>
+          <packing>
+            <property name="expand">False</property>
+            <property name="fill">True</property>
+            <property name="pack_type">end</property>
+            <property name="position">0</property>
           </packing>
         </child>
       </object>

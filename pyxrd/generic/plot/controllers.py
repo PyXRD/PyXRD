@@ -28,6 +28,8 @@ from pyxrd.data import settings
 from pyxrd.generic.plot.plotters import plot_specimens, plot_mixtures
 from pyxrd.generic.controllers import DialogMixin
 
+from .eye_dropper import EyeDropper
+
 class PlotController(DialogMixin):
     """
         A base class for matplotlib-canvas controllers that, sets up the 
@@ -311,8 +313,11 @@ class MainPlotController (PlotController):
             return None # don't continue
         # this is the bbox that bounds all the bboxes, again in relative
         # figure coords
-        bbox = transforms.Bbox.union(bboxes)
-        return bbox
+        if len(bboxes) > 0:
+            bbox = transforms.Bbox.union(bboxes)
+            return bbox
+        else:
+            return None
 
     def _find_renderer(self):
         if hasattr(self.figure.canvas, "get_renderer"):
@@ -338,12 +343,12 @@ class MainPlotController (PlotController):
         # Fix top for high marker labels:
         if len(self.marker_lbls) > 0:
             bbox = self._get_joint_bbox([ label for label, flag, _ in self.marker_lbls if flag ])
-            self.plot_top = 1.0 - (0.05 + bbox.height) #Figure top - marker margin
+            if bbox is not None: self.plot_top = 1.0 - (0.05 + bbox.height) #Figure top - marker margin
         # Fix bottom for x-axis label:
         bottom_label = self.plot.axis["bottom"].label
         if bottom_label is not None:
             bbox = self._get_joint_bbox([bottom_label])
-            self.plot_bottom = 0.10 - min(bbox.ymin, 0.0)
+            if bbox is not None: self.plot_bottom = 0.10 - min(bbox.ymin, 0.0)
 
         # Calculate new plot position & set it:
         plot_pos = self.get_plot_position()
@@ -392,7 +397,7 @@ class MainPlotController (PlotController):
             self.edc.disconnect()
             callback(x_pos)
             del self.edc
-        self.edc = EyedropperCursorPlot(
+        self.edc = EyeDropper(
             self.canvas,
             self.canvas.get_window(),
             onclick,
@@ -400,116 +405,3 @@ class MainPlotController (PlotController):
         )
 
     pass # end of class
-
-
-class EyedropperCursorPlot():
-    def __init__(self, canvas, window, click_callback=None, connect=False, enabled=False):
-        self.canvas = canvas
-        self.window = window
-        self.enabled = enabled
-        self.click_callback = click_callback
-        if connect: self.connect()
-
-    def connect(self):
-        self.cidmotion = self.canvas.mpl_connect(
-            'motion_notify_event',
-             self.on_motion
-         )
-        self.cidclick = self.canvas.mpl_connect(
-            'button_press_event',
-            self.on_click
-        )
-
-    def on_motion(self, event):
-        if self.window is not None:
-            if not self.enabled:
-                self.window.set_cursor(None)
-            else:
-                self.window.set_cursor(gtk.gdk.Cursor(gtk.gdk.CROSSHAIR)) # @UndefinedVariable
-
-    def on_click(self, event):
-        x_pos = -1
-        if event.inaxes:
-            x_pos = event.xdata
-        if self.enabled and callable(self.click_callback):
-            self.click_callback(x_pos, event)
-
-    def disconnect(self):
-        if self.window is not None:
-            self.window.set_cursor(None)
-        self.canvas.mpl_disconnect(self.cidmotion)
-        self.canvas.mpl_disconnect(self.cidclick)
-
-
-class DraggableVLine():
-    lock = None  # only one can be animated at a time
-    def __init__(self, line, connect=False, callback=None, window=None):
-        self.line = line
-        self.press = None
-        self.background = None
-        self.callback = callback
-        self.window = window
-        if connect: self.connect()
-
-    def connect(self):
-        """ Connect to the canvas mouse events """
-        self.cidpress = self.line.figure.canvas.mpl_connect(
-            'button_press_event', self.on_press)
-        self.cidrelease = self.line.figure.canvas.mpl_connect(
-            'button_release_event', self.on_release)
-        self.cidmotion = self.line.figure.canvas.mpl_connect(
-            'motion_notify_event', self.on_motion)
-
-    def on_press(self, event):
-        """ Check if the mouse is over us and store the data """
-        if event.inaxes != self.line.axes: return
-        if DraggableVLine.lock is not None: return
-        contains, attrd = self.line.contains(event)
-        if not contains: return
-        x0 = self.line.get_xdata()[0]
-        self.press = x0, event.xdata
-        DraggableVLine.lock = self
-
-    def on_motion(self, event):
-        """ Move the line if the mouse is over us & pressed """
-        if self.window is not None and event.inaxes == self.line.axes:
-            if DraggableVLine.lock is not self:
-                change_cursor, attrd = self.line.contains(event)
-            else:
-                change_cursor = True
-
-            if not change_cursor:
-                self.window.set_cursor(None)
-            else:
-                arrows = gtk.gdk.Cursor(gtk.gdk.SB_H_DOUBLE_ARROW)
-                self.window.set_cursor(arrows)
-
-        if DraggableVLine.lock is not self:
-            return
-        if event.inaxes != self.line.axes: return
-        x0, xpress = self.press
-        x = max(x0 + (event.xdata - xpress), 0)
-        self.line.set_xdata((x, x))
-
-        self.line.figure.canvas.draw()
-
-    def on_release(self, event):
-        """ Reset the on_press data """
-        if DraggableVLine.lock is not self:
-            return
-
-        self.press = None
-        DraggableVLine.lock = None
-
-        if self.callback is not None and callable(self.callback):
-            x = self.line.get_xdata()
-            self.callback(x[0])
-
-        # redraw the full figure
-        self.line.figure.canvas.draw()
-
-    def disconnect(self):
-        """ Disconnect all the stored connection ids """
-        self.line.figure.canvas.mpl_disconnect(self.cidpress)
-        self.line.figure.canvas.mpl_disconnect(self.cidrelease)
-        self.line.figure.canvas.mpl_disconnect(self.cidmotion)

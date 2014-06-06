@@ -420,6 +420,11 @@ class AppController (BaseController, DialogMixin):
             self.specimen.strip_peak()
         return True
 
+    def on_peak_area(self, event):
+        if self.model.single_specimen_selected:
+            self.specimen.peak_area()
+        return True
+
     # ------------------------------------------------------------
     #      GTK Signal handlers - Phases related
     # ------------------------------------------------------------

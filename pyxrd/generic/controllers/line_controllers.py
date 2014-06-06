@@ -9,12 +9,12 @@ import os
 
 from pyxrd.generic.io.file_parsers import parsers
 from pyxrd.generic.controllers import BaseController, DialogController
-from pyxrd.generic.plot.controllers import EyedropperCursorPlot
+from pyxrd.generic.plot.eye_dropper import EyeDropper
 
 
 class LinePropertiesController(BaseController):
     """
-        Controller for the Line models general properties
+        Controller for Line models' general properties
     """
     auto_adapt_excluded = [
         "noise_fraction",
@@ -28,6 +28,9 @@ class LinePropertiesController(BaseController):
         "bg_type",
         "bg_position",
         "bg_scale",
+        "area_startx",
+        "area_endx",
+        "area_result"
     ] # these are handled by other controllers
 
     __LINEID__ = "TRUE"
@@ -142,12 +145,57 @@ class SmoothDataController(PatternActionController):
 
     pass # end of class
 
+class CalculatePeakAreaController(PatternActionController):
+
+    auto_adapt_included = [
+        "area_startx",
+        "area_endx",
+        "area_result",
+    ]
+    model_setup_method = None
+    model_action_method = "clear_area_variables"
+    model_cancel_method = "clear_area_variables"
+
+    # ------------------------------------------------------------
+    #      GTK Signal handlers
+    # ------------------------------------------------------------
+    def on_sample_start_clicked(self, event):
+        self.sample("area_startx")
+        return True
+
+    def on_sample_end_clicked(self, event):
+        self.sample("area_endx")
+        return True
+
+    def sample(self, attribute):
+
+        def onclick(x_pos, *args):
+            if self.edc is not None:
+                self.edc.enabled = False
+                self.edc.disconnect()
+                self.edc = None
+            if x_pos != -1:
+                setattr(self.model, attribute, x_pos)
+            self.view.get_toplevel().present()
+
+        self.edc = EyeDropper(
+            self.parent.parent.plot_controller.canvas,
+            self.parent.parent.plot_controller.canvas.get_window(),
+            onclick
+        )
+
+        self.view.get_toplevel().hide()
+        self.parent.parent.view.get_toplevel().present()
+
+    pass # end of class
+
+
 class StripPeakController(PatternActionController):
 
     auto_adapt_included = [
         "strip_startx",
         "strip_endx",
-        "noise_level"
+        "noise_level",
     ]
     model_setup_method = None
     model_action_method = "strip_peak"
@@ -175,11 +223,10 @@ class StripPeakController(PatternActionController):
                 setattr(self.model, attribute, x_pos)
             self.view.get_toplevel().present()
 
-        self.edc = EyedropperCursorPlot(
+        self.edc = EyeDropper(
             self.parent.parent.plot_controller.canvas,
             self.parent.parent.plot_controller.canvas.get_window(),
-            onclick,
-            True, True
+            onclick
         )
 
         self.view.get_toplevel().hide()

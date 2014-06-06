@@ -16,6 +16,7 @@ from pyxrd.generic.views import ObjectListStoreView, BaseView, HasChildView, For
 
 from pyxrd.project.views import ProjectView
 from pyxrd.specimen.views import SpecimenView, EditMarkersView
+from pyxrd.application.icons import get_icon_list
 
 class AppView(BaseView, HasChildView, FormattedTitleView):
     """
@@ -87,13 +88,14 @@ class AppView(BaseView, HasChildView, FormattedTitleView):
         self["about_window"].connect("close", on_aboutbox_close)
         self["about_window"].connect("delete_event", on_aboutbox_close)
 
+        self["main_window"].set_icon_list(*get_icon_list())
 
         # self.set_layout_modes()
         self.reset_all_views()
         if not settings.DEBUG:
             self.get_top_widget().maximize()
 
-        self.get_top_widget().show_all()
+        self.get_top_widget().show()
 
         return
 

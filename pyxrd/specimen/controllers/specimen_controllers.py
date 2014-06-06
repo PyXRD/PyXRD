@@ -25,7 +25,8 @@ from pyxrd.generic.controllers.line_controllers import (
     SmoothDataController,
     AddNoiseController,
     ShiftDataController,
-    StripPeakController
+    StripPeakController,
+    CalculatePeakAreaController,
 )
 
 from pyxrd.generic.views.line_views import (
@@ -33,7 +34,8 @@ from pyxrd.generic.views.line_views import (
     SmoothDataView,
     AddNoiseView,
     ShiftDataView,
-    StripPeakView
+    StripPeakView,
+    CalculatePeakAreaView
 )
 from pyxrd.data import settings
 
@@ -177,6 +179,14 @@ class SpecimenController(DialogController, TreeViewMixin):
         st_view = StripPeakView(parent=self.view)
         StripPeakController(model=self.model.experimental_pattern, view=st_view, parent=self)
         st_view.present()
+
+    def peak_area(self):
+        """
+            Opens the 'peak area' dialog.
+        """
+        pa_view = CalculatePeakAreaView(parent=self.view)
+        CalculatePeakAreaController(model=self.model.experimental_pattern, view=pa_view, parent=self)
+        pa_view.present()
 
     # ------------------------------------------------------------
     #      GTK Signal handlers

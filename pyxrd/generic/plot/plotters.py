@@ -254,7 +254,7 @@ def plot_specimen(project, specimen, labels, marker_lbls, label_offset, plot_lef
 
         # plot the experimental pattern:
         plot_pattern(pattern, axes, scale=scale, offset=offset, cap=pattern.cap_value)
-        make_draggable(getattr(pattern, "__plot_line", None), drag_y_handler=specimen.on_pattern_dragged)
+        #make_draggable(getattr(pattern, "__plot_line", None), drag_y_handler=specimen.on_pattern_dragged)
 
         # get some common data for the next lines:
         x_data, y_data = pattern.get_xy_data()
@@ -381,12 +381,25 @@ def plot_specimen(project, specimen, labels, marker_lbls, label_offset, plot_lef
             except: pass
 
         pattern.__plot_stripped_line = stripped_line
+        ########################################################################
+
+        ########################################################################
+        # plot the pattern after peak stripping:
+        peak_area = getattr(specimen, "__plot_peak_area", None)
+        if peak_area is not None and peak_area in axes.get_children():
+            peak_area.remove()
+        if pattern.area_startx != 0.0 and pattern.area_endx != 0.0 and pattern.area_pattern is not None:
+            area_xdata, area_bg, area_ydata = pattern.area_pattern
+            _, area_bg = apply_transform((area_xdata.copy(), area_bg.copy()), scale=scale, offset=offset)
+            area_xdata, area_ydata = apply_transform((area_xdata.copy(), area_ydata.copy()), scale=scale, offset=offset)
+            peak_area = axes.fill_between(area_xdata, area_bg, area_ydata, interpolate=True, facecolor="#660099", zorder=10)
+        setattr(specimen, "__plot_peak_area", peak_area)
 
     if specimen.display_calculated:
         pattern = specimen.calculated_pattern
         plot_pattern(pattern, axes, scale=scale, offset=offset)
-        if not specimen.display_experimental:
-            make_draggable(getattr(pattern, "__plot_line", None), drag_y_handler=specimen.on_pattern_dragged)
+        #if not specimen.display_experimental:
+        #    make_draggable(getattr(pattern, "__plot_line", None), drag_y_handler=specimen.on_pattern_dragged)
 
         # setup or update the calculated lines (phases)
         if specimen.display_phases:
@@ -457,7 +470,7 @@ def plot_specimen(project, specimen, labels, marker_lbls, label_offset, plot_lef
     plot_markers(project, specimen, marker_lbls, offset, scale, marker_scale, axes)
     # & label:
     plot_label(specimen, labels, label_offset, plot_left, axes)
-    make_draggable(getattr(specimen, "__plot_label_artist", None), drag_y_handler=project.on_label_dragged)
+    #make_draggable(getattr(specimen, "__plot_label_artist", None), drag_y_handler=project.on_label_dragged)
 
 def plot_statistics(project, specimen, stats_y_pos, stats_height, axes):
 

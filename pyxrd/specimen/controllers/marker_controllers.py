@@ -13,7 +13,8 @@ import gtk
 
 from pyxrd.mvc import Controller
 
-from pyxrd.generic.plot.controllers import DraggableVLine, EyedropperCursorPlot
+from pyxrd.generic.plot.eye_dropper import EyeDropper
+from pyxrd.generic.plot.draggables import DraggableVLine
 from pyxrd.generic.controllers import DialogController, BaseController, ObjectListStoreController
 from pyxrd.generic.views.treeview_tools import setup_treeview, new_text_column, new_toggle_column
 from pyxrd.generic.io.utils import get_case_insensitive_glob
@@ -76,16 +77,15 @@ class EditMarkerController(BaseController):
 
         def click_callback(x_pos, event):
             if self.edc is not None:
-                self.edc.enabled = False
                 self.edc.disconnect()
             self.view.get_toplevel().present()
             if x_pos != -1:
                 self.model.position = x_pos
 
-        self.edc = EyedropperCursorPlot(
+        self.edc = EyeDropper(
             self.parent.plot_controller.canvas,
             self.parent.plot_controller.canvas.get_window(),
-            click_callback, True, True
+            click_callback
         )
 
         self.view.get_toplevel().hide()
@@ -169,7 +169,7 @@ class MarkersController(ObjectListStoreController):
 
         sel_model = ThresholdSelector(parent=self.model)
         sel_view = DetectPeaksView(parent=self.view)
-        sel_ctrl = ThresholdController(model=sel_model, view=sel_view, parent=self, callback=after_cb)
+        sel_ctrl = ThresholdController(model=sel_model, view=sel_view, parent=self, callback=after_cb) #@UnusedVariable
         sel_model.update_threshold_plot_data()
 
         if len(self.model.markers) > 0:
@@ -187,9 +187,9 @@ class MarkersController(ObjectListStoreController):
     def on_match_minerals_clicked(self, widget):
         def apply_cb(matches):
             with self._multi_operation_context():
-                for name, abbreviation, peaks, matches, score in matches:
+                for name, abbreviation, peaks, matches, score in matches: #@UnusedVariable
                     for marker in self.get_selected_objects():
-                        for mpos, epos in matches:
+                        for mpos, epos in matches: #@UnusedVariable
                             if marker.get_nm_position() * 10. == epos:
                                 marker.label += ", %s" % abbreviation
 
@@ -206,7 +206,7 @@ class MarkersController(ObjectListStoreController):
 
         scorer_model = MineralScorer(marker_peaks=marker_peaks, parent=self.model)
         scorer_view = MatchMineralsView(parent=self.view)
-        scorer_ctrl = MatchMineralController(model=scorer_model, view=scorer_view, parent=self, apply_callback=apply_cb, close_callback=close_cb)
+        scorer_ctrl = MatchMineralController(model=scorer_model, view=scorer_view, parent=self, apply_callback=apply_cb, close_callback=close_cb) #@UnusedVariable
 
         self.view.hide()
         scorer_view.present()
@@ -297,7 +297,7 @@ class MatchMineralController(DialogController):
         if selection.count_selected_rows() >= 1:
             model, paths = selection.get_selected_rows()
             itr = model.get_iter(paths[0])
-            name, abbreviation, peaks = model.get(itr, 0, 1, 2)
+            name, _, peaks = model.get(itr, 0, 1, 2)
             self.model.specimen.mineral_preview = (name, peaks)
             self.model.specimen.visuals_changed.emit()
 
@@ -315,7 +315,7 @@ class MatchMineralController(DialogController):
     def on_del_match_clicked(self, event):
         selection = self.view.tv_matches.get_selection()
         if selection.count_selected_rows() >= 1:
-            model, paths = selection.get_selected_rows()
+            _, paths = selection.get_selected_rows()
             self.model.del_match(*paths[0])
 
     def on_apply_clicked(self, event):
@@ -391,7 +391,7 @@ class ThresholdController(DialogController):
                 x, y = self.model.threshold_plot_data
                 self.view.plot.plot(x, y, 'k-')
                 self.line = self.view.plot.axvline(x=self.model.sel_threshold, color="#0000FF", linestyle="-")
-                self.dline = DraggableVLine(self.line, connect=True, callback=dline_cb, window=self.view.matlib_canvas.get_window())
+                self.dline = DraggableVLine(self.line, callback=dline_cb, window=self.view.matlib_canvas.get_window())
             self.view.plot.set_ylabel('# of peaks', labelpad=1)
             self.view.plot.set_xlabel('Threshold', labelpad=1)
             self.view.figure.subplots_adjust(left=0.15, right=0.875, top=0.875, bottom=0.15)

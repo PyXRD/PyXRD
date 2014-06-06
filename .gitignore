@@ -46,3 +46,4 @@ nosetests.xml
 .pydevproject
 .settings/
 *.spec
+dependency installers/

@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 
 import numpy as np
 from scipy.interpolate import interp1d
+from scipy.integrate import trapz
 
 from pyxrd.mvc import PropIntel, OptionPropIntel
 from pyxrd.mvc.models.xydata import XYData
@@ -309,6 +310,10 @@ class ExperimentalLine(PyXRDLine):
             PropIntel(name="shift_value", data_type=float, has_widget=True, widget_type="float_entry"),
             OptionPropIntel(name="shift_position", data_type=float, has_widget=True, options=settings.PATTERN_SHIFT_POSITIONS),
             PropIntel(name="cap_value", data_type=float, has_widget=True, storable=True, widget_type="float_entry"),
+            PropIntel(name="area_startx", data_type=float, has_widget=True, widget_type="float_entry"),
+            PropIntel(name="area_endx", data_type=float, has_widget=True, widget_type="float_entry"),
+            PropIntel(name="area_pattern", data_type=object),
+            PropIntel(name="area_result", data_type=float, has_widget=True, widget_type="label"),
             PropIntel(name="strip_startx", data_type=float, has_widget=True, widget_type="float_entry"),
             PropIntel(name="strip_endx", data_type=float, has_widget=True, widget_type="float_entry"),
             PropIntel(name="noise_level", data_type=float, has_widget=True, widget_type="float_entry"),
@@ -391,6 +396,41 @@ class ExperimentalLine(PyXRDLine):
             self.visuals_changed.emit()
         except ValueError:
             pass
+
+    _area_startx = 0.0
+    def get_area_startx(self): return self._area_startx
+    def set_area_startx(self, value):
+        try:
+            self._area_startx = float(value)
+            if self._area_endx < self._area_startx:
+                self.area_endx = self._area_startx + 1.0
+            else: # update will be taken care of by endx's setter in the previous case
+                self.update_area_pattern(new_pos=True)
+        except ValueError:
+            pass
+
+    _area_endx = 0.0
+    def get_area_endx(self): return self._area_endx
+    def set_area_endx(self, value):
+        try:
+            self._area_endx = float(value)
+            self.update_area_pattern(new_pos=True)
+        except ValueError:
+            pass
+
+    _area_result = 0.0
+    def get_area_result(self): return self._area_result
+    def set_area_result(self, value):
+        try:
+            self._area_result = float(value)
+        except ValueError:
+            pass
+
+    _area_pattern = None
+    def get_area_pattern(self): return self._area_pattern
+    def set_area_pattern(self, value):
+        self._area_pattern = value
+        self.visuals_changed.emit()
 
     _strip_startx = 0.0
     def get_strip_startx(self): return self._strip_startx
@@ -529,7 +569,6 @@ class ExperimentalLine(PyXRDLine):
 
     def setup_shift_variables(self):
         with self.visuals_changed.hold_and_emit():
-            print self.specimen, self.parent
             position = self.specimen.goniometer.get_2t_from_nm(self.shift_position)
             if position > 0.1:
                 max_x = position + 0.5
@@ -545,6 +584,49 @@ class ExperimentalLine(PyXRDLine):
     def clear_shift_variables(self):
         with self.visuals_changed.hold_and_emit():
             self.shift_value = 0
+
+    # ------------------------------------------------------------
+    #       Peak area calculation
+    # ------------------------------------------------------------
+    area_slope = 0.0
+    avg_area_starty = 0.0
+    avg_area_endy = 0.0
+    def update_area_pattern(self, new_pos=True):
+        with self.visuals_changed.hold_and_emit():
+            if new_pos:
+                # calculate average starting point y value
+                condition = (self.data_x >= self.area_startx - 0.1) & (self.data_x <= self.area_startx + 0.1)
+                section = np.extract(condition, self.data_y[:, 0])
+                self.avg_area_starty = np.min(section)
+
+                # calculate average ending point y value
+                condition = (self.data_x >= self.area_endx - 0.1) & (self.data_x <= self.area_endx + 0.1)
+                section = np.extract(condition, self.data_y[:, 0])
+                self.avg_area_endy = np.min(section)
+
+                # Calculate new bg slope
+                self.area_slope = (self.avg_area_starty - self.avg_area_endy) / (self.area_startx - self.area_endx)
+
+            # Get the x-values in between start and end point:
+            condition = (self.data_x >= self.area_startx) & (self.data_x <= self.area_endx)
+            section_x = np.extract(condition, self.data_x)
+            section_y = np.extract(condition, self.data_y)
+            bg_curve = (self.area_slope * (section_x - self.area_startx) + self.avg_area_starty)
+
+            #Calculate the peak area:
+            self.area_result = abs(trapz(section_y, x=section_x) - trapz(bg_curve, x=section_x))
+
+
+            # Calculate the new y-values:
+            self.area_pattern = (section_x, bg_curve, section_y)
+
+    def clear_area_variables(self):
+        with self.visuals_changed.hold_and_emit():
+            self._area_startx = 0.0
+            self._area_pattern = None
+            self._area_endx = 0.0
+            self.area_result = 0.0
+
 
     # ------------------------------------------------------------
     #       Peak stripping

@@ -88,3 +88,12 @@ class StripPeakView(DialogView):
     resizable = False
 
     pass # end of class
+
+class CalculatePeakAreaView(DialogView):
+    title = "Calculate Peak Area"
+    subview_builder = resource_filename(__name__, "glade/lines/peak_area.glade")
+    subview_toplevel = "peak_area"
+    modal = True
+    resizable = False
+
+    pass # end of class

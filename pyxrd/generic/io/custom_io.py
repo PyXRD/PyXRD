@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 if sys.version_info[0] < 3: # Pre Python 3.0
     import codecs
     _open_func_bak = open # Make a back up, just in case
-    open = codecs.open
+    open = codecs.open #@ReservedAssignment
 def unicode_open(*args, **kwargs):
     """
         Opens files in UTF-8 encoding by default, unless an 'encoding'
@@ -32,13 +32,12 @@ from collections import OrderedDict
 from traceback import format_exc
 
 try:
-    from cStringIO import StringIO
+    from cStringIO import StringIO #@UnusedImport
 except:
-    from StringIO import StringIO
+    from StringIO import StringIO #@Reimport
 from zipfile import ZipFile, ZIP_DEFLATED, is_zipfile
 
 import json
-from pyxrd.data import settings
 
 def sizeof_fmt(num):
     for x in ['bytes', 'kB', 'MB', 'GB', 'TB']:
@@ -48,7 +47,7 @@ def sizeof_fmt(num):
 
 def get_size(path='.', maxsize=None):
     total_size = 0
-    for dirpath, dirnames, filenames in os.walk(path):
+    for dirpath, dirnames, filenames in os.walk(path): #@UnusedVariable
         for f in filenames:
             fp = os.path.join(dirpath, f)
             total_size += os.path.getsize(fp)
@@ -440,12 +439,12 @@ class Storable(object):
             return arg
 
     @classmethod
-    def from_json(type, *args, **kwargs):
+    def from_json(cls, *args, **kwargs):
         """
             Class method transforming JSON kwargs into an instance of this class.
             By default this assumes a 1-on-1 mapping to the __init__ method.
         """
-        return type(*args, **kwargs)
+        return cls(*args, **kwargs)
 
     ###########################################################################
     # Others:

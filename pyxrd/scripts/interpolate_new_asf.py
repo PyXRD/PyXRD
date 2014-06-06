@@ -17,11 +17,11 @@ asf2 = np.array([0.058851, 3.062918, 4.135106, 0.853742, 1.036792, 0.85252, 2.01
 
 def func(asf, stl_range):
     f = np.zeros(stl_range.shape)
-    for i in range(1,6):
-         f += asf[i] * np.exp(-asf[5+i]*(stl_range)**2)
+    for i in range(1, 6):
+        f += asf[i] * np.exp(-asf[5 + i] * (stl_range) ** 2)
     f += asf[0]
     return f
-    
+
 stl_range = np.arange(0, 1, 0.01)
 
 expected1 = func(asf1, stl_range)
@@ -36,19 +36,19 @@ def calculate_R2(x0, *args):
     return np.sum((calculated - expected) ** 2)
 
 bounds = [
-    (0,None),
+    (0, None),
 
-    (None,None),
-    (None,None),
-    (None,None),
-    (None,None),
-    (None,None),
-    
-    (0.001,None),
-    (0.001,None),
-    (0.001,None),
-    (0.001,None),
-    (0.001,None),
+    (None, None),
+    (None, None),
+    (None, None),
+    (None, None),
+    (None, None),
+
+    (0.001, None),
+    (0.001, None),
+    (0.001, None),
+    (0.001, None),
+    (0.001, None),
 ]
 
 x0 = asf2

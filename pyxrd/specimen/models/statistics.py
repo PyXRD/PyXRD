@@ -38,7 +38,7 @@ class Statistics(ChildModel):
 
     def get_points(self):
         try:
-            e_ex, e_ey, e_cx, e_cy = self.specimen.get_exclusion_xy()
+            e_ex, e_ey, e_cx, e_cy = self.specimen.get_exclusion_xy() #@UnusedVariable
             return e_ex.size
         except: pass
         return 0

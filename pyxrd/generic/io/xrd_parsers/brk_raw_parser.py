@@ -6,7 +6,7 @@
 # Complete license can be found in the LICENSE file.
 
 import os, struct
-from io import SEEK_SET, SEEK_CUR, SEEK_END
+from io import SEEK_SET, SEEK_CUR
 
 import numpy as np
 
@@ -57,7 +57,7 @@ class BrkRAWParser(XRDParserMixin, BaseParser):
                     twotheta_count = int(struct.unpack("I", f.read(4))[0])
 
                 # Step counting time, 2-theta step size and scanning mode:
-                time_step, twotheta_step, scan_mode = struct.unpack("fff", f.read(12))
+                time_step, twotheta_step, scan_mode = struct.unpack("fff", f.read(12)) #@UnusedVariable
                 # Skip 4 bytes, and read 2-theta starting position:
                 f.seek(4, SEEK_CUR)
                 twotheta_min, = struct.unpack("f", f.read(4))
@@ -117,12 +117,12 @@ class BrkRAWParser(XRDParserMixin, BaseParser):
 
             # Read wavelength information:
             f.seek(148, SEEK_CUR)
-            target_type = u(str(f.read(2)).replace("\0", "").strip())
+            target_type = u(str(f.read(2)).replace("\0", "").strip()) #@UnusedVariable
             alpha1, alpha2, alpha_factor = struct.unpack("fff", f.read(12))
 
             # Total runtime in seconds: (not used fttb)
             f.seek(8, SEEK_CUR)
-            time_total, = struct.unpack("f", f.read(4))
+            time_total, = struct.unpack("f", f.read(4)) #@UnusedVariable
 
             # Move to first sample header start:
             f.seek(256, SEEK_SET)
@@ -159,7 +159,7 @@ class BrkRAWParser(XRDParserMixin, BaseParser):
         elif version == "RAW3":
 
             # Read file status:
-            file_status = {
+            file_status = { #@UnusedVariable
                 1: "done",
                 2: "active",
                 3: "aborted",
@@ -178,15 +178,16 @@ class BrkRAWParser(XRDParserMixin, BaseParser):
 
             # Get anode type:
             f.seek(608, SEEK_SET)
-            target_type = str(f.read(4))
+            target_type = str(f.read(4)) #@UnusedVariable
 
             # Get wavelength info:
             f.seek(616, SEEK_SET)
-            alpha_average, alpha1, alpha2, beta, alpha_factor = \
-                struct.unpack("ddddd", f.read(8 * 5))
+            alpha_average, alpha1, alpha2, beta, alpha_factor = (#@UnusedVariable
+                struct.unpack("ddddd", f.read(8 * 5)))
+
 
             # Get total recording time:
-            time_total, = struct.unpack("f", f.read(4))
+            time_total, = struct.unpack("f", f.read(4)) #@UnusedVariable
 
             # Read in per-sample meta data
             for i in range(num_samples):
@@ -195,7 +196,7 @@ class BrkRAWParser(XRDParserMixin, BaseParser):
 
                 # Get header length, data count and theta start position
                 header_length, twotheta_count = struct.unpack("HH", f.read(4))
-                theta_min, twotheta_min = struct.unpack("dd", f.read(8 * 2))
+                theta_min, twotheta_min = struct.unpack("dd", f.read(8 * 2))#@UnusedVariable
                 data_start = header_start + header_length
 
                 # Read step size
@@ -208,7 +209,7 @@ class BrkRAWParser(XRDParserMixin, BaseParser):
 
                 # Read the used wavelength
                 f.seek(header_start + 240, SEEK_SET)
-                alpha_used, = struct.unpack("d", f.read(8))
+                alpha_used, = struct.unpack("d", f.read(8))#@UnusedVariable
 
                 # Move to the end of the data:
                 f.seek(data_start + twotheta_count * 4)

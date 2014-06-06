@@ -7,6 +7,7 @@
 
 from traceback import format_exc
 import itertools
+from math import sqrt
 
 import logging
 logger = logging.getLogger(__name__)
@@ -20,10 +21,9 @@ import mpl_toolkits.axes_grid1.axes_size as Size
 from mpl_toolkits.axes_grid1 import Divider
 from pyxrd.generic.mathtext_support import get_plot_safe
 
-from pyxrd.generic.sorted_collection import SortedCollection
-    
 class ParameterSpaceGenerator(object):
 
+    num_cross_sections = 0
     grid = None
 
     def initialize(self, ranges, density):
@@ -32,45 +32,67 @@ class ParameterSpaceGenerator(object):
             and the given grid density (expressed as # of data points for that 
             parameter axis).
         """
-        
+
         self.num_params = len(ranges)
-        
+
         ranges = np.asarray(ranges, dtype=float)
-        
-        self.minima = np.asarray(ranges[:,0])
-        self.maxima = np.asarray(ranges[:,1])
-        self.density = 199
+
+        self.minima = np.asarray(ranges[:, 0])
+        self.maxima = np.asarray(ranges[:, 1])
+        self.center_point = 0.5 * (self.minima + self.maxima)
+        self.num_cross_sections = int(self.num_params * (self.num_params + 1) / 2)
+        self.density = 199 #TODO cap this so array does not grow beyond a certain size
 
         self.grid_dtype = [("point", object), ("value", float), ("distance", float)]
-        self.grid = np.empty(shape=(self.density,)*self.num_params, dtype=self.grid_dtype)
-            
+        self.grid = np.empty(shape=(self.num_cross_sections, self.density, self.density), dtype=self.grid_dtype)
+
     def _find_closest_grid_index(self, solution):
         """ Returns the closest grid point's indexes """
-        closest = (np.asarray(solution) - self.minima) / (self.maxima - self.minima)
-        return np.array(np.round(closest * (self.density - 1)), dtype=int)
+
+        #1. transform solution so center of grid is zero point and min-max goes from -1 to +1
+        transf = (np.asarray(solution) - self.center_point) / (self.maxima - self.minima)
+
+        #2. calculate distance to each cross section and find closest
+        smallest_distance = None
+        closest_cross_section = None
+        for index, (par1, par2) in enumerate(itertools.combinations(range(self.num_params), 2)):
+            # 1. project on to the normal of the A/B plan at the center point:
+            projected = transf.copy()
+            projected[par1] = 0
+            projected[par2] = 0
+            distance = np.linalg.norm(projected)
+            if smallest_distance is None or smallest_distance > distance:
+                smallest_distance = distance
+                closest_cross_section = index, (par1, par2), distance
+
+        index, (par1, par2), distance = closest_cross_section
+        # Move back to 0->1 space (was in -1 -> 1 space)
+        gridded_location = np.array(np.round(0.5 * (transf + 1) * (self.density - 1)), dtype=int)
+        closest_index = (index, int(gridded_location[par1]), int(gridded_location[par2]))
+        del gridded_location
+        return closest_index, distance
 
     def record(self, new_solution, new_residual):
         """
             Add a new solution to the list of solutions
         """
-        closest = self._find_closest_grid_index(new_solution)
-        grid_location = (self.density - 1) * (new_solution - self.minima) / (self.maxima - self.minima)
-        
-        new_distance = np.linalg.norm(closest - grid_location)
-        old_item = self.grid[tuple(closest)]
+        # Get the best spot to store this one:
+        closest_index, new_distance = self._find_closest_grid_index(new_solution)
+
+        old_item = self.grid[closest_index]
         old_solution = old_item["point"]
-        old_residual = old_item["value"]
+        #old_residual = old_item["value"]
         old_distance = old_item["distance"]
-        
+
         # If we have a previous point, check which one is closer:
-        if old_solution is not None and new_distance > old_distance: 
+        if old_solution is not None and new_distance > old_distance:
             return
         else:
             # If we got here, we can store the result:
-            self.grid[tuple(closest)] = (new_solution, new_residual, new_distance)
-        
+            self.grid[closest_index] = (new_solution, new_residual, new_distance)
+
     def clear(self):
-        del self.grid    
+        del self.grid
 
     def get_extents(self, centroid, mins, maxs, density=10):
         """
@@ -154,7 +176,7 @@ class ParameterSpaceGenerator(object):
             if dims == 1: # Only one parameter refined
                 points = points.flatten()
                 values = values.flatten()
-                xy = np.array(zip(points, values), dtype=[('x', float),('y', float)])
+                xy = np.array(zip(points, values), dtype=[('x', float), ('y', float)])
                 xy.sort(order=['x'], axis=0)
                 print "STACKED:", xy, points, values
                 points = xy['x']

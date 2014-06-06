@@ -99,10 +99,13 @@ class GtkAdapter(ModelAdapter):
         self.update_model()
         return
 
-    def _disconnect_widget(self):
+    def _disconnect_widget(self, widget=None):
         """Disconnects the widget"""
         if self._signal is not None and self._signal_id is not None:
-            self._widget.disconnect(self._signal_id)
+            widget = not_none(self._widget, widget)
+            if widget is not None:
+                widget.disconnect(self._signal_id)
+            self._signal, self._signal_id = None, None
 
     # ----------------------------------------------------------------------
     #  Widget-side reading and writing

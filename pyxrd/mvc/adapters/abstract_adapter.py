@@ -48,7 +48,7 @@ class AbstractAdapter(object):
         if value is None:
             self.__prop = None
         else:
-            self.__prop = weakref.ref(value)
+            self.__prop = weakref.ref(value, lambda: self.disconnect())
 
     __controller = None
     @property
@@ -62,7 +62,7 @@ class AbstractAdapter(object):
         if value is None:
             self.__controller = None
         else:
-            self.__controller = weakref.ref(value)
+            self.__controller = weakref.ref(value, lambda c: self.disconnect())
 
     __widget = None
     @property
@@ -76,7 +76,7 @@ class AbstractAdapter(object):
         if value is None:
             self.__widget = None
         else:
-            self.__widget = weakref.ref(value)
+            self.__widget = weakref.ref(value, lambda w: self.disconnect(widget=w()))
 
     # ----------------------------------------------------------------------
     #  Construction:
@@ -106,10 +106,10 @@ class AbstractAdapter(object):
         self._write_widget(self._read_property())
         return
 
-    def disconnect(self):
+    def disconnect(self, model=None, widget=None):
         """Disconnects the adapter from the model and the widget."""
-        self._disconnect_model()
-        self._disconnect_widget()
+        self._disconnect_model(model=model)
+        self._disconnect_widget(widget=widget)
 
     # ----------------------------------------------------------------------
     #  Widget connecting & disconnecting:
@@ -117,7 +117,7 @@ class AbstractAdapter(object):
     def _connect_widget(self):
         raise NotImplementedError("Please Implement this method")
 
-    def _disconnect_widget(self):
+    def _disconnect_widget(self, widget=None):
         raise NotImplementedError("Please Implement this method")
 
     # ----------------------------------------------------------------------
@@ -126,7 +126,7 @@ class AbstractAdapter(object):
     def _connect_model(self):
         raise NotImplementedError("Please Implement this method")
 
-    def _disconnect_model(self):
+    def _disconnect_model(self, model=None):
         raise NotImplementedError("Please Implement this method")
 
     # ----------------------------------------------------------------------

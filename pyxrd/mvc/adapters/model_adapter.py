@@ -146,9 +146,12 @@ class ModelAdapter(Observer, AbstractAdapter):
         if not self._ignoring_notifs:
             self.update_widget()
 
-    def _disconnect_model(self):
+    def _disconnect_model(self, model=None):
         # disconnects the model
-        self.relieve_model(self._model)
+        model = not_none(self._model, model)
+        if model is not None:
+            self.relieve_model(self._model)
+            self._model = None
 
     # ----------------------------------------------------------------------
     #  Model-side reading and writing

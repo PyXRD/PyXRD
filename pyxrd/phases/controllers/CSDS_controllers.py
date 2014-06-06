@@ -74,7 +74,7 @@ class EditCSDSTypeController(BaseController):
             if not type(self.model.CSDS_distribution) == cls:
                 new_csds_model = cls(parent=self.model)
                 self.model.CSDS_distribution = new_csds_model
-                self.distributions_controller.set_model(new_csds_model)
+                self.distributions_controller.model = new_csds_model
 
     pass # end of class
 
@@ -100,9 +100,9 @@ class EditCSDSDistributionController(BaseController):
         if self.model is not None:
             self.reset_view()
 
-
-    def set_model(self, model):
-        super(EditCSDSDistributionController, self).set_model(model)
+    @BaseController.model.setter
+    def _set_model(self, model):
+        super(EditCSDSDistributionController, self)._set_model(model)
         self.reset_view()
 
     # ------------------------------------------------------------

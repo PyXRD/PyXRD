@@ -257,7 +257,6 @@
         <property name="short_label" translatable="yes">Noise</property>
         <property name="tooltip" translatable="yes">Add noise</property>
         <property name="stock_id">429-noisify</property>
-        <property name="icon_name">429-noisify</property>
         <signal name="activate" handler="on_add_noise" swapped="no"/>
       </object>
     </child>
@@ -325,7 +324,6 @@
     <property name="window_position">center</property>
     <property name="default_width">800</property>
     <property name="default_height">600</property>
-    <property name="icon">../icons/pyxrd2.svg</property>
     <accel-groups>
       <group name="PyXRD_Main"/>
     </accel-groups>

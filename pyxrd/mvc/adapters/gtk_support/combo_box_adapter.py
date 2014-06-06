@@ -22,6 +22,7 @@
 #  Boston, MA 02110, USA.
 #  -------------------------------------------------------------------------
 import logging
+from pyxrd.generic.utils import not_none
 logger = logging.getLogger(__name__)
 
 import gtk
@@ -76,8 +77,9 @@ class ComboBoxAdapter(GtkAdapter):
         # Continue as usual:
         super(ComboBoxAdapter, self)._connect_widget()
 
-    def disconnect(self):
-        self._widget.set_model(None)
-        super(ComboBoxAdapter, self).disconnect()
+    def disconnect(self, model=None, widget=None):
+        widget = not_none(self._widget, widget)
+        if widget is not None: widget.set_model(None)
+        super(ComboBoxAdapter, self).disconnect(model=model, widget=widget)
 
     pass # end of class

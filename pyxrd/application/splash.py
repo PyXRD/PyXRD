@@ -5,9 +5,12 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
+from pkg_resources import resource_filename # @UnresolvedImport
+
 import gtk
 import gobject
 from time import time, sleep
+from pyxrd.application.icons import get_icon_list
 
 def scale_ratio(src_width, src_height, dest_width, dest_height):
     """Return a size fitting into dest preserving src's aspect ratio."""
@@ -113,6 +116,7 @@ class SplashScreen(object):
         # DONT connect 'destroy' event here!
         gtk.window_set_auto_startup_notification(False)
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
+        self.window.set_icon_list(*get_icon_list())
         self.window.set_title('PyXRD')
         self.window.set_position(gtk.WIN_POS_CENTER)
         self.window.set_decorated(False)

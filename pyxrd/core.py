@@ -114,8 +114,9 @@ def _run_gui(args):
 
     # Display a splash screen showing the loading status...
     from pkg_resources import resource_filename # @UnresolvedImport
-    from pyxrd.generic.views.splash import SplashScreen
+    from pyxrd.application.splash import SplashScreen
     from pyxrd import __version__
+
     filename = resource_filename(__name__, "application/icons/pyxrd.png")
     splash = SplashScreen(filename, __version__)
 

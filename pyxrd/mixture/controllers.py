@@ -48,8 +48,9 @@ class RefinementResultsController(DialogController):
     # ------------------------------------------------------------
     @Controller.observe("solution_added", signal=True)
     def notif_solution_added(self, model, prop_name, info):
-        new_solution, new_residual = info.arg
-        self.parspace_gen.record(new_solution, new_residual)
+        if self.model.mixture.make_psp_plots:
+            new_solution, new_residual = info.arg
+            self.parspace_gen.record(new_solution, new_residual)
 
     # ------------------------------------------------------------
     #      GTK Signal handlers
@@ -318,27 +319,32 @@ class RefinementController(DialogController):
 
     @DialogController.status_message("Refining mixture...", "refine_mixture")
     def on_refine_clicked(self, event):
-        # Setup mixture based on chosen refinement options:
-        self.model.refine_options = {}
-        option_store = self.view['tv_method_options'].get_model()
-        for name, value, arg, typ, default, limits in option_store: # @UnusedVariable
-            self.model.refine_options[arg] = value
 
-        # Setup context and results controller:
-        self.model.refiner.setup_context(store=True)
-        self.results_view = RefinementResultView(parent=self.view.parent)
-        self.results_controller = RefinementResultsController(
-            model=self.model.refiner.context,
-            view=self.results_view,
-            parent=self
-        )
+        # Make sure we can refine:
+        if len(self.model.specimens) > 0:
+            # Setup mixture based on chosen refinement options:
+            self.model.refine_options = {}
+            option_store = self.view['tv_method_options'].get_model()
+            for name, value, arg, typ, default, limits in option_store: # @UnusedVariable
+                self.model.refine_options[arg] = value
 
-        # Run the refinement thread:
-        self.view.show_refinement_info(
-            self.model.refiner.refine, # REFINE METHOD
-            self.update_gui,      # GUI UPDATER
-            self.on_complete           # ON COMPLETE CALLBACK
-        )
+            # Setup context and results controller:
+            self.model.refiner.setup_context(store=True)
+            self.results_view = RefinementResultView(parent=self.view.parent)
+            self.results_controller = RefinementResultsController(
+                model=self.model.refiner.context,
+                view=self.results_view,
+                parent=self
+            )
+
+            # Run the refinement thread:
+            self.view.show_refinement_info(
+                self.model.refiner.refine, # REFINE METHOD
+                self.update_gui,      # GUI UPDATER
+                self.on_complete           # ON COMPLETE CALLBACK
+            )
+        else:
+            self.run_information_dialog("Cannot refine an empty mixture!", parent=self.view.get_toplevel())
 
     def on_complete(self, context, *args, **kwargs):
         self.model.refiner.context.status_message = "Generating parameter space plots..."

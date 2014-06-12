@@ -88,14 +88,14 @@ class AbstractTreeViewAdapter(AbstractAdapter):
         if callable(setup):
             setup(self._treestore, self._widget)
 
-    def _disconnect_widget(self):
+    def _disconnect_widget(self, widget=None):
         # TODO reset_tree_view support
         self._widget.set_model(None)
 
     def _connect_model(self):
         pass # nothing to do
 
-    def _disconnect_model(self):
+    def _disconnect_model(self, model=None):
         pass # nothing to do
 
     def _read_widget(self):

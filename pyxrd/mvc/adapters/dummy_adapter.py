@@ -35,13 +35,13 @@ class DummyAdapter(AbstractAdapter):
     def _connect_widget(self):
         pass # nothing to do
 
-    def _disconnect_widget(self):
+    def _disconnect_widget(self, widget=None):
         pass # nothing to do
 
     def _connect_model(self):
         pass # nothing to do
 
-    def _disconnect_model(self):
+    def _disconnect_model(self, model=None):
         pass # nothing to do
 
     def _read_widget(self):

@@ -43,6 +43,8 @@ class RefineBruteForceRun(RefineRun, HasAsyncCalls):
 
         self.context = context
 
+        #TODO: single parameter refinement!!
+
         def generate():
 
             for par1, par2 in combinations(range(num_params), 2):

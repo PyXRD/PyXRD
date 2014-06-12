@@ -128,7 +128,7 @@ class MultiPSOStrategy(object):
             else:
                 converged_bests.append(swarm.best)
 
-        converged_bests.sort(lambda i: i.fitness)
+        converged_bests.sort(key=lambda i: i.fitness)
 
         return not_converged, worst_swarm_idx, converged_bests
 

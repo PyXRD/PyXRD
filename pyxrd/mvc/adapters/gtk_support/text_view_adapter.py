@@ -73,7 +73,7 @@ class TextViewAdapter(GtkAdapter):
         if self._update: self.update_widget()
         return
 
-    def _disconnect_widget(self):
+    def _disconnect_widget(self, widget=None):
         """Disconnects the widget"""
         if self._signal is not None and self._signal_id is not None:
             self._buffer.disconnect(self._signal_id)

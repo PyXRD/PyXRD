@@ -127,6 +127,8 @@ def optimize_mixture(mixture, parsed=False):
         bounds=bounds,
         iprint=-1
     )
+    if np.isscalar(residual): # Make sure this is an array:
+        residual = np.array([residual])
 
     t2 = time.time()
     logger.debug('%s took %0.3f ms' % ("optimize_mixture", (t2 - t1) * 1000.0))
@@ -182,7 +184,6 @@ def calculate_mixture(mixture, parsed=False):
                 rp = __residual_method_map[settings.RESIDUAL_METHOD](exp, cal)
                 mixture.residuals.append(rp)
     mixture.residuals[0] = np.average(mixture.residuals[1:])
-
     return mixture
 
 @wrap_exceptions
@@ -204,5 +205,6 @@ def get_optimized_residual(mixture):
         fractions, scales & background shifts.
         Returns the average residual instead of the mixture data object.
     """
-    return get_optimized_mixture(mixture).residual
+    mixture = get_optimized_mixture(mixture)
+    return mixture.residual
 

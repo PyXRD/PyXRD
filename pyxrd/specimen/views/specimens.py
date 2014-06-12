@@ -22,10 +22,6 @@ class SpecimenView(DialogView, HasChildView):
 
     widget_groups = {
         'full_mode_only': [
-            "entry_align_absolute_scale",
-            "spec_scale_lbl",
-            "bg_shift_align",
-            "spec_bgshift_lbl",
             "absorption_align",
             "absorption_lbl",
             "spec_length_lbl",

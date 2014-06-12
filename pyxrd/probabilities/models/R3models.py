@@ -112,14 +112,14 @@ class R3G2Model(_AbstractProbability):
             # Now some calcs return NaNs!!
             if self.mW[0] <= 0.75: # 0,0,0,0 is given
                 self.mP[0, 0, 0, 0] = self.P1111_or_P2112
-                self.mP[0, 0, 0, 1] = 1.0 - self.mP[0, 0, 0, 0]
+                self.mP[0, 0, 0, 1] = abs(1.0 - self.mP[0, 0, 0, 0])
                 self.mP[1, 0, 0, 0] = self.mP[0, 0, 0, 1] * (self.mW[0] - 2 * self.mW[1]) / self.mW[1]
-                self.mP[1, 0, 0, 1] = 1.0 - self.mP[1, 0, 0, 0]
+                self.mP[1, 0, 0, 1] = abs(1.0 - self.mP[1, 0, 0, 0])
             else: # 1,0,0,1 is given
                 self.mP[1, 0, 0, 1] = self.P1111_or_P2112
-                self.mP[1, 0, 0, 0] = 1.0 - self.mP[1, 0, 0, 1]
-                self.mP[0, 0, 0, 0] = 1.0 - self.mP[1, 0, 0, 0] * self.mW[1] / (self.mW[0] - 2 * self.mW[1])
-                self.mP[0, 0, 0, 1] = 1.0 - self.mP[0, 0, 0, 0]
+                self.mP[1, 0, 0, 0] = abs(1.0 - self.mP[1, 0, 0, 1])
+                self.mP[0, 0, 0, 0] = abs(1.0 - self.mP[1, 0, 0, 0] * self.mW[1] / (self.mW[0] - 2 * self.mW[1]))
+                self.mP[0, 0, 0, 1] = abs(1.0 - self.mP[0, 0, 0, 0])
 
             self.mP[0, 0, 1, 0] = 1.0
             self.mP[0, 1, 0, 0] = 1.0
@@ -138,10 +138,11 @@ class R3G2Model(_AbstractProbability):
             # since P11=0 and P101=0:
             self.mW[1, 0, 1] = self.mW[1, 1, 0] = self.mW[1, 1, 1] = 0.0
 
+            # Uses absolute values to prevent negative rounding errors
             t = (1 + 2 * self.mP[0, 0, 0, 1] / self.mP[1, 0, 0, 0])
             self.mW[0, 0, 0] = self.mW[0] / t
-            self.mW[1, 0, 0] = self.mW[0, 1, 0] = self.mW[0, 0, 1] = 0.5 * (self.mW[0] - self.mW[0, 0, 0])
-            self.mW[0, 1, 1] = self.mW[1] - self.mW[0, 0, 1]
+            self.mW[1, 0, 0] = self.mW[0, 1, 0] = self.mW[0, 0, 1] = 0.5 * abs(self.mW[0] - self.mW[0, 0, 0])
+            self.mW[0, 1, 1] = abs(self.mW[1] - self.mW[0, 0, 1])
 
             self.solve()
             self.validate()

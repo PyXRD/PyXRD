@@ -400,8 +400,7 @@ class MainPlotController (PlotController):
         self.edc = EyeDropper(
             self.canvas,
             self.canvas.get_window(),
-            onclick,
-            True, True
+            onclick
         )
 
     pass # end of class

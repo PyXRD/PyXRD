@@ -87,7 +87,7 @@ def get_diffracted_intensity(range_stl, phase):
         F = np.repeat(np.repeat(np.multiply(SFb, SFa), reps, axis=2), reps, axis=1)
 
         # Create Q phase factor matrices:
-        PF = np.repeat(PF[..., np.newaxis, :], reps, axis=1)
+        PF = np.repeat(PF[..., np.newaxis, :], PF.shape[1], axis=1)
         Q = np.multiply(np.repeat(np.repeat(PF, reps, axis=2), reps, axis=1), P)
         Qn = get_Q_matrices.func(Q, phase.CSDS.maximum)
 

@@ -84,25 +84,28 @@ class EditCSDSDistributionController(BaseController):
         Handles the creation of widgets based on their PropIntel settings
     """
 
-    # auto_adapt = False
+    auto_adapt = False
 
     def reset_view(self):
-        self.view.reset_params()
-        for prop in self.model.Meta.all_properties:
-            if prop.refinable:
-                self.view.add_param_widget(
-                    self.view.widget_format % prop.name, prop.label,
-                    prop.minimum, prop.maximum
-                )
-        self.view.update_figure(self.model.distrib[0])
+        if self.view is not None:
+            self.view.reset_params()
+            for prop in self.model.Meta.all_properties:
+                if prop.refinable:
+                    self.view.add_param_widget(
+                        self.view.widget_format % prop.name, prop.label,
+                        prop.minimum, prop.maximum
+                    )
+            self.view.update_figure(self.model.distrib[0])
+            self.register_adapters()
+            self.adapt()
 
     def register_view(self, view):
         if self.model is not None:
             self.reset_view()
 
     @BaseController.model.setter
-    def _set_model(self, model):
-        super(EditCSDSDistributionController, self)._set_model(model)
+    def model(self, model):
+        BaseController.model.fset(self, model) #@UndefinedVariable
         self.reset_view()
 
     # ------------------------------------------------------------

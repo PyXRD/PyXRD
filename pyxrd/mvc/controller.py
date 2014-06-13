@@ -63,8 +63,10 @@ class Controller (Observer):
         self.___user_props = set(value)
 
     _model = None
-    def _get_model(self): return self._model
-    def _set_model(self, model):
+    @property
+    def model(self): return self._model
+    @model.setter
+    def model(self, model):
         if self._model is not None:
             self._clear_adapters()
             self.relieve_model(self._model)
@@ -74,7 +76,6 @@ class Controller (Observer):
             if self.view is not None:
                 self.register_adapters()
                 if self.auto_adapt: self.adapt()
-    model = property(_get_model, _set_model)
 
     def __init__(self, *args, **kwargs):
         """

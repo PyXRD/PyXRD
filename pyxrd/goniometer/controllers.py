@@ -55,9 +55,12 @@ class InlineGoniometerController(BaseController):
     def on_btn_export_gonio_clicked(self, widget, *args):
         def on_accept(dialog):
             filename = self.extract_filename(dialog)
-            self.model.save_object(filename=filename)
+            self.model.save_object(filename)
+            self.generate_import_combo()
+        suggest_folder, _ = Goniometer.get_default_goniometers_path()
         self.run_save_dialog(title="Select the goniometer setup file to save to",
                              on_accept_callback=on_accept,
+                             suggest_folder=suggest_folder,
                              parent=self.view.parent.get_top_widget())
 
     def on_cmb_import_gonio_changed(self, combobox, *args):

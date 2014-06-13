@@ -147,7 +147,7 @@ class ProjectController(ObjectListStoreController):
 
     @BaseController.status_message("Creating new specimen...", "add_specimen")
     def add_specimen(self):
-        specimen = Specimen(parent=self.model)
+        specimen = Specimen(parent=self.model, name="New Specimen")
         self.model.specimens.append(specimen)
         self.view.specimens_treeview.set_cursor(self.treemodel.on_get_path(specimen))
         self.edit_specimen()

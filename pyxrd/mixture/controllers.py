@@ -5,7 +5,10 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
+import logging
+logger = logging.getLogger(__name__)
 import gtk
+import sys
 
 from pyxrd.mvc import Controller, Observer
 
@@ -110,18 +113,29 @@ class RefinementController(DialogController):
         """
         widget.set_show_expanders(True)
 
-        # Labels are parsed for mathtext markup into pb's:
-        def get_pb(column, cell, model, itr, user_data=None):
-            ref_prop = model.get_user_data(itr)
-            if not hasattr(ref_prop, "pb") or not ref_prop.pb:
-                ref_prop.pb = create_pb_from_mathtext(
-                    ref_prop.title,
-                    align='left',
-                    weight='medium'
-                )
-            cell.set_property("pixbuf", ref_prop.pb)
-            return
-        widget.append_column(new_pb_column('Name/Prop', xalign=0.0, data_func=get_pb))
+        if sys.platform == "win32":
+            def get_label(column, cell, model, itr, user_data=None):
+                ref_prop = model.get_user_data(itr)
+                cell.set_property("text", ref_prop.get_text_title())
+                return
+            widget.append_column(new_text_column('Name/Prop', xalign=0.0, data_func=get_label))
+        else:
+            # Labels are parsed for mathtext markup into pb's:
+            def get_pb(column, cell, model, itr, user_data=None):
+                ref_prop = model.get_user_data(itr)
+                try:
+                    if not hasattr(ref_prop, "pb") or not ref_prop.pb:
+                        ref_prop.pb = create_pb_from_mathtext(
+                            ref_prop.title,
+                            align='left',
+                            weight='medium'
+                        )
+                    cell.set_property("pixbuf", ref_prop.pb)
+                except RuntimeError:
+                    logger.warning("An error occured when trying to convert a property title to a PixBuf")
+                    raise
+                return
+            widget.append_column(new_pb_column('Name/Prop', xalign=0.0, data_func=get_pb))
 
         # Editable floats:
         def get_value(column, cell, model, itr, *args):

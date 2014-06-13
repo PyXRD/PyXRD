@@ -61,7 +61,7 @@ class RefinableWrapper(ChildModel):
     def get_inh_prop(self):
         return self.prop_intel.inh_name if self.prop_intel else None
 
-    # The label for the refinable property:
+    # The (possibly mathtext) label for the refinable property:
     def get_title(self):
         if (isinstance(self.obj, RefinementGroup) and self.is_grouper) or isinstance(self.obj, RefinementValue):
             return self.obj.refine_title
@@ -70,6 +70,13 @@ class RefinableWrapper(ChildModel):
                 return self.prop_intel.math_label
             else:
                 return self.prop_intel.label
+
+    # The (pure text) label for the refinable property:
+    def get_text_title(self):
+        if (isinstance(self.obj, RefinementGroup) and self.is_grouper) or isinstance(self.obj, RefinementValue):
+            return self.obj.refine_title
+        else:
+            return self.prop_intel.label        
 
     def get_descriptor(self):
         """ Return a longer title that also describes this property's relations """

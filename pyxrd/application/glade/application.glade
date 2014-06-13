@@ -794,11 +794,11 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkToolButton" id="tbtn_edit_mixtures">
-                    <property name="related_action">edit_mixtures</property>
+                  <object class="GtkToolButton" id="tbtn_edit_phases">
+                    <property name="related_action">edit_phases</property>
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="label" translatable="yes">Mixtures</property>
+                    <property name="tooltip_text" translatable="yes">Phases</property>
                     <property name="use_underline">True</property>
                   </object>
                   <packing>
@@ -807,11 +807,11 @@
                   </packing>
                 </child>
                 <child>
-                  <object class="GtkToolButton" id="tbtn_edit_phases">
-                    <property name="related_action">edit_phases</property>
+                  <object class="GtkToolButton" id="tbtn_edit_mixtures">
+                    <property name="related_action">edit_mixtures</property>
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
-                    <property name="tooltip_text" translatable="yes">Phases</property>
+                    <property name="label" translatable="yes">Mixtures</property>
                     <property name="use_underline">True</property>
                   </object>
                   <packing>

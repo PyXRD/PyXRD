@@ -220,7 +220,7 @@ class Mixture(DataModel, Storable):
                 pass # ignore faulty values, these indices change from time to time.
 
             # sanity check:
-            n, m = self.phase_matrix.shape
+            n, m = self.phase_matrix.shape if self.phase_matrix.ndim == 2 else (0, 0)
             if len(self.scales) != n or len(self.specimens) != n or len(self.bgshifts) != n:
                 raise IndexError, "Shape mismatch: scales (%d), background shifts (%d) or specimens (%d) list lengths do not match with row count (%d) of phase matrix" % (len(self.scales), len(self.specimens), len(self.bgshifts), n)
             if len(self.phases) != m or len(self.fractions) != m:
@@ -376,7 +376,7 @@ class Mixture(DataModel, Storable):
             with self.data_changed.hold():
                 self.phases.append(phase_name)
                 self.fractions = np.append(self.fractions, fraction)
-                n, m = self.phase_matrix.shape # @UnusedVariable
+                n, m = self.phase_matrix.shape if self.phase_matrix.ndim == 2 else (0, 0)
                 if self.phase_matrix.size == 0:
                     self.phase_matrix = np.resize(self.phase_matrix.copy(), (n, m + 1))
                     self.phase_matrix[:] = None
@@ -411,7 +411,7 @@ class Mixture(DataModel, Storable):
                 self.specimens.append(None)
                 self.scales = np.append(self.scales, scale)
                 self.bgshifts = np.append(self.bgshifts, bgs)
-                n, m = self.phase_matrix.shape
+                n, m = self.phase_matrix.shape if self.phase_matrix.ndim == 2 else (0, 0)
                 if self.phase_matrix.size == 0:
                     self.phase_matrix = np.resize(self.phase_matrix.copy(), (n + 1, m))
                     self.phase_matrix[:] = None

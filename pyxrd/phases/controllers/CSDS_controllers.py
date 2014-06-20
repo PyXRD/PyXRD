@@ -105,7 +105,7 @@ class EditCSDSDistributionController(BaseController):
 
     @BaseController.model.setter
     def model(self, model):
-        BaseController.model.fset(self, model) #@UndefinedVariable
+        super(EditCSDSDistributionController, self)._set_model(model)
         self.reset_view()
 
     # ------------------------------------------------------------

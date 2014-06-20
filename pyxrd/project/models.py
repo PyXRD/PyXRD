@@ -54,13 +54,11 @@ class Project(DataModel, Storable):
             PropIntel(name="axes_xmin", label="min. [°2T]", data_type=float, widget_type="spin", **PropIntel.ST_WID),
             PropIntel(name="axes_xmax", label="max. [°2T]", data_type=float, widget_type="spin", **PropIntel.ST_WID),
             PropIntel(name="axes_xstretch", label="Stretch X-axis to fit window", data_type=bool, **PropIntel.ST_WID),
-
-            #OptionPropIntel(name="axes_yscale", label="Y scale", data_type=int, options=settings.AXES_YSCALES, **PropIntel.ST_WID),
+            PropIntel(name="axes_dspacing", label="Show d-spacing in x-axis", data_type=bool, **PropIntel.ST_WID),
             OptionPropIntel(name="axes_ynormalize", label="Y scaling", data_type=int, options=settings.AXES_YNORMALIZERS, **PropIntel.ST_WID),
             OptionPropIntel(name="axes_ylimit", label="Y limit", data_type=int, options=settings.AXES_YLIMITS, **PropIntel.ST_WID),
             PropIntel(name="axes_ymin", label="min. [counts]", data_type=float, widget_type="spin", **PropIntel.ST_WID),
             PropIntel(name="axes_ymax", label="max. [counts]", data_type=float, widget_type="spin", **PropIntel.ST_WID),
-
             PropIntel(name="axes_yvisible", label="Y-axis visible", data_type=bool, **PropIntel.ST_WID),
             PropIntel(name="specimens", label="Specimens", data_type=object, widget_type="object_list_view", class_type=Specimen, **PropIntel.ST_WID),
             PropIntel(name="phases", data_type=object, class_type=Phase, **PropIntel.ST),
@@ -107,6 +105,12 @@ class Project(DataModel, Storable):
     def get_axes_xstretch(self): return self._axes_xstretch
     def set_axes_xstretch(self, value):
         self._axes_xstretch = bool(value)
+        self.visuals_changed.emit()
+
+    _axes_dspacing = settings.AXES_DSPACING
+    def get_axes_dspacing(self): return self._axes_dspacing
+    def set_axes_dspacing(self, value):
+        self._axes_dspacing = bool(value)
         self.visuals_changed.emit()
 
     _axes_yvisible = settings.AXES_YVISIBLE

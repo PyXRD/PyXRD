@@ -1,42 +1,160 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- Generated with glade 3.16.1 -->
 <interface>
-  <!-- interface-requires gtk+ 3.0 -->
-  <!-- interface-naming-policy toplevel-contextual -->
   <object class="GtkImage" id="img_add_specimen">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="stock">190-circle-plus</property>
-    <property name="icon-size">2</property>
+    <property name="icon_size">2</property>
   </object>
   <object class="GtkImage" id="img_del_specimen">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="stock">192-circle-remove</property>
-    <property name="icon-size">2</property>
+    <property name="icon_size">2</property>
   </object>
   <object class="GtkImage" id="img_edit_specimen">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="stock">150-edit</property>
-    <property name="icon-size">2</property>
+    <property name="icon_size">2</property>
   </object>
   <object class="GtkImage" id="img_export_data">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="stock">359-file-export</property>
-    <property name="icon-size">2</property>
+    <property name="icon_size">2</property>
   </object>
   <object class="GtkImage" id="img_import_specimen">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="stock">358-file-import</property>
-    <property name="icon-size">2</property>
+    <property name="icon_size">2</property>
   </object>
   <object class="GtkImage" id="img_replace_data">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="stock">358-file-import</property>
-    <property name="icon-size">2</property>
+    <property name="icon_size">2</property>
+  </object>
+  <object class="GtkMenu" id="specimen_popup">
+    <property name="can_focus">False</property>
+    <property name="accel_path">&lt;PyXRDGroup&gt;/</property>
+    <child>
+      <object class="GtkImageMenuItem" id="popup_menu_item_add_specimen">
+        <property name="label" translatable="yes">Add specimen</property>
+        <property name="use_action_appearance">False</property>
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="accel_path">&lt;PyXRD_Main&gt;/project_actions/add_specimen</property>
+        <property name="image">img_add_specimen</property>
+        <property name="use_stock">False</property>
+        <property name="always_show_image">True</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkImageMenuItem" id="popup_menu_item_import_specimens">
+        <property name="label" translatable="yes">Import specimens</property>
+        <property name="use_action_appearance">False</property>
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="image">img_import_specimen</property>
+        <property name="use_stock">False</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkSeparatorMenuItem" id="menuitem2">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkImageMenuItem" id="popup_menu_item_edit_specimen">
+        <property name="label" translatable="yes">Edit specimen</property>
+        <property name="use_action_appearance">False</property>
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="image">img_edit_specimen</property>
+        <property name="use_stock">False</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkImageMenuItem" id="popup_menu_item_replace_data">
+        <property name="label" translatable="yes">Replace data</property>
+        <property name="use_action_appearance">False</property>
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="image">img_replace_data</property>
+        <property name="use_stock">False</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkImageMenuItem" id="popup_menu_item_export_data">
+        <property name="label" translatable="yes">Export data</property>
+        <property name="use_action_appearance">False</property>
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="image">img_export_data</property>
+        <property name="use_stock">False</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkSeparatorMenuItem" id="menuitem3">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+      </object>
+    </child>
+    <child>
+      <object class="GtkImageMenuItem" id="popup_menu_item_del_specimen">
+        <property name="label" translatable="yes">Delete specimen</property>
+        <property name="use_action_appearance">False</property>
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="image">img_del_specimen</property>
+        <property name="use_stock">False</property>
+        <property name="always_show_image">True</property>
+      </object>
+    </child>
+  </object>
+  <object class="GtkAdjustment" id="project_axes_xmax">
+    <property name="upper">180</property>
+    <property name="step_increment">1</property>
+    <property name="page_increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="project_axes_xmin">
+    <property name="upper">180</property>
+    <property name="step_increment">1</property>
+    <property name="page_increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="project_axes_ymax">
+    <property name="upper">999999995904</property>
+    <property name="step_increment">100</property>
+    <property name="page_increment">500</property>
+  </object>
+  <object class="GtkAdjustment" id="project_axes_ymin">
+    <property name="upper">1000000000000</property>
+    <property name="step_increment">100</property>
+    <property name="page_increment">500</property>
+  </object>
+  <object class="GtkAdjustment" id="project_display_calc_lw">
+    <property name="lower">1</property>
+    <property name="upper">100</property>
+    <property name="value">1</property>
+    <property name="step_increment">1</property>
+    <property name="page_increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="project_display_exp_lw">
+    <property name="lower">1</property>
+    <property name="upper">100</property>
+    <property name="value">1</property>
+    <property name="step_increment">1</property>
+    <property name="page_increment">10</property>
+  </object>
+  <object class="GtkAdjustment" id="project_display_group_by">
+    <property name="upper">100</property>
+    <property name="value">1</property>
+    <property name="step_increment">1</property>
+    <property name="page_increment">10</property>
   </object>
   <object class="GtkNotebook" id="nbk_edit_project">
     <property name="visible">True</property>
@@ -96,11 +214,8 @@
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="invisible_char">•</property>
-            <property name="invisible_char_set">True</property>
             <property name="primary_icon_activatable">False</property>
             <property name="secondary_icon_activatable">False</property>
-            <property name="primary_icon_sensitive">True</property>
-            <property name="secondary_icon_sensitive">True</property>
           </object>
           <packing>
             <property name="left_attach">1</property>
@@ -115,11 +230,8 @@
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="invisible_char">•</property>
-            <property name="invisible_char_set">True</property>
             <property name="primary_icon_activatable">False</property>
             <property name="secondary_icon_activatable">False</property>
-            <property name="primary_icon_sensitive">True</property>
-            <property name="secondary_icon_sensitive">True</property>
           </object>
           <packing>
             <property name="left_attach">1</property>
@@ -135,11 +247,8 @@
             <property name="can_focus">True</property>
             <property name="invisible_char">•</property>
             <property name="width_chars">15</property>
-            <property name="invisible_char_set">True</property>
             <property name="primary_icon_activatable">False</property>
             <property name="secondary_icon_activatable">False</property>
-            <property name="primary_icon_sensitive">True</property>
-            <property name="secondary_icon_sensitive">True</property>
           </object>
           <packing>
             <property name="left_attach">1</property>
@@ -375,10 +484,10 @@
             <property name="xscale">0</property>
             <child>
               <object class="GtkColorButton" id="project_display_exp_color">
+                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <property name="use_action_appearance">False</property>
                 <property name="color">#000000000000</property>
               </object>
             </child>
@@ -398,10 +507,10 @@
             <property name="xscale">0</property>
             <child>
               <object class="GtkColorButton" id="project_display_calc_color">
+                <property name="use_action_appearance">False</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <property name="use_action_appearance">False</property>
                 <property name="color">#000000000000</property>
               </object>
             </child>
@@ -427,11 +536,8 @@
                 <property name="can_focus">True</property>
                 <property name="invisible_char">●</property>
                 <property name="width_chars">4</property>
-                <property name="invisible_char_set">True</property>
                 <property name="primary_icon_activatable">False</property>
                 <property name="secondary_icon_activatable">False</property>
-                <property name="primary_icon_sensitive">True</property>
-                <property name="secondary_icon_sensitive">True</property>
                 <property name="adjustment">project_display_exp_lw</property>
                 <property name="digits">1</property>
                 <property name="numeric">True</property>
@@ -459,11 +565,8 @@
                 <property name="can_focus">True</property>
                 <property name="invisible_char">●</property>
                 <property name="width_chars">4</property>
-                <property name="invisible_char_set">True</property>
                 <property name="primary_icon_activatable">False</property>
                 <property name="secondary_icon_activatable">False</property>
-                <property name="primary_icon_sensitive">True</property>
-                <property name="secondary_icon_sensitive">True</property>
                 <property name="adjustment">project_display_calc_lw</property>
                 <property name="digits">1</property>
                 <property name="numeric">True</property>
@@ -491,11 +594,8 @@
                 <property name="can_focus">True</property>
                 <property name="invisible_char">•</property>
                 <property name="width_chars">5</property>
-                <property name="invisible_char_set">True</property>
                 <property name="primary_icon_activatable">False</property>
                 <property name="secondary_icon_activatable">False</property>
-                <property name="primary_icon_sensitive">True</property>
-                <property name="secondary_icon_sensitive">True</property>
               </object>
             </child>
           </object>
@@ -520,11 +620,8 @@
                 <property name="can_focus">True</property>
                 <property name="invisible_char">●</property>
                 <property name="width_chars">4</property>
-                <property name="invisible_char_set">True</property>
                 <property name="primary_icon_activatable">False</property>
                 <property name="secondary_icon_activatable">False</property>
-                <property name="primary_icon_sensitive">True</property>
-                <property name="secondary_icon_sensitive">True</property>
                 <property name="adjustment">project_display_group_by</property>
               </object>
             </child>
@@ -550,11 +647,8 @@
                 <property name="can_focus">True</property>
                 <property name="invisible_char">•</property>
                 <property name="width_chars">5</property>
-                <property name="invisible_char_set">True</property>
                 <property name="primary_icon_activatable">False</property>
                 <property name="secondary_icon_activatable">False</property>
-                <property name="primary_icon_sensitive">True</property>
-                <property name="secondary_icon_sensitive">True</property>
               </object>
             </child>
           </object>
@@ -588,7 +682,7 @@
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="border_width">10</property>
-        <property name="n_rows">8</property>
+        <property name="n_rows">9</property>
         <property name="n_columns">3</property>
         <property name="column_spacing">5</property>
         <property name="row_spacing">5</property>
@@ -607,10 +701,10 @@
         <child>
           <object class="GtkCheckButton" id="project_axes_xstretch">
             <property name="label" translatable="yes">Stretch X-axis to fit window</property>
+            <property name="use_action_appearance">False</property>
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="receives_default">False</property>
-            <property name="use_action_appearance">False</property>
             <property name="xalign">0</property>
             <property name="draw_indicator">True</property>
           </object>
@@ -629,8 +723,8 @@
           </object>
           <packing>
             <property name="right_attach">3</property>
-            <property name="top_attach">4</property>
-            <property name="bottom_attach">5</property>
+            <property name="top_attach">5</property>
+            <property name="bottom_attach">6</property>
             <property name="y_options"/>
           </packing>
         </child>
@@ -642,8 +736,8 @@
             <property name="label" translatable="yes">Y scale</property>
           </object>
           <packing>
-            <property name="top_attach">5</property>
-            <property name="bottom_attach">6</property>
+            <property name="top_attach">6</property>
+            <property name="bottom_attach">7</property>
             <property name="x_options">GTK_FILL</property>
             <property name="y_options"/>
           </packing>
@@ -668,8 +762,8 @@
           <packing>
             <property name="left_attach">1</property>
             <property name="right_attach">3</property>
-            <property name="top_attach">5</property>
-            <property name="bottom_attach">6</property>
+            <property name="top_attach">6</property>
+            <property name="bottom_attach">7</property>
             <property name="x_options">GTK_FILL</property>
             <property name="y_options"/>
           </packing>
@@ -677,17 +771,17 @@
         <child>
           <object class="GtkCheckButton" id="project_axes_yvisible">
             <property name="label" translatable="yes">Y-axis visible</property>
+            <property name="use_action_appearance">False</property>
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="receives_default">False</property>
-            <property name="use_action_appearance">False</property>
             <property name="xalign">0</property>
             <property name="draw_indicator">True</property>
           </object>
           <packing>
             <property name="right_attach">3</property>
-            <property name="top_attach">7</property>
-            <property name="bottom_attach">8</property>
+            <property name="top_attach">8</property>
+            <property name="bottom_attach">9</property>
             <property name="x_options">GTK_FILL</property>
             <property name="y_options"/>
           </packing>
@@ -755,8 +849,6 @@
                     <property name="invisible_char">●</property>
                     <property name="primary_icon_activatable">False</property>
                     <property name="secondary_icon_activatable">False</property>
-                    <property name="primary_icon_sensitive">True</property>
-                    <property name="secondary_icon_sensitive">True</property>
                     <property name="adjustment">project_axes_xmin</property>
                     <property name="digits">2</property>
                   </object>
@@ -779,11 +871,8 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="invisible_char">●</property>
-                    <property name="invisible_char_set">True</property>
                     <property name="primary_icon_activatable">False</property>
                     <property name="secondary_icon_activatable">False</property>
-                    <property name="primary_icon_sensitive">True</property>
-                    <property name="secondary_icon_sensitive">True</property>
                     <property name="adjustment">project_axes_xmax</property>
                     <property name="digits">2</property>
                   </object>
@@ -858,8 +947,6 @@
                     <property name="invisible_char">●</property>
                     <property name="primary_icon_activatable">False</property>
                     <property name="secondary_icon_activatable">False</property>
-                    <property name="primary_icon_sensitive">True</property>
-                    <property name="secondary_icon_sensitive">True</property>
                     <property name="adjustment">project_axes_ymin</property>
                     <property name="numeric">True</property>
                     <property name="update_policy">if-valid</property>
@@ -883,11 +970,8 @@
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="invisible_char">●</property>
-                    <property name="invisible_char_set">True</property>
                     <property name="primary_icon_activatable">False</property>
                     <property name="secondary_icon_activatable">False</property>
-                    <property name="primary_icon_sensitive">True</property>
-                    <property name="secondary_icon_sensitive">True</property>
                     <property name="adjustment">project_axes_ymax</property>
                     <property name="numeric">True</property>
                     <property name="update_policy">if-valid</property>
@@ -906,8 +990,8 @@
           <packing>
             <property name="left_attach">1</property>
             <property name="right_attach">3</property>
-            <property name="top_attach">6</property>
-            <property name="bottom_attach">7</property>
+            <property name="top_attach">7</property>
+            <property name="bottom_attach">8</property>
             <property name="x_options">GTK_FILL</property>
             <property name="y_options"/>
           </packing>
@@ -918,9 +1002,28 @@
             <property name="can_focus">False</property>
           </object>
           <packing>
-            <property name="top_attach">6</property>
-            <property name="bottom_attach">7</property>
+            <property name="top_attach">7</property>
+            <property name="bottom_attach">8</property>
             <property name="x_options"/>
+            <property name="y_options"/>
+          </packing>
+        </child>
+        <child>
+          <object class="GtkCheckButton" id="project_axes_dspacing">
+            <property name="label" translatable="yes">Show d-spacing (in nm)</property>
+            <property name="use_action_appearance">False</property>
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="receives_default">False</property>
+            <property name="tooltip_text" translatable="yes">Will use the wavelength of the first specimen's goniometer setup</property>
+            <property name="xalign">0</property>
+            <property name="draw_indicator">True</property>
+          </object>
+          <packing>
+            <property name="right_attach">3</property>
+            <property name="top_attach">4</property>
+            <property name="bottom_attach">5</property>
+            <property name="x_options">GTK_FILL</property>
             <property name="y_options"/>
           </packing>
         </child>
@@ -1002,11 +1105,8 @@
                 <property name="can_focus">True</property>
                 <property name="invisible_char">•</property>
                 <property name="width_chars">5</property>
-                <property name="invisible_char_set">True</property>
                 <property name="primary_icon_activatable">False</property>
                 <property name="secondary_icon_activatable">False</property>
-                <property name="primary_icon_sensitive">True</property>
-                <property name="secondary_icon_sensitive">True</property>
               </object>
             </child>
           </object>
@@ -1110,11 +1210,11 @@
             <property name="xscale">0</property>
             <child>
               <object class="GtkColorButton" id="project_display_marker_color">
+                <property name="use_action_appearance">False</property>
                 <property name="width_request">50</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <property name="use_action_appearance">False</property>
                 <property name="color">#ffff0000ffff</property>
               </object>
             </child>
@@ -1182,11 +1282,8 @@
                 <property name="can_focus">True</property>
                 <property name="invisible_char">•</property>
                 <property name="width_chars">5</property>
-                <property name="invisible_char_set">True</property>
                 <property name="primary_icon_activatable">False</property>
                 <property name="secondary_icon_activatable">False</property>
-                <property name="primary_icon_sensitive">True</property>
-                <property name="secondary_icon_sensitive">True</property>
               </object>
             </child>
           </object>
@@ -1214,125 +1311,6 @@
         <property name="position">3</property>
         <property name="tab_fill">False</property>
       </packing>
-    </child>
-  </object>
-  <object class="GtkAdjustment" id="project_axes_xmax">
-    <property name="upper">180</property>
-    <property name="step_increment">1</property>
-    <property name="page_increment">10</property>
-  </object>
-  <object class="GtkAdjustment" id="project_axes_xmin">
-    <property name="upper">180</property>
-    <property name="step_increment">1</property>
-    <property name="page_increment">10</property>
-  </object>
-  <object class="GtkAdjustment" id="project_axes_ymax">
-    <property name="upper">999999995904</property>
-    <property name="step_increment">100</property>
-    <property name="page_increment">500</property>
-  </object>
-  <object class="GtkAdjustment" id="project_axes_ymin">
-    <property name="upper">1000000000000</property>
-    <property name="step_increment">100</property>
-    <property name="page_increment">500</property>
-  </object>
-  <object class="GtkAdjustment" id="project_display_calc_lw">
-    <property name="lower">1</property>
-    <property name="upper">100</property>
-    <property name="value">1</property>
-    <property name="step_increment">1</property>
-    <property name="page_increment">10</property>
-  </object>
-  <object class="GtkAdjustment" id="project_display_exp_lw">
-    <property name="lower">1</property>
-    <property name="upper">100</property>
-    <property name="value">1</property>
-    <property name="step_increment">1</property>
-    <property name="page_increment">10</property>
-  </object>
-  <object class="GtkAdjustment" id="project_display_group_by">
-    <property name="upper">100</property>
-    <property name="value">1</property>
-    <property name="step_increment">1</property>
-    <property name="page_increment">10</property>
-  </object>
-  <object class="GtkMenu" id="specimen_popup">
-    <property name="can_focus">False</property>
-    <property name="accel_path">&lt;PyXRDGroup&gt;/</property>
-    <child>
-      <object class="GtkImageMenuItem" id="popup_menu_item_add_specimen">
-        <property name="label" translatable="yes">Add specimen</property>
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="use_action_appearance">False</property>
-        <property name="accel_path">&lt;PyXRD_Main&gt;/project_actions/add_specimen</property>
-        <property name="image">img_add_specimen</property>
-        <property name="use_stock">False</property>
-        <property name="always_show_image">True</property>
-      </object>
-    </child>
-    <child>
-      <object class="GtkImageMenuItem" id="popup_menu_item_import_specimens">
-        <property name="label" translatable="yes">Import specimens</property>
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="use_action_appearance">False</property>
-        <property name="image">img_import_specimen</property>
-        <property name="use_stock">False</property>
-      </object>
-    </child>
-    <child>
-      <object class="GtkSeparatorMenuItem" id="menuitem2">
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-      </object>
-    </child>
-    <child>
-      <object class="GtkImageMenuItem" id="popup_menu_item_edit_specimen">
-        <property name="label" translatable="yes">Edit specimen</property>
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="use_action_appearance">False</property>
-        <property name="image">img_edit_specimen</property>
-        <property name="use_stock">False</property>
-      </object>
-    </child>
-    <child>
-      <object class="GtkImageMenuItem" id="popup_menu_item_replace_data">
-        <property name="label" translatable="yes">Replace data</property>
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="use_action_appearance">False</property>
-        <property name="image">img_replace_data</property>
-        <property name="use_stock">False</property>
-      </object>
-    </child>
-    <child>
-      <object class="GtkImageMenuItem" id="popup_menu_item_export_data">
-        <property name="label" translatable="yes">Export data</property>
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="use_action_appearance">False</property>
-        <property name="image">img_export_data</property>
-        <property name="use_stock">False</property>
-      </object>
-    </child>
-    <child>
-      <object class="GtkSeparatorMenuItem" id="menuitem3">
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-      </object>
-    </child>
-    <child>
-      <object class="GtkImageMenuItem" id="popup_menu_item_del_specimen">
-        <property name="label" translatable="yes">Delete specimen</property>
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="use_action_appearance">False</property>
-        <property name="image">img_del_specimen</property>
-        <property name="use_stock">False</property>
-        <property name="always_show_image">True</property>
-      </object>
     </child>
   </object>
   <object class="GtkVBox" id="vbox_specimens">
@@ -1368,6 +1346,9 @@
             <property name="rules_hint">True</property>
             <property name="enable_grid_lines">both</property>
             <signal name="popup-menu" handler="on_specimens_treeview_popup_menu" swapped="no"/>
+            <child internal-child="selection">
+              <object class="GtkTreeSelection" id="treeview-selection1"/>
+            </child>
           </object>
         </child>
       </object>

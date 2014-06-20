@@ -5,7 +5,7 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from math import sin, radians, degrees, asin
+from math import radians
 import numpy as np
 
 from pyxrd.mvc import PropIntel
@@ -16,7 +16,9 @@ from pyxrd.data import settings
 
 from pyxrd.calculations.goniometer import (
     get_lorentz_polarisation_factor,
-    get_machine_correction_range
+    get_machine_correction_range,
+    get_nm_from_2t, get_nm_from_t,
+    get_2t_from_nm, get_t_from_nm,
 )
 from pyxrd.calculations.data_objects import GonioData
 from pyxrd.generic.io.utils import retrieve_lowercase_extension
@@ -182,22 +184,22 @@ class Goniometer(DataModel, Storable):
                     setattr(self, prop.name, getattr(new_gonio, prop.name))
 
     def get_nm_from_t(self, theta):
-        return self.get_nm_from_2t(2 * theta)
+        return get_nm_from_t(
+            theta,
+            wavelength=self.wavelength, zero_for_inf=True
+        )
 
     def get_nm_from_2t(self, twotheta):
-        if twotheta != 0:
-            return self.wavelength / (2.0 * sin(radians(twotheta / 2.0)))
-        else:
-            return 0.0
+        return get_nm_from_2t(
+            twotheta,
+            wavelength=self.wavelength, zero_for_inf=True
+        )
 
     def get_t_from_nm(self, nm):
-        return self.get_2t_from_nm(nm) / 2
+        return get_t_from_nm(nm, wavelength=self.wavelength)
 
     def get_2t_from_nm(self, nm):
-        twotheta = 0.0
-        if nm != 0:
-            twotheta = degrees(asin(max(-1.0, min(1.0, self.wavelength / (2.0 * nm))))) * 2.0
-        return twotheta
+        return get_2t_from_nm(nm, wavelength=self.wavelength)
 
     def get_default_theta_range(self, as_radians=True):
         def torad(val):

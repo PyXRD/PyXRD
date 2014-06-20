@@ -33,6 +33,8 @@ class ProjectController(ObjectListStoreController):
                 tv = self.view["project_specimens"]
                 tv.set_model(self.treemodel)
                 self.view.treeview = tv
+                self.view.set_x_range_sensitive(self.model.axes_xlimit == 1)
+                self.view.set_y_range_sensitive(self.model.axes_ylimit == 1)
         return
 
     def _idle_register_view(self, *args, **kwargs):

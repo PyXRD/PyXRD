@@ -218,12 +218,12 @@ class EditMixtureView(BaseView):
         self.matrix.resize(r + 1, c)
 
         del_icon = gtk.Image()
-        del_icon.set_from_stock (gtk.STOCK_REMOVE, gtk.ICON_SIZE_BUTTON)
+        del_icon.set_from_stock ("192-circle-remove", gtk.ICON_SIZE_SMALL_TOOLBAR)
         new_phase_del_btn = gtk.Button()
         new_phase_del_btn.set_image(del_icon)
         rid = new_phase_del_btn.connect("clicked", del_phase_callback)
         new_phase_del_btn.set_data("deleventid", rid)
-        self.matrix.attach(new_phase_del_btn, 0, 1, r, r + 1, gtk.EXPAND | gtk.FILL, 0)
+        self.matrix.attach(new_phase_del_btn, 0, 1, r, r + 1, gtk.FILL, 0)
 
         new_phase_input = self._get_new_input(label, callback=label_callback)
         self.phase_inputs.append(new_phase_input)

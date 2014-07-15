@@ -246,7 +246,7 @@ class Goniometer(DataModel, Storable):
         )
 
     def get_nm_from_2t(self, twotheta):
-	"""Converts a 2-theta position to a nanometer value"""
+        """Converts a 2-theta position to a nanometer value"""
         return get_nm_from_2t(
             twotheta,
             wavelength=self.wavelength, zero_for_inf=True

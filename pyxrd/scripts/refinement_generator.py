@@ -105,6 +105,7 @@ def run(args):
                         ])
                         f.write(line + "\n")
                     f.write("################################################################################\n")
+
                     def write_records(f, record_header, records):
                         f.write(", ".join(record_header) + "\n")
                         for record in records:

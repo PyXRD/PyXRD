@@ -78,6 +78,13 @@ class _AbstractProbability(DataModel, Storable, RefinementGroup):
     def refine_title(self):
         return self.name
 
+    @property
+    def refine_descriptor_data(self):
+        return dict(
+            phase_name=self.phase.name,
+            component_name="*"
+        )
+
     # ------------------------------------------------------------
     #      Initialization and other internals
     # ------------------------------------------------------------

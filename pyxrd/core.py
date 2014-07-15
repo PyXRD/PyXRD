@@ -138,7 +138,7 @@ def _run_gui(args):
     from pyxrd.application.models import AppModel
     from pyxrd.application.views import AppView
     from pyxrd.application.controllers import AppController
-    from pyxrd.generic.gtk_tools.gtkexcepthook import plugin_gtk_excepthook
+    from pyxrd.generic.gtk_tools.gtkexcepthook import plugin_gtk_exception_hook
 
     # Check if a filename was passed, if so try to load it
     project = None
@@ -161,12 +161,12 @@ def _run_gui(args):
     if splash: splash.close()
 
     # Nice GUI error handler:
-    plugin_gtk_excepthook()
+    gtk_exception_hook = plugin_gtk_exception_hook()
 
     # setup MVC:
     m = AppModel(project=project)
     v = AppView()
-    AppController(m, v)
+    AppController(m, v, gtk_exception_hook=gtk_exception_hook)
 
     # Free this before continuing
     del args

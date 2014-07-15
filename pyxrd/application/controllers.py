@@ -38,9 +38,12 @@ class AppController (BaseController, DialogMixin):
     # ------------------------------------------------------------
     #      Initialization and other internals
     # ------------------------------------------------------------
-    def __init__(self, model, view, spurious=False, auto_adapt=False, parent=None):
+    def __init__(self, model, view, gtk_exception_hook=None, spurious=False, auto_adapt=False, parent=None):
         """ Initializes an AppController with the given arguments. """
         super(AppController, self).__init__(model=model, view=view, spurious=spurious, auto_adapt=auto_adapt, parent=parent)
+
+        self.gtk_exception_hook = gtk_exception_hook
+        self.gtk_exception_hook.parent_view = view.get_toplevel()
 
         # Plot controller:
         self.plot_controller = MainPlotController(self)

@@ -360,7 +360,7 @@ class Project(DataModel, Storable):
     mixtures = []
 
     # ------------------------------------------------------------
-    #      Initialisation and other internals
+    #      Initialization and other internals
     # ------------------------------------------------------------
     def __init__(self, *args, **kwargs):
         """

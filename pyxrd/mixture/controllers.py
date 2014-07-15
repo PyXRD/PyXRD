@@ -314,10 +314,8 @@ class RefinementController(DialogController):
     #      GTK Signal handlers
     # ------------------------------------------------------------
     def on_cancel(self):
-        if not self.model.refiner.refine_lock:
+        if self.view is not None:
             self.view.hide()
-        else:
-            return True # do nothing
 
     def refine_toggled(self, cell, path, model):
         if model is not None:

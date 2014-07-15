@@ -51,4 +51,7 @@ dependency installers/
 docs/_build
 docs/_static
 docs/_templates
-/pyxrd
+pyxrd/temp.aux
+pyxrd/temp.dvi
+pyxrd/temp.log
+pyxrd/temp.tex

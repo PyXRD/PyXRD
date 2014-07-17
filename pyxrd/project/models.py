@@ -678,6 +678,16 @@ class Project(DataModel, Storable):
             with self.data_changed.ignore():
                 mixture.update()
 
+    def get_mixtures_by_name(self, mixture_name):
+        """
+        Convenience method that returns all the mixtures who's name match the
+        passed name as a list.
+        """
+        return filter(
+            lambda mixture: (mixture.name == mixture_name),
+            self.mixtures
+        )
+
     # ------------------------------------------------------------
     #      Specimen list related
     # ------------------------------------------------------------

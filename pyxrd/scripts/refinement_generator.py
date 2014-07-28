@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 import multiprocessing
 import os
 import codecs
+import numpy as np
 from pyxrd.project.models import Project
 
 """
@@ -49,10 +50,27 @@ def run(args):
     to do this are for benchmarking, checking solution reliability, ... 
     Just change the trial number from e.g. 0 to 49 to have 50 iterations.
     """
+
+    ## TODO:
+    ##  - use a uniform distribution of starting solutions:
+    ##      xs = np.random.uniform(size=50)
+    ##      ys = np.random.uniform(size=50)
+    ##      zs = np.random.uniform(size=50)
+
+    ##
+    ## When the jobs are submitted, load the project and mixture once,
+    ## create the # of staring solutions and store them in a file (using np IO)
+    ## Then here we can load them and pick the one we need.
+    ##
+
     if args and args.filename != "":
         logging.info("Proccessing args...")
         project_file, k, mixture_index = tuple(args.filename.split("###", 2))
         base_path = os.path.dirname(args.filename)
+        start_solutions_fname = os.path.join(
+            base_path,
+            "start_solutions %s mixture %s" % (os.path.basename(project_file), mixture_index)
+        )
         stop_event = multiprocessing.Event()
 
         logging.info("Loading project file...")
@@ -67,13 +85,21 @@ def run(args):
                     pr.enable()
                 try:
                     with mixture.data_changed.hold():
-                        settings.CACHE = "FILE" # enable active caching
-                        mixture.update_refinement_treestore()
-                        mixture.randomize()
-                        mixture.optimizer.optimize()
 
-                        settings.CACHE = "FILE_FETCH_ONLY" # disable active caching
+                        mixture.update_refinement_treestore()
                         mixture.refiner.setup_context(store=True)
+
+                        if k == 0: #First run, create solutions & store for later use:
+                            start_solutions = mixture.refiner.context.get_uniform_solutions(50)
+                            np.savetxt(start_solutions_fname, start_solutions)
+                        else:
+                            start_solutions = np.loadtxt(start_solutions_fname)
+
+                        settings.CACHE = "FILE" # enable active caching
+                        mixture.refiner.context.apply_solution(start_solutions[k, ...])
+                        mixture.optimizer.optimize()
+                        settings.CACHE = "FILE_FETCH_ONLY" # disable active caching
+
                         mixture.refiner.refine(stop=stop_event)
                 except:
                     raise

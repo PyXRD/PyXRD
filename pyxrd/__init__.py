@@ -10,4 +10,5 @@
         diffraction analysis of disordered lamellar structures
 """
 
+import pkg_resources
 from __version import __version__

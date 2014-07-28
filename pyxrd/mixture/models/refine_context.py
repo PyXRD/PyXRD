@@ -105,6 +105,15 @@ class RefineContext(ChildModel):
         self.project_dump = self.project.dump_object(zipped=True).getvalue()
         self.mixture_index = self.project.mixtures.index(self.mixture)
 
+    def get_uniform_solutions(self, num):
+        """
+            Returns `num` solutions (uniformly distributed within their ranges) 
+            for the selected parameters.
+        """
+        start_solutions = np.random.random_sample((num, len(self.ref_props)))
+        ranges = np.asarray(self.ranges, dtype=float)
+        return (start_solutions + ranges[:, 0]) * (ranges[:, 1] - ranges[:, 0])
+
     def apply_solution(self, solution):
         solution = np.asanyarray(solution)
         with self.mixture.needs_update.hold():

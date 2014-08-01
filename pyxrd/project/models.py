@@ -36,7 +36,20 @@ class Project(DataModel, Storable):
     
     It also provides a large number of display-related 'default' properties 
     (e.g. for patterns and their markers, axes etc.). For more details: see the
-    property descriptions. 
+    property descriptions.
+    
+    Example usage:
+    
+    .. code-block:: python
+    
+        >>> from pyxrd.project.models import Project
+        >>> from pyxrd.generic.io.xrd_parsers import XRDParser
+        >>> from pyxrd.specimen.models import Specimen
+        >>> project = Project(name="New Project", author="Mr. X", layout_mode="FULL", axes_dspacing=True)
+        >>> for specimen in Specimen.from_experimental_data("/path/to/xrd_data_file.rd", parent=project):
+        ...   project.specimens.append(specimen)
+        ...
+        
     """
 
     # MODEL INTEL:

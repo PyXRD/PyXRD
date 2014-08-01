@@ -15,6 +15,7 @@ import numpy as np
 from pyxrd.data import settings
 from pyxrd.generic.io import storables, Storable
 from pyxrd.generic.io.file_parsers import parsers
+from pyxrd.generic.io.xrd_parsers import XRDParser
 from pyxrd.generic.models import ExperimentalLine, CalculatedLine, DataModel
 from pyxrd.generic.peak_detection import peakdetect
 from pyxrd.calculations.specimen import get_phase_intensities
@@ -347,8 +348,14 @@ class Specimen(DataModel, Storable):
     #      Input/Output stuff
     # ------------------------------------------------------------
     @staticmethod
-    def from_experimental_data(filename, parent, parser):
+    def from_experimental_data(filename, parent, parser=None):
+        """
+            Returns a list of new :class:`~.specimen.models.Specimen`'s loaded
+            from `filename`, setting thjeir parent to `parent` using the given
+            parser or :class:`~.generic.io.xrd_parsers.XRDParser` if none passed.
+        """
         specimens = list()
+        parser = not_none(parser, XRDParser)
         xrdfiles = parser.parse(filename)
         for xrdfile in xrdfiles:
             name, sample, generator = xrdfile.filename, xrdfile.name, xrdfile.data

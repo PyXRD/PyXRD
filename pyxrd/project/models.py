@@ -234,7 +234,7 @@ class Project(DataModel, Storable):
         return self._axes_xlimit
     @axes_xlimit.setter
     def axes_xlimit(self, value):
-        self._axes_xlimit = value
+        self._axes_xlimit = int(value)
         self.visuals_changed.emit()
 
     _axes_ynormalize = settings.AXES_YNORMALIZE
@@ -255,7 +255,7 @@ class Project(DataModel, Storable):
         return self._axes_ylimit
     @axes_ylimit.setter
     def axes_ylimit(self, value):
-        self._axes_ylimit = value
+        self._axes_ylimit = int(value)
         self.visuals_changed.emit()
 
     _display_marker_align = settings.MARKER_ALIGN

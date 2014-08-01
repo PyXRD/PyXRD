@@ -89,7 +89,7 @@ def run(args):
                         mixture.update_refinement_treestore()
                         mixture.refiner.setup_context(store=True)
 
-                        if k == 0: #First run, create solutions & store for later use:
+                        if int(k) == 0: #First run, create solutions & store for later use:
                             start_solutions = mixture.refiner.context.get_uniform_solutions(50)
                             np.savetxt(start_solutions_fname, start_solutions)
                         else:

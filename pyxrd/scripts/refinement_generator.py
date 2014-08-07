@@ -96,7 +96,7 @@ def run(args):
                             start_solutions = np.loadtxt(start_solutions_fname)
 
                         settings.CACHE = "FILE" # enable active caching
-                        mixture.refiner.context.apply_solution(start_solutions[k, ...])
+                        mixture.refiner.context.set_initial_solution(start_solutions[k, ...])
                         mixture.optimizer.optimize()
                         settings.CACHE = "FILE_FETCH_ONLY" # disable active caching
 

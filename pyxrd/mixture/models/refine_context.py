@@ -114,7 +114,24 @@ class RefineContext(ChildModel):
         ranges = np.asarray(self.ranges, dtype=float)
         return (start_solutions + ranges[:, 0]) * (ranges[:, 1] - ranges[:, 0])
 
+    def set_initial_solution(self, solution):
+        """
+            Re-sets the initial solutions to a given solution array 
+        """
+        self.initial_solution = np.array(self.values, dtype=float)
+        self.apply_solution(self.initial_solution)
+        self.initial_residual = self.mixture.optimizer.get_current_residual()
+
+        self.best_solution = self.initial_solution
+        self.best_residual = self.initial_residual
+
+        self.last_solution = self.initial_solution
+        self.last_residual = self.initial_residual
+
     def apply_solution(self, solution):
+        """
+            Applies the given solution
+        """
         solution = np.asanyarray(solution)
         with self.mixture.needs_update.hold():
             with self.mixture.data_changed.hold():
@@ -125,16 +142,35 @@ class RefineContext(ChildModel):
                         ref_prop.value = float(solution[()])
 
     def get_data_object_for_solution(self, solution):
+        """
+            Gets the mixture data object after setting the given solution
+        """
         with self.mixture.needs_update.ignore():
             with self.mixture.data_changed.ignore():
                 self.apply_solution(solution)
                 return deepcopy(self.mixture.data_object)
 
     def get_residual_for_solution(self, solution):
+        """
+            Gets the residual for the given solution after setting it
+        """
         self.apply_solution(solution)
         return self.mixture.optimizer.get_optimized_residual()
 
     def update(self, solution, residual=None):
+        """
+            Update's the refinement contect with the given solution:
+                - applies the solution & gets the residual if not given
+                - stores it as the `last_solution`
+                - checks if this solution is better then the current best solution,
+                  and if so, stores it as such
+                - emits the `solution_added` signal for any part interested
+                
+            This function and it's signal can be used to record a refinement
+            history. This function only stores the initial, the best and the
+            latest solution. The record_state_data can be used to store a record
+            of the refinement.
+        """
         residual = residual if residual is not None else self.get_residual_for_solution(solution)
         self.last_solution = solution
         self.last_residual = residual

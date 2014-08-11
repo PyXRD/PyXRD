@@ -342,30 +342,34 @@ class RefinementController(DialogController):
 
             # Setup context and results controller:
             self.model.refiner.setup_context(store=True)
-            self.results_view = RefinementResultView(parent=self.view.parent)
-            self.results_controller = RefinementResultsController(
-                model=self.model.refiner.context,
-                view=self.results_view,
-                parent=self
-            )
 
             # Run the refinement thread:
             self.view.show_refinement_info(
-                self.model.refiner.refine, # REFINE METHOD
-                self.update_gui,      # GUI UPDATER
-                self.on_complete           # ON COMPLETE CALLBACK
+                self.model.refiner.refine,  # REFINE METHOD
+                self._update_gui,           # GUI UPDATER
+                self._on_complete           # ON COMPLETE CALLBACK
             )
         else:
             self.run_information_dialog("Cannot refine an empty mixture!", parent=self.view.get_toplevel())
 
-    def on_complete(self, context, *args, **kwargs):
-        self.model.refiner.context.status_message = "Generating parameter space plots..."
+    def _on_complete(self, context, *args, **kwargs):
+        """ Called when the refinement is completed """
+        self.results_view = RefinementResultView(parent=self.view.parent)
+        self.results_controller = RefinementResultsController(
+            model=self.model.refiner.context,
+            view=self.results_view,
+            parent=self
+        )
+
         if self.model.make_psp_plots:
+            self.model.refiner.context.status_message = "Generating parameter space plots..."
             self.results_controller.generate_images()
+
         self.results_view.present()
         self.view.hide()
 
-    def update_gui(self):
+    def _update_gui(self):
+        """ Called when the refinement window needs an update """
         self.view.update_refinement_info(
             self.model.refiner.context.last_residual,
             self.model.refiner.context.status_message

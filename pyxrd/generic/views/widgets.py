@@ -174,7 +174,7 @@ class ThreadedTaskBox(gtk.Table):
 
         self.connect("destroy", self.__destroy)
 
-    def setup_ui(self, cancelable=True, stoppable=True):
+    def setup_ui(self, cancelable=True, stoppable=False):
         gtk.Table.__init__(self, 3, 3)
         self.set_row_spacings(10)
         self.set_col_spacings(10)
@@ -246,10 +246,7 @@ class ThreadedTaskBox(gtk.Table):
             self.stop_button.set_sensitive(False)
             # tell the users function tostop if it's thread exists
             if self.work_thread is not None:
-                if cancel:
-                    self.work_thread.kill()
-                else:
-                    self.work_thread.stop()
+                self.work_thread.stop()
                 if join: self.work_thread.join()
                 self.work_thread = None
 
@@ -265,7 +262,12 @@ class ThreadedTaskBox(gtk.Table):
             self.stop_lock.release()
 
     def cancel(self):
-        self.stop(cancel=True, join=True)
+        self.stop(cancel=True)
+
+    def emit(self, *args):
+        # Override the default emit implementation, so this will *always* emit
+        # events on the main loop instead of the threaded loop
+        gobject.idle_add(gobject.GObject.emit, self, *args) #@UndefinedVariable
 
     def __gui_function(self):
         if callable(self.gui_callback): self.gui_callback()

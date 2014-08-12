@@ -30,6 +30,7 @@ class RefinementResultsController(DialogController):
         results and some graphs about the parameter space.
     """
 
+    register_lazy = False
     auto_adapt = True
     auto_adapt_included = [
         "initial_residual",

@@ -38,6 +38,8 @@ class Controller (Observer):
     auto_adapt_included = None
     auto_adapt_excluded = None
 
+    register_lazy = True
+
     __adapters = None
     ___user_props = None
     _controller_scope_aplied = False
@@ -101,6 +103,7 @@ class Controller (Observer):
         self.parent = kwargs.get("parent", None)
         self._model = kwargs.get("model", None)
         self.auto_adapt = kwargs.get("auto_adapt", self.auto_adapt)
+        self.register_lazy = kwargs.get("register_lazy", self.register_lazy)
 
         Observer.__init__(self, *args, **kwargs)
 
@@ -110,7 +113,11 @@ class Controller (Observer):
         self.__adapters = []
         self.___user_props = set()
 
-        gobject.idle_add(self._idle_register_view, kwargs.get("view"), priority=gobject.PRIORITY_HIGH)
+        if self.register_lazy:
+            gobject.idle_add(self._idle_register_view, kwargs.get("view"), priority=gobject.PRIORITY_HIGH)
+        else:
+            self._idle_register_view(kwargs.get("view"))
+
         return
 
     def _idle_register_view(self, view):

@@ -65,6 +65,10 @@ class RefinementResultsController(DialogController):
     # ------------------------------------------------------------
     #      GTK Signal handlers
     # ------------------------------------------------------------
+    def on_cancel(self):
+        self.view.hide()
+        self.parent.parent.view.parent.show()
+
     def on_btn_initial_clicked(self, event):
         self.model.apply_initial_solution()
         self.model.mixture.refiner.delete_context()
@@ -323,6 +327,7 @@ class RefinementController(DialogController):
     def on_cancel(self):
         if self.view is not None:
             self.view.hide()
+            self.parent.view.parent.show()
 
     def refine_toggled(self, cell, path, model):
         if model is not None:
@@ -518,6 +523,7 @@ class EditMixtureController(BaseController):
         if self.ref_view is not None:
             self.ref_view.hide()
             self.ref_ctrl.cleanup()
+        self.view.parent.hide()
         self.ref_view = RefinementView(parent=self.parent.view)
         self.ref_ctrl = RefinementController(model=self.model, view=self.ref_view, parent=self)
         self.ref_view.present()

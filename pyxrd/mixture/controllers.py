@@ -45,7 +45,13 @@ class RefinementResultsController(DialogController):
     def __init__(self, *args, **kwargs):
         super(RefinementResultsController, self).__init__(*args, **kwargs)
         self.parspace_gen = ParameterSpaceGenerator()
-        self.parspace_gen.initialize(self.model.ranges, 199)
+
+        density = 199
+        for var, val in self.model.options.iteritems():
+            if var == "num_samples":
+                density = val
+
+        self.parspace_gen.initialize(self.model.ranges, density)
 
     # ------------------------------------------------------------
     #      Notifications of observable properties
@@ -341,8 +347,17 @@ class RefinementController(DialogController):
             for name, value, arg, typ, default, limits in option_store: # @UnusedVariable
                 self.model.refine_options[arg] = value
 
-            # Setup context and results controller:
+            # Setup context:
             self.model.refiner.setup_context(store=True)
+
+            # Setup results controller, this needs to be done prior to running
+            # the refinement to allow for solutions to be recorded!
+            self.results_view = RefinementResultView(parent=self.view.parent)
+            self.results_controller = RefinementResultsController(
+                model=self.model.refiner.context,
+                view=self.results_view,
+                parent=self
+            )
 
             # Run the refinement thread:
             self.view.show_refinement_info(
@@ -355,13 +370,6 @@ class RefinementController(DialogController):
 
     def _on_complete(self, context, *args, **kwargs):
         """ Called when the refinement is completed """
-        self.results_view = RefinementResultView(parent=self.view.parent)
-        self.results_controller = RefinementResultsController(
-            model=self.model.refiner.context,
-            view=self.results_view,
-            parent=self
-        )
-
         if self.model.make_psp_plots:
             self.model.refiner.context.status_message = "Generating parameter space plots..."
             self.results_controller.generate_images()

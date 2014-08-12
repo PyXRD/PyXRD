@@ -5,18 +5,13 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from copy import deepcopy
 from traceback import print_exc
 import logging
 logger = logging.getLogger(__name__)
 
 import time
 
-import numpy as np
-
-# from pyxrd.generic.utils import print_timing
-
-from pyxrd.mvc import PropIntel, Signal
+from pyxrd.data import settings
 from pyxrd.generic.models import ChildModel
 from .refine_context import RefineContext
 
@@ -66,8 +61,14 @@ class Refiner(ChildModel):
                     try:
                         if stop is not None:
                             stop.clear()
-                        print "Calling:", self.mixture.get_refinement_method()
-                        self.mixture.get_refinement_method()(self.context, stop=stop)
+                        logger.info("-"*80)
+                        logger.info("Starting refinement with this setup:")
+                        msg_frm = "%22s: %s"
+                        refine_method = self.mixture.get_refinement_method()
+                        logger.info(msg_frm % ("refinement method", refine_method))
+                        logger.info(msg_frm % ("number of parameters", len(self.context.ref_props)))
+                        logger.info(msg_frm % ("GUI mode", settings.GUI_MODE))
+                        refine_method(self.context, stop=stop)
                     except any as error:
                         error.args += ("Handling run-time error: %s" % error,)
                         print_exc()
@@ -82,6 +83,7 @@ class Refiner(ChildModel):
                             self.context.status_message = "Finished"
                     t2 = time.time()
                     logger.info('%s took %0.3f ms' % ("Total refinement", (t2 - t1) * 1000.0))
+                    logger.info("-"*80)
                 else: # nothing selected for refinement
                     self.context.status = "error"
                     self.context.status_message = "No parameters selected!"

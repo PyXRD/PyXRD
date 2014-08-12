@@ -10,11 +10,11 @@ import itertools
 from math import sqrt
 
 import logging
+from pyxrd.data import settings
 logger = logging.getLogger(__name__)
 
 import numpy as np
-import scipy
-import scipy.spatial.qhull as qhull
+from scipy.interpolate.ndgriddata import griddata
 
 from mpl_toolkits.axes_grid1 import ImageGrid
 import mpl_toolkits.axes_grid1.axes_size as Size
@@ -34,48 +34,70 @@ class ParameterSpaceGenerator(object):
         """
 
         self.num_params = len(ranges)
+        assert self.num_params >= 1, "Need to have at least one refinable parameter!"
 
         ranges = np.asarray(ranges, dtype=float)
 
         self.minima = np.asarray(ranges[:, 0])
         self.maxima = np.asarray(ranges[:, 1])
         self.center_point = 0.5 * (self.minima + self.maxima)
-        self.num_cross_sections = int(self.num_params * (self.num_params + 1) / 2)
-        self.density = 199 #TODO cap this so array does not grow beyond a certain size
 
-        self.grid_dtype = [("point", object), ("value", float), ("distance", float)]
-        self.grid = np.empty(shape=(self.num_cross_sections, self.density, self.density), dtype=self.grid_dtype)
+        self.num_cross_sections = int(self.num_params * (self.num_params + 1) / 2)
+        self.grid_dtype = np.dtype([("point", object), ("value", float), ("distance", float)])
+        self.density = self._calculate_density(density)
+
+        if self.num_params == 1:
+            self.grid = np.empty(shape=(self.density,), dtype=self.grid_dtype)
+        else:
+            self.grid = np.empty(shape=(self.num_cross_sections, self.density, self.density), dtype=self.grid_dtype)
+
+    def _calculate_density(self, density, memory_limit=settings.PAR_SPACE_MEMORY_LIMIT):
+        block_size = self.grid_dtype.itemsize
+        limited = sqrt(memory_limit / (block_size * self.num_cross_sections))
+        return max(min(density, limited), 3)
 
     def _find_closest_grid_index(self, solution):
         """ Returns the closest grid point's indexes """
 
-        #1. transform solution so center of grid is zero point and min-max goes from -1 to +1
+        # Transform solution so center of grid is zero point and min-max goes from -1 to +1
         transf = (np.asarray(solution) - self.center_point) / (self.maxima - self.minima)
 
-        #2. calculate distance to each cross section and find closest
-        smallest_distance = None
-        closest_cross_section = None
-        for index, (par1, par2) in enumerate(itertools.combinations(range(self.num_params), 2)):
-            # 1. project on to the normal of the A/B plan at the center point:
-            projected = transf.copy()
-            projected[par1] = 0
-            projected[par2] = 0
-            distance = np.linalg.norm(projected)
-            if smallest_distance is None or smallest_distance > distance:
-                smallest_distance = distance
-                closest_cross_section = index, (par1, par2), distance
+        if self.num_params > 1:
+            # Calculate distance to each cross section and find closest
+            smallest_distance = None
+            closest_cross_section = None
 
-        index, (par1, par2), distance = closest_cross_section
-        # Move back to 0->1 space (was in -1 -> 1 space)
-        gridded_location = np.array(np.round(0.5 * (transf + 1) * (self.density - 1)), dtype=int)
-        closest_index = (index, int(gridded_location[par1]), int(gridded_location[par2]))
-        del gridded_location
+            for index, (par1, par2) in enumerate(itertools.combinations(range(self.num_params), 2)):
+                # Project on to the normal of the A/B plan at the center point:
+                projected = transf.copy()
+                projected[par1] = 0
+                projected[par2] = 0
+                distance = np.linalg.norm(projected)
+                if smallest_distance is None or smallest_distance > distance:
+                    smallest_distance = distance
+                    closest_cross_section = index, (par1, par2), distance
+
+            index, (par1, par2), distance = closest_cross_section
+
+            # Move back to 0->density space (was in -1 -> 1 space)
+            gridded_location = np.array(np.round(0.5 * (transf + 1) * (self.density - 1)), dtype=int)
+            closest_index = (index, int(gridded_location[par1]), int(gridded_location[par2]))
+        else:
+            # Only a single parameter, so only a single index:
+            gridded_location = 0.5 * (transf + 1.0) * (self.density - 1.0)
+            distance = np.abs(np.round(gridded_location) - gridded_location)
+            closest_index = (int(np.round(gridded_location)[0]),)
+
         return closest_index, distance
+
+    total_record_calls = 0
+    total_actual_records = 0
 
     def record(self, new_solution, new_residual):
         """
             Add a new solution to the list of solutions
         """
+        self.total_record_calls += 1
         # Get the best spot to store this one:
         closest_index, new_distance = self._find_closest_grid_index(new_solution)
 
@@ -85,9 +107,10 @@ class ParameterSpaceGenerator(object):
         old_distance = old_item["distance"]
 
         # If we have a previous point, check which one is closer:
-        if old_solution is not None and new_distance > old_distance:
+        if (old_solution is not None and old_solution[0] is not None) and new_distance > old_distance:
             return
         else:
+            self.total_actual_records += 1
             # If we got here, we can store the result:
             self.grid[closest_index] = (new_solution, new_residual, new_distance)
 
@@ -110,7 +133,6 @@ class ParameterSpaceGenerator(object):
         for c, mn, mx in zip(centroid, mins, maxs):
             # Correct small offsets from the centroid.
             # This assumes the centroid to be in the min and max ranges
-            print mn, mx, density
             normal = np.linspace(mn, mx, density)
             idx = (np.abs(normal - c)).argmin()
             centroid_indexes.append(idx)
@@ -137,10 +159,10 @@ class ParameterSpaceGenerator(object):
         points = np.array([item["point"] for item in flat_grid if item["point"] is not None])
         values = np.array([item["value"] for item in flat_grid if item["point"] is not None])
 
+        assert len(points) > 3, "Need at least 3 points before we can make a plot!"
+
         mins = points.min(axis=0)# shape=(self.num_params,))
-        print mins
         maxs = points.max(axis=0)# shape=(self.num_params,))
-        print maxs
 
         return (points, values) + self.get_extents(
             centroid=np.array(centroid),
@@ -149,215 +171,199 @@ class ParameterSpaceGenerator(object):
             density=density
         )
 
-    def clear_image(self, figure):
+    def clear_image(self, figure, message="Interpolation Error"):
         figure.clear()
-        figure.text(0.5, 0.5, "Interpolation Error", va="center", ha="center")
+        figure.text(0.5, 0.5, message, va="center", ha="center")
+
+    def _setup_image_grid(self, figure, dims):
+        """
+            An example of how grid, parameter and view numbers change
+            for dims = 4
+            
+            The numbers in the grid are:
+            
+            parameter x, parameter y
+            grid x, grid y
+        
+            -----------------------------------------------------
+            |            |            |            |            |
+            |    0, 0    |    1, 0    |    2, 0    |    3, 0    |
+            |    -, -    |    -, -    |    -, -    |    -, -    |
+            |            |            |            |            |
+            ==============------------|------------|------------|
+            I            I            |            |            |
+            I    0, 1    I    1, 1    |    2, 1    |    3, 1    |
+            I    0, 0    I    1, 0    |    2, 0    |    -, -    |
+            I            I            |            |            |
+            I------------==============------------|------------|
+            I            |            I            |            |
+            I    0, 2    |    1, 2    I    2, 2    |    3, 2    |
+            I    0, 1    |    1, 1    I    2, 1    |    -, -    |
+            I            |            I            |            |
+            I------------|------------==============------------|
+            I            |            |            I            |
+            I    0, 3    |    1, 3    |    2, 3    I    3, 3    |
+            I    0, 2    |    1, 2    |    2, 2    I    -, -    |
+            I            |            |            I            |
+            I======================================I------------|
+            From the above it should be clear that:
+            
+            parameter x = grid x
+            parameter y = grid y + 1
+            grid nr = grid y + grid x * (dims - 1)
+            view nr = grid nr - (grid nr / dims) * ((grid nr / dims) +1) / 2
+            
+
+        """
+        image_grid = ImageGrid(
+            figure, 111,
+            nrows_ncols=(dims - 1, dims - 1),
+            cbar_location="right",
+            cbar_mode="single",
+            # add_all=False,
+            aspect=False,
+            axes_pad=0.1,
+            direction="column"
+        )
+
+        rect = (0.1, 0.1, 0.8, 0.8)
+        horiz = [Size.Fixed(.1)] + [Size.Scaled(1.), Size.Fixed(.1)] * max(dims - 1, 1) + [Size.Fixed(0.15)]
+        vert = [Size.Fixed(.1)] + [Size.Scaled(1.), Size.Fixed(.1)] * max(dims - 1, 1)
+
+        # divide the axes rectangle into grid whose size is specified by horiz * vert
+        divider = Divider(figure, rect, horiz, vert) # , aspect=False)
+
+        # Helper to get the axis for par x and y:
+        def get_grid(parx, pary):
+            gridx = parx
+            gridy = pary - 1
+            return image_grid[gridy + gridx * (dims - 1)]
+
+        # Helper to get the grid locator for par x and par y
+        def get_locator(parx, pary):
+            gridx = parx
+            gridy = pary - 1
+            nx = 1 + gridx * 2
+            ny = 1 + (dims - gridy - 2) * 2
+            return divider.new_locator(nx=nx, ny=ny)
+
+        # Hide the unused plots & setup the used ones:
+        for parx, pary in itertools.product(range(self.num_params - 1), range(1, self.num_params)):
+
+            print parx, pary
+
+            # Calculate the grid position:
+            ax = get_grid(parx, pary)
+
+            # Setup axes:
+            if pary <= parx:
+                ax.set_visible(False)
+            else:
+                ax.set_axes_locator(get_locator(parx, pary))
+                ax.set_visible(True)
+
+        return image_grid, divider, get_grid
 
     def plot_images(self, figure, centroid, labels, density=200, smooth=0.5):
         """
             Generate the parameter space plots
         """
+
         try:
-            # Central point:
-            try:
-                centroid = list(centroid)
-            except TypeError: # not an iterable:
-                centroid = [centroid, ]
 
-            # Some information:
-            points, values, centroid_indexes, mins, maxs = \
-                self.parse_solutions(centroid, density=density)
+            def extraxt_points_from_grid(grid2D, parx=None, pary=None):
+                """ Helper function that extract x,y(,z) points from all the data """
+                grid2D = grid2D.flatten()
+                if parx is not None and pary is not None:
+                    points_x = np.array([item["point"][parx] for item in grid2D if item["point"] is not None])
+                    points_y = np.array([item["point"][pary] for item in grid2D if item["point"] is not None])
+                    points_z = np.array([item["value"] for item in grid2D if item["point"] is not None])
+                    return points_x, points_y, points_z
+                else:
+                    points_x = np.array([item["point"] for item in grid2D if item["point"] is not None])
+                    points_y = np.array([item["value"] for item in grid2D if item["point"] is not None])
+                    points_x = points_x.flatten()
+                    points_y = points_y.flatten()
+                    xy = np.array(zip(points_x, points_y), dtype=[('x', float), ('y', float)])
+                    xy.sort(order=['x'], axis=0)
+                    points_x = xy['x']
+                    points_y = xy['y']
+                    return points_x, points_y
 
-            logger.info("Plotting image using %d points" % len(points))
-
-            # How many parameters?
-            dims = points.shape[1]
-
-            if dims == 1: # Only one parameter refined
-                points = points.flatten()
-                values = values.flatten()
-                xy = np.array(zip(points, values), dtype=[('x', float), ('y', float)])
-                xy.sort(order=['x'], axis=0)
-                print "STACKED:", xy, points, values
-                points = xy['x']
-                values = xy['y']
-
+            if self.num_params == 1:
+                # Only one parameter refined:
+                points_x, points_y = extraxt_points_from_grid(self.grid)
                 ax = figure.add_subplot(1, 1, 1)
-                ax.plot(points, values)
+                ax.plot(points_x, points_y)
                 ax.set_ylabel("Residual error")
                 ax.set_xlabel(get_plot_safe(labels[0]))
-            else: # Multi-parameter space:
-                """
-                    An example of how grid, parameter and view numbers change
-                    for dims = 4
-                    
-                    The numbers in the grid are:
-                    
-                    parameter x, parameter y
-                    grid x, grid y
-                
-                    -----------------------------------------------------
-                    |            |            |            |            |
-                    |    0, 0    |    1, 0    |    2, 0    |    3, 0    |
-                    |    -, -    |    -, -    |    -, -    |    -, -    |
-                    |            |            |            |            |
-                    ==============------------|------------|------------|
-                    I            I            |            |            |
-                    I    0, 1    I    1, 1    |    2, 1    |    3, 1    |
-                    I    0, 0    I    1, 0    |    2, 0    |    -, -    |
-                    I            I            |            |            |
-                    I------------==============------------|------------|
-                    I            |            I            |            |
-                    I    0, 2    |    1, 2    I    2, 2    |    3, 2    |
-                    I    0, 1    |    1, 1    I    2, 1    |    -, -    |
-                    I            |            I            |            |
-                    I------------|------------==============------------|
-                    I            |            |            I            |
-                    I    0, 3    |    1, 3    |    2, 3    I    3, 3    |
-                    I    0, 2    |    1, 2    |    2, 2    I    -, -    |
-                    I            |            |            I            |
-                    I======================================I------------|
-                    From the above it should be clear that:
-                    
-                    parameter x = grid x
-                    parameter y = grid y + 1
-                    grid nr = grid y + grid x * (dims - 1)
-                    view nr = grid nr - (grid nr / dims) * ((grid nr / dims) +1) / 2
-                    
 
-                """
-
-                # TODO split this into smaller bits to make it more readable...
-
-                # save starting point somewhere and test untill we get a decent solution...
-                """try:
-                    import cPickle as pickle
-                except:
-                    import pickle as pickle
-                with open("/media/mathijs/LacieDocs/Projects/PyXRD/data/tempdat.pkl", "w") as f:
-                    np.savez(f, points=points, values=values)"""
-
-                triang = qhull.Delaunay(points, qhull_options="QJ Qbb")
-                interp = scipy.interpolate.LinearNDInterpolator(triang, values)
-
-                grid = ImageGrid(
-                    figure, 111,
-                    nrows_ncols=(dims - 1, dims - 1),
-                    cbar_location="right",
-                    cbar_mode="single",
-                    # add_all=False,
-                    aspect=False,
-                    axes_pad=0.1,
-                    direction="column"
-                )
-
-                # Helper to get the axes from the image grid:
-                def get_gridnr(gridx, gridy):
-                    # Plot number:
-                    return gridy + gridx * (dims - 1)
-
-                rect = (0.1, 0.1, 0.8, 0.8)
-                horiz = [Size.Fixed(.1)] + [Size.Scaled(1.), Size.Fixed(.1)] * max(dims - 1, 1) + [Size.Fixed(0.15)]
-                vert = [Size.Fixed(.1)] + [Size.Scaled(1.), Size.Fixed(.1)] * max(dims - 1, 1)
-
-                # divide the axes rectangle into grid whose size is specified by horiz * vert
-                divider = Divider(figure, rect, horiz, vert) # , aspect=False)
-
-                def get_locator(gridx, gridy):
-                    nx = 1 + gridx * 2
-                    ny = 1 + (dims - gridy - 2) * 2
-                    return divider.new_locator(nx=nx, ny=ny)
+            else:
+                # Multi-parameter space:
+                image_grid, divider, get_grid = self._setup_image_grid(figure, self.num_params)
 
                 # Keep a reference to the images created,
-                # se we can add a scale bar for all images (and they have the same range)
+                # so we can add a scale bar for all images (and they have the same range)
                 ims = []
                 tvmin, tvmax = None, None
 
-                for parx, pary in itertools.product(range(dims), range(dims)):
+                for index, (parx, pary) in enumerate(itertools.combinations(range(self.num_params), 2)):
+                    # Get the data for this cross section:
+                    grid2D = self.grid[index, ...]
+                    points_x, points_y, points_z = extraxt_points_from_grid(grid2D, parx, pary)
 
-                        # Calculate these, so wo don't need to worry about them:
-                    gridx = parx
-                    gridy = pary - 1
+                    # Setup axis:
+                    ax = get_grid(parx, pary)
+                    extent = (
+                        self.minima[parx], self.maxima[parx],
+                        self.minima[pary], self.maxima[pary]
+                    )
+                    aspect = 'auto'
 
-                    if pary > 0 and parx < (dims - 1):
-                        gridnr = get_gridnr(gridx, gridy)
-                        ax = grid[gridnr]
+                    # Try to interpolate the data:
+                    xi = np.linspace(self.minima[parx], self.maxima[parx], density)
+                    yi = np.linspace(self.minima[pary], self.maxima[pary], density)
+                    zi = griddata((points_x, points_y), points_z, (xi[None, :], yi[:, None]), method='cubic')
+
+                    # Plot it:
+                    im = ax.imshow(zi, origin='lower', aspect=aspect, extent=extent, alpha=0.75)
+                    ims.append(im)
+                    im.set_cmap('gray_r')
+
+                    # Get visual limits:
+                    vmin, vmax = im.get_clim()
+                    if index == 0:
+                        tvmin, tvmax = vmin, vmax
                     else:
-                        ax = None
-
-                    if pary <= parx: # only show 'bottom triangle' plots, top is just a copy, but transposed
-                        if ax: ax.set_visible(False)
-                        continue
-
-                    def get_coords_grid(centroid, mn, mx, mins, maxs, density):
-                        coords = []
-                        lx = np.linspace(mins[mn], maxs[mn], density)
-                        ly = np.linspace(mins[mx], maxs[mx], density)
-                        for x, y in itertools.product(lx, ly):
-                            coord = centroid[:mn]
-                            coord += [x, ]
-                            coord += centroid[mn + 1:mx]
-                            coord += [y, ]
-                            coord += centroid[mx + 1:]
-                            coords.append(coord)
-                        return lx, ly, coords
-
-                    def unique_rows(a):
-                        order = np.lexsort(a.T)
-                        a = a[order]
-                        diff = np.diff(a, axis=0)
-                        ui = np.ones(len(a), 'bool')
-                        ui[1:] = (diff != 0).any(axis=1)
-                        return a[ui]
-
-                    # Calculate the view:
-                    mn, mx = min(parx, pary), max(parx, pary)
-                    ox, oy, coords = get_coords_grid(centroid, mn, mx, mins, maxs, density)
-                    coords = np.array(coords)
-                    view = interp(coords).reshape(density, density).transpose()
-
-                    if ax is not None:
-                        # Setup axes:
-                        ax.set_axes_locator(get_locator(gridx, gridy))
-                        ax.set_visible(True)
-                        extent = (mins[parx], maxs[parx], mins[pary], maxs[pary])
-
-                        # Plot the residual parameter space cross-section:
-                        aspect = 'auto' # abs((extent[1]-extent[0]) / (extent[3] - extent[2]))
-                        im = ax.imshow(view, origin='lower', aspect=aspect, extent=extent, alpha=0.75)
-                        # ax.set_aspect(aspect)
-                        im.set_cmap('gray_r')
-                        vmin, vmax = im.get_clim()
-                        if tvmin == None: tvmin = vmin
-                        if tvmax == None: tvmax = vmax
                         tvmin, tvmax = min(tvmin, vmin), max(tvmax, vmax)
 
-                        ims.append(im)
-
-                        # Add a contour & labels:
-                        ct = ax.contour(view, colors='k', aspect=aspect, extent=extent, origin='lower')
+                    # Try to add a contour & labels:
+                    try:
+                        ct = ax.contour(xi, yi, zi, colors='k', aspect=aspect, extent=extent, origin='lower')
                         ax.clabel(ct, colors='k', fontsize=10, format="%1.2f")
+                    except ValueError:
+                        pass #ignore the "zero-size array" error for now.
 
-                        # Add a red cross where the 'best' solution is:
-                        ax.plot((centroid[parx],), (centroid[pary],), 'r+')
+                    # Add a red cross where the 'best' solution is:
+                    ax.plot((centroid[parx],), (centroid[pary],), 'r+')
 
-                        # Rotate x labels
-                        for lbl in ax.get_xticklabels():
-                            lbl.set_rotation(90)
+                    # Rotate x labels
+                    for lbl in ax.get_xticklabels():
+                        lbl.set_rotation(90)
 
-                        # Reduce number of ticks:
-                        ax.locator_params(axis='both', nbins=5)
+                    # Reduce number of ticks:
+                    ax.locator_params(axis='both', nbins=5)
 
-                        # Set limits:
-                        ax.set_xlim(extent[0:2])
-                        ax.set_ylim(extent[2:4])
+                    # Set limits:
+                    ax.set_xlim(extent[0:2])
+                    ax.set_ylim(extent[2:4])
 
-                        # Add labels to the axes so the user knows which is which:
-                        # TODO add some flags/color/... indicating which phase & component each parameter belongs to...
-                        if parx == 0:
-                            ax.set_ylabel(str("#%d " % (pary + 1)) + get_plot_safe(labels[pary]))
-                        if pary == (dims - 1):
-                            ax.set_xlabel(str("#%d " % (parx + 1)) + get_plot_safe(labels[parx]))
+                    # Add labels to the axes so the user knows which is which:
+                    # TODO add some flags/color/... indicating which phase & component each parameter belongs to...
+                    if parx == 0:
+                        ax.set_ylabel(str("#%d " % (pary + 1)) + get_plot_safe(labels[pary]))
+                    if pary == (self.num_params - 1):
+                        ax.set_xlabel(str("#%d " % (parx + 1)) + get_plot_safe(labels[parx]))
 
                 # Set the data limits:
                 for im in ims:
@@ -365,16 +371,17 @@ class ParameterSpaceGenerator(object):
 
                 # Make it look PRO:
                 if im is not None:
-                    cbar_ax = grid.cbar_axes[0]
-                    nx = 1 + (dims - 1) * 2
-                    ny1 = (dims - 1) * 2
+                    cbar_ax = image_grid.cbar_axes[0]
+                    nx = 1 + (self.num_params - 1) * 2
+                    ny1 = (self.num_params - 1) * 2
                     cbar_ax.set_axes_locator(divider.new_locator(nx=nx, ny=1, ny1=ny1))
                     cb = cbar_ax.colorbar(im) # @UnusedVariable
+
         except:
             print "Unhandled exception while generating parameter space images:"
             print format_exc()
             # ignore error, tell the user via the plot and return
-            for ax in figure.get_axes():
-                ax.set_visible(False)
-            figure.text(0.5, 0.5, "Interpolation Error", va="center", ha="center")
+            self.clear_image(figure)
             return
+
+    pass #end of class

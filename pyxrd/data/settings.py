@@ -41,6 +41,7 @@ DEFAULT_LAMBDA = 0.154056
 #  - None - Do not cache, or try to use a cache.
 CACHE = None #"FILE" # _FETCH_ONLY"
 CACHE_SIZE = 500 * (1024 * 1024) # size of on-disk cache in bytes (10 Mb)
+PAR_SPACE_MEMORY_LIMIT = 25 * (1024 * 1024) # size of parameter space record in bytes
 GUI_MODE = True
 
 ### Default Styles & Colors ###

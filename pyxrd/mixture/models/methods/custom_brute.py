@@ -32,7 +32,6 @@ class RefineBruteForceRun(RefineRun, HasAsyncCalls):
             Refinement using a Brute Force algorithm
         """
 
-        #TODO interpolate best solution ?
         num_params = len(context.ranges)
 
         npbounds = np.array(context.ranges, dtype=float)
@@ -43,27 +42,22 @@ class RefineBruteForceRun(RefineRun, HasAsyncCalls):
 
         self.context = context
 
-        #TODO: single parameter refinement!!
-
         def generate():
-
-            for par1, par2 in combinations(range(num_params), 2):
-                indeces = np.zeros(shape=(num_params,))
-                print "COMBO:", par1, par2
-                for par_indeces in product(range(num_samples), repeat=2):
-                    print par_indeces
-                    indeces[par1] = par_indeces[0]
-                    indeces[par2] = par_indeces[1]
-                    npindeces = np.array(indeces, dtype=float) / float(num_samples - 1)
-                    solution = npmins + npranges * npindeces
+            # Generates the solutions and data objects for async evaluation
+            if num_params == 1:
+                for index in range(num_samples):
+                    npindex = np.array([index / float(num_samples - 1)], dtype=float)
+                    solution = npmins + npranges * npindex
                     yield context.get_data_object_for_solution(solution), solution
-
-
-            """for indeces in product(range(num_samples), repeat=num_params):
-                if self._user_cancelled(): break
-                npindeces = np.array(indeces, dtype=float) / float(num_samples - 1)
-                solution = npmins + npranges * npindeces
-                yield context.get_data_object_for_solution(solution), solution"""
+            else:
+                for par1, par2 in combinations(range(num_params), 2):
+                    indeces = np.zeros(shape=(num_params,))
+                    for par_indeces in product(range(num_samples), repeat=2):
+                        indeces[par1] = par_indeces[0]
+                        indeces[par2] = par_indeces[1]
+                        npindeces = np.array(indeces, dtype=float) / float(num_samples - 1)
+                        solution = npmins + npranges * npindeces
+                        yield context.get_data_object_for_solution(solution), solution
 
         self.do_async_evaluation(solutions, generate, evaluate)
         context.apply_solution(context.initial_solution)

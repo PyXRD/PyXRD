@@ -253,6 +253,12 @@ class Mixture(DataModel, Storable):
     # ------------------------------------------------------------
     #      Notifications of observable properties
     # ------------------------------------------------------------
+    @DataModel.observe("removed", signal=True)
+    def notify_removed(self, model, prop_name, info):
+        if model == self:
+            self._relieve_phases()
+            self._relieve_specimens()
+
     @DataModel.observe("needs_update", signal=True)
     def notify_needs_update(self, model, prop_name, info):
         with self.data_changed.hold():
@@ -326,13 +332,14 @@ class Mixture(DataModel, Storable):
 
     def set_phase(self, specimen_slot, phase_slot, phase):
         """Sets the phase at the given slot positions"""
-        with self.needs_update.hold_and_emit():
-            with self.data_changed.hold():
-                with self._relieve_and_observe_phases():
-                    if phase is not None and not phase in self.parent.phases:
-                        raise RuntimeError, "Cannot add a phase to a Mixture which is not inside the project!"
-                    self.phase_matrix[specimen_slot, phase_slot] = phase
-                self.update_refinement_treestore()
+        if self.parent is not None: #no parent = no valid phases
+            with self.needs_update.hold_and_emit():
+                with self.data_changed.hold():
+                    with self._relieve_and_observe_phases():
+                        if phase is not None and not phase in self.parent.phases:
+                            raise RuntimeError, "Cannot add a phase to a Mixture which is not inside the project!"
+                        self.phase_matrix[specimen_slot, phase_slot] = phase
+                    self.update_refinement_treestore()
 
     def get_specimen(self, specimen_slot):
         """Returns the specimen at the given slot position or None if not set"""
@@ -340,11 +347,12 @@ class Mixture(DataModel, Storable):
 
     def set_specimen(self, specimen_slot, specimen):
         """Sets the specimen at the given slot position"""
-        with self.needs_update.hold_and_emit():
-            with self._relieve_and_observe_specimens():
-                if specimen is not None and not specimen in self.parent.specimens:
-                    raise RuntimeError, "Cannot add a specimen to a Mixture which is not inside the project!"
-                self.specimens[specimen_slot] = specimen
+        if self.parent is not None: #no parent = no valid specimens
+            with self.needs_update.hold_and_emit():
+                with self._relieve_and_observe_specimens():
+                    if specimen is not None and not specimen in self.parent.specimens:
+                        raise RuntimeError, "Cannot add a specimen to a Mixture which is not inside the project!"
+                    self.specimens[specimen_slot] = specimen
 
     @contextmanager
     def _relieve_and_observe_specimens(self):
@@ -520,43 +528,43 @@ class Mixture(DataModel, Storable):
             store with the refinable properties and their minimum, maximum and
             current value.
         """
+        if self.parent is not None: # not linked so no valid phases!
+            self.refinables.clear()
 
-        self.refinables.clear()
+            def add_property(parent_node, obj, prop, is_grouper):
+                rp = RefinableWrapper(obj=obj, prop=prop, parent=self, is_grouper=is_grouper)
+                return parent_node.append(TreeNode(rp))
 
-        def add_property(parent_node, obj, prop, is_grouper):
-            rp = RefinableWrapper(obj=obj, prop=prop, parent=self, is_grouper=is_grouper)
-            return parent_node.append(TreeNode(rp))
-
-        def parse_attribute(obj, prop, root_node):
-            """
-                obj: the object
-                attr: the attribute of obj or None if obj contains attributes
-                root_node: the root TreeNode new iters should be put under
-            """
-            if prop is not None:
-                if hasattr(obj, "get_uninherited_property_value"):
-                    value = obj.get_uninherited_property_value(prop)
+            def parse_attribute(obj, prop, root_node):
+                """
+                    obj: the object
+                    attr: the attribute of obj or None if obj contains attributes
+                    root_node: the root TreeNode new iters should be put under
+                """
+                if prop is not None:
+                    if hasattr(obj, "get_uninherited_property_value"):
+                        value = obj.get_uninherited_property_value(prop)
+                    else:
+                        value = getattr(obj, prop.name)
                 else:
-                    value = getattr(obj, prop.name)
-            else:
-                value = obj
+                    value = obj
 
-            if isinstance(value, RefinementValue): # AtomRelation and UnitCellProperty
-                new_node = add_property(root_node, value, prop, False)
-            elif hasattr(value, "__iter__"): # List or similar
-                for new_obj in value:
-                    parse_attribute(new_obj, None, root_node)
-            elif isinstance(value, RefinementGroup): # Phase, Component, Probability
-                if len(value.refinables) > 0:
-                    new_node = add_property(root_node, value, prop, True)
-                    for prop in value.refinables:
-                        parse_attribute(value, prop, new_node)
-            else: # regular values
-                new_node = add_property(root_node, obj, prop, False)
+                if isinstance(value, RefinementValue): # AtomRelation and UnitCellProperty
+                    new_node = add_property(root_node, value, prop, False)
+                elif hasattr(value, "__iter__"): # List or similar
+                    for new_obj in value:
+                        parse_attribute(new_obj, None, root_node)
+                elif isinstance(value, RefinementGroup): # Phase, Component, Probability
+                    if len(value.refinables) > 0:
+                        new_node = add_property(root_node, value, prop, True)
+                        for prop in value.refinables:
+                            parse_attribute(value, prop, new_node)
+                else: # regular values
+                    new_node = add_property(root_node, obj, prop, False)
 
-        for phase in self.parent.phases:
-            if phase in self.phase_matrix:
-                parse_attribute(phase, None, self.refinables)
+            for phase in self.parent.phases:
+                if phase in self.phase_matrix:
+                    parse_attribute(phase, None, self.refinables)
 
     def auto_restrict(self): # TODO set a restrict range attribute on the PropIntels, so we can use custom ranges for each property
         """

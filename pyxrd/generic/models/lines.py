@@ -110,11 +110,8 @@ class PyXRDLine(DataModel, StorableXYData):
 
     _color = "#000000"
     def get_color(self):
-        if self.inherit_color:
-            try:
-                return getattr(self.parent.parent, self.__inherit_format__ % "color")
-            except AttributeError: # occurs when e.g. a parent is None
-                return self._color
+        if self.inherit_color and not (self.parent is None or self.parent.parent is None):
+            return getattr(self.parent.parent, PyXRDLine.Meta.inherit_format % "color", self._color)
         else:
             return self._color
     def set_color(self, value):
@@ -128,6 +125,7 @@ class PyXRDLine(DataModel, StorableXYData):
     def set_inherit_color(self, value):
         if value != self._inherit_color:
             self._inherit_color = value
+            print "SET INHERIT COLOR", self._inherit_color, self.color
             self.visuals_changed.emit()
 
     _lw = 2.0

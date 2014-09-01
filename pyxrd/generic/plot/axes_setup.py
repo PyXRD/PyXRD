@@ -71,7 +71,7 @@ def update_lim(plot, project=None):
 
 def set_nm_ticks(plot, wavelength, xmin, xmax):
     """
-        Sets the tick positions and labels for a nanomter x-axes using
+        Sets the tick positions and labels for a nanometer x-axes using
         the given lower & upper limits and the wavelength
     """
 

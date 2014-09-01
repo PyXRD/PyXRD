@@ -258,7 +258,7 @@ class Project(DataModel, Storable):
         return self._axes_ynormalize
     @axes_ynormalize.setter
     def axes_ynormalize(self, value):
-        self._axes_ynormalize = value
+        self._axes_ynormalize = int(value)
         self.visuals_changed.emit()
 
     _axes_ylimit = settings.AXES_YLIMIT
@@ -623,7 +623,7 @@ class Project(DataModel, Storable):
         elif self.axes_ynormalize == 2:
             return (1.0, self.get_max_intensity())
         else:
-            raise ValueError, "Wrong value for 'axes_ysnormalize' in %s: %d; should be 0, 1 or 2" % (self, self.axes_yscale)
+            raise ValueError, "Wrong value for 'axes_ysnormalize' in %s: is `%d`; should be 0, 1 or 2" % (self, self.axes_ynormalize)
 
     def get_max_intensity(self):
         max_intensity = 0

@@ -299,6 +299,7 @@ class AppController (BaseController, DialogMixin):
         def parse_x_pos(x_pos):
             exp_y = self.model.current_specimen.experimental_pattern.get_y_at_x(x_pos)
             calc_y = self.model.current_specimen.calculated_pattern.get_y_at_x(x_pos)
+            print "X POS", x_pos, exp_y
             message = "Sampled point:\n"
             message += "\tExperimental data:\t( %.4f , %.4f )\n"
             if self.model.current_project.layout_mode == "FULL":

@@ -88,6 +88,7 @@ CALCULATED_LINEWIDTH = 2.0
 
 PATTERN_SHIFT_POSITIONS = {
     0.42574: "Quartz    0.42574   SiO2",
+    0.4183:  "Goethite  0.4183    FeO(OH)",
     0.3134:  "Silicon   0.3134    Si",
     0.2476:  "Zincite   0.2476    ZnO",
     0.2085:  "Corundum  0.2085    Al2O3"

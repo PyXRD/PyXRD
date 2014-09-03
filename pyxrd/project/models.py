@@ -288,7 +288,7 @@ class Project(DataModel, Storable):
         return self._display_marker_base
     @display_marker_base.setter
     def display_marker_base(self, value):
-        self._display_marker_base = value
+        self._display_marker_base = int(value)
         self.visuals_changed.emit()
 
     _display_marker_top = settings.MARKER_TOP
@@ -298,7 +298,7 @@ class Project(DataModel, Storable):
         return self._display_marker_top
     @display_marker_top.setter
     def display_marker_top(self, value):
-        self._display_marker_top = value
+        self._display_marker_top = int(value)
         self.visuals_changed.emit()
 
     _display_marker_style = settings.MARKER_STYLE

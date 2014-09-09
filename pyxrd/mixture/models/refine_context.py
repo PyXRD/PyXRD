@@ -112,7 +112,7 @@ class RefineContext(ChildModel):
         """
         start_solutions = np.random.random_sample((num, len(self.ref_props)))
         ranges = np.asarray(self.ranges, dtype=float)
-        return (start_solutions + ranges[:, 0]) * (ranges[:, 1] - ranges[:, 0])
+        return ranges[:, 0] + start_solutions * (ranges[:, 1] - ranges[:, 0])
 
     def set_initial_solution(self, solution):
         """

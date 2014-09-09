@@ -118,7 +118,7 @@ class RefineContext(ChildModel):
         """
             Re-sets the initial solutions to a given solution array 
         """
-        self.initial_solution = np.array(self.values, dtype=float)
+        self.initial_solution = np.array(solution, dtype=float)
         self.apply_solution(self.initial_solution)
         self.initial_residual = self.mixture.optimizer.get_current_residual()
 

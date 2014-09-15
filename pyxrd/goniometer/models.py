@@ -8,12 +8,18 @@
 from math import radians
 import numpy as np
 
-from mvc import PropIntel
+from mvc.models.properties import (
+    FloatProperty, IntegerProperty, BoolProperty,
+    SignalMixin
+, LabeledProperty)
+
+from pyxrd.refinement.refinables.properties import DataMixin
 
 from pyxrd.generic.models import DataModel
 from pyxrd.generic.io import storables, Storable, get_case_insensitive_glob
 from pyxrd.file_parsers.json_parser import JSONParser
 from pyxrd.data import settings
+from pyxrd.generic.io.utils import retrieve_lowercase_extension
 
 from pyxrd.generic.io.utils import retrieve_lowercase_extension
 from pyxrd.generic.models.lines import StorableXYData
@@ -35,23 +41,6 @@ class Goniometer(DataModel, Storable):
     """
     # MODEL INTEL:
     class Meta(DataModel.Meta):
-        properties = [ # TODO add labels
-            PropIntel(name="radius", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
-            PropIntel(name="divergence", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
-            PropIntel(name="soller1", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
-            PropIntel(name="soller2", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
-            PropIntel(name="min_2theta", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
-            PropIntel(name="max_2theta", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
-            PropIntel(name="steps", data_type=int, storable=True, has_widget=True),
-            PropIntel(name="wavelength", data_type=float, storable=False, has_widget=False, widget_type="float_entry"),
-            PropIntel(name="wavelength_distribution", data_type=object, storable=True, has_widget=True, widget_type="xy_list_view"),
-            PropIntel(name="mcr_2theta", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
-            PropIntel(name="has_ads", data_type=bool, storable=True, has_widget=True),
-            PropIntel(name="ads_fact", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
-            PropIntel(name="ads_phase_fact", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
-            PropIntel(name="ads_phase_shift", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
-            PropIntel(name="ads_const", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
-        ]
         store_id = "Goniometer"
 
     _data_object = None
@@ -65,129 +54,126 @@ class Goniometer(DataModel, Storable):
     project = property(DataModel.parent.fget, DataModel.parent.fset)
 
     # PROPERTIES:
-    def _set_data_property(self, name, value):
-        try: value = self.Meta.get_prop_intel_by_name(name).data_type(value)
-        except ValueError: return # ignore faulty values
-        setattr(self._data_object, name, value)
-        self.data_changed.emit()
 
-    @property
-    def min_2theta(self):
-        """Start angle (in °2-theta, only  used when calculating without 
-        experimental data)"""
-        return self._data_object.min_2theta
-    @min_2theta.setter
-    def min_2theta(self, value): self._set_data_property("min_2theta", value)
+    #: Start angle (in °2-theta, only  used when calculating without
+    #: experimental data)
+    min_2theta = FloatProperty(
+        default=3.0, text="Start angle", minimum=0.0, maximum=180.0,
+        tabular=True, persistent=True, visible=False,
+        signal_name="data_changed",
+        mix_with=(DataMixin, SignalMixin)
+    )
 
-    @property
-    def max_2theta(self):
-        """End angle (in °2-theta, only  used when calculating without 
-        experimental data)"""
-        return self._data_object.max_2theta
-    @max_2theta.setter
-    def max_2theta(self, value): self._set_data_property("max_2theta", value)
+    #: End angle (in °2-theta, only  used when calculating without
+    #: experimental data)
+    max_2theta = FloatProperty(
+        default=3.0, text="End angle", minimum=0.0, maximum=180.0,
+        tabular=True, persistent=True, visible=False,
+        signal_name="data_changed",
+        mix_with=(DataMixin, SignalMixin)
+    )
 
-    @property
-    def steps(self):
-        """The number of steps between start and end angle"""
-        return self._data_object.steps
-    @steps.setter
-    def steps(self, value): self._set_data_property("steps", value)
+    #: The number of steps between start and end angle
+    steps = IntegerProperty(
+        default=2500, text="Steps", minimum=0,
+        tabular=True, persistent=True, visible=False,
+        signal_name="data_changed",
+        mix_with=(DataMixin, SignalMixin)
+    )
 
-    @property
-    def wavelength(self):
-        """The wavelength of the generated X-rays (in nm)"""
-        # Get the dominant wavelength in the distribution:
-        x, y = self.wavelength_distribution.get_xy_data()
-        return float(x[np.argmax(y)])
+    #: The wavelength distribution
+    wavelength_distribution = LabeledProperty(
+        default=None, text="Wavelength distribution",
+        tabular=False, persistent=True, visible=False, 
+        signal_name="data_changed", widget_type="xy_list_view",
+        mix_with=(SignalMixin)
+    )
 
-    _wavelength_distribution = None
-    @property
-    def wavelength_distribution(self):
-        """ The wavelength distribution """
-        return self._wavelength_distribution
+    #: The wavelength of the generated X-rays (in nm)
+    wavelength = FloatProperty(
+        default=0.154056, text="Wavelength", minimum=0.0,
+        tabular=True, persistent=True, visible=False,
+        signal_name="data_changed",
+        mix_with=(DataMixin, SignalMixin)
+    )
 
-    @property
-    def soller1(self):
-        """The first Soller slit size (in °)"""
-        return self._data_object.soller1
-    @soller1.setter
-    def soller1(self, value): self._set_data_property("soller1", value)
+    #: The first Soller slit size (in °)
+    soller1 = FloatProperty(
+        default=2.3, text="Soller 1", minimum=0,
+        tabular=True, persistent=True, visible=False,
+        signal_name="data_changed",
+        mix_with=(DataMixin, SignalMixin)
+    )
 
-    @property
-    def soller2(self):
-        """The second Soller slit size (in °)"""
-        return self._data_object.soller2
-    @soller2.setter
-    def soller2(self, value): self._set_data_property("soller2", value)
+    #: The second Soller slit size (in °)
+    soller2 = FloatProperty(
+        default=2.3, text="Soller 2", minimum=0,
+        tabular=True, persistent=True, visible=False,
+        signal_name="data_changed",
+        mix_with=(DataMixin, SignalMixin)
+    )
 
-    @property
-    def radius(self):
-        """The radius of the goniometer (in cm)"""
-        return self._data_object.radius
-    @radius.setter
-    def radius(self, value): self._set_data_property("radius", value)
+    #: The radius of the goniometer (in cm)
+    radius = FloatProperty(
+        default=24.0, text="Radius", minimum=0,
+        tabular=True, persistent=True, visible=False,
+        signal_name="data_changed",
+        mix_with=(DataMixin, SignalMixin)
+    )
 
-    @property
-    def divergence(self):
-        """The divergence slit size of the goniometer (in °)"""
-        return self._data_object.divergence
-    @divergence.setter
-    def divergence(self, value):
-        value = max(value, 1e-10)
-        self._set_data_property("divergence", value)
+    #: The divergence slit size of the goniometer (in °)
+    divergence = FloatProperty(
+        default=0.5, text="Divergence", minimum=0,
+        tabular=True, persistent=True, visible=False,
+        signal_name="data_changed",
+        mix_with=(DataMixin, SignalMixin)
+    )
 
-    @property
-    def mcr_2theta(self):
-        """
-        Angular value (in degrees) for a monochromator correction - use 28.44 for silicon and 26.53 for carbon.
-        """
-        return self._data_object.mcr_2theta
-    @mcr_2theta.setter
-    def mcr_2theta(self, value): self._set_data_property("mcr_2theta", value)
+    #: Flag indicating whether an automatic divergence slit was used, and a
+    #: correction should be applied:
+    #:     I*(2t) = I(2t) * ((divergence * ads_fact) / (np.sin(ads_phase_fact * 2t + ads_phase_shift) - ads_const))
+    #: Where I* is the corrected and I is the uncorrected intensity.
+    has_ads = BoolProperty(
+        default=False, text="Has ADS",
+        tabular=True, persistent=True, visible=False,
+        signal_name="data_changed",
+        mix_with=(DataMixin, SignalMixin)
+    )
 
-    @property
-    def has_ads(self):
-        """
-        Flag indicating whether an automatic divergence slit was used, and a
-        correction should be applied:
-            I*(2t) = I(2t) * ((divergence * ads_fact) / (np.sin(ads_phase_fact * 2t + ads_phase_shift) - ads_const))
-        Where I* is the corrected and I is the uncorrected intensity.
-        """
-        return self._data_object.has_ads
-    @has_ads.setter
-    def has_ads(self, value): self._set_data_property("has_ads", value)
+    #: The factor in the ads equation (see :attr:`has_ads`)
+    ads_fact = FloatProperty(
+        default=1.0, text="ADS Factor",
+        tabular=True, persistent=True, visible=False,
+        signal_name="data_changed",
+        mix_with=(DataMixin, SignalMixin)
+    )
 
-    @property
-    def ads_fact(self):
-        """The factor in the ads equation (see `has_ads`)"""
-        return self._data_object.ads_fact
-    @ads_fact.setter
-    def ads_fact(self, value): self._set_data_property("ads_fact", value)
+    #: The phase factor in the ads equation (see :attr:`has_ads`)
+    ads_phase_fact = FloatProperty(
+        default=1.0, text="ADS Phase Factor",
+        tabular=True, persistent=True, visible=False,
+        signal_name="data_changed",
+        mix_with=(DataMixin, SignalMixin)
+    )
 
-    @property
-    def ads_phase_fact(self):
-        """The phase factor in the ads equation (see `has_ads`)"""
-        return self._data_object.ads_phase_fact
-    @ads_phase_fact.setter
-    def ads_phase_fact(self, value): self._set_data_property("ads_phase_fact", value)
+    #: The phase shift in the ads equation (see :attr:`has_ads`)
+    ads_phase_shift = FloatProperty(
+        default=0.0, text="ADS Phase Shift",
+        tabular=True, persistent=True, visible=False,
+        signal_name="data_changed",
+        mix_with=(DataMixin, SignalMixin)
+    )
 
-    @property
-    def ads_phase_shift(self):
-        """The phase shift (in °) in the ads equation (see `has_ads`)"""
-        return self._data_object.ads_phase_shift
-    @ads_phase_shift.setter
-    def ads_phase_shift(self, value): self._set_data_property("ads_phase_shift", value)
-
-    @property
-    def ads_const(self):
-        """The constant in the ads equation (see `has_ads`)"""
-        return self._data_object.ads_const
-    @ads_const.setter
-    def ads_const(self, value): self._set_data_property("ads_const", value)
+    #: The constant in the ads equation (see :attr:`has_ads`)
+    ads_const = FloatProperty(
+        default=0.0, text="ADS Constant",
+        tabular=True, persistent=True, visible=False,
+        signal_name="data_changed",
+        mix_with=(DataMixin, SignalMixin)
+    )
 
     # ------------------------------------------------------------
-    #      Initialisation and other internals
+    #      Initialization and other internals
     # ------------------------------------------------------------
     def __init__(self, *args, **kwargs):
         """
@@ -203,7 +189,7 @@ class Goniometer(DataModel, Storable):
             "data_radius", "data_divergence", "data_soller1", "data_soller2",
             "data_min_2theta", "data_max_2theta", "data_lambda", "lambda",
             "wavelength",
-            *[names[0] for names in type(self).Meta.get_local_storable_properties()]
+            *[prop.label for prop in Goniometer.Meta.get_local_persistent_properties()]
         )
         super(Goniometer, self).__init__(*args, **kwargs)
         kwargs = my_kwargs
@@ -258,13 +244,13 @@ class Goniometer(DataModel, Storable):
         new_gonio = JSONParser.parse(gonfile)
         with self.data_changed.hold():
             for prop in self.Meta.all_properties:
-                if prop.storable:
-                    if prop.name == "wavelength_distribution":
+                if prop.persistent:
+                    if prop.label == "wavelength_distribution":
                         self.wavelength_distribution.clear()
                         self.wavelength_distribution.set_data(
                             *new_gonio.wavelength_distribution.get_xy_data())  
-                    elif prop.name != "uuid":
-                        setattr(self, prop.name, getattr(new_gonio, prop.name))
+                    elif prop.label != "uuid":
+                        setattr(self, prop.label, getattr(new_gonio, prop.label))
                         
     # ------------------------------------------------------------
     #      Methods & Functions

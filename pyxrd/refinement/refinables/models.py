@@ -5,7 +5,7 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from mvc import PropIntel
+from mvc.models.properties import FloatProperty, BoolProperty
 
 from pyxrd.generic.models.base import PyXRDModel
 from pyxrd.generic.io import storables, Storable
@@ -22,15 +22,10 @@ class RefinementInfo(PyXRDModel, Storable):
     # MODEL INTEL:
     class Meta(PyXRDModel.Meta, Storable.Meta):
         store_id = "RefinementInfo"
-        properties = [
-            PropIntel(name="minimum", data_type=float, storable=True),
-            PropIntel(name="maximum", data_type=float, storable=True),
-            PropIntel(name="refine", data_type=bool, storable=True),
-        ]
 
-    minimum = 0.0
-    maximum = 1.0
-    refine = False
+    minimum = FloatProperty(default=0.0, text="Minimum", persistent=True)
+    maximum = FloatProperty(default=1.0, text="Maximum", persistent=True)
+    refine = BoolProperty(default=False, text="Refine", persistent=True)
 
     def __init__(self, minimum, maximum, refine, *args, **kwargs):
         """

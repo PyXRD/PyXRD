@@ -8,7 +8,10 @@
 import logging
 logger = logging.getLogger(__name__)
 
-from mvc import PropIntel
+from mvc.models.properties import (
+    LabeledProperty, StringProperty, BoolProperty,
+    ReadOnlyMixin
+)
 
 from pyxrd.generic.models.base import ChildModel
 
@@ -24,97 +27,97 @@ class RefinableWrapper(ChildModel):
     # MODEL INTEL:
     class Meta(ChildModel.Meta):
         parent_alias = "mixture"
-        properties = [ # TODO add labels
-            PropIntel(name="title", label="", is_column=True, data_type=str, has_widget=True),
-            PropIntel(name="text_title", label="", is_column=True, data_type=str, has_widget=False),
-            PropIntel(name="obj", label="", is_column=True, data_type=object),
-            PropIntel(name="is_grouper", label="", is_column=True, data_type=bool),
-            PropIntel(name="prop_intel", label="", is_column=True, data_type=object),
-            PropIntel(name="prop", label="", is_column=True, data_type=str, has_widget=True),
-            PropIntel(name="inh_prop", label="", is_column=True, data_type=str, has_widget=True),
-            PropIntel(name="value", label="", is_column=True, data_type=float),
-            PropIntel(name="value_min", label="", is_column=True, data_type=float, has_widget=True),
-            PropIntel(name="value_max", label="", is_column=True, data_type=float, has_widget=True),
-            PropIntel(name="refine", label="", is_column=True, data_type=bool, has_widget=True),
-            PropIntel(name="refinable", label="", is_column=True, data_type=bool),
-        ]
 
     # PROPERTIES:
-    obj = None
 
-    # The PropIntel object for the attribute
-    _prop_intel = None
-    def get_prop_intel(self):
-        return self._prop_intel
-    def set_prop_intel(self, value):
-        self._prop_intel = value
+    #: The wrapped object
+    obj = LabeledProperty(
+        default=None, text="Wrapped object", tabular=True)
 
-    # The attribute name:
-    def get_prop(self):
-        return self._prop_intel.name
+    #: The property descriptor object for the attribute
+    prop_descr = LabeledProperty(
+        default=None, text="Property descriptor", tabular=True)
 
-    # A flag indicating whether this is wrapper is representing the group (True) or a member of the group (False):
-    _is_grouper = False
-    @property
-    def is_grouper(self):
-        return self._is_grouper
+    #: The Property label:
+    @StringProperty(
+        default="", text="Property label", tabular=True, mix_with=(ReadOnlyMixin,))
+    def label(self):
+        return self.prop_descr.label
 
-    # The inherit attribute name:
-    def get_inh_prop(self):
-        return self.prop_intel.inh_name if self.prop_intel else None
+    #: A flag indicating whether this is wrapper is representing the group
+    #: (True) or a member of the group (False):
+    is_grouper = BoolProperty(
+        default=False, text="Is grouper", tabular=True, mix_with=(ReadOnlyMixin,))
 
-    # The (possibly mathtext) label for the refinable property:
-    def get_title(self):
+    #: The inherit attribute name:
+    @LabeledProperty(
+        default=None, text="Inherit from label", mix_with=(ReadOnlyMixin,))
+    def inherit_from(self):
+        return self.prop_descr.inherit_from if self.prop_descr else None
+
+    #: The (possibly mathtext) label for the refinable property:
+    @StringProperty(
+        default="", text="Title", tabular=True, mix_with=(ReadOnlyMixin,))
+    def title(self):
         if (isinstance(self.obj, RefinementGroup) and self.is_grouper) or isinstance(self.obj, RefinementValue):
             return self.obj.refine_title
         else:
-            if self.prop_intel.math_label is not None:
-                return self.prop_intel.math_label
+            if getattr(self.prop_descr, "math_text", None) is not None:
+                return self.prop_descr.math_text
             else:
-                return self.prop_intel.label
+                return self.prop_descr.text
 
-    # The (pure text) label for the refinable property:
-    def get_text_title(self):
+    #: The (pure text) label for the refinable property:
+    @StringProperty(
+        default="", text="Text title", tabular=True, mix_with=(ReadOnlyMixin,))
+    def text_title(self):
         if (isinstance(self.obj, RefinementGroup) and self.is_grouper) or isinstance(self.obj, RefinementValue):
             return self.obj.refine_title
         else:
-            return self.prop_intel.label
+            return self.prop_descr.text
 
-    def get_descriptor(self):
+    @StringProperty(
+        default="", text="Descriptor", tabular=True, mix_with=(ReadOnlyMixin,))
+    def text_descriptor(self):
         """ Return a longer title that also describes this property's relations """
 
         # This gets the phase and/or component name for the group or value:
         data = self.obj.refine_descriptor_data
 
         # Here we still need to get the actual property title:
-        data["property_name"] = self.title
+        data["property_name"] = self.text_title
 
         return "%(phase_name)s | %(component_name)s | %(property_name)s" % data
 
-    # The actual value of the refinable property:
-    def get_value(self):
+    #: The actual value of the refinable property:
+    @LabeledProperty(
+        default=None, text="Value", tabular=True)
+    def value(self):
         if isinstance(self.obj, RefinementValue):
             return self.obj.refine_value
         elif not self.is_grouper:
-            return getattr(self.obj, self.prop)
+            return getattr(self.obj, self.label)
         else:
             return ""
-    def set_value(self, value):
+    @value.setter
+    def value(self, value):
         value = max(min(value, self.value_max), self.value_min)
         if self.is_grouper:
             raise AttributeError, "Cannot set the value for a grouping RefinableWrapper"
         elif isinstance(self.obj, RefinementValue):
             self.obj.refine_value = value
         else:
-            setattr(self.obj, self.prop, value)
+            setattr(self.obj, self.label, value)
 
-    # Whether or not this property is inherited from another object
-    @property
+    #: Whether or not this property is inherited from another object
+    @BoolProperty(
+        default=False, text="Inherited", tabular=True, mix_with=(ReadOnlyMixin,))
     def inherited(self):
-        return self.inh_prop is not None and hasattr(self.obj, self.inh_prop) and getattr(self.obj, self.inh_prop)
+        return self.inherit_from is not None and hasattr(self.obj, self.inherit_from) and getattr(self.obj, self.inherit_from)
 
-    # Whether or not this property is actually refinable
-    @property
+    #: Whether or not this property is actually refinable
+    @BoolProperty(
+        default=False, text="Refinable", tabular=True, mix_with=(ReadOnlyMixin,))
     def refinable(self):
         if isinstance(self.obj, _RefinementBase):
             # We have a _RefinementBase property (group or value)
@@ -129,37 +132,47 @@ class RefinableWrapper(ChildModel):
             # This is actually impossible, but what the hack...
             return (not self.inherited)
 
-    # The refinement info object for the refinable property
-    @property
+    #: The refinement info object for the refinable property
+    @LabeledProperty(
+        default=None, text="Refinement info", tabular=True, mix_with=(ReadOnlyMixin,))
     def ref_info(self):
         if (isinstance(self.obj, RefinementGroup) and self.is_grouper) or isinstance(self.obj, RefinementValue):
             return self.obj.refine_info
         else:
-            name = self.prop_intel.get_refinement_info_name()
+            name = self.prop_descr.get_refinement_info_name()
             if name is not None:
                 ref_info = getattr(self.obj, name)
                 return ref_info
             else:
-                raise AttributeError, "Cannot find refine info model for attribute '%s' on '%s'" % (self.prop, self.obj)
+                raise AttributeError, "Cannot find refine info model for attribute '%s' on '%s'" % (self.label, self.obj)
 
-    # The minimum value for the refinable property
-    def get_value_min(self):
+    #: The minimum value for the refinable property
+    @LabeledProperty(
+        default=None, text="Minimum value", tabular=True)
+    def value_min(self):
         return self.ref_info.minimum if self.ref_info else None
-    def set_value_min(self, value):
+    @value_min.setter
+    def value_min(self, value):
         if self.ref_info:
             self.ref_info.minimum = value
 
-    # The maximum value of the refinable property
-    def get_value_max(self):
+    #: The maximum value of the refinable property
+    @LabeledProperty(
+        default=None, text="Maximum value", tabular=True)
+    def value_max(self):
         return self.ref_info.maximum if self.ref_info else None
-    def set_value_max(self, value):
+    @value_max.setter
+    def value_max(self, value):
         if self.ref_info:
             self.ref_info.maximum = value
 
-    # Wether this property is selected for refinement:
-    def get_refine(self):
+    #: Wether this property is selected for refinement
+    @BoolProperty(
+        default=False, text="Refine", tabular=True)
+    def refine(self):
         return self.ref_info.refine if self.ref_info else False
-    def set_refine(self, value):
+    @refine.setter
+    def refine(self, value):
         if self.ref_info:
             self.ref_info.refine = value and self.refinable
 
@@ -170,14 +183,15 @@ class RefinableWrapper(ChildModel):
         """
             Valid keyword arguments for a RefinableWrapper are:
                 obj: the object we are wrapping a parameter for
-                prop: the property name of the parameter on the object
+                prop or prop_descr: the property descriptor
+                is_grouper: whether or not this is a grouper object
         """
-        my_kwargs = self.pop_kwargs(kwargs, "obj", "prop", "is_grouper")
+        my_kwargs = self.pop_kwargs(kwargs, "obj", "prop", "prop_descr", "is_grouper")
         super(RefinableWrapper, self).__init__(**kwargs)
         kwargs = my_kwargs
 
         self.obj = self.get_kwarg(kwargs, None, "obj")
-        self.prop_intel = self.get_kwarg(kwargs, None, "prop")
+        self.prop_descr = self.get_kwarg(kwargs, None, "prop_descr", "prop")
         self._is_grouper = self.get_kwarg(kwargs, False, "is_grouper")
 
     pass # end of class

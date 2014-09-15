@@ -26,7 +26,10 @@ from contextlib import contextmanager
 
 from ..support.utils import not_none
 from ..observers import Observer
-from ..models import Model, PropIntel
+
+from ..models import Model
+from ..models.properties import LabeledProperty
+
 from .abstract_adapter import AbstractAdapter
 
 class ModelAdapter(Observer, AbstractAdapter):
@@ -42,7 +45,7 @@ class ModelAdapter(Observer, AbstractAdapter):
     @property
     def property_name(self):
         """Returns the property name the adapter is connected to"""
-        return self._prop.name
+        return self._prop.label
 
     _ignoring_notifs = False
     @contextmanager
@@ -66,11 +69,12 @@ class ModelAdapter(Observer, AbstractAdapter):
         Adapters derived from this class.
         
         Controller is the controller creating this Adapter.
-        Prop is either a PropIntel instance taken from the controller's
-        model, or a 'dotted string' describing a property from the controller's
-        model. E.g. it is possible to pass: a.b.c which will then result in 
-        property c from attribute b from attribute a from the controller's
-        model to be observed. This way nested properties can also be handled.
+        Prop is either a :class:`~..models.properties.LabeledProperty` instance
+        taken from the controller's model, or a 'dotted string' describing a
+        property from the controller's model. E.g. it is possible to pass: 
+        a.b.c which will then result in property c from attribute b from 
+        attribute a from the controller's model to be observed.
+        This way nested properties can also be handled.
         
         prop_{read, write} are two optional functions that apply
         custom modifications to the value of the property after
@@ -116,7 +120,7 @@ class ModelAdapter(Observer, AbstractAdapter):
     # ----------------------------------------------------------------------
     def _parse_prop(self, prop, model):
         """Parses (optional) prop strings for the given model"""
-        if not isinstance(prop, PropIntel):
+        if not isinstance(prop, LabeledProperty):
             parts = prop.split(".")
             if len(parts) > 1:
                 # identifies the model
@@ -127,7 +131,7 @@ class ModelAdapter(Observer, AbstractAdapter):
                         raise TypeError(
                             "Attribute '%s' was expected to be a " +
                             "Model, but found: '%s'" % (name, model))
-                prop = model.Meta.get_prop_intel_by_name(parts[-1])
+                prop = getattr(type(model), parts[-1])
             else: prop = parts[0]
         return prop, model
 
@@ -136,13 +140,13 @@ class ModelAdapter(Observer, AbstractAdapter):
         register self as a value observer for that property"""
 
         # prop is inside model?
-        if not hasattr(self._model, self._prop.name):
-            raise ValueError("Attribute '" + self._prop.name +
+        if not hasattr(self._model, self._prop.label):
+            raise ValueError("Attribute '" + self._prop.label +
                              "' not found in model " + str(self._model))
 
         # is it observable?
         if self._prop.observable:
-            self.observe(self._on_prop_changed, self._prop.name, assign=True)
+            self.observe(self._on_prop_changed, self._prop.label, assign=True)
             self.observe_model(self._model)
 
     def _on_prop_changed(self, *args, **kwargs):
@@ -164,12 +168,12 @@ class ModelAdapter(Observer, AbstractAdapter):
     def _get_property_value(self):
         """Private method that returns the property value currently stored
         in the model, without transformations."""
-        return getattr(self._model, self._prop.name)
+        return getattr(self._model, self._prop.label)
 
     def _set_property_value(self, val):
         """Private method that sets the property value stored in the model,
         without transformations."""
-        return setattr(self._model, self._prop.name, val)
+        return setattr(self._model, self._prop.label, val)
 
     def _read_property(self, *args):
         """Returns the (possibly transformed) property value stored in the 
@@ -193,7 +197,7 @@ class ModelAdapter(Observer, AbstractAdapter):
         except ValueError:
             # let the user handle the error if he wants that:
             if self._value_error:
-                self._value_error(self, self._prop.name, raw_value)
+                self._value_error(self, self._prop.label, raw_value)
             else:
                 raise
 

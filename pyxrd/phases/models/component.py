@@ -8,17 +8,23 @@
 import zipfile
 from warnings import warn
 
-from mvc import PropIntel
-from mvc.observers import ListObserver
+from mvc.models.properties import (
+    FloatProperty, SignalMixin, BoolProperty, StringProperty,
+    LabeledProperty, SignalProperty, ObserveMixin, ListProperty,
+
+)
+from mvc.observers.list_observer import ListObserver
 
 from pyxrd.generic.io import storables, Storable, COMPRESSION
-from pyxrd.generic.models import DataModel, HoldableSignal
+from pyxrd.generic.models import DataModel
+from pyxrd.generic.models.properties import InheritableMixin
 
 from pyxrd.calculations.components import get_factors
 from pyxrd.calculations.data_objects import ComponentData
 
 from pyxrd.refinement.refinables.mixins import RefinementGroup
 from pyxrd.refinement.refinables.metaclasses import PyXRDRefinableMeta
+from pyxrd.refinement.refinables.properties import RefinableMixin
 
 from pyxrd.atoms.models import Atom
 
@@ -33,28 +39,6 @@ class Component(RefinementGroup, DataModel, Storable):
     # MODEL INTEL:
     __metaclass__ = PyXRDRefinableMeta
     class Meta(DataModel.Meta):
-        properties = [
-            PropIntel(name="name", data_type=unicode, label="Name", is_column=True, has_widget=True, storable=True),
-            PropIntel(name="linked_with", data_type=object, label="Linked with", widget_type='custom', is_column=True, has_widget=True, storable=True),
-            PropIntel(name="d001", data_type=float, label="Cell length c [nm]", is_column=True, has_widget=True, storable=True, refinable=True, minimum=0.0, maximum=5.0, inh_name="inherit_d001", stor_name="_d001", inh_from="linked_with"),
-            PropIntel(name="lattice_d", data_type=float, label="Lattice c length [nm]"),
-            PropIntel(name="default_c", data_type=float, label="Default c length [nm]", is_column=True, has_widget=True, storable=True, minimum=0.0, maximum=5.0, inh_name="inherit_default_c", stor_name="_default_c", inh_from="linked_with"),
-            PropIntel(name="delta_c", data_type=float, label="C length dev. [nm]", is_column=True, has_widget=True, storable=True, refinable=True, minimum=0.0, maximum=0.05, inh_name="inherit_delta_c", stor_name="_delta_c", inh_from="linked_with"),
-            PropIntel(name="ucp_a", data_type=object, label="Cell length a [nm]", is_column=True, has_widget=True, storable=True, refinable=True, inh_name="inherit_ucp_a", stor_name="_ucp_a", inh_from="linked_with"),
-            PropIntel(name="ucp_b", data_type=object, label="Cell length b [nm]", is_column=True, has_widget=True, storable=True, refinable=True, inh_name="inherit_ucp_b", stor_name="_ucp_b", inh_from="linked_with"),
-            PropIntel(name="inherit_d001", data_type=bool, label="Inh. cell length c", is_column=True, has_widget=True, storable=True),
-            PropIntel(name="inherit_ucp_b", data_type=bool, label="Inh. cell length b", is_column=True, has_widget=True, storable=True),
-            PropIntel(name="inherit_ucp_a", data_type=bool, label="Inh. cell length a", is_column=True, has_widget=True, storable=True),
-            PropIntel(name="inherit_default_c", data_type=bool, label="Inh. default length c", is_column=True, has_widget=True, storable=True),
-            PropIntel(name="inherit_delta_c", data_type=bool, label="Inh. c length dev.", is_column=True, has_widget=True, storable=True),
-            PropIntel(name="inherit_layer_atoms", data_type=bool, label="Inh. layer atoms", is_column=True, has_widget=True, storable=True),
-            PropIntel(name="inherit_interlayer_atoms", data_type=bool, label="Inh. interlayer atoms", is_column=True, has_widget=True, storable=True),
-            PropIntel(name="inherit_atom_relations", data_type=bool, label="Inh. atom relations", is_column=True, has_widget=True, storable=True),
-            PropIntel(name="atom_relations", data_type=object, label="Atom relations", is_column=True, has_widget=True, storable=True, widget_type="custom", refinable=True, inh_name="inherit_atom_relations", stor_name="_atom_relations", inh_from="linked_with", class_type=AtomRelation),
-            PropIntel(name="layer_atoms", data_type=object, label="Layer atoms", is_column=True, has_widget=True, storable=True, widget_type="custom", inh_name="inherit_layer_atoms", stor_name="_layer_atoms", inh_from="linked_with", class_type=Atom),
-            PropIntel(name="interlayer_atoms", data_type=object, label="Interlayer atoms", is_column=True, has_widget=True, storable=True, widget_type="custom", inh_name="inherit_interlayer_atoms", stor_name="_interlayer_atoms", inh_from="linked_with", class_type=Atom),
-            PropIntel(name="atoms_changed", data_type=object, is_column=False, storable=False, has_widget=False)
-        ]
         store_id = "Component"
 
     _data_object = None
@@ -77,14 +61,14 @@ class Component(RefinementGroup, DataModel, Storable):
         self._data_object.d001 = self.d001
         self._data_object.default_c = self.default_c
         self._data_object.delta_c = self.delta_c
-        self._data_object.lattice_d = self._lattice_d
+        self._data_object.lattice_d = self.lattice_d
 
         return self._data_object
 
     phase = property(DataModel.parent.fget, DataModel.parent.fset)
 
     # SIGNALS:
-    atoms_changed = None
+    atoms_changed = LabeledProperty(default=None, visible=False, persistent=False)
 
     # UNIT CELL DIMENSION SHORTCUTS:
     @property
@@ -98,141 +82,178 @@ class Component(RefinementGroup, DataModel, Storable):
         return self.d001
 
     # PROPERTIES:
-    _name = ""
-    def get_name(self): return self._name
-    def set_name(self, value):
-        self._name = value
-        self.visuals_changed.emit()
 
-    def get_inherit_ucp_a(self):
+    #: The name of the Component
+    name = StringProperty(
+        default="", text="Name",
+        visible=True, persistent=True, tabular=True,
+        signal_name="visuals_changed",
+        mix_with=(SignalMixin,)
+    )
+
+    #: Flag indicating whether to inherit the UCP a from :attr:`~linked_with`
+    @BoolProperty(
+        default=False, text="Inh. cell length a",
+        visible=True, persistent=True, tabular=True,
+    )
+    def inherit_ucp_a(self):
         return self._ucp_a.inherited
-    def set_inherit_ucp_a(self, value):
+    @inherit_ucp_a.setter
+    def inherit_ucp_a(self, value):
         self._ucp_a.inherited = value
 
-    def get_inherit_ucp_b(self):
+    #: Flag indicating whether to inherit the UCP b from :attr:`~linked_with`
+    @BoolProperty(
+        default=False, text="Inh. cell length b",
+        visible=True, persistent=True, tabular=True,
+    )
+    def inherit_ucp_b(self):
         return self._ucp_b.inherited
-    def set_inherit_ucp_b(self, value):
+    @inherit_ucp_b.setter
+    def inherit_ucp_b(self, value):
         self._ucp_b.inherited = value
 
-    def _set_float_data_property(self, name, value):
-        try: value = float(value)
-        except ValueError: return # ignore faulty values
-        setattr(self._data_object, name, value)
-        self.data_changed.emit()
+    #: Flag indicating whether to inherit d001 from :attr:`~linked_with`
+    inherit_d001 = BoolProperty(
+        default=False, text="Inh. cell length c",
+        visible=True, persistent=True, tabular=True,
+        signal_name="data_changed",
+        mix_with=(SignalMixin,)
+    )
 
-    def _set_bool_property(self, name, value):
-        try: value = bool(value)
-        except ValueError: return # ignore faulty values
-        if getattr(self, "_%s" % name) != value:
-            with self.data_changed.hold_and_emit():
-                setattr(self, "_%s" % name, value)
+    #: Flag indicating whether to inherit default_c from :attr:`~linked_with`
+    inherit_default_c = BoolProperty(
+        default=False, text="Inh. default length c",
+        visible=True, persistent=True, tabular=True,
+        signal_name="data_changed",
+        mix_with=(SignalMixin,)
+    )
 
-    _inherit_d001 = False
-    def get_inherit_d001(self): return self._inherit_d001
-    def set_inherit_d001(self, value): self._set_bool_property("inherit_d001", value)
+    #: Flag indicating whether to inherit delta_c from :attr:`~linked_with`
+    inherit_delta_c = BoolProperty(
+        default=False, text="Inh. c length dev.",
+        visible=True, persistent=True, tabular=True,
+        signal_name="data_changed",
+        mix_with=(SignalMixin,)
+    )
 
-    _inherit_default_c = False
-    def get_inherit_default_c(self): return self._inherit_default_c
-    def set_inherit_default_c(self, value): self._set_bool_property("inherit_default_c", value)
+    #: Flag indicating whether to inherit layer_atoms from :attr:`~linked_with`
+    inherit_layer_atoms = BoolProperty(
+        default=False, text="Inh. layer atoms",
+        visible=True, persistent=True, tabular=True,
+        signal_name="data_changed",
+        mix_with=(SignalMixin,)
+    )
 
-    _inherit_delta_c = False
-    def get_inherit_delta_c(self): return self._inherit_delta_c
-    def set_inherit_delta_c(self, value): self._set_bool_property("inherit_delta_c", value)
+    #: Flag indicating whether to inherit interlayer_atoms from :attr:`~linked_with`
+    inherit_interlayer_atoms = BoolProperty(
+        default=False, text="Inh. interlayer atoms",
+        visible=True, persistent=True, tabular=True,
+        signal_name="data_changed",
+        mix_with=(SignalMixin,)
+    )
 
-    _inherit_layer_atoms = False
-    def get_inherit_layer_atoms(self): return self._inherit_layer_atoms
-    def set_inherit_layer_atoms(self, value): self._set_bool_property("inherit_layer_atoms", value)
+    #: Flag indicating whether to inherit atom_relations from :attr:`~linked_with`
+    inherit_atom_relations = BoolProperty(
+        default=False, text="Inh. atom relations",
+        visible=True, persistent=True, tabular=True,
+        signal_name="data_changed",
+        mix_with=(SignalMixin,)
+    )
 
-    _inherit_interlayer_atoms = False
-    def get_inherit_interlayer_atoms(self): return self._inherit_interlayer_atoms
-    def set_inherit_interlayer_atoms(self, value): self._set_bool_property("inherit_interlayer_atoms", value)
-
-    _inherit_atom_relations = False
-    def get_inherit_atom_relations(self): return self._inherit_atom_relations
-    def set_inherit_atom_relations(self, value): self._set_bool_property("inherit_atom_relations", value)
-
-    _linked_with = None
     _linked_with_index = None
     _linked_with_uuid = None
-    def get_linked_with(self): return self._linked_with
-    def set_linked_with(self, value):
-        if value != self._linked_with:
-            if self._linked_with is not None:
-                self.relieve_model(self._linked_with)
-            self._linked_with = value
-            if self._linked_with is not None:
-                self.observe_model(self._linked_with)
+
+    #: The :class:`~Component` this component is linked with
+    linked_with = LabeledProperty(
+        default=None, text="Linked with",
+        visible=True, persistent=True,
+        signal_name="data_changed",
+        mix_with=(SignalMixin,)
+    )
+    @linked_with.setter
+    def linked_with(self, value):
+        old = type(self).linked_with._get(self)
+        if old != value:
+            if old is not None:
+                self.relieve_model(old)
+            type(self).linked_with._set(self, value)
+            if value is not None:
+                self.observe_model(value)
             else:
                 for prop in self.Meta.get_inheritable_properties():
-                    setattr(self, "inherit_%s" % prop, False)
-            self.data_changed.emit()
+                    setattr(self, prop.inherit_flag, False)
 
-    # Lattice d-value
-    __lattice_d = 0.0
-    @property
-    def _lattice_d(self):
-        return self.__lattice_d;
-    @_lattice_d.setter
-    def _lattice_d(self, value):
-        try: value = float(value)
-        except ValueError: return # ignore faulty values
-        if self.__lattice_d != value:
-            self.__lattice_d = value
-            self.data_changed.emit()
+    #: The silicate lattice's c length
+    lattice_d = FloatProperty(
+        default=0.0, text="Lattice c length [nm]",
+        visible=False, persistent=True,
+        signal_name="data_changed"
+    )
 
-    def get_lattice_d(self): return self._lattice_d
+    ucp_a = LabeledProperty(
+        default=None, text="Cell length a [nm]",
+        visible=True, persistent=True, tabular=True, refinable=True,
+        inheritable=True, inherit_flag="inherit_ucp_a", inherit_from="linked_with.ucp_a",
+        signal_name="data_changed",
+        mix_with=(SignalMixin, InheritableMixin, ObserveMixin, RefinableMixin)
+    )
 
+    ucp_b = LabeledProperty(
+        default=None, text="Cell length b [nm]",
+        visible=True, persistent=True, tabular=True, refinable=True,
+        inheritable=True, inherit_flag="inherit_ucp_b", inherit_from="linked_with.ucp_b",
+        signal_name="data_changed",
+        mix_with=(SignalMixin, InheritableMixin, ObserveMixin, RefinableMixin)
+    )
 
-    # INHERITABLE PROPERTIES:
-    def _set_inheritable_property_value(self, name, value):
-        current = getattr(self, "_%s" % name)
-        if current != value:
-            with self.data_changed.hold_and_emit():
-                if name.startswith("ucp_"):
-                    if current is not None:
-                        self.relieve_model(current)
-                setattr(self, "_%s" % name, value)
-                if name.startswith("ucp_"):
-                    if value is not None:
-                        self.observe_model(value)
+    d001 = FloatProperty(
+        default=1.0, text="Cell length c [nm]", minimum=0.0, maximum=5.0,
+        visible=True, persistent=True, tabular=True, refinable=True,
+        inheritable=True, inherit_flag="inherit_default_c", inherit_from="linked_with.d001",
+        signal_name="data_changed",
+        mix_with=(SignalMixin, InheritableMixin, RefinableMixin)
+    )
 
-    _ucp_a = None
-    def get_ucp_a(self): return self._get_inheritable_property_value("ucp_a")
-    def set_ucp_a(self, value): self._set_inheritable_property_value("ucp_a", value)
+    default_c = FloatProperty(
+        default=1.0, text="Default c length [nm]", minimum=0.0, maximum=5.0,
+        visible=True, persistent=True, tabular=True,
+        inheritable=True, inherit_flag="inherit_default_c", inherit_from="linked_with.default_c",
+        signal_name="data_changed",
+        mix_with=(SignalMixin, InheritableMixin)
+    )
 
-    _ucp_b = None
-    def get_ucp_b(self): return self._get_inheritable_property_value("ucp_b")
-    def set_ucp_b(self, value): self._set_inheritable_property_value("ucp_b", value)
+    delta_c = FloatProperty(
+        default=0.0, text="C length dev. [nm]", minimum=0.0, maximum=0.05,
+        visible=True, persistent=True, tabular=True,
+        inheritable=True, inherit_flag="inherit_default_c", inherit_from="linked_with.delta_c",
+        signal_name="data_changed",
+        mix_with=(SignalMixin, InheritableMixin, RefinableMixin)
+    )
 
-    _d001 = 1.0
-    def get_d001(self): return self._get_inheritable_property_value("d001")
-    def set_d001(self, value): self._set_inheritable_property_value("d001", float(value))
+    layer_atoms = ListProperty(
+        default=None, text="Layer atoms",
+        visible=True, persistent=True, tabular=True, widget_type="custom",
+        inheritable=True, inherit_flag="inherit_layer_atoms", inherit_from="linked_with_layer_atoms",
+        signal_name="data_changed", data_type=Atom,
+        mix_with=(SignalMixin, InheritableMixin)
+    )
 
-    _default_c = 1.0
-    def get_default_c(self): return self._get_inheritable_property_value("default_c")
-    def set_default_c(self, value): self._set_inheritable_property_value("default_c", float(value))
+    interlayer_atoms = ListProperty(
+        default=None, text="Interlayer atoms",
+        visible=True, persistent=True, tabular=True, widget_type="custom",
+        inheritable=True, inherit_flag="inherit_interlayer_atoms", inherit_from="linked_with.interlayer_atoms",
+        signal_name="data_changed", data_type=Atom,
+        mix_with=(SignalMixin, InheritableMixin)
+    )
 
-    _delta_c = 0.0
-    def get_delta_c(self): return self._get_inheritable_property_value("delta_c")
-    def set_delta_c(self, value): self._set_inheritable_property_value("delta_c", float(value))
-
-    _layer_atoms = []
-    def get_layer_atoms(self): return self._get_inheritable_property_value("layer_atoms")
-    def set_layer_atoms(self, value):
-        with self.data_changed.hold_and_emit():
-            self._layer_atoms = value
-
-    _interlayer_atoms = []
-    def get_interlayer_atoms(self): return self._get_inheritable_property_value("interlayer_atoms")
-    def set_interlayer_atoms(self, value):
-        with self.data_changed.hold_and_emit():
-            self._interlayer_atoms = value
-
-    _atom_relations = []
-    def get_atom_relations(self): return self._get_inheritable_property_value("atom_relations")
-    def set_atom_relations(self, value):
-        with self.data_changed.hold_and_emit():
-            self._atom_relations = value
+    atom_relations = ListProperty(
+        default=None, text="Atom relations", widget_type="custom",
+        visible=True, persistent=True, tabular=True, refinable=True,
+        inheritable=True, inherit_flag="inherit_atom_relations", inherit_from="linked_with.atom_relations",
+        signal_name="data_changed", data_type=AtomRelation,
+        mix_with=(SignalMixin, InheritableMixin, RefinableMixin)
+    )
 
     # Instance flag indicating whether or not linked_with & inherit flags should be saved
     save_links = True
@@ -294,13 +315,13 @@ class Component(RefinementGroup, DataModel, Storable):
             "data_atom_ratios", "data_d001", "data_default_c", "data_delta_c", "lattice_d",
             "data_cell_a", "data_ucp_a", "data_cell_b", "data_ucp_b",
             "linked_with_uuid", "linked_with_index", "inherit_cell_a", "inherit_cell_b",
-            *[names[0] for names in type(self).Meta.get_local_storable_properties()]
+            *[prop.label for prop in Component.Meta.get_local_persistent_properties()]
         )
         super(Component, self).__init__(**kwargs)
         kwargs = my_kwargs
 
         # Setup signals:
-        self.atoms_changed = HoldableSignal()
+        self.atoms_changed = SignalProperty()
 
         # Set up data object
         self._data_object = ComponentData(
@@ -355,29 +376,31 @@ class Component(RefinementGroup, DataModel, Storable):
         )
 
         # Update lattice values:
-        self.d001 = self.get_kwarg(kwargs, self._d001, "d001", "data_d001")
-        self._default_c = float(self.get_kwarg(kwargs, self._d001, "default_c", "data_default_c"))
-        self.delta_c = float(self.get_kwarg(kwargs, self._delta_c, "delta_c", "data_delta_c"))
+        self.d001 = self.get_kwarg(kwargs, self.d001, "d001", "data_d001")
+        self._default_c = float(self.get_kwarg(kwargs, self.d001, "default_c", "data_default_c"))
+        self.delta_c = float(self.get_kwarg(kwargs, self.delta_c, "delta_c", "data_delta_c"))
         self.update_lattice_d()
 
         # Set/Create & observe unit cell properties:
         ucp_a = self.get_kwarg(kwargs, None, "ucp_a", "data_ucp_a", "data_cell_a")
         if isinstance(ucp_a, float):
             ucp_a = UnitCellProperty(name="cell length a", value=ucp_a, parent=self)
-        self._ucp_a = self.parse_init_arg(
+        ucp_a = self.parse_init_arg(
             ucp_a, UnitCellProperty, child=True,
             default_is_class=True, name="Cell length a [nm]", parent=self
         )
-        self.observe_model(self._ucp_a)
+        type(self).ucp_a._set(self, ucp_a)
+        self.observe_model(ucp_a)
 
         ucp_b = self.get_kwarg(kwargs, None, "ucp_b", "data_ucp_b", "data_cell_b")
         if isinstance(ucp_b, float):
             ucp_b = UnitCellProperty(name="cell length b", value=ucp_b, parent=self)
-        self._ucp_b = self.parse_init_arg(
+        ucp_b = self.parse_init_arg(
             ucp_b, UnitCellProperty, child=True,
             default_is_class=True, name="Cell length b [nm]", parent=self
         )
-        self.observe_model(self._ucp_b)
+        type(self).ucp_b._set(self, ucp_b)
+        self.observe_model(ucp_b)
 
         # Set links:
         self._linked_with_uuid = self.get_kwarg(kwargs, "", "linked_with_uuid")
@@ -465,15 +488,15 @@ class Component(RefinementGroup, DataModel, Storable):
     #      Input/Output stuff
     # ------------------------------------------------------------
     def resolve_json_references(self):
-        for atom in self.layer_atoms:
+        for atom in type(self).layer_atoms._get(self):
             atom.resolve_json_references()
-        for atom in self.interlayer_atoms:
+        for atom in type(self).interlayer_atoms._get(self):
             atom.resolve_json_references()
 
-        self._ucp_a.resolve_json_references()
-        self._ucp_a.update_value()
-        self._ucp_b.resolve_json_references()
-        self._ucp_b.update_value()
+        type(self).ucp_a._get(self).resolve_json_references()
+        type(self).ucp_a._get(self).update_value()
+        type(self).ucp_b._get(self).resolve_json_references()
+        type(self).ucp_b._get(self).update_value()
 
         if getattr(self, "_linked_with_uuid", None):
             self.linked_with = type(type(self)).object_pool.get_object(self._linked_with_uuid)
@@ -527,8 +550,8 @@ class Component(RefinementGroup, DataModel, Storable):
         if self.phase == None or not self.save_links:
             retval = Storable.json_properties(self)
             for prop in self.Meta.all_properties:
-                if prop.inh_name:
-                    retval[prop.inh_name] = False
+                if prop.inherit_flag:
+                    retval[prop.inherit_flag] = False
         else:
             retval = Storable.json_properties(self)
             retval["linked_with_uuid"] = self.linked_with.uuid if self.linked_with is not None else ""
@@ -554,7 +577,7 @@ class Component(RefinementGroup, DataModel, Storable):
             Should normally not be called from outside the component.
         """
         for atom in self.layer_atoms:
-            self._lattice_d = float(max(self.lattice_d, atom.default_z))
+            self.lattice_d = float(max(self.lattice_d, atom.default_z))
 
     def _apply_atom_relations(self):
         """

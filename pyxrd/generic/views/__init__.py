@@ -54,6 +54,7 @@ class BaseView(View):
             self.set_layout_mode(self.parent.current_layout_state)
 
     def create_mathtext_widget(self, text, fallback_text=""):
+        # TODO move these to a separate controller namespace module!
         try:
             widget = create_image_from_mathtext(text)
         except:
@@ -63,17 +64,18 @@ class BaseView(View):
             widget.set_property('justify', gtk.JUSTIFY_CENTER)
         return widget
 
-    def add_scale_widget(self, intel, widget_format="default_%s", container=None, enforce_range=True):
+    def add_scale_widget(self, prop, widget_format="default_%s", container=None, enforce_range=True):
+        # TODO move these to a separate controller namespace module!
         if not isinstance(container, gtk.Widget):
-            container = self[(container or "container_%s") % intel.name]
+            container = self[(container or "container_%s") % prop.label]
             if container == None:
-                warn("Scale widget container not found for '%s'!" % intel.name, Warning)
+                warn("Scale widget container not found for '%s'!" % prop.label, Warning)
                 return None
-        name = widget_format % intel.name
+        name = widget_format % prop.label
         child = container.get_child()
         if child is not None:
             container.remove(child)
-        inp = ScaleEntry(intel.minimum, intel.maximum, enforce_range=enforce_range)
+        inp = ScaleEntry(prop.minimum, prop.maximum, enforce_range=enforce_range)
         self[name] = inp
         container.add(inp)
         inp.show_all()
@@ -121,8 +123,11 @@ class BaseView(View):
 
     def get_toplevel(self):
         for w in self:
-            if hasattr(self[w], 'get_toplevel'):
+            try:
                 return self[w].get_toplevel()
+            except AttributeError:
+                pass
+            else:
                 break # just for ref
 
 class TitleView(BaseView):

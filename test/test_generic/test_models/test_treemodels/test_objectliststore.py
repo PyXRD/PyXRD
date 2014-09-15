@@ -11,8 +11,11 @@ import gobject
 import unittest
 
 from pyxrd.generic.models import DataModel
+
 from mvc.adapters.gtk_support.treemodels import ObjectListStore
-from mvc import PropIntel
+from mvc.models.properties import (
+    LabeledProperty, StringProperty, FloatProperty
+)
 
 __all__ = [
     'TestObjectListStore',
@@ -20,27 +23,16 @@ __all__ = [
 
 
 class _DummyObject(DataModel):
-    class Meta(DataModel.Meta):
-        properties = [
-            PropIntel(name="name", data_type=str, is_column=True),
-            PropIntel(name="number", data_type=float, is_column=True),
-            PropIntel(name="test", data_type=object, is_column=True),
-        ]
 
-    name = ""
-    number = 0
-    test = object()
+    name = StringProperty(text="Name", tabular=True, default="")
+    number = FloatProperty(text="Number", tabular=True, default=0)
+    test = LabeledProperty(text="Test", tabular=True, default=[])
 
     pass # end of class
 
 class _DummyParent(DataModel):
-    class Meta(DataModel.Meta):
 
-        properties = [
-            PropIntel(name="attrib", data_type=object, class_type=_DummyObject),
-        ]
-
-    attrib = []
+    attrib = LabeledProperty(text="Attrib", default=[], tabular=True, data_type=_DummyObject)
 
     pass # end of class
 
@@ -49,7 +41,7 @@ class TestObjectListStore(unittest.TestCase):
 
     def setUp(self):
         self.model = _DummyParent()
-        prop = self.model.Meta.get_prop_intel_by_name("attrib")
+        prop = type(self.model).attrib
         self.store = ObjectListStore(self.model, prop)
 
     def tearDown(self):
@@ -63,7 +55,7 @@ class TestObjectListStore(unittest.TestCase):
         self.assertEqual(self.store.get_column_type(self.store.c_test), gobject.type_from_name("PyObject"))
 
     def test_convert(self):
-        self.assertEqual(self.store.convert(1, "0.5"), 0.5)
+        self.assertEqual(self.store.convert(self.store.c_number, "0.5"), 0.5)
 
     # TODO:
     # - test JSON serialisation

@@ -8,11 +8,15 @@
 import logging
 logger = logging.getLogger(__name__)
 
-from mvc import PropIntel
+from mvc.models.properties import (
+    StringProperty, BoolProperty, LabeledProperty, FloatProperty,
+    SignalMixin, SetActionMixin
+)
 
 from pyxrd.generic.io import storables, Storable
 from pyxrd.generic.models import DataModel
 
+from pyxrd.refinement.refinables.properties import RefinableMixin
 from pyxrd.refinement.refinables.mixins import RefinementValue
 from pyxrd.refinement.refinables.metaclasses import PyXRDRefinableMeta
 
@@ -35,83 +39,67 @@ class UnitCellProperty(ComponentPropMixin, RefinementValue, DataModel, Storable)
     # MODEL INTEL:
     __metaclass__ = PyXRDRefinableMeta
     class Meta(DataModel.Meta):
-        properties = [
-            PropIntel(name="name", label="Name", data_type=unicode, is_column=True),
-            PropIntel(name="value", label="Value", data_type=float, widget_type='float_entry', storable=True, has_widget=True, refinable=True),
-            PropIntel(name="factor", label="Factor", data_type=float, widget_type='float_entry', storable=True, has_widget=True),
-            PropIntel(name="constant", label="Constant", data_type=float, widget_type='float_entry', storable=True, has_widget=True),
-            PropIntel(name="prop", label="Property", data_type=object, widget_type='combo', storable=True, has_widget=True),
-            PropIntel(name="enabled", label="Enabled", data_type=bool, storable=True, has_widget=True),
-            PropIntel(name="ready", label="Ready", data_type=bool),
-            PropIntel(name="inherited", label="Inherited", data_type=bool)
-        ]
         store_id = "UnitCellProperty"
 
     component = property(DataModel.parent.fget, DataModel.parent.fset)
 
     # PROPERTIES:
-    _name = ""
-    def get_name(self): return self._name
-    def set_name(self, value):
-        if self._name != value:
-            self._name = value
-            self.visuals_changed.emit()
 
-    _enabled = False
-    def get_enabled(self): return self._enabled
-    def set_enabled(self, value):
-        if self._enabled != value:
-            self._enabled = value
-            self.update_value()
+    #: The UnitCellProperty name
+    name = StringProperty(
+        default="", text="Name",
+        visible=False, persistent=False,
+        signal_name="visuals_changed",
+        mix_with=(SignalMixin,)
+    )
 
-    _inherited = False
-    def get_inherited(self): return self._inherited
-    def set_inherited(self, value):
-        if self._inherited != value:
-            self._inherited = value
-            self.update_value()
+    #: Flag indicating if this UnitCellProperty is enabled
+    enabled = BoolProperty(
+        default=False, text="Enabled",
+        visible=True, persistent=True,
+        set_action_name="update_value",
+        mix_with=(SetActionMixin,)
+    )
 
-    _ready = False
-    def get_ready(self): return self._ready
-    def set_ready(self, value):
-        if self._ready != value:
-            self._ready = value
-            self.update_value()
+    #: Flag indicating if this UnitCellProperty is inherited
+    inherited = BoolProperty(
+        default=False, text="Inherited",
+        visible=False, persistent=False,
+        set_action_name="update_value",
+        mix_with=(SetActionMixin,)
+    )
 
-    _value = 1.0
-    def get_value(self): return self._value
-    def set_value(self, value):
-        try: value = float(value)
-        except ValueError: return
-        if self._value != value:
-            self._value = value
-            self.update_value()
+    #: The value of the UnitCellProperty
+    value = FloatProperty(
+        default=0.0, text="Value",
+        visible=True, persistent=True, refinable=True, widget_type='float_entry',
+        set_action_name="update_value",
+        mix_with=(SetActionMixin, RefinableMixin)
+    )
 
-    _factor = 1.0
-    def get_factor(self): return self._factor
-    def set_factor(self, value):
-        try: value = float(value)
-        except ValueError: return
-        if self._factor != value:
-            self._factor = value
-            self.update_value()
+    #: The factor of the UnitCellProperty (if enabled and not constant)
+    factor = FloatProperty(
+        default=1.0, text="Factor",
+        visible=True, persistent=True, widget_type='float_entry',
+        set_action_name="update_value",
+        mix_with=(SetActionMixin,)
+    )
 
-    _constant = 0.0
-    def get_constant(self): return self._constant
-    def set_constant(self, value):
-        try: value = float(value)
-        except ValueError: return
-        if self._constant != value:
-            self._constant = value
-            self.update_value()
+    #: The constant of the UnitCellProperty (if enabled and not constant)
+    constant = FloatProperty(
+        default=0.0, text="Constant",
+        visible=True, persistent=True, widget_type='float_entry',
+        set_action_name="update_value",
+        mix_with=(SetActionMixin,)
+    )
 
     _temp_prop = None # temporary, JSON-style prop
-    _prop = None # obj, prop tuple
-    def get_prop(self): return self._prop
-    def set_prop(self, value):
-        if self._prop != value:
-            self._prop = value
-            self.update_value()
+    prop = LabeledProperty(
+        default=None, text="Property",
+        visible=True, persistent=True, widget_type='combo',
+        set_action_name="update_value",
+        mix_with=(SetActionMixin,)
+    )
 
     # REFINEMENT VALUE IMPLEMENTATION:
     @property
@@ -145,22 +133,20 @@ class UnitCellProperty(ComponentPropMixin, RefinementValue, DataModel, Storable)
     #      Initialisation and other internals
     # ------------------------------------------------------------
     def __init__(self, *args, **kwargs):
-        keys = [names[0] for names in UnitCellProperty.Meta.get_local_storable_properties()]
-        keys.extend(["data_%s" % names[0] for names in UnitCellProperty.Meta.get_local_storable_properties()])
+        keys = [prop.label for prop in UnitCellProperty.Meta.get_local_persistent_properties()]
+        keys.extend(["data_%s" % prop.label for prop in UnitCellProperty.Meta.get_local_persistent_properties()])
         my_kwargs = self.pop_kwargs(kwargs, "name", *keys)
         super(UnitCellProperty, self).__init__(*args, **kwargs)
         kwargs = my_kwargs
 
         with self.data_changed.hold_and_emit():
-            self._name = self.get_kwarg(kwargs, self.name, "name", "data_name")
-            self._value = self.get_kwarg(kwargs, self._value, "value", "data_value")
-            self._factor = self.get_kwarg(kwargs, self._factor, "factor", "data_factor")
-            self._constant = self.get_kwarg(kwargs, self._constant, "constant", "data_constant")
-            self._enabled = self.get_kwarg(kwargs, self.enabled, "enabled", "data_enabled")
+            self.name = self.get_kwarg(kwargs, self.name, "name", "data_name")
+            self.value = self.get_kwarg(kwargs, self.value, "value", "data_value")
+            self.factor = self.get_kwarg(kwargs, self.factor, "factor", "data_factor")
+            self.constant = self.get_kwarg(kwargs, self.constant, "constant", "data_constant")
+            self.enabled = self.get_kwarg(kwargs, self.enabled, "enabled", "data_enabled")
 
-            self._temp_prop = self.get_kwarg(kwargs, self._prop, "prop", "data_prop")
-
-            self.ready = True
+            self._temp_prop = self.get_kwarg(kwargs, self.prop, "prop", "data_prop")
 
     # ------------------------------------------------------------
     #      Input/Output stuff
@@ -212,7 +198,7 @@ class UnitCellProperty(ComponentPropMixin, RefinementValue, DataModel, Storable)
             return 0.0
 
     def update_value(self):
-        if self.enabled and self.ready:
+        if self.enabled:
             self._value = float(self.factor * self.get_value_of_prop() + self.constant)
             self.data_changed.emit()
 

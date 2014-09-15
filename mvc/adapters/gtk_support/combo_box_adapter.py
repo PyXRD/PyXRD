@@ -34,7 +34,9 @@ from .basic import GtkAdapter
 
 class ComboBoxAdapter(GtkAdapter):
     """
-        An adapter that adapts a ComboBox widget to an OptionPropIntel property.
+        An adapter that adapts a ComboBox widget to an property which has a 
+        choices attribute containing dictionary with allowed (value, description)
+        pairs as keys and values.
     """
     widget_types = ["option_list", ]
     _check_widget_type = gtk.ComboBox
@@ -48,11 +50,11 @@ class ComboBoxAdapter(GtkAdapter):
     def _parse_prop(self, prop, model):
         """Parses (optional) prop strings for the given model"""
         prop, model = super(ComboBoxAdapter, self)._parse_prop(prop, model)
-        if not isinstance(prop.options, types.DictionaryType):
-            raise ValueError, "ComboBox widget handler requires a PropIntel with an 'options' dictionary!"
+        if not isinstance(prop.choices, types.DictionaryType):
+            raise ValueError, "ComboBox widget handler requires a property with a 'choices' dictionary!"
         else:
             self._store = gtk.ListStore(str, str)
-            for key, value in prop.options.iteritems():
+            for key, value in prop.choices.iteritems():
                 self._store.append([key, value])
         return prop, model
 

@@ -25,7 +25,7 @@ class PyXRDRefinableMeta(ModelMeta):
         # Pop & parse any refinement info keyword arguments that might be present:
         prop_infos = dict()
         for prop in cls.Meta.all_properties:
-            if prop.refinable:
+            if getattr(prop, "refinable", False):
                 ref_info_name = prop.get_refinement_info_name()
                 info_args = kwargs.pop(ref_info_name, None)
                 if info_args:

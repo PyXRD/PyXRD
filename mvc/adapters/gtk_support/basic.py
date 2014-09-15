@@ -22,6 +22,9 @@
 #  Boston, MA 02110, USA.
 #  -------------------------------------------------------------------------
 
+import logging
+logger = logging.getLogger(__name__)
+
 from contextlib import contextmanager
 from ...adapters.model_adapter import ModelAdapter
 from ...support.utils import not_none
@@ -71,9 +74,12 @@ class GtkAdapter(ModelAdapter):
         if self._check_widget_type is not None:
             widget_type = type(widget)
             if not isinstance(widget, self._check_widget_type):
-                msg = "Property '%s' has a widget type '%s', which can only be " \
-                      "used for (a subclass of) a '%s' widget, " \
-                      "and not for a '%s'!" % (prop.name, type(self), self._check_widget_type, widget_type)
+                msg = "Property '%s' from model '%s' has a widget type %s, " \
+                      "which can only be used for (a subclass of) a %s " \
+                      "widget, and not for a %s widget!" % (
+                          prop.label, controller.model, type(self),
+                          self._check_widget_type, widget_type
+                      )
                 raise TypeError, msg
         # Connect the widget:
         self._connect_widget()
@@ -86,8 +92,12 @@ class GtkAdapter(ModelAdapter):
 
         # Connect the widget
         if self._signal:
-            self._signal_id = self._widget.connect(
-               self._signal, self._on_wid_changed, self._signal_args)
+            try:
+                self._signal_id = self._widget.connect(
+                    self._signal, self._on_wid_changed, self._signal_args)
+            except TypeError:
+                logger.error("Failed to connect signal named '%s' on widget '%s' for property '%s'!" % (self._signal, self._widget, self._prop.label))
+                raise
 
         # Updates the widget:
         if self._update: self.update_widget()

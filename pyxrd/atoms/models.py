@@ -8,8 +8,6 @@
 from functools import partial
 from warnings import warn
 
-from mvc import Observer, PropIntel
-
 import numpy as np
 
 from pyxrd.generic.io import storables, Storable, get_case_insensitive_glob
@@ -17,6 +15,15 @@ from pyxrd.generic.models import DataModel
 from pyxrd.generic.models.mixins import CSVMixin
 from pyxrd.calculations.data_objects import AtomTypeData, AtomData
 from pyxrd.calculations.atoms import get_atomic_scattering_factor, get_structure_factor
+
+from mvc import Observer
+from mvc.models.properties.string_properties import StringProperty
+from mvc.models.properties.signal_mixin import SignalMixin
+from mvc.models.properties.float_properties import FloatProperty
+from mvc.models.properties.bool_property import BoolProperty
+from mvc.models.properties.read_only_mixin import ReadOnlyMixin
+from mvc.models.properties.labeled_property import LabeledProperty
+from mvc.models.properties.integer_properties import IntegerProperty
 
 @storables.register()
 class AtomType(CSVMixin, DataModel, Storable):
@@ -28,35 +35,9 @@ class AtomType(CSVMixin, DataModel, Storable):
     # MODEL METADATA:
     class Meta(DataModel.Meta):
         store_id = "AtomType"
-        properties = [
-            PropIntel(name="atom_nr", label="Atom Nr", data_type=int, widget_type="entry", **PropIntel.ST_WID_COL),
-            PropIntel(name="name", label="Name", data_type=unicode, **PropIntel.ST_WID_COL),
-            PropIntel(name="charge", label="Charge", data_type=float, widget_type="float_entry", **PropIntel.ST_WID_COL),
-            PropIntel(name="weight", label="Atomic weight", data_type=float, widget_type="float_entry", **PropIntel.ST_WID_COL),
-            PropIntel(name="debye", label="Debye-Waller factor", data_type=float, widget_type="float_entry", **PropIntel.ST_WID_COL),
-            PropIntel(name="par_c", label="c", data_type=float, widget_type="float_entry", **PropIntel.ST_WID_COL),
-        ] + [
-            PropIntel(name="par_a%d" % i, label="a%d" % i, data_type=float, widget_type="float_entry", **PropIntel.ST_WID_COL) for i in xrange(1, 6)
-        ] + [
-            PropIntel(name="par_b%d" % i, label="b%d" % i, data_type=float, widget_type="float_entry", **PropIntel.ST_WID_COL) for i in xrange(1, 6)
-        ]
-        csv_storables = [(prop.name, prop.name) for prop in properties if prop.storable]
 
     #: The project this AtomType belongs to or None. Effectively an alias for `parent`.
     project = property(DataModel.parent.fget, DataModel.parent.fset)
-
-    _name = ""
-    @property
-    def name(self):
-        """Name of the AtomType (e.g. :math:`Fe^{2+}`)"""
-        return self._name
-    @name.setter
-    def name(self, value):
-        self._name = value
-        self.visuals_changed.emit()
-
-    #: The atomic number, or an arbitrarily high number (+300) for compounds
-    atom_nr = 0
 
     _data_object = None
     @property
@@ -66,83 +47,156 @@ class AtomType(CSVMixin, DataModel, Storable):
         (see :mod:`pyxrd.generic.calculations.atoms`).
         Is an instance of :class:`~pyxrd.generic.calculations.data_objects.AtomTypeData`
         """
+
+        self._data_object.par_c = self.par_c
+        self._data_object.debye = self.debye
+        self._data_object.charge = self.charge
+        self._data_object.weight = self.weight
+
         return self._data_object
 
-    def __get_par_a(self, index):
+    #: Name of the AtomType (e.g. :math:`Fe^{2+}`)
+    name = StringProperty(
+        default="", text="Name",
+        visible=True, persistent=True, tabular=True,
+        signal_name="visuals_changed",
+        mix_with=(SignalMixin,)
+    )
+
+    #: The atomic number, or an arbitrarily high number (+300) for compounds
+    atom_nr = IntegerProperty(
+        default=0, text="Atom Nr",
+        visible=True, persistent=True,
+        widget_type="entry"
+    )
+
+    def __get_par_a(self, index=0):
         return self._data_object.par_a[index]
 
-    def __set_par_a(self, value, index):
+    def __set_par_a(self, value, index=0):
         assert (index >= 0 and index < 5)
-        try: value = float(value)
-        except ValueError: return # ignore faulty values
         self._data_object.par_a[index] = value
-        self.data_changed.emit()
 
-    def __get_par_b(self, index):
+    def __get_par_b(self, index=0):
         return self._data_object.par_b[index]
 
-    def __set_par_b(self, value, index):
+    def __set_par_b(self, value, index=0):
         assert (index >= 0 and index < 5)
-        try: value = float(value)
-        except ValueError: return # ignore faulty values
         self._data_object.par_b[index] = value
-        self.data_changed.emit()
-
-    def _set_float_data_property(self, value, name):
-        try: value = float(value)
-        except ValueError: raise # ignore faulty values
-        setattr(self._data_object, name, value)
-        self.data_changed.emit()
 
     #: Atomic scattering factor :math:`a_1`
-    par_a1 = property(fget=partial(__get_par_a, index=0), fset=partial(__set_par_a, index=0))
+    par_a1 = FloatProperty(
+        default=0.0, text="a1",
+        visible=True, persistent=True,
+        signal_name="data_changed", widget_type="entry",
+        mix_with=(SignalMixin,),
+        fget=partial(__get_par_a, index=0), fset=partial(__set_par_a, index=0)
+    )
     #: Atomic scattering factor :math:`a_2`
-    par_a2 = property(fget=partial(__get_par_a, index=1), fset=partial(__set_par_a, index=1))
+    par_a2 = FloatProperty(
+        default=0.0, text="a2",
+        visible=True, persistent=True,
+        signal_name="data_changed", widget_type="entry",
+        mix_with=(SignalMixin,),
+        fget=partial(__get_par_a, index=1), fset=partial(__set_par_a, index=1)
+    )
     #: Atomic scattering factor :math:`a_3`
-    par_a3 = property(fget=partial(__get_par_a, index=2), fset=partial(__set_par_a, index=2))
+    par_a3 = FloatProperty(
+        default=0.0, text="a3",
+        visible=True, persistent=True,
+        signal_name="data_changed", widget_type="entry",
+        mix_with=(SignalMixin,),
+        fget=partial(__get_par_a, index=2), fset=partial(__set_par_a, index=2)
+    )
     #: Atomic scattering factor :math:`a_4`
-    par_a4 = property(fget=partial(__get_par_a, index=3), fset=partial(__set_par_a, index=3))
+    par_a4 = FloatProperty(
+        default=0.0, text="a4",
+        visible=True, persistent=True,
+        signal_name="data_changed", widget_type="entry",
+        mix_with=(SignalMixin,),
+        fget=partial(__get_par_a, index=3), fset=partial(__set_par_a, index=3)
+    )
     #: Atomic scattering factor :math:`a_5`
-    par_a5 = property(fget=partial(__get_par_a, index=4), fset=partial(__set_par_a, index=4))
+    par_a5 = FloatProperty(
+        default=0.0, text="a5",
+        visible=True, persistent=True,
+        signal_name="data_changed", widget_type="entry",
+        mix_with=(SignalMixin,),
+        fget=partial(__get_par_a, index=4), fset=partial(__set_par_a, index=4)
+    )
 
     #: Atomic scattering factor :math:`b_1`
-    par_b1 = property(fget=partial(__get_par_b, index=0), fset=partial(__set_par_b, index=0))
+    par_b1 = FloatProperty(
+        default=0.0, text="b1",
+        visible=True, persistent=True,
+        signal_name="data_changed", widget_type="entry",
+        mix_with=(SignalMixin,),
+        fget=partial(__get_par_b, index=0), fset=partial(__set_par_b, index=0)
+    )
     #: Atomic scattering factor :math:`b_2`
-    par_b2 = property(fget=partial(__get_par_b, index=1), fset=partial(__set_par_b, index=1))
+    par_b2 = FloatProperty(
+        default=0.0, text="b2",
+        visible=True, persistent=True,
+        signal_name="data_changed", widget_type="entry",
+        mix_with=(SignalMixin,),
+        fget=partial(__get_par_b, index=1), fset=partial(__set_par_b, index=1)
+    )
     #: Atomic scattering factor :math:`b_3`
-    par_b3 = property(fget=partial(__get_par_b, index=2), fset=partial(__set_par_b, index=2))
+    par_b3 = FloatProperty(
+        default=0.0, text="b3",
+        visible=True, persistent=True,
+        signal_name="data_changed", widget_type="entry",
+        mix_with=(SignalMixin,),
+        fget=partial(__get_par_b, index=2), fset=partial(__set_par_b, index=2)
+    )
     #: Atomic scattering factor :math:`b_4`
-    par_b4 = property(fget=partial(__get_par_b, index=3), fset=partial(__set_par_b, index=3))
+    par_b4 = FloatProperty(
+        default=0.0, text="b4",
+        visible=True, persistent=True,
+        signal_name="data_changed", widget_type="entry",
+        mix_with=(SignalMixin,),
+        fget=partial(__get_par_b, index=3), fset=partial(__set_par_b, index=3)
+    )
     #: Atomic scattering factor :math:`b_5`
-    par_b5 = property(fget=partial(__get_par_b, index=4), fset=partial(__set_par_b, index=4))
+    par_b5 = FloatProperty(
+        default=0.0, text="b5",
+        visible=True, persistent=True,
+        signal_name="data_changed", widget_type="entry",
+        mix_with=(SignalMixin,),
+        fget=partial(__get_par_b, index=4), fset=partial(__set_par_b, index=4)
+    )
 
-    @property
-    def par_c(self):
-        """Atomic scattering factor c"""
-        return self._data_object.par_c
-    @par_c.setter
-    def par_c(self, value): self._set_float_data_property(value, "par_c")
+    #: Atomic scattering factor c
+    par_c = FloatProperty(
+        default=0.0, text="c",
+        visible=True, persistent=True,
+        signal_name="data_changed", widget_type="entry",
+        mix_with=(SignalMixin,)
+    )
 
-    @property
-    def debye(self):
-        """Debye-Waller scattering factor"""
-        return self._data_object.debye
-    @debye.setter
-    def debye(self, value): self._set_float_data_property(value, "debye")
+    #: Debye-Waller scattering factor
+    debye = FloatProperty(
+        default=0.0, text="c",
+        visible=True, persistent=True,
+        signal_name="data_changed", widget_type="entry",
+        mix_with=(SignalMixin,)
+    )
 
-    @property
-    def charge(self):
-        """The charge of the ion (eg. 3.0 for :math:`Al^{3+}`)"""
-        return self._data_object.charge
-    @charge.setter
-    def charge(self, value): self._set_float_data_property(value, "charge")
+    #: The charge of the ion (eg. 3.0 for :math:`Al^{3+}`)
+    charge = FloatProperty(
+        default=0.0, text="Charge",
+        visible=True, persistent=True,
+        signal_name="data_changed", widget_type="entry",
+        mix_with=(SignalMixin,)
+    )
 
-    @property
-    def weight(self):
-        """The atomic weight for this ion"""
-        return self._data_object.weight
-    @weight.setter
-    def weight(self, value): self._set_float_data_property(value, "weight")
+    #: The atomic weight for this ion
+    weight = FloatProperty(
+        default=0.0, text="Weight",
+        visible=True, persistent=True,
+        signal_name="data_changed", widget_type="entry",
+        mix_with=(SignalMixin,)
+    )
 
     # ------------------------------------------------------------
     #      Initialization and other internals
@@ -152,9 +206,9 @@ class AtomType(CSVMixin, DataModel, Storable):
             Constructor takes any of its properties as a keyword argument.
             Any other arguments or keywords are passed to the base class.
         """
-        keys = [ "data_%s" % names[0] for names in type(self).Meta.get_local_storable_properties()]
-        keys.extend([ names[0] for names in type(self).Meta.get_local_storable_properties()])
-        my_kwargs = self.pop_kwargs(kwargs, * keys)
+        keys = [ "data_%s" % prop.label for prop in type(self).Meta.get_local_persistent_properties()]
+        keys.extend([ prop.label for prop in type(self).Meta.get_local_persistent_properties()])
+        my_kwargs = self.pop_kwargs(kwargs, *keys)
         super(AtomType, self).__init__(*args, **kwargs)
         kwargs = my_kwargs
 
@@ -203,14 +257,6 @@ class Atom(DataModel, Storable):
     # MODEL METADATA:
     class Meta(DataModel.Meta):
         store_id = "Atom"
-        properties = [ # TODO add labels
-            PropIntel(name="name", data_type=unicode, **PropIntel.ST_WID_COL),
-            PropIntel(name="default_z", data_type=float, **PropIntel.ST_WID_COL),
-            PropIntel(name="z", data_type=float, **PropIntel.WID_COL),
-            PropIntel(name="pn", data_type=float, **PropIntel.ST_WID_COL),
-            PropIntel(name="atom_type", data_type=object, **PropIntel.WID_COL),
-            PropIntel(name="stretch_values", data_type=bool),
-        ]
         layer_filters = [
             ("Layer file", get_case_insensitive_glob("*.lyr")),
         ]
@@ -223,111 +269,103 @@ class Atom(DataModel, Storable):
         (see :mod:`pyxrd.generic.calculations.atoms`).
         Is an instance of :class:`~pyxrd.generic.calculations.data_objects.AtomData`  
         """
-        if self.atom_type is not None:
-            self._data_object.atom_type = self.atom_type.data_object
+        self._data_object.default_z = self.default_z
+        self._data_object.stretch_z = self.stretch_z
+        self._data_object.pn = self.pn
+        self._data_object.atom_type = getattr(self.atom_type, "data_object", None)
         return self._data_object
 
     component = property(DataModel.parent.fget, DataModel.parent.fset)
 
     # PROPERTIES:
-    _name = ""
-    @property
-    def name(self):
-        """ The name of the Atom """
-        return self._name
-    @name.setter
-    def name(self, value):
-        self._name = value
-        self.visuals_changed.emit()
 
-    _default_z = None
-    @property
-    def default_z(self):
-        """Default z coordinate for this Atom. Also see `z`"""
-        return self._data_object.default_z
-    @default_z.setter
-    def default_z(self, value):
-        try: value = float(value)
-        except ValueError: return
-        if value != self._data_object.default_z:
-            self._data_object.default_z = value
-            self.data_changed.emit()
+    #: The name of the Atom
+    name = StringProperty(
+        default="", text="Name",
+        visible=True, persistent=True, tabular=True,
+        signal_name="visuals_changed",
+        mix_with=(SignalMixin,)
+    )
 
-    _stretch_z = False
-    @property
-    def stretch_values(self):
-        """Flag indicating whether or not z coordinates should be stretched 
-        using the silicate lattice and unit cell dimensions from the Component.
-        Should be set for interlayer atoms, so their z coordinates are adjusted 
-        when the component basal spacing is changed. Also see `z`."""
-        return bool(self._stretch_z)
-    @stretch_values.setter
-    def stretch_values(self, value):
-        try: value = bool(value)
-        except ValueError: return
-        if value != self._stretch_z:
-            self._stretch_z = value
-            self.data_changed.emit()
+    #: Default z coordinate for this Atom. Also see :attr:`~z`
+    default_z = FloatProperty(
+        default=0.0, text="Default z",
+        visible=True, persistent=True, tabular=True,
+        signal_name="data_changed",
+        mix_with=(SignalMixin,)
+    )
 
-    @property
+    #: Flag indicating whether or not z coordinates should be stretched
+    #: using the silicate lattice and unit cell dimensions from the Component.
+    #: Should be set for interlayer atoms, so their z coordinates are adjusted
+    #: when the component basal spacing is changed. Also see `z`.
+    stretch_z = BoolProperty(
+        default=False, text="Stretch z values",
+        visible=False, persistent=True,
+        signal_name="data_changed",
+        mix_with=(SignalMixin,)
+    )
+
+    #: The z coordinate for this atom. If `stretch_values` is False or if
+    #: this Atom's component is None, then this will return the `default_z`
+    #: value. If `stretch_values` is True and a component is set on this Atom,
+    #: it is calculated as::
+    #:
+    #:     `lattice_d + (default_z - lattice_d) * factor`
+    #:
+    #: where `lattice_d` and `factor` are given by calling
+    #:`get_interlayer_stretch_factors` on the :class:`~pyxrd.phases.models.Component`.
+    @FloatProperty(
+        default=None, text="Z",
+        visible=True, tabular=True,
+        mix_with=(ReadOnlyMixin,)
+    )
     def z(self):
-        """
-        The z coordinate for this atom. If `stretch_values` is False or if 
-        this Atom's component is None, then this will return the `default_z`
-        value. If `stretch_values` is True and a component is set on this Atom,
-        it is calculated as::
-        
-            `lattice_d + (default_z - lattice_d) * factor`
-            
-        where `lattice_d` and `factor` are given by calling 
-        `get_interlayer_stretch_factors` on the :class:`~pyxrd.phases.models.Component`.
-        """
         if self.stretch_values and self.component is not None:
             lattice_d, factor = self.component.get_interlayer_stretch_factors()
             return float(lattice_d + (self.default_z - lattice_d) * factor)
         return self.default_z
-    @z.setter
-    def z(self, value):
-        warn("The z property can not be set!", DeprecationWarning)
 
-    _pn = None
-    @property
-    def pn(self):
-        """The # of atoms (projected onto the c-axis for the considered unit cell)"""
-        return self._data_object.pn
-    @pn.setter
-    def pn(self, value):
-        try: value = float(value)
-        except ValueError: return
-        if value != self._data_object.pn:
-            self._data_object.pn = value
-            self.data_changed.emit()
+    #: The # of atoms (projected onto the c-axis for the considered unit cell)
+    pn = FloatProperty(
+        default=None, text="Multiplicity",
+        visible=True, persistent=True, tabular=True,
+        signal_name="data_changed",
+        mix_with=(SignalMixin,)
+    )
 
-    @property
-    def weight(self):
-        """The total weight for this Atom, taking `pn` into consideration."""
+    def _get_weight(self):
         if self.atom_type is not None:
             return self.pn * self.atom_type.weight
         else:
             return 0.0
 
+    #: The total weight for this Atom, taking `pn` into consideration.
+    weight = FloatProperty(
+        default=None, text="Weight", fget=_get_weight,
+        visible=False, persistent=False,
+        mix_with=(ReadOnlyMixin,)
+    )
+
     _atom_type_index = None
     _atom_type_uuid = None
-    _atom_type = None
     _atom_type_name = None
-    @property
-    def atom_type(self):
-        """The AtomType to be used for this Atom."""
-        return self._atom_type
-    @atom_type.setter
-    def atom_type(self, value):
-        if self._atom_type != value: # prevent spurious events
-            with self.data_changed.hold_and_emit():
-                if self._atom_type is not None:
-                    self.relieve_model(self._atom_type)
-                self._atom_type = value
-                if self._atom_type is not None:
-                    self.observe_model(self._atom_type)
+    def _set_atom_type(self, value):
+        old = type(self).atom_type._get(self)
+        if old is not None:
+            self.relieve_model(old)
+        type(self).atom_type._set(self, value)
+        if value is not None:
+            self.observe_model(value)
+
+    #: The AtomType to be used for this Atom.
+    atom_type = LabeledProperty(
+        default=None, text="Atom Type",
+        visible=True, persistent=True, tabular=True, data_type=AtomType,
+        signal_name="data_changed",
+        fset=_set_atom_type,
+        mix_with=(SignalMixin,)
+    )
 
     # ------------------------------------------------------------
     #      Initialization and other internals
@@ -346,7 +384,7 @@ class Atom(DataModel, Storable):
         my_kwargs = self.pop_kwargs(kwargs,
             "data_name", "data_z", "z", "data_pn", "data_atom_type", "stretch_z",
             "atom_type_uuid", "atom_type_name", "atom_type_index", "atom_type",
-            *[names[0] for names in type(self).Meta.get_local_storable_properties()]
+            *[names[0] for names in type(self).Meta.get_local_persistent_properties()]
         )
         super(Atom, self).__init__(*args, **kwargs)
         kwargs = my_kwargs

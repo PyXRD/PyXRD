@@ -81,7 +81,7 @@ class TextViewAdapter(GtkAdapter):
     def _set_property_value(self, val):
         """Private method that sets the property value stored in the model,
         without transformations."""
-        return setattr(self._model, self._prop.name, val)
+        return setattr(self._model, self._prop.label, val)
 
     pass # end of class
 

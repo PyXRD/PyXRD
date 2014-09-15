@@ -55,10 +55,10 @@ class SpecimenController(DialogController, TreeViewMixin):
     #      Initialization and other internals
     # ------------------------------------------------------------
     @staticmethod
-    def custom_handler(self, intel, widget):
-        if intel.name in ("goniometer"):
+    def custom_handler(self, prop, widget):
+        if prop.label in ("goniometer"):
             self.gonio_ctrl = InlineGoniometerController(view=self.view.gonio_view, model=self.model.goniometer, parent=self)
-            ad = DummyAdapter(controller=self, prop=intel) # TODO FIXME
+            ad = DummyAdapter(controller=self, prop=prop) # TODO FIXME
             return ad
 
     def setup_experimental_pattern_tree_view(self, store, widget):
@@ -111,11 +111,11 @@ class SpecimenController(DialogController, TreeViewMixin):
     #      Methods & Functions
     # ------------------------------------------------------------
     def get_experimental_pattern_tree_model(self):
-        return wrap_xydata_to_treemodel(self.model, self.model.Meta.get_prop_intel_by_name("experimental_pattern"))
+        return wrap_xydata_to_treemodel(self.model, Specimen.experimental_pattern)
     def get_calculated_pattern_tree_model(self):
-        return wrap_xydata_to_treemodel(self.model, self.model.Meta.get_prop_intel_by_name("calculated_pattern"))
+        return wrap_xydata_to_treemodel(self.model, Specimen.calculated_pattern)
     def get_exclusion_ranges_tree_model(self):
-        return wrap_xydata_to_treemodel(self.model, self.model.Meta.get_prop_intel_by_name("exclusion_ranges"))
+        return wrap_xydata_to_treemodel(self.model, Specimen.exclusion_ranges)
 
     #used to keep a permanent fix on a child controller, prevents early GC
     _child_ctrl_ref = None

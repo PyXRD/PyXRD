@@ -5,8 +5,6 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from math import isnan
-
 from pyxrd.data import settings
 
 from pyxrd.calculations.CSDS import calculate_distribution
@@ -16,8 +14,12 @@ from pyxrd.generic.io import storables, Storable
 
 from pyxrd.refinement.refinables.mixins import RefinementGroup, RefinementValue
 from pyxrd.refinement.refinables.metaclasses import PyXRDRefinableMeta
-from mvc import PropIntel
+from pyxrd.refinement.refinables.properties import DataMixin, RefinableMixin
 
+from mvc.models.properties import (
+    GetActionMixin, LabeledProperty, BoolProperty, FloatProperty,
+    ReadOnlyMixin, SetActionMixin
+)
 
 class _AbstractCSDSDistribution(DataModel, Storable):
 
@@ -26,91 +28,85 @@ class _AbstractCSDSDistribution(DataModel, Storable):
     class Meta(DataModel.Meta):
         description = "Abstract CSDS distr."
         explanation = ""
-        properties = [
-            PropIntel(name="distrib", label="CSDS Distribution", data_type=object, is_column=True),
-            PropIntel(name="inherited", label="Inherited", data_type=bool),
-        ]
 
     phase = property(DataModel.parent.fget, DataModel.parent.fset)
 
     # PROPERTIES:
-    inherited = False
-
     _data_object = None
     @property
     def data_object(self):
         return self._data_object
 
-    _distrib = None
-    def get_distrib(self):
-        if self._distrib == None:
-            self.update_distribution()
-        return self._distrib
+    inherited = BoolProperty(
+        default=False, text="Inherited",
+        visible=False, persistent=False,
+    )
 
-    # ------------------------------------------------------------
-    #      Methods & Functions
-    # ------------------------------------------------------------
-    def update_distribution(self):
-        raise NotImplementedError
+    distrib = LabeledProperty(
+        default=None, text="CSDS Distribution",
+        tabular=True, visible=False, persistent=False,
+        get_action_name="_update_distribution",
+        mix_with=(GetActionMixin,)
+    )
 
-    pass # end of class
 
-class _LogNormalMixin(object):
 
     # PROPERTIES:
-    def get_maximum(self): return self._data_object.maximum
-    def get_minimum(self): return self._data_object.minimum
+    #: The maximum value of this distribution
+    maximum = FloatProperty(
+        default=0.0, text="Maximum CSDS",
+        minimum=1, maximum=1000,
+        tabular=True, persistent=False, visible=False,
+        mix_with=(ReadOnlyMixin, DataMixin)
+    )
 
-    def get_average(self): return self._data_object.average
-    def set_average(self, value):
-        # ignore fault values:
-        try: value = float(value)
-        except ValueError: return
-        if isnan(value):
-            value = self.average
-        if value < 1.0:
-            value = 1.0
-        if value != self._data_object.average:
-            with self.data_changed.hold_and_emit():
-                self._data_object.average = value
-                self._data_object.maximum = int(settings.LOG_NORMAL_MAX_CSDS_FACTOR * self.average)
-                self._update_distribution()
+    #: The minimum value of this distribution
+    minimum = FloatProperty(
+        default=0.0, text="Maximum CSDS",
+        minimum=1, maximum=1000,
+        tabular=True, persistent=False, visible=False,
+        mix_with=(ReadOnlyMixin, DataMixin)
+    )
 
-    def get_alpha_scale(self): return self._data_object.alpha_scale
-    def set_alpha_scale(self, value):
-        try: value = float(value)
-        except ValueError: return # ignore fault values
-        if value != self._data_object.alpha_scale:
-            with self.data_changed.hold_and_emit():
-                self._data_object.alpha_scale = value
-                self._update_distribution()
+    average = FloatProperty(
+        default=0.0, text="Average CSDS",
+        minimum=1, maximum=200,
+        tabular=True, persistent=True, visible=True, refinable=True,
+        set_action_name="_update_distribution",
+        mix_with=(DataMixin, RefinableMixin, SetActionMixin)
+    )
 
-    def get_alpha_offset(self): return self._data_object.alpha_offset
-    def set_alpha_offset(self, value):
-        try: value = float(value)
-        except ValueError: return # ignore fault values
-        if value != self._data_object.alpha_offset:
-            with self.data_changed.hold_and_emit():
-                self._data_object.alpha_offset = value
-                self._update_distribution()
+    alpha_scale = FloatProperty(
+        default=0.0, text="α scale factor",
+        minimum=0.0, maximum=10.0,
+        tabular=True, persistent=True, visible=True, refinable=True,
+        set_action_name="_update_distribution",
+        mix_with=(DataMixin, RefinableMixin, SetActionMixin)
+    )
 
-    def get_beta_scale(self): return self._data_object.beta_scale
-    def set_beta_scale(self, value):
-        try: value = float(value)
-        except ValueError: return # ignore fault values
-        if value != self._data_object.beta_scale:
-            with self.data_changed.hold_and_emit():
-                self._data_object.beta_scale = value
-                self._update_distribution()
+    alpha_offset = FloatProperty(
+        default=0.0, text="α offset factor",
+        minimum=-5, maximum=5,
+        tabular=True, persistent=True, visible=True, refinable=True,
+        set_action_name="_update_distribution",
+        mix_with=(DataMixin, RefinableMixin, SetActionMixin)
+    )
 
-    def get_beta_offset(self): return self._data_object.beta_offset
-    def set_beta_offset(self, value):
-        try: value = float(value)
-        except ValueError: return # ignore fault values
-        if value != self._data_object.beta_offset:
-            with self.data_changed.hold_and_emit():
-                self._data_object.beta_offset = value
-                self._update_distribution()
+    beta_scale = FloatProperty(
+        default=0.0, text="β² scale factor",
+        minimum=0.0, maximum=10.0,
+        tabular=True, persistent=True, visible=True, refinable=True,
+        set_action_name="_update_distribution",
+        mix_with=(DataMixin, RefinableMixin, SetActionMixin)
+    )
+
+    beta_offset = FloatProperty(
+        default=0.0, text="β² offset factor",
+        minimum=-5, maximum=5,
+        tabular=True, persistent=True, visible=True, refinable=True,
+        set_action_name="_update_distribution",
+        mix_with=(DataMixin, RefinableMixin, SetActionMixin)
+    )
 
     # ------------------------------------------------------------
     #      Initialization and other internals
@@ -118,17 +114,17 @@ class _LogNormalMixin(object):
     def __init__(self, average=10, alpha_scale=0.9485, alpha_offset=-0.0017,
             beta_scale=0.1032, beta_offset=0.0034, *args, **kwargs):
 
-        super(_LogNormalMixin, self).__init__(*args, **kwargs)
+        super(_AbstractCSDSDistribution, self).__init__(*args, **kwargs)
 
         self._data_object = CSDSData()
 
-        self._data_object.average = average
-        self._data_object.maximum = int(settings.LOG_NORMAL_MAX_CSDS_FACTOR * average)
-        self._data_object.minimum = 1
-        self._data_object.alpha_scale = alpha_scale
-        self._data_object.alpha_offset = alpha_offset
-        self._data_object.beta_scale = beta_scale
-        self._data_object.beta_offset = beta_offset
+        type(self).average._set(self, average)
+        type(self).maximum._set(self, int(settings.LOG_NORMAL_MAX_CSDS_FACTOR * average))
+        type(self).minimum._set(self, 1)
+        type(self).alpha_scale._set(self, alpha_scale)
+        type(self).alpha_offset._set(self, alpha_offset)
+        type(self).beta_scale._set(self, beta_scale)
+        type(self).beta_offset._set(self, beta_offset)
 
         self._update_distribution()
 
@@ -136,26 +132,17 @@ class _LogNormalMixin(object):
     #      Methods & Functions
     # ------------------------------------------------------------
     def _update_distribution(self):
+        type(self).maximum._set(self, int(settings.LOG_NORMAL_MAX_CSDS_FACTOR * self.average))
         self._distrib = calculate_distribution(self.data_object)
 
     pass # end of class
 
 @storables.register()
-class LogNormalCSDSDistribution(_LogNormalMixin, _AbstractCSDSDistribution, RefinementGroup):
+class LogNormalCSDSDistribution(_AbstractCSDSDistribution, RefinementGroup):
 
     # MODEL INTEL:
     class Meta(_AbstractCSDSDistribution.Meta):
         description = "Generic log-normal CSDS distr. (Eberl et al. 1990)"
-        properties = [
-            PropIntel(name="maximum", label="Maximum CSDS", minimum=1, maximum=1000, is_column=True, data_type=float),
-            PropIntel(name="minimum", label="Minimum CSDS", minimum=1, maximum=1000, is_column=True, data_type=float),
-            PropIntel(name="average", label="Average CSDS", minimum=1, maximum=200, is_column=True, data_type=float, refinable=True, storable=True, has_widget=True),
-
-            PropIntel(name="alpha_scale", label="α scale factor", minimum=0, maximum=10, is_column=True, data_type=float, refinable=True, storable=True, has_widget=True),
-            PropIntel(name="alpha_offset", label="α offset factor", minimum=-5, maximum=5, is_column=True, data_type=float, refinable=True, storable=True, has_widget=True),
-            PropIntel(name="beta_scale", label="β² scale factor", minimum=0, maximum=10, is_column=True, data_type=float, refinable=True, storable=True, has_widget=True),
-            PropIntel(name="beta_offset", label="β² offset factor", minimum=-5, maximum=5, is_column=True, data_type=float, refinable=True, storable=True, has_widget=True),
-        ]
         store_id = "LogNormalCSDSDistribution"
 
     # REFINEMENT GROUP IMPLEMENTATION:
@@ -173,35 +160,46 @@ class LogNormalCSDSDistribution(_LogNormalMixin, _AbstractCSDSDistribution, Refi
     pass # end of class
 
 @storables.register()
-class DritsCSDSDistribution(_LogNormalMixin, _AbstractCSDSDistribution, RefinementValue):
+class DritsCSDSDistribution(_AbstractCSDSDistribution, RefinementValue):
 
     # MODEL INTEL:
     class Meta(_AbstractCSDSDistribution.Meta):
         description = "Log-normal CSDS distr. (Drits et. al, 1997)"
-        properties = [
-            PropIntel(name="maximum", label="Maximum CSDS", minimum=1, maximum=1000, is_column=True, data_type=float),
-            PropIntel(name="minimum", label="Minimum CSDS", minimum=1, maximum=1000, is_column=True, data_type=float),
-            PropIntel(name="average", label="Average CSDS", minimum=1, maximum=200, is_column=True, data_type=float, refinable=True, storable=True, has_widget=True),
-
-            PropIntel(name="alpha_scale", label="α scale factor", minimum=0, maximum=10, is_column=True, data_type=float),
-            PropIntel(name="alpha_offset", label="α offset factor", minimum=-5, maximum=5, is_column=True, data_type=float),
-            PropIntel(name="beta_scale", label="β² scale factor", minimum=0, maximum=10, is_column=True, data_type=float),
-            PropIntel(name="beta_offset", label="β² offset factor", minimum=-5, maximum=5, is_column=True, data_type=float),
-        ]
         store_id = "DritsCSDSDistribution"
 
     # PROPERTIES:
-    def get_alpha_scale(self): return 0.9485
-    set_alpha_scale_value = property() # delete this function
 
-    def get_alpha_offset(self): return 0.017
-    set_alpha_offset_value = property() # delete this function
+    alpha_scale = FloatProperty(
+        default=0.9485, text="α scale factor",
+        minimum=0.0, maximum=10.0,
+        tabular=True, persistent=False, visible=False, refinable=False,
+        set_action_name="_update_distribution",
+        mix_with=(ReadOnlyMixin, DataMixin, RefinableMixin, SetActionMixin)
+    )
 
-    def get_beta_scale(self): return 0.1032
-    set_beta_scale_value = property() # delete this function
+    alpha_offset = FloatProperty(
+        default=0.017, text="α offset factor",
+        minimum=-5, maximum=5,
+        tabular=True, persistent=False, visible=False, refinable=False,
+        set_action_name="_update_distribution",
+        mix_with=(ReadOnlyMixin, DataMixin, RefinableMixin, SetActionMixin)
+    )
 
-    def get_beta_offset(self): return 0.0034
-    set_beta_offset_value = property() # delete this function
+    beta_scale = FloatProperty(
+        default=0.1032, text="β² scale factor",
+        minimum=0.0, maximum=10.0,
+        tabular=True, persistent=False, visible=False, refinable=False,
+        set_action_name="_update_distribution",
+        mix_with=(ReadOnlyMixin, DataMixin, RefinableMixin, SetActionMixin)
+    )
+
+    beta_offset = FloatProperty(
+        default=0.0034, text="β² offset factor",
+        minimum=-5, maximum=5,
+        tabular=True, persistent=False, visible=False, refinable=False,
+        set_action_name="_update_distribution",
+        mix_with=(ReadOnlyMixin, DataMixin, RefinableMixin, SetActionMixin)
+    )
 
     # REFINEMENT VALUE IMPLEMENTATION:
     @property

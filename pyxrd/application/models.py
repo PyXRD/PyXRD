@@ -5,9 +5,10 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from mvc import Signal, PropIntel
-
 from pyxrd.generic.models import PyXRDModel
+
+from mvc.models.properties.signal_property import SignalProperty
+from mvc.models.properties.labeled_property import LabeledProperty
 
 class AppModel(PyXRDModel):
     """
@@ -28,27 +29,20 @@ class AppModel(PyXRDModel):
             multiple_specimen_selected: a boolean indicating whether or not
                 multiple specimen are selected
     """
-    # MODEL INTEL:
-    class Meta(PyXRDModel.Meta):
-        properties = [
-            PropIntel(name="current_project", observable=True),
-            PropIntel(name="current_specimen", observable=True),
-            PropIntel(name="current_specimens", observable=True),
-            PropIntel(name="needs_plot_update", observable=True)
-        ]
 
     # SIGNALS:
-    needs_plot_update = None
+    needs_plot_update = SignalProperty()
 
     # PROPERTIES:
-    _current_project = None
-    def get_current_project(self):
-        return self._current_project
-    def set_current_project(self, value):
-        if self._current_project is not None: self.relieve_model(self._current_project)
-        self._current_project = value
+    current_project = LabeledProperty(default=None, text="Current project")
+    @current_project.setter
+    def current_project(self, value):
+        _current_project = type(self).current_project._get(self)
+        if _current_project is not None: self.relieve_model(_current_project)
+        _current_project = value
+        type(self).current_project._set(self, value)
         type(type(self)).object_pool.clear()
-        if self._current_project is not None: self.observe_model(self._current_project)
+        if _current_project is not None: self.observe_model(_current_project)
         self.clear_selected()
         self.needs_plot_update.emit()
 
@@ -56,22 +50,22 @@ class AppModel(PyXRDModel):
     def current_filename(self):
         return self.current_project.filename if self.current_project else None
 
-    _current_specimen = None
-    def get_current_specimen(self): return self._current_specimen
-    def set_current_specimen(self, value):
-        self._current_specimens = [value]
-        self._current_specimen = value
+    current_specimen = LabeledProperty(default=None, text="Current specimen")
+    @current_specimen.setter
+    def current_specimen(self, value):
+        type(self).current_specimens._set(self, [value])
+        type(self).current_specimen._set(self, value)
 
-    _current_specimens = []
-    def get_current_specimens(self): return self._current_specimens
-    def set_current_specimens(self, value):
+    current_specimens = LabeledProperty(default=[], text="Current specimens")
+    @current_specimens.setter
+    def current_specimens(self, value):
         if value == None:
             value = []
-        self._current_specimens = value
+        type(self).current_specimens._set(self, value)
         if len(self._current_specimens) == 1:
-            self._current_specimen = self._current_specimens[0]
+            type(self).current_specimen._set(self, self._current_specimens[0])
         else:
-            self._current_specimen = None
+            type(self).current_specimen._set(self, None)
 
     @property
     def project_loaded(self):
@@ -95,7 +89,6 @@ class AppModel(PyXRDModel):
     def __init__(self, project=None):
         """ Initializes the AppModel with the given Project. """
         super(AppModel, self).__init__()
-        self.needs_plot_update = Signal()
         self.current_project = project
         if project: project.parent = self
 

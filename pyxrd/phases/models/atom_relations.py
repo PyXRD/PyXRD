@@ -1,29 +1,25 @@
 # coding=UTF-8
 # ex:ts=4:sw=4:et=on
-
+#
 # Copyright (c) 2013, Mathijs Dumon
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-
-
-
-"""
-
- - an AtomRatio's sum (not the ratio itself) can be driven by another AtomRatio or from an AtomContents
- - an AtomContents' value can be driven  
-
-"""
-
 import types
+from functools import partial
 
+from mvc.models.properties import (
+    LabeledProperty, StringProperty, BoolProperty, FloatProperty,
+    SignalMixin, ReadOnlyMixin, ListProperty
+)
 from mvc.observers import ListObserver
-from mvc import Model, PropIntel
+from mvc import Model
 
 from pyxrd.generic.models import DataModel
 from pyxrd.generic.io import storables, Storable, get_case_insensitive_glob
 
 from pyxrd.refinement.refinables.mixins import RefinementValue
+from pyxrd.refinement.refinables.properties import RefinableMixin
 from pyxrd.refinement.refinables.metaclasses import PyXRDRefinableMeta
 
 class ComponentPropMixin(object):
@@ -76,12 +72,6 @@ class AtomRelation(ComponentPropMixin, RefinementValue, DataModel, Storable):
     # MODEL INTEL:
     __metaclass__ = PyXRDRefinableMeta
     class Meta(DataModel.Meta):
-        properties = [
-            PropIntel(name="name", label="Name", data_type=unicode, is_column=True, storable=True, has_widget=True),
-            PropIntel(name="value", label="Value", data_type=float, is_column=True, storable=True, has_widget=True, widget_type='float_entry', refinable=True),
-            PropIntel(name="enabled", label="Enabled", data_type=bool, is_column=True, storable=True, has_widget=True),
-            PropIntel(name="driven_by_other", label="Driven by other", data_type=bool, is_column=True, storable=False, has_widget=False)
-        ]
         store_id = "AtomRelation"
         file_filters = [
             ("Atom relation", get_case_insensitive_glob("*.atr")),
@@ -91,36 +81,36 @@ class AtomRelation(ComponentPropMixin, RefinementValue, DataModel, Storable):
     component = property(DataModel.parent.fget, DataModel.parent.fset)
 
     # PROPERTIES:
-    _value = 0.0
-    def get_value(self): return self._value
-    def set_value(self, value):
-        self._value = float(value)
-        self.data_changed.emit()
+    #: The name of this AtomRelation
+    name = StringProperty(
+        default="", text="Name",
+        visible=False, persistent=True, tabular=True,
+        signal_name="visuals_changed",
+        mix_with=(SignalMixin,)
+    )
 
-    _name = ""
-    def get_name(self): return self._name
-    def set_name(self, value):
-        self._name = str(value)
-        self.visuals_changed.emit()
+    #: The value of this AtomRelation
+    value = FloatProperty(
+        default=0.0, text="Value",
+        visible=True, persistent=True, tabular=True, widget_type='float_entry',
+        signal_name="data_changed", refinable=True,
+        mix_with=(SignalMixin, RefinableMixin)
+    )
 
-    _enabled = False
-    def get_enabled(self): return self._enabled
-    def set_enabled(self, value):
-        self._enabled = bool(value)
-        self.data_changed.emit()
+    #: Flag indicating whether this AtomRelation is enabled or not
+    enabled = BoolProperty(
+        default=True, text="Enabled",
+        visible=True, persistent=True, tabular=True,
+        signal_name="data_changed",
+        mix_with=(SignalMixin,)
+    )
 
-
-    _driven_by_other = False
-    @property
-    def driven_by_other(self):
-        """
-        Is True when the AtomRelation's value is driven by another AtomRelation.
-        Should never be set directly or things might break!
-        """
-        return self._driven_by_other
-    @driven_by_other.setter
-    def driven_by_other(self, value):
-        self._driven_by_other = bool(value)
+    #: Is True when this AtomRelation's value is driven by another AtomRelation.
+    #: Should never be set directly or things might break!
+    driven_by_other = BoolProperty(
+        default=False, text="Driven by other",
+        visible=False, persistent=False, tabular=True
+    )
 
     @property
     def applicable(self):
@@ -174,7 +164,7 @@ class AtomRelation(ComponentPropMixin, RefinementValue, DataModel, Storable):
         """
         my_kwargs = self.pop_kwargs(kwargs,
             "data_name", "data_ratio", "ratio",
-            *[names[0] for names in AtomRelation.Meta.get_local_storable_properties()]
+            *[prop.label for prop in AtomRelation.Meta.get_local_persistent_properties()]
         )
         super(AtomRelation, self).__init__(*args, **kwargs)
         kwargs = my_kwargs
@@ -257,11 +247,6 @@ class AtomRatio(AtomRelation):
 
     # MODEL INTEL:
     class Meta(AtomRelation.Meta):
-        properties = [
-            PropIntel(name="sum", label="Sum", data_type=float, widget_type='float_entry', is_column=True, storable=True, has_widget=True, minimum=0.0),
-            PropIntel(name="atom1", label="Substituting Atom", data_type=object, is_column=True, storable=True, has_widget=True),
-            PropIntel(name="atom2", label="Original Atom", data_type=object, is_column=True, storable=True, has_widget=True),
-        ]
         store_id = "AtomRatio"
         allowed_relations = {
             "AtomRatio": [
@@ -274,19 +259,27 @@ class AtomRatio(AtomRelation):
     # SIGNALS:
 
     # PROPERTIES:
-    _sum = 1.0
-    def get_sum(self): return self._sum
-    def set_sum(self, value):
-        self._sum = float(value)
-        self.data_changed.emit()
+    #: The sum of the two atoms
+    sum = FloatProperty(
+        default=1.0, text="Sum", minimum=0.0,
+        visible=True, persistent=True, tabular=True, widget_type='float_entry',
+        signal_name="data_changed",
+        mix_with=(SignalMixin,)
+    )
 
     def __internal_sum__(self, value):
         """
-            Special setter for other AtomRelation objects depending on the value
-            of the sum of the AtomRatio. This can be used to have multi-substitution
-            by linking two (or more) AtomRatio's. Eg Al-by-Mg-&-Fe:
-            AtomRatioMgAndFeForAl -> links together Al content and Fe+Mg content => sum = e.g. 4
-            AtomRatioMgForFe -> links together the Fe and Mg content => sum = set by previous ratio.
+        Special setter for other AtomRelation objects depending on the value of
+        the sum of the AtomRatio. This can be used to have multi-substitution by
+        linking two (or more) AtomRatio's. Eg Al-by-Mg-&-Fe:
+        
+        AtomRatioMgAndFeForAl -> links together Al content and Fe+Mg content
+        
+                              => sum = e.g. 4 set by user
+                              
+        AtomRatioMgForFe      -> links together the Fe and Mg content
+        
+                              => sum = set by previous ratio.
         """
         self._sum = float(value)
         self.apply_relation()
@@ -298,24 +291,28 @@ class AtomRatio(AtomRelation):
         if prop != "__internal_sum__":
             super(AtomRatio, self)._set_driven_flag_for_prop(prop)
 
-    _atom1 = [None, None]
-    def get_atom1(self): return self._atom1
-    def set_atom1(self, value):
-        with self.data_changed.hold():
-            if not self._safe_is_referring(value[0]):
-                self._atom1 = value
-                self.data_changed.emit()
+    def _set_atom(self, value, label=None):
+        if not self._safe_is_referring(value[0]):
+            getattr(type(self), label)._set(self, value)
 
-    _atom2 = [None, None]
-    def get_atom2(self): return self._atom2
-    def set_atom2(self, value):
-        with self.data_changed.hold():
-            if not self._safe_is_referring(value[0]):
-                self._atom2 = value
-                self.data_changed.emit()
+    #: The substituting atom
+    atom1 = LabeledProperty(
+        default=[None, None], text="Substituting Atom",
+        visible=True, persistent=True, tabular=True,
+        signal_name="data_changed", fset=partial(_set_atom, label="atom1"),
+        mix_with=(SignalMixin,)
+    )
+
+    #: The Original atom
+    atom2 = LabeledProperty(
+        default=[None, None], text="Original Atom",
+        visible=True, persistent=True, tabular=True,
+        signal_name="data_changed", fset=partial(_set_atom, label="atom2"),
+        mix_with=(SignalMixin,)
+    )
 
     # ------------------------------------------------------------
-    #      Initialisation and other internals
+    #      Initialization and other internals
     # ------------------------------------------------------------
     def __init__(self, *args, **kwargs): # @ReservedAssignment
         """
@@ -327,7 +324,7 @@ class AtomRatio(AtomRelation):
         """
         my_kwargs = self.pop_kwargs(kwargs,
             "data_sum", "prop1", "data_prop1", "data_prop2", "prop2",
-            *[names[0] for names in AtomRatio.Meta.get_local_storable_properties()]
+            *[prop.label for prop in AtomRatio.Meta.get_local_persistent_properties()]
         )
         super(AtomRatio, self).__init__(*args, **kwargs)
         kwargs = my_kwargs
@@ -380,16 +377,21 @@ class AtomContentObject(Model):
         Wrapper around an atom object used in the AtomContents model.
         Stores the atom, the property to set and it's default amount.
     """
-    class Meta(Model.Meta):
-        properties = [
-            PropIntel(name="atom", label="Atom", data_type=object, is_column=True),
-            PropIntel(name="prop", label="Prop", data_type=object, is_column=True),
-            PropIntel(name="amount", label="Amount", data_type=float, is_column=True, minimum=0.0),
-        ]
 
-    atom = None
-    prop = None
-    amount = 0.0
+    atom = LabeledProperty(
+        default=None, text="Atom",
+        visible=False, persistent=False, tabular=True,
+    )
+
+    prop = LabeledProperty(
+        default=None, text="Prop",
+        visible=False, persistent=False, tabular=True,
+    )
+
+    amount = FloatProperty(
+        default=0.0, text="Amount", minimum=0.0,
+        visible=False, persistent=False, tabular=True,
+    )
 
     def __init__(self, atom, prop, amount, *args, **kwargs):
         super(AtomContentObject, self).__init__(*args, **kwargs)
@@ -411,9 +413,6 @@ class AtomContents(AtomRelation):
 
     # MODEL INTEL:
     class Meta(AtomRelation.Meta):
-        properties = [
-            PropIntel(name="atom_contents", label="Atom contents", class_type=AtomContentObject, data_type=object, is_column=True, storable=True, has_widget=True),
-        ]
         store_id = "AtomContents"
         allowed_relations = {
             "AtomRatio": [
@@ -425,8 +424,12 @@ class AtomContents(AtomRelation):
     # SIGNALS:
 
     # PROPERTIES:
-    _atom_contents = None
-    def get_atom_contents(self): return self._atom_contents
+    atom_contents = ListProperty(
+        default=None, text="Atom contents",
+        visible=True, persistent=True, tabular=True,
+        data_type=AtomContentObject,
+        mix_with=(ReadOnlyMixin,)
+    )
 
     # ------------------------------------------------------------
     #      Initialisation and other internals
@@ -438,24 +441,24 @@ class AtomContents(AtomRelation):
                  object uuids, property names and default amounts 
         """
         my_kwargs = self.pop_kwargs(kwargs,
-            *[names[0] for names in type(self).Meta.get_local_storable_properties()]
+            *[prop.label for prop in AtomContents.Meta.get_local_persistent_properties()]
         )
         super(AtomContents, self).__init__(*args, **kwargs)
         kwargs = my_kwargs
 
         # Load atom contents:
-        self._atom_contents = []
+        atom_contents = []
         for uuid, prop, amount in self.get_kwarg(kwargs, [], "atom_contents"):
             # uuid's are resolved when resolve_relations is called
-            self._atom_contents.append(AtomContentObject(uuid, prop, amount))
+            atom_contents.append(AtomContentObject(uuid, prop, amount))
+        type(self).atom_contents._set(self, atom_contents)
 
         def on_change(*args):
-            if self.enabled: # no need for updates in this case
+            if self.enabled: # no need for updates otherwise
                 self.data_changed.emit()
 
         self._atom_contents_observer = ListObserver(
-            on_change,
-            on_change,
+            on_change, on_change,
             prop_name="atom_contents",
             model=self
         )

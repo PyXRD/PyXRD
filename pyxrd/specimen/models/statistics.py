@@ -8,48 +8,47 @@
 import logging
 logger = logging.getLogger(__name__)
 
+from mvc.models.properties import (
+    IntegerProperty, ReadOnlyMixin, FloatProperty, LabeledProperty
+)
 
 from pyxrd.generic.models import PyXRDLine, ChildModel
 from pyxrd.calculations.statistics import Rpw, Rp, derive
-from mvc import PropIntel
 
 class Statistics(ChildModel):
-
-    # MODEL INTEL:
-    class Meta(ChildModel.Meta):
-        properties = [ # TODO add labels
-            PropIntel(name="points", data_type=int, has_widget=True),
-            PropIntel(name="residual_pattern", data_type=object),
-            PropIntel(name="der_exp_pattern", data_type=object),
-            PropIntel(name="der_calc_pattern", data_type=object),
-            PropIntel(name="der_residual_pattern", data_type=object),
-            PropIntel(name="Rp", data_type=float, has_widget=True),
-            PropIntel(name="Rpder", data_type=float, has_widget=True),
-            PropIntel(name="Rwp", data_type=float, has_widget=True),
-        ]
-
     # PROPERTIES:
-    @ChildModel.parent.setter
-    def parent(self, value):
-        super(Statistics, self.__class__).parent.fset(self, value)
-        self.update_statistics()
-
     specimen = property(ChildModel.parent.fget, ChildModel.parent.fset)
 
-    def get_points(self):
+    @IntegerProperty(default=0, label="Points", visible=False, mix_with=(ReadOnlyMixin,))
+    def points(self):
         try:
             e_ex, e_ey, e_cx, e_cy = self.specimen.get_exclusion_xy() #@UnusedVariable
             return e_ex.size
         except: pass
         return 0
 
-    Rp = None
-    Rwp = None
-    Rpder = None
-    residual_pattern = None
-    der_exp_pattern = None
-    der_calc_pattern = None
-    der_residual_pattern = None
+    Rp = FloatProperty(default=None, label="Rp", visible=True)
+    Rwp = FloatProperty(default=None, label="Rwp", visible=True)
+    Rpder = FloatProperty(default=None, label="Rpder", visible=True)
+
+    residual_pattern = LabeledProperty(default=None, label="Residual pattern")
+    der_exp_pattern = LabeledProperty(default=None, label="Derived experimental pattern")
+    der_calc_pattern = LabeledProperty(default=None, label="Derived calculated pattern")
+    der_residual_pattern = LabeledProperty(default=None, label="Derived residual pattern")
+
+    # ------------------------------------------------------------
+    #      Initialization and other internals
+    # ------------------------------------------------------------
+    def __init__(self, *args, **kwargs):
+        super(Statistics, self).__init__(*args, **kwargs)
+        self.observe_model(self.parent)
+
+    # ------------------------------------------------------------
+    #      Notifications of observable properties
+    # ------------------------------------------------------------
+    @ChildModel.observe("parent", assign=True, after=True)
+    def on_parent_changed(self, model, prop_name, info):
+        self.update_statistics()
 
     # ------------------------------------------------------------
     #      Methods & Functions

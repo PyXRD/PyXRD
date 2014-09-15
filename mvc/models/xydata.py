@@ -7,8 +7,8 @@ import numpy as np
 
 from ..support.utils import pop_kwargs
 
+from .properties.labeled_property import LabeledProperty
 from .base import Model
-from .prop_intel import PropIntel
 
 class XYData(Model):
     """
@@ -33,22 +33,20 @@ class XYData(Model):
          >>> xydata.y_names.get(0, "")
          'First Column'
     """
-    # MODEL INTEL:
-    class Meta(Model.Meta):
-        properties = [
-            PropIntel(name="data_x", data_type=object),
-            PropIntel(name="data_y", data_type=object),
-        ]
 
     # OBSERVABLE PROPERTIES:
-    _data_x = None
-    def get_data_x(self): return self._data_x
-    def set_data_x(self, value):
-        self.set_data(value, self._data_y)
-    _data_y = None
-    def get_data_y(self): return self._data_y
-    def set_data_y(self, value):
-        self.set_data(self._data_x, value)
+
+    #: The X Data
+    data_x = LabeledProperty(default=None, text="X data")
+    @data_x.setter
+    def data_x(self, value):
+        self.set_data(value, self.data_y)
+
+    #: The Y Data
+    data_y = LabeledProperty(default=None, text="Y data")
+    @data_y.setter
+    def data_y(self, value):
+        self.set_data(self.data_x, value)
 
     # REGULAR PROPERTIES:
     _y_names = []
@@ -125,7 +123,7 @@ class XYData(Model):
 
         my_kwargs = pop_kwargs(kwargs,
             "names", "data",
-            *[names[0] for names in type(self).Meta.get_local_storable_properties()]
+            *[prop.label for prop in type(self).Meta.get_local_persistent_properties()]
         )
         super(XYData, self).__init__(*args, **kwargs)
         kwargs = my_kwargs

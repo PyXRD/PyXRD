@@ -61,7 +61,9 @@ class BaseObjectListStore(gtk.GenericTreeModel):
         self.set_property("leak-references", False)
         if class_type is None:
             raise ValueError, 'Invalid class_type for %s! Expecting object, but None was given' % type(self)
-        elif not hasattr(class_type, "Meta") or not hasattr(class_type.Meta, 'get_column_properties'):
+        elif not hasattr(class_type, "Meta"):
+            raise ValueError, 'Invalid class_type for `%s`! `%s` does not have a `Meta` attribute!' % (type(self), class_type)
+        elif not hasattr(class_type.Meta, 'get_column_properties'):
             raise ValueError, 'Invalid class_type for %s! %s.Meta does not have get_column_properties method!' % (type(self), class_type)
         else:
             self.setup_class_type(class_type)

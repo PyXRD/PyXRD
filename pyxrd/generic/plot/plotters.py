@@ -266,7 +266,7 @@ def plot_specimen(project, specimen, labels, marker_lbls, label_offset, plot_lef
         ########################################################################
         # plot the background pattern:
         bg_line = getattr_or_create(pattern, "__plot_bg_line", (matplotlib.lines.Line2D, ([], []), dict(c="#660099", lw="2", zorder=10)))
-        if pattern.bg_type == 0 and pattern._bg_position != 0.0:
+        if pattern.bg_type == 0 and pattern.bg_position != 0.0:
             bg_line.update(dict(
                 data=apply_transform(([xmin, xmax], [pattern.bg_position, pattern.bg_position]), scale=scale, offset=offset),
                 visible=True

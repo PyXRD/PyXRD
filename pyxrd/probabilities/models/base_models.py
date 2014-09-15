@@ -9,7 +9,7 @@ from itertools import product
 
 import numpy as np
 
-from mvc import PropIntel
+from mvc.models.properties import StringProperty, LabeledProperty
 
 from pyxrd.generic.io import Storable
 from pyxrd.generic.models import DataModel
@@ -24,19 +24,14 @@ class _AbstractProbability(RefinementGroup, DataModel, Storable):
     __metaclass__ = PyXRDRefinableMeta
     class Meta(DataModel.Meta):
         independent_label_map = []
-        properties = [
-            PropIntel(name="name", inh_name=None, label="Probabilities", data_type=unicode),
-            PropIntel(name="W_valid", inh_name=None, label="Valid W matrix", data_type=object),
-            PropIntel(name="P_valid", inh_name=None, label="Valid P matrix", data_type=object),
-        ]
 
     phase = property(DataModel.parent.fget, DataModel.parent.fset)
 
     # PROPERTIES:
-    name = "Probabilities"
-    W_valid = None
+    name = StringProperty(default="Probabilities", text="Name")
+    W_valid = LabeledProperty(default=None, text="Valid W matrix")
     W_valid_mask = None
-    P_valid = None
+    P_valid = LabeledProperty(default=None, text="Valid P matrix")
     P_valid_mask = None
 
     _R = -1
@@ -89,15 +84,8 @@ class _AbstractProbability(RefinementGroup, DataModel, Storable):
     # ------------------------------------------------------------
     #      Initialization and other internals
     # ------------------------------------------------------------
-    def __init__(self, *args, **kwargs):
-        my_kwargs = self.pop_kwargs(kwargs, *[names[0] for names in type(self).Meta.get_local_storable_properties()])
+    def __init__(self, R=-1, *args, **kwargs):
         super(_AbstractProbability, self).__init__(*args, **kwargs)
-        kwargs = my_kwargs
-
-        self.setup(**kwargs)
-        self.update()
-
-    def setup(self, R=-1, **kwargs):
         self._R = R
         self._create_matrices()
 

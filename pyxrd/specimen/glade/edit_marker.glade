@@ -272,7 +272,6 @@
             <property name="can_focus">True</property>
             <property name="invisible_char">•</property>
             <property name="width_chars">4</property>
-            <property name="truncate_multiline">True</property>
             <property name="adjustment">marker_angle</property>
             <property name="digits">1</property>
             <property name="numeric">True</property>

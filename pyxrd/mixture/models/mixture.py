@@ -11,23 +11,24 @@ from itertools import chain, izip
 from collections import OrderedDict
 from contextlib import contextmanager
 import logging
-from pyxrd.generic.models.signals import HoldableSignal
-logger = logging.getLogger(__name__)
-
-from mvc import Signal, PropIntel
 
 import numpy as np
+
+from mvc.models.properties import (
+    SignalProperty, LabeledProperty, SignalMixin, StringProperty,
+    BoolProperty, IntegerProperty
+)
+logger = logging.getLogger(__name__)
 
 from pyxrd.data import settings
 
 from pyxrd.generic.io import storables, Storable
 from pyxrd.generic.models import DataModel
 
-from pyxrd.refinement.refinables.wrapper import RefinableWrapper
 from pyxrd.refinement.refinement import Refinement
 
 from pyxrd.calculations.data_objects import MixtureData
-from pyxrd.phases.models.phase import Phase
+from pyxrd.phases.models import Phase
 
 from .optimizers import Optimizer
 
@@ -47,16 +48,6 @@ class Mixture(DataModel, Storable):
     """
     # MODEL INTEL:
     class Meta(DataModel.Meta):
-        properties = [ # TODO add labels
-            PropIntel(name="name", label="Name", data_type=unicode, storable=True, has_widget=True, is_column=True),
-            PropIntel(name="refinables", label="", data_type=object, widget_type="object_tree_view", class_type=RefinableWrapper),
-            PropIntel(name="refine_options", label="", data_type=dict, storable=True, stor_name="all_refine_options"),
-            PropIntel(name="refine_method_index", label="", data_type=int, storable=True),
-            PropIntel(name="auto_run", label="", data_type=bool, is_column=True, storable=True, has_widget=True),
-            PropIntel(name="auto_bg", label="", data_type=bool, is_column=True, storable=True, has_widget=True),
-            PropIntel(name="needs_update", label="", data_type=object, storable=False), # Signal used to indicate the mixture needs an update
-            PropIntel(name="needs_reset", label="", data_type=object, storable=False,), # Signal used to indicate the mixture matrix needs to be re-built...
-        ]
         store_id = "Mixture"
 
     _data_object = None
@@ -79,44 +70,64 @@ class Mixture(DataModel, Storable):
 
     # SIGNALS:
     #: Signal, emitted when the # of phases or specimens changes
-    needs_reset = None
+    needs_reset = SignalProperty()
     #: Signal, emitted when the patterns of the specimens need an update
-    needs_update = None
+    needs_update = SignalProperty()
 
-    # INTERNALS:
-    _name = ""
-    @property
-    def name(self):
-        """ The name of this mixture """
-        return self._name
-    @name.setter
-    def name(self, value):
-        self._name = value
-        self.visuals_changed.emit()
+    #: The name of this Mixture
+    name = StringProperty(
+        default="", text="Name",
+        visible=True, persistent=True, tabular=True,
+        signal_name="visuals_changed",
+        mix_with=(SignalMixin,)
+    )
 
     #: Flag, True if the mixture will automatically adjust phase fractions and scales
-    auto_run = False
-    #: Flag, True if the mixture is allowed to also update the background level
-    auto_bg = True
+    auto_run = BoolProperty(
+        default=False, text="Auto Run",
+        visible=True, persistent=True, tabular=True
+    )
+
+    #: Flag, True if the mixture is allowed to also update the background leveld
+    auto_bg = BoolProperty(
+        default=False, text="Auto Bg",
+        visible=True, persistent=True, tabular=True
+    )
+
 
     #: The tree of refinable properties
-    @property
+    @LabeledProperty(
+        default=None, text="",
+        visible=True, persistent=False, tabular=True,
+        data_type=object,
+    )
     def refinables(self):
         return self.refinement.refinables
 
-    @property
+    #: An integer describing which method to use for the refinement (see
+    #: mixture.models.methods.get_all_refine_methods)
+    @IntegerProperty(
+        default=0, text="Refinement method index",
+        visible=False, persistent=True,
+    )
     def refine_method_index(self):
-        """ An integer describing which method to use for the refinement (see 
-        mixture.models.methods.get_all_refine_methods) """
         return self.refinement.refine_method_index
 
     #: A dict containing the current refinement options
-    @property
+    @LabeledProperty(
+        default=None, text="Current refinement method options",
+        visible=False, persistent=True, tabular=False,
+        data_type=object, store_private="all_refine_options"
+    )
     def refine_options(self):
         return  self.refinement.refine_options
 
     #: A dict containing all refinement options
-    @property
+    @LabeledProperty(
+        default=None, text="All refinement methods options",
+        visible=False, persistent=False, tabular=False,
+        data_type=object
+    )
     def all_refine_options(self):
         return self.refinement.all_refine_options
 
@@ -176,7 +187,7 @@ class Mixture(DataModel, Storable):
             "specimen_indeces", "data_phases", "data_scales", "data_bgshifts",
             "data_fractions", "refine_method", "data_refine_method", "fractions",
             "bgshifts", "scales", "phases",
-            *[names[0] for names in type(self).Meta.get_local_storable_properties()]
+            *[prop.label for prop in Mixture.Meta.get_local_persistent_properties()]
         )
         super(Mixture, self).__init__(*args, **kwargs)
         kwargs = my_kwargs
@@ -185,8 +196,6 @@ class Mixture(DataModel, Storable):
 
             self._data_object = MixtureData()
 
-            self.needs_reset = Signal()
-            self.needs_update = HoldableSignal()
             self.name = self.get_kwarg(kwargs, "New Mixture", "name", "data_name")
             self.auto_run = self.get_kwarg(kwargs, False, "auto_run")
             self.auto_bg = self.get_kwarg(kwargs, True, "auto_bg")

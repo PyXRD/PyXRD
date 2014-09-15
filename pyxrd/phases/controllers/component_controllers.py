@@ -48,8 +48,9 @@ class EditComponentController(BaseController):
     @property
     def components_treemodel(self):
         if self.model.phase.based_on:
-            prop = Phase.Meta.get_prop_intel_by_name("components")
-            return wrap_list_property_to_treemodel(self.model.phase.based_on, prop)
+            return wrap_list_property_to_treemodel(
+                self.model.phase.based_on, Phase.components
+            )
         else:
             return None
 
@@ -70,19 +71,19 @@ class EditComponentController(BaseController):
                         break
 
     @staticmethod
-    def custom_handler(self, intel, widget):
-        if intel.name == "layer_atoms":
+    def custom_handler(self, prop, widget):
+        if prop.label == "layer_atoms":
             self.view.set_layer_view(self.layer_view.get_top_widget())
-        elif intel.name == "interlayer_atoms":
+        elif prop.label == "interlayer_atoms":
             self.view.set_interlayer_view(self.interlayer_view.get_top_widget())
-        elif intel.name == "atom_relations":
+        elif prop.label == "atom_relations":
             self.view.set_atom_relations_view(self.atom_relations_view.get_top_widget())
-        elif intel.name in ("ucp_a", "ucp_b"):
+        elif prop.label in ("ucp_a", "ucp_b"):
             self.view.set_ucpa_view(self.ucpa_view.get_top_widget())
             self.view.set_ucpb_view(self.ucpb_view.get_top_widget())
-        elif intel.name == "linked_with":
+        elif prop.label == "linked_with":
             self.reset_combo_box()
-        return DummyAdapter(controller=self, prop=intel)
+        return DummyAdapter(controller=self, prop=prop)
 
     def register_view(self, view):
         super(EditComponentController, self).register_view(view)

@@ -7,10 +7,13 @@
 
 from math import pi, log
 
-from mvc import PropIntel
-from mvc.observers import ListObserver
-
 import numpy as np
+
+from mvc.observers import ListObserver
+from mvc.models.properties import (
+    StringProperty, SignalMixin, ReadOnlyMixin, FloatProperty, LabeledProperty,
+    ObserveMixin, ListProperty, BoolProperty
+)
 
 from pyxrd.data import settings
 
@@ -20,43 +23,24 @@ from pyxrd.generic.peak_detection import peakdetect
 from pyxrd.generic.utils import not_none
 from pyxrd.generic.models.lines import PyXRDLine
 
+from pyxrd.refinement.refinables.properties import DataMixin
 from pyxrd.calculations.specimen import calculate_phase_intensities
 from pyxrd.calculations.data_objects import SpecimenData
 
 from pyxrd.goniometer.models import Goniometer
 
-from markers import Marker
-from statistics import Statistics
-
 from pyxrd.file_parsers.xrd_parsers import xrd_parsers
 from pyxrd.file_parsers.exc_parsers import exc_parsers
+
+from ..parsers import EXCParser #@UnusedImport leave this so it gets registered
+from .markers import Marker
+from .statistics import Statistics
+
 
 @storables.register()
 class Specimen(DataModel, Storable):
     # MODEL INTEL:
     class Meta(DataModel.Meta):
-        properties = [
-            PropIntel(name="name", label="Name", data_type=unicode, is_column=True, storable=True, has_widget=True),
-            PropIntel(name="sample_name", label="Sample", data_type=unicode, is_column=True, storable=True, has_widget=True),
-            PropIntel(name="label", label="Label", data_type=unicode, is_column=True),
-            PropIntel(name="sample_length", label="Sample length [cm]", data_type=float, minimum=0.0, is_column=True, storable=True, has_widget=True, widget_type="spin"),
-            PropIntel(name="absorption", label="Absorption coeff. (µ*g)", data_type=float, minimum=0.0, is_column=True, storable=True, has_widget=True, widget_type="spin"),
-            PropIntel(name="display_calculated", label="Display calculated diffractogram", data_type=bool, is_column=True, storable=True, has_widget=True),
-            PropIntel(name="display_experimental", label="Display experimental diffractogram", data_type=bool, is_column=True, storable=True, has_widget=True),
-            PropIntel(name="display_phases", label="Display phases seperately", data_type=bool, is_column=True, storable=True, has_widget=True),
-            PropIntel(name="display_stats_in_lbl", label="Display Rp in label", data_type=bool, is_column=True, storable=True, has_widget=True),
-            PropIntel(name="display_vshift", label="Vertical shift of the plot", data_type=float, is_column=True, storable=True, has_widget=True, widget_type="spin"),
-            PropIntel(name="display_vscale", label="Vertical scale of the plot", data_type=float, is_column=True, storable=True, has_widget=True, widget_type="spin"),
-            PropIntel(name="display_residuals", label="Display residual patterns", data_type=bool, is_column=True, storable=True, has_widget=True),
-            PropIntel(name="display_residual_scale", label="Residual pattern scale", data_type=float, minimum=0.0, is_column=True, storable=True, has_widget=True, widget_type="spin"),
-            PropIntel(name="display_derivatives", label="Display derivative patterns", data_type=bool, is_column=True, storable=True, has_widget=True),
-            PropIntel(name="goniometer", label="Goniometer", data_type=object, is_column=True, storable=True, has_widget=True, widget_type="custom"),
-            PropIntel(name="calculated_pattern", label="Calculated diffractogram", data_type=object, is_column=True, storable=True, has_widget=True, widget_type="xy_list_view"),
-            PropIntel(name="experimental_pattern", label="Experimental diffractogram", data_type=object, is_column=True, storable=True, has_widget=True, widget_type="xy_list_view"),
-            PropIntel(name="exclusion_ranges", label="Excluded ranges", data_type=object, is_column=True, storable=True, has_widget=True, widget_type="xy_list_view"),
-            PropIntel(name="markers", label="Markers", data_type=object, is_column=True, storable=True, widget_type="object_list_view", class_type=Marker),
-            PropIntel(name="statistics", label="Statistics", data_type=object, is_column=True),
-        ]
         store_id = "Specimen"
 
         export_filters = xrd_parsers.get_export_file_filters()
@@ -78,143 +62,162 @@ class Specimen(DataModel, Storable):
     project = property(DataModel.parent.fget, DataModel.parent.fset)
 
     # PROPERTIES:
-    _sample_name = u""
-    def get_sample_name(self): return self._sample_name
-    def set_sample_name(self, value):
-        self._sample_name = value
-        self.visuals_changed.emit()
 
-    _name = u""
-    def get_name(self): return self._name
-    def set_name(self, value):
-        self._name = value
-        self.visuals_changed.emit()
+    #: The sample name
+    sample_name = StringProperty(
+        default="", text="Sample",
+        visible=True, persistent=True, tabular=True,
+        signal_name="visuals_changed",
+        mix_with=(SignalMixin,)
+    )
 
-    _display_calculated = True
-    def get_display_calculated(self): return self._display_calculated
-    def set_display_calculated(self, value):
-        self._display_calculated = bool(value)
-        self.visuals_changed.emit()
-
-    _display_experimental = True
-    def get_display_experimental(self): return self._display_experimental
-    def set_display_experimental(self, value):
-        self._display_experimental = bool(value)
-        self.visuals_changed.emit()
-
-    _display_vshift = 0.0
-    def get_display_vshift(self): return self._display_vshift
-    def set_display_vshift(self, value):
-        self._display_vshift = float(value)
-        self.visuals_changed.emit()
-
-    _display_vscale = 0.0
-    def get_display_vscale(self): return self._display_vscale
-    def set_display_vscale(self, value):
-        self._display_vscale = float(value)
-        self.visuals_changed.emit()
-
-    _display_phases = False
-    def get_display_phases(self): return self._display_phases
-    def set_display_phases(self, value):
-        self._display_phases = bool(value)
-        self.visuals_changed.emit()
-
-    _display_stats_in_lbl = True
-    def get_display_stats_in_lbl(self): return self._display_stats_in_lbl
-    def set_display_stats_in_lbl(self, value):
-        self._display_stats_in_lbl = bool(value)
-        self.visuals_changed.emit()
-
-    _display_residuals = True
-    def get_display_residuals(self): return self._display_residuals
-    def set_display_residuals(self, value):
-        self._display_residuals = bool(value)
-        self.visuals_changed.emit()
-
-    _display_derivatives = False
-    def get_display_derivatives(self): return self._display_derivatives
-    def set_display_derivatives(self, value):
-        self._display_derivatives = bool(value)
-        self.visuals_changed.emit()
-
-    _display_residual_scale = 1.0
-    def get_display_residual_scale(self): return self._display_residual_scale
-    def set_display_residual_scale(self, value):
-        self._display_residual_scale = float(value)
-        self.visuals_changed.emit()
-
-    def get_label(self):
-        label = self.sample_name
-        if (self.project is not None and self.project.layout_mode == "FULL"):
-            if self.display_stats_in_lbl:
-                label += "\nR$_p$ = %.1f%%" % not_none(self.statistics.Rp, 0.0)
-                label += "\nR$_{wp}$ = %.1f%%" % not_none(self.statistics.Rwp, 0.0)
-            if self.display_residual_scale != 1.0:
-                label += "\n\nResidual x%0.1f " % not_none(self.display_residual_scale, 1.0)
-        return label
-
-    _calculated_pattern = None
-    def get_calculated_pattern(self): return self._calculated_pattern
-    def set_calculated_pattern(self, value):
-        if value != self._calculated_pattern:
-            with self.data_changed.hold_and_emit():
-                if self._calculated_pattern is not None: self.relieve_model(self._calculated_pattern)
-                self._calculated_pattern = value
-                if self._calculated_pattern is not None:
-                    self.observe_model(self._calculated_pattern)
-
-    _experimental_pattern = None
-    def get_experimental_pattern(self): return self._experimental_pattern
-    def set_experimental_pattern(self, value):
-        if value != self._experimental_pattern:
-            with self.data_changed.hold_and_emit():
-                if self._experimental_pattern is not None:
-                    self.relieve_model(self._experimental_pattern)
-                self._experimental_pattern = value
-                if self._experimental_pattern is not None:
-                    self.observe_model(self._experimental_pattern)
-
-    _exclusion_ranges = None
-    def get_exclusion_ranges(self): return self._exclusion_ranges
-    def set_exclusion_ranges(self, value):
-        if value != self._exclusion_ranges:
-            with self.data_changed.hold_and_emit():
-                if self._exclusion_ranges is not None:
-                    self.relieve_model(self._exclusion_ranges)
-                self._exclusion_ranges = value
-                if self._exclusion_ranges is not None:
-                    self.observe_model(self._exclusion_ranges)
+    #: The sample name
+    name = StringProperty(
+        default="", text="Name",
+        visible=True, persistent=True, tabular=True,
+        signal_name="visuals_changed",
+        mix_with=(SignalMixin,)
+    )
 
 
-    _goniometer = None
-    def get_goniometer(self): return self._goniometer
-    def set_goniometer(self, value):
-        if value != self._goniometer:
-            with self.data_changed.hold_and_emit():
-                if self._goniometer is not None:
-                    self.relieve_model(self._goniometer)
-                self._goniometer = value
-                if self._goniometer is not None:
-                    self.observe_model(self._goniometer)
+    @StringProperty(
+        default="", text="Label",
+        visible=False, persistent=False, tabular=True,
+        mix_with=(ReadOnlyMixin,)
+    )
+    def label(self):
+        if self.display_stats_in_lbl and (self.project is not None and self.project.layout_mode == "FULL"):
+            label = self.sample_name
+            label += "\nRp = %.1f%%" % not_none(self.statistics.Rp, 0.0)
+            label += "\nRwp = %.1f%%" % not_none(self.statistics.Rwp, 0.0)
+            return label
+        else:
+            return self.sample_name
 
-    def get_sample_length(self): return self._data_object.sample_length
-    def set_sample_length(self, value):
-        with self.data_changed.hold_and_emit():
-            self._data_object.sample_length = float(value)
+    display_calculated = BoolProperty(
+        default=True, text="Display calculated diffractogram",
+        visible=True, persistent=True, tabular=True,
+        signal_name="visuals_changed",
+        mix_with=(SignalMixin,)
+    )
 
-    def get_absorption(self): return self._data_object.absorption
-    def set_absorption(self, value):
-        with self.data_changed.hold_and_emit():
-            self._data_object.absorption = float(value)
+    display_experimental = BoolProperty(
+        default=True, text="Display experimental diffractogram",
+        visible=True, persistent=True, tabular=True,
+        signal_name="visuals_changed",
+        mix_with=(SignalMixin,)
+    )
 
-    statistics = None
+    display_vshift = FloatProperty(
+        default=0.0, text="Vertical shift of the plot",
+        visible=True, persistent=True, tabular=True,
+        signal_name="visuals_changed", widget_type="spin",
+        mix_with=(SignalMixin,)
+    )
 
-    _markers = []
-    def get_markers(self): return self._markers
-    def set_markers(self, value):
-        with self.visuals_changed.hold_and_emit():
-            self._markers = value
+    display_vscale = FloatProperty(
+        default=0.0, text="Vertical scale of the plot",
+        visible=True, persistent=True, tabular=True,
+        signal_name="visuals_changed", widget_type="spin",
+        mix_with=(SignalMixin,)
+    )
+
+    display_phases = BoolProperty(
+        default=True, text="Display phases seperately",
+        visible=True, persistent=True, tabular=True,
+        signal_name="visuals_changed",
+        mix_with=(SignalMixin,)
+    )
+
+    display_stats_in_lbl = BoolProperty(
+        default=True, text="Display Rp in label",
+        visible=True, persistent=True, tabular=True,
+        signal_name="visuals_changed",
+        mix_with=(SignalMixin,)
+    )
+
+    display_residuals = BoolProperty(
+        default=True, text="Display residual patterns",
+        visible=True, persistent=True, tabular=True,
+        signal_name="visuals_changed",
+        mix_with=(SignalMixin,)
+    )
+
+    display_residual_scale = FloatProperty(
+        default=1.0, text="Residual pattern scale", minimum=0.0,
+        visible=True, persistent=True, tabular=True,
+        signal_name="visuals_changed", widget_type="spin",
+        mix_with=(SignalMixin,)
+    )
+
+    display_derivatives = BoolProperty(
+        default=False, text="Display derivative patterns",
+        visible=True, persistent=True, tabular=True,
+        signal_name="visuals_changed",
+        mix_with=(SignalMixin,)
+    )
+
+    #: A :class:`~pyxrd.generic.models.lines.CalculatedLine` instance
+    calculated_pattern = LabeledProperty(
+        default=None, text="Calculated diffractogram",
+        visible=True, persistent=True, tabular=True,
+        signal_name="data_changed", widget_type="xy_list_view",
+        mix_with=(SignalMixin, ObserveMixin,)
+    )
+
+    #: A :class:`~pyxrd.generic.models.lines.ExperimentalLine` instance
+    experimental_pattern = LabeledProperty(
+        default=None, text="Experimental diffractogram",
+        visible=True, persistent=True, tabular=True,
+        signal_name="data_changed", widget_type="xy_list_view",
+        mix_with=(SignalMixin, ObserveMixin,)
+    )
+
+    #: A list of 2-theta ranges to exclude for the calculation of the Rp factor
+    exclusion_ranges = LabeledProperty(
+        default=None, text="Excluded ranges",
+        visible=True, persistent=True, tabular=True,
+        signal_name="data_changed", widget_type="xy_list_view",
+        mix_with=(SignalMixin,)
+    )
+
+    #: A :class:`~pyxrd.goniometer.models.Goniometer` instance
+    goniometer = LabeledProperty(
+        default=None, text="Goniometer",
+        visible=True, persistent=True, tabular=True,
+        signal_name="data_changed",
+        mix_with=(SignalMixin, ObserveMixin,)
+    )
+
+    #: The irradiated sample length
+    sample_length = FloatProperty(
+        default=0.0, text="Sample length [cm]", minimum=0.0,
+        visible=True, persistent=True, tabular=True,
+        signal_name="data_changed", widget_type="spin",
+        mix_with=(SignalMixin, DataMixin)
+    )
+
+    #: The sample mass absorption coefficient
+    absorption = FloatProperty(
+        default=0.0, text="Absorption coeff. (µ*g)", minimum=0.0,
+        visible=True, persistent=True, tabular=True,
+        signal_name="data_changed", widget_type="spin",
+        mix_with=(SignalMixin, DataMixin)
+    )
+
+    #: A :class:`~pyxrd.specimen.models.Statistics` instance
+    statistics = LabeledProperty(
+        default=None, text="Markers",
+        visible=False, persistent=True, tabular=True,
+    )
+
+    #: A list :class:`~pyxrd.specimen.models.Marker` instances
+    markers = ListProperty(
+        default=None, text="Markers", data_type=Marker,
+        visible=False, persistent=True, tabular=True,
+        signal_name="visuals_changed", widget_type="object_list_view",
+        mix_with=(SignalMixin,)
+    )
 
     @property
     def max_intensity(self):
@@ -259,7 +262,7 @@ class Specimen(DataModel, Storable):
             "exp_color", "exp_lw", "inherit_exp_color", "inherit_exp_lw",
             "project_goniometer", "data_markers", "bg_shift", "abs_scale",
             "exp_cap_value",
-            *[names[0] for names in self.Meta.get_local_storable_properties()]
+            *[prop.label for prop in Specimen.Meta.get_local_persistent_properties()]
         )
         super(Specimen, self).__init__(*args, **kwargs)
         kwargs = my_kwargs

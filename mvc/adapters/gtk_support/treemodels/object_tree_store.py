@@ -52,12 +52,12 @@ class ObjectTreeStore(BaseObjectListStore):
     #      Initialization and other internals
     # ------------------------------------------------------------
     def __init__(self, model, prop):
-        _root = getattr(model, prop.name, None)
+        _root = getattr(model, prop.label, None)
 
         # Then continue:
         BaseObjectListStore.__init__(self, prop.class_type)
         self._model = model
-        self._prop_name = prop.name
+        self._prop_name = prop.label
         self._object_node_map = dict()
 
         self._observer = TreeObserver(

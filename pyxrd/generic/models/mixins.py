@@ -12,31 +12,25 @@ class CSVMixin(object):
         Model mixin providing CSV export and import functionality
     """
 
-    class Meta():
-        csv_storables = [] # list of tuples "label", "property_name"
-
     @classmethod
     def save_as_csv(cls, filename, items):
         atl_writer = csv.writer(open(filename, 'wb'), delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
-        labels, props = zip(*cls.Meta.csv_storables)
+        labels = [prop.label for prop in cls.Meta.get_local_persistent_properties()]
         atl_writer.writerow(labels)
         for item in items:
             prop_row = []
-            for prop in props:
-                prop_row.append(getattr(item, prop))
+            for label in labels:
+                prop_row.append(getattr(item, label))
             atl_writer.writerow(prop_row)
 
     @classmethod
     def get_from_csv(cls, filename, parent=None):
-        atl_reader = csv.reader(open(filename, 'rb'), delimiter=',', quotechar='"')
-        labels, props = zip(*cls.Meta.csv_storables) # @UnusedVariable
-        header = True
-        for row in atl_reader:
-            if not header:
-                kwargs = dict()
-                for i, prop in enumerate(props):
-                    kwargs[prop] = row[i]
-                yield cls(parent=parent, **kwargs)
-            header = False
+        with open(filename, 'rb') as csvfile:
+            atl_reader = csv.DictReader(csvfile, delimiter=',', quotechar='"')
+            labels = [prop.label for prop in cls.Meta.get_local_persistent_properties()]
+            for row in atl_reader:
+                yield cls(parent=parent, **{
+                    prop: row[prop] for prop in labels if prop in row
+                })
 
     pass # end of class

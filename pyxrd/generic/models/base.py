@@ -5,15 +5,14 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from warnings import warn
-import weakref
-
-from mvc import Model, Signal, PropIntel
-from mvc.support.utils import pop_kwargs
-from pyxrd.generic.utils import not_none, rec_getattr
-
-from .signals import HoldableSignal
 import types
+import weakref
+from warnings import warn
+
+from mvc import Model
+from mvc.models.properties import LabeledProperty, SignalProperty
+from mvc.support.utils import pop_kwargs, not_none
+from pyxrd.generic.utils import rec_getattr
 
 class PyXRDModel(Model):
     """
@@ -21,7 +20,14 @@ class PyXRDModel(Model):
     """
 
     class Meta(Model.Meta):
-        properties = []
+        @classmethod
+        def get_refinable_properties(cls):
+            if not hasattr(cls, "all_properties"):
+                raise RuntimeError, "Meta class '%s' has not been initialized" \
+                    " properly: 'all_properties' is not set!" % type(self)
+            else:
+                return [attr for attr in cls.all_properties if getattr(attr, "refinable", False)]
+
         pass # end of class
 
     def pop_kwargs(self, kwargs, *keys):
@@ -128,27 +134,27 @@ class ChildModel(InheritableMixin, PyXRDModel):
 
     # MODEL INTEL:
     class Meta(PyXRDModel.Meta):
-        properties = [
-            PropIntel(name="parent", data_type=object, storable=False),
-            PropIntel(name="removed", data_type=object, storable=False),
-            PropIntel(name="added", data_type=object, storable=False),
-        ]
+
+        @classmethod
+        def get_inheritable_properties(cls): # TODO MOVE THIS TO THE CHILD MODEL!!
+            if not hasattr(cls, "all_properties"):
+                raise RuntimeError, "Meta class '%s' has not been initialized" \
+                    " properly: 'all_properties' is not set!" % type(cls)
+            else:
+                return [attr for attr in cls.all_properties if getattr(attr, "inheritable", False)]
 
     # SIGNALS:
-    removed = None
-    added = None
+    removed = SignalProperty()
+    added = SignalProperty()
 
     # PROPERTIES:
-
     __parent = None
-    @property
-    def parent(self):
+    def __get_parent(self):
         if callable(self.__parent):
             return self.__parent()
         else:
             return self.__parent
-    @parent.setter
-    def parent(self, value):
+    def __set_parent(self, value):
         if not self.parent == value:
             if self.parent is not None:
                 self.removed.emit()
@@ -158,15 +164,16 @@ class ChildModel(InheritableMixin, PyXRDModel):
                 self.__parent = value
             if self.parent is not None:
                 self.added.emit()
-
     def __on_parent_finalize(self, ref):
         self.removed.emit()
         self.__parent = None
+    parent = LabeledProperty(fget=__get_parent, fset=__set_parent)
 
+    # ------------------------------------------------------------
+    #      Initialization and other internals
+    # ------------------------------------------------------------
     def __init__(self, parent=None, *args, **kwargs):
         super(ChildModel, self).__init__(*args, **kwargs)
-        self.removed = Signal()
-        self.added = Signal()
         self.parent = parent
 
     pass # end of class
@@ -175,19 +182,9 @@ class DataModel(ChildModel):
     """
         A ChildModel with support for having 'calculation data' and 'visual data'            
     """
-    class Meta(ChildModel.Meta):
-        properties = [
-           PropIntel(name="data_changed", storable=False),
-           PropIntel(name="visuals_changed", storable=False),
-       ]
 
     # SIGNALS:
-    data_changed = None
-    visuals_changed = None
-
-    def __init__(self, *args, **kwargs):
-        super(DataModel, self).__init__(*args, **kwargs)
-        self.data_changed = HoldableSignal()
-        self.visuals_changed = HoldableSignal()
+    data_changed = SignalProperty()
+    visuals_changed = SignalProperty()
 
     pass # end of class

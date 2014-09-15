@@ -25,8 +25,18 @@
 #  -------------------------------------------------------------------------
 
 from .obs_seq_wrapper import ObsSeqWrapper
+from .value_wrapper import ValueWrapper
 
+@ValueWrapper.register_wrapper(position=1)
 class ObsMapWrapper (ObsSeqWrapper):
+
+    @classmethod
+    def wrap_value(cls, label, value, model=None):
+        if isinstance(value, dict):
+            res = cls(value)
+            if model: res.__add_model__(model, label)
+            return res
+
     def __init__(self, m):
         methods = ("clear", "pop", "popitem", "update",
                    "setdefault")

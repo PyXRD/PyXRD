@@ -25,8 +25,18 @@
 #  -------------------------------------------------------------------------
 
 from .obs_seq_wrapper import ObsSeqWrapper
+from .value_wrapper import ValueWrapper
 
+@ValueWrapper.register_wrapper(position=0)
 class ObsListWrapper (ObsSeqWrapper):
+
+    @classmethod
+    def wrap_value(cls, label, value, model=None):
+        if isinstance(value, list):
+            res = cls(value)
+            if model: res.__add_model__(model, label)
+            return res
+
     def __init__(self, l):
         methods = ("append", "extend", "insert",
                    "pop", "remove", "reverse", "sort")

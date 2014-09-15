@@ -8,11 +8,17 @@
 from random import choice
 from warnings import warn
 
-from mvc import Observer, PropIntel
+from mvc import Observer
 from mvc.observers import ListObserver
+from mvc.models.properties import (
+    StringProperty, SignalMixin, BoolProperty, LabeledProperty,
+    FloatProperty, ListProperty, IntegerProperty, ReadOnlyMixin
+)
 
-from pyxrd.file_parsers.json_parser import JSONParser
 from pyxrd.generic.io import storables, get_case_insensitive_glob
+
+from pyxrd.generic.models.properties import InheritableMixin
+from pyxrd.refinement.refinables.properties import RefinableMixin
 from pyxrd.refinement.refinables.mixins import RefinementGroup
 from pyxrd.refinement.refinables.metaclasses import PyXRDRefinableMeta
 
@@ -22,23 +28,14 @@ from .abstract_phase import AbstractPhase
 from .CSDS import DritsCSDSDistribution
 from .component import Component
 
+
 @storables.register()
 class Phase(RefinementGroup, AbstractPhase):
 
     # MODEL INTEL:
     __metaclass__ = PyXRDRefinableMeta
+
     class Meta(AbstractPhase.Meta):
-        properties = [
-            PropIntel(name="based_on", data_type=object, label="Based on phase", is_column=True, has_widget=True, widget_type='custom'),
-            PropIntel(name="sigma_star", data_type=float, label=u"σ* [°]", math_label="$\sigma^*$ [°]", is_column=True, has_widget=True, storable=True, refinable=True, minimum=0.0, maximum=90.0, inh_name="inherit_sigma_star", stor_name="_sigma_star", inh_from="based_on"),
-            PropIntel(name="display_color", data_type=str, label="Display color", is_column=True, has_widget=True, widget_type='color', storable=True, inh_name="inherit_display_color", stor_name="_display_color", inh_from="based_on"),
-            PropIntel(name="inherit_sigma_star", data_type=bool, label="Inh. sigma star", is_column=True, has_widget=True, storable=True),
-            PropIntel(name="inherit_display_color", data_type=bool, label="Inh. display color", is_column=True, has_widget=True, storable=True),
-            PropIntel(name="inherit_CSDS_distribution", data_type=bool, label="Inh. mean CSDS", is_column=True, has_widget=True, storable=True),
-            PropIntel(name="CSDS_distribution", data_type=object, label="CSDS Distribution", is_column=True, has_widget=True, storable=True, refinable=True, widget_type="custom", inh_name="inherit_CSDS_distribution", stor_name="_CSDS_distribution", inh_from="based_on"),
-            PropIntel(name="probabilities", data_type=object, label="Probabilities", is_column=True, has_widget=True, storable=True, refinable=True, widget_type="custom"),
-            PropIntel(name="components", data_type=object, label="Components", is_column=True, has_widget=True, storable=True, refinable=True, widget_type="custom", class_type=Component),
-        ]
         store_id = "Phase"
         file_filters = [
             ("Phase file", get_case_insensitive_glob("*.PHS")),
@@ -74,112 +71,158 @@ class Phase(RefinementGroup, AbstractPhase):
     project = property(AbstractPhase.parent.fget, AbstractPhase.parent.fset)
 
     # PROPERTIES:
-    def get_inherit_CSDS_distribution(self): return self._CSDS_distribution.inherited
-    def set_inherit_CSDS_distribution(self, value): self._CSDS_distribution.inherited = value
 
-    _inherit_display_color = False
-    def get_inherit_display_color(self): return self._inherit_display_color
-    def set_inherit_display_color(self, value):
-        with self.visuals_changed.hold_and_emit():
-            self._inherit_display_color = bool(value)
+    #: The name of this Phase
+    name = StringProperty(
+        default="New Phase", text="Name",
+        visible=True, persistent=True, tabular=True,
+    )
 
-    _inherit_sigma_star = False
-    def get_inherit_sigma_star(self): return self._inherit_sigma_star
-    def set_inherit_sigma_star(self, value):
-        try:
-            value = bool(value)
-        except ValueError:
-            pass
-        else:
-            if value != self._inherit_sigma_star:
-                with self.data_changed.hold_and_emit():
-                    self._inherit_sigma_star = value
+    #: Flag indicating whether the CSDS distribution is inherited from the
+    #: :attr:`based_on` phase or not.
+    @BoolProperty(
+        default=False, text="Inh. mean CSDS",
+        visible=True, persistent=True, tabular=True
+    )
+    def inherit_CSDS_distribution(self):
+        return self._CSDS_distribution.inherited
+    @inherit_CSDS_distribution.setter
+    def inherit_CSDS_distribution(self, value):
+        self._CSDS_distribution.inherited = value
+
+    #: Flag indicating whether to inherit the display color from the
+    #: :attr:`based_on` phase or not.
+    inherit_display_color = BoolProperty(
+        default=False, text="Inh. display color",
+        visible=True, persistent=True, tabular=True,
+        signal_name="visuals_changed",
+        mix_with=(SignalMixin,)
+    )
+
+    #: Flag indicating whether to inherit the sigma start value from the
+    #: :attr:`based_on` phase or not.
+    inherit_sigma_star = BoolProperty(
+        default=False, text="Inh. sigma star",
+        visible=True, persistent=True, tabular=True,
+        signal_name="data_changed",
+        mix_with=(SignalMixin,)
+    )
 
     _based_on_index = None # temporary property
     _based_on_uuid = None # temporary property
-    _based_on = None
-    def get_based_on(self): return self._based_on
-    def set_based_on(self, value):
-        with self.data_changed.hold():
-            if self._based_on is not None:
-                self.relieve_model(self._based_on)
-            if value == None or value.get_based_on_root() == self or value.parent != self.parent:
-                value = None
-            if value != self._based_on:
-                self._based_on = value
-                for component in self.components:
-                    component.linked_with = None
-                self.data_changed.emit()
-            if self._based_on is not None:
-                self.observe_model(self._based_on)
-            else:
-                for prop in self.Meta.get_inheritable_properties():
-                    setattr(self, prop.inh_name, False)
-                for prop in self.probabilities.Meta.get_inheritable_properties():
-                    setattr(self.probabilities, prop.inh_name, False)
 
-    def get_based_on_root(self):
-        if self.based_on is not None:
-            return self.based_on.get_based_on_root()
+    #: The :class:`~Phase` instance this phase is based on
+    based_on = LabeledProperty(
+        default=None, text="Based on phase",
+        visible=True, persistent=False, tabular=True,
+        signal_name="data_changed",
+        mix_with=(SignalMixin,)
+    )
+    @based_on.setter
+    def based_on(self, value):
+        _based_on = type(self).based_on._get(self)
+        if _based_on is not None:
+            self.relieve_model(_based_on)
+        if value == None or value.get_based_on_root() == self or value.parent != self.parent:
+            value = None
+        if value != _based_on:
+            _based_on = value
+            type(self).based_on._set(self, _based_on)
+            for component in self.components:
+                component.linked_with = None
+        if _based_on is not None:
+            self.observe_model(_based_on)
         else:
-            return self
+            self._clear_inherited_flags()
 
     # INHERITABLE PROPERTIES:
-    _sigma_star = 12.0
-    def get_sigma_star(self): return self._get_inheritable_property_value("sigma_star")
-    def set_sigma_star(self, value):
-        value = float(value)
-        if self._sigma_star != value:
-            with self.data_changed.hold_and_emit():
-                self._sigma_star = value
 
-    _CSDS_distribution = None
-    def get_CSDS_distribution(self): return self._get_inheritable_property_value("CSDS_distribution")
-    def set_CSDS_distribution(self, value):
-        with self.data_changed.hold_and_emit():
-            if self._CSDS_distribution:
-                self.relieve_model(self._CSDS_distribution)
-                self._CSDS_distribution.parent = None
-            self._CSDS_distribution = value
-            if self._CSDS_distribution:
-                self._CSDS_distribution.parent = self
-                self.observe_model(self._CSDS_distribution)
+    #: The sigma star orientation factor
+    sigma_star = FloatProperty(
+        default=3.0, text="σ* [°]", math_text="$\sigma^*$ [°]",
+        minimum=0.0, maximum=90.0,
+        visible=True, persistent=True, tabular=True, refinable=True,
+        inheritable=True, inherit_flag="inherit_sigma_star", inherit_from="based_on.sigma_star",
+        signal_name="data_changed",
+        mix_with=(SignalMixin, RefinableMixin, InheritableMixin)
+    )
 
+    # A :class:`~pyxrd.phases.models.CSDS` instance
+    CSDS_distribution = LabeledProperty(
+        default=None, text="CSDS Distribution",
+        visible=True, persistent=True, tabular=True, refinable=True,
+        inheritable=True, inherit_flag="inherit_CSDS_distribution", inherit_from="based_on.CSDS_distribution",
+        signal_name="data_changed",
+        mix_with=(SignalMixin, RefinableMixin, InheritableMixin)
+    )
+    @CSDS_distribution.setter
+    def CSDS_distribution(self, value):
+        _CSDS = type(self).CSDS_distribution._get(self)
+        if _CSDS is not None:
+            self.relieve_model(_CSDS)
+            _CSDS.parent = None
+        type(self).CSDS_distribution._set(self, value)
+        if value is not None:
+            value.parent = self
+            self.observe_model(value)
 
-    _probabilities = None
-    def get_probabilities(self): return self._get_inheritable_property_value("probabilities")
-    def set_probabilities(self, value):
-        with self.data_changed.hold_and_emit():
-            if self._probabilities:
-                self.relieve_model(self._probabilities)
-                self._probabilities.parent = None
-            self._probabilities = value
-            if self._probabilities:
-                self._probabilities.update()
-                self._probabilities.parent = self
-                self.observe_model(self._probabilities)
+    # A :class:`~pyxrd._probabilities.models._AbstractProbability` subclass instance
+    probabilities = LabeledProperty(
+        default=None, text="Probablities",
+        visible=True, persistent=True, tabular=True, refinable=True,
+        signal_name="data_changed",
+        mix_with=(SignalMixin, RefinableMixin)
+    )
+    @probabilities.setter
+    def probabilities(self, value):
+        _prob = type(self).probabilities._get(self)
+        if _prob is not None:
+            self.relieve_model(_prob)
+            _prob.parent = None
+        type(self).probabilities._set(self, value)
+        if value is not None:
+            value.update()
+            value.parent = self
+            self.observe_model(value)
 
-    _display_color = "#FFB600"
-    def get_display_color(self): return self._get_inheritable_property_value("display_color")
-    def set_display_color(self, value):
-        if self._display_color != value:
-            with self.visuals_changed.hold_and_emit():
-                self._display_color = value
+    #: The color this phase's X-ray diffraction pattern should have.
+    display_color = StringProperty(
+        default="#FFB600", text="Display color",
+        visible=True, persistent=True, tabular=True, widget_type='color',
+        inheritable=True, inherit_flag="inherit_display_color", inherit_from="based_on.display_color",
+        signal_name="visuals_changed",
+        mix_with=(SignalMixin, InheritableMixin)
+    )
 
-    components = []
+    #: The list of components this phase consists of
+    components = ListProperty(
+        default=None, text="Components",
+        visible=True, persistent=True, tabular=True, refinable=True,
+        widget_type="custom", data_type=Component,
+        mix_with=(RefinableMixin,)
+    )
 
-    def get_G(self):
+    #: The # of components
+    @IntegerProperty(
+        default=0, text="# of components",
+        visible=True, persistent=True, tabular=True, widget_type="entry",
+        mix_with=(ReadOnlyMixin,)
+    )
+    def G(self):
         if self.components is not None:
             return len(self.components)
         else:
             return 0
-    G = property(get_G, AbstractPhase.G.fset) #@UndefinedVariable
 
-
-    def get_R(self):
+    #: The # of components
+    @IntegerProperty(
+        default=0, text="Reichweite",
+        visible=True, persistent=False, tabular=True, widget_type="entry",
+        mix_with=(ReadOnlyMixin,)
+    )
+    def R(self):
         if self.probabilities:
             return self.probabilities.R
-    G = property(get_G, AbstractPhase.R.fset) #@UndefinedVariable
 
     # Flag indicating whether or not the links (based_on and linked_with) should
     # be saved as well.
@@ -207,7 +250,7 @@ class Phase(RefinementGroup, AbstractPhase):
             "data_G", "G", "data_R", "R",
             "data_probabilities", "based_on_uuid", "based_on_index",
             "inherit_probabilities",
-            *[names[0] for names in Phase.Meta.get_local_storable_properties()]
+            *[prop.label for prop in Phase.Meta.get_local_persistent_properties()]
         )
         super(Phase, self).__init__(*args, **kwargs)
         kwargs = my_kwargs
@@ -256,7 +299,7 @@ class Phase(RefinementGroup, AbstractPhase):
             inherit_probabilities = kwargs.pop("inherit_probabilities", None)
             if inherit_probabilities is not None:
                 for prop in self.probabilities.Meta.get_inheritable_properties():
-                    setattr(self.probabilities, prop.inh_name, bool(inherit_probabilities))
+                    setattr(self.probabilities, prop.inherit_flag, bool(inherit_probabilities))
 
             self._based_on_uuid = self.get_kwarg(kwargs, None, "based_on_uuid")
             self._based_on_index = self.get_kwarg(kwargs, None, "based_on_index")
@@ -338,8 +381,8 @@ class Phase(RefinementGroup, AbstractPhase):
         retval = super(Phase, self).json_properties()
         if not self.save_links:
             for prop in self.Meta.all_properties:
-                if prop.inh_name:
-                    retval[prop.inh_name] = False
+                if prop.inherit_flag:
+                    retval[prop.inherit_flag] = False
             retval["based_on_uuid"] = ""
         else:
             retval["based_on_uuid"] = self.based_on.uuid if self.based_on else ""

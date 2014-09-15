@@ -61,11 +61,7 @@ class ProbabilityViewMixin():
 class IndependentsView(HasChildView, ProbabilityViewMixin, BaseView):
     """
         Generic view that is able to generate an two-column list of inputs and 
-        labels using the 'labels' argument passed upon creation.
-        'labels' should be a list of tuples holding a PropIntel object and a
-        label. This label is parsed using a mathtext parser, if this causes an 
-        error the raw label is displayed. The __independent_label_map__ of the
-        model this view is representing should normally be passed as 'labels'.
+        labels using the models Meta (passed to the constructor).
     """
     builder = resource_filename(__name__, "glade/R0_independents.glade")
     top = "R0independents_box"
@@ -81,6 +77,7 @@ class IndependentsView(HasChildView, ProbabilityViewMixin, BaseView):
         BaseView.__init__(self, **kwargs)
 
         self.props = [ prop for prop in meta.all_properties if getattr(prop, "is_independent", False) ]
+        all_props = { prop.label: prop for prop in meta.all_properties }
 
         N = len(self.props)
 
@@ -94,26 +91,26 @@ class IndependentsView(HasChildView, ProbabilityViewMixin, BaseView):
 
             for i, prop in enumerate(self.props):
 
-                new_lbl = self.create_mathtext_widget(prop.math_label, prop.label)
+                new_lbl = self.create_mathtext_widget(prop.math_text, prop.label)
 
                 new_inp = ScaleEntry(lower=prop.minimum, upper=prop.maximum, enforce_range=True)
                 new_inp.set_tooltip_text(prop.label)
-                new_inp.set_name(self.widget_format % prop.name)
-                self[self.widget_format % prop.name] = new_inp
+                new_inp.set_name(self.widget_format % prop.label)
+                self[self.widget_format % prop.label] = new_inp
                 input_widgets[i] = new_inp
 
                 j = (i % num_columns) * column_width
                 table.attach(new_lbl, 0 + j, 1 + j, i / num_columns, (i / num_columns) + 1, xpadding=2, ypadding=2)
                 table.attach(new_inp, 2 + j, 3 + j, i / num_columns, (i / num_columns) + 1, xpadding=2, ypadding=2)
 
-                if prop.inh_name is not None:
-                    inh_prop = meta.get_prop_intel_by_name(prop.inh_name)
+                if prop.inheritable is not None:
+                    inh_prop = all_props[prop.inherit_flag]
 
                     new_check = gtk.CheckButton(label="")
-                    new_check.set_tooltip_text(inh_prop.label)
-                    new_check.set_name(self.widget_format % inh_prop.name)
+                    new_check.set_tooltip_text(inh_prop.text)
+                    new_check.set_name(self.widget_format % inh_prop.text)
                     new_check.set_sensitive(False)
-                    self[self.widget_format % inh_prop.name] = new_check
+                    self[self.widget_format % inh_prop.text] = new_check
                     check_widgets[i] = new_check
                     table.attach(new_check, 1 + j, 2 + j, i / num_columns, (i / num_columns) + 1, xpadding=2, ypadding=2, xoptions=gtk.FILL)
 
@@ -139,13 +136,13 @@ class IndependentsView(HasChildView, ProbabilityViewMixin, BaseView):
     def update_matrices(self, model):
         for i, (inp, check) in enumerate(zip(self.i_inputs, self.i_checks)):
             prop = self.props[i]
-            inp.set_value(getattr(model, prop.name))
-            if prop.inh_name is not None:
+            inp.set_value(getattr(model, prop.label))
+            if prop.inherit_flag is not None:
                 # Set checkbox sensitivity:
-                inh_from = rec_getattr(model, prop.inh_from, None)
+                inh_from = rec_getattr(model, prop.inherit_flag, None)
                 check.set_sensitive(not inh_from is None)
                 # Set checkbox state:
-                inh_value = getattr(model, prop.inh_name)
+                inh_value = getattr(model, prop.inherit_flag)
                 check.set_active(inh_value)
                 # Set inherit value sensitivity
                 inp.set_sensitive(not inh_value)

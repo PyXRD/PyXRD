@@ -14,6 +14,7 @@ from pyxrd.generic.controllers.objectliststore_controllers import wrap_list_prop
 from pyxrd.generic.controllers import InlineObjectListStoreController
 
 from pyxrd.atoms.models import Atom
+from pyxrd.project.models import Project
 
 class EditLayerController(InlineObjectListStoreController):
     """ 
@@ -28,8 +29,8 @@ class EditLayerController(InlineObjectListStoreController):
 
     @property
     def atom_types_treemodel(self):
-        prop = self.model.phase.project.Meta.get_prop_intel_by_name("atom_types")
-        return wrap_list_property_to_treemodel(self.model.phase.project, prop)
+        return wrap_list_property_to_treemodel(
+            self.model.phase.project, Project.atom_types)
 
     # ------------------------------------------------------------
     #      Initialization and other internals

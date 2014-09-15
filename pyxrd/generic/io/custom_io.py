@@ -180,21 +180,23 @@ class Storable(object):
         re-create the object when serialized as JSON.
         """
         retval = OrderedDict()
-        def add_prop(val):
-            try:
-                alias, attr = val
-            except ValueError:
-                alias, attr = val, val
-            retval[alias] = getattr(self, attr)
+        def add_prop(label, store_private):
+            if not store_private:
+                retval[label] = getattr(self, label)
+            else:
+                try:
+                    retval[label] = getattr(type(self), store_private)
+                except (TypeError, AttributeError):
+                    retval[label] = getattr(type(self), label)._get(self)
 
         from mvc.models import Model
         if isinstance(self, Model):
             for prop in self.Meta.all_properties:
-                if prop.storable:
-                    add_prop((prop.name, not_none(prop.stor_name, prop.name)))
+                if prop.persistent:
+                    add_prop(prop.label, not_none(prop.store_private, False))
         elif hasattr(self, "__storables__"): # Fallback:
             for val in self.__storables__:
-                add_prop(val)
+                add_prop(val, False)
         else:
             raise RuntimeError, "Cannot find either a '__storables__' or Meta class attribute on Storable '%s' instance!" % type(self)
         return retval

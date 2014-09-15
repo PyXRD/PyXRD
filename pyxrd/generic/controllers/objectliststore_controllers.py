@@ -53,7 +53,7 @@ class TreeModelMixin(object):
         if getattr(self, "model", None) is not None:
             self._treemodel = wrap_list_property_to_treemodel(
                 self.model,
-                self.model.Meta.get_prop_intel_by_name(self.treemodel_property_name)
+                getattr(type(self.model), self.treemodel_property_name)
             )
 
 

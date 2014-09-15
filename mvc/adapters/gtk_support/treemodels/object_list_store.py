@@ -56,9 +56,9 @@ class ObjectListStore(BaseObjectListStore):
     #      Initialization and other internals
     # ------------------------------------------------------------
     def __init__(self, model, prop):
-        BaseObjectListStore.__init__(self, prop.class_type)
+        BaseObjectListStore.__init__(self, prop.data_type)
         self._model = model
-        self._prop_name = prop.name
+        self._prop_name = prop.label
 
         self._deleted_paths = []
 

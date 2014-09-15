@@ -29,7 +29,7 @@ class ListItemObserver(Observer):
     """
         An observer that observes a single item in a list and informs us of changes.
         The observed properties are defined in the list type's meta class by
-        setting their PropIntel 'is_column' attribute to True.
+        setting their property descriptors 'tabular' attribute to True.
     """
 
     _previous_model_ref = None

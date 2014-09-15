@@ -82,7 +82,7 @@ class EditCSDSTypeController(BaseController):
 class EditCSDSDistributionController(BaseController):
     """ 
         Controller for the CSDS Models 
-        Handles the creation of widgets based on their PropIntel settings
+        Handles the creation of widgets based on the property descriptor settings
     """
 
     auto_adapt = False
@@ -91,9 +91,9 @@ class EditCSDSDistributionController(BaseController):
         if self.view is not None:
             self.view.reset_params()
             for prop in self.model.Meta.all_properties:
-                if prop.refinable:
+                if getattr(prop, "refinable", False):
                     self.view.add_param_widget(
-                        self.view.widget_format % prop.name, prop.label,
+                        self.view.widget_format % prop.label, prop.label,
                         prop.minimum, prop.maximum
                     )
             self.view.update_figure(self.model.distrib[0])

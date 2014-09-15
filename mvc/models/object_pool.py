@@ -37,7 +37,7 @@ class ObjectPool(object):
         class inheriting from the base 'Model' class will have this.
         If implementing a custom model, the UUID property is responsible
         for the removal and addition to the pool when it changes values.
-        Also see the UUIDPropIntel class for an example implementation.
+        Also see the UUIDProperty descriptor for an example implementation.
         We can use this to store complex relations between objects where 
         references to each other can be replaced with the UUID.
         For a multi-threaded version see ThreadedObjectPool. 

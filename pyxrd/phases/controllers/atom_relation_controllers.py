@@ -64,9 +64,9 @@ class AtomComboMixin(object):
             return None, None
 
     @staticmethod
-    def custom_handler(controller, intel, prefix):
-        if intel.name in controller.custom_handler_names:
-            combo, store = controller.reset_combo_box(intel.name) # @UnusedVariable
+    def custom_handler(controller, prop, prefix):
+        if prop.label in controller.custom_handler_names:
+            combo, store = controller.reset_combo_box(prop.label) # @UnusedVariable
 
             if combo is not None and store is not None:
                 def on_changed(combo, user_data=None):
@@ -74,11 +74,11 @@ class AtomComboMixin(object):
                     if itr is not None:
                         val = combo.get_model().get(itr, 0, 1)
                         setattr(controller.model, combo.get_data('model_prop'), val)
-                combo.set_data('model_prop', intel.name)
+                combo.set_data('model_prop', prop.label)
                 combo.connect('changed', on_changed)
 
                 def on_item_changed(*args):
-                    controller.reset_combo_box(intel.name)
+                    controller.reset_combo_box(prop.label)
 
                 if controller.is_observing_method("atoms_changed", on_item_changed):
                     controller.remove_observing_method("atoms_changed", on_item_changed)
@@ -147,10 +147,10 @@ class EditAtomContentsController(DialogController):
         self.contents_list_controller = ContentsListController("atom_contents", model=self.model, view=self.contents_list_view, parent=self)
 
     @staticmethod
-    def widget_handler(self, intel, widget):
-        if intel.name == "atom_contents":
+    def widget_handler(self, prop, widget):
+        if prop.label == "atom_contents":
             self.view.set_contents_list_view(self.contents_list_view.get_top_widget())
-            return DummyAdapter(controller=self, prop=intel)
+            return DummyAdapter(controller=self, prop=prop)
 
     pass # end of class
 

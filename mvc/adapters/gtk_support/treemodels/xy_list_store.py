@@ -67,7 +67,7 @@ class XYListStore(BaseObjectListStore, Observer):
         # Check this really is an XYData property:
         self._flush()
         self._model = model
-        self._prop_name = prop.name
+        self._prop_name = prop.label
         _data = getattr(self._model, self._prop_name, None)
         assert isinstance(_data, XYData), \
             "Can only wrap XYData (or subclasses) instances to a XYListStore," + \

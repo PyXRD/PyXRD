@@ -5,14 +5,16 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
+from mvc.models.properties import BoolProperty, FloatProperty
+
 from pyxrd.generic.mathtext_support import mt_range
 from pyxrd.generic.io import storables
 from pyxrd.generic.utils import not_none
+from pyxrd.generic.models.properties import InheritableMixin
 
-from mvc import PropIntel
+from pyxrd.refinement.refinables.properties import RefinableMixin
 
 from .base_models import _AbstractProbability
-from pyxrd.probabilities.models.properties import ProbabilityProperty
 
 __all__ = [
     "R3G2Model"
@@ -100,45 +102,48 @@ class R3G2Model(_AbstractProbability):
     # MODEL METADATA:
     class Meta(_AbstractProbability.Meta):
         store_id = "R3G2Model"
-        ind_properties = [
-            PropIntel(name="W1", label="W1 (> 2/3)", math_label=r"$W_1$",
-                stor_name="_W1", inh_name="inherit_W1", inh_from="parent.based_on.probabilities",
-                is_independent=True, # flag for the view creation
-                minimum=2.0 / 3.0, maximum=1.0, data_type=float, **PropIntel.REF_ST_WID),
-            PropIntel(name="P1111_or_P2112", label="P1111 (W1 < 3/4) or\nP2112 (W1 > 3/4)",
-                stor_name="_P1111_or_P2112", inh_name="inherit_P1111_or_P2112",
-                inh_from="parent.based_on.probabilities",
-                is_independent=True, # flag for the view creation
-                math_label=r"$P_{1111} %s$ or $\newline P_{2112} %s$" % (
-                    mt_range(2.0 / 3.0, "W_1", 3.0 / 4.0),
-                    mt_range(3.0 / 4.0, "W_1", 1.0)),
-                minimum=0.0, maximum=1.0, data_type=float, **PropIntel.REF_ST_WID),
-        ]
-        inh_properties = [
-            PropIntel(name="inherit_%s" % prop.name, label="Inherit flag for %s" % prop.name,
-                data_type=bool, refinable=False, storable=True, has_widget=True,
-                widget_type="toggle") \
-                for prop in ind_properties
-        ]
-        properties = ind_properties + inh_properties
-
 
     # PROPERTIES:
     _G = 2
 
-    W1 = ProbabilityProperty(default=0.85, minimum=2.0 / 3.0, clamp=True, cast_to=float)
-    inherit_W1 = ProbabilityProperty(default=False, cast_to=bool)
+    inherit_W1 = BoolProperty(
+        default=False, text="Inherit flag for W1",
+        persistent=True, visible=True,
+    )
+    W1 = FloatProperty(
+        default=0.85, text="W1 (> 2/3)", math_text=r"$W_1 (> \frac{2}{3})$",
+        persistent=True, visible=True, refinable=True, store_private=True,
+        minimum=2.0 / 3.0, maximum=1.0, is_independent=True, inheritable=True,
+        inherit_flag="inherit_W1", inherit_from="parent.based_on.probabilities.W1",
+        mix_with=(RefinableMixin, InheritableMixin)
+    )
 
-    P1111_or_P2112 = ProbabilityProperty(default=0.75, clamp=True, cast_to=float)
-    inherit_P1111_or_P2112 = ProbabilityProperty(default=False, cast_to=bool)
+    inherit_P1111_or_P2112 = BoolProperty(
+        default=False, text="Inherit flag for P1111_or_P2112",
+        persistent=True, visible=True,
+    )
+    P1111_or_P2112 = FloatProperty(
+        default=0.75, text="P1111 (W1 < 3/4) or\nP2112 (W1 > 3/4)",
+        math_text=r"$P_{1111} %s$ or $\newline P_{2112} %s$" % (
+            mt_range(2.0 / 3.0, "W_1", 3.0 / 4.0),
+            mt_range(3.0 / 4.0, "W_1", 1.0)),
+        persistent=True, visible=True, refinable=True, store_private=True,
+        minimum=0.0, maximum=1.0, is_independent=True, inheritable=True,
+        inherit_flag="inherit_P1111_or_P2112", inherit_from="parent.based_on.probabilities.P1111_or_P2112",
+        mix_with=(RefinableMixin, InheritableMixin)
+    )
 
     # ------------------------------------------------------------
     #      Initialization and other internals
     # ------------------------------------------------------------
-    def setup(self, W1=0.85, P1111_or_P2112=0.75, **kwargs):
-        _AbstractProbability.setup(self, R=3)
-        self.W1 = not_none(W1, 0.85)
-        self.P1111_or_P2112 = not_none(P1111_or_P2112, 0.75)
+    def __init__(self, W1=0.85, P1111_or_P2112=0.75, *args, **kwargs):
+        super(R3G2Model, self).__init__(R=3, *args, **kwargs)
+
+        with self.data_changed.hold():
+            self.W1 = not_none(W1, 0.85)
+            self.P1111_or_P2112 = not_none(P1111_or_P2112, 0.75)
+
+            self.update()
 
     # ------------------------------------------------------------
     #      Methods & Functions

@@ -5,14 +5,17 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from contextlib import contextmanager
-import types
 import logging
 logger = logging.getLogger(__name__)
 
 import time
+from contextlib import contextmanager
 
-from mvc import Observer, PropIntel, OptionPropIntel
+from mvc.models.properties import (
+    FloatProperty, BoolProperty, StringProperty, ListProperty,
+    IntegerProperty, StringChoiceProperty, IntegerChoiceProperty, SignalMixin
+)
+
 from mvc.observers import ListObserver
 
 from pyxrd.data import settings
@@ -20,13 +23,14 @@ from pyxrd.data import settings
 from pyxrd.generic.models import DataModel
 from pyxrd.generic.io import storables, Storable, get_case_insensitive_glob
 
-from pyxrd.phases.models import Phase
-from pyxrd.atoms.models import AtomType
-from pyxrd.mixture.models.mixture import Mixture
+
 from pyxrd.generic.utils import not_none
-from pyxrd.specimen.models.base import Specimen
 from pyxrd.generic.exit_stack import ExitStack
 
+from pyxrd.atoms.models import AtomType
+from pyxrd.phases.models import Phase
+from pyxrd.specimen.models import Specimen
+from pyxrd.mixture.models.mixture import Mixture
 
 @storables.register()
 class Project(DataModel, Storable):
@@ -56,46 +60,6 @@ class Project(DataModel, Storable):
 
     # MODEL INTEL:
     class Meta(DataModel.Meta):
-        properties = [
-            PropIntel(name="name", label="Name", data_type=str, **PropIntel.ST_WID),
-            PropIntel(name="date", label="Date", data_type=str, **PropIntel.ST_WID),
-            PropIntel(name="description", label="Description", data_type=str, widget_type="text_view", **PropIntel.ST_WID),
-            PropIntel(name="author", label="Author", data_type=str, **PropIntel.ST_WID),
-            OptionPropIntel(name="layout_mode", label="Layout mode", data_type=str, options=settings.DEFAULT_LAYOUTS, **PropIntel.ST_WID),
-            PropIntel(name="display_marker_color", label="Color", data_type=str, widget_type="color", **PropIntel.ST_WID),
-            PropIntel(name="display_marker_top_offset", label="Offset from base", data_type=float, widget_type="float_entry", **PropIntel.ST_WID),
-            PropIntel(name="display_marker_angle", label="Angle", data_type=float, widget_type="float_entry", **PropIntel.ST_WID),
-            OptionPropIntel(name="display_marker_align", label="Label alignment", data_type=str, options=settings.MARKER_ALIGNS, **PropIntel.ST_WID),
-            OptionPropIntel(name="display_marker_base", label="Base connection", data_type=int, options=settings.MARKER_BASES, **PropIntel.ST_WID),
-            OptionPropIntel(name="display_marker_top", label="Top connection", data_type=int, options=settings.MARKER_TOPS, **PropIntel.ST_WID),
-            OptionPropIntel(name="display_marker_style", label="Line style", data_type=str, options=settings.MARKER_STYLES, **PropIntel.ST_WID),
-            PropIntel(name="display_calc_color", label="Calculated color", data_type=str, widget_type="color", **PropIntel.ST_WID),
-            PropIntel(name="display_exp_color", label="Experimental color", data_type=str, widget_type="color", **PropIntel.ST_WID),
-            PropIntel(name="display_calc_lw", label="Calculated linewidth", data_type=int, widget_type="spin", **PropIntel.ST_WID),
-            PropIntel(name="display_exp_lw", label="Experimental linewidth", data_type=int, widget_type="spin", **PropIntel.ST_WID),
-            OptionPropIntel(name="display_calc_ls", label="Calculated linestyle", data_type=str, options=settings.PATTERN_LINE_STYLES, **PropIntel.ST_WID),
-            OptionPropIntel(name="display_exp_ls", label="Experimental linestyle", data_type=str, options=settings.PATTERN_LINE_STYLES, **PropIntel.ST_WID),
-            OptionPropIntel(name="display_calc_marker", label="Calculated line marker", data_type=str, options=settings.PATTERN_MARKERS, **PropIntel.ST_WID),
-            OptionPropIntel(name="display_exp_marker", label="Experimental line marker", data_type=str, options=settings.PATTERN_MARKERS, **PropIntel.ST_WID),
-            PropIntel(name="display_plot_offset", label="Pattern offset", data_type=float, widget_type="float_entry", **PropIntel.ST_WID),
-            PropIntel(name="display_group_by", label="Group patterns by", data_type=int, widget_type="spin", **PropIntel.ST_WID),
-            PropIntel(name="display_label_pos", label="Default label position", data_type=float, widget_type="float_entry", **PropIntel.ST_WID),
-            OptionPropIntel(name="axes_xlimit", label="X limit", data_type=int, options=settings.AXES_XLIMITS, **PropIntel.ST_WID),
-            PropIntel(name="axes_xmin", label="min. [°2T]", data_type=float, widget_type="spin", **PropIntel.ST_WID),
-            PropIntel(name="axes_xmax", label="max. [°2T]", data_type=float, widget_type="spin", **PropIntel.ST_WID),
-            PropIntel(name="axes_xstretch", label="Stretch X-axis to fit window", data_type=bool, **PropIntel.ST_WID),
-            PropIntel(name="axes_dspacing", label="Show d-spacing in x-axis", data_type=bool, **PropIntel.ST_WID),
-            OptionPropIntel(name="axes_ynormalize", label="Y scaling", data_type=int, options=settings.AXES_YNORMALIZERS, **PropIntel.ST_WID),
-            OptionPropIntel(name="axes_ylimit", label="Y limit", data_type=int, options=settings.AXES_YLIMITS, **PropIntel.ST_WID),
-            PropIntel(name="axes_ymin", label="min. [counts]", data_type=float, widget_type="spin", **PropIntel.ST_WID),
-            PropIntel(name="axes_ymax", label="max. [counts]", data_type=float, widget_type="spin", **PropIntel.ST_WID),
-            PropIntel(name="axes_yvisible", label="Y-axis visible", data_type=bool, **PropIntel.ST_WID),
-            PropIntel(name="specimens", label="Specimens", data_type=object, widget_type="object_list_view", class_type=Specimen, **PropIntel.ST_WID),
-            PropIntel(name="phases", data_type=object, class_type=Phase, **PropIntel.ST),
-            PropIntel(name="mixtures", data_type=object, class_type=Mixture, **PropIntel.ST),
-            PropIntel(name="atom_types", data_type=object, class_type=AtomType, **PropIntel.ST),
-            PropIntel(name="needs_saving", data_type=bool),
-        ]
         store_id = "Project"
         file_filters = [
             ("PyXRD Project files", get_case_insensitive_glob("*.pyxrd", "*.zpd")),
@@ -109,317 +73,270 @@ class Project(DataModel, Storable):
     filename = None
 
     #: The project name
-    name = ""
+    name = StringProperty(
+        default="", text="Name",
+        visible=True, persistent=True
+    )
+
     #: The project data (string)
-    date = ""
+    date = StringProperty(
+        default="", text="Date",
+        visible=True, persistent=True
+    )
+
     #: The project description
-    description = None
+    description = StringProperty(
+        default=None, text="Description",
+        visible=True, persistent=True, widget_type="text_view",
+    )
+
     #: The project author
-    author = ""
+    author = StringProperty(
+        default="", text="Author",
+        visible=True, persistent=True
+    )
 
     #: Flag indicating whether this project has been changed since it was last saved.
-    needs_saving = True
+    needs_saving = BoolProperty(
+        default=True, visible=False, persistent=False
+    )
 
-    _layout_mode = settings.DEFAULT_LAYOUT
-    @property
-    def layout_mode(self):
-        """The layout mode this project should be displayed in"""
-        return self._layout_mode
-    @layout_mode.setter
-    def layout_mode(self, value):
-        with self.visuals_changed.hold_and_emit():
-            self._layout_mode = value
+    #: The layout mode this project should be displayed in
+    layout_mode = StringChoiceProperty(
+        default=settings.DEFAULT_LAYOUT, text="Layout mode",
+        visible=True, persistent=True, choices=settings.DEFAULT_LAYOUTS,
+        mix_with=(SignalMixin,), signal_name="visuals_changed"
+    )
 
-    _axes_xmin = settings.AXES_MANUAL_XMIN
-    @property
-    def axes_xmin(self):
-        """ The manual lower limit for the X-axis"""
-        return self._axes_xmin
-    @axes_xmin.setter
-    def axes_xmin(self, value):
-        self._axes_xmin = max(float(value), 0.0)
-        self.visuals_changed.emit()
+    #: The manual lower limit for the X-axis
+    axes_xmin = FloatProperty(
+        default=settings.AXES_MANUAL_XMIN, text="min. [°2T]",
+        visible=True, persistent=True, minimum=0.0, widget_type="spin",
+        mix_with=(SignalMixin,), signal_name="visuals_changed"
+    )
 
-    _axes_xmax = settings.AXES_MANUAL_XMAX
-    @property
-    def axes_xmax(self):
-        """ The manual upper limit for the X-axis """
-        return self._axes_xmax
-    @axes_xmax.setter
-    def axes_xmax(self, value):
-        self._axes_xmax = max(float(value), 0.0)
-        self.visuals_changed.emit()
+    #: The manual upper limit for the X-axis
+    axes_xmax = FloatProperty(
+        default=settings.AXES_MANUAL_XMAX, text="max. [°2T]",
+        visible=True, persistent=True, minimum=0.0, widget_type="spin",
+        mix_with=(SignalMixin,), signal_name="visuals_changed"
+    )
 
-    _axes_xstretch = settings.AXES_XSTRETCH
-    @property
-    def axes_xstretch(self):
-        """ Whether or not to stretch the X-axis over the entire
-        available display """
-        return self._axes_xstretch
-    @axes_xstretch.setter
-    def axes_xstretch(self, value):
-        self._axes_xstretch = bool(value)
-        self.visuals_changed.emit()
+    #: Whether or not to stretch the X-axis over the entire available display
+    axes_xstretch = BoolProperty(
+        default=settings.AXES_XSTRETCH, text="Stetch x-axis to fit window",
+        visible=True, persistent=True,
+        mix_with=(SignalMixin,), signal_name="visuals_changed"
+    )
 
-    _axes_dspacing = settings.AXES_DSPACING
-    def get_axes_dspacing(self): return self._axes_dspacing
-    def set_axes_dspacing(self, value):
-        self._axes_dspacing = bool(value)
-        self.visuals_changed.emit()
+    #: Flag toggling between d-spacing (when True) or 2-Theta axes (when False)
+    axes_dspacing = BoolProperty(
+        default=settings.AXES_DSPACING, text="Show d-spacing in x-axis",
+        visible=True, persistent=True,
+        mix_with=(SignalMixin,), signal_name="visuals_changed"
+    )
 
-    _axes_yvisible = settings.AXES_YVISIBLE
-    @property
-    def axes_yvisible(self):
-        """ Whether or not the y-axis should be shown """
-        return self._axes_yvisible
-    @axes_yvisible.setter
-    def axes_yvisible(self, value):
-        self._axes_yvisible = bool(value)
-        self.visuals_changed.emit()
+    #: Whether or not the y-axis should be shown
+    axes_yvisible = BoolProperty(
+        default=settings.AXES_YVISIBLE, text="Y-axis visible",
+        visible=True, persistent=True,
+        mix_with=(SignalMixin,), signal_name="visuals_changed"
+    )
 
-    _axes_ymin = settings.AXES_MANUAL_YMIN
-    @property
-    def axes_ymin(self):
-        """ The manual lower limit for the Y-axis (in counts) """
-        return self._axes_ymin
-    @axes_ymin.setter
-    def axes_ymin(self, value):
-        self._axes_ymin = max(float(value), 0.0)
-        self.visuals_changed.emit()
+    #: The manual lower limit for the Y-axis (in counts)
+    axes_ymin = FloatProperty(
+        default=settings.AXES_MANUAL_YMIN, text="min. [counts]",
+        visible=True, persistent=True, minimum=0.0, widget_type="spin",
+        mix_with=(SignalMixin,), signal_name="visuals_changed"
+    )
 
-    _axes_ymax = settings.AXES_MANUAL_YMAX
-    @property
-    def axes_ymax(self):
-        """ The manual upper limit for the Y-axis (in counts) """
-        return self._axes_ymax
-    @axes_ymax.setter
-    def axes_ymax(self, value):
-        self._axes_ymax = max(float(value), 0.0)
-        self.visuals_changed.emit()
+    #: The manual upper limit for the Y-axis (in counts)
+    axes_ymax = FloatProperty(
+        default=settings.AXES_MANUAL_YMAX, text="max. [counts]",
+        visible=True, persistent=True, minimum=0.0, widget_type="spin",
+        mix_with=(SignalMixin,), signal_name="visuals_changed"
+    )
 
-    _display_plot_offset = settings.PLOT_OFFSET
-    @property
-    def display_plot_offset(self):
-        """ The offset between patterns as a fraction of the maximum
-         intensity """
-        return self._display_plot_offset
-    @display_plot_offset.setter
-    def display_plot_offset(self, value):
-        self._display_plot_offset = max(float(value), 0.0)
-        self.visuals_changed.emit()
+    #: What type of y-axis to use: raw counts, single or multi-normalized units
+    axes_ynormalize = IntegerChoiceProperty(
+        default=settings.AXES_YNORMALIZE, text="Y scaling",
+        visible=True, persistent=True, choices=settings.AXES_YNORMALIZERS,
+        mix_with=(SignalMixin,), signal_name="visuals_changed"
+    )
 
-    _display_group_by = settings.PATTERN_GROUP_BY
-    @property
-    def display_group_by(self):
-        """ The number of patterns to group (having no offset) """
-        return self._display_group_by
-    @display_group_by.setter
-    def display_group_by(self, value):
-        self._display_group_by = max(int(value), 1)
-        self.visuals_changed.emit()
+    #: Whether to use automatic or manual Y limits
+    axes_ylimit = IntegerChoiceProperty(
+        default=settings.AXES_YLIMIT, text="Y limit",
+        visible=True, persistent=True, choices=settings.AXES_YLIMITS,
+        mix_with=(SignalMixin,), signal_name="visuals_changed"
+    )
 
-    _display_marker_angle = settings.MARKER_ANGLE
-    @property
-    def display_marker_angle(self):
-        """ The default angle at which marker labels are displayed """
-        return self._display_marker_angle
-    @display_marker_angle.setter
-    def display_marker_angle(self, value):
-        self._display_marker_angle = float(value)
-        self.visuals_changed.emit()
+    #: The offset between patterns as a fraction of the maximum intensity
+    display_plot_offset = FloatProperty(
+        default=settings.PLOT_OFFSET, text="Pattern offset",
+        visible=True, persistent=True, minimum=0.0, widget_type="float_entry",
+        mix_with=(SignalMixin,), signal_name="visuals_changed"
+    )
 
-    _display_marker_top_offset = settings.MARKER_TOP_OFFSET
-    @property
-    def display_marker_top_offset(self):
-        """ The default offset for marker labels """
-        return self._display_marker_top_offset
-    @display_marker_top_offset.setter
-    def display_marker_top_offset(self, value):
-        self._display_marker_top_offset = float(value)
-        self.visuals_changed.emit()
+    #: The number of patterns to group ( = having no offset)
+    display_group_by = IntegerProperty(
+        default=settings.PATTERN_GROUP_BY, text="Group patterns by",
+        visible=True, persistent=True, minimum=1, widget_type="spin",
+        mix_with=(SignalMixin,), signal_name="visuals_changed"
+    )
 
-    _display_label_pos = settings.LABEL_POSITION
-    @property
-    def display_label_pos(self):
-        """ The relative position (from the pattern offset) for pattern labels
-        as a fraction of the patterns intensity"""
-        return self._display_label_pos
-    @display_label_pos.setter
-    def display_label_pos(self, value):
-        self._display_label_pos = float(value)
-        self.visuals_changed.emit()
+    #: The relative position (from the pattern offset) for pattern labels
+    #: as a fraction of the patterns intensity
+    display_label_pos = FloatProperty(
+        default=settings.LABEL_POSITION, text="Default label position",
+        visible=True, persistent=True, widget_type="float_entry",
+        mix_with=(SignalMixin,), signal_name="visuals_changed"
+    )
 
-    _axes_xlimit = settings.AXES_XLIMIT
-    @property
-    def axes_xlimit(self):
-        """ What type of scale to use for X-axis, automatic or manual """
-        return self._axes_xlimit
-    @axes_xlimit.setter
-    def axes_xlimit(self, value):
-        self._axes_xlimit = int(value)
-        self.visuals_changed.emit()
+    #: What type of scale to use for X-axis, automatic or manual
+    axes_xlimit = IntegerChoiceProperty(
+        default=settings.AXES_XLIMIT, text="X limit",
+        visible=True, persistent=True,
+        choices=settings.AXES_XLIMITS,
+        mix_with=(SignalMixin,), signal_name="visuals_changed"
+    )
 
-    _axes_ynormalize = settings.AXES_YNORMALIZE
-    @property
-    def axes_ynormalize(self):
-        """ What type of y-axis to use: raw counts, single or 
-        multi-normalized units """
-        return self._axes_ynormalize
-    @axes_ynormalize.setter
-    def axes_ynormalize(self, value):
-        self._axes_ynormalize = int(value)
-        self.visuals_changed.emit()
+    #: The default angle at which marker labels are displayed
+    display_marker_angle = FloatProperty(
+        default=settings.MARKER_ANGLE, text="Angle",
+        visible=True, persistent=True, widget_type="float_entry",
+        mix_with=(SignalMixin,), signal_name="visuals_changed"
+    )
 
-    _axes_ylimit = settings.AXES_YLIMIT
-    @property
-    def axes_ylimit(self):
-        """ Whether to use automatic or manual Y limits """
-        return self._axes_ylimit
-    @axes_ylimit.setter
-    def axes_ylimit(self, value):
-        self._axes_ylimit = int(value)
-        self.visuals_changed.emit()
+    #: The default offset for marker labels
+    display_marker_top_offset = FloatProperty(
+        default=settings.MARKER_TOP_OFFSET, text="Offset from base",
+        visible=True, persistent=True, widget_type="float_entry",
+        mix_with=(SignalMixin,), signal_name="visuals_changed"
+    )
 
-    _display_marker_align = settings.MARKER_ALIGN
-    @property
-    def display_marker_align(self):
-        """ The default marker label alignment (one of settings.MARKER_ALIGNS) """
-        return self._display_marker_align
-    @display_marker_align.setter
-    def display_marker_align(self, value):
-        self._display_marker_align = value
-        self.visuals_changed.emit()
+    #: The default marker label alignment (one of settings.MARKER_ALIGNS)
+    display_marker_align = StringChoiceProperty(
+        default=settings.MARKER_ALIGN, text="Label alignment",
+        visible=True, persistent=True,
+        choices=settings.MARKER_ALIGNS,
+        mix_with=(SignalMixin,), signal_name="visuals_changed"
+    )
 
-    _display_marker_base = settings.MARKER_BASE
-    @property
-    def display_marker_base(self):
-        """ The default marker label base (one of settings.MARKER_BASES) """
-        return self._display_marker_base
-    @display_marker_base.setter
-    def display_marker_base(self, value):
-        self._display_marker_base = int(value)
-        self.visuals_changed.emit()
+    #: The default marker label base (one of settings.MARKER_BASES)
+    display_marker_base = IntegerChoiceProperty(
+        default=settings.MARKER_BASE, text="Base connection",
+        visible=True, persistent=True,
+        choices=settings.MARKER_BASES,
+        mix_with=(SignalMixin,), signal_name="visuals_changed"
+    )
 
-    _display_marker_top = settings.MARKER_TOP
-    @property
-    def display_marker_top(self):
-        """ The default marker label top (one of settings.MARKER_TOPS) """
-        return self._display_marker_top
-    @display_marker_top.setter
-    def display_marker_top(self, value):
-        self._display_marker_top = int(value)
-        self.visuals_changed.emit()
+    #: The default marker label top (one of settings.MARKER_TOPS)
+    display_marker_top = IntegerChoiceProperty(
+        default=settings.MARKER_TOP, text="Top connection",
+        visible=True, persistent=True,
+        choices=settings.MARKER_TOPS,
+        mix_with=(SignalMixin,), signal_name="visuals_changed"
+    )
 
-    _display_marker_style = settings.MARKER_STYLE
-    @property
-    def display_marker_style(self):
-        """ The default marker style (one of settings.MARKER_STYLES)"""
-        return self._display_marker_style
-    @display_marker_style.setter
-    def display_marker_style(self, value):
-        self._display_marker_style = value
-        self.visuals_changed.emit()
+    #: The default marker style (one of settings.MARKER_STYLES)
+    display_marker_style = StringChoiceProperty(
+        default=settings.MARKER_STYLE, text="Line style",
+        visible=True, persistent=True,
+        choices=settings.MARKER_STYLES,
+        mix_with=(SignalMixin,), signal_name="visuals_changed"
+    )
 
-    _display_calc_color = settings.CALCULATED_COLOR
-    @property
-    def display_calc_color(self):
-        """ The default calculated profile color """
-        return self._display_calc_color
-    @display_calc_color.setter
-    def display_calc_color(self, value):
-        self._display_calc_color = value
-        self.visuals_changed.emit()
+    #: The default marker color
+    display_marker_color = StringProperty(
+        default=settings.MARKER_COLOR, text="Color",
+        visible=True, persistent=True, widget_type="color",
+        mix_with=(SignalMixin,), signal_name="visuals_changed"
+    )
 
-    _display_exp_color = settings.EXPERIMENTAL_COLOR
-    @property
-    def display_exp_color(self):
-        """ The default experimental profile color """
-        return self._display_exp_color
-    @display_exp_color.setter
-    def display_exp_color(self, value):
-        self._display_exp_color = value
-        self.visuals_changed.emit()
+    #: The default calculated profile color
+    display_calc_color = StringProperty(
+        default=settings.CALCULATED_COLOR, text="Calculated color",
+        visible=True, persistent=True, widget_type="color",
+        mix_with=(SignalMixin,), signal_name="visuals_changed"
+    )
 
-    _display_marker_color = settings.MARKER_COLOR
-    @property
-    def display_marker_color(self):
-        """ The default marker color """
-        return self._display_marker_color
-    @display_marker_color.setter
-    def display_marker_color(self, value):
-        self._display_marker_color = value
-        self.visuals_changed.emit()
+    #: The default experimental profile color
+    display_exp_color = StringProperty(
+        default=settings.EXPERIMENTAL_COLOR, text="Experimental color",
+        visible=True, persistent=True, widget_type="color",
+        mix_with=(SignalMixin,), signal_name="visuals_changed"
+    )
 
-    _display_calc_lw = settings.CALCULATED_LINEWIDTH
-    @property
-    def display_calc_lw(self):
-        """ The default calculated profile line width """
-        return self._display_calc_lw
-    @display_calc_lw.setter
-    def display_calc_lw(self, value):
-        if value != self._display_calc_lw:
-            self._display_calc_lw = float(value)
-            self.visuals_changed.emit()
+    #: The default calculated profile line width
+    display_calc_lw = IntegerProperty(
+        default=settings.CALCULATED_LINEWIDTH, text="Calculated line width",
+        visible=True, persistent=True, widget_type="spin",
+        mix_with=(SignalMixin,), signal_name="visuals_changed"
+    )
 
-    _display_exp_lw = settings.EXPERIMENTAL_LINEWIDTH
-    @property
-    def display_exp_lw(self):
-        """ The default experimental profile line width """
-        return self._display_exp_lw
-    @display_exp_lw.setter
-    def display_exp_lw(self, value):
-        if value != self._display_exp_lw:
-            self._display_exp_lw = float(value)
-            self.visuals_changed.emit()
+    #: The default experimental profile line width
+    display_exp_lw = IntegerProperty(
+        default=settings.EXPERIMENTAL_LINEWIDTH, text="Experimental line width",
+        visible=True, persistent=True, widget_type="spin",
+        mix_with=(SignalMixin,), signal_name="visuals_changed"
+    )
 
-    _display_calc_ls = settings.CALCULATED_LINESTYLE
-    @property
-    def display_calc_ls(self):
-        """ The default calculated profile linestyle """
-        return self._display_calc_ls
-    @display_calc_ls.setter
-    def display_calc_ls(self, value):
-        self._display_calc_ls = value
-        self.visuals_changed.emit()
+    #: The default calculated profile line style
+    display_calc_ls = StringChoiceProperty(
+        default=settings.CALCULATED_LINESTYLE, text="Calculated line style",
+        visible=True, persistent=True,
+        choices=settings.PATTERN_LINE_STYLES,
+        mix_with=(SignalMixin,), signal_name="visuals_changed"
+    )
 
-    _display_exp_ls = settings.EXPERIMENTAL_LINESTYLE
-    @property
-    def display_exp_ls(self):
-        """ The default experimental profile linestyle """
-        return self._display_exp_ls
-    @display_exp_ls.setter
-    def display_exp_ls(self, value):
-        self._display_exp_ls = value
-        self.visuals_changed.emit()
+    #: The default experimental profile line style
+    display_exp_ls = StringChoiceProperty(
+        default=settings.EXPERIMENTAL_LINESTYLE, text="Experimental line style",
+        visible=True, persistent=True,
+        choices=settings.PATTERN_LINE_STYLES,
+        mix_with=(SignalMixin,), signal_name="visuals_changed"
+    )
 
-    _display_calc_marker = settings.CALCULATED_MARKER
-    @property
-    def display_calc_marker(self):
-        """ The default calculated profile marker """
-        return self._display_calc_marker
-    @display_calc_marker.setter
-    def display_calc_marker(self, value):
-        self._display_calc_marker = value
-        self.visuals_changed.emit()
+    #: The default calculated profile line style
+    display_calc_marker = StringChoiceProperty(
+        default=settings.CALCULATED_MARKER, text="Calculated line marker",
+        visible=True, persistent=True,
+        choices=settings.PATTERN_MARKERS,
+        mix_with=(SignalMixin,), signal_name="visuals_changed"
+    )
 
-    _display_exp_marker = settings.EXPERIMENTAL_MARKER
-    @property
-    def display_exp_marker(self):
-        """ The default experimental profile marker """
-        return self._display_exp_marker
-    @display_exp_marker.setter
-    def display_exp_marker(self, value):
-        self._display_exp_marker = value
-        self.visuals_changed.emit()
+    #: The default calculated profile line style
+    display_exp_marker = StringChoiceProperty(
+        default=settings.EXPERIMENTAL_MARKER, text="Experimental line marker",
+        visible=True, persistent=True,
+        choices=settings.PATTERN_MARKERS,
+        mix_with=(SignalMixin,), signal_name="visuals_changed"
+    )
 
     #: The list of specimens
-    specimens = []
+    specimens = ListProperty(
+        default=[], text="Specimens", data_type=Specimen,
+        visible=True, persistent=True,
+    )
+
     #: The list of phases
-    phases = []
+    phases = ListProperty(
+        default=[], text="Phases", data_type=Phase,
+        visible=False, persistent=True
+    )
+
     #: The list of atom types
-    atom_types = []
+    atom_types = ListProperty(
+        default=[], text="Atom types", data_type=AtomType,
+        visible=False, persistent=True
+    )
+
     #: The list of mixtures
-    mixtures = []
+    mixtures = ListProperty(
+        default=[], text="Mixture", data_type=Mixture,
+        visible=False, persistent=True
+    )
 
     # ------------------------------------------------------------
     #      Initialization and other internals
@@ -442,7 +359,7 @@ class Project(DataModel, Storable):
         my_kwargs = self.pop_kwargs(kwargs,
             "goniometer", "data_goniometer", "data_atom_types", "data_phases",
             "axes_yscale", "axes_xscale", "filename", "behaviours",
-            *[names[0] for names in type(self).Meta.get_local_storable_properties()]
+            *[prop.label for prop in Project.Meta.get_local_persistent_properties()]
         )
         super(Project, self).__init__(*args, **kwargs)
         kwargs = my_kwargs
@@ -608,13 +525,13 @@ class Project(DataModel, Storable):
             item.parent = None
             self.relieve_model(item)
 
-    @Observer.observe("data_changed", signal=True)
+    @DataModel.observe("data_changed", signal=True)
     def notify_data_changed(self, model, prop_name, info):
         self.needs_saving = True
         if isinstance(model, Mixture):
             self.data_changed.emit()
 
-    @Observer.observe("visuals_changed", signal=True)
+    @DataModel.observe("visuals_changed", signal=True)
     def notify_visuals_changed(self, model, prop_name, info):
         self.needs_saving = True
         self.visuals_changed.emit() # propagate signal

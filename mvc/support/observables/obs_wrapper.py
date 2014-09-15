@@ -28,7 +28,8 @@ from .base import ObsWrapperBase
 
 class ObsWrapper (ObsWrapperBase):
     """
-    Base class for wrappers, like user-classes and sequences. 
+    Base class for wrappers, like user-classes and sequences.
+    Use sub-classes!
     """
 
     def __init__(self, obj, method_names):

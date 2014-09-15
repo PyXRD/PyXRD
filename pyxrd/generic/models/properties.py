@@ -5,26 +5,37 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from mvc.models.properties import LabeledProperty
+from ..utils import rec_getattr
 
-class SignalProperty(LabeledProperty):
+class InheritableMixin(object):
     """
-     A descriptor that will invoke a signal on the instance
-     owning this property when set. 
-     Expects it's label to be set or passed to __init__.
+    Mixing for the ~:class:`mvc.models.properties.LabeledProperty` descriptor
+    that allows the property to be inheritable from another property.
+    When this Mixin is used, the user should pass two additional keyword 
+    arguments to the descriptor:
+        - inheritable: boolean set to True if inheriting should be enabled
+        - inherit_flag: dotted string describing where to get the flag 
+          indicating the property is inherited yes/no
+        - inherit_from: dotted string describing where to get the attribute if
+          the inherit_flag is True 
     """
 
-    label = None
+    inheritable = True
+    inherit_flag = None
+    inherit_from = None
 
-    def __init__(self, signal_name="data_changed", *args, **kwargs):
-        super(SignalProperty, self).__init__(*args, **kwargs)
-        self.signal_name = signal_name
+    def __get__(self, instance, owner=None):
+        if instance is None:
+            return self
+        value = super(InheritableMixin, self).__get__(instance, owner)
+        if self.inheritable and rec_getattr(instance, self.inherit_flag, False):
+            value = rec_getattr(instance, self.inherit_from, value)
+        return value
 
-    def __set__(self, instance, value):
-        with getattr(instance, "signal_name").hold_and_emit():
-            super(SignalProperty, self).__set__(instance, value)
+    def get_uninherited(self, instance, owner=None):
+        return super(InheritableMixin, self).__get__(instance, owner)
 
-    pass # end of class
+    pass #end of class
 
 class IndexProperty(object):
     """Descriptor used to create indexable properties (e.g. W[1,1])"""
@@ -58,6 +69,8 @@ class IndexProperty(object):
     def deleter(self, fdel):
         return IndexProperty(self._get, self._set, fdel, self.__doc__)
 
+    pass #end of class
+
 class BoundIndexProperty(object):
 
     def __init__(self, item_property, instance):
@@ -81,3 +94,5 @@ class BoundIndexProperty(object):
         if fdel is None:
             raise AttributeError, "can't delete attribute item"
         fdel(self.__instance, key)
+
+    pass #end of class

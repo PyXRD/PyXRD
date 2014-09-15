@@ -26,12 +26,12 @@ import gtk
 from ..abstract_adapter import AbstractAdapter
 
 def wrap_property_to_treemodel_type(model, prop, treemodel_type):
-    prop_value = getattr(model, prop.name)
+    prop_value = getattr(model, prop.label)
     if not isinstance(prop_value, gtk.TreeModel):
-        wrapper = getattr(model, "__%s_treemodel_wrapper" % prop.name, None)
-        if wrapper is None or not wrapper.is_wrapping(model, prop.name):
+        wrapper = getattr(model, "__%s_treemodel_wrapper" % prop.label, None)
+        if wrapper is None or not wrapper.is_wrapping(model, prop.label):
             wrapper = treemodel_type(model, prop)
-        setattr(model, "__%s_treemodel_wrapper" % prop.name, wrapper)
+        setattr(model, "__%s_treemodel_wrapper" % prop.label, wrapper)
         prop_value = wrapper
     return prop_value
 
@@ -84,7 +84,7 @@ class AbstractTreeViewAdapter(AbstractAdapter):
 
     def _connect_widget(self):
         self._widget.set_model(self._treestore)
-        setup = getattr(self._controller, "setup_%s_tree_view" % self._prop.name, None)
+        setup = getattr(self._controller, "setup_%s_tree_view" % self._prop.label, None)
         if callable(setup):
             setup(self._treestore, self._widget)
 
@@ -120,9 +120,9 @@ class ObjectListViewAdapter(AbstractTreeViewAdapter):
     widget_types = ["object_list_view", ]
 
     def __init__(self, controller, prop, widget):
-        assert hasattr(prop, "class_type"), "ObjectTreeViewAdapter requires the " + \
-            "'class_type' attribute to be set on the PropIntel to adapt.\n" + \
-            "Controller: '%s', Model: '%s', Property: '%s'" % (controller, controller.model, prop.name)
+        assert hasattr(prop, "data_type"), "ObjectTreeViewAdapter requires the " + \
+            "'data_type' attribute to be set on the property descriptor.\n" + \
+            "Controller: '%s', Model: '%s', Property: '%s'" % (controller, controller.model, prop.label)
         self._treestore = wrap_list_property_to_treemodel(controller.model, prop)
         super(ObjectListViewAdapter, self).__init__(controller, prop, widget)
 

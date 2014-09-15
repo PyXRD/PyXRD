@@ -26,6 +26,11 @@
 from .obs_wrapper import ObsWrapper
 
 class ObsSeqWrapper (ObsWrapper):
+    """
+        Base class for ObsListWrapper, ObsMapWrapper, ...
+        Use sub-classes, not this base class!
+    """
+
     def __init__(self, obj, method_names):
         ObsWrapper.__init__(self, obj, method_names)
 

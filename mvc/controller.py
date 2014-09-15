@@ -51,7 +51,7 @@ class Controller(Observer):
         assert self.model is not None, \
             "Controller '%s' has None as model! Did you forget to pass it as a keyword argument?" % self
         if not self._controller_scope_aplied:
-            props = [prop.name for prop in self.model.Meta.all_properties]
+            props = [prop.label for prop in self.model.Meta.all_properties]
             if self.auto_adapt_included is not None:
                 self.__parsed_user_props = self.__parsed_user_props.union(set(filter(lambda p: p not in self.auto_adapt_included, props)))
             elif self.auto_adapt_excluded is not None:
@@ -240,8 +240,8 @@ class Controller(Observer):
             adapters = []
             props = self.model.Meta.get_viewable_properties()
             # matches all properties not previously adapted by the user:
-            for prop in filter(lambda p: p.name not in self.__user_props, props):
-                try: wid_name = self._find_widget_match(prop.name)
+            for prop in filter(lambda p: p.label not in self.__user_props, props):
+                try: wid_name = self._find_widget_match(prop)
                 except TooManyCandidatesError, e:
                     # multiple candidates, gives up
                     raise e
@@ -251,10 +251,10 @@ class Controller(Observer):
                         logger.warn(e[0])
                     else:
                         logger.warn("No widget candidates match property '%s'"
-                            % prop.name)
+                            % prop.label)
                 else:
                     logger.debug("Auto-adapting property %s and widget %s" % \
-                                     (prop.name, wid_name))
+                                     (prop.label, wid_name))
                     adapters += self.__create_adapters__(prop, wid_name)
                     pass
                 pass
@@ -265,8 +265,8 @@ class Controller(Observer):
             if isinstance(args[0], AbstractAdapter): adapters = (args[0],)
 
             elif isinstance(args[0], types.StringType):
-                prop_name = args[0]
-                wid_name = self._find_widget_match(prop_name)
+                prop = getattr(type(self.model), args[0])
+                wid_name = self._find_widget_match(prop)
                 adapters = self.__create_adapters__(prop, wid_name)
                 pass
             else: raise TypeError("Argument of adapt() must be either an Adapter or a string")
@@ -276,7 +276,7 @@ class Controller(Observer):
                 raise TypeError("Arguments of adapt() must be two strings")
 
             # retrieves both property and widget, and creates an adapter
-            prop_name, wid_name = args
+            prop_name, wid_name = args #@UnusedVariable
             adapters = self.__create_adapters__(prop, wid_name)
             pass
 
@@ -288,7 +288,7 @@ class Controller(Observer):
 
         return
 
-    def _find_widget_match(self, prop_name):
+    def _find_widget_match(self, prop):
         """
         Checks if the view has defined a 'widget_format' attribute (e.g. 
         "view_%s") If so, it uses this format to search for the widget in 
@@ -296,31 +296,27 @@ class Controller(Observer):
         property name.
         """
 
-        # TODO this should really be implemented by the view...
-        # PropIntel could provide hooks for adding/creating (custom) widgets
-
         widget_name = None
         widget_format = getattr(self.view, 'widget_format', "%s")
 
         if widget_format:
-            widget_name = widget_format % prop_name
+            widget_name = widget_format % prop.label
             widget = self.view[widget_name]
             if widget is None: # not in view
-                intel = self.model.Meta.get_prop_intel_by_name(prop_name)
-                if intel is not None and intel.widget_type == 'scale':
-                        self.view.add_scale_widget(intel, widget_format=widget_format)
+                if prop is not None and prop.widget_type == 'scale':
+                        self.view.add_scale_widget(prop, widget_format=widget_format)
                 else:
                     widget_name = None
 
         else:
             for wid_name in self.view:
-                if wid_name.lower().endswith(prop_name.lower()):
+                if wid_name.lower().endswith(prop.label.lower()):
                     widget_name = wid_name
                     break
 
         if widget_name == None:
             logger.setLevel(logging.INFO)
-            raise ValueError("No widget candidates match property '%s'" % prop_name)
+            raise ValueError("No widget candidates match property '%s'" % prop.label)
 
         return widget_name
 
@@ -366,8 +362,8 @@ class Controller(Observer):
             that are returned as a list.
         """
         try:
-            logger.debug("Adapting property %s to widget names '%s'" % (prop.name, wid_name))
-            if prop.has_widget:
+            logger.debug("Adapting property %s to widget names '%s'" % (prop.label, wid_name))
+            if prop.visible:
 
                 wid = self.view[wid_name]
                 if wid == None:
@@ -382,6 +378,6 @@ class Controller(Observer):
             else:
                 return []
         except any as error:
-            raise RuntimeError(error), "Unhandled error in '%s'.__create_adapters__ for property '%s' and widget '%s'!" % (type(self), prop.name, wid_name)
+            raise RuntimeError(error), "Unhandled error in '%s'.__create_adapters__ for property '%s' and widget '%s'!" % (type(self), prop.label, wid_name)
 
     pass # end of class Controller

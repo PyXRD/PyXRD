@@ -27,12 +27,5 @@ logger = logging.getLogger(__name__)
 
 from .base import Model
 from .treenode import TreeNode
-from .prop_intel import PropIntel, OptionPropIntel, UUIDPropIntel
 
-__all__ = [
-    "Model",
-    "TreeNode",
-    "PropIntel",
-    "OptionPropIntel",
-    "UUIDPropIntel"
-]
+__all__ = [ "Model", "TreeNode" ]

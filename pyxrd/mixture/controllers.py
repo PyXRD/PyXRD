@@ -36,16 +36,14 @@ class EditMixtureController(BaseController):
     @property
     def specimens_treemodel(self):
         if self.model.project is not None:
-            prop = self.model.project.Meta.get_prop_intel_by_name("specimens")
-            return wrap_list_property_to_treemodel(self.model.project, prop)
+            return wrap_list_property_to_treemodel(self.model.project, type(self.model.project).specimens)
         else:
             return None
 
     @property
     def phases_treemodel(self):
         if self.model.project is not None:
-            prop = self.model.project.Meta.get_prop_intel_by_name("phases")
-            return wrap_list_property_to_treemodel(self.model.project, prop)
+            return wrap_list_property_to_treemodel(self.model.project, type(self.model.project).phases)
         else:
             return None
 

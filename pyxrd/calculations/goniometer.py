@@ -22,7 +22,7 @@ def get_S(soller1, soller2):
 def get_lorentz_polarisation_factor(range_theta, sigma_star, soller1, soller2):
     """
         Get the lorentz polarisation factor for the given sigma-star value,
-        soller slits over the given theta range
+        soller slits and the given theta range
     """
     sigma_star = float(max(sigma_star, 1e-18))
     S, _ = get_S(soller1, soller2)

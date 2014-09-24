@@ -34,8 +34,11 @@ extensions = [
     'sphinx.ext.coverage',
     'sphinx.ext.viewcode',
     'sphinx.ext.autosummary',
-    'sphinx.ext.pngmath'
+    'sphinx.ext.pngmath',
+    'sphinx.ext.intersphinx'
 ]
+
+intersphinx_mapping = {'python': ('http://docs.python.org/2.7', None)}
 
 pngmath_latex_preamble = r"""
 \usepackage{mathtools}

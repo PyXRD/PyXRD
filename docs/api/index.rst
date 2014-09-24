@@ -15,9 +15,11 @@ Library Reference - API
    :maxdepth: 2
    
    atoms
-   goniometer
-   mixture
-   phases
    probabilities
-   project
+   phases
+   goniometer
    specimen
+   mixture
+   project
+   calculations
+   

@@ -37,6 +37,12 @@ def setup_project(projectf):
 
 @wrap_exceptions
 def run_refinement(projectf, mixture_index, options):
+    """
+        Runs a refinement setup for 
+            - projectf: project data
+            - mixture_index: what mixture in the project to use
+            - options: refinement options
+    """
     if projectf is not None:
         from pyxrd.data import settings
         settings.CACHE = None

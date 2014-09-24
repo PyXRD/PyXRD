@@ -17,6 +17,19 @@ logger = logging.getLogger(__name__)
 
 @cache(64)
 def get_structure_factors(range_stl, G, comp_list):
+    """
+        Calculates the structure factor and phase factor for:
+        
+            - range_stl: numpy array of 2*sin(θ) / λ values
+            - G: the number of components (layer types)
+            - comp_list: list of 
+              :class:`~pyxrd.calculations.data_objects.ComponentData` instances
+               
+        This function calls :meth:`~pyxrd.calculations.components.get_factors`
+        for each component in `comp_list` and stores the returned structure 
+        factors and phase difference factors in a numpy array (of type complex)
+        with shape (X, G) where X is expanded to fit the shape of `range_stl`.
+    """
     shape = range_stl.shape + (G,)
     SF = np.zeros(shape, dtype=np.complex_)
     PF = np.zeros(shape, dtype=np.complex_)
@@ -79,7 +92,7 @@ def get_diffracted_intensity(range_stl, phase):
         SFa = np.repeat(SF[..., np.newaxis, :], SF.shape[1], axis=1)
         SFb = np.transpose(np.conjugate(SFa), axes=(0, 2, 1))
 
-        # Calculate the repition factor for R+ probabilities:
+        # Calculate the repetition factor for R+ probabilities:
         rank = P.shape[1]
         reps = rank / phase.G
 

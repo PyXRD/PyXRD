@@ -31,7 +31,7 @@ class InlineGoniometerController(BaseController):
         # TODO seperate this more the gtk level...
         self.view.import_combo_box.clear()
         path, ext = Goniometer.get_default_goniometers_path()
-        cmb_model = create_treestore_from_directory(path, ext)
+        cmb_model = create_treestore_from_directory(path, ext[1:])
         self.view.import_combo_box.set_model(cmb_model)
         cell = gtk.CellRendererText()
         self.view.import_combo_box.pack_start(cell, True)

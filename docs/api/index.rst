@@ -4,8 +4,8 @@
    contain the root `toctree` directive.
 
 
-Library Reference - API
-=======================
+Library API Reference
+=====================
 
 .. automodule:: pyxrd
 

@@ -1,5 +1,5 @@
-Atoms
-=====
+Atoms module
+============
 
 .. module:: pyxrd.atoms.models
 

@@ -65,7 +65,7 @@ This is what should be present on your system.
  * Setuptools 1.4.1
  * PyGTK 2.24.2 or later
  * Numpy 1.7.0 or later
- * Scipy 0.11.0 or later
+ * Scipy 0.14.0 or later
  * Matplotlib 1.2.1 or later
  * PyParsing 1.5.7 or later
  * (optional) DEAP 1.0.0 or later
@@ -81,7 +81,7 @@ just download and install these, in the order given:
  2. [Setuptools 1.4.1](http://www.lfd.uci.edu/~gohlke/pythonlibs/v92jt8xn/setuptools-1.4.1.win32-py2.7.exe)
  3. [PyGTK 2.24.2](http://ftp.gnome.org/pub/GNOME/binaries/win32/pygtk/2.24/pygtk-all-in-one-2.24.2.win32-py2.7.msi)
  4. [Numpy 1.7.0](http://sourceforge.net/projects/numpy/files/NumPy/1.7.0/numpy-1.7.0-win32-superpack-python2.7.exe/download)
- 5. [Scipy 0.11.0](http://sourceforge.net/projects/scipy/files/scipy/0.11.0/scipy-0.11.0-win32-superpack-python2.7.exe/download)
+ 5. [Scipy 0.14.0](http://sourceforge.net/projects/scipy/files/scipy/0.14.0/scipy-0.14.0-win32-superpack-python2.7.exe/download)
  6. [Matplotlib 1.2.1](https://downloads.sourceforge.net/project/matplotlib/matplotlib/matplotlib-1.2.1/matplotlib-1.2.1.win32-py2.7.exe)
  7. [PyParsing 1.5.7](http://sourceforge.net/projects/pyparsing/files/pyparsing/pyparsing-1.5.7/pyparsing-1.5.7.win32-py2.7.exe/download)
  8. [PyXRD](https://github.com/mathijs-dumon/PyXRD/releases)
@@ -95,9 +95,10 @@ for DEAP, so you'll need to instruct Python to fetch it from the Python package 
  * Open a command line (Start button -> Search -> enter 'cmd.exe' -> press enter)
  * Type in the following command (no quotes): 
 ```
-easy_install deap
+C:\Python27\Scripts\easy_install.exe deap
 ```
- * If all went well you should have the latest version of DEAP installed now.
+ * If all went well you should have the latest version of DEAP installed now. 
+   Somtimes it is neccesary to run the command line as administrator
  
 Linux
 -----

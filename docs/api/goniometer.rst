@@ -1,5 +1,5 @@
-Goniometer
-==========
+Goniometer module
+=================
 
 .. automodule:: pyxrd.goniometer.models
    :members:

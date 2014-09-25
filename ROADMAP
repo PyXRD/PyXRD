@@ -1,11 +1,9 @@
+0.x - DOCS: improve documentation status, 
+      example of good status is the calculations or probabilities module
 0.6 - Sybilla Support:
         - export to Sybilla's XML format?
     - Create a SpecimensController (mind the s) that handles most of the specimen
       selection/deletion/creation control now in the Application and ProjectControllers.
       Could be similar to the PhasesController etc. (even though the views are a bit different) 
-0.7 - split layers and interlayers in two separate parts, each with their own
-      atoms, dimensions and atom relations (usually the content of both are not related to one other, check this)
-      this would allow chlorite interlayers to change their dimensions based on both the iron content in the
-      interlayer sheet as well as the silica sheet.
-      Would require some sort of definition of how these units are stacked
 0.8 - implement new 'charge unit' algorithm
+    - implement true PSO-CMA-ES hybrid algorithm

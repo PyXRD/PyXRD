@@ -124,6 +124,8 @@ class Algorithm(AsyncEvaluatedAlgorithm):
         self.stagn_tol = stagn_tol
         self.context = context
 
+        self.gen = 0
+
         self._stop = stop
 
     #--------------------------------------------------------------------------
@@ -307,6 +309,7 @@ class RefineCMAESRun(RefineRun):
 
     def run(self, context, **kwargs):
         logger.info("CMA-ES run invoked with %s" % kwargs)
+        self._has_been_setup = False #clear this for a new refinement
         algorithm = self._setup(context, **kwargs)
         # Get this show on the road:
         logger.info("Running the CMA-ES algorithm...")

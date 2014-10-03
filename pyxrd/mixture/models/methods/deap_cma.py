@@ -9,8 +9,9 @@ import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-from math import log
+from math import log, sqrt, exp
 
+import copy
 import numpy as np
 import scipy
 
@@ -33,10 +34,40 @@ class Strategy(cma.StrategyOnePlusLambda):
         next individual when needed) on larger population sizes.
     """
 
-    def __init__(self, centroid, sigma, **kwargs):
+    def __init__(self, parent, sigma, **kwargs):
         if not "lambda_" in kwargs:
-            kwargs["lambda_"] = int(25 + min(3 * log(len(centroid)), 75)) #@UndefinedVariable
-        super(Strategy, self).__init__(centroid, sigma, ** kwargs)
+            kwargs["lambda_"] = int(25 + min(3 * log(len(parent)), 75)) #@UndefinedVariable
+        super(Strategy, self).__init__(parent, sigma, **kwargs)
+
+    def update(self, population):
+        """Update the current covariance matrix strategy from the
+        *population*.
+        
+        :param population: A list of individuals from which to update the
+                           parameters.
+        """
+        population.sort(key=lambda ind: ind.fitness, reverse=True)
+        lambda_succ = sum(self.parent.fitness <= ind.fitness for ind in population)
+        p_succ = float(lambda_succ) / self.lambda_
+        self.psucc = (1 - self.cp) * self.psucc + self.cp * p_succ
+
+        if self.parent.fitness <= population[0].fitness:
+            x_step = (population[0] - np.array(self.parent)) / self.sigma
+            self.parent = copy.deepcopy(population[0])
+            if self.psucc < self.pthresh:
+                self.pc = (1 - self.cc) * self.pc + sqrt(self.cc * (2 - self.cc)) * x_step
+                self.C = (1 - self.ccov) * self.C + self.ccov * np.outer(self.pc, self.pc)
+            else:
+                self.pc = (1 - self.cc) * self.pc
+                self.C = (1 - self.ccov) * self.C + self.ccov * (np.outer(self.pc, self.pc) + self.cc * (2 - self.cc) * self.C)
+
+        self.sigma = self.sigma * exp(1.0 / self.d * (self.psucc - self.ptarg) / (1.0 - self.ptarg))
+
+        self.diagD, self.B = np.linalg.eig(self.C)
+        indx = np.argsort(self.diagD)
+        self.diagD = self.diagD[indx] ** 0.5
+        self.B = self.B[:, indx]
+        self.A = self.B * self.diagD
 
     def generate(self, ind_init):
         """Generate a population from the current strategy using the 
@@ -284,7 +315,7 @@ class RefineCMAESRun(RefineRun):
             if "lambda_" in kwargs:
                 strat_kwargs["lambda_"] = kwargs.pop("lambda_")
             strategy = Strategy(
-                centroid=centroid, sigma=sigma,
+                parent=centroid, sigma=sigma,
                 stop=self._stop, **strat_kwargs
             )
 

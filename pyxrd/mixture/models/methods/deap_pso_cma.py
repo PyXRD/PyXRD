@@ -7,74 +7,315 @@
 
 import logging
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
-from pyxrd.generic.async import HasAsyncCalls
+import functools, random, copy
+from itertools import izip
+from math import log
+
 import numpy as np
 
+from deap import creator, base, tools #@UnresolvedImport
+
+from pyxrd.generic.async import HasAsyncCalls
+
 from .refine_run import RefineRun
+from .deap_utils import pyxrd_array, evaluate, PyXRDParetoFront, FitnessMin
+from .deap_cma import Strategy
 
-from .deap_swarm import RefineMPSORun
-from .deap_pcma import RefinePCMAESRun
+# Default settings:
+NGEN = 100
+NGEN_COMM = 5
+NSWARMS = 4
 
-# IDEALLY, THIS SHOULD BE EQUAL OR LOWER TO NUMBER OF PROCESSES IN THE POOL:
-PCMA_NUM_RUNS = 4
-CMA_STAGN_TOL = 0.001
-CMA_STAGN_NGEN = 10
-CMA_NGEN = 80
-CMA_NUM_RESTARTS = 1
+class SwarmStrategy(object):
 
-PSO_NGEN = 20
-PSO_NSWARMS = 4
-PSO_NEXCESS = 4
-PSO_NPARTICLES = 10
-PSO_CONV_FACTR = 0.3
+    def __create_strategy(self, parent, sigma, **kwargs):
+        return Strategy(
+            parent=parent, sigma=sigma,
+            lambda_=int(25 + min(3 * log(len(parent)), 75)),
+            stop=self._stop, **kwargs
+        )
 
-class RefineMPSOCMAESRun(RefineRun, HasAsyncCalls):
-    """
-        Algorithm that will first run a MPSO strategy to get a number of different
-        starting points which are then used in a parallel CMA-ES run.
-    """
-    name = "MPSO CMA-ES refinement"
-    description = "Multiple PSO chained to a parallel CMA-ES refinement"
+    def __init__(self, parents, sigma, stop, **kwargs):
+        self.nswarms = len(parents)
+        self._stop = stop
+        self.strategies = [self.__create_strategy(parents[i], sigma, **kwargs) for i in range(self.nswarms)]
+        self.global_best = None
 
-    options = [
-        ('PSO Maximum # of generations', 'pso_ngen', int, PSO_NGEN, [1, 10000]),
-        ('PSO Start # of swarms', 'nswarms', int, PSO_NSWARMS, [1, 50]),
-        ('PSO Max # of unconverged swarms', 'nexcess', int, PSO_NEXCESS, [1, 50]),
-        ('PSO Swarm size', 'nparticles', int, PSO_NPARTICLES, [1, 50]),
-        ('PSO Convergence tolerance', 'conv_factr', float, PSO_CONV_FACTR, [0., 10.]),
+    def update(self, swarms, communicate=False):
+        for i, population in enumerate(swarms):
+            self.strategies[i].update(population)
+            # Keep track of the global best:
+            best = population[0]
+            if self.global_best == None or self.global_best.fitness < best.fitness:
+                self.global_best = copy.deepcopy(best)
 
-        ('PCMA Instances', 'num_runs', int, PCMA_NUM_RUNS, [1, 10000]),
-        ('PCMA Restarts', 'num_restarts', int, CMA_NUM_RESTARTS, [0, 10]),
-        ('PCMA Total # of generations', 'cma_ngen', int, CMA_NGEN, [1, 10000]),
-        ('PCMA Minimum # of generations', 'stagn_ngen', int, CMA_STAGN_NGEN, [1, 10000]),
-        ('PCMA Fitness stagnation tolerance', 'stagn_tol', float, CMA_STAGN_TOL, [0., 100.]),
+        if communicate:
+            for i, population in enumerate(swarms):
+                self.strategies[i].rotate_and_bias(self.global_best)
 
-    ]
-
-    def run(self, context, **kwargs):
-        pso_kwargs = {}
-        for kw in ["pso_ngen", "nswarms", "nexcess", "nparticles", "conv_factr"]:
-            pso_kwargs[kw] = kwargs.pop(kw)
-        pso_kwargs["ngen"] = pso_kwargs.pop("pso_ngen")
-        cma_kwargs = kwargs
-        cma_kwargs["total_ngen"] = cma_kwargs.pop("cma_ngen")
-
-        mpso = RefineMPSORun()
-        best, population, converged_bests = mpso(context, self._stop, **pso_kwargs) #@UnusedVariable
-
-        bsol = []
-        logger.setLevel(logging.INFO)
-        logger.info("Multiple PSO converged on these points:")
-
-        for b in converged_bests:
-            bsol.append(np.array(b))
-            logger.info(" - %r" % list(b))
-
-        cmaes = RefinePCMAESRun()
-        cmaes(context, self._stop, bsol=bsol, **cma_kwargs)
-
-        context.status_message = "MPSO/CMA-ES finished ..."
-        context.status = "finished"
+    def generate(self, ind_init):
+        for strategy in self.strategies:
+            yield strategy.generate(ind_init)
 
     pass #end of class
+
+
+class SwarmAlgorithm(HasAsyncCalls):
+
+    @property
+    def ngen(self):
+        return self._ngen
+    @ngen.setter
+    def ngen(self, value):
+        self._ngen = value
+        logger.info("Setting ngen to %d" % value)
+    _ngen = 100
+
+    gen = -1
+    halloffame = None
+
+    context = None
+
+    toolbox = None
+    stats = None
+    verbose = False
+
+    #--------------------------------------------------------------------------
+    #    Initialization
+    #--------------------------------------------------------------------------
+    def __init__(self, toolbox, halloffame, stats, ngen=NGEN, ngen_comm=NGEN_COMM,
+                 verbose=__debug__, context=None, stop=None):
+        """
+        :param toolbox: A :class:`~deap.base.Toolbox` that contains the evolution
+                        operators.
+        :param ngen: The number of generations.
+        :param ngen_comm: At each multiple generation of this number swarms will
+                         communicate
+        :param halloffame: A :class:`~deap.tools.ParetoFront` object that will
+                           contain the best individuals.
+        :param stats: A :class:`~deap.tools.Statistics` object that is updated
+                      inplace.
+        :param verbose: Whether or not to log the statistics.
+                    
+        :param context: PyXRD refinement context object
+    
+        :returns: The best individual and the final population.
+        
+        The toolbox should contain a reference to the generate and the update method 
+        of the chosen strategy.
+        
+        Call the run() method when the algorithm should be run.
+    
+        .. [Colette2010] Collette, Y., N. Hansen, G. Pujol, D. Salazar Aponte and
+           R. Le Riche (2010). On Object-Oriented Programming of Optimizers -
+           Examples in Scilab. In P. Breitkopf and R. F. Coelho, eds.:
+           Multidisciplinary Design Optimization in Computational Mechanics,
+           Wiley, pp. 527-565;
+    
+        """
+        self.stats = stats
+        self.toolbox = toolbox
+        self.ngen = ngen
+        self.ngen_comm = ngen_comm
+        self.halloffame = halloffame
+        self.verbose = verbose
+        self.context = context
+
+        self.gen = 0
+
+        self._stop = stop
+
+    #--------------------------------------------------------------------------
+    #    Run method:
+    #--------------------------------------------------------------------------
+    def run(self):
+        """Will run this algorithm"""
+        if self.verbose:
+            column_names = ["gen", "evals", "best"]
+            if self.stats is not None:
+                column_names += self.stats.functions.keys()
+            self.logbook = tools.Logbook()
+            self.logbook.header = column_names
+
+        for _ in range(self.ngen):
+            # Check if the user has cancelled:
+            if self._user_cancelled():
+                logger.info("User cancelled execution, stopping ...")
+                break
+
+            #ASK: Generate a new population:
+            swarms = self._ask()
+            #TELL: Update the strategy with the evaluated individuals
+            self._tell(swarms)
+            #RECORD: For logging:
+            self._record(swarms)
+
+        return self.context.best_solution, [ind for population in swarms for ind in population]
+
+    #--------------------------------------------------------------------------
+    #    Ask, tell & record:
+    #--------------------------------------------------------------------------
+    def _ask(self):
+        self.gen += 1
+        self.context.status_message = "Creating generation #%d" % (self.gen + 1)
+        swarms = []
+        self.do_async_evaluation(swarms)
+        if self.halloffame is not None:
+            self.halloffame.update([ind for population in swarms for ind in population])
+
+        return swarms
+
+    def _tell(self, swarms):
+        self.context.status_message = "Updating strategy"
+        communicate = bool(self.gen > 0 and self.gen % self.ngen_comm == 0)
+        self.toolbox.update(swarms, communicate=communicate)
+
+    def _record(self, swarms):
+        # Get the best solution so far:
+        best = self.halloffame.get_best()
+        best_f = best.fitness.values[0]
+
+        flat_pop = [ind for population in swarms for ind in population]
+        pop_size = len(flat_pop)
+
+        # Calculate stats & print something if needed:
+        record = self.stats.compile(flat_pop)
+        if self.verbose:
+            self.logbook.record(gen=self.gen, evals=pop_size, best=best_f, **record)
+            print self.logbook.stream
+
+        # Update the context:
+        self.context.update(best, best_f)
+        self.context.record_state_data([
+            ("gen", self.gen),
+            ("pop", pop_size),
+            ("best", best_f)
+        ] + [
+            (key, record[key][0]) for key in self.stats.functions.keys()
+        ] + [
+            ("par%d" % i, float(val)) for i, val in enumerate(best)
+        ])
+
+    #--------------------------------------------------------------------------
+    #    Async calls:
+    #--------------------------------------------------------------------------
+    def do_async_evaluation(self, swarms):
+        """ Utility that combines a submit and fetch cycle in a single
+        function call"""
+        if swarms is None:
+            swarms = []
+        all_results = []
+        for generator in self.toolbox.generate():
+            results = []
+            population = []
+            for ind in generator:
+                result = HasAsyncCalls.submit_async_call(functools.partial(self.toolbox.evaluate, ind))
+                population.append(ind)
+                results.append(result)
+                if self._user_cancelled(): # Stop submitting new individuals
+                    break
+            all_results.append(results)
+            swarms.append(population)
+        for population, results in izip(swarms, all_results):
+            for ind, result in izip(population, results):
+                ind.fitness.values = HasAsyncCalls.fetch_async_result(result)
+        del all_results
+
+    pass #end of class
+
+class RefinePSOCMAESRun(RefineRun):
+    """
+        The PS-CMA-ES hybrid algorithm implementation
+    """
+    name = "PS-CMA-ES refinement"
+    description = "This algorithm uses the PS-CMA-ES hybrid refinement strategy"
+
+    options = [
+        ('Maximum # of generations', 'ngen', int, NGEN, [1, 10000]),
+        ('# of CMA swarms', 'nswarms', int, NSWARMS, [1, 100]),
+        ('Communicate each x gens', 'ngen_comm', int, NGEN_COMM, [1, 10000]),
+    ]
+
+    def _individual_creator(self, context, num_weights, bounds):
+        creator.create(
+            "Individual", pyxrd_array,
+            fitness=FitnessMin, # @UndefinedVariable
+            context=context,
+            min_bounds=bounds[:, 0].copy(),
+            max_bounds=bounds[:, 1].copy(),
+        )
+
+        def create_individual(lst):
+            arr = np.array(lst).clip(bounds[:, 0], bounds[:, 1]) #@UndefinedVariable
+            return creator.Individual(arr) # @UndefinedVariable
+
+        return create_individual
+
+    def _create_stats(self):
+        stats = tools.Statistics(lambda ind: ind.fitness.values)
+        stats.register("avg", np.mean, axis=0) #@UndefinedVariable
+        stats.register("std", np.std, axis=0) #@UndefinedVariable
+        stats.register("min", np.min, axis=0) #@UndefinedVariable
+        stats.register("max", np.max, axis=0) #@UndefinedVariable
+        return stats
+
+    _has_been_setup = False
+    def _setup(self, context, ngen=NGEN, ngen_comm=NGEN_COMM, nswarms=NSWARMS, **kwargs):
+        if not self._has_been_setup:
+            logger.info("Setting up the DEAP CMA-ES refinement algorithm (ngen=%d)" % ngen)
+
+            # Process some general stuff:
+            bounds = np.array(context.ranges) #@UndefinedVariable
+            num_weights = len(context.mixture.specimens) + 1
+            create_individual = self._individual_creator(context, num_weights, bounds)
+
+            # Setup strategy:
+
+            #TODO make the others random
+            parents = [None] * nswarms
+            parents[0] = create_individual(context.initial_solution)
+
+            for i in range(1, nswarms):
+                parents[i] = create_individual([
+                   random.uniform(bounds[j, 0], bounds[j, 1]) for j in range(len(context.initial_solution))
+                ])
+
+            sigma = np.array(abs(bounds[:, 0] - bounds[:, 1]) / 20.0) #@UndefinedVariable
+            strategy = SwarmStrategy(
+                parents=parents, sigma=sigma, stop=self._stop,
+            )
+
+            # Toolbox setup:
+            toolbox = base.Toolbox()
+            toolbox.register("evaluate", evaluate)
+            toolbox.register("generate", strategy.generate, create_individual)
+            toolbox.register("update", strategy.update)
+
+            # Hall of fame & stats:
+            logger.info("Creating hall-off-fame and statistics")
+            halloffame = PyXRDParetoFront(similar=lambda a1, a2: np.all(a1 == a2)) #@UndefinedVariable
+            stats = self._create_stats()
+
+            # Create algorithm
+            self.algorithm = SwarmAlgorithm(
+                toolbox, halloffame, stats, ngen=ngen, ngen_comm=ngen_comm,
+                context=context, stop=self._stop)
+
+            self._has_been_setup = True
+        return self.algorithm
+
+    def run(self, context, **kwargs):
+        logger.info("CMA-ES run invoked with %s" % kwargs)
+        self._has_been_setup = False #clear this for a new refinement
+        algorithm = self._setup(context, **kwargs)
+        # Get this show on the road:
+        logger.info("Running the CMA-ES algorithm...")
+        context.status = "running"
+        context.status_message = "Running CMA-ES algorithm ..."
+        algorithm.run()
+        context.status_message = "CMA-ES finished ..."
+        context.status = "finished"
+
+    pass # end of class

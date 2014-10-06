@@ -32,6 +32,8 @@ class Strategy(cma.StrategyOnePlusLambda):
         return a generator instead of an evaluated list.
         This allows for more efficient parallel computing (only generate the
         next individual when needed) on larger population sizes.
+        Also supports the hybrid PSO-CMA runs using the
+        rotate_and_bias function (should be called after an update).
     """
 
     def __init__(self, parent, sigma, **kwargs):
@@ -47,6 +49,7 @@ class Strategy(cma.StrategyOnePlusLambda):
                            parameters.
         """
         population.sort(key=lambda ind: ind.fitness, reverse=True)
+
         lambda_succ = sum(self.parent.fitness <= ind.fitness for ind in population)
         p_succ = float(lambda_succ) / self.lambda_
         self.psucc = (1 - self.cp) * self.psucc + self.cp * p_succ
@@ -69,6 +72,34 @@ class Strategy(cma.StrategyOnePlusLambda):
         self.B = self.B[:, indx]
         self.A = self.B * self.diagD
 
+    def rotate_and_bias(self, global_best, tc=0.1, b=0.5, cp=0.5):
+        """
+            Rotates the covariance matrix and biases the centroid of this
+            CMA population towards a global mean. Can be used to implement a
+            PSO-CMA hybrid algorithm. 
+        """
+
+        # Rotate towards global:
+        pg = global_best - self.parent
+        Brot = self.__rotation_matrix(self.B[:, 0], pg) * self.B
+        Crot = Brot * (self.diagD ** 2) * Brot.T
+        self.C = cp * self.C + (1.0 - cp) * Crot
+
+        # Bias our mean towards global best mean:
+        npg = np.linalg.norm(pg)
+        nsigma = np.amax(self.sigma)
+        if nsigma < npg:
+            if nsigma / npg <= tc * npg:
+                bias = b * pg
+            else:
+                bias = nsigma / npg * pg
+        else:
+            bias = 0
+
+        self.parent = self.parent + bias
+
+        pass
+
     def generate(self, ind_init):
         """Generate a population from the current strategy using the 
         centroid individual as parent.
@@ -81,6 +112,51 @@ class Strategy(cma.StrategyOnePlusLambda):
         arz = np.array(self.parent) + self.sigma * np.dot(arz, self.A.T) #@UndefinedVariable
         for arr in arz:
             yield ind_init(arr)
+
+    def __rotation_matrix(self, vector, target):
+        """ Rotation matrix from one vector to another target vector.
+     
+        The solution is not unique as any additional rotation perpendicular to
+        the target vector will also yield a solution)
+         
+        However, the output is deterministic.
+        """
+
+        R1 = self.__rotation_to_pole(target)
+        R2 = self.__rotation_to_pole(vector)
+
+        return np.dot(R1.T, R2)
+
+    def __rotation_to_pole(self, target):
+        """ Rotate to 1,0,0... """
+        n = len(target)
+        working = target
+        rm = np.eye(n)
+        for i in range(1, n):
+            angle = np.arctan2(working[0], working[i])
+            rm = np.dot(self.__rotation_matrix_inds(angle, n, 0, i), rm)
+            working = np.dot(rm, target)
+
+        return rm
+
+    def __rotation_matrix_inds(self, angle, n, ax1, ax2):
+        """ 'n'-dimensional rotation matrix 'angle' radians in coordinate plane with
+            indices 'ax1' and 'ax2' """
+
+
+        s = np.sin(angle)
+        c = np.cos(angle)
+
+        i = np.eye(n)
+
+        i[ax1, ax1] = s
+        i[ax1, ax2] = c
+        i[ax2, ax1] = c
+        i[ax2, ax2] = -s
+
+        return i
+
+    pass #end of class
 
 class Algorithm(AsyncEvaluatedAlgorithm):
     """

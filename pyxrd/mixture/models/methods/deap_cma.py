@@ -25,21 +25,16 @@ NGEN = 100
 STAGN_NGEN = 10
 STAGN_TOL = 0.001
 
-class Strategy(cma.StrategyOnePlusLambda):
+class Strategy(cma.Strategy):
     """
-        This evolutionary strategy is nothing more then a 
-        One+Lambda with a modified generate() function that will
-        return a generator instead of an evaluated list.
-        This allows for more efficient parallel computing (only generate the
-        next individual when needed) on larger population sizes.
-        Also supports the hybrid PSO-CMA runs using the
+        This evolutionary strategy supports the hybrid PSO-CMA runs using the
         rotate_and_bias function (should be called after an update).
     """
 
-    def __init__(self, parent, sigma, **kwargs):
+    def __init__(self, centroid, sigma, **kwargs):
         if not "lambda_" in kwargs:
-            kwargs["lambda_"] = int(25 + min(3 * log(len(parent)), 75)) #@UndefinedVariable
-        super(Strategy, self).__init__(parent, sigma, **kwargs)
+            kwargs["lambda_"] = int(25 + min(3 * log(len(centroid)), 75)) #@UndefinedVariable
+        super(Strategy, self).__init__(centroid, sigma, **kwargs)
 
     def update(self, population):
         """Update the current covariance matrix strategy from the
@@ -50,27 +45,48 @@ class Strategy(cma.StrategyOnePlusLambda):
         """
         population.sort(key=lambda ind: ind.fitness, reverse=True)
 
-        lambda_succ = sum(self.parent.fitness <= ind.fitness for ind in population)
-        p_succ = float(lambda_succ) / self.lambda_
-        self.psucc = (1 - self.cp) * self.psucc + self.cp * p_succ
+        old_centroid = self.centroid
+        self.centroid = np.dot(self.weights, population[0:self.mu])
 
-        if self.parent.fitness <= population[0].fitness:
-            x_step = (population[0] - np.array(self.parent)) / self.sigma
-            self.parent = copy.deepcopy(population[0])
-            if self.psucc < self.pthresh:
-                self.pc = (1 - self.cc) * self.pc + sqrt(self.cc * (2 - self.cc)) * x_step
-                self.C = (1 - self.ccov) * self.C + self.ccov * np.outer(self.pc, self.pc)
-            else:
-                self.pc = (1 - self.cc) * self.pc
-                self.C = (1 - self.ccov) * self.C + self.ccov * (np.outer(self.pc, self.pc) + self.cc * (2 - self.cc) * self.C)
+        c_diff = self.centroid - old_centroid
 
-        self.sigma = self.sigma * exp(1.0 / self.d * (self.psucc - self.ptarg) / (1.0 - self.ptarg))
+        # Cumulation : update evolution path
+        self.ps = (1 - self.cs) * self.ps \
+             + sqrt(self.cs * (2 - self.cs) * self.mueff) / self.sigma \
+             * np.dot(self.B, (1. / self.diagD) \
+                          * np.dot(self.B.T, c_diff))
+
+        hsig = float((np.linalg.norm(self.ps) /
+                sqrt(1. - (1. - self.cs) ** (2. * (self.update_count + 1.))) / self.chiN
+                < (1.4 + 2. / (self.dim + 1.))))
+
+        self.update_count += 1
+
+        self.pc = (1 - self.cc) * self.pc + hsig \
+                  * sqrt(self.cc * (2 - self.cc) * self.mueff) / self.sigma \
+                  * c_diff
+
+        # Update covariance matrix
+        artmp = population[0:self.mu] - old_centroid
+        self.C = (1 - self.ccov1 - self.ccovmu + (1 - hsig) \
+                   * self.ccov1 * self.cc * (2 - self.cc)) * self.C \
+                + self.ccov1 * np.outer(self.pc, self.pc) \
+                + self.ccovmu * np.dot((self.weights * artmp.T), artmp) \
+                / self.sigma ** 2
+
+
+        self.sigma *= np.exp((np.linalg.norm(self.ps) / self.chiN - 1.) \
+                                * self.cs / self.damps)
 
         self.diagD, self.B = np.linalg.eig(self.C)
+        self.diagD, self.B = np.real(self.diagD), np.real(self.B)
         indx = np.argsort(self.diagD)
+
+        self.cond = self.diagD[indx[-1]] / self.diagD[indx[0]]
+
         self.diagD = self.diagD[indx] ** 0.5
         self.B = self.B[:, indx]
-        self.A = self.B * self.diagD
+        self.BD = self.B * self.diagD
 
     def rotate_and_bias(self, global_best, tc=0.1, b=0.5, cp=0.5):
         """
@@ -80,7 +96,7 @@ class Strategy(cma.StrategyOnePlusLambda):
         """
 
         # Rotate towards global:
-        pg = global_best - self.parent
+        pg = global_best - self.centroid
         Brot = self.__rotation_matrix(self.B[:, 0], pg) * self.B
         Crot = Brot * (self.diagD ** 2) * Brot.T
         self.C = cp * self.C + (1.0 - cp) * Crot
@@ -96,7 +112,7 @@ class Strategy(cma.StrategyOnePlusLambda):
         else:
             bias = 0
 
-        self.parent = self.parent + bias
+        self.centroid = self.centroid + bias
 
         pass
 
@@ -109,7 +125,7 @@ class Strategy(cma.StrategyOnePlusLambda):
         :returns: an iterator yielding the generated individuals.
         """
         arz = np.random.standard_normal((self.lambda_, self.dim)) #@UndefinedVariable
-        arz = np.array(self.parent) + self.sigma * np.dot(arz, self.A.T) #@UndefinedVariable
+        arz = np.array(self.centroid) + self.sigma * np.dot(arz, self.BD.T) #@UndefinedVariable
         for arr in arz:
             yield ind_init(arr)
 

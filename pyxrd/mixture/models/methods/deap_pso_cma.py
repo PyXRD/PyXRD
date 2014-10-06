@@ -32,7 +32,7 @@ class SwarmStrategy(object):
 
     def __create_strategy(self, parent, sigma, **kwargs):
         return Strategy(
-            parent=parent, sigma=sigma,
+            centroid=parent, sigma=sigma,
             lambda_=int(25 + min(3 * log(len(parent)), 75)),
             stop=self._stop, **kwargs
         )

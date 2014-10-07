@@ -6,6 +6,7 @@
 # Complete license can be found in the LICENSE file.
 
 import logging
+from deap.tools import HallOfFame
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -17,7 +18,7 @@ import numpy as np
 
 from deap import creator, base, tools #@UnresolvedImport
 
-from pyxrd.generic.async import HasAsyncCalls
+from pyxrd.generic.async import HasAsyncCalls, Cancellable
 
 from .refine_run import RefineRun
 from .deap_utils import pyxrd_array, evaluate, PyXRDParetoFront, FitnessMin
@@ -28,22 +29,24 @@ NGEN = 100
 NGEN_COMM = 5
 NSWARMS = 4
 
-class SwarmStrategy(object):
+class SwarmStrategy(Cancellable):
 
-    def __create_strategy(self, parent, sigma, **kwargs):
+    def __create_strategy(self, parent, sigma, ranges, **kwargs):
         return Strategy(
-            centroid=parent, sigma=sigma,
-            lambda_=int(25 + min(3 * log(len(parent)), 75)),
+            centroid=parent, sigma=sigma, ranges=ranges,
             stop=self._stop, **kwargs
         )
 
-    def __init__(self, parents, sigma, stop, **kwargs):
+    def __init__(self, parents, sigma, ranges, stop, ** kwargs):
         self.nswarms = len(parents)
         self._stop = stop
-        self.strategies = [self.__create_strategy(parents[i], sigma, **kwargs) for i in range(self.nswarms)]
+        self.strategies = [self.__create_strategy(parents[i], sigma, ranges, **kwargs) for i in range(self.nswarms)]
         self.global_best = None
 
     def update(self, swarms, communicate=False):
+        if self._user_cancelled():
+            return
+
         for i, population in enumerate(swarms):
             self.strategies[i].update(population)
             # Keep track of the global best:
@@ -159,7 +162,7 @@ class SwarmAlgorithm(HasAsyncCalls):
     #--------------------------------------------------------------------------
     def _ask(self):
         self.gen += 1
-        self.context.status_message = "Creating generation #%d" % (self.gen + 1)
+        self.context.status_message = "Creating generation #%d" % self.gen
         swarms = []
         self.do_async_evaluation(swarms)
         if self.halloffame is not None:
@@ -174,7 +177,10 @@ class SwarmAlgorithm(HasAsyncCalls):
 
     def _record(self, swarms):
         # Get the best solution so far:
-        best = self.halloffame.get_best()
+        if hasattr(self.halloffame, "get_best"):
+            best = self.halloffame.get_best()
+        else:
+            best = self.halloffame[0]
         best_f = best.fitness.values[0]
 
         flat_pop = [ind for population in swarms for ind in population]
@@ -282,9 +288,9 @@ class RefinePSOCMAESRun(RefineRun):
                    random.uniform(bounds[j, 0], bounds[j, 1]) for j in range(len(context.initial_solution))
                 ])
 
-            sigma = np.array(abs(bounds[:, 0] - bounds[:, 1]) / 20.0) #@UndefinedVariable
             strategy = SwarmStrategy(
-                parents=parents, sigma=sigma, stop=self._stop,
+                parents=parents, sigma=1.0 / 10.0, ranges=bounds,
+                stop=self._stop,
             )
 
             # Toolbox setup:
@@ -295,7 +301,7 @@ class RefinePSOCMAESRun(RefineRun):
 
             # Hall of fame & stats:
             logger.info("Creating hall-off-fame and statistics")
-            halloffame = PyXRDParetoFront(similar=lambda a1, a2: np.all(a1 == a2)) #@UndefinedVariable
+            halloffame = HallOfFame(1, similar=lambda a1, a2: np.all(a1 == a2)) #PyXRDParetoFront(similar=lambda a1, a2: np.all(a1 == a2))
             stats = self._create_stats()
 
             # Create algorithm

@@ -25,6 +25,7 @@ class RefinableWrapper(ChildModel):
         parent_alias = "mixture"
         properties = [ # TODO add labels
             PropIntel(name="title", label="", is_column=True, data_type=str, has_widget=True),
+            PropIntel(name="text_title", label="", is_column=True, data_type=str, has_widget=False),
             PropIntel(name="obj", label="", is_column=True, data_type=object),
             PropIntel(name="is_grouper", label="", is_column=True, data_type=bool),
             PropIntel(name="prop_intel", label="", is_column=True, data_type=object),
@@ -76,7 +77,7 @@ class RefinableWrapper(ChildModel):
         if (isinstance(self.obj, RefinementGroup) and self.is_grouper) or isinstance(self.obj, RefinementValue):
             return self.obj.refine_title
         else:
-            return self.prop_intel.label        
+            return self.prop_intel.label
 
     def get_descriptor(self):
         """ Return a longer title that also describes this property's relations """

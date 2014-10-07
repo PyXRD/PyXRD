@@ -74,7 +74,7 @@ class RefineContext(ChildModel):
             for node in parent.refinables.iter_children():
                 ref_prop = node.object
                 if ref_prop.refine and ref_prop.refinable:
-                    logger.info(" - %s from %r" % (ref_prop.title, ref_prop.obj))
+                    logger.info(" - %s from %r" % (ref_prop.text_title, ref_prop.obj))
                     self.ref_props.append(ref_prop)
                     self.values.append(ref_prop.value)
                     self.ranges += ((ref_prop.value_min, ref_prop.value_max),)

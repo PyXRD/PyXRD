@@ -9,9 +9,8 @@ import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
-from math import log, sqrt, exp
+from math import sqrt
 
-import copy
 import numpy as np
 import scipy
 
@@ -31,9 +30,8 @@ class Strategy(cma.Strategy):
         rotate_and_bias function (should be called after an update).
     """
 
-    def __init__(self, centroid, sigma, **kwargs):
-        if not "lambda_" in kwargs:
-            kwargs["lambda_"] = int(25 + min(3 * log(len(centroid)), 75)) #@UndefinedVariable
+    def __init__(self, centroid, sigma, ranges, **kwargs):
+        self.ranges = ranges
         super(Strategy, self).__init__(centroid, sigma, **kwargs)
 
     def update(self, population):
@@ -44,11 +42,13 @@ class Strategy(cma.Strategy):
                            parameters.
         """
         population.sort(key=lambda ind: ind.fitness, reverse=True)
+        selected_pop = self._translate_external(
+            np.array([ind.to_ndarray() for ind in population[0:self.mu]]))
 
-        old_centroid = self.centroid
-        self.centroid = np.dot(self.weights, population[0:self.mu])
+        old_centroid = self._translate_external(self.centroid)
+        centroid = np.dot(self.weights, selected_pop)
 
-        c_diff = self.centroid - old_centroid
+        c_diff = centroid - old_centroid
 
         # Cumulation : update evolution path
         self.ps = (1 - self.cs) * self.ps \
@@ -67,26 +67,27 @@ class Strategy(cma.Strategy):
                   * c_diff
 
         # Update covariance matrix
-        artmp = population[0:self.mu] - old_centroid
+        artmp = selected_pop - old_centroid
         self.C = (1 - self.ccov1 - self.ccovmu + (1 - hsig) \
                    * self.ccov1 * self.cc * (2 - self.cc)) * self.C \
                 + self.ccov1 * np.outer(self.pc, self.pc) \
                 + self.ccovmu * np.dot((self.weights * artmp.T), artmp) \
                 / self.sigma ** 2
 
-
         self.sigma *= np.exp((np.linalg.norm(self.ps) / self.chiN - 1.) \
                                 * self.cs / self.damps)
 
-        self.diagD, self.B = np.linalg.eig(self.C)
-        self.diagD, self.B = np.real(self.diagD), np.real(self.B)
+        self.diagD, self.B = np.linalg.eigh(self.C)
         indx = np.argsort(self.diagD)
 
         self.cond = self.diagD[indx[-1]] / self.diagD[indx[0]]
 
-        self.diagD = self.diagD[indx] ** 0.5
+        self.diagD = self.diagD ** 0.5
+
         self.B = self.B[:, indx]
         self.BD = self.B * self.diagD
+
+        self.centroid = self._translate_internal(centroid)
 
     def rotate_and_bias(self, global_best, tc=0.1, b=0.5, cp=0.5):
         """
@@ -95,8 +96,11 @@ class Strategy(cma.Strategy):
             PSO-CMA hybrid algorithm. 
         """
 
+        global_best = self._translate_external(global_best)
+        centroid = self._translate_external(self.centroid)
+
         # Rotate towards global:
-        pg = global_best - self.centroid
+        pg = np.array(global_best) - np.array(centroid)
         Brot = self.__rotation_matrix(self.B[:, 0], pg) * self.B
         Crot = Brot * (self.diagD ** 2) * Brot.T
         self.C = cp * self.C + (1.0 - cp) * Crot
@@ -112,9 +116,20 @@ class Strategy(cma.Strategy):
         else:
             bias = 0
 
-        self.centroid = self.centroid + bias
+        centroid = centroid + bias
+
+        self.centroid = self._translate_internal(centroid)
 
         pass
+
+    def _translate_internal(self, solutions):
+        # rule is: anything given as an argument in a public function or
+        # available as a public property should be within the external boundaries
+
+        return self.ranges[:, 0] + (self.ranges[:, 1] - self.ranges[:, 0]) * (1.0 - np.cos(solutions * np.pi)) / 2.0
+
+    def _translate_external(self, solutions):
+        return np.arccos(1 - 2 * (solutions - self.ranges[:, 0]) / (self.ranges[:, 1] - self.ranges[:, 0])) / np.pi
 
     def generate(self, ind_init):
         """Generate a population from the current strategy using the 
@@ -124,8 +139,14 @@ class Strategy(cma.Strategy):
                          individual from a list.
         :returns: an iterator yielding the generated individuals.
         """
+
+        centroid = self._translate_external(self.centroid)
+
         arz = np.random.standard_normal((self.lambda_, self.dim)) #@UndefinedVariable
-        arz = np.array(self.centroid) + self.sigma * np.dot(arz, self.BD.T) #@UndefinedVariable
+        arz = np.array(centroid) + self.sigma * np.dot(arz, self.BD.T) #@UndefinedVariable
+
+        arz = self._translate_internal(arz)
+
         for arr in arz:
             yield ind_init(arr)
 
@@ -309,7 +330,7 @@ class Algorithm(AsyncEvaluatedAlgorithm):
     #--------------------------------------------------------------------------
     def _ask(self):
         self.gen += 1
-        self.context.status_message = "Creating generation #%d" % (self.gen + 1)
+        self.context.status_message = "Creating generation #%d" % self.gen
         population = []
         self.do_async_evaluation(population)
         if self.halloffame is not None:
@@ -402,12 +423,11 @@ class RefineCMAESRun(RefineRun):
 
             # Setup strategy:
             centroid = create_individual(context.initial_solution)
-            sigma = np.array(abs(bounds[:, 0] - bounds[:, 1]) / 20.0) #@UndefinedVariable
             strat_kwargs = {}
             if "lambda_" in kwargs:
                 strat_kwargs["lambda_"] = kwargs.pop("lambda_")
             strategy = Strategy(
-                parent=centroid, sigma=sigma,
+                parent=centroid, sigma=1.0 / 10.0, ranges=bounds,
                 stop=self._stop, **strat_kwargs
             )
 

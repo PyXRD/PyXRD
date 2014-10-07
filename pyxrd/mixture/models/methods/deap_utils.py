@@ -38,9 +38,16 @@ class pyxrd_array(creator._numpy_array):
         creator._numpy_array.__init__(self, *args, **kwargs)
         self._update()
 
+    def to_ndarray(self):
+        return np.ndarray.copy(self)
+
     def _update(self):
-        if hasattr(self, "context") and self.context is not None:
-            self.data_object = self.context.get_data_object_for_solution(self)
+        try:
+            if hasattr(self, "context") and self.context is not None:
+                self.data_object = self.context.get_data_object_for_solution(self)
+        except TypeError:
+            print "TypeError raised in pyxrd_array._update for solution: %s" % self
+            raise
 
     def __setitem__(self, i, y):
         y = min(y, self.max_bounds[i])

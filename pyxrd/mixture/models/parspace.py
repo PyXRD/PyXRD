@@ -250,8 +250,6 @@ class ParameterSpaceGenerator(object):
         # Hide the unused plots & setup the used ones:
         for parx, pary in itertools.product(range(self.num_params - 1), range(1, self.num_params)):
 
-            print parx, pary
-
             # Calculate the grid position:
             ax = get_grid(parx, pary)
 

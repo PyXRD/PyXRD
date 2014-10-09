@@ -68,7 +68,7 @@ class Strategy(cma.Strategy):
 
         # Update covariance matrix
         artmp = selected_pop - old_centroid
-        self.C = (1 - self.ccov1 - self.ccovmu + (1 - hsig) \
+        new_C = (1 - self.ccov1 - self.ccovmu + (1 - hsig) \
                    * self.ccov1 * self.cc * (2 - self.cc)) * self.C \
                 + self.ccov1 * np.outer(self.pc, self.pc) \
                 + self.ccovmu * np.dot((self.weights * artmp.T), artmp) \
@@ -77,15 +77,23 @@ class Strategy(cma.Strategy):
         self.sigma *= np.exp((np.linalg.norm(self.ps) / self.chiN - 1.) \
                                 * self.cs / self.damps)
 
-        self.diagD, self.B = np.linalg.eigh(self.C)
-        indx = np.argsort(self.diagD)
+        try:
+            self.diagD, self.B = np.linalg.eigh(new_C)
+        except np.linalg.LinAlgError:
+            logger.warning(
+                "LinAlgError occurred when calculating eigenvalues" \
+                " and vectors for matrix C!\n%r" % new_C
+            )
+        else:
+            self.C = new_C
+            indx = np.argsort(self.diagD)
 
-        self.cond = self.diagD[indx[-1]] / self.diagD[indx[0]]
+            self.cond = self.diagD[indx[-1]] / self.diagD[indx[0]]
 
-        self.diagD = self.diagD ** 0.5
+            self.diagD = self.diagD ** 0.5
 
-        self.B = self.B[:, indx]
-        self.BD = self.B * self.diagD
+            self.B = self.B[:, indx]
+            self.BD = self.B * self.diagD
 
         self.centroid = self._translate_internal(centroid)
 

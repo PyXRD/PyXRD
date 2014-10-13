@@ -27,13 +27,13 @@ pool_stop = None
 def _close_pool():
     # Close the pool:
     global pool, pool_stop
+    logging.info("Closing multiprocessing pool ...")
     if pool is not None:
-        logging.info("Closing multiprocessing pool ...")
         pool_stop.set()
         pool.close()
         pool.join()
 
-def _worker_initializer(*args):
+def _worker_initializer(pool_stop, *args):
     from pyxrd.core import _apply_settings
     if settings.CACHE == "FILE":
         settings.CACHE = "FILE_FETCH_ONLY"

@@ -75,7 +75,7 @@ class RefineBruteForceRun(RefineRun, HasAsyncCalls):
 
         def process_results(solutions, results):
             for solution, result in izip(solutions, results):
-                residual = HasAsyncCalls.fetch_async_result(result)
+                residual = self.fetch_async_result(result)
                 self.context.update(solution, residual)
                 self.context.record_state_data([
                     ("param%d" % d, solution[d]) for d in range(solution.size)
@@ -85,7 +85,7 @@ class RefineBruteForceRun(RefineRun, HasAsyncCalls):
 
         num_stacked = 0
         for data_object, solution in iter_func():
-            result = HasAsyncCalls.submit_async_call(functools.partial(eval_func, data_object))
+            result = self.submit_async_call(functools.partial(eval_func, data_object))
             solutions.append(solution)
             results.append(result)
             num_stacked += 1

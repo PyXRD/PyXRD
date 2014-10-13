@@ -5,9 +5,13 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from pyxrd.data import settings
 import logging
 logger = logging.getLogger(__name__)
+
+import traceback
+import sys
+
+from pyxrd.data import settings
 
 def get_all_refine_methods():
 
@@ -27,8 +31,9 @@ def get_all_refine_methods():
         from .deap_pso_cma import RefinePSOCMAESRun
         methods[6] = RefinePSOCMAESRun()
     except ImportError:
-        logger.warning("Could not import DEAP refinement algorithms, is DEAP installed?")
-
+        logger.warning("Could not import DEAP refinement algorithms, is DEAP installed? Error was:")
+        _, _, tb = sys.exc_info()
+        traceback.print_tb(tb)
     try:
         from .custom_brute import RefineBruteForceRun
     except ImportError:

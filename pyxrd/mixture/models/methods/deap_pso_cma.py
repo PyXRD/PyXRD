@@ -12,7 +12,6 @@ logger.setLevel(logging.INFO)
 
 import functools, random, copy
 from itertools import izip
-from math import log
 
 import numpy as np
 
@@ -21,7 +20,7 @@ from deap import creator, base, tools #@UnresolvedImport
 from pyxrd.generic.async import HasAsyncCalls, Cancellable
 
 from .refine_run import RefineRun
-from .deap_utils import pyxrd_array, evaluate, PyXRDParetoFront, FitnessMin
+from .deap_utils import pyxrd_array, evaluate, FitnessMin
 from .deap_cma import Strategy
 
 # Default settings:
@@ -217,7 +216,10 @@ class SwarmAlgorithm(HasAsyncCalls):
             results = []
             population = []
             for ind in generator:
-                result = HasAsyncCalls.submit_async_call(functools.partial(self.toolbox.evaluate, ind))
+                result = self.submit_async_call(functools.partial(
+                    self.toolbox.evaluate,
+                    self.context.get_pickled_data_object_for_solution(ind)
+                ))
                 population.append(ind)
                 results.append(result)
                 if self._user_cancelled(): # Stop submitting new individuals
@@ -226,7 +228,7 @@ class SwarmAlgorithm(HasAsyncCalls):
             swarms.append(population)
         for population, results in izip(swarms, all_results):
             for ind, result in izip(population, results):
-                ind.fitness.values = HasAsyncCalls.fetch_async_result(result)
+                ind.fitness.values = self.fetch_async_result(result)
         del all_results
 
     pass #end of class

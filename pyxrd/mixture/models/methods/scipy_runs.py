@@ -13,12 +13,20 @@ from .refine_run import RefineRun
 import logging
 logger = logging.getLogger(__name__)
 
+MAXFUN = 15000
+MAXITER = 15000
+IPRINT = 0
+
 class RefineLBFGSBRun(RefineRun):
     name = "L BFGS B algorithm"
     description = "Refinement using the L BFGS B algorithm"
-    options = []
+    options = [
+        ('Maximum # of function calls', 'maxfun', int, MAXFUN, [1, 1000000]),
+        ('Maximum # of iterations', 'maxiter', int, MAXITER, [1, 1000000]),
+        ('Output level [-1,0,1]', 'iprint', int, IPRINT, [-1, 1]),
+    ]
 
-    def run(self, context, **kwargs):
+    def run(self, context, maxfun=MAXFUN, maxiter=MAXITER, iprint=IPRINT, **kwargs):
         """
             Refinement using the L BFGS B algorithm
         """
@@ -27,9 +35,10 @@ class RefineLBFGSBRun(RefineRun):
             context.initial_solution,
             approx_grad=True,
             bounds=context.ranges,
-            iprint=-1,
+            iprint=iprint,
             epsilon=1e-4,
-            callback=context.update
+            callback=context.update,
+            maxfun=maxfun, maxiter=maxiter
         )
         logger.debug("fmin_l_bfgs_b returned: %s" % d)
 

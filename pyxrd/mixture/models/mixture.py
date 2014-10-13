@@ -264,6 +264,8 @@ class Mixture(DataModel, Storable):
         with self.data_changed.hold():
             self.update()
 
+
+    internal_recurs = False
     @DataModel.observe("data_changed", signal=True)
     def notify_data_changed(self, model, prop_name, info):
         if not model == self and not (

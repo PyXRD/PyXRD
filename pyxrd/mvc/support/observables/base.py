@@ -24,6 +24,8 @@
 #  Boston, MA 02110, USA.
 #  -------------------------------------------------------------------------
 
+import weakref
+
 class ObsWrapperBase (object):
     """
     This class is a base class wrapper for user-defined classes and
@@ -41,17 +43,29 @@ class ObsWrapperBase (object):
     def __add_model__(self, model, prop_name):
         """Registers the given model to hold the wrapper among its
         properties, within a property whose name is given as well"""
-
-        self.__models.add((model, prop_name))
+        ref = weakref.ref(model)
+        self.__models.add((ref, prop_name))
         return
 
     def __remove_model__(self, model, prop_name):
         """Unregisters the given model, to release the wrapper. This
         method reverts the effect of __add_model__"""
-        self.__models.discard((model, prop_name))
+        delete_models = set()
+        for ref, prop_name in self.__models:
+            if ref() == model and prop_name == prop_name:
+                delete_models.add((ref, prop_name))
+        self.__models -= delete_models
         return
 
-    def __get_models__(self): return self.__models
+    def __get_models__(self):
+        delete_models = set()
+        for ref, prop_name in self.__models:
+            model = ref()
+            if model is not None:
+                yield model, prop_name
+            else:
+                delete_models.add((ref, prop_name))
+        self.__models -= delete_models
 
     def _notify_method_before(self, instance, name, args, kwargs):
         for m, n in self.__get_models__():

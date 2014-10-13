@@ -233,3 +233,7 @@ class TestMixture(unittest.TestCase):
     #  - setup_refine_options
 
     pass # end of class
+
+if __name__ == "__main__":
+    #import sys;sys.argv = ['', 'Test.testName']
+    unittest.main()

@@ -435,7 +435,7 @@ class RefineCMAESRun(RefineRun):
             if "lambda_" in kwargs:
                 strat_kwargs["lambda_"] = kwargs.pop("lambda_")
             strategy = Strategy(
-                parent=centroid, sigma=1.0 / 10.0, ranges=bounds,
+                centroid=centroid, sigma=1.0 / 10.0, ranges=bounds,
                 stop=self._stop, **strat_kwargs
             )
 

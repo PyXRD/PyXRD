@@ -6,6 +6,9 @@
 # Complete license can be found in the LICENSE file.
 
 from copy import deepcopy
+
+import cPickle as pickle
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -149,6 +152,18 @@ class RefineContext(ChildModel):
             with self.mixture.data_changed.ignore():
                 self.apply_solution(solution)
                 return deepcopy(self.mixture.data_object)
+
+    def get_pickled_data_object_for_solution(self, solution):
+        """
+            Gets the mixture data object after setting the given solution
+        """
+        with self.mixture.needs_update.ignore():
+            with self.mixture.data_changed.ignore():
+                self.apply_solution(solution)
+                return pickle.dumps(
+                    self.mixture.data_object,
+                    protocol=pickle.HIGHEST_PROTOCOL
+                )
 
     def get_residual_for_solution(self, solution):
         """

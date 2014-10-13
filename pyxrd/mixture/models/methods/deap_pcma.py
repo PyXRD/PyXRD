@@ -86,7 +86,7 @@ class RefinePCMAESRun(RefineRun, HasAsyncCalls):
         context.status = "running"
 
         for restart in xrange(num_restarts):
-            HasAsyncCalls.restart_pool()
+            self.restart_pool()
             if self._user_cancelled():
                 logger.info("User cancelled execution of PCMA-ES, stopping ...")
                 break

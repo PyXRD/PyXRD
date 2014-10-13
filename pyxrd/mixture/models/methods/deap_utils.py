@@ -7,6 +7,7 @@
 
 import logging
 import functools
+import pickle
 logger = logging.getLogger(__name__)
 
 from math import sqrt
@@ -27,53 +28,21 @@ class pyxrd_array(creator._numpy_array):
         data object from the context (if set). Allows for async evaluation of
         fitnesses for PyXRD parameter solutions.
     """
-    context = None
-    data_object = None
     min_bounds = None
     max_bounds = None
 
-    __in_update = False
-
-    def __init__(self, *args, **kwargs):
-        creator._numpy_array.__init__(self, *args, **kwargs)
-        self._update()
-
     def to_ndarray(self):
         return np.ndarray.copy(self)
-
-    def _update(self):
-        try:
-            if hasattr(self, "context") and self.context is not None:
-                self.data_object = self.context.get_data_object_for_solution(self)
-        except TypeError:
-            print "TypeError raised in pyxrd_array._update for solution: %s" % self
-            raise
 
     def __setitem__(self, i, y):
         y = min(y, self.max_bounds[i])
         y = max(y, self.min_bounds[i])
         creator._numpy_array.__setitem__(self, i, y)
-        self._update()
 
     def __setslice__(self, i, j, y):
         y = np.array(y)
         np.clip(y, self.min_bounds[i:j], self.max_bounds[i:j], y)
         creator._numpy_array.__setslice__(self, i, j, y)
-        self._update()
-
-    def __array_finalize__(self, obj):
-        self.__init__()
-        if not hasattr(self, "context"):
-            # The object does not yet have a `.context` attribute
-            self.context = getattr(obj, 'context', self.__def_context)
-            self._update()
-
-    def __reduce__(self):
-        __dict__ = self.__dict__ # @ReservedAssignment
-        if "context" in __dict__:
-            __dict__ = __dict__.copy() # @ReservedAssignment
-            del __dict__["context"]
-        return (pyxrd_array, (list(self),), __dict__)
 
     pass # end of class
 
@@ -108,15 +77,12 @@ class FitnessMin(base.Fitness):
 
     pass #end of class
 
-def evaluate(individual):
+def evaluate(data_object):
     """
-        individual should be an pyxrd_array subclass 
-        (or have a data_object attribute)
+        data_object should be an gzipped pickled data object 
     """
-    if individual.data_object is not None:
-        return get_optimized_mixture(individual.data_object).residuals
-    else:
-        return 100.,
+    return get_optimized_mixture(
+        pickle.loads(data_object)).residuals
 
 class PyXRDParetoFront(ParetoFront):
 
@@ -178,13 +144,16 @@ class AsyncEvaluatedAlgorithm(HasAsyncCalls):
         if population is None:
             population = []
         for ind in iter_func():
-            result = HasAsyncCalls.submit_async_call(functools.partial(eval_func, ind))
+            result = self.submit_async_call(functools.partial(
+                eval_func,
+                self.context.get_pickled_data_object_for_solution(ind)
+            ))
             population.append(ind)
             results.append(result)
             if self._user_cancelled(): # Stop submitting new individuals
                 break
         for ind, result in izip(population, results):
-            ind.fitness.values = HasAsyncCalls.fetch_async_result(result)
+            ind.fitness.values = self.fetch_async_result(result)
         del results
 
     pass #end of class

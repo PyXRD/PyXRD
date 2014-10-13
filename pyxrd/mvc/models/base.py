@@ -27,6 +27,10 @@ import inspect
 import logging
 logger = logging.getLogger(__name__)
 
+from weakref import WeakKeyDictionary
+from pyxrd.generic.weak_list import WeakList
+
+
 try: import threading as threading
 except ImportError: import dummy_threading as threading
 try: import gobject
@@ -140,8 +144,8 @@ class Model(Observer):
 
 
         self._prop_lock = threading.RLock() # @UndefinedVariable
-        self.__observers = []
-        self.__observer_threads = {}
+        self.__observers = WeakList()
+        self.__observer_threads = WeakKeyDictionary()
 
         # keys are properties names, values are pairs (method,
         # kwargs|None) inside the observer. kwargs is the keyword

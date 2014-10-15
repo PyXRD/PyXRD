@@ -287,7 +287,7 @@ class ThreadedTaskBox(gtk.Table):
         # called when the widget is destroyed, attempts to clean up
         # the work thread and the pulse thread
         if self.work_thread is not None:
-            self.work_thread.kill()
+            self.work_thread.cancel()
 
     pass # end of class
 

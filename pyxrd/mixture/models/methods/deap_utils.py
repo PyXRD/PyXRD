@@ -7,7 +7,7 @@
 
 import logging
 import functools
-import pickle
+import cPickle as pickle
 logger = logging.getLogger(__name__)
 
 from math import sqrt

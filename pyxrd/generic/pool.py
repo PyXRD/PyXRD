@@ -49,7 +49,7 @@ def _create_pool(force=False):
 
     if pool is None or force:
         pool_stop.clear()
-        pool = multiprocessing.Pool(maxtasksperchild=100, initializer=_worker_initializer, initargs=(pool_stop,))
+        pool = multiprocessing.Pool(initializer=_worker_initializer, initargs=(pool_stop,))
 
     return pool
 

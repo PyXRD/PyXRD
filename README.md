@@ -20,20 +20,20 @@ spacings and interlayer compositions for the smectite component.
 Other features are (incomplete list):
 
  - Import/export several common XRD formats (.RD, .RAW, .CPI, ASCII)
- - simple background subtraction/addition (linear or custom patterns)
- - smoothing patterns and adding noise to patterns
- - peak finding and annotating (markers)
- - custom line colors, line widths, pattern positions, ...
- - goniometer settings (wavelengths, geometry settings, ...)
- - specimen settings (sample length, absorption, ...)
- - automatic parameter refinement using several algorithms, e.g.:
+ - Simple background subtraction/addition (linear or custom patterns)
+ - Smoothing patterns and adding noise to patterns
+ - Peak finding and annotating (markers)
+ - Peak stripping and peak area calculation tools
+ - Custom line colors, line widths, pattern positions, ...
+ - Goniometer settings (wavelengths, geometry settings, ...)
+ - Specimen settings (sample length, absorption, ...)
+ - Automatic parameter refinement using several algorithms, e.g.:
     - L BFGS B
     - Brute Force
     - Covariation Matrix Adapation Evolutionary Strategy (CMA-ES; using DEAP 1.0)
     - Multiple Particle Swarm Optimization (MPSO; using DEAP 1.0)
-    - Chained MPSO and parallel CMA-ES harnassing the global search powers of MPSO
-      and the local refinement powers of CMA-ES in a single strategy (using DEAP 1.0)
- - as it is open-source: extensive scripting support
+    - Particle-swarm CMA-ES (PS-CMA-ES; using DEAP 1.0)
+ - Scripting support
 
 DISCLAIMER
 ==========
@@ -43,7 +43,7 @@ time is going into testing and adding new tests for new features. Most of the
 codebase therefore remains untested at this point and Things May Break as a 
 result.
 
-If you encounter serious bugs please send me the output so we can improve the code!
+If you encounter serious bugs please send me the output so we can improve!
 We'll try to make a habit out of writing UnitTests for each bug we encounter.
 
 

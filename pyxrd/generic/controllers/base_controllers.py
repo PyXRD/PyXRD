@@ -217,7 +217,7 @@ class DialogMixin(object):
     ############################################################################
 
 
-class BaseController (Controller, DialogMixin):
+class BaseController(Controller, DialogMixin):
 
     file_filters = ("All Files", "*.*")
     widget_handlers = {} # handlers can be string representations of a class method
@@ -292,3 +292,5 @@ class DialogController(BaseController):
 
     def on_cancel(self):
         self.view.hide()
+
+    pass #end of class

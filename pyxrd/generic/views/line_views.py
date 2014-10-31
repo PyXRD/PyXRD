@@ -53,6 +53,8 @@ class BackgroundView(DialogView):
         fcb_bg_pattern.connect("file-set", callback)
         self["fcb_bg_container"].add(fcb_bg_pattern)
 
+    pass #end of class
+
 class AddNoiseView(DialogView):
     title = "Add Noise"
     subview_builder = resource_filename(__name__, "glade/lines/add_noise.glade")

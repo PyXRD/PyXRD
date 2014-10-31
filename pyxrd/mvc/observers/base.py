@@ -328,7 +328,7 @@ class Observer (object):
     # ----------------------------------------------------------------------
 
 
-    def __init__(self, model=None, spurious=False, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         """
         *model* is passed to :meth:`observe_model` if given.
         
@@ -343,7 +343,9 @@ class Observer (object):
            :class:`~mvc.observable.Signal` support this is no longer
            necessary.
         """
-        object.__init__(self)
+        model = kwargs.pop("model", None)
+        spurious = kwargs.pop("spurious", False)
+        super(Observer, self).__init__(*args, **kwargs)
 
         # --------------------------------------------------------- #
         # This turns the decorator 'observe' an instance method

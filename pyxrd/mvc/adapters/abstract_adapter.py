@@ -81,8 +81,8 @@ class AbstractAdapter(object):
     # ----------------------------------------------------------------------
     #  Construction:
     # ----------------------------------------------------------------------
-    def __init__(self, controller, prop, widget):
-        object.__init__(self)
+    def __init__(self, controller, prop, widget, *args, **kwargs):
+        super(AbstractAdapter, self).__init__(*args, **kwargs)
 
         self._prop = prop
         self._controller = controller

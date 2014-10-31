@@ -55,9 +55,7 @@ class ModelAdapter(Observer, AbstractAdapter):
         yield
         self._ignoring_notifs = False
 
-    def __init__(self, controller, prop, widget,
-                 prop_read=None, prop_write=None,
-                 value_error=None, spurious=False):
+    def __init__(self, *args, **kwargs):
         """
         Abstract class that implements the model side of the adapter.
         For a fully implemented class check the corresponding widget toolkit
@@ -90,12 +88,20 @@ class ModelAdapter(Observer, AbstractAdapter):
         changes from the model (see spuriousness in class Observer for
         further information).
         """
+        controller = args[0]
+        prop = args[1]
+        widget = args[2]
+
+        prop_read = kwargs.pop("prop_read", None)
+        prop_write = kwargs.pop("prop_write", None)
+        value_error = kwargs.pop("value_error", None)
+        spurious = kwargs.get("spurious", False)
+
         # First parse (optional) property strings:
         prop, self._model = self._parse_prop(prop, controller.model)
 
         # Call base __init__'s:
-        AbstractAdapter.__init__(self, controller, prop, widget)
-        Observer.__init__(self, spurious=spurious)
+        super(ModelAdapter, self).__init__(*args, **kwargs)
 
         # Mode-side property handling:
         self._prop_read = not_none(prop_read, self._prop_read)

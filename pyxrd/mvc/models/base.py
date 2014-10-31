@@ -413,6 +413,13 @@ class Model(Observer):
             self.__idle_notify_observer(observer, method, args, kwargs)
         else:
             # FIXME: we need some way to call these on the main thread without relying on gobject...
+            # A good way is maybe to create a global function that handles all
+            # off the idle_add function calls
+            # Then if PyGTK is available we just queue this with idle_add once,
+            # and keep on running it (just checks the queue of idle calls to be
+            # handled).
+            # If PyGTK isn't available, we just call them immediately instead
+            # of queuing?.
             gobject.idle_add(self.__idle_notify_observer, observer, method, args, kwargs)
 
     def __idle_notify_observer(self, observer, method, args, kwargs):

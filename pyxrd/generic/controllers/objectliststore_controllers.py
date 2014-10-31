@@ -43,7 +43,7 @@ class TreeModelMixin(object):
             return None
 
     def __init__(self, treemodel_property_name=None, treemodel_class_type=None, *args, **kwargs):
-        super(TreeModelMixin, self).__init__()
+        super(TreeModelMixin, self).__init__(*args, **kwargs)
         self.treemodel_property_name = not_none(treemodel_property_name, self.treemodel_property_name)
         self.treemodel_class_type = not_none(treemodel_class_type, self.treemodel_class_type)
 
@@ -61,9 +61,6 @@ class TreeViewMixin(object):
     """
 
     treeview_setup_format = "setup_%s_tree_view"
-
-    def __init__(self, *args, **kwargs):
-        super(TreeViewMixin, self).__init__()
 
     def get_selected_object(self, tv):
         # call this implementation, not the overriden method:
@@ -127,11 +124,26 @@ class TreeControllerMixin(TreeViewMixin, TreeModelMixin):
         self.columns = kwargs.pop("columns", self.columns)
         self.delete_msg = kwargs.pop("delete_msg", self.delete_msg)
 
-        TreeViewMixin.__init__(self)
-        TreeModelMixin.__init__(self, *args, **kwargs)
+        super(TreeControllerMixin, self).__init__(*args, **kwargs)
 
-        self.treemodel.connect("row-deleted", self.on_item_removed)
-        self.treemodel.connect("row-inserted", self.on_item_inserted)
+    __row_signal_ids = None
+    def _update_treemodel_property(self):
+        # If we've connected to a treemodel before, clean up first:
+        if self.__row_signal_ids is not None:
+            old_treemodel, deleted_id, inserted_id = self.__row_signal_ids
+            old_treemodel.disconnect(deleted_id)
+            old_treemodel.disconnect(inserted_id)
+            self.__row_signal_ids = None
+        # If the new treemodel is set, connect it up:
+        if getattr(self, "model", None) is not None:
+            super(TreeControllerMixin, self)._update_treemodel_property()
+            # Use private _treemodel attribute, otherwise we get infinite recursions
+            self.__row_signal_ids = (
+                self._treemodel,
+                self._treemodel.connect("row-deleted", self.on_item_removed),
+                self._treemodel.connect("row-inserted", self.on_item_inserted)
+            )
+
 
     def get_new_edit_view(self, obj):
         """
@@ -331,8 +343,7 @@ class ObjectListStoreController(DialogController, TreeControllerMixin):
 
     def __init__(self, *args, **kwargs):
         self.title = not_none(kwargs.pop("title", None), self.title)
-        DialogController.__init__(self, *args, **kwargs)
-        TreeControllerMixin.__init__(self, *args, **kwargs)
+        super(ObjectListStoreController, self).__init__(*args, **kwargs)
 
     def register_view(self, view):
         super(ObjectListStoreController, self).register_view(view)
@@ -353,13 +364,6 @@ class ChildObjectListStoreController(BaseController, TreeControllerMixin):
         An embeddable, regular ObjectListStore controller (left pane with objects and right pane with object properties)
     """
     auto_adapt = False
-
-    def __init__(self, *args, **kwargs):
-        """model, view,
-                 spurious=False, auto_adapt=False, parent=None,
-                 treemodel_property_name=None, treemodel_class_type=None, columns=None, delete_msg=None, title=None"""
-        BaseController.__init__(self, *args, **kwargs)
-        TreeControllerMixin.__init__(self, *args, **kwargs)
 
     @DialogController.model.setter
     def _set_model(self, model):
@@ -422,8 +426,7 @@ class InlineObjectListStoreController(BaseController, TreeControllerMixin):
     def __init__(self, *args, **kwargs):
         self.enable_import = kwargs.pop("enable_import", False)
         self.enable_export = kwargs.pop("enable_export", False)
-        BaseController.__init__(self, *args, **kwargs)
-        TreeControllerMixin.__init__(self, *args, **kwargs)
+        super(InlineObjectListStoreController, self).__init__(*args, **kwargs)
 
     @BaseController.model.setter
     def _set_model(self, model):

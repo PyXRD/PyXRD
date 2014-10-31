@@ -102,6 +102,16 @@ class PatternActionController(DialogController):
             getattr(self.model, self.model_cancel_method)()
         return super(PatternActionController, self).on_cancel()
 
+    def __del__(self):
+        # This is a bug, probably PyGTK related:
+        # this object gets garbage collected prematurely for some reason,
+        # and then when the ok button is pressed, the object is in an
+        # incoherent state. Adding a __del__ solves the issue of
+        # automated GC (but might also leak memory ...)
+        super(ShiftDataController, self).__del__()
+        del self.view
+        del self.model
+
     pass # end of class
 
 class AddNoiseController(PatternActionController):

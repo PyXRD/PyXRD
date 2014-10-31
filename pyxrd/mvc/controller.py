@@ -32,7 +32,7 @@ from .support.exceptions import TooManyCandidatesError
 import types
 import gobject
 
-class Controller (Observer):
+class Controller(Observer):
 
     auto_adapt = True
     auto_adapt_included = None
@@ -64,19 +64,33 @@ class Controller (Observer):
         return # ignore
         self.___user_props = set(value)
 
+
     _model = None
-    def _get_model(self): return self._model
+    def _get_model(self):
+        return self._model
     def _set_model(self, model):
         if self._model is not None:
             self._clear_adapters()
             self.relieve_model(self._model)
         self._model = model
-        if model is not None:
-            self.observe_model(model)
+        if self._model is not None:
+            self.observe_model(self._model)
             if self.view is not None:
                 self.register_adapters()
                 if self.auto_adapt: self.adapt()
     model = property(_get_model, _set_model)
+
+    __view = None
+    def _get_view(self):
+        return self.__view
+    def _set_view(self, view):
+        self.__view = view
+        if self.__view is not None:
+            if self.register_lazy:
+                gobject.idle_add(self._idle_register_view, self.__view, priority=gobject.PRIORITY_HIGH)
+            else:
+                self._idle_register_view(_view)
+    view = property(_get_view, _set_view)
 
     def __init__(self, *args, **kwargs):
         """
@@ -100,34 +114,37 @@ class Controller (Observer):
         constructor returns. When it starts *view* is available as an
         attribute.
         """
-        self.parent = kwargs.get("parent", None)
-        self._model = kwargs.get("model", None)
-        self.auto_adapt = kwargs.get("auto_adapt", self.auto_adapt)
-        self.register_lazy = kwargs.get("register_lazy", self.register_lazy)
 
-        Observer.__init__(self, *args, **kwargs)
-
-        self.view = None
-        self.model = self._model
         # set of properties explicitly adapted by the user:
         self.__adapters = []
         self.___user_props = set()
 
-        if self.register_lazy:
-            gobject.idle_add(self._idle_register_view, kwargs.get("view"), priority=gobject.PRIORITY_HIGH)
-        else:
-            self._idle_register_view(kwargs.get("view"))
+        # Some general keyword arguments:
+        self.parent = kwargs.pop("parent")
+        self.auto_adapt = kwargs.pop("auto_adapt", self.auto_adapt)
+        self.register_lazy = kwargs.pop("register_lazy", self.register_lazy)
+
+        # Pop the view, keep the model as we pass it down to the observer
+        _view = kwargs.pop("view", None)
+        _model = kwargs.get("model", None)
+
+        # Init base classes
+        super(Controller, self).__init__(*args, **kwargs)
+
+        # Set model (will register controller as observer)
+        self.model = _model
+        # Set view (will register & adapt to view)
+        self.view = _view
 
         return
 
     def _idle_register_view(self, view):
         """Internal method that calls register_view"""
-        assert(self.view is None)
-        self.view = view
+        assert(self.view is not None)
 
         self.__autoconnect_signals()
 
-        self.register_view(view)
+        self.register_view(self.view)
         self.register_adapters()
         if self.auto_adapt: self.adapt()
         return False

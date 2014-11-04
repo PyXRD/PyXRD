@@ -7,7 +7,7 @@
 
 import numpy as np
 
-from pyxrd.mvc import PropIntel
+from mvc import PropIntel
 from pyxrd.generic.io import storables
 from pyxrd.generic.utils import not_none
 

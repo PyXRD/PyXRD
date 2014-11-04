@@ -11,7 +11,7 @@ from pyxrd.generic.refinement.mixins import RefinementValue
 from pyxrd.generic.refinement.metaclasses import PyXRDRefinableMeta
 
 from .atom_relations import ComponentPropMixin
-from pyxrd.mvc import PropIntel
+from mvc import PropIntel
 
 @storables.register()
 class UnitCellProperty(DataModel, Storable, ComponentPropMixin, RefinementValue):

@@ -11,7 +11,7 @@ import unittest
 
 from test.utils import create_object_attribute_test
 
-from pyxrd.mvc import Observer
+from mvc import Observer
 from pyxrd.generic.models import (
     PyXRDLine,
     CalculatedLine,

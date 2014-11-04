@@ -16,7 +16,7 @@ from pyxrd.generic.io import storables, Storable
 
 from pyxrd.generic.refinement.mixins import RefinementGroup, RefinementValue
 from pyxrd.generic.refinement.metaclasses import PyXRDRefinableMeta
-from pyxrd.mvc import PropIntel
+from mvc import PropIntel
 
 
 class _AbstractCSDSDistribution(DataModel, Storable):

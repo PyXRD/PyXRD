@@ -15,8 +15,8 @@ import logging
 from pyxrd.generic.models.signals import HoldableSignal
 logger = logging.getLogger(__name__)
 
-from pyxrd.mvc import Signal, PropIntel, OptionPropIntel
-from pyxrd.mvc.models import TreeNode
+from mvc import Signal, PropIntel, OptionPropIntel
+from mvc.models import TreeNode
 
 import numpy as np
 

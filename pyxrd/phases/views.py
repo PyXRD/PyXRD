@@ -13,7 +13,7 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_gtkcairo import FigureCanvasGTKCairo as FigureCanvasGTK
 
 from pyxrd.generic.views import BaseView, HasChildView, DialogView
-from pyxrd.generic.views.widgets import ScaleEntry
+from mvc.adapters.gtk_support.widgets import ScaleEntry
 
 class EditPhaseView(BaseView, HasChildView):
     title = "Edit Phases"

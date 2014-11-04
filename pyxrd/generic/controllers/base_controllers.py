@@ -9,7 +9,7 @@ from contextlib import contextmanager
 import os
 import gtk
 
-from pyxrd.mvc.controller import Controller
+from mvc.controller import Controller
 
 from pyxrd.generic.io.utils import retrieve_lowercase_extension
 

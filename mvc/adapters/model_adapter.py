@@ -24,11 +24,10 @@
 
 from contextlib import contextmanager
 
-from .abstract_adapter import AbstractAdapter
+from ..support.utils import not_none
 from ..observers import Observer
 from ..models import Model, PropIntel
-
-from pyxrd.generic.utils import not_none # TODO separate this?
+from .abstract_adapter import AbstractAdapter
 
 class ModelAdapter(Observer, AbstractAdapter):
     """

@@ -27,13 +27,7 @@ from collections import namedtuple
 from ....observers import Observer
 from ....models.xydata import XYData
 
-try:
-    import gtk, gobject
-    INHIBIT_MASS_EMIT = False
-except ImportError:
-    INHIBIT_MASS_EMIT = True
-    from pyxrd.generic.gtk_tools import dummy_gtk as gtk
-    from pyxrd.generic.gtk_tools import dummy_gobject as gobject
+import gtk, gobject
 
 from base_models import BaseObjectListStore
 
@@ -56,7 +50,7 @@ class XYListStore(BaseObjectListStore, Observer):
     _last_lenght = 0
 
     __gsignals__ = {
-        'columns-changed' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, ())
+        'columns-changed' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, ())  # @UndefinedVariable
     }
 
     @property
@@ -202,4 +196,4 @@ class XYListStore(BaseObjectListStore, Observer):
 
     pass # end of class
 
-gobject.type_register(XYListStore)
+gobject.type_register(XYListStore)  # @UndefinedVariable

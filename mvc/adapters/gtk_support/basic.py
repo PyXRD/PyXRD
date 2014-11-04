@@ -23,8 +23,8 @@
 #  -------------------------------------------------------------------------
 
 from contextlib import contextmanager
-from pyxrd.mvc.adapters.model_adapter import ModelAdapter
-from pyxrd.generic.utils import not_none
+from ...adapters.model_adapter import ModelAdapter
+from ...support.utils import not_none
 
 class GtkAdapter(ModelAdapter):
     """
@@ -112,9 +112,9 @@ class GtkAdapter(ModelAdapter):
     # ----------------------------------------------------------------------
     @contextmanager
     def _block_widget_signal(self):
-        self._widget.handler_block(self._signal_id)
+        if self._signal_id is not None: self._widget.handler_block(self._signal_id)
         yield
-        self._widget.handler_unblock(self._signal_id)
+        if self._signal_id is not None: self._widget.handler_unblock(self._signal_id)
 
     def _read_widget(self):
         """Returns the value currently stored into the widget."""

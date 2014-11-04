@@ -12,8 +12,8 @@ import numpy as np
 from scipy.interpolate import interp1d
 from scipy.integrate import trapz
 
-from pyxrd.mvc import PropIntel, OptionPropIntel
-from pyxrd.mvc.models.xydata import XYData
+from mvc import PropIntel, OptionPropIntel
+from mvc.models.xydata import XYData
 
 from pyxrd.data import settings
 from pyxrd.generic.io import storables, Storable

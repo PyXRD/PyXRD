@@ -9,7 +9,7 @@ from pyxrd.generic.mathtext_support import mt_range
 from pyxrd.generic.io import storables
 from pyxrd.generic.utils import not_none
 
-from pyxrd.mvc import PropIntel
+from mvc import PropIntel
 
 from .base_models import _AbstractProbability
 from pyxrd.probabilities.models.properties import ProbabilityProperty

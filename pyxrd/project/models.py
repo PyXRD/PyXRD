@@ -10,12 +10,12 @@ logger = logging.getLogger(__name__)
 
 import time
 
-from pyxrd.mvc import Observer, PropIntel, OptionPropIntel
+from mvc import Observer, PropIntel, OptionPropIntel
+from mvc.observers import ListObserver
 
 from pyxrd.data import settings
 
 from pyxrd.generic.models import DataModel
-from pyxrd.mvc.observers import ListObserver
 from pyxrd.generic.io import storables, Storable, get_case_insensitive_glob
 
 from pyxrd.phases.models import Phase

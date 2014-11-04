@@ -33,7 +33,6 @@ class ObsWrapperBase (object):
     """
 
     def __init__(self):
-
         # all model instances owning self (can be multiple due to
         # inheritance). Each element of the set is a pair (model,
         # property-name)

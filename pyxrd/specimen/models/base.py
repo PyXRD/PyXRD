@@ -7,8 +7,8 @@
 
 from math import pi, log
 
-from pyxrd.mvc import PropIntel
-from pyxrd.mvc.observers import ListObserver
+from mvc import PropIntel
+from mvc.observers import ListObserver
 
 import numpy as np
 

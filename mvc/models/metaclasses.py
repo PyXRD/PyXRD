@@ -35,7 +35,7 @@ from .prop_intel import PropIntel
 from .object_pool import ThreadedObjectPool
 from .treenode import TreeNode
 
-from pyxrd.generic.utils import get_unique_list, get_new_uuid # TODO
+from ..support.utils import get_unique_list, get_new_uuid
 
 class ModelMeta(type):
     """

@@ -9,7 +9,7 @@ from traceback import print_exc
 
 import gtk
 
-from pyxrd.mvc import Controller
+from mvc import Controller
 
 from pyxrd.generic.controllers import BaseController
 

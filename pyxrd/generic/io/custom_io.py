@@ -155,7 +155,7 @@ class PyXRDEncoder(json.JSONEncoder):
     """
 
     def default(self, obj):
-        from pyxrd.mvc.support.observables import ObsWrapper
+        from mvc.support.observables import ObsWrapper
         if hasattr(obj, "to_json") and callable(getattr(obj, "to_json")):
             return obj.to_json()
         if isinstance(obj, np.ndarray):
@@ -390,7 +390,7 @@ class Storable(object):
                 alias, attr = val, val
             retval[alias] = getattr(self, attr)
 
-        from pyxrd.mvc.models import Model
+        from mvc.models import Model
         if isinstance(self, Model):
             for prop in self.Meta.all_properties:
                 if prop.storable:

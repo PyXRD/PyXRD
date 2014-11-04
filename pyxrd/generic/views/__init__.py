@@ -12,10 +12,10 @@ from warnings import warn
 from traceback import print_exc
 
 import gtk
-from pyxrd.mvc.view import View
+from mvc.view import View
 
 from pyxrd.data import settings
-from pyxrd.generic.views.widgets import ScaleEntry
+from mvc.adapters.gtk_support.widgets import ScaleEntry
 from pyxrd.generic.mathtext_support import create_image_from_mathtext
 from pyxrd.generic.models.mathtext_support import get_string_safe
 

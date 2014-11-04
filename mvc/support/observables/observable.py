@@ -24,8 +24,7 @@
 #  Boston, MA 02110, USA.
 #  -------------------------------------------------------------------------
 
-from pyxrd.mvc.support.decorators import good_classmethod_decorator
-
+from ..decorators import good_classmethod_decorator
 from .base import ObsWrapperBase
 
 class Observable (ObsWrapperBase):

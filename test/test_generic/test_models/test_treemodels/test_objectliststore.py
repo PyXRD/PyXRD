@@ -11,8 +11,8 @@ import gobject
 import unittest
 
 from pyxrd.generic.models import DataModel
-from pyxrd.mvc.adapters.gtk_support.treemodels import ObjectListStore
-from pyxrd.mvc import PropIntel
+from mvc.adapters.gtk_support.treemodels import ObjectListStore
+from mvc import PropIntel
 
 __all__ = [
     'TestObjectListStore',

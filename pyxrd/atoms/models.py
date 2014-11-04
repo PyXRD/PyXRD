@@ -9,7 +9,7 @@ from functools import partial
 from warnings import warn
 import zipfile
 
-from pyxrd.mvc import Observer, PropIntel
+from mvc import Observer, PropIntel
 
 import numpy as np
 

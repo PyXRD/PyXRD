@@ -7,12 +7,12 @@
 
 import gtk
 import logging
-from pyxrd.mvc.adapters.gtk_support.treemodels.utils import create_treestore_from_directory
+from mvc.adapters.gtk_support.treemodels.utils import create_treestore_from_directory
 
 logger = logging.getLogger(__name__)
 
-from pyxrd.mvc import Model, Controller
-from pyxrd.mvc.adapters.dummy_adapter import DummyAdapter
+from mvc import Model, Controller
+from mvc.adapters.dummy_adapter import DummyAdapter
 
 from pyxrd.data import settings
 

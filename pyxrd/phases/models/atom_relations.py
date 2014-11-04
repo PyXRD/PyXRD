@@ -17,8 +17,8 @@
 
 import types
 
-from pyxrd.mvc.observers import ListObserver
-from pyxrd.mvc import Model, PropIntel
+from mvc.observers import ListObserver
+from mvc import Model, PropIntel
 
 from pyxrd.generic.models import DataModel
 from pyxrd.generic.io import storables, Storable, get_case_insensitive_glob

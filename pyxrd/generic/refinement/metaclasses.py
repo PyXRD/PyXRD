@@ -5,7 +5,7 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from pyxrd.mvc.models.metaclasses import ModelMeta
+from mvc.models.metaclasses import ModelMeta
 from .models import RefinementInfo
 
 class PyXRDRefinableMeta(ModelMeta):

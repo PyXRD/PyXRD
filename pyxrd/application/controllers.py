@@ -14,7 +14,7 @@ import gobject
 from pyxrd.data import settings
 
 from pyxrd.generic.controllers import BaseController, DialogMixin
-from pyxrd.generic.utils import not_none
+from mvc.support.utils import not_none
 from pyxrd.generic.plot.controllers import MainPlotController
 
 from pyxrd.project.controllers import ProjectController

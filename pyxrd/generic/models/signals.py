@@ -5,7 +5,7 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from pyxrd.mvc import Signal
+from mvc import Signal
 
 class HoldableSignal(Signal):
     """

@@ -28,7 +28,7 @@ import multiprocessing
 import logging
 logger = logging.getLogger(__name__)
 
-from pyxrd.generic.utils import get_new_uuid
+from ..support.utils import get_new_uuid
 
 class ObjectPool(object):
     """

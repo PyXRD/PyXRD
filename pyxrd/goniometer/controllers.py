@@ -9,7 +9,7 @@ import gtk
 
 from pyxrd.generic.controllers import BaseController
 from pyxrd.goniometer.models import Goniometer
-from pyxrd.mvc.adapters.gtk_support.treemodels.utils import (
+from mvc.adapters.gtk_support.treemodels.utils import (
     create_treestore_from_directory, create_valuestore_from_file)
 
 class InlineGoniometerController(BaseController):

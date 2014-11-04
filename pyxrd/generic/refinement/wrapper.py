@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 from pyxrd.generic.models.base import ChildModel
 
 from pyxrd.generic.refinement.mixins import _RefinementBase, RefinementValue, RefinementGroup
-from pyxrd.mvc import PropIntel
+from mvc import PropIntel
 
 class RefinableWrapper(ChildModel):
     """

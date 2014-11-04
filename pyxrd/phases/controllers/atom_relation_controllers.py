@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 import gtk, pango
 
-from pyxrd.mvc.adapters.dummy_adapter import DummyAdapter
+from mvc.adapters.dummy_adapter import DummyAdapter
 
 from pyxrd.generic.views.treeview_tools import (
     new_text_column,

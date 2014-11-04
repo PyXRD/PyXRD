@@ -26,9 +26,15 @@ import importlib
 import logging
 logger = logging.getLogger(__name__)
 
+from ..settings import TOOLKIT
+from ..support.idle_call import IdleCallHandler
 
 class ToolkitRegistry(dict):
-
+    """
+        Dict subclass used to store all AdapterRegistry's.
+        Keys are toolkit names, values are AdapterRegistry instances
+    """
+    
     # These will be loaded automatically when this module is first loaded:
     toolkit_modules = [
         ".gtk_support"
@@ -39,8 +45,6 @@ class ToolkitRegistry(dict):
         if not toolkit_name in self:
             adapter_registry = AdapterRegistry()
             self.register(toolkit_name, adapter_registry)
-            if self.selected_toolkit is None:
-                self.selected_toolkit = "gtk"
         return self[toolkit_name]
 
     def register(self, toolkit_name, adapter_registry):
@@ -51,6 +55,8 @@ class ToolkitRegistry(dict):
             raise ValueError, "Cannot select unknown toolkit '%s'" % toolkit_name
         else:
             self.selected_toolkit = toolkit_name
+            tkar = self.get_selected_adapter_registry()
+            IdleCallHandler.set_idle_handler(self, tkar.idle_handler)
 
     def get_selected_adapter_registry(self):
         if self.selected_toolkit is None:
@@ -66,6 +72,7 @@ class AdapterRegistry(dict):
     """
 
     toolkit_registry = ToolkitRegistry()
+    idle_handler = None
 
     @classmethod
     def get_selected_adapter_registry(cls):
@@ -99,8 +106,10 @@ for toolkit_module in ToolkitRegistry.toolkit_modules:
     if toolkit_module.startswith('.'):
         package = __name__.rpartition('.')[0]
         try:
-            mod = importlib.import_module(toolkit_module, package=package)
-            mod.load_all_adapters()
+            # Import and load toolkit module:
+            tk_mod = importlib.import_module(toolkit_module, package=package)
+            tk_mod.load(AdapterRegistry.toolkit_registry)
         except ImportError:
             logger.warning("Could not load toolkit support module '%s'" % (toolkit_module,))
 
+AdapterRegistry.toolkit_registry.select_toolkit(TOOLKIT)

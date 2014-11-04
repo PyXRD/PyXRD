@@ -41,7 +41,7 @@ class Controller(Observer):
     register_lazy = True
 
     __adapters = None
-    ___user_props = None
+    __parsed_user_props = None
     _controller_scope_aplied = False
 
     @property
@@ -53,16 +53,16 @@ class Controller(Observer):
         if not self._controller_scope_aplied:
             props = [prop.name for prop in self.model.Meta.all_properties]
             if self.auto_adapt_included is not None:
-                self.___user_props = self.___user_props.union(set(filter(lambda p: p not in self.auto_adapt_included, props)))
+                self.__parsed_user_props = self.__parsed_user_props.union(set(filter(lambda p: p not in self.auto_adapt_included, props)))
             elif self.auto_adapt_excluded is not None:
-                self.___user_props = self.___user_props.union(set(filter(lambda p: p in self.auto_adapt_excluded, props)))
+                self.__parsed_user_props = self.__parsed_user_props.union(set(filter(lambda p: p in self.auto_adapt_excluded, props)))
             self._controller_scope_aplied = True
-        return self.___user_props
+        return self.__parsed_user_props
 
     @__user_props.setter
     def __user_props(self, value):
         return # ignore
-        self.___user_props = set(value)
+        self.__parsed_user_props = set(value)
 
 
     _model = None
@@ -78,19 +78,25 @@ class Controller(Observer):
             if self.view is not None:
                 self.register_adapters()
                 if self.auto_adapt: self.adapt()
-    model = property(_get_model, _set_model)
+    def _del_model(self):
+        del self._model
+        self._model = None
+    model = property(_get_model, _set_model, _del_model)
 
     __view = None
     def _get_view(self):
         return self.__view
     def _set_view(self, view):
-        self.__view = view
-        if self.__view is not None:
-            if self.register_lazy:
-                gobject.idle_add(self._idle_register_view, self.__view, priority=gobject.PRIORITY_HIGH)
-            else:
-                self._idle_register_view(_view)
-    view = property(_get_view, _set_view)
+        if self.__view != view:
+            self.__view = view
+            if self.__view is not None:
+                if self.register_lazy:
+                    gobject.idle_add(self._idle_register_view, self.__view, priority=gobject.PRIORITY_HIGH)
+                else:
+                    self._idle_register_view(self.__view)
+    def _del_view(self):
+        self.__view = None
+    view = property(_get_view, _set_view, _del_view, "This controller's view")
 
     def __init__(self, *args, **kwargs):
         """
@@ -113,11 +119,17 @@ class Controller(Observer):
         with the GTK main loop. It happens as soon as possible but after the
         constructor returns. When it starts *view* is available as an
         attribute.
+        
+        Subclasses can also override either the `auto_adapt_included` or
+        `auto_adapt_excluded` class attributes. These should be either None or
+        contain a list of properties to exclude (or include) from auto
+        adaptation for this controller. If not specified, all properties are
+        adapted if auto_adapt is True.
         """
 
         # set of properties explicitly adapted by the user:
         self.__adapters = []
-        self.___user_props = set()
+        self.__parsed_user_props = set()
 
         # Some general keyword arguments:
         self.parent = kwargs.pop("parent")

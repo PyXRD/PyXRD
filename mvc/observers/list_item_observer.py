@@ -21,6 +21,7 @@
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor,
 #  Boston, MA 02110, USA.
 #  -------------------------------------------------------------------------
+
 import weakref
 from .base import Observer
 

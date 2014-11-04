@@ -21,12 +21,9 @@
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor,
 #  Boston, MA 02110, USA.
 #  -------------------------------------------------------------------------
-import types
 
-try:
-    import gtk
-except ImportError:
-    from pyxrd.generic.gtk_tools import dummy_gtk as gtk
+import types
+import gtk
 
 class BaseObjectListStore(gtk.GenericTreeModel):
     """

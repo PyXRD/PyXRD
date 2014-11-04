@@ -8,8 +8,8 @@
 import zipfile
 from warnings import warn
 
-from pyxrd.mvc import PropIntel
-from pyxrd.mvc.observers import ListObserver
+from mvc import PropIntel
+from mvc.observers import ListObserver
 
 from pyxrd.generic.io import storables, Storable
 from pyxrd.generic.models import DataModel, HoldableSignal

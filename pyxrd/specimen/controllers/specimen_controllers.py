@@ -11,8 +11,8 @@ logger = logging.getLogger(__name__)
 
 import gtk
 
-from pyxrd.mvc.adapters import DummyAdapter
-from pyxrd.mvc.adapters.gtk_support.tree_view_adapters import wrap_xydata_to_treemodel
+from mvc.adapters import DummyAdapter
+from mvc.adapters.gtk_support.tree_view_adapters import wrap_xydata_to_treemodel
 from pyxrd.generic.controllers import BaseController, DialogController, TreeViewMixin
 from pyxrd.generic.views.treeview_tools import setup_treeview, new_text_column
 

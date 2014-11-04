@@ -8,7 +8,7 @@
 from math import radians
 import numpy as np
 
-from pyxrd.mvc import PropIntel
+from mvc import PropIntel
 
 from pyxrd.generic.models import DataModel
 from pyxrd.generic.io import storables, Storable, get_case_insensitive_glob

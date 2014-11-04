@@ -5,7 +5,7 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from pyxrd.mvc import Signal, PropIntel
+from mvc import Signal, PropIntel
 
 from pyxrd.generic.models import PyXRDModel
 

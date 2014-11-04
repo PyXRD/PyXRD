@@ -8,8 +8,8 @@
 import logging
 logger = logging.getLogger(__name__)
 
-from pyxrd.mvc import Controller
-from pyxrd.mvc.adapters.dummy_adapter import DummyAdapter
+from mvc import Controller
+from mvc.adapters.dummy_adapter import DummyAdapter
 
 from pyxrd.generic.views import InlineObjectListStoreView
 from pyxrd.generic.views.combobox_tools import add_combo_text_column

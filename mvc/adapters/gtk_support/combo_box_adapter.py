@@ -21,13 +21,16 @@
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor,
 #  Boston, MA 02110, USA.
 #  -------------------------------------------------------------------------
+
+import types
 import logging
-from pyxrd.generic.utils import not_none
 logger = logging.getLogger(__name__)
 
 import gtk
+
+from ...support.utils import not_none
 from .basic import GtkAdapter
-import types
+
 
 class ComboBoxAdapter(GtkAdapter):
     """

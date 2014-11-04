@@ -9,7 +9,7 @@ from pkg_resources import resource_filename # @UnresolvedImport
 
 import gtk
 
-from pyxrd.generic.views.widgets import ScaleEntry
+from mvc.adapters.gtk_support.widgets import ScaleEntry
 from pyxrd.generic.views import BaseView, HasChildView
 from pyxrd.probabilities.models import RGbounds
 from pyxrd.generic.utils import rec_getattr

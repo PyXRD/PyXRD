@@ -5,7 +5,7 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from pyxrd.mvc import Controller
+from mvc import Controller
 
 from pyxrd.generic.controllers import BaseController
 

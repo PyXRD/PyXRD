@@ -9,7 +9,7 @@
 
 import unittest
 
-from pyxrd.mvc import Observer
+from mvc import Observer
 from pyxrd.generic.models import ChildModel
 
 __all__ = [

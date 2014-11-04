@@ -28,19 +28,18 @@ import logging
 logger = logging.getLogger(__name__)
 
 from weakref import WeakKeyDictionary
-from pyxrd.generic.weak_list import WeakList
 
 
 try: import threading as threading
 except ImportError: import dummy_threading as threading
-try: import gobject
-except ImportError: from pyxrd.generic.gtk_tools import dummy_gobject as gobject
 
-from pyxrd.generic.utils import not_none # TODO
+from ..support.utils import not_none
+from ..support.collections.weak_list import WeakList
+from ..support.observables import ObsWrapperBase, Signal
+from ..support.idle_call import IdleCallHandler
+from ..observers import Observer, NTInfo
 
 from .metaclasses import ModelMeta
-from ..support.observables import ObsWrapperBase, Signal
-from ..observers import Observer, NTInfo
 from .prop_intel import UUIDPropIntel
 
 class Model(Observer):
@@ -412,15 +411,7 @@ class Model(Observer):
         if threading.currentThread() == self.__observer_threads[observer]: # @UndefinedVariable
             self.__idle_notify_observer(observer, method, args, kwargs)
         else:
-            # FIXME: we need some way to call these on the main thread without relying on gobject...
-            # A good way is maybe to create a global function that handles all
-            # off the idle_add function calls
-            # Then if PyGTK is available we just queue this with idle_add once,
-            # and keep on running it (just checks the queue of idle calls to be
-            # handled).
-            # If PyGTK isn't available, we just call them immediately instead
-            # of queuing?.
-            gobject.idle_add(self.__idle_notify_observer, observer, method, args, kwargs)
+            IdleCallHandler.call_idle(self.__idle_notify_observer, observer, method, args, kwargs)
 
     def __idle_notify_observer(self, observer, method, args, kwargs):
         method(*args, **kwargs)

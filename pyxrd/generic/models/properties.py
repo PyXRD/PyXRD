@@ -5,7 +5,7 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from pyxrd.mvc.models.properties import LabeledProperty
+from mvc.models.properties import LabeledProperty
 
 class SignalProperty(LabeledProperty):
     """

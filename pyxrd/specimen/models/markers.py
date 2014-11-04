@@ -5,7 +5,7 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from pyxrd.mvc import Signal, PropIntel, OptionPropIntel
+from mvc import Signal, PropIntel, OptionPropIntel
 
 import numpy as np
 from scipy import stats

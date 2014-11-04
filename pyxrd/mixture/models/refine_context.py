@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 import numpy as np
 
-from pyxrd.mvc import PropIntel, Signal
+from mvc import PropIntel, Signal
 from pyxrd.generic.models import ChildModel
 
 class RefineSetupError(ValueError):

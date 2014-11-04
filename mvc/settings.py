@@ -2,6 +2,7 @@
 # ex:ts=4:sw=4:et=on
 #  -------------------------------------------------------------------------
 #  Copyright (C) 2014 by Mathijs Dumon <mathijs dot dumon at gmail dot com>
+#  Copyright (C) 2005 by Roberto Cavada <roboogle@gmail.com>
 #
 #  mvc is a framework derived from the original pygtkmvc framework
 #  hosted at: <http://sourceforge.net/projects/pygtkmvc/>
@@ -22,18 +23,4 @@
 #  Boston, MA 02110, USA.
 #  -------------------------------------------------------------------------
 
-from .basic import GtkAdapter
-from pyxrd.generic.views.widgets import ScaleEntry
-
-class ScaleEntryAdapter(GtkAdapter):
-    """
-        An adapter for a ScaleEntry widget.
-    """
-    widget_types = ["scale", ]
-    _check_widget_type = ScaleEntry
-
-    _wid_read = GtkAdapter.static_to_class(ScaleEntry.get_value)
-    _wid_write = GtkAdapter.static_to_class(ScaleEntry.set_value)
-    _signal = "changed"
-
-    pass # end of class
+TOOLKIT = "gtk"

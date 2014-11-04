@@ -5,7 +5,7 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from pyxrd.mvc import PropIntel
+from mvc import PropIntel
 from pyxrd.generic.mathtext_support import mt_range
 from pyxrd.generic.io import storables
 from pyxrd.generic.utils import not_none

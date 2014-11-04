@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 import gtk
 
-from pyxrd.mvc import Controller
+from mvc import Controller
 
 from pyxrd.generic.plot.eye_dropper import EyeDropper
 from pyxrd.generic.plot.draggables import DraggableVLine

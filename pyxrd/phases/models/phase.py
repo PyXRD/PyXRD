@@ -9,8 +9,8 @@ from random import choice
 import zipfile
 from warnings import warn
 
-from pyxrd.mvc import Observer, PropIntel
-from pyxrd.mvc.observers import ListObserver
+from mvc import Observer, PropIntel
+from mvc.observers import ListObserver
 
 from pyxrd.generic.io import storables, Storable, get_case_insensitive_glob
 from pyxrd.generic.models import DataModel

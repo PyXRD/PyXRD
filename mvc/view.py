@@ -26,7 +26,7 @@
 
 # TODO remove gladeXML: deprecated!
 
-from pyxrd.mvc.support.exceptions import ViewError
+from .support.exceptions import ViewError
 
 import gtk
 

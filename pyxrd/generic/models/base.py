@@ -8,7 +8,7 @@
 from warnings import warn
 import weakref
 
-from pyxrd.mvc import Model, Signal, PropIntel
+from mvc import Model, Signal, PropIntel
 from pyxrd.generic.utils import not_none, rec_getattr
 
 from .signals import HoldableSignal

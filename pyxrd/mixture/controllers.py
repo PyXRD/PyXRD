@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 import gtk
 import sys
 
-from pyxrd.mvc import Controller, Observer
+from mvc import Controller, Observer
 
 from pyxrd.generic.views.treeview_tools import new_text_column, new_pb_column, new_toggle_column
 from pyxrd.generic.mathtext_support import create_pb_from_mathtext

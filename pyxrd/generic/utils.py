@@ -7,7 +7,6 @@
 
 import time
 import hashlib
-from uuid import uuid4 as get_uuid
 
 def rec_getattr(obj, attr, default):
     """Get object's attribute. May use dot notation.
@@ -69,14 +68,6 @@ def get_md5_hash_for_args(args):
     for arg in args:
         hsh.update(arg)
     return hsh.digest()
-
-def get_new_uuid():
-    return unicode(get_uuid().hex)
-
-def get_unique_list(seq):
-    seen = set()
-    seen_add = seen.add
-    return [x for x in seq if x not in seen and not seen_add(x)]
 
 def u(string):
     return unicode(string, errors='replace', encoding='UTF-8')

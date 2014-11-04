@@ -23,7 +23,7 @@
 #  Boston, MA 02110, USA.
 #  -------------------------------------------------------------------------
 
-from pyxrd.mvc.support import decorators
+from ..support import decorators
 
 import inspect
 

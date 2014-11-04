@@ -9,7 +9,7 @@ from contextlib import contextmanager
 
 import gtk
 
-from pyxrd.mvc.adapters.gtk_support.tree_view_adapters import wrap_list_property_to_treemodel
+from mvc.adapters.gtk_support.tree_view_adapters import wrap_list_property_to_treemodel
 
 from pyxrd.generic.utils import not_none
 from pyxrd.generic.views.treeview_tools import new_text_column, setup_treeview

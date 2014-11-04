@@ -24,6 +24,11 @@
 #  -------------------------------------------------------------------------
 
 import os
+from uuid import uuid4 as get_uuid
+
+def not_none(passed, default):
+    """Returns `passed` if not None, else `default` is returned"""
+    return passed if passed is not None else default
 
 def getmembers(_object, _predicate):
     """This is an implementation of inspect.getmembers, as in some versions 
@@ -41,6 +46,13 @@ def getmembers(_object, _predicate):
         pass
     return observers
 
+def get_new_uuid():
+    return unicode(get_uuid().hex)
+
+def get_unique_list(seq):
+    seen = set()
+    seen_add = seen.add
+    return [x for x in seq if x not in seen and not seen_add(x)]
 
 # ======================================================================
 # This is taken from python 2.6 (os.path.relpath is supported in 2.6)

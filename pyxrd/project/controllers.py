@@ -10,7 +10,7 @@ import os
 import pango
 import gtk
 
-from pyxrd.mvc import Controller
+from mvc import Controller
 
 from pyxrd.generic.views.treeview_tools import new_text_column, new_toggle_column, new_pb_column
 from pyxrd.generic.controllers import BaseController, ObjectListStoreController

@@ -370,4 +370,14 @@ class Controller(Observer):
         except any as error:
             raise RuntimeError(error), "Unhandled error in '%s'.__create_adapters__ for property '%s' and widget '%s'!" % (type(self), prop.name, wid_name)
 
+    def __del__(self):
+        # This is a bug, probably PyGTK related:
+        # this object gets garbage collected prematurely for some reason,
+        # and then when the ok button is pressed, the object is in an
+        # incoherent state. Adding a __del__ solves the issue of
+        # automated GC (but might also leak memory ...)
+        super(Controller, self).__del__()
+        del self.view
+        del self.model
+
     pass # end of class Controller

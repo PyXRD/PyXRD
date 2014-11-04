@@ -455,8 +455,8 @@ def run(args=None, ui_callback=None):
     """        
     ### Kaolinite - Chlorite - Smectites:
     """
-    KC_code = I_code + C_code
-    KC_inh_comp_args = dict(I_inh_comp_args)
+    KC_code = K_code + C_code
+    KC_inh_comp_args = dict(K_inh_comp_args)
     KC_inh_comp_args.update(C_inh_comp_args)
 
     KCS_code_AD = KC_code + S_code_AD

@@ -17,6 +17,7 @@ from pyxrd.generic.mathtext_support import create_pb_from_mathtext
 from pyxrd.generic.controllers import DialogController, BaseController, ObjectListStoreController
 
 from pyxrd.mixture.models.parspace import ParameterSpaceGenerator
+from pyxrd.mixture.models.refine_context import RefineSetupError
 from pyxrd.mixture.models import Mixture
 from pyxrd.mixture.views import EditMixtureView, RefinementView, RefinementResultView
 from pyxrd.generic.controllers.objectliststore_controllers import wrap_list_property_to_treemodel
@@ -355,7 +356,11 @@ class RefinementController(DialogController):
                         self.model.refine_options[arg] = value
 
                     # Setup context:
-                    self.model.refiner.setup_context(store=True)
+                    try:
+                        self.model.refiner.setup_context(store=True)
+                    except RefineSetupError, msg:
+                        self.run_information_dialog("There was an error when creating the refinement setup:\n%s" % msg, parent=self.view.get_toplevel())
+                        return
 
                     # Setup results controller, this needs to be done prior to running
                     # the refinement to allow for solutions to be recorded!

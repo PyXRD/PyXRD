@@ -15,6 +15,10 @@ import numpy as np
 from pyxrd.mvc import PropIntel, Signal
 from pyxrd.generic.models import ChildModel
 
+class RefineSetupError(ValueError):
+    """ Raised if an error exists in the refinement setup """
+    pass
+
 class RefineContext(ChildModel):
     """
         A context model for the refinement procedure.
@@ -78,6 +82,9 @@ class RefineContext(ChildModel):
                     logger.info(" - %s from %r" % (ref_prop.text_title, ref_prop.obj))
                     self.ref_props.append(ref_prop)
                     self.values.append(ref_prop.value)
+                    if not (ref_prop.value_min < ref_prop.value_max):
+                        logger.info("Error in refinement setup!")
+                        raise RefineSetupError, "Refinable property `%s` needs a valid range!" % (ref_prop.get_descriptor(),)
                     self.ranges += ((ref_prop.value_min, ref_prop.value_max),)
 
         if store: self.store_project_state()

@@ -13,7 +13,7 @@ import time
 
 from pyxrd.data import settings
 from pyxrd.generic.models import ChildModel
-from .refine_context import RefineContext
+from .refine_context import RefineContext, RefineSetupError
 
 class Refiner(ChildModel):
     """
@@ -48,7 +48,8 @@ class Refiner(ChildModel):
             This refines the selected properties using the selected algorithm.
             This should be run asynchronously to keep the GUI from blocking.
         """
-        assert self.context is not None, "You need to setup the RefineContext before starting the refinement!"
+        if self.context is None:
+            raise RefineSetupError, "You need to setup the RefineContext before starting the refinement!"
 
         # Suppress updates:
         with self.mixture.needs_update.hold():

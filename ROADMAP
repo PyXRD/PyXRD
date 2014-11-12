@@ -1,6 +1,7 @@
 0.x - DOCS: improve documentation status, 
       example of good status is the calculations or probabilities module
-0.6 - Sybilla Support:
+0.6 - test mvc distribution
+0.7 - Sybilla Support:
         - export to Sybilla's XML format?
     - Create a SpecimensController (mind the s) that handles most of the specimen
       selection/deletion/creation control now in the Application and ProjectControllers.

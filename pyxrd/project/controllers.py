@@ -12,6 +12,8 @@ import gtk
 
 from mvc import Controller
 
+from pyxrd.generic.controllers.line_controllers import BackgroundController
+from pyxrd.generic.views.line_views import BackgroundView
 from pyxrd.generic.views.treeview_tools import new_text_column, new_toggle_column, new_pb_column
 from pyxrd.generic.controllers import BaseController, ObjectListStoreController
 from pyxrd.specimen.models import Specimen
@@ -140,6 +142,39 @@ class ProjectController(ObjectListStoreController):
                 message='Deleting a specimen is irreversible!\nAre You sure you want to continue?',
                 on_accept_callback=delete_objects,
                 parent=self.view.get_top_widget())
+
+    @BaseController.status_message("Removing backgrounds...", "del_bg_specimen")
+    def remove_backgrounds(self, specimens):
+        """
+            Opens the 'remove background' dialog for the given specimens,
+            raises a ValueError error if (one of) the specimens is not part of
+            this project.
+        """
+
+        def on_automated(dialog):
+            for specimen in specimens:
+                if not specimen in self.model.specimens:
+                    raise ValueError, "Specimen `%s` is not part of this Project!" % specimen
+                else:
+                    specimen.experimental_pattern.bg_type = 0 # Linear see settings
+                    specimen.experimental_pattern.find_bg_position()
+                    specimen.experimental_pattern.remove_background()
+                    specimen.experimental_pattern.clear_bg_variables()
+
+        def on_not_automated(dialog):
+            for specimen in specimens:
+                if not specimen in self.model.specimens:
+                    raise ValueError, "Specimen `%s` is not part of this Project!" % specimen
+                else:
+                    bg_view = BackgroundView(parent=self.parent.view)
+                    BackgroundController(model=specimen.experimental_pattern, view=bg_view, parent=self)
+                    bg_view.present()
+
+        # Ask user if he/she wants automation:
+        self.run_confirmation_dialog(
+            "Do you want to perform an automated linear background subtraction?",
+            on_automated, on_not_automated, parent=self.parent.view.get_top_widget()
+        )
 
     def edit_specimen(self):
         selection = self.get_selected_objects()

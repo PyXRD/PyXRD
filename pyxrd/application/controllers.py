@@ -401,6 +401,8 @@ class AppController (BaseController, DialogMixin):
     def on_remove_background(self, event):
         if self.model.single_specimen_selected:
             self.specimen.remove_background()
+        else:
+            self.project.remove_backgrounds(self.model.current_specimens)
         return True
 
     def on_smooth_data(self, event):

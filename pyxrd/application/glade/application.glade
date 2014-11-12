@@ -165,17 +165,6 @@
       </object>
     </child>
     <child>
-      <object class="GtkAction" id="remove_bg">
-        <property name="label" translatable="yes">Remove Background</property>
-        <property name="short_label" translatable="yes">Background</property>
-        <property name="tooltip" translatable="yes">Remove the background</property>
-        <property name="stock_id">420-background</property>
-        <property name="always_show_image">True</property>
-        <signal name="activate" handler="on_remove_background" swapped="no"/>
-      </object>
-      <accelerator key="F2"/>
-    </child>
-    <child>
       <object class="GtkAction" id="edit_specimen">
         <property name="label" translatable="yes">Edit specimen</property>
         <property name="short_label" translatable="yes">Edit specimen</property>
@@ -273,6 +262,17 @@
   <object class="GtkActionGroup" id="specimens_actions">
     <property name="sensitive">False</property>
     <property name="accel_group">PyXRD_Main</property>
+    <child>
+      <object class="GtkAction" id="remove_bg">
+        <property name="label" translatable="yes">Remove Background</property>
+        <property name="short_label" translatable="yes">Background</property>
+        <property name="tooltip" translatable="yes">Remove the background</property>
+        <property name="stock_id">420-background</property>
+        <property name="always_show_image">True</property>
+        <signal name="activate" handler="on_remove_background" swapped="no"/>
+      </object>
+      <accelerator key="F2"/>
+    </child>
     <child>
       <object class="GtkAction" id="save_graph">
         <property name="label" translatable="yes">Save Graph</property>

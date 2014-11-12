@@ -88,10 +88,11 @@ CALCULATED_LINEWIDTH = 2.0
 
 PATTERN_SHIFT_POSITIONS = {
     0.42574: "Quartz    0.42574   SiO2",
+    0.3134:  "Silicon   0.31355   Si",
+    0.2476:  "Zincite   0.24759   ZnO",
+    0.2085:  "Corundum  0.2085    Al2O3",
     0.4183:  "Goethite  0.4183    FeO(OH)",
-    0.3134:  "Silicon   0.3134    Si",
-    0.2476:  "Zincite   0.2476    ZnO",
-    0.2085:  "Corundum  0.2085    Al2O3"
+    0.48486: "Gibbsite  0.48486   Al(OH)3",
 }
 PATTERN_SMOOTH_TYPES = { 0: "Moving Triangle" }
 PATTERN_BG_TYPES = { 0: "Linear", 1: "Pattern" }

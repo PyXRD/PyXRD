@@ -252,7 +252,6 @@ class AppController (BaseController, DialogMixin):
         return True
 
     def on_about_activate(self, widget, data=None):
-        # self.run_dialog(self.view["about_window"], destroy=True)
         self.view["about_window"].show()
         return True
 
@@ -263,11 +262,12 @@ class AppController (BaseController, DialogMixin):
         def on_reject(dialog):
             return True
         if self.model.current_project and self.model.current_project.needs_saving:
-            return self.run_confirmation_dialog(
+            self.run_confirmation_dialog(
                 "The current project has unsaved changes,\n"
                 "are you sure you want to quit?",
                 on_accept, on_reject,
                 parent=self.view.get_top_widget())
+            return True
         else:
             return on_accept(None)
 

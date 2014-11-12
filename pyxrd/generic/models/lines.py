@@ -131,7 +131,7 @@ class PyXRDLine(DataModel, StorableXYData):
     def get_lw(self):
         if self.inherit_lw:
             try:
-                return getattr(self.parent.parent, self.__inherit_format__ % "lw")
+                return getattr(self.parent.parent, type(self).Meta.inherit_format % "lw", self._lw)
             except AttributeError: # occurs when e.g. a parent is None
                 return self._lw
         else:

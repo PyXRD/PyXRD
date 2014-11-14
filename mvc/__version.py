@@ -2,6 +2,7 @@
 # ex:ts=4:sw=4:et=on
 #  -------------------------------------------------------------------------
 #  Copyright (C) 2014 by Mathijs Dumon <mathijs dot dumon at gmail dot com>
+#  Copyright (c) 2007 by Guillaume Libersat <glibersat AT linux62.org>
 #  Copyright (C) 2005 by Roberto Cavada <roboogle@gmail.com>
 #
 #  mvc is a framework derived from the original pygtkmvc framework
@@ -23,42 +24,4 @@
 #  Boston, MA 02110, USA.
 #  -------------------------------------------------------------------------
 
-# FIXME clean this mess up
-
-"""
-Shortcuts are provided to the following classes defined in submodules:
-
-.. class:: Model
-   :noindex:
-.. class:: TreeStoreModel
-   :noindex:
-.. class:: ListStoreModel
-   :noindex:
-.. class:: TextBufferModel
-   :noindex:
-.. class:: ModelMT
-   :noindex:
-.. class:: Controller
-   :noindex:
-.. class:: View
-   :noindex:
-.. class:: Observer
-   :noindex:
-.. class:: Observable
-   :noindex:
-
-"""
-
-from __version import __version__
-
-# Class shortcuts:
-from .observers import Observer
-from .support.observables import Signal, Observable
-from .models import *
-
-try:
-    from .view import View
-    from .controller import Controller
-except ImportError:
-    import logging
-    logging.getLogger(__name__).warning("ImportError when trying to load View and/or Controller: do you have PyGTK/GObject installed?")
+__version__ = "0.6.1"

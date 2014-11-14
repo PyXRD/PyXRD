@@ -144,7 +144,8 @@ class MarkersController(ObjectListStoreController):
     def on_load_object_clicked(self, event):
         def on_accept(dialog):
             with self._multi_operation_context():
-                Marker.get_from_csv(dialog.get_filename(), self.model.markers.append)
+                for marker in Marker.get_from_csv(dialog.get_filename(), self.model):
+                    self.model.markers.append(marker)
         self.run_load_dialog("Import markers", on_accept, parent=self.view.get_top_widget())
 
     def on_save_object_clicked(self, event):

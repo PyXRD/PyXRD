@@ -43,10 +43,6 @@ def _parse_args():
     del parser # free some memory
     return args
 
-def _check_for_updates():
-    from pyxrd.generic.update import update
-    update()
-
 def _setup_logging(debug, log_file, scripted=False):
     if not os.path.exists(os.path.dirname(log_file)):
         os.makedirs(os.path.dirname(log_file))
@@ -124,10 +120,6 @@ def _run_gui(args):
     splash.set_message("Parsing arguments ...")
     if not isinstance(args, argparse.ArgumentParser):
         args = _parse_args()
-
-    # Check for updates
-    splash.set_message("Checking for updates ...")
-    _check_for_updates()
 
     # Run GUI:
     splash.set_message("Loading GUI ...")

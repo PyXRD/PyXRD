@@ -11,11 +11,13 @@ from os.path import basename, dirname
 import gtk
 import gobject
 
+from mvc.support.utils import not_none
+
 from pyxrd.data import settings
 
-from pyxrd.generic.controllers import BaseController, DialogMixin
-from mvc.support.utils import not_none
+from pyxrd.generic.controllers import BaseController
 from pyxrd.generic.plot.controllers import MainPlotController
+from pyxrd.generic.plot.eye_dropper import EyeDropper
 
 from pyxrd.project.controllers import ProjectController
 from pyxrd.project.models import Project
@@ -25,7 +27,7 @@ from pyxrd.mixture.controllers import MixturesController
 from pyxrd.phases.controllers import PhasesController
 from pyxrd.atoms.controllers import AtomTypesController
 
-class AppController (BaseController, DialogMixin):
+class AppController (BaseController):
     """
         Controller handling the main application interface.
         In essence this delegates actions to its child controllers for Project,
@@ -277,7 +279,9 @@ class AppController (BaseController, DialogMixin):
 
     def on_refresh_graph(self, event):
         if self.model.current_project:
-            self.model.current_project.update_all_mixtures()
+            with self.model.current_project.data_changed.hold():
+                self.model.current_project.update_all_mixtures()
+                self.redraw_plot()
 
     def on_save_graph(self, event):
         filename = None
@@ -296,7 +300,12 @@ class AppController (BaseController, DialogMixin):
             Sample a point on the plot and display the (calculated and)
             experimental data values in an information dialog.
         """
-        def parse_x_pos(x_pos):
+
+        self.edc = None
+
+        def parse_x_pos(x_pos, event):
+            self.edc.enabled = False
+            self.edc.disconnect()
             exp_y = self.model.current_specimen.experimental_pattern.get_y_at_x(x_pos)
             calc_y = self.model.current_specimen.calculated_pattern.get_y_at_x(x_pos)
             message = "Sampled point:\n"
@@ -305,8 +314,9 @@ class AppController (BaseController, DialogMixin):
                 message += "\tCalculated data:\t\t( %.4f , %.4f )"
             message = message % (x_pos, exp_y, x_pos, calc_y)
             self.run_information_dialog(message, parent=self.view.get_toplevel())
+            del self.edc
 
-        self.plot_controller.get_user_x_coordinate(parse_x_pos)
+        self.edc = EyeDropper(self.plot_controller, parse_x_pos)
 
     # ------------------------------------------------------------
     #      GTK Signal handlers - Project related

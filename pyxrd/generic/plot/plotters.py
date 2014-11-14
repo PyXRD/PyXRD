@@ -503,7 +503,7 @@ def plot_statistics(project, specimen, stats_y_pos, stats_height, axes):
             if pattern is not None:
                 plot_pattern_middle(pattern, axes, height=stats_height, max_I=max_I, offset=stats_y_pos, alpha=0.65)
 
-def plot_specimens(project, specimens, plot_left, axes):
+def plot_specimens(axes, pos_setup, project, specimens):
     """
         Plots multiple specimens within the context of a project
     """
@@ -561,7 +561,7 @@ def plot_specimens(project, specimens, plot_left, axes):
 
         plot_specimen(
             project, specimen, labels, marker_lbls,
-            lbl_y_pos, plot_left, spec_y_pos, spec_scale, scale_unit,
+            lbl_y_pos, pos_setup.left, spec_y_pos, spec_scale, scale_unit,
             axes
         )
 
@@ -575,7 +575,7 @@ def plot_specimens(project, specimens, plot_left, axes):
 
     return labels, marker_lbls
 
-def plot_mixtures(project, mixtures, axes):
+def plot_mixtures(axes, project, mixtures):
     legend = getattr(project, "__plot_mixture_legend", None)
     if legend:
         try: legend.remove()

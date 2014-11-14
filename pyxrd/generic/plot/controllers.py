@@ -9,7 +9,7 @@ from pkg_resources import resource_filename # @UnresolvedImport
 
 import gtk
 import logging
-from pyxrd.generic.plot.axes_setup import set_nm_ticks, update_lim
+from pyxrd.generic.plot.axes_setup import PositionSetup, update_axes
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -187,34 +187,16 @@ class MainPlotController (PlotController):
         self.marker_lbls = list()
         self.scale = 1.0
         self.stats = False
-        self.xdiff = 30.0
-        self.plot_left = settings.PLOT_LEFT
-        self.plot_bottom = settings.PLOT_BOTTOM
-        self.plot_top = settings.PLOT_TOP
+
+        self.position_setup = PositionSetup()
 
         self.app_controller = app_controller
         PlotController.__init__(self, *args, **kwargs)
 
     def setup_content(self):
-        # Set title:
-        self.title = self.figure.text(s="", va='bottom', ha='left', x=0.1, y=0.1, weight="bold")
-
-        # Setup plot axes routine:
-        def setup_plot(plot, title):
-            self.figure.add_axes(plot)
-            self._reset_plot(plot, title)
-
         # Create subplot and add it to the figure:
         self.plot = Subplot(self.figure, 211, axisbg=(1.0, 1.0, 1.0, 0.0))
-        setup_plot(self.plot, u'Angle (°2θ)')
-
-        # Setup secondary x axis:
-        self.plot_sec_x = Subplot(self.figure, 211, axisbg=(1.0, 1.0, 1.0, 0.0))
-        setup_plot(self.plot_sec_x, u'd (nm)')
-        self.plot_sec_x.axis["bottom"].major_ticklabels.set_rotation(-90)
-        self.plot_sec_x.axis["bottom"].major_ticklabels.set_ha("left")
-        self.plot_sec_x.axis["bottom"].major_ticklabels.set_va("center")
-        self.plot_sec_x.axis["bottom"].label.set_pad(25)
+        self.figure.add_axes(self.plot)
 
         # Connect events:
         self.canvas.mpl_connect('draw_event', self.fix_after_drawing)
@@ -225,46 +207,6 @@ class MainPlotController (PlotController):
     # ------------------------------------------------------------
     #      Update methods
     # ------------------------------------------------------------
-
-    def _reset_plot(self, plot, title):
-        """
-            Internal generic plot rest method.
-        """
-        plot.axis["right"].set_visible(False)
-        plot.axis["left"].set_visible(False)
-        plot.axis["top"].set_visible(False)
-        plot.get_xaxis().tick_bottom()
-        plot.get_yaxis().tick_left()
-        plot.axis["bottom"].major_ticks.set_tick_out(True)
-        plot.axis["bottom"].minor_ticks.set_tick_out(True)
-        plot.axis["bottom"].label.set_text(title)
-        plot.axis["bottom"].label.set_weight('heavy')
-        plot.axis["bottom"].label.set_size(16)
-        plot.axis["bottom"].major_ticklabels.set_visible(True)
-
-    def _update_plot(self, plot, title, project=None):
-        """
-            Internal generic plot update method.
-        """
-        xaxis = plot.get_xaxis()
-        xmin, xmax = xaxis.get_view_interval()
-        self.xdiff = xmax - xmin
-
-        self._reset_plot(plot, title)
-        if project == None or project.axes_yvisible == False:
-            plot.axis["left"].set_visible(False)
-        else:
-            plot.axis["left"].set_visible(True)
-
-    def _update_plot_positions(self):
-        """
-            Internal plot position update method.
-        """
-        plot_pos = self.get_plot_position()
-        self.plot.set_position(plot_pos)
-        self.plot_sec_x.set_position(plot_pos)
-        return plot_pos
-
     def update(self, clear=False, project=None, specimens=None):
         """
             Updates the entire plot with the given information.
@@ -272,7 +214,10 @@ class MainPlotController (PlotController):
         if clear: self.plot.cla()
 
         if project and specimens:
-            self.labels, self.marker_lbls = plot_specimens(project, specimens, self.plot_left, self.plot)
+            self.labels, self.marker_lbls = plot_specimens(
+                self.plot, self.position_setup,
+                project, specimens
+            )
             # get mixtures for the selected specimens:
             mixtures = []
             for mixture in project.mixtures:
@@ -280,43 +225,14 @@ class MainPlotController (PlotController):
                     if specimen in mixture.specimens:
                         mixtures.append(mixture)
                         break
-            plot_mixtures(project, mixtures, self.plot)
-        self.update_axes(project=project, specimens=specimens)
+            plot_mixtures(self.plot, project, mixtures)
 
-    def update_axes(self, project=None, specimens=None):
-        """
-            Updates the axes limits, titles, position, ...          
-        """
-        self.stretch = project.axes_xstretch if project is not None else False
-
-        # Update the limits:
-        self.update_lim(project=project, specimens=specimens)
-
-        # Update titles etc:
-        self._update_plot(self.plot, u'Angle (°2θ)', project=project)
-        self._update_plot(self.plot_sec_x, u'd (nm)', project=project)
-
-        # Update plot positions
-        self._update_plot_positions()
-
-        # Choose what type of x-scale we want:
-        self.plot.axis["bottom"].set_visible(not project.axes_dspacing if project is not None else True)
-        self.plot_sec_x.axis["bottom"].set_visible(project.axes_dspacing if project is not None else False)
+        update_axes(
+            self.plot, self.position_setup,
+            project, specimens
+        )
 
         self.draw()
-
-    def update_lim(self, project=None, specimens=None):
-        """
-            Updates the axes limits
-        """
-        update_lim(self.plot, project=project)
-        update_lim(self.plot_sec_x, project=project)
-
-        if specimens is None or len(specimens) == 0:
-            wavelength = settings.AXES_DEFAULT_WAVELENGTH
-        else:
-            wavelength = specimens[0].goniometer.wavelength
-        set_nm_ticks(self.plot_sec_x, wavelength, *self.plot.get_xlim())
 
     # ------------------------------------------------------------
     #      Plot position and size calculations
@@ -362,19 +278,20 @@ class MainPlotController (PlotController):
         # Fix left side for wide specimen labels:
         if len(self.labels) > 0:
             bbox = self._get_joint_bbox(self.labels)
-            self.plot_left = 0.05 + bbox.width
+            self.position_setup.left = 0.05 + bbox.width
         # Fix top for high marker labels:
         if len(self.marker_lbls) > 0:
             bbox = self._get_joint_bbox([ label for label, flag, _ in self.marker_lbls if flag ])
-            if bbox is not None: self.plot_top = 1.0 - (0.05 + bbox.height) #Figure top - marker margin
+            if bbox is not None: self.position_setup.top = 1.0 - (0.05 + bbox.height) #Figure top - marker margin
         # Fix bottom for x-axis label:
         bottom_label = self.plot.axis["bottom"].label
         if bottom_label is not None:
             bbox = self._get_joint_bbox([bottom_label])
-            if bbox is not None: self.plot_bottom = 0.10 - min(bbox.ymin, 0.0)
+            if bbox is not None: self.position_setup.bottom = 0.10 - min(bbox.ymin, 0.0)
 
         # Calculate new plot position & set it:
-        plot_pos = self._update_plot_positions()
+        plot_pos = self.position_setup.position
+        self.plot.set_position(plot_pos)
 
         # Adjust specimen label position
         for label in self.labels:
@@ -388,41 +305,5 @@ class MainPlotController (PlotController):
         self.figure.canvas.draw()
 
         return False
-
-    def _get_plot_width(self):
-        MAX_PLOT_WIDTH = settings.MAX_PLOT_RIGHT - self.plot_left
-        if self.stretch:
-            return MAX_PLOT_WIDTH
-        else:
-            return min((self.xdiff / 70), 1.0) * MAX_PLOT_WIDTH
-
-    def _get_plot_height(self):
-        return abs(self.plot_top - self.plot_bottom)
-
-    def get_plot_position(self):
-        """Get the position list of the main plot: [LEFT, BOTTOM, WIDTH, HEIGHT] """
-        return [self.plot_left, self.plot_bottom, self._get_plot_width(), self._get_plot_height()]
-
-    def get_plot_right(self):
-        """Get the rightmost position of the main plot: LEFT + WIDTH """
-        PLOT_WIDTH = self._get_plot_width()
-        return self.plot_left + PLOT_WIDTH
-
-    def get_plot_top(self):
-        """Get the topmost position of the main plot: BOTTOM + HEIGHT """
-        PLOT_HEIGHT = self._get_plot_height()
-        return self.plot_bottom + PLOT_HEIGHT
-
-    def get_user_x_coordinate(self, callback):
-        def onclick(x_pos, event):
-            self.edc.enabled = False
-            self.edc.disconnect()
-            callback(x_pos)
-            del self.edc
-        self.edc = EyeDropper(
-            self.canvas,
-            self.canvas.get_window(),
-            onclick
-        )
 
     pass # end of class

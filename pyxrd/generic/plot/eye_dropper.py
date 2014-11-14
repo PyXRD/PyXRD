@@ -14,9 +14,9 @@ class EyeDropper():
         the click_callback with an x position and the click event object as
         arguments.
     """
-    def __init__(self, canvas, window, click_callback=None):
-        self._canvas = canvas
-        self._window = window
+    def __init__(self, plot_controller, click_callback=None):
+        self._canvas = plot_controller.canvas
+        self._window = self._canvas.get_window()
         self._click_callback = click_callback
         self.connect()
 

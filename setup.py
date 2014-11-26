@@ -11,8 +11,8 @@ def get_install_requires():
     return [
         'setuptools',
         'numpy>=1.7',
-        'scipy>=0.10',
-        'matplotlib>=1.2.0',
+        'scipy>=0.14',
+        'matplotlib>=1.2.1',
     ]
 
 def read(fname):
@@ -36,7 +36,7 @@ diffraction analysis of disordered lamellar structures""",
 
     license="BSD",
     setup_requires=[ "setuptools_git >= 0.3", ],
-    scripts=['win32_post_install.py'],
+    scripts=['win32_pyxrd_post_install.py'],
     packages=find_packages(exclude=["test.*", "test"]),
     include_package_data=True,
     entry_points={

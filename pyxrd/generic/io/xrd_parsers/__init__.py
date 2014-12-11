@@ -15,11 +15,12 @@ from rd_parser import RDParser
 from udf_parser import UDFParser
 from csv_parser import CSVParser
 from brk_raw_parser import BrkRAWParser
+from brk_brml_parser import BrkBRMLParser
 from cpi_parser import CPIParser
 
 XRDParser = create_group_parser(
     "XRDParser",
-    RDParser, UDFParser, CSVParser, BrkRAWParser, CPIParser,
+    RDParser, UDFParser, CSVParser, BrkRAWParser, BrkBRMLParser, CPIParser,
     namespace="xrd"
 )
 
@@ -27,6 +28,7 @@ __ALL__ = [
     "RDParser",
     "CSVParser",
     "BrkRAWParser",
+    "BrkBRMLParser",
     "CPIParser",
     "XRDParser",
 ]

@@ -179,8 +179,7 @@ class CalculatePeakAreaController(PatternActionController):
             self.view.get_toplevel().present()
 
         self.edc = EyeDropper(
-            self.parent.parent.plot_controller.canvas,
-            self.parent.parent.plot_controller.canvas.get_window(),
+            self.parent.parent.plot_controller,
             onclick
         )
 
@@ -224,8 +223,7 @@ class StripPeakController(PatternActionController):
             self.view.get_toplevel().present()
 
         self.edc = EyeDropper(
-            self.parent.parent.plot_controller.canvas,
-            self.parent.parent.plot_controller.canvas.get_window(),
+            self.parent.parent.plot_controller,
             onclick
         )
 

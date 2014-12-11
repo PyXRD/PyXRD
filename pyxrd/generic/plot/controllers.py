@@ -29,8 +29,6 @@ from pyxrd.data import settings
 from pyxrd.generic.plot.plotters import plot_specimens, plot_mixtures
 from pyxrd.generic.controllers import DialogMixin
 
-from .eye_dropper import EyeDropper
-
 class PlotController(DialogMixin):
     """
         A base class for matplotlib-canvas controllers that, sets up the 

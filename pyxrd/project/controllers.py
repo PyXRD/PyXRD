@@ -111,6 +111,8 @@ class ProjectController(ObjectListStoreController):
                     message = "An unexpected error has occurred when trying to parse %s:\n\n<i>" % os.path.basename(filename)
                     message += str(msg) + "</i>\n\n"
                     message += "This is most likely caused by an invalid or unsupported file format."
+                    import traceback
+                    traceback.print_exc()
                     self.run_information_dialog(
                         message=message,
                         parent=self.view.get_top_widget()

@@ -94,6 +94,7 @@ PATTERN_SHIFT_POSITIONS = {
     0.4183:  "Goethite  0.4183    FeO(OH)",
     0.48486: "Gibbsite  0.48486   Al(OH)3",
 }
+PATTERN_SHIFT_TYPE = "Displacement" # or "Linear"
 PATTERN_SMOOTH_TYPES = { 0: "Moving Triangle" }
 PATTERN_BG_TYPES = { 0: "Linear", 1: "Pattern" }
 

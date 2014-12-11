@@ -557,11 +557,18 @@ class ExperimentalLine(PyXRDLine):
     def shift_data(self):
         with self.data_changed.hold_and_emit():
             if self.shift_value != 0.0:
-                self.data_x = self.data_x - self.shift_value
-                if self.specimen is not None:
-                    with self.specimen.visuals_changed.hold():
-                        for marker in self.specimen.markers:
-                            marker.position = marker.position - self.shift_value
+                if settings.PATTERN_SHIFT_TYPE == "Linear":
+                    self.data_x = self.data_x - self.shift_value
+                    if self.specimen is not None:
+                        with self.specimen.visuals_changed.hold():
+                            for marker in self.specimen.markers:
+                                marker.position = marker.position - self.shift_value
+                elif settings.PATTERN_SHIFT_TYPE == "Displacement":
+                    position = self.specimen.goniometer.get_t_from_nm(self.shift_position)
+                    displacement = 0.5 * self.specimen.goniometer.radius * self.shift_value / np.cos(position / 180 * np.pi)
+                    correction = 2 * displacement * np.cos(self.data_x / 2 / 180 * np.pi) / self.specimen.goniometer.radius
+                    self.data_x = self.data_x - correction
+
             self.shift_value = 0.0
 
     def setup_shift_variables(self):
@@ -573,6 +580,8 @@ class ExperimentalLine(PyXRDLine):
                 condition = (self.data_x >= min_x) & (self.data_x <= max_x)
                 section_x, section_y = np.extract(condition, self.data_x), np.extract(condition, self.data_y[:, 0])
                 try:
+                    #TODO to exclude noise it'd be better to first interpolate
+                    # or smooth the data and then find the max.
                     actual_position = section_x[np.argmax(section_y)]
                 except ValueError:
                     actual_position = position

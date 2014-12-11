@@ -83,8 +83,7 @@ class EditMarkerController(BaseController):
                 self.model.position = x_pos
 
         self.edc = EyeDropper(
-            self.parent.plot_controller.canvas,
-            self.parent.plot_controller.canvas.get_window(),
+            self.parent.plot_controller,
             click_callback
         )
 

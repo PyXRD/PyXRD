@@ -95,7 +95,8 @@ def parse_mixture(mixture, parsed=False):
 
         for specimen in mixture.specimens:
             if specimen is not None:
-                specimen.phase_intensities = get_phase_intensities(specimen)
+                specimen.correction, specimen.phase_intensities = \
+                    get_phase_intensities(specimen)
             else:
                 logger.warning("parse_mixture reports: 'None found!'")
 
@@ -177,7 +178,9 @@ def calculate_mixture(mixture, parsed=False):
     mixture.residuals = [0.0, ]
     for scale, bgshift, specimen in izip(mixture.scales, mixture.bgshifts, mixture.specimens):
         if specimen is not None:
-            specimen.total_intensity = scale * np.sum(fractions[:, np.newaxis] * specimen.phase_intensities, axis=0) + (bgshift if settings.BGSHIFT else 0.0)
+            specimen.total_intensity = (
+                scale * np.sum(fractions[:, np.newaxis] * specimen.phase_intensities, axis=0) + \
+                (bgshift if settings.BGSHIFT else 0.0) * specimen.correction)
             if specimen.observed_intensity.size > 0:
                 exp = specimen.observed_intensity[specimen.selected_range]
                 cal = specimen.total_intensity[specimen.selected_range]

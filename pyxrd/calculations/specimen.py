@@ -33,10 +33,10 @@ def get_phase_intensities(specimen):
 
     correction_range = get_machine_correction_range.func(specimen)
 
-    return np.array([
+    return correction_range, correction_range * np.array([
         get_intensity(
             specimen.range_theta, range_stl,
             specimen.goniometer.soller1, specimen.goniometer.soller2,
             phase
         )  if phase != None else np.zeros_like(range_stl) for phase in specimen.phases
-    ], dtype=np.float_) * correction_range
+    ], dtype=np.float_)

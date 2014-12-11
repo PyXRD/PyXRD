@@ -47,8 +47,7 @@ def get_machine_correction_range(specimen):
     # Then correct for sample absorption:
     if specimen.absorption > 0.0:
         correction_range *= np.minimum(1.0 - np.exp(-2.0 * specimen.absorption / range_st), 1.0)
-    # And finally correct for sample length (only for fixed slits)
-    # if not bool(goniometer.has_ads):
+    # And finally correct for sample length:
     L_Rta = specimen.sample_length / (goniometer.radius * tan(radians(goniometer.divergence)))
     correction_range *= np.minimum(range_st * L_Rta, 1)
     return correction_range
@@ -70,12 +69,12 @@ def get_nm_from_2t(twotheta, wavelength=0.154056, zero_for_inf=False):
     else:
         return wavelength / (2.0 * np.sin(np.radians(twotheta / 2.0)))
 
-def get_t_from_nm(nm):
+def get_t_from_nm(nm, wavelength=0.154056):
     """
         Convert the given nanometer spacings (scalar or np array) to
         theta angles using the given wavelength
     """
-    return get_2t_from_nm(nm) / 2
+    return get_2t_from_nm(nm, wavelength=wavelength) / 2
 
 def get_2t_from_nm(nm, wavelength=0.154056):
     """

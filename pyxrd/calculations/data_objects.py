@@ -217,6 +217,10 @@ class SpecimenData(DataObject):
     #: A nummpy array with the calculated phase profiles
     phase_intensities = None
 
+    #: A numpy array with a correction factor taking the sample & goniometer
+    #  properties into account
+    correction = None
+
     pass # end of class
 
 class MixtureData(DataObject):

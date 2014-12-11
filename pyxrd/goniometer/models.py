@@ -121,7 +121,9 @@ class Goniometer(DataModel, Storable):
         """The divergence slit size of the goniometer (in °)"""
         return self._data_object.divergence
     @divergence.setter
-    def divergence(self, value): self._set_data_property("divergence", value)
+    def divergence(self, value):
+        value = max(value, 1e-10)
+        self._set_data_property("divergence", value)
 
     @property
     def has_ads(self):

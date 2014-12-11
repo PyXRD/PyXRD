@@ -1,1 +1,3 @@
 recursive-exclude test *
+recursive-exclude build *
+recursive-exclude docs *

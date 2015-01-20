@@ -207,6 +207,15 @@ class DialogMixin(object):
         dialog = self.get_information_dialog(message, parent)
         return self.run_dialog(dialog, on_accept_callback, on_reject_callback)
 
+    def get_custom_dialog(self, content, parent=None):
+        window = gtk.Window()
+        window.set_border_width(10)
+        window.set_modal(True)
+        window.set_transient_for(parent)
+        window.connect('delete-event', lambda widget, event: True)
+        window.add(content)
+        return window
+
     @contextmanager
     def ui_error_handler(self, message):
         try:

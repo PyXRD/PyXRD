@@ -9,6 +9,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 import numpy as np
+from scipy import stats
 from scipy.interpolate import interp1d
 from scipy.integrate import trapz
 
@@ -22,6 +23,7 @@ from pyxrd.generic.custom_math import smooth, add_noise
 from pyxrd.generic.models.base import DataModel
 from pyxrd.generic.io.file_parsers import ASCIIParser
 from pyxrd.generic.utils import not_none
+from pyxrd.generic.peak_detection import multi_peakdetect
 
 @storables.register()
 class StorableXYData(XYData, Storable):
@@ -264,6 +266,103 @@ class PyXRDLine(DataModel, StorableXYData):
             if len(xdata) > 0 and len(ydata) > 0:
                 return np.interp(x, xdata, ydata)
         return 0
+
+    def calculate_npeaks_for(self, max_threshold, steps):
+        """
+            Calculates the number of peaks for `steps` threshold values between
+            0 and `max_threshold`. Returns a tuple containing two lists with the
+            threshold values and the corresponding number of peaks. 
+        """
+        length = self.data_x.size
+
+        resolution = length / (self.data_x[-1] - self.data_x[0])
+        delta_angle = 0.05
+        window = int(delta_angle * resolution)
+        window += (window % 2) * 2
+
+        steps = max(steps, 2) - 1
+        factor = max_threshold / steps
+
+        deltas = [i * factor for i in range(0, steps)]
+
+        numpeaks = []
+
+        maxtabs, mintabs = multi_peakdetect(self.data_y[:, 0], self.data_x, 5, deltas)
+        for maxtab, _ in zip(maxtabs, mintabs):
+            numpeak = len(maxtab)
+            numpeaks.append(numpeak)
+        numpeaks = map(float, numpeaks)
+
+        return deltas, numpeaks
+
+    def get_best_threshold(self, max_threshold=None, steps=None):
+        """
+            Estimates the best threshold for peak detection using an
+            iterative algorithm. Assumes there is a linear contribution from noise.
+            Returns a 4-tuple containing the selected threshold, the maximum
+            threshold, a list of threshold values and a list with the corresponding
+            number of peaks.
+        """
+        length = self.data_x.size
+        steps = not_none(steps, 20)
+        threshold = 0.1
+        max_threshold = not_none(max_threshold, threshold * 3.2)
+
+        def get_new_threshold(threshold, deltas, num_peaks, ln):
+            # Left side line:
+            x = deltas[:ln]
+            y = num_peaks[:ln]
+            slope, intercept, R, _, _ = stats.linregress(x, y)
+            return R, -intercept / slope
+
+        if length > 2:
+            # Adjust the first distribution:
+            deltas, num_peaks = self.calculate_npeaks_for(max_threshold, steps)
+            print deltas, num_peaks
+
+            #  Fit several lines with increasing number of points from the
+            #  generated threshold / marker count graph. Stop when the
+            #  R-coefficiënt drops below 0.95 (past linear increase from noise)
+            #  Then repeat this by increasing the resolution of data points
+            #  and continue until the result does not change anymore
+
+            last_threshold = None
+            solution = False
+            max_iters = 10
+            min_iters = 3
+            itercount = 0
+            while not solution:
+                # Number of points to use for the lin regress:
+                ln = 4
+                # Maximum number of points to use:
+                max_ln = len(deltas)
+                # Flag indicating if we can stop searching for the linear part
+                stop = False
+                while not stop:
+                    R, threshold = get_new_threshold(threshold, deltas, num_peaks, ln)
+                    max_threshold = threshold * 3.2
+                    if abs(R) < 0.98 or ln >= max_ln:
+                        stop = True
+                    else:
+                        ln += 1
+                itercount += 1 # Increase # of iterations
+                if last_threshold:
+                    # Check if we have run at least `min_iters`, at most `max_iters`
+                    # and have not reached an equilibrium.
+                    solution = bool(
+                        itercount > min_iters and not
+                        (
+                            itercount <= max_iters and
+                            last_threshold - threshold >= 0.001
+                        )
+                    )
+                    if not solution:
+                        deltas, num_peaks = self.calculate_npeaks_for(max_threshold, steps)
+                last_threshold = threshold
+
+            return (deltas, num_peaks), threshold, max_threshold
+        else:
+            return ([], []), threshold, max_threshold
 
 
     pass # end of class

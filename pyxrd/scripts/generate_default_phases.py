@@ -319,22 +319,22 @@ def run(args=None, ui_callback=None):
         'C   ': dict(linked_with='C   ', **inherit_all),
     }
 
-    CS_code_AD = C_code + S_code_AD
-    CS_code_EG = C_code + S_code_EG
-    CS_code_350 = C_code + S_code_350
-    CS_inh_comp_args = dict(S_inh_comp_args)
+    CS_code_AD = C_code + tS_code_AD
+    CS_code_EG = C_code + tS_code_EG
+    CS_code_350 = C_code + tS_code_350
+    CS_inh_comp_args = dict(tS_inh_comp_args)
     CS_inh_comp_args.update(C_inh_comp_args)
 
-    CSS_code_AD = C_code + SS_code_AD
-    CSS_code_EG = C_code + SS_code_EG
-    CSS_code_350 = C_code + SS_code_350
-    CSS_inh_comp_args = dict(SS_inh_comp_args)
+    CSS_code_AD = C_code + tSS_code_AD
+    CSS_code_EG = C_code + tSS_code_EG
+    CSS_code_350 = C_code + tSS_code_350
+    CSS_inh_comp_args = dict(tSS_inh_comp_args)
     CSS_inh_comp_args.update(C_inh_comp_args)
 
-    CSSS_code_AD = C_code + SSS_code_AD
-    CSSS_code_EG = C_code + SSS_code_EG
-    CSSS_code_350 = C_code + SSS_code_350
-    CSSS_inh_comp_args = dict(SSS_inh_comp_args)
+    CSSS_code_AD = C_code + tSSS_code_AD
+    CSSS_code_EG = C_code + tSSS_code_EG
+    CSSS_code_350 = C_code + tSSS_code_350
+    CSSS_inh_comp_args = dict(tSSS_inh_comp_args)
     CSSS_inh_comp_args.update(C_inh_comp_args)
 
     default_phases += generate_expandables(

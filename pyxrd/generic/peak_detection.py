@@ -117,6 +117,7 @@ def multi_peakdetect(y_axis, x_axis=None, lookahead=500, deltas=[0]):
     dump = [ [] for i in rlen] # Used to pop the first hit which always if false @UnusedVariable
 
     length = len(y_axis)
+    y_axis = y_axis / np.max(y_axis)
     if x_axis is None:
         x_axis = range(length)
 
@@ -128,9 +129,6 @@ def multi_peakdetect(y_axis, x_axis=None, lookahead=500, deltas=[0]):
 
     # needs to be a numpy array
     y_axis = np.asarray(y_axis)
-
-
-
 
     # Only detect peak if there is 'lookahead' amount of points after it
     for j, delta in enumerate(deltas):

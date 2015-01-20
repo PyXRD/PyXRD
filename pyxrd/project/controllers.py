@@ -6,6 +6,7 @@
 # Complete license can be found in the LICENSE file.
 
 import os
+from functools import partial
 
 import pango
 import gtk
@@ -14,10 +15,12 @@ from mvc import Controller
 
 from pyxrd.generic.controllers.line_controllers import BackgroundController
 from pyxrd.generic.views.line_views import BackgroundView
+from pyxrd.generic.views.widgets import ThreadedTaskBox
 from pyxrd.generic.views.treeview_tools import new_text_column, new_toggle_column, new_pb_column
 from pyxrd.generic.controllers import BaseController, ObjectListStoreController
 from pyxrd.specimen.models import Specimen
 from contextlib import contextmanager
+
 
 class ProjectController(ObjectListStoreController):
 
@@ -103,25 +106,69 @@ class ProjectController(ObjectListStoreController):
         def on_accept(dialog):
             filenames = dialog.get_filenames()
             parser = dialog.get_filter().get_data("parser")
-            last_iter = None
-            for filename in filenames:
-                try:
-                    specimens = Specimen.from_experimental_data(filename=filename, parent=self.model, parser=parser)
-                except Exception as msg:
-                    message = "An unexpected error has occurred when trying to parse %s:\n\n<i>" % os.path.basename(filename)
-                    message += str(msg) + "</i>\n\n"
-                    message += "This is most likely caused by an invalid or unsupported file format."
-                    import traceback
-                    traceback.print_exc()
-                    self.run_information_dialog(
-                        message=message,
-                        parent=self.view.get_top_widget()
-                    )
-                else:
-                    for specimen in specimens:
-                        last_iter = self.model.specimens.append(specimen)
-            if last_iter is not None:
-                self.view["project_specimens"].set_cursor(last_iter)
+
+            # Status:
+            status_dict = dict(
+                total_files=len(filenames),
+                current_file=0,
+                specimens=[]
+            )
+
+            # Task:
+            def load_specimens(status_dict=None, stop=None):
+                for filename in filenames:
+                    if stop is not None and stop.is_set():
+                        return
+                    try:
+                        specimens = Specimen.from_experimental_data(filename=filename, parent=self.model, parser=parser)
+                    except Exception as msg:
+                        message = "An unexpected error has occurred when trying to parse %s:\n\n<i>" % os.path.basename(filename)
+                        message += str(msg) + "</i>\n\n"
+                        message += "This is most likely caused by an invalid or unsupported file format."
+                        import traceback
+                        traceback.print_exc()
+                        self.run_information_dialog(
+                            message=message,
+                            parent=self.view.get_top_widget()
+                        )
+                    else:
+                        status_dict["specimens"] += specimens
+                    status_dict["current_file"] += 1
+
+            # Create task box:
+            task = ThreadedTaskBox(partial(load_specimens, status_dict=status_dict), None)
+            window = self.get_custom_dialog(task, parent=self.view.get_top_widget())
+            window.show_all()
+
+            # Cancel & stop events:
+            def on_interrupted(status_dict, *args, **kwargs):
+                window.hide()
+            task.connect("cancelrequested", partial(on_interrupted, status_dict))
+            task.connect("stoprequested", partial(on_interrupted, status_dict))
+
+            # Complete event:
+            def on_complete(status_dict, widget, *args, **kwargs):
+                last_iter = None
+                for specimen in status_dict["specimens"]:
+                    last_iter = self.model.specimens.append(specimen)
+                if last_iter is not None:
+                    self.view["project_specimens"].set_cursor(last_iter)
+                parent = widget.get_parent()
+                parent.destroy()
+                widget.destroy()
+
+            task.connect("complete", partial(on_complete, status_dict))
+
+            # Status label update:
+            def gui_callback():
+                task.set_status("Loading file %d/%d ..." % (
+                    status_dict["current_file"],
+                    status_dict["total_files"]
+                ))
+            task.gui_callback = gui_callback
+
+            # Run task box:
+            task.start("Loading ...")
 
         self.run_load_dialog(title="Select XRD files for import",
                              on_accept_callback=on_accept,

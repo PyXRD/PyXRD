@@ -12,7 +12,6 @@ import gtk
 
 from threading import Lock
 
-from pyxrd.generic.custom_math import round_sig
 from pyxrd.generic.threads import CancellableThread
 from pyxrd.generic import pool
 pool.get_pool()
@@ -37,9 +36,7 @@ class ThreadedTaskBox(gtk.Table):
             Keyword arguments:
             run_function -- the function to run in threaded mode
             gui_callback -- a callback that handles the GUI updating
-            params -- optional dictionary of parameters to be pass into run_function
             cancelable -- optional value to determine whether to show cancel button. Defaults to True.
-            Do not use a value with the key of 'stop' in the params dictionary
         """
         self.setup_ui(cancelable=cancelable)
 
@@ -71,21 +68,18 @@ class ThreadedTaskBox(gtk.Table):
         self.attach(self.label, 1, 2, 1, 3, xoptions=gtk.FILL, yoptions=0)
 
         self.cancel_button = gtk.Button(stock=gtk.STOCK_CANCEL)
-        if cancelable:
-            self.cancel_button.show()
         self.cancel_button.set_sensitive(False)
         self.cancel_button.connect("clicked", self.__cancel_clicked)
-        self.attach(self.cancel_button, 2, 3, 1, 2, xoptions=0, yoptions=0)
+        if cancelable:
+            self.attach(self.cancel_button, 2, 3, 1, 2, xoptions=0, yoptions=0)
 
         self.stop_button = gtk.Button(stock=gtk.STOCK_STOP)
-        if stoppable:
-            self.stop_button.show()
         self.stop_button.set_sensitive(False)
         self.stop_button.connect("clicked", self.__stop_clicked)
-        self.attach(self.stop_button, 2, 3, 2, 3, xoptions=0, yoptions=0)
+        if stoppable:
+            self.attach(self.stop_button, 2, 3, 2, 3, xoptions=0, yoptions=0)
 
-
-    def start(self, caption="Working"):
+    def start(self, caption="Working", stop=None):
         """
             executes run_function asynchronously and starts the spinner
             Keyword arguments:
@@ -101,7 +95,7 @@ class ThreadedTaskBox(gtk.Table):
         # Create and start a thread to run the users task
         # pass in a callback and the user's args
         self.work_thread = CancellableThread(
-            self.run_function, self.__on_complete, stop=pool.pool_stop)
+            self.run_function, self.__on_complete, stop=stop)
         self.work_thread.start()
 
         # create a thread to display the user feedback
@@ -149,7 +143,8 @@ class ThreadedTaskBox(gtk.Table):
         gobject.idle_add(gobject.GObject.emit, self, *args) #@UndefinedVariable
 
     def __gui_function(self):
-        if callable(self.gui_callback): self.gui_callback()
+        if not self.stopped and callable(self.gui_callback):
+            self.gui_callback()
         return not self.stopped
 
     def __on_complete(self, data):

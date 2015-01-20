@@ -171,8 +171,6 @@ class ThresholdSelector(ChildModel):
         else:
             self.pattern = "calc"
 
-        # self.update_threshold_plot_data()
-
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------
@@ -185,73 +183,20 @@ class ThresholdSelector(ChildModel):
             data_y = data_y / np.max(data_y)
         return data_x, data_y
 
+    _updating_plot_data = False
     def update_threshold_plot_data(self):
-        if self.parent is not None:
-            data_x, data_y = self.get_xy()
-            length = data_x.size
-
-            if length > 2:
-
-                def calculate_deltas_for(max_threshold, steps):
-                    resolution = length / (data_x[-1] - data_x[0])
-                    delta_angle = 0.05
-                    window = int(delta_angle * resolution)
-                    window += (window % 2) * 2
-
-                    steps = max(steps, 2) - 1
-                    factor = max_threshold / steps
-
-                    deltas = [i * factor for i in range(0, steps)]
-
-                    numpeaks = []
-                    maxtabs, mintabs = multi_peakdetect(data_y, data_x, 5, deltas)
-                    for maxtab, mintab in zip(maxtabs, mintabs):
-                        numpeak = len(maxtab)
-                        numpeaks.append(numpeak)
-                    numpeaks = map(float, numpeaks)
-
-                    return deltas, numpeaks
-
-                # update plot:
-                deltas, numpeaks = calculate_deltas_for(self.max_threshold, self.steps)
-                self.threshold_plot_data = deltas, numpeaks
-
-                # update auto selected threshold:
-
-                # METHOD 1:
-                #  Fit several lines with increasing number of points from the
-                #  generated threshold / marker count graph. Stop when the
-                #  R-coefficiënt drops below 0.95 (past linear increase from noise)
-                #  Then repeat this by increasing the resolution of data points
-                #  and continue until the result does not change anymore
-
-                last_solution = None
-                solution = False
-                max_iters = 10
-                itercount = 0
-                delta_x = None
-                while not solution:
-                    ln = 4
-                    max_ln = len(deltas)
-                    stop = False
-                    while not stop:
-                        x = deltas[0:ln]
-                        y = numpeaks[0:ln]
-                        slope, intercept, R, p_value, std_err = stats.linregress(x, y)
-                        ln += 1
-                        if abs(R) < 0.98 or ln >= max_ln:
-                            stop = True
-                        delta_x = -intercept / slope
-                    itercount += 1
-                    if last_solution:
-                        if itercount < max_iters and last_solution - delta_x >= 0.001:
-                            deltas, numpeaks = calculate_deltas_for(delta_x[-1], self.steps)
-                        else:
-                            solution = True
-                    last_solution = delta_x
-
-                if delta_x:
-                    self.sel_threshold = delta_x
+        if self.parent is not None and not self._updating_plot_data:
+            self._updating_plot_data = True
+            if self._pattern == "exp":
+                p, t, m = self.parent.experimental_pattern.get_best_threshold(
+                            self.max_threshold, self.steps)
+            elif self._pattern == "calc":
+                p, t, m = self.parent.calculated_pattern.get_best_threshold(
+                            self.max_threshold, self.steps)
+            self.threshold_plot_data = p
+            self.sel_threshold = t
+            self.max_threshold = m
+            self._updating_plot_data = False
     pass # end of class
 
 

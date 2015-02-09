@@ -84,6 +84,12 @@ def run(args=None, ui_callback=None):
         'tS2g': '%sTri-Smectite/Tri-Smectite - Ca 2GLY.cmp',
         'tS1g': '%sTri-Smectite/Tri-Smectite - Ca 1GLY.cmp',
         'tSht': '%sTri-Smectite/Tri-Smectite - Ca Heated.cmp',
+        'dV2w': '%sDi-Vermiculite/Di-Vermiculite - Ca 2WAT.cmp',
+        'dV1w': '%sDi-Vermiculite/Di-Vermiculite - Ca 1WAT.cmp',
+        'dV0w': '%sDi-Vermiculite/Di-Vermiculite - Ca Dehydr.cmp',
+        'dV2g': '%sDi-Vermiculite/Di-Vermiculite - Ca 2GLY.cmp',
+        'dV1g': '%sDi-Vermiculite/Di-Vermiculite - Ca 1GLY.cmp',
+        'dVht': '%sDi-Vermiculite/Di-Vermiculite - Ca Heated.cmp',
     }
     default_phases = []
 
@@ -219,6 +225,54 @@ def run(args=None, ui_callback=None):
         {}, inherit_phase, inherit_phase,
         tSSS_code_AD, tSSS_code_EG, tSSS_code_350,
         {}, tSSS_inh_comp_args, tSSS_inh_comp_args,
+    )
+
+    """      
+    ### Dioctahedral vermiculites:
+    """
+    V_code_AD = 'dV2w'
+    V_code_EG = 'dV2g'
+    V_code_350 = 'dVht'
+    V_inh_comp_args = {
+        'dV2g': dict(linked_with='dV2w', **inherit_S),
+        'dVht': dict(linked_with='dV2w', **inherit_S),
+    }
+
+    VV_code_AD = V_code_AD + 'dV1w'
+    VV_code_EG = V_code_EG + 'dV1g'
+    VV_code_350 = V_code_350 + 'dV1g'
+    VV_inh_comp_args = dict(V_inh_comp_args)
+    VV_inh_comp_args.update({
+        'dV1g': dict(linked_with='dV1w', **inherit_S),
+    })
+
+
+    VVV_code_AD = VV_code_AD + 'dV0w'
+    VVV_code_EG = VV_code_EG + 'dV0w'
+    VVV_code_350 = VV_code_350 + 'dV0w'
+    VVV_inh_comp_args = dict(VV_inh_comp_args)
+    VVV_inh_comp_args.update({
+        'dV0w': dict(linked_with='dV0w', **inherit_S),
+    })
+
+    default_phases += [
+        ('%sVermiculites/Di-Vermiculite Ca.phs', [
+                (dict(R=0, name='V R0 Ca-AD'), V_code_AD, {}),
+                (dict(R=0, name='V R0 Ca-EG', based_on='V R0 Ca-AD', **inherit_phase), V_code_EG, V_inh_comp_args),
+                (dict(R=0, name='V R0 Ca-350', based_on='V R0 Ca-AD', **inherit_phase), V_code_350, V_inh_comp_args)
+        ]),
+    ]
+    default_phases += generate_expandables(
+        '%sVermiculites/VV/Di-VV R%d Ca.phs', 'VV', 4,
+        {}, inherit_phase, inherit_phase,
+        VV_code_AD, VV_code_EG, VV_code_350,
+        {}, VV_inh_comp_args, VV_inh_comp_args,
+    )
+    default_phases += generate_expandables(
+        '%sVermiculites/VVV/Di-VVV R%d Ca.phs', 'VVV', 3,
+        {}, inherit_phase, inherit_phase,
+        VVV_code_AD, VVV_code_EG, VVV_code_350,
+        {}, VVV_inh_comp_args, VVV_inh_comp_args,
     )
 
     """      

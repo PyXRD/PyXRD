@@ -104,6 +104,8 @@ class ProjectController(ObjectListStoreController):
     @BaseController.status_message("Importing multiple specimens...", "add_specimen")
     def import_multiple_specimen(self):
         def on_accept(dialog):
+            ## TODO MOVE THIS (PARTIALLY?) TO THE MODEL LEVEL ##
+
             filenames = dialog.get_filenames()
             parser = dialog.get_filter().get_data("parser")
 

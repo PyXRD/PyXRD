@@ -229,12 +229,12 @@ class Goniometer(DataModel, Storable):
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------
-    def reset_from_file(self, path):
+    def reset_from_file(self, gonfile, data=None):
         """
         Loads & sets the parameters from the goniometer JSON file
-        specified by `path`
+        specified by `gonfile`, can be a filename or a file-like object.
         """
-        new_gonio = Goniometer.load_object(path, parent=None)
+        new_gonio = Goniometer.load_object(gonfile, data=data, parent=None)
         with self.data_changed.hold():
             for prop in self.Meta.all_properties:
                 if prop.storable and prop.name != "uuid":

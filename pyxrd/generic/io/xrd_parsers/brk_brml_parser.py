@@ -66,19 +66,36 @@ class BrkBRMLParser(XRDParserMixin, XMLParserMixin, BaseParser):
         with f.open("%s/MeasurementContainer.xml" % folder) as contf:
             _, root = cls.get_xml_for_file(contf)
 
-            path = "./HardwareLogicExt/Instrument/" + \
-                   "BeamPathContainers/BeamPathContainerAbc/BankPositions/" + \
+            radius_path = "./HardwareLogicExt/Instrument/BeamPathContainers" + \
+                   "/BeamPathContainerAbc[@VisibleName='PrimaryTrack']/%s"
+
+            tube_path = "./HardwareLogicExt/Instrument/BeamPathContainers" + \
+                   "/BeamPathContainerAbc[@VisibleName='PrimaryTrack']/BankPositions/" + \
                    "BankPosition/MountedComponent/MountedTube/%s"
-            get_val = lambda label: root.find(path % label).get("Value")
+
+            soller1_path = "./HardwareLogicExt/Instrument/BeamPathContainers" + \
+                   "/BeamPathContainerAbc[@VisibleName='PrimaryTrack']/BankPositions/" + \
+                   "BankPosition/MountedComponent[@VisibleName='SollerMount']/%s"
+
+            soller2_path = "./HardwareLogicExt/Instrument/BeamPathContainers" + \
+                   "/BeamPathContainerAbc[@VisibleName='SecondaryTrack']/BankPositions/" + \
+                   "BankPosition/MountedComponent[@VisibleName='SollerMount']/%s"
+
+            divergence_path = "./HardwareLogicExt/Instrument/BeamPathContainers" + \
+                   "/BeamPathContainerAbc[@VisibleName='PrimaryTrack']/BankPositions/" + \
+                   "BankPosition/MountedComponent/Restrictions[@FieldName='OpeningDegree']/%s"
 
             header_d.update(
-                alpha1=float(get_val("WaveLengthAlpha1")),
-                alpha2=float(get_val("WaveLengthAlpha2")),
-                alpha_average=float(get_val("WaveLengthAverage")),
-                beta=float(get_val("WaveLengthBeta")),
-                alpha_factor=float(get_val("WaveLengthRatio")),
-                target_type=get_val("TubeMaterial")
-                #TODO fetch slits, ...
+                alpha1=cls.get_val(root, tube_path % "WaveLengthAlpha1", "Value"),
+                alpha2=cls.get_val(root, tube_path % "WaveLengthAlpha2", "Value"),
+                alpha_average=cls.get_val(root, tube_path % "WaveLengthAverage", "Value"),
+                beta=cls.get_val(root, tube_path % "WaveLengthBeta", "Value"),
+                alpha_factor=cls.get_val(root, tube_path % "WaveLengthRatio", "Value"),
+                target_type=cls.get_val(root, tube_path % "TubeMaterial", "Value"),
+                soller1=cls.get_val(root, soller1_path % "Deflection", "Value"),
+                soller2=cls.get_val(root, soller2_path % "Deflection", "Value"),
+                radius=float(cls.get_val(root, radius_path % "Radius", "Value", 0)) / 10, #convert to cm
+                divergence=cls.get_val(root, divergence_path % "Data", "Value")
             )
 
         return header_d

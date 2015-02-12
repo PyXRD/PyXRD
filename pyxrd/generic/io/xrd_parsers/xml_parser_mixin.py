@@ -18,4 +18,14 @@ class XMLParserMixin(object):
         tree = ET.parse(f)
         return tree, tree.getroot()
 
+    @classmethod
+    def get_val(cls, root, path, attrib, default=None):
+        """ Returns the attribute `attrib` from the first element found in
+        `root` using the given `path`or default if not found """
+        element = root.find(path)
+        if element is not None:
+            return element.get(attrib)
+        else:
+            return default
+
     pass #end of class

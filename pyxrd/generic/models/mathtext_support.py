@@ -71,8 +71,6 @@ def get_plot_safe(expression):
 
 def get_string_safe(expression):
 
-    print expression
-    
     replacers = [
         (r"$", r""),
         (r"\larger", r""),
@@ -86,8 +84,6 @@ def get_string_safe(expression):
     for val, rep in replacers:
         expression = expression.replace(val, rep)
 
-    print expression
-
     regex_replacers = [
         (r"\\sum_\{(\S+)\}\^\{(\S+)\}", r"Σ(\1->\2)"),
         (r"(\S+)_(?:\{(\S+)\})", r"\1\2"),
@@ -100,11 +96,9 @@ def get_string_safe(expression):
         pattern = re.compile(regexpr)
         expression = pattern.sub(sub, expression)
 
-    print expression
-
     return expression
-    
 
 
 
-    
+
+

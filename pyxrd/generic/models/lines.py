@@ -318,7 +318,6 @@ class PyXRDLine(DataModel, StorableXYData):
         if length > 2:
             # Adjust the first distribution:
             deltas, num_peaks = self.calculate_npeaks_for(max_threshold, steps)
-            print deltas, num_peaks
 
             #  Fit several lines with increasing number of points from the
             #  generated threshold / marker count graph. Stop when the

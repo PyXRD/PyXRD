@@ -18,7 +18,7 @@ from pyxrd.generic.io.file_parsers import parsers
 from pyxrd.generic.io.xrd_parsers import XRDParser
 from pyxrd.generic.models import ExperimentalLine, CalculatedLine, DataModel
 from pyxrd.generic.peak_detection import peakdetect
-from pyxrd.calculations.specimen import get_phase_intensities
+from pyxrd.calculations.specimen import calculate_phase_intensities
 from pyxrd.calculations.data_objects import SpecimenData
 
 from pyxrd.goniometer.models import Goniometer
@@ -482,7 +482,7 @@ class Specimen(DataModel, Storable):
         
         :rtype: a 2-tuple containing 2-theta values and phase intensities
         """
-        return get_phase_intensities(self.data_object, phases)
+        return calculate_phase_intensities(self.data_object, phases)
 
     def __get_range_theta(self):
         if len(self.experimental_pattern) <= 1:

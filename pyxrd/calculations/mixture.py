@@ -16,7 +16,7 @@ settings.apply_runtime_settings()
 import logging
 logger = logging.getLogger(__name__)
 
-from .specimen import get_phase_intensities
+from .specimen import calculate_phase_intensities, get_summed_intensities
 from .exceptions import wrap_exceptions
 from .statistics import Rp, Rpder
 
@@ -26,7 +26,7 @@ __residual_method_map = {
 }
 
 def parse_solution(x, mixture):
-    fractions = np.asanyarray(x[:mixture.m])[:, np.newaxis]
+    fractions = np.asanyarray(x[:mixture.m])
     scales = np.asanyarray(x[mixture.m:mixture.m + mixture.n])
     if mixture.auto_bg:
         bgshifts = np.asanyarray(x[-mixture.n:])
@@ -49,21 +49,37 @@ def get_zero_solution(mixture):
     x0[:mixture.m] = 1.0 / mixture.m
     return x0
 
+def get_bounds(mixture):
+    bounds = [(0, None) for _ in range(mixture.m)] # allow zero fractions
+    bounds += [(1e-3, None) for _ in range(mixture.n)] # don't allow zero scales
+    if mixture.auto_bg:
+        bounds += [(0, None) for _ in range(mixture.n)]
+    return bounds
+
+def _get_specimen_residual(specimen, cal=None):
+    """
+        Returns the residual error for the given specimen and the (otionally)
+        given calculated data. If no calculated data is passed, the calculated
+        data stored in the specimen object is used (and assumed to be set).
+    """
+    exp = specimen.observed_intensity[specimen.selected_range]
+    cal = specimen.total_intensity if cal is None else cal
+    cal = cal[specimen.selected_range]
+    return __residual_method_map[settings.RESIDUAL_METHOD](exp, cal)
+
 def _get_residuals(x, mixture):
     fractions, scales, bgshifts = parse_solution(x, mixture)
     rps = [0.0, ]
     for scale, bgshift, specimen in izip(scales, bgshifts, mixture.specimens):
         if specimen is not None:
             if specimen.phase_intensities is not None:
-                calc = (scale * np.sum(specimen.phase_intensities * fractions, axis=0)) + bgshift
+                bgshift = bgshift if settings.BGSHIFT else 0.0
+                calc = get_summed_intensities(specimen, scale, fractions, bgshift)
             else:
                 logger.warning("_get_residual reports: 'No phases found!'")
                 calc = np.zeros_like(specimen.observed_intensity)
             if specimen.observed_intensity.size > 0:
-                exp = specimen.observed_intensity[specimen.selected_range]
-                cal = calc[specimen.selected_range]
-                rp = __residual_method_map[settings.RESIDUAL_METHOD](exp, cal)
-                rps.append(rp)
+                rps.append(_get_specimen_residual(specimen, calc))
             else:
                 logger.warning("_get_residual reports: 'Zero observations found!'")
         else:
@@ -96,7 +112,7 @@ def parse_mixture(mixture, parsed=False):
         for specimen in mixture.specimens:
             if specimen is not None:
                 specimen.correction, specimen.phase_intensities = \
-                    get_phase_intensities(specimen)
+                    calculate_phase_intensities(specimen)
             else:
                 logger.warning("parse_mixture reports: 'None found!'")
 
@@ -116,7 +132,7 @@ def optimize_mixture(mixture, parsed=False):
 
     # 1. setup start point:
     x0 = get_zero_solution(mixture)
-    bounds = [(0, None) for i in range(len(x0))] # @UnusedVariable
+    bounds = get_bounds(mixture)
 
     # 2. Optimize:
     t1 = time.time()
@@ -141,8 +157,6 @@ def optimize_mixture(mixture, parsed=False):
     #    and round them to have 6 digits max:
     fractions, scales, bgshifts = parse_solution(lastx, mixture)
     fractions = fractions.flatten()
-    # if mixture.BGSHIFT:
-    #    bgshifts = bgshifts.round(6)
 
     sum_frac = np.sum(fractions)
     if sum_frac == 0.0 and len(fractions) > 0: # prevent NaN errors
@@ -178,14 +192,12 @@ def calculate_mixture(mixture, parsed=False):
     mixture.residuals = [0.0, ]
     for scale, bgshift, specimen in izip(mixture.scales, mixture.bgshifts, mixture.specimens):
         if specimen is not None:
-            specimen.total_intensity = (
-                scale * np.sum(fractions[:, np.newaxis] * specimen.phase_intensities, axis=0) + \
-                (bgshift if settings.BGSHIFT else 0.0) * specimen.correction)
+            bgshift = bgshift if settings.BGSHIFT else 0.0
+            specimen.total_intensity = get_summed_intensities(specimen, scale, fractions, bgshift)
             if specimen.observed_intensity.size > 0:
-                exp = specimen.observed_intensity[specimen.selected_range]
-                cal = specimen.total_intensity[specimen.selected_range]
-                rp = __residual_method_map[settings.RESIDUAL_METHOD](exp, cal)
-                mixture.residuals.append(rp)
+                mixture.residuals.append(_get_specimen_residual(specimen))
+            else:
+                logger.warning("calculate_mixture reports: 'Zero observations found!'")
     mixture.residuals[0] = np.average(mixture.residuals[1:])
     return mixture
 

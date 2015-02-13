@@ -86,15 +86,15 @@ class BrkBRMLParser(XRDParserMixin, XMLParserMixin, BaseParser):
                    "BankPosition/MountedComponent/Restrictions[@FieldName='OpeningDegree']/%s"
 
             header_d.update(
-                alpha1=cls.get_val(root, tube_path % "WaveLengthAlpha1", "Value"),
-                alpha2=cls.get_val(root, tube_path % "WaveLengthAlpha2", "Value"),
-                alpha_average=cls.get_val(root, tube_path % "WaveLengthAverage", "Value"),
-                beta=cls.get_val(root, tube_path % "WaveLengthBeta", "Value"),
+                alpha1=float(cls.get_val(root, tube_path % "WaveLengthAlpha1", "Value")) / 10,
+                alpha2=float(cls.get_val(root, tube_path % "WaveLengthAlpha2", "Value")) / 10,
+                alpha_average=float(cls.get_val(root, tube_path % "WaveLengthAverage", "Value")) / 10,
+                beta=float(cls.get_val(root, tube_path % "WaveLengthBeta", "Value")) / 10,
                 alpha_factor=cls.get_val(root, tube_path % "WaveLengthRatio", "Value"),
                 target_type=cls.get_val(root, tube_path % "TubeMaterial", "Value"),
                 soller1=cls.get_val(root, soller1_path % "Deflection", "Value"),
                 soller2=cls.get_val(root, soller2_path % "Deflection", "Value"),
-                radius=float(cls.get_val(root, radius_path % "Radius", "Value", 0)) / 10, #convert to cm
+                radius=float(cls.get_val(root, radius_path % "Radius", "Value", 0)) / 10.0, #convert to cm
                 divergence=cls.get_val(root, divergence_path % "Data", "Value")
             )
 

@@ -6,6 +6,9 @@ TODO*
 batch_file_*
 setuptools-*
 
+# Generated file
+PyXRD.iss
+
 # Directories
 data/CACHE
 

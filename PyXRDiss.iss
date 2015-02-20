@@ -1,6 +1,6 @@
 #define MyAppName "PyXRD"
-#define MyAppVersion "0.6.2"
-#define OutputDir ".\dist"
+#define MyAppVersion "|||VERSION|||"
+#define OutputDir ".\dist"
 #define DepDir ".\dist\deps"
 
 ;
@@ -36,7 +36,7 @@ Source: "{#DepDir}\pywin32-219.win32-py2.7.exe"; DestDir: "{tmp}"; Flags: delete
 Source: "{#DepDir}\pygtk-all-in-one-2.24.2.win32-py2.7.msi"; DestDir: "{tmp}"; Flags: deleteafterinstall
 Source: "{#DepDir}\pyparsing-2.0.3.win32-py2.7.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall
 Source: "{#DepDir}\matplotlib-1.2.1.win32-py2.7.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall
-Source: "{#OutputDir}\PyXRD-0.6.2.win32-py2.7.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall
+Source: "{#OutputDir}\PyXRD-{#MyAppVersion}.win32-py2.7.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall
                                            
 [Run]
 StatusMsg: "Installing Python";     Filename: "msiexec.exe";                          Parameters: "/i ""{tmp}\python-2.7.8.msi"" /passive ALLUSERS=1 TARGETDIR=""C:\Python27"""; Flags: runasoriginaluser;
@@ -48,7 +48,7 @@ StatusMsg: "Installing PyGTK";      Filename: "msiexec.exe";                    
 StatusMsg: "Installing Numpy & Scipy"; Filename: "C:\Python27\Python.exe";  Parameters: """{tmp}\install_numpy_scipy.py"""; Flags: runascurrentuser;
 StatusMsg: "Installing Pyparsing";  Filename: "C:\Python27\Scripts\easy_install.exe"; Parameters: """{tmp}\pyparsing-2.0.3.win32-py2.7.exe"""; Flags: runascurrentuser;
 StatusMsg: "Installing Matplotlib"; Filename: "C:\Python27\Scripts\easy_install.exe"; Parameters: """{tmp}\matplotlib-1.2.1.win32-py2.7.exe"""; Flags: runascurrentuser;
-StatusMsg: "Installing PyXRD";      Filename: "C:\Python27\Scripts\easy_install.exe"; Parameters: """{tmp}\PyXRD-0.6.2.win32-py2.7.exe"""; Flags: runascurrentuser;
+StatusMsg: "Installing PyXRD";      Filename: "C:\Python27\Scripts\easy_install.exe"; Parameters: """{tmp}\PyXRD-{#MyAppVersion}.win32-py2.7.exe"""; Flags: runascurrentuser;
 StatusMsg: "Installing PyXRD";      Filename: "C:\Python27\Python.exe"; Parameters: """C:\Python27\Lib\site-packages\{#MyAppName}-{#MyAppVersion}-py2.7-win32.egg\EGG-INFO\scripts\win32_pyxrd_post_install.py"" -install"; Flags: runascurrentuser waituntilterminated;
 
 [UninstallDelete]

@@ -408,6 +408,14 @@ class AppController (BaseController):
             self.specimen.on_export_experimental_data()
         return True
 
+    def on_convert_to_fixed_activate(self, event):
+        for specimen in self.model.current_specimens:
+            specimen.convert_to_fixed()
+
+    def on_convert_to_ads_activate(self, event):
+        for specimen in self.model.current_specimens:
+            specimen.convert_to_ads()
+
     def on_remove_background(self, event):
         if self.model.single_specimen_selected:
             self.specimen.remove_background()

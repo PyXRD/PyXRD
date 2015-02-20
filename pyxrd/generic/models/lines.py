@@ -60,6 +60,9 @@ class StorableXYData(XYData, Storable):
         props["data"] = self._serialize_data()
         return props
 
+    def apply_correction(self, correction):
+        self.data_y = self.data_y * correction[:, np.newaxis]
+
     def save_data(self, filename, header=""):
         if self.data_y.shape[1] > 1:
             names = ["2θ", header] + (not_none(self.y_names, []))
@@ -81,7 +84,6 @@ class StorableXYData(XYData, Storable):
             if clear: self.clear()
             for x, y in generator:
                 self.append(x, y)
-
 
     pass # end of class
 

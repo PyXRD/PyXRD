@@ -484,6 +484,24 @@ class Specimen(DataModel, Storable):
         """
         return calculate_phase_intensities(self.data_object, phases)
 
+    def convert_to_fixed(self):
+        """
+        Converts the experimental data from ADS to fixed slits in-place 
+        (disregards the `has_ads` flag in the goniometer, but uses the settings
+        otherwise) 
+        """
+        correction = self.goniometer.get_ADS_to_fixed_correction(self.__get_range_theta())
+        self.experimental_pattern.apply_correction(correction)
+
+    def convert_to_ads(self):
+        """
+        Converts the experimental data from fixed slits to ADS in-place 
+        (disregards the `has_ads` flag in the goniometer, but uses the settings
+        otherwise) 
+        """
+        correction = 1.0 / self.goniometer.get_ADS_to_fixed_correction(self.__get_range_theta())
+        self.experimental_pattern.apply_correction(correction)
+
     def __get_range_theta(self):
         if len(self.experimental_pattern) <= 1:
             return self.goniometer.get_default_theta_range()

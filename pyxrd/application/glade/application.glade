@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- Generated with glade 3.16.1 -->
 <interface>
   <object class="GtkAccelGroup" id="PyXRD_Main"/>
   <object class="GtkActionGroup" id="persistent_actions">
@@ -303,6 +304,26 @@
         <signal name="activate" handler="on_del_specimen_activate" swapped="no"/>
       </object>
     </child>
+    <child>
+      <object class="GtkAction" id="convert_to_fixed">
+        <property name="label" translatable="yes">Convert data to fixed slit</property>
+        <property name="short_label" translatable="yes">Convert to fixed slit</property>
+        <property name="tooltip" translatable="yes">Converts the data to fixed slit. This is taking the ADS settings in the specimen's goniometer tab into account. The ADS checkbox does not need to be checked however.</property>
+        <property name="stock_id">gtk-convert</property>
+        <property name="always_show_image">True</property>
+        <signal name="activate" handler="on_convert_to_fixed_activate" swapped="no"/>
+      </object>
+    </child>
+    <child>
+      <object class="GtkAction" id="convert_to_ads">
+        <property name="label" translatable="yes">Convert data to ADS</property>
+        <property name="short_label" translatable="yes">Convert to ADS</property>
+        <property name="tooltip" translatable="yes">Converts the data to ADS. This is taking the ADS settings in the specimen's goniometer tab into account. The ADS checkbox does not need to be checked however, and this will not be changed!</property>
+        <property name="stock_id">gtk-convert</property>
+        <property name="always_show_image">True</property>
+        <signal name="activate" handler="on_convert_to_ads_activate" swapped="no"/>
+      </object>
+    </child>
   </object>
   <object class="GtkImage" id="image2">
     <property name="visible">True</property>
@@ -516,6 +537,7 @@
                     <property name="accel_group">PyXRD_Main</property>
                     <child>
                       <object class="GtkImageMenuItem" id="main_menu_item_add_specimen">
+                        <property name="use_action_appearance">True</property>
                         <property name="related_action">add_specimen</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
@@ -527,11 +549,33 @@
                     </child>
                     <child>
                       <object class="GtkImageMenuItem" id="main_menu_item_import_specimens">
+                        <property name="use_action_appearance">True</property>
                         <property name="related_action">import_specimens</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
+                        <property name="always_show_image">True</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkImageMenuItem" id="main_menu_item_convert_to_fixed">
+                        <property name="use_action_appearance">True</property>
+                        <property name="related_action">convert_to_fixed</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="use_stock">True</property>
+                        <property name="always_show_image">True</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkImageMenuItem" id="main_menu_item_convert_to_ads">
+                        <property name="use_action_appearance">True</property>
+                        <property name="related_action">convert_to_ads</property>
+                        <property name="visible">True</property>
+                        <property name="can_focus">False</property>
+                        <property name="use_stock">True</property>
+                        <property name="always_show_image">True</property>
                       </object>
                     </child>
                     <child>

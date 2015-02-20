@@ -17,6 +17,7 @@ from pyxrd.data import settings
 from pyxrd.calculations.goniometer import (
     get_lorentz_polarisation_factor,
     get_machine_correction_range,
+    get_fixed_to_ads_correction_range,
     get_nm_from_2t, get_nm_from_t,
     get_2t_from_nm, get_t_from_nm,
 )
@@ -298,5 +299,12 @@ class Goniometer(DataModel, Storable):
         return get_lorentz_polarisation_factor(
             range_theta, sigma_star, self.data_object
         )
+
+    def get_ADS_to_fixed_correction(self, range_theta):
+        """
+            Returns a correction range that will convert ADS data to fixed slit
+            data. Use with caution.
+        """
+        return 1.0 / get_fixed_to_ads_correction_range(range_theta, self.data_object)
 
     pass # end of class

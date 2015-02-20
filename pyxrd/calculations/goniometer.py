@@ -31,6 +31,10 @@ def get_lorentz_polarisation_factor(range_theta, sigma_star, soller1, soller2):
     T = erf(Q) * sqrt2pi / (2.0 * sigma_star * S) - 2.0 * range_st * (1.0 - np.exp(-(Q ** 2.0))) / (S ** 2.0)
     return (1.0 + np.cos(2.0 * range_theta) ** 2) * T / range_st
 
+def get_fixed_to_ads_correction_range(range_theta, goniometer):
+    ads = (np.sin(goniometer.ads_phase_fact * range_theta + radians(goniometer.ads_phase_shift)) - goniometer.ads_const) / goniometer.ads_fact
+    return ads
+
 @cache(16)
 def get_machine_correction_range(specimen):
     """
@@ -42,8 +46,8 @@ def get_machine_correction_range(specimen):
     correction_range = np.ones_like(specimen.range_theta)
     # Correct for automatic divergence slits first:
     if bool(goniometer.has_ads):
-        ads = (np.sin(goniometer.ads_phase_fact * specimen.range_theta + radians(goniometer.ads_phase_shift)) - goniometer.ads_const) / goniometer.ads_fact
-        correction_range *= ads
+        correction_range *= get_fixed_to_ads_correction_range(
+            specimen.range_theta, goniometer)
     # Then correct for sample absorption:
     if specimen.absorption > 0.0:
         correction_range *= np.minimum(1.0 - np.exp(-2.0 * specimen.absorption / range_st), 1.0)

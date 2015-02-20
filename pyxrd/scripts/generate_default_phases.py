@@ -263,13 +263,13 @@ def run(args=None, ui_callback=None):
         ]),
     ]
     default_phases += generate_expandables(
-        '%sVermiculites/VV/Di-VV R%d Ca.phs', 'VV', 4,
+        'Vermiculites/VV/Di-VV R%d Ca.phs', 'VV', 4,
         {}, inherit_phase, inherit_phase,
         VV_code_AD, VV_code_EG, VV_code_350,
         {}, VV_inh_comp_args, VV_inh_comp_args,
     )
     default_phases += generate_expandables(
-        '%sVermiculites/VVV/Di-VVV R%d Ca.phs', 'VVV', 3,
+        'Vermiculites/VVV/Di-VVV R%d Ca.phs', 'VVV', 3,
         {}, inherit_phase, inherit_phase,
         VVV_code_AD, VVV_code_EG, VVV_code_350,
         {}, VVV_inh_comp_args, VVV_inh_comp_args,

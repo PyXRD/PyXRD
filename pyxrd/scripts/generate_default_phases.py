@@ -193,7 +193,7 @@ def run(args=None, ui_callback=None):
 
     tSS_code_AD = tS_code_AD + 'tS1w'
     tSS_code_EG = tS_code_EG + 'tS1g'
-    tSS_code_350 = tS_code_EG + 'tS1g'
+    tSS_code_350 = tS_code_350 + 'tS1g'
     tSS_inh_comp_args = dict(S_inh_comp_args)
     tSS_inh_comp_args.update({
         'tS1g': dict(linked_with='tS1w', **inherit_S),
@@ -201,7 +201,7 @@ def run(args=None, ui_callback=None):
 
     tSSS_code_AD = tSS_code_AD + 'tS0w'
     tSSS_code_EG = tSS_code_EG + 'tS0w'
-    tSSS_code_350 = tSS_code_EG + 'tS0w'
+    tSSS_code_350 = tSS_code_350 + 'tS0w'
     tSSS_inh_comp_args = dict(SS_inh_comp_args)
     tSSS_inh_comp_args.update({
         'tS0w': dict(linked_with='tS0w', **inherit_S),

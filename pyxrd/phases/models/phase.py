@@ -12,7 +12,7 @@ from warnings import warn
 from mvc import Observer, PropIntel
 from mvc.observers import ListObserver
 
-from pyxrd.generic.io import storables, Storable, get_case_insensitive_glob
+from pyxrd.generic.io import storables, Storable, get_case_insensitive_glob, COMPRESSION
 from pyxrd.generic.models import DataModel
 from pyxrd.calculations.phases import get_diffracted_intensity
 from pyxrd.calculations.data_objects import PhaseData
@@ -349,7 +349,7 @@ class Phase(DataModel, Storable, RefinementGroup):
                         ordered_phases.remove(phase.based_on)
                         ordered_phases.insert(index, phase.based_on)
 
-        with zipfile.ZipFile(filename, 'w') as zfile:
+        with zipfile.ZipFile(filename, 'w', compression=COMPRESSION) as zfile:
             for i, phase in enumerate(ordered_phases):
                 zfile.writestr("%d###%s" % (i, phase.uuid), phase.dump_object())
         for phase in ordered_phases:

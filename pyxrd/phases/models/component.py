@@ -11,7 +11,7 @@ from warnings import warn
 from mvc import PropIntel
 from mvc.observers import ListObserver
 
-from pyxrd.generic.io import storables, Storable
+from pyxrd.generic.io import storables, Storable, COMPRESSION
 from pyxrd.generic.models import DataModel, HoldableSignal
 from pyxrd.calculations.components import get_factors
 from pyxrd.calculations.data_objects import ComponentData
@@ -486,7 +486,7 @@ class Component(DataModel, Storable, RefinementGroup):
         Component.export_atom_types = True
         for comp in components:
             comp.save_links = False
-        with zipfile.ZipFile(filename, 'w') as zfile:
+        with zipfile.ZipFile(filename, 'w', compression=COMPRESSION) as zfile:
             for component in components:
                 zfile.writestr(component.uuid, component.dump_object())
         for comp in components:

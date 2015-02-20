@@ -13,7 +13,7 @@ from mvc import Observer, PropIntel
 
 import numpy as np
 
-from pyxrd.generic.io import storables, Storable, get_case_insensitive_glob
+from pyxrd.generic.io import storables, Storable, get_case_insensitive_glob, COMPRESSION
 from pyxrd.generic.models import DataModel
 from pyxrd.generic.models.mixins import CSVMixin
 from pyxrd.calculations.data_objects import AtomTypeData, AtomData
@@ -224,7 +224,7 @@ class AtomType(DataModel, Storable, CSVMixin):
         """
         type(cls).object_pool.change_all_uuids()
 
-        with zipfile.ZipFile(filename, 'w') as zfile:
+        with zipfile.ZipFile(filename, 'w', compression=COMPRESSION) as zfile:
             for i, atom_type in enumerate(atom_types):
                 zfile.writestr("%d###%s" % (i, atom_type.uuid), atom_type.dump_object())
 

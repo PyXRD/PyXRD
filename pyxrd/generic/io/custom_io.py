@@ -5,64 +5,40 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-import os, sys, types
+import os, types
 from shutil import move
-
-import numpy as np
-from pyxrd.generic.utils import not_none
-
+from collections import OrderedDict
 import logging
 logger = logging.getLogger(__name__)
-
-# Small workaround to provide a unicode-aware open method for PyXRD:
-if sys.version_info[0] < 3: # Pre Python 3.0
-    import codecs
-    _open_func_bak = open # Make a back up, just in case
-    open = codecs.open #@ReservedAssignment
-def unicode_open(*args, **kwargs):
-    """
-        Opens files in UTF-8 encoding by default, unless an 'encoding'
-        keyword argument is passed. Returns a file object.
-    """
-    if not "encoding" in kwargs:
-        kwargs["encoding"] = "utf-8"
-    return open(*args, **kwargs)
-
-from collections import OrderedDict
-from traceback import format_exc
 
 try:
     from cStringIO import StringIO #@UnusedImport
 except:
     from StringIO import StringIO #@Reimport
-from zipfile import ZipFile, ZIP_DEFLATED, is_zipfile
 
-import json
+from zipfile import ZipFile, is_zipfile
+try:
+    # Check if zlib is available, if so, we can use compression when saving
+    import zlib #@UnusedImport
+    from zipfile import ZIP_DEFLATED as COMPRESSION
+except ImportError:
+    from zipfile import ZIP_STORED as COMPRESSION
 
-def sizeof_fmt(num):
-    for x in ['bytes', 'kB', 'MB', 'GB', 'TB']:
-        if num < 1024.0:
-            return "%3.1f %s" % (num, x)
-        num /= 1024.0
+from traceback import format_exc
 
-def get_size(path='.', maxsize=None):
-    total_size = 0
-    for dirpath, dirnames, filenames in os.walk(path): #@UnusedVariable
-        for f in filenames:
-            fp = os.path.join(dirpath, f)
-            total_size += os.path.getsize(fp)
-            if maxsize is not None and total_size > maxsize:
-                break
-        if maxsize is not None and total_size > maxsize:
-            break
-    return total_size
+from ..utils import not_none
+from .utils import unicode_open
+from .json_codec import PyXRDDecoder, PyXRDEncoder
 
 class StorableRegistry(dict):
     """
         Basically a dict which maps class names to the actual
         class types. This relies on the classes being registered using
         the 'register' decorator provided in this class type.
-        It also has a number of aliases, for backwards-compatibility.
+        It also has a number of aliases, for backwards-compatibility (e.g.
+        when class names change or from the era before using this method
+        when we stored the entire class path, we might remove these at
+        some point)
     """
 
     # For backwards compatibility:
@@ -130,93 +106,9 @@ class StorableRegistry(dict):
 # This is filled using register decorator
 storables = StorableRegistry()
 
-class PyXRDEncoder(json.JSONEncoder):
-    """
-        A custom JSON encoder that checks if:
-            - the object has a to_json callable method, if so it is called to
-              convert the object to a JSON encodable object.
-              E.g. the default implementation from the Storable class is a dict object
-              containing:
-               - a 'type' key mapped to the storage type id of the storable class
-               - a 'properties' key mapped to a dict of name-values for each
-                 property that needs to be stored in order to be able to 
-                 recreate the object.
-              If the user registered this class as a storable
-              (see the 'registes_storable' method or the Storable class)
-              then the JSON object is transformed back into the actual Python
-              object using its from_json(...) method. Default implementation
-              finds the registered class using the 'type' value and passes the
-              'properties' value to its constructor as keyword arguments.  
-            - if the object is a numpy array, it is converted to a list
-            - if the object is a wrapped list, dictionary, ... (ObsWrapper 
-              subclass) then the wrapped object is returned, as these are
-              directly JSON encodable.
-            - fall back to the default JSONEncoder methods
-    """
-
-    def default(self, obj):
-        from mvc.support.observables import ObsWrapper
-        if hasattr(obj, "to_json") and callable(getattr(obj, "to_json")):
-            return obj.to_json()
-        if isinstance(obj, np.ndarray):
-            return obj.tolist()
-        if isinstance(obj, ObsWrapper):
-            return obj._obj # return the wrapped object
-        return json.JSONEncoder(self).default(obj)
-
-
-class PyXRDDecoder(json.JSONDecoder):
-    """
-        A custom JSON decoder that can decode objects, following these steps:
-            - decode the JSON object at once using the default decoder
-            - the resulting dict is then parsed:
-               - if a valid 'type' and a 'properties' key is given,
-                 the object is translated using the mapped class type's 
-                 'from_json' method.
-               - parent keyword arguments are passed on (e.g. a project) to
-                 the from_json method as well
-    """
-
-    def __init__(self, parent=None, **kwargs):
-        json.JSONDecoder.__init__(self, **kwargs)
-        self.parent = parent
-
-    @staticmethod
-    def decode_multi_part(obj, parts={}, **kwargs):
-        """
-            Utility function that allows for multi-part (ZipFile) JSON objects
-            Shortens the length of the main file, e.g. by splitting out lists of
-            other objects into separate files.
-        """
-        decoder = PyXRDDecoder(**kwargs)
-        obj = json.JSONDecoder.decode(decoder, obj)
-        if not hasattr(obj, "update"):
-            raise RuntimeError, "Decoding a multi-part JSON object requires the root to be a dictionary object!"
-        for partname, partobj in parts.iteritems():
-            obj["properties"][partname] = json.JSONDecoder.decode(decoder, partobj)
-        return decoder.__pyxrd_decode__(obj) or obj
-
-    def decode(self, obj):
-        obj = json.JSONDecoder.decode(self, obj)
-        return self.__pyxrd_decode__(obj) or obj
-
-    def __pyxrd_decode__(self, obj, **kwargs):
-        if isinstance(obj, list):
-            for index, subobj in enumerate(obj):
-                obj[index] = self.__pyxrd_decode__(subobj) or subobj
-            return obj
-        if "type" in obj:
-            objtype = storables[obj["type"]]
-            if "properties" in obj and hasattr(objtype, "from_json"):
-                if self.parent is not None and not "parent" in kwargs:
-                    kwargs["parent"] = self.parent
-                return objtype.from_json(**dict(obj["properties"], **kwargs))
-        raise Warning, "__pyxrd_decode__ will return None for %s!" % str(obj)[:30] + "..." + str(obj)[:-30]
-        return None
-
-# needs to be importable:
+# Needs to be importable, could be used for more compact Python pickling:
 def __map_reduce__(json_obj):
-    decoder = PyXRDDecoder()
+    decoder = PyXRDDecoder(mapper=storables)
     return decoder.decode(json_obj)
 
 class Storable(object):
@@ -238,28 +130,25 @@ class Storable(object):
     """
     __storables__ = []
 
-    class Meta():  # override this!
+    class Meta():  # Sub classes need to override this and set store_id!!
         store_id = None
-
-    def __init__(self, *args, **kwargs):
-        # Nothing to do but ignore any extraneous args & kwargs passed down
-        object.__init__(self)
 
     ###########################################################################
     # High-level JSON (de)serialisiation related methods & functions:
     ###########################################################################
-    def dump_object(self, zipped=False):
+    def dump_object(self, zipped=False, filename=None):
         """
-        Returns this object serialized as a JSON string
+            Returns this object serialized as a JSON string.
+            If `zipped` is true it returns an in-memory ZipFile.
         """
+        content = PyXRDEncoder.dump_object(self)
         if zipped:
             f = StringIO()
-            z = ZipFile(f, mode="w", compression=ZIP_DEFLATED)
-            z.writestr('content', json.dumps(self, indent=4, cls=PyXRDEncoder))
-            z.close()
-            return f # return unclosed, users need to worry about this...
+            with ZipFile(f, mode="w", compression=COMPRESSION) as z:
+                z.writestr('content', content)
+            return z
         else:
-            return json.dumps(self, indent=4, cls=PyXRDEncoder)
+            return content
 
     def print_object(self):
         """
@@ -269,7 +158,7 @@ class Storable(object):
 
     def save_object(self, file, zipped=False): # @ReservedAssignment
         """
-        Saves the output from dump_object() to a filename, optionally zipping it.
+        Saves the output from dump_object() to `filename`, optionally zipping it.
         File can be either a filename or a file-like object. If it is a filename
         extra precautions are taken to prevent malformed data overwriting a good
         file. With file objects this is not the case.
@@ -287,16 +176,16 @@ class Storable(object):
         try:
             if zipped:
                 # Try to safe the file as a zipfile:
-                with ZipFile(file, mode="w", compression=ZIP_DEFLATED) as f:
+                with ZipFile(file, mode="w", compression=COMPRESSION) as f:
                     for partname, json_object in self.to_json_multi_part():
-                        f.writestr(partname, json.dumps(json_object, indent=4, cls=PyXRDEncoder))
+                        f.writestr(partname, PyXRDEncoder.dump_object(json_object))
             else:
                 # Regular text file:
                 if filename is not None:
                     with unicode_open(file, 'w') as f:
-                        json.dump(self, f, indent=4, cls=PyXRDEncoder)
+                        PyXRDEncoder.dump_object_to_file(self, f)
                 else:
-                    json.dump(self, file, indent=4, cls=PyXRDEncoder)
+                    PyXRDEncoder.dump_object_to_file(self, file)
         except:
             # In case saving fails, remove the temporary file:
             if filename is not None and os.path.exists(file):
@@ -324,7 +213,7 @@ class Storable(object):
         :rtype: the loaded object instance
         """
         if filename is not None:
-            try:
+            try: # Assume filename is a path
                 if is_zipfile(filename): # ZIP files
                     with ZipFile(filename, 'r') as zf:
                         parts = dict()
@@ -333,20 +222,20 @@ class Storable(object):
                                 with zf.open(name) as pf:
                                     parts[name] = pf.read()
                         with zf.open('content') as cf:
-                            return PyXRDDecoder.decode_multi_part(cf.read(), parts=parts, parent=parent)
+                            return PyXRDDecoder.decode_multi_part(cf.read(), parts=parts, mapper=storables, parent=parent)
                 else: # REGULAR files
                     with unicode_open(filename, 'r') as f:
-                        return json.load(f, cls=PyXRDDecoder, parent=parent)
-            except Exception as error:
+                        return PyXRDDecoder.decode_file(f, mapper=storables, parent=parent)
+            except Exception as error: # Maybe filename is a file-like object?
                 logger.debug("Handling run-time error: %s" % error)
                 tb = format_exc()
                 try:
-                    return json.load(filename, cls=PyXRDDecoder, parent=parent)
+                    return PyXRDDecoder.decode_file(filename, mapper=storables, parent=parent)
                 except:
                     print tb
-                    raise # re-raise last error
+                    raise # re-raise last error, filename is something weird
         elif data is not None: # STRINGS:
-            return json.loads(data, cls=PyXRDDecoder, parent=parent)
+            return PyXRDDecoder.decode_string(data, mapper=storables, parent=parent)
 
 
     ###########################################################################
@@ -366,16 +255,11 @@ class Storable(object):
 
     def to_json_multi_part(self):
         """
-            This should generate two-tuples:
+            This should generate a list of two-tuples:
             (partname, json_dict), (partname, json_dict), ...
+            These can then be saved as seperate files (e.g. in a ZIP file)
         """
         yield ('content', self.to_json())
-
-    # Inherited classes can also implement:
-    # def multi_file_to_json(self):
-    # this should return a list of two-tuples:
-    #  (filename, json_dict) (filename, json_dict), ...
-    # The combination
 
     def json_properties(self):
         """
@@ -433,7 +317,7 @@ class Storable(object):
                 if child: kwargs["parent"] = self
                 return default(**kwargs)
         elif isinstance(arg, dict) and "type" in arg and "properties" in arg:
-            arg = PyXRDDecoder(parent=self if child else None).__pyxrd_decode__(arg, **kwargs)
+            arg = PyXRDDecoder(mapper=storables, parent=self if child else None).__pyxrd_decode__(arg, **kwargs)
             return arg
         else:
             return arg
@@ -441,8 +325,8 @@ class Storable(object):
     @classmethod
     def from_json(cls, *args, **kwargs):
         """
-            Class method transforming JSON kwargs into an instance of this class.
-            By default this assumes a 1-on-1 mapping to the __init__ method.
+        Class method transforming JSON kwargs into an instance of this class.
+        By default this assumes a 1-on-1 mapping to the __init__ method.
         """
         return cls(*args, **kwargs)
 

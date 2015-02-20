@@ -5,7 +5,7 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from pyxrd.generic.io import get_size, sizeof_fmt
+from pyxrd.generic.io.utils import get_size, sizeof_fmt
 
 # Apply settings
 from pyxrd.data import settings

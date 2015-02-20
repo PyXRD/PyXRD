@@ -86,7 +86,7 @@ def _apply_settings(no_gui, debug, clear_cache):
                 else: raise
             memory.clear(onerror=onerror)
         else:
-            from pyxrd.generic.io import get_size, sizeof_fmt
+            from pyxrd.generic.io.utils import get_size, sizeof_fmt
             size = get_size(memory.cachedir, settings.CACHE_SIZE)
             logging.info("Cache size is (at least): %s" % sizeof_fmt(size))
             if size > settings.CACHE_SIZE:

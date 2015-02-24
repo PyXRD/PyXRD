@@ -165,13 +165,20 @@ class XYData(Model):
             [[x1, x2, ..., xn], [y11, y21, ..., yn1], ..., [y1m, y2m, ..., ynm]]
             If there are n data points and m+1 columns.
         """
-        data = data.replace("nan", "0.0")
+        data = data.replace("nan", "'nan'")
+        data = data.replace("-inf", "'-inf'")
+        data = data.replace("+inf", "'+inf'")
+        data = data.replace("inf", "'inf'")
         data = json.JSONDecoder().decode(data)
         return data
 
     def _set_from_serial_data(self, sdata):
         """Internal method, do not use!"""
-        data = self._deserialize_data(sdata)
+        data = []
+        try:
+            data = self._deserialize_data(sdata)
+        except ValueError:
+            logger.exception("Failed to deserialize xy-data string `%s`" % sdata)
         if data != []:
             data = np.array(data, dtype=float)
             try:

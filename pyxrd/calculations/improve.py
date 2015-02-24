@@ -19,10 +19,6 @@ def setup_project(projectf):
     # memory usage, so if no projectf was passed to improve_solutions, this
     # module does not use more then it needs.
     from pyxrd.data import settings
-    if settings.CACHE == "FILE":
-        settings.CACHE = "FILE_FETCH_ONLY"
-    else:
-        settings.CACHE = None
     settings.apply_runtime_settings()
 
     from pyxrd.project.models import Project

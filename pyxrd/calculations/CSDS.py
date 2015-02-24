@@ -9,9 +9,7 @@ import numpy as np
 from math import sqrt, log
 
 from pyxrd.generic.custom_math import lognormal
-from pyxrd.generic.caching import cache
 
-@cache(64)
 def calculate_distribution(CSDS):
     r"""
     Returns a tuple containing a numpy array with the (log normal) CSDS

@@ -10,13 +10,11 @@ from math import pi
 
 import numpy as np
 
-from pyxrd.generic.caching import cache
 from pyxrd.calculations.atoms import get_structure_factor
 
 def calculate_z(default_z, lattice_d, z_factor):
     return lattice_d + z_factor * (default_z - lattice_d)
 
-@cache(64)
 def get_factors(range_stl, component):
     r"""
     Returns a tuple containing the structure factor and phase difference for

@@ -6,7 +6,6 @@
 # Complete license can be found in the LICENSE file.
 
 import numpy as np
-from pyxrd.generic.caching import cache
 
 from pyxrd.calculations.goniometer import (
     get_machine_correction_range,
@@ -27,7 +26,6 @@ def get_intensity(range_theta, range_stl, soller1, soller2, phase):
     )
     return intensity * lpf
 
-@cache(16)
 def calculate_phase_intensities(specimen):
     """
         Gets phase intensities for the provided phases

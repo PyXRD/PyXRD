@@ -11,14 +11,12 @@ from scipy.special import erf
 from math import sqrt, radians, tan
 
 from pyxrd.generic.custom_math import sqrt2pi, sqrt8
-from pyxrd.generic.caching import cache
 
 def get_S(soller1, soller2):
     _S = sqrt((soller1 * 0.5) ** 2 + (soller2 * 0.5) ** 2)
     _S1S2 = soller1 * soller2
     return _S, _S1S2
 
-@cache(16)
 def get_lorentz_polarisation_factor(range_theta, sigma_star, soller1, soller2):
     """
         Get the lorentz polarisation factor for the given sigma-star value,
@@ -35,7 +33,6 @@ def get_fixed_to_ads_correction_range(range_theta, goniometer):
     ads = (np.sin(goniometer.ads_phase_fact * range_theta + radians(goniometer.ads_phase_shift)) - goniometer.ads_const) / goniometer.ads_fact
     return ads
 
-@cache(16)
 def get_machine_correction_range(specimen):
     """
         Calculate a correction factor for a certain sample length,

@@ -33,11 +33,6 @@ def _parse_args():
         const=True, default=False,
         help='Run in debug mode'
     )
-    parser.add_argument(
-        "-c", "--clear-cache", dest='clear_cache', action='store_const',
-        const=True, default=False,
-        help='Clear the cache (only relevant if using filesystem cache)'
-    )
 
     args = parser.parse_args()
     del parser # free some memory
@@ -68,29 +63,13 @@ def _setup_logging(debug, log_file, scripted=False):
         # Very basic output for the root object:
         logging.basicConfig(format='%(name)s - %(levelname)s: %(message)s')
 
-def _apply_settings(no_gui, debug, clear_cache):
+def _apply_settings(no_gui, debug):
 
     from pyxrd.data import settings
     # apply settings
     settings.apply_runtime_settings(no_gui=no_gui, debug=debug)
 
     _setup_logging(settings.DEBUG, settings.LOG_FILENAME, no_gui)
-
-    # clean out the file cache if asked and from time to time:
-    if settings.CACHE == "FILE":
-        from pyxrd.generic.caching import memory
-        if clear_cache:
-            def onerror(*args):
-                # ignore errors if not debugging
-                if not settings.DEBUG: pass
-                else: raise
-            memory.clear(onerror=onerror)
-        else:
-            from pyxrd.generic.io.utils import get_size, sizeof_fmt
-            size = get_size(memory.cachedir, settings.CACHE_SIZE)
-            logging.info("Cache size is (at least): %s" % sizeof_fmt(size))
-            if size > settings.CACHE_SIZE:
-                memory.clear()
 
     return settings
 
@@ -177,7 +156,7 @@ def run_main():
     args = _parse_args()
 
     # Apply settings
-    settings = _apply_settings(bool(args.script), args.debug, args.clear_cache)
+    settings = _apply_settings(bool(args.script), args.debug)
 
     try:
         if args.script:

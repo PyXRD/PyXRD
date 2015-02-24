@@ -8,14 +8,12 @@
 import numpy as np
 
 from pyxrd.generic.custom_math import mmult
-from pyxrd.generic.caching import cache
 
 from pyxrd.calculations.CSDS import calculate_distribution
 from pyxrd.calculations.components import get_factors
 import logging
 logger = logging.getLogger(__name__)
 
-@cache(64)
 def get_structure_factors(range_stl, G, comp_list):
     """
         Calculates the structure factor and phase factor for:
@@ -37,7 +35,6 @@ def get_structure_factors(range_stl, G, comp_list):
         SF[:, i], PF[:, i] = get_factors.func(range_stl, comp) # @UndefinedVariable
     return SF, PF
 
-@cache(64)
 def get_Q_matrices(Q, CSDS_max):
     Qn = np.zeros((CSDS_max + 1,) + Q.shape, dtype=complex)
     Qn[0, ...] = np.copy(Q)
@@ -65,7 +62,6 @@ def get_absolute_scale(components, CSDS_real_mean, W):
     else:
         return 0.0
 
-@cache(64)
 def get_diffracted_intensity(range_stl, phase):
     # Check probability model, if invalid return zeros instead of the actual pattern:
     if not phase.valid_probs:

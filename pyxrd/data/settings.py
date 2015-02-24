@@ -7,7 +7,7 @@
 
 import os
 from pyxrd.__version import __version__
-from appdirs import user_data_dir, user_cache_dir, user_log_dir
+from appdirs import user_data_dir, user_log_dir
 
 ### General Information ###
 VERSION = __version__
@@ -33,15 +33,7 @@ RESIDUAL_METHOD = "Rp"
 ### Default wavelength if no Goniometer is available ###
 DEFAULT_LAMBDA = 0.154056
 
-### Cache settings ###
-# CAHCE: one of
-#  - FILE  -  Store results on-disk (also see CACHE_DIR in the DATA_DIRS list)
-#  - FILE_FETCH_ONLY (recommended) - Cache before a refinement starts, then only fetch results form disk.
-#  - MEMORY (not advisable) - Cache in-memory (can cause lock-ups on low-end PC's)
-#  - None - Do not cache, or try to use a cache.
-CACHE = None #"FILE" # _FETCH_ONLY"
-CACHE_SIZE = 500 * (1024 * 1024) # size of on-disk cache in bytes (10 Mb)
-PAR_SPACE_MEMORY_LIMIT = 25 * (1024 * 1024) # size of parameter space record in bytes
+### GUI Mode (for HPC turn to False) ###
 GUI_MODE = True
 
 ### Default Styles & Colors ###
@@ -168,7 +160,6 @@ DATA_DIRS = [
     ("DEFAULT_DATA", "./", None),
     ("USER_DATA", user_data_dir('PyXRD'), None),
     ("LOG_DIR", user_log_dir('PyXRD'), None),
-    ("CACHE_DIR", user_cache_dir('PyXRD'), None),
     ("DEFAULT_PHASES", "default phases/", "USER_DATA"),
     ("DEFAULT_COMPONENTS", "default components/", "DEFAULT_DATA"),
     ("DEFAULT_GONIOS", "default goniometers/", "DEFAULT_DATA"),

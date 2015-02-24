@@ -9,7 +9,6 @@ from pkg_resources import resource_filename # @UnresolvedImport
 
 from itertools import imap
 from warnings import warn
-from traceback import print_exc
 
 import gtk
 from mvc.view import View

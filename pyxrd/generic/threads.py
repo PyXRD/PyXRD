@@ -7,7 +7,8 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from traceback import print_exc
+import logging
+logger = logging.getLogger(__name__)
 
 from threading import Thread, Event
 
@@ -36,21 +37,20 @@ class CancellableThread(Thread):
         except KeyboardInterrupt:
             self.cancel()
         except any as err:
-            err.args += ("Unhandled exception in CancellableThread run()",)
-            print_exc()
+            logger.exception("Unhandled exception in CancellableThread run()")
 
     def stop(self):
         """
             Stops the thread, and calls the on_complete callback
         """
         self.__stop.set()
-        
+
     def cancel(self):
         """
             Stops the thread, and does not call the on_complete callback.
         """
         self.__cancel.set()
         self.__stop.set()
-        
+
 
     pass #end of class

@@ -5,7 +5,6 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from traceback import print_exc
 import logging
 logger = logging.getLogger(__name__)
 
@@ -119,6 +118,5 @@ class Statistics(ChildModel):
             self.der_exp_pattern.clear()
             self.der_calc_pattern.clear()
             logger.excption("Error occurred when trying to calculate statistics, aborting calculation!")
-            print_exc()
 
     pass # end of class

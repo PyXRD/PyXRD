@@ -5,6 +5,9 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
+import logging
+logger = logging.getLogger(__name__)
+
 from pyxrd.generic.io import storables, Storable
 from pyxrd.generic.models import DataModel
 from pyxrd.generic.refinement.mixins import RefinementValue
@@ -166,10 +169,8 @@ class UnitCellProperty(DataModel, Storable, ComponentPropMixin, RefinementValue)
             # Try to replace objects with their uuid's:
             try:
                 retval["prop"] = [getattr(retval["prop"][0], 'uuid', retval["prop"][0]), retval["prop"][1]]
-            except any as err:
-                err.args += ("Error when trying to interpret UCP JSON properties",)
-                from traceback import print_exc
-                print_exc()
+            except any:
+                logger.exception("Error when trying to interpret UCP JSON properties")
                 pass # ignore
         return retval
 

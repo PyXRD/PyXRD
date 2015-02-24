@@ -5,6 +5,9 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
+import logging
+logger = logging.getLogger(__name__)
+
 import os
 from functools import partial
 
@@ -127,8 +130,7 @@ class ProjectController(ObjectListStoreController):
                         message = "An unexpected error has occurred when trying to parse %s:\n\n<i>" % os.path.basename(filename)
                         message += str(msg) + "</i>\n\n"
                         message += "This is most likely caused by an invalid or unsupported file format."
-                        import traceback
-                        traceback.print_exc()
+                        logger.exception(message)
                         self.run_information_dialog(
                             message=message,
                             parent=self.view.get_top_widget()

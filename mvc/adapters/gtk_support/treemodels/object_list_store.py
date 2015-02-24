@@ -25,8 +25,6 @@
 import logging
 logger = logging.getLogger(__name__)
 
-from traceback import print_exc
-
 from ....observers import ListObserver, ListItemObserver
 
 from base_models import BaseObjectListStore
@@ -123,10 +121,8 @@ class ObjectListStore(BaseObjectListStore):
     def on_get_path(self, rowref):
         try:
             return (self._data.index(rowref),)
-        except ValueError as err:
-            err.args += ("ValueError in on_get_path of %s caused by %s" % (self, rowref),)
-            print_exc()
-            pass
+        except ValueError:
+            logger.exception("ValueError in on_get_path of %s caused by %s" % (self, rowref))
 
     def set_value(self, itr, column, value):
         user_data = self.get_user_data(itr)

@@ -5,7 +5,8 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from traceback import print_exc
+import logging
+logger = logging.getLogger(__name__)
 
 import gtk
 
@@ -116,7 +117,6 @@ class EditCSDSDistributionController(BaseController):
         if self.model.distrib is not None and not self.model.phase.project.before_needs_update_lock:
             try: self.view.update_figure(self.model.distrib[0])
             except any as error:
-                error.args += ("Caught unhandled exception: %s" % error,)
-                print_exc()
+                logger.exception("Caught unhandled exception: %s" % error)
 
     pass # end of class

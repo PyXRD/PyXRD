@@ -261,9 +261,7 @@ class PyXRDLine(DataModel, StorableXYData):
         try:
             xdata, ydata = getattr(self, "__plot_line").get_data()
         except AttributeError:
-            if settings.DEBUG:
-                from traceback import print_exc
-                print_exc()
+            logging.exception("Attribute error when trying to get plotter data at x position!")
         else:
             if len(xdata) > 0 and len(ydata) > 0:
                 return np.interp(x, xdata, ydata)

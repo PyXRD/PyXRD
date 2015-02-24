@@ -5,7 +5,6 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from traceback import print_exc
 import logging
 logger = logging.getLogger(__name__)
 
@@ -71,8 +70,7 @@ class Refiner(ChildModel):
                         logger.info(msg_frm % ("GUI mode", settings.GUI_MODE))
                         refine_method(self.context, stop=stop)
                     except any as error:
-                        error.args += ("Handling run-time error: %s" % error,)
-                        print_exc()
+                        logger.exception("Unhandled run-time error when refining: %s" % error)
                         self.context.status = "error"
                         self.context.status_message = "Error occurred..."
                     else:

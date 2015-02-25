@@ -35,9 +35,7 @@ def _close_pool():
 
 def _worker_initializer(pool_stop, *args):
     from pyxrd.core import _apply_settings
-    if settings.CACHE == "FILE":
-        settings.CACHE = "FILE_FETCH_ONLY"
-    _apply_settings(True, settings.DEBUG, False)
+    _apply_settings(True, settings.DEBUG)
     logger.info("Worker process initialized")
 
 def _create_pool(force=False):

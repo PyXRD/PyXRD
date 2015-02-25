@@ -36,6 +36,10 @@ DEFAULT_LAMBDA = 0.154056
 ### GUI Mode (for HPC turn to False) ###
 GUI_MODE = True
 
+
+### Size of parameter space record in bytes ###
+PAR_SPACE_MEMORY_LIMIT = 25 * (1024 * 1024)
+
 ### Default Styles & Colors ###
 DEFAULT_LAYOUT = "VIEWER" # one of the keys in DEFAULT_LAYOUTS!
 DEFAULT_LAYOUTS = {

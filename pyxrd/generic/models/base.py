@@ -24,10 +24,9 @@ class PyXRDModel(Model):
         pass # end of class
 
     def pop_kwargs(self, kwargs, *keys):
-        popped = {}
-        for key in keys:
-            popped[key] = kwargs.pop(key, None)
-        return popped
+        return {
+            key: kwargs.pop(key) for key in keys if key in kwargs
+        }
 
     def get_kwarg(self, fun_kwargs, default, *keywords):
         """

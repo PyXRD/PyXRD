@@ -132,7 +132,7 @@ class Controller(Observer):
         self.__parsed_user_props = set()
 
         # Some general keyword arguments:
-        self.parent = kwargs.pop("parent")
+        self.parent = kwargs.pop("parent", None)
         self.auto_adapt = kwargs.pop("auto_adapt", self.auto_adapt)
         self.register_lazy = kwargs.pop("register_lazy", self.register_lazy)
 

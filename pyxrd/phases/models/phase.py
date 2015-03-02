@@ -269,7 +269,7 @@ class Phase(DataModel, Storable, RefinementGroup):
                 self.get_kwarg(kwargs, None, "probabilities", "data_probabilities"),
                 get_correct_probability_model(R, G), default_is_class=True, child=True)
             self.probabilities.update() # force an update
-            inherit_probabilities = kwargs.pop("inherit_probabilities")
+            inherit_probabilities = kwargs.pop("inherit_probabilities", None)
             if inherit_probabilities is not None:
                 for prop in self.probabilities.Meta.get_inheritable_properties():
                     setattr(self.probabilities, prop.inh_name, bool(inherit_probabilities))

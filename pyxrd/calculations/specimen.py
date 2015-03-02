@@ -33,7 +33,7 @@ def calculate_phase_intensities(specimen):
     """
     range_stl = 2 * np.sin(specimen.range_theta) / specimen.goniometer.wavelength
 
-    correction_range = get_machine_correction_range.func(specimen)
+    correction_range = get_machine_correction_range(specimen)
 
     return correction_range, correction_range * np.array([
         get_intensity(

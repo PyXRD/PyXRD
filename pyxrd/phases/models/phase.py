@@ -424,11 +424,11 @@ class Phase(DataModel, Storable, RefinementGroup):
         """
         phase = self.data_object
         if phase.valid_probs:
-            return get_diffracted_intensity.func(
+            return get_diffracted_intensity(
                 range_theta, range_stl, lpf_args, correction_range, phase
             )
         else:
-            return get_diffracted_intensity.func(None, None, None, None, phase)
+            return get_diffracted_intensity(None, None, None, None, phase)
 
 
     pass # end of class

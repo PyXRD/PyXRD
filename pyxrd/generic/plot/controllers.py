@@ -194,6 +194,7 @@ class MainPlotController (PlotController):
     def setup_content(self):
         # Create subplot and add it to the figure:
         self.plot = Subplot(self.figure, 211, axisbg=(1.0, 1.0, 1.0, 0.0))
+        self.plot.set_autoscale_on(False)
         self.figure.add_axes(self.plot)
 
         # Connect events:

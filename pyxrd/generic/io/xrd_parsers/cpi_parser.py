@@ -9,6 +9,8 @@ import os
 
 import numpy as np
 
+from datetime import date
+
 from pyxrd.generic.io.file_parsers import BaseParser, register_parser
 from pyxrd.generic.io.utils import get_case_insensitive_glob
 from pyxrd.generic.utils import u
@@ -23,6 +25,7 @@ class CPIParser(XRDParserMixin, BaseParser):
     description = "Sietronics *.CPI"
     namespace = "xrd"
     extensions = get_case_insensitive_glob("*.CPI", "*.CPD", "*.CPS")
+    can_write = True
 
     @classmethod
     def parse_header(cls, filename, f=None, data_objects=None, close=False):
@@ -94,5 +97,27 @@ class CPIParser(XRDParserMixin, BaseParser):
 
         if close: f.close()
         return data_objects
+
+    @classmethod
+    def write(cls, filename, x, ys, radiation="Cu", wavelength=1.54060, tps=48.0, sample="", **kwargs):
+        """
+            Writes a SIETRONICS cpi text file. x and ys should be numpy arrays.
+        """
+        start_angle = x[0]
+        end_angle = x[-1]
+        step_size = (end_angle - start_angle) / (x.size - 1)
+        with open(filename, 'w') as f:
+            f.write("SIETRONICS XRD SCAN\n")
+            f.write("%.4f\n" % start_angle)
+            f.write("%.4f\n" % end_angle)
+            f.write("%.4f\n" % step_size)
+            f.write("%s\n" % radiation)
+            f.write("%.5f\n" % wavelength)
+            f.write("%s\n" % date.today().strftime('%d/%m/%y %H:%M:%S'))
+            f.write("%.1f\n" % tps)
+            f.write("%s\n" % sample)
+            f.write("SCANDATA\n")
+            for y in ys[0, :]:
+                f.write("%.7f\n" % y)
 
     pass # end of class

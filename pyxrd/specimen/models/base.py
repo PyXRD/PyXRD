@@ -371,6 +371,19 @@ class Specimen(DataModel, Storable):
         props["exclusion_ranges"] = self.exclusion_ranges._serialize_data()
         return props
 
+    def get_export_meta_data(self):
+        """ Returns a dictionary with common meta-data used in export functions
+            for experimental or calculated data """
+        return dict(
+            sample=self.label + " " + self.sample_name,
+            wavelength=self.goniometer.wavelength,
+            radius=self.goniometer.radius,
+            divergence=self.goniometer.divergence,
+            soller1=self.goniometer.soller1,
+            soller2=self.goniometer.soller2,
+        )
+
+
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------

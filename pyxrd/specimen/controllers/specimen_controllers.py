@@ -15,6 +15,7 @@ from mvc.adapters import DummyAdapter
 from mvc.adapters.gtk_support.tree_view_adapters import wrap_xydata_to_treemodel
 from pyxrd.generic.controllers import BaseController, DialogController, TreeViewMixin
 from pyxrd.generic.views.treeview_tools import setup_treeview, new_text_column
+from pyxrd.generic.io.xrd_parsers import CSVParser, CPIParser
 
 from pyxrd.goniometer.controllers import InlineGoniometerController
 from pyxrd.specimen.models.base import Specimen
@@ -299,34 +300,34 @@ class SpecimenController(DialogController, TreeViewMixin):
         return True
 
     def on_export_experimental_data(self, *args, **kwargs):
-        def on_accept(dialog):
-            filename = self.extract_filename(dialog)
-            if filename[-3:].lower() == "dat":
-                self.model.experimental_pattern.save_data(filename)
-            elif filename[-2:].lower() == "rd":
-                self.run_information_dialog("RD file format not supported (yet)!", parent=self.view.get_top_widget())
-
-        self.run_save_dialog(title="Select file for export",
-                             on_accept_callback=on_accept,
-                             parent=self.view.get_top_widget(),
-                             filters=self.export_filters,
-                             suggest_name=self.model.name)
-        return True
+        return self._export_data(self.model.experimental_pattern)
 
     def on_btn_export_experimental_data_clicked(self, widget, data=None):
         return self.on_export_experimental_data()
 
     def on_btn_export_calculated_data_clicked(self, widget, data=None):
+        return self._export_data(self.model.calculated_pattern)
+
+    def _export_data(self, line):
         def on_accept(dialog):
             filename = self.extract_filename(dialog)
-            if filename[-3:].lower() == "dat":
-                self.model.calculated_pattern.save_data(filename)
-            if filename[-2:].lower() == "rd":
-                self.run_information_dialog("RD file format not supported (yet)!", parent=self.view.get_top_widget())
+            ffilter = dialog.get_filter()
+            parser = ffilter.get_data("parser")
+            try:
+                line.save_data(parser, filename, **self.model.get_export_meta_data())
+            except Exception:
+                message = "An unexpected error has occured when trying to save to '%s'." % os.path.basename(filename)
+                self.run_information_dialog(
+                    message=message,
+                    parent=self.view.get_top_widget()
+                )
+                raise
+        ext_less_fname = os.path.splitext(self.model.name)[0]
         self.run_save_dialog(title="Select file for export",
                              on_accept_callback=on_accept,
-                             parent=self.view.get_top_widget())
-        return True
+                             parent=self.view.get_top_widget(),
+                             filters=self.export_filters,
+                             suggest_name=ext_less_fname)
 
     pass # end of class
 

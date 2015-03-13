@@ -63,11 +63,10 @@ class StorableXYData(XYData, Storable):
     def apply_correction(self, correction):
         self.data_y = self.data_y * correction[:, np.newaxis]
 
-    def save_data(self, filename, header=""):
+    def save_data(self, parser, filename, **kwargs):
         if self.data_y.shape[1] > 1:
-            names = ["2θ", header] + (not_none(self.y_names, []))
-            header = u",".join(names)
-        ASCIIParser.write(filename, header, self.data_x, self.data_y.transpose())
+            kwargs["header"] = ["2θ", ] + (not_none(self.y_names, []))
+        parser.write(filename, self.data_x, self._data_y.transpose(), **kwargs)
 
     def load_data(self, parser, filename, clear=True):
         """

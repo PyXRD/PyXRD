@@ -317,7 +317,7 @@ class ASCIIParser(BaseParser):
         return i + 1, l
 
     @classmethod
-    def write(cls, filename, header, x, ys, delimiter=","):
+    def write(cls, filename, x, ys, header="", delimiter=",", **kwargs):
         """
             Writes the header to the first line, and will write x, y1, ..., yn
             rows for each column inside the x and ys arguments.

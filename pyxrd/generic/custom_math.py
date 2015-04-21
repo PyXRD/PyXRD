@@ -47,7 +47,7 @@ def capint(lower, value, upper, out=None):
         return value
 
 def lognormal(T, a, b):
-    return sqrt2pi * exp(-(log(T) - a) ** 2 / (2.0 * (b ** 2))) / (abs(b) * T)
+    return exp(-(log(T) - a) ** 2 / (2.0 * (b ** 2))) / (sqrt2pi * abs(b) * T)
 
 def add_noise(x, noise_fraction=0.05):
     if x.size > 0:

@@ -146,7 +146,7 @@ class Storable(object):
             f = StringIO()
             with ZipFile(f, mode="w", compression=COMPRESSION) as z:
                 z.writestr('content', content)
-            return z
+            return f
         else:
             return content
 

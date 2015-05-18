@@ -252,7 +252,7 @@ class R1G3Model(_AbstractProbability):
                 stor_name="_G3", inh_name="inherit_G3", inh_from="parent.based_on.probabilities",
                 is_independent=True, # flag for the view creation
                 minimum=0.0, maximum=1.0, data_type=float, **PropIntel.REF_ST_WID),
-            PropIntel(name="G4", label="W23/(W32+W33)", math_label=r"$\large\frac{W_{22}}{W_{22} + W_{23}}$",
+            PropIntel(name="G4", label="W32/(W32+W33)", math_label=r"$\large\frac{W_{32}}{W_{32} + W_{33}}$",
                 stor_name="_G4", inh_name="inherit_G4", inh_from="parent.based_on.probabilities",
                 is_independent=True, # flag for the view creation
                 minimum=0.0, maximum=1.0, data_type=float, **PropIntel.REF_ST_WID)

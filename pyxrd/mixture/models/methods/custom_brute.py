@@ -22,6 +22,8 @@ def evaluate(data_object):
 class RefineBruteForceRun(RefineRun, HasAsyncCalls):
     name = "Brute force algorithm"
     description = "Refinement using a Brute Force algorithm"
+    index = 3
+    disabled = False
     options = [
         ('Number of samples', 'num_samples', int, 11, [3, 1000]),
     ]

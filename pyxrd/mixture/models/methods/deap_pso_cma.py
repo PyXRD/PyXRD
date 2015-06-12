@@ -239,7 +239,8 @@ class RefinePSOCMAESRun(RefineRun):
     """
     name = "PS-CMA-ES refinement"
     description = "This algorithm uses the PS-CMA-ES hybrid refinement strategy"
-
+    index = 6
+    disabled = False
     options = [
         ('Maximum # of generations', 'ngen', int, NGEN, [1, 10000]),
         ('# of CMA swarms', 'nswarms', int, NSWARMS, [1, 100]),

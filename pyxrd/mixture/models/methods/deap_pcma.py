@@ -31,7 +31,8 @@ class RefinePCMAESRun(RefineRun, HasAsyncCalls):
     """
     name = "Parallel multi-CMA-ES refinement"
     description = "Multiple CMA-ES refinement are run in parallel"
-
+    index = 5
+    disabled = False
     options = [
         ('Instances', 'num_runs', int, NUM_RUNS, [1, 20]),
         ('Restarts', 'num_restarts', int, NUM_RESTARTS, [1, 10]),

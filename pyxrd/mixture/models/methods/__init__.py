@@ -11,8 +11,36 @@ logger = logging.getLogger(__name__)
 import traceback
 import sys
 
-from pyxrd.data import settings
+import os
+from imp import find_module
+from types import ModuleType, ClassType
 
+import importlib, pkgutil
+def import_submodules(package_name):
+    """ Import all submodules of a module, recursively
+
+    :param package_name: Package name
+    :type package_name: str
+    :rtype: dict[types.ModuleType]
+    """
+    package = sys.modules[package_name]
+    
+    modules = {}
+    for _, name, _ in pkgutil.walk_packages(package.__path__):
+        try:
+            modules[name] = importlib.import_module(package_name + '.' + name)
+        except:
+            logger.warning("Could not import %s refinement method modules, are all dependencies installed? Error was:" % name)
+            _, _, tb = sys.exc_info()
+            traceback.print_tb(tb)
+    return modules
+        
+__all__ = import_submodules(__name__).keys()
+
+from .refine_run import MethodMeta
+get_all_refine_methods = MethodMeta.get_all_methods
+
+"""
 def get_all_refine_methods():
 
     methods = {}
@@ -30,10 +58,7 @@ def get_all_refine_methods():
         methods[5] = RefinePCMAESRun()
         from .deap_pso_cma import RefinePSOCMAESRun
         methods[6] = RefinePSOCMAESRun()
-    except ImportError:
-        logger.warning("Could not import DEAP refinement algorithms, is DEAP installed? Error was:")
-        _, _, tb = sys.exc_info()
-        traceback.print_tb(tb)
+    
     try:
         from .custom_brute import RefineBruteForceRun
     except ImportError:
@@ -44,6 +69,6 @@ def get_all_refine_methods():
 
 __all__ = [
     "get_all_refine_methods"
-]
+]"""
 
 

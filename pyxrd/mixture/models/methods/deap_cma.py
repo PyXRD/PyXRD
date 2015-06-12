@@ -5,6 +5,8 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
+
+
 import logging
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -14,7 +16,7 @@ from math import sqrt
 import numpy as np
 import scipy
 
-from deap import creator, base, cma, tools #@UnresolvedImport
+from deap import cma, base, creator, tools #@UnresolvedImport
 
 from .refine_run import RefineRun
 from .deap_utils import pyxrd_array, evaluate, AsyncEvaluatedAlgorithm, PyXRDParetoFront, FitnessMin
@@ -389,7 +391,8 @@ class RefineCMAESRun(RefineRun):
     """
     name = "CMA-ES refinement"
     description = "This algorithm uses the CMA-ES refinement strategy as implemented by DEAP"
-
+    index = 1
+    disabled = False
     options = [
         ('Maximum # of generations', 'ngen', int, NGEN, [1, 10000]),
         ('Minimum # of generations', 'stagn_ngen', int, STAGN_NGEN, [1, 10000]),

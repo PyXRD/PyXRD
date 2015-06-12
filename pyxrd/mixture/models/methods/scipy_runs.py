@@ -20,6 +20,8 @@ IPRINT = 0
 class RefineLBFGSBRun(RefineRun):
     name = "L BFGS B algorithm"
     description = "Refinement using the L BFGS B algorithm"
+    index = 0
+    disabled = False
     options = [
         ('Maximum # of function calls', 'maxfun', int, MAXFUN, [1, 1000000]),
         ('Maximum # of iterations', 'maxiter', int, MAXITER, [1, 1000000]),
@@ -47,6 +49,8 @@ class RefineLBFGSBRun(RefineRun):
 class RefineBruteForceRun(RefineRun):
     name = "Brute force algorithm"
     description = "Refinement using a Brute Force algorithm"
+    index = 3
+    disabled = False
     options = [
         ('Number of samples', 'num_samples', int, 10, [3, 1000]),
     ]
@@ -74,6 +78,8 @@ class RefineBasinHoppingRun(RefineRun):
 
     name = "Basin Hopping Algorithm"
     description = "Refinement using a basin hopping algorithm"
+    index = 4
+    disabled = False
     options = [
          ('Number of iterations', 'niter', int, 100, [10, 10000]),
          ('Temperature criterion', 'T', float, 3.0, [0.0, None]),

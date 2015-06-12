@@ -326,7 +326,8 @@ class RefineMPSORun(RefineRun):
     """
     name = "MPSO refinement"
     description = "This algorithm uses the MPSO refinement strategy"
-
+    index = 2
+    disabled = False
     options = [
         ('Maximum # of generations', 'ngen', int, NGEN, [1, 1000]),
         ('Start # of swarms', 'nswarms', int, NSWARMS, [1, 50]),

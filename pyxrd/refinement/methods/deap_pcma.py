@@ -14,8 +14,10 @@ import random
 
 from pyxrd.generic.async import HasAsyncCalls
 
+from ..refine_method import RefineMethod
+from ..refine_method_option import RefineMethodOption
+
 from .deap_cma import RefineCMAESRun
-from .refine_run import RefineRun
 
 # IDEALLY, THIS SHOULD BE EQUAL OR LOWER TO NUMBER OF PROCESSES IN THE POOL:
 NUM_RUNS = 4
@@ -24,7 +26,7 @@ STAGN_TOL = 0.01
 STAGN_NGEN = 10
 NGEN = 100
 
-class RefinePCMAESRun(RefineRun, HasAsyncCalls):
+class RefinePCMAESRun(RefineMethod, HasAsyncCalls):
     """
         Algorithm that will run CMA-ES strategies in parallel for a shorter # of
         generations, check them and reset unsuccessful runs.
@@ -33,13 +35,14 @@ class RefinePCMAESRun(RefineRun, HasAsyncCalls):
     description = "Multiple CMA-ES refinement are run in parallel"
     index = 5
     disabled = False
-    options = [
-        ('Instances', 'num_runs', int, NUM_RUNS, [1, 20]),
-        ('Restarts', 'num_restarts', int, NUM_RESTARTS, [1, 10]),
-        ('Total # of generations', 'total_ngen', int, NGEN, [1, 10000]),
-        ('Minimum # of generations', 'stagn_ngen', int, STAGN_NGEN, [1, 10000]),
-        ('Fitness stagnation tolerance', 'stagn_tol', float, STAGN_TOL, [0., 100.]),
-    ]
+
+    num_runs = RefineMethodOption('Instances', NUM_RUNS, [1, 20], int)
+    num_restarts = RefineMethodOption('Restarts', NUM_RESTARTS, [1, 10], int)
+    total_ngen = RefineMethodOption('Total # of generations', NGEN, [1, 10000], int)
+    stagn_ngen = RefineMethodOption('Minimum # of generations', STAGN_NGEN, [1, 10000], int)
+    stagn_tol = RefineMethodOption('Fitness stagnation tolerance', STAGN_TOL, [0., 100.], float)
+
+    RefineMethodOption
 
     def _get_args(self, context, start, **kwargs):
         # Fetch a project dump:

@@ -9,13 +9,14 @@ from itertools import product
 
 import numpy as np
 
+from mvc import PropIntel
+
 from pyxrd.generic.io import Storable
 from pyxrd.generic.models import DataModel
 from pyxrd.generic.models.properties import IndexProperty
 
-from pyxrd.generic.refinement.mixins import RefinementGroup
-from pyxrd.generic.refinement.metaclasses import PyXRDRefinableMeta
-from mvc import PropIntel
+from pyxrd.refinement.refinables.mixins import RefinementGroup
+from pyxrd.refinement.refinables.metaclasses import PyXRDRefinableMeta
 
 class _AbstractProbability(DataModel, Storable, RefinementGroup):
 

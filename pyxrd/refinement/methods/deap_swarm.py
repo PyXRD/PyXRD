@@ -25,8 +25,11 @@ import random
 from deap import base, creator, tools #@UnresolvedImport
 
 from .deap_utils import pyxrd_array, evaluate
-from .refine_run import RefineRun
-from pyxrd.mixture.models.methods.deap_utils import AsyncEvaluatedAlgorithm, \
+
+from ..refine_method import RefineMethod
+from ..refine_method_option import RefineMethodOption
+
+from pyxrd.refinement.methods.deap_utils import AsyncEvaluatedAlgorithm, \
     PyXRDParetoFront, FitnessMin
 
 # Default settings:
@@ -320,7 +323,7 @@ class MPSOAlgorithm(AsyncEvaluatedAlgorithm):
     pass #end of class
 
 
-class RefineMPSORun(RefineRun):
+class RefineMPSORun(RefineMethod):
     """
         The DEAP MPSO algorithm implementation
     """
@@ -328,13 +331,12 @@ class RefineMPSORun(RefineRun):
     description = "This algorithm uses the MPSO refinement strategy"
     index = 2
     disabled = False
-    options = [
-        ('Maximum # of generations', 'ngen', int, NGEN, [1, 1000]),
-        ('Start # of swarms', 'nswarms', int, NSWARMS, [1, 50]),
-        ('Max # of unconverged swarms', 'nexcess', int, NEXCESS, [1, 50]),
-        ('Swarm size', 'nparticles', int, NPARTICLES, [1, 50]),
-        ('Convergence tolerance', 'conv_factr', float, CONV_FACTR, [0., 10.]),
-    ]
+
+    ngen = RefineMethodOption('Maximum # of generations', NGEN, [1, 1000], int)
+    nswarms = RefineMethodOption('Start # of swarms', NSWARMS, [1, 50], int)
+    nexcess = RefineMethodOption('Max # of unconverged swarms', NEXCESS, [1, 50], int)
+    nparticles = RefineMethodOption('Swarm size', NPARTICLES, [1, 50], int)
+    conv_factr = RefineMethodOption('Convergence tolerance', CONV_FACTR, [0., 10.], float)
 
     def _individual_creator(self, context, num_weights, bounds):
         creator.create(

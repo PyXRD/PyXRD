@@ -22,8 +22,9 @@ from mvc import Model, PropIntel
 
 from pyxrd.generic.models import DataModel
 from pyxrd.generic.io import storables, Storable, get_case_insensitive_glob
-from pyxrd.generic.refinement.mixins import RefinementValue
-from pyxrd.generic.refinement.metaclasses import PyXRDRefinableMeta
+
+from pyxrd.refinement.refinables.mixins import RefinementValue
+from pyxrd.refinement.refinables.metaclasses import PyXRDRefinableMeta
 
 class ComponentPropMixin(object):
     """

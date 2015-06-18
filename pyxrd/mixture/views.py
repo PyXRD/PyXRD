@@ -40,42 +40,35 @@ class RefinementView(DialogView):
 
     def __init__(self, *args, **kwargs):
         super(RefinementView, self).__init__(*args, **kwargs)
+
+        # Add the status box
         self._builder.add_from_file(self.refine_status_builder)
         self._add_child_view(self[self.refine_status_toplevel], self[self.refine_status_container])
+
+        # Add the method and options box
         self._builder.add_from_file(self.refine_method_builder)
         self._add_child_view(self[self.refine_method_toplevel], self[self.refine_method_container])
+
+        # Add the refinement thread box
+        self.refine_spin_box = ThreadedTaskBox()
+        self._add_child_view(self.refine_spin_box, self[self.refine_spin_container])
         self.hide_refinement_info()
 
-    def show_refinement_info(self, refine_function, gui_callback, complete_callback, cancel_callback=None):
+    def connect_cancel_request(self, callback):
+        return self.refine_spin_box.connect("cancelrequested", callback)
 
-        self.complete_callback = complete_callback
-        self.cancel_callback = cancel_callback
-
+    def show_refinement_info(self,):
         self["hbox_actions"].set_sensitive(False)
         self["btn_auto_restrict"].set_sensitive(False)
         self[self.refine_method_toplevel].set_sensitive(False)
         self["refinables"].set_visible(False)
         self["refinables"].set_no_show_all(True)
 
-        if self.refine_spin_box is not None:
-            self.refine_spin_box.cancel()
-        self.refine_spin_box = ThreadedTaskBox(refine_function, gui_callback, cancelable=True)
-        self.refine_spin_box.connect("complete", self.complete_function)
-        self.refine_spin_box.connect("cancelrequested", self.canceled_function)
-
-        self._add_child_view(self.refine_spin_box, self[self.refine_spin_container])
-        self.refine_spin_box.set_no_show_all(False)
-        self.refine_spin_box.set_visible(True)
-        self.refine_spin_box.show_all()
         self[self.refine_status_toplevel].show_all()
-
-        self.refine_spin_box.start("Refining")
 
     def hide_refinement_info(self):
         self[self.refine_status_toplevel].hide()
-        if self.refine_spin_box is not None:
-            self.refine_spin_box.set_no_show_all(True)
-            self.refine_spin_box.cancel()
+
         self["hbox_actions"].set_sensitive(True)
         self["btn_auto_restrict"].set_sensitive(True)
         self[self.refine_method_toplevel].set_sensitive(True)
@@ -87,17 +80,14 @@ class RefinementView(DialogView):
             self["current_residual"].set_text("%.2f" % current_rp)
         self["message"].set_text(not_none(message, ""))
 
-    def complete_function(self, widget, data=None):
-        self.refine_spin_box.set_status("Processing...")
-        if callable(self.complete_callback):
-            self.complete_callback(data)
-        self.hide_refinement_info()
+    def update_refinement_status(self, status):
+        self.refine_spin_box.set_status(status)
 
-    def canceled_function(self, widget, data=None):
-        self.refine_spin_box.set_status("Cancelling...")
-        if callable(self.cancel_callback):
-            self.cancel_callback(data)
-        self.hide_refinement_info()
+    def start_spinner(self):
+        self.refine_spin_box.start()
+
+    def stop_spinner(self):
+        self.refine_spin_box.stop()
 
     pass # end of class
 

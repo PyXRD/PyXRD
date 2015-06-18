@@ -13,14 +13,17 @@ from mvc.observers import ListObserver
 
 from pyxrd.generic.io import storables, Storable, COMPRESSION
 from pyxrd.generic.models import DataModel, HoldableSignal
+
 from pyxrd.calculations.components import get_factors
 from pyxrd.calculations.data_objects import ComponentData
-from pyxrd.generic.refinement.mixins import RefinementGroup
+
+from pyxrd.refinement.refinables.mixins import RefinementGroup
+from pyxrd.refinement.refinables.metaclasses import PyXRDRefinableMeta
 
 from pyxrd.atoms.models import Atom
+
 from .atom_relations import AtomRelation
 from .unit_cell_prop import UnitCellProperty
-from pyxrd.generic.refinement.metaclasses import PyXRDRefinableMeta
 
 @storables.register()
 class Component(DataModel, Storable, RefinementGroup):

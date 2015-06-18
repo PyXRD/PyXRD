@@ -18,7 +18,8 @@ import scipy
 
 from deap import cma, base, creator, tools #@UnresolvedImport
 
-from .refine_run import RefineRun
+from ..refine_method import RefineMethod
+from ..refine_method_option import RefineMethodOption
 from .deap_utils import pyxrd_array, evaluate, AsyncEvaluatedAlgorithm, PyXRDParetoFront, FitnessMin
 
 # Default settings:
@@ -385,7 +386,7 @@ class Algorithm(AsyncEvaluatedAlgorithm):
 
     pass #end of class
 
-class RefineCMAESRun(RefineRun):
+class RefineCMAESRun(RefineMethod):
     """
         The DEAP CMA-ES algorithm implementation with added stagnation thresholds
     """
@@ -393,11 +394,10 @@ class RefineCMAESRun(RefineRun):
     description = "This algorithm uses the CMA-ES refinement strategy as implemented by DEAP"
     index = 1
     disabled = False
-    options = [
-        ('Maximum # of generations', 'ngen', int, NGEN, [1, 10000]),
-        ('Minimum # of generations', 'stagn_ngen', int, STAGN_NGEN, [1, 10000]),
-        ('Fitness slope tolerance', 'stagn_tol', float, STAGN_TOL, [0., 100.]),
-    ]
+
+    ngen = RefineMethodOption('Maximum # of generations', NGEN, [1, 10000], int)
+    stagn_ngen = RefineMethodOption('Minimum # of generations', STAGN_NGEN, [1, 10000], int)
+    stagn_tol = RefineMethodOption('Fitness slope tolerance', STAGN_TOL, [0., 100.], float)
 
     def _individual_creator(self, context, num_weights, bounds):
         creator.create(

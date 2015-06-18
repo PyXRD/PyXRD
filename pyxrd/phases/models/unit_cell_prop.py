@@ -8,13 +8,15 @@
 import logging
 logger = logging.getLogger(__name__)
 
+from mvc import PropIntel
+
 from pyxrd.generic.io import storables, Storable
 from pyxrd.generic.models import DataModel
-from pyxrd.generic.refinement.mixins import RefinementValue
-from pyxrd.generic.refinement.metaclasses import PyXRDRefinableMeta
+
+from pyxrd.refinement.refinables.mixins import RefinementValue
+from pyxrd.refinement.refinables.metaclasses import PyXRDRefinableMeta
 
 from .atom_relations import ComponentPropMixin
-from mvc import PropIntel
 
 @storables.register()
 class UnitCellProperty(DataModel, Storable, ComponentPropMixin, RefinementValue):

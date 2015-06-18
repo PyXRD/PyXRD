@@ -14,8 +14,8 @@ from pyxrd.calculations.data_objects import CSDSData
 from pyxrd.generic.models import DataModel
 from pyxrd.generic.io import storables, Storable
 
-from pyxrd.generic.refinement.mixins import RefinementGroup, RefinementValue
-from pyxrd.generic.refinement.metaclasses import PyXRDRefinableMeta
+from pyxrd.refinement.refinables.mixins import RefinementGroup, RefinementValue
+from pyxrd.refinement.refinables.metaclasses import PyXRDRefinableMeta
 from mvc import PropIntel
 
 

@@ -87,6 +87,10 @@ class RefineContext(ChildModel):
                         raise RefineSetupError, "Refinable property `%s` needs a valid range!" % (ref_prop.get_descriptor(),)
                     self.ranges += ((ref_prop.value_min, ref_prop.value_max),)
 
+        if len(self.ref_props) == 0:
+            logger.error("  No refinables selected!")
+            raise RefineSetupError, "RefineContext needs at least one refinable property!"
+
         if store: self.store_project_state()
 
         self.initial_residual = self.mixture.optimizer.get_current_residual()
@@ -207,6 +211,12 @@ class RefineContext(ChildModel):
 
     def apply_initial_solution(self):
         self.apply_solution(self.initial_solution)
+
+    def best_solution_to_string(self):
+        retval = ""
+        for i, ref_prop in enumerate(self.ref_props):
+            retval += "%25s: %f\n" % (ref_prop.get_descriptor(), self.best_solution[i])
+        return retval
 
     def record_state_data(self, state_data):
         keys, record = zip(*state_data)

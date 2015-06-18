@@ -19,7 +19,9 @@ from deap import creator, base, tools #@UnresolvedImport
 
 from pyxrd.generic.async import HasAsyncCalls, Cancellable
 
-from .refine_run import RefineRun
+from ..refine_method import RefineMethod
+from ..refine_method_option import RefineMethodOption
+
 from .deap_utils import pyxrd_array, evaluate, FitnessMin
 from .deap_cma import Strategy
 
@@ -233,7 +235,7 @@ class SwarmAlgorithm(HasAsyncCalls):
 
     pass #end of class
 
-class RefinePSOCMAESRun(RefineRun):
+class RefinePSOCMAESRun(RefineMethod):
     """
         The PS-CMA-ES hybrid algorithm implementation
     """
@@ -241,11 +243,10 @@ class RefinePSOCMAESRun(RefineRun):
     description = "This algorithm uses the PS-CMA-ES hybrid refinement strategy"
     index = 6
     disabled = False
-    options = [
-        ('Maximum # of generations', 'ngen', int, NGEN, [1, 10000]),
-        ('# of CMA swarms', 'nswarms', int, NSWARMS, [1, 100]),
-        ('Communicate each x gens', 'ngen_comm', int, NGEN_COMM, [1, 10000]),
-    ]
+
+    ngen = RefineMethodOption('Maximum # of generations', NGEN, [1, 10000], int)
+    nswarms = RefineMethodOption('# of CMA swarms', NSWARMS, [1, 100], int)
+    ngen_comm = RefineMethodOption('Communicate each x gens', NGEN_COMM, [1, 10000], int)
 
     def _individual_creator(self, context, num_weights, bounds):
         creator.create(

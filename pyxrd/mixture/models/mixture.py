@@ -6,7 +6,6 @@
 # Complete license can be found in the LICENSE file.
 
 import csv
-import random
 from warnings import warn
 from itertools import chain, izip
 from collections import OrderedDict
@@ -15,26 +14,22 @@ import logging
 from pyxrd.generic.models.signals import HoldableSignal
 logger = logging.getLogger(__name__)
 
-from mvc import Signal, PropIntel, OptionPropIntel
-from mvc.models import TreeNode
+from mvc import Signal, PropIntel
 
 import numpy as np
 
 from pyxrd.data import settings
 
 from pyxrd.generic.io import storables, Storable
-# from pyxrd.generic.utils import print_timing
 from pyxrd.generic.models import DataModel
 
-from pyxrd.generic.refinement.mixins import RefinementValue, RefinementGroup
-from pyxrd.generic.refinement.wrapper import RefinableWrapper
-from pyxrd.calculations.data_objects import MixtureData
+from pyxrd.refinement.refinables.wrapper import RefinableWrapper
+from pyxrd.refinement.refiner import Refiner
 
+from pyxrd.calculations.data_objects import MixtureData
 from pyxrd.phases.models.phase import Phase
 
-from .methods import get_all_refine_methods
 from .optimizers import Optimizer
-from .refiner import Refiner
 
 @storables.register()
 class Mixture(DataModel, Storable):
@@ -52,14 +47,13 @@ class Mixture(DataModel, Storable):
     """
     # MODEL INTEL:
     class Meta(DataModel.Meta):
-        all_refine_methods = get_all_refine_methods()
         properties = [ # TODO add labels
-            PropIntel(name="name", label="Name", data_type=unicode, is_column=True, storable=True, has_widget=True),
-            PropIntel(name="refinables", label="", data_type=object, is_column=True, has_widget=True, widget_type="object_tree_view", class_type=RefinableWrapper),
-            PropIntel(name="make_psp_plots", label="", data_type=bool, is_colum=False, has_widget=True, storable=False),
+            PropIntel(name="name", label="Name", data_type=unicode, storable=True, has_widget=True, is_column=True),
+            PropIntel(name="refinables", label="", data_type=object, widget_type="object_tree_view", class_type=RefinableWrapper),
+            PropIntel(name="refine_options", label="", data_type=dict, storable=True, stor_name="all_refine_options"),
+            PropIntel(name="refine_method", label="", data_type=int, storable=True),
             PropIntel(name="auto_run", label="", data_type=bool, is_column=True, storable=True, has_widget=True),
             PropIntel(name="auto_bg", label="", data_type=bool, is_column=True, storable=True, has_widget=True),
-            OptionPropIntel(name="refine_method", label="Refinement method", data_type=int, storable=True, has_widget=True, options={ key: method.name for key, method in all_refine_methods.iteritems() }),
             PropIntel(name="needs_update", label="", data_type=object, storable=False), # Signal used to indicate the mixture needs an update
             PropIntel(name="needs_reset", label="", data_type=object, storable=False,), # Signal used to indicate the mixture matrix needs to be re-built...
         ]
@@ -100,26 +94,31 @@ class Mixture(DataModel, Storable):
         self._name = value
         self.visuals_changed.emit()
 
-    #: The tree of refinable properties
-    refinables = None
-    #: Flag, True if after refinement plots should be generated of the parameter space
-    make_psp_plots = False
     #: Flag, True if the mixture will automatically adjust phase fractions and scales
     auto_run = False
     #: Flag, True if the mixture is allowed to also update the background level
     auto_bg = True
 
-    _refine_method = 0
+    #: The tree of refinable properties
+    @property
+    def refinables(self):
+        return self.refiner.refinables
+
     @property
     def refine_method(self):
         """ An integer describing which method to use for the refinement (see 
         mixture.models.methods.get_all_refine_methods) """
-        return self._refine_method
-    @refine_method.setter
-    def refine_method(self, value): self._refine_method = int(value)
+        return self.refiner.refine_method
 
-    #: A dict containing the refinement options
-    refine_options = None # TODO make this storable!
+    #: A dict containing the current refinement options
+    @property
+    def refine_options(self):
+        return  self.refiner.refine_options
+
+    #: A dict containing all refinement options
+    @property
+    def all_refine_options(self):
+        return self.refiner.all_refine_options
 
     # Lists and matrices:
     #: A 2D numpy object array containing the combination matrix
@@ -224,13 +223,6 @@ class Mixture(DataModel, Storable):
             # list with phase fractions, indexes match with cols in phase_matrix (=phases)
             self.fractions = np.asarray(self.get_kwarg(kwargs, [0.0] * len(self.phases), "fractions", "data_fractions"))
 
-            self.refinables = TreeNode()
-            try:
-                self.refine_method = int(self.get_kwarg(kwargs, self.refine_method, "refine_method", "data_refine_method"))
-            except ValueError:
-                self.refine_method = self.refine_method
-                pass # ignore faulty values, these indices change from time to time.
-
             # sanity check:
             n, m = self.phase_matrix.shape if self.phase_matrix.ndim == 2 else (0, 0)
             if len(self.scales) != n or len(self.specimens) != n or len(self.bgshifts) != n:
@@ -238,12 +230,15 @@ class Mixture(DataModel, Storable):
             if len(self.phases) != m or len(self.fractions) != m:
                 raise IndexError, "Shape mismatch: fractions or phases lists do not match with column count of phase matrix"
 
-            self.optimizer = Optimizer(parent=self)
-            self.refiner = Refiner(parent=self)
-
             self._observe_specimens()
             self._observe_phases()
-            self.update_refinement_treestore()
+
+            self.optimizer = Optimizer(parent=self)
+            self.refiner = Refiner(
+                refine_method=self.get_kwarg(kwargs, 0, "refine_method", "data_refine_method"),
+                refine_options=self.get_kwarg(kwargs, dict(), "refine_options"),
+                parent=self)
+
             self.update()
 
             self.observe_model(self)
@@ -263,7 +258,6 @@ class Mixture(DataModel, Storable):
     def notify_needs_update(self, model, prop_name, info):
         with self.data_changed.hold():
             self.update()
-
 
     internal_recurs = False
     @DataModel.observe("data_changed", signal=True)
@@ -285,7 +279,7 @@ class Mixture(DataModel, Storable):
     #      Input/Output stuff
     # ------------------------------------------------------------
     def json_properties(self):
-        self.update_refinement_treestore()
+        self.refiner.update_refinement_treestore()
         retval = Storable.json_properties(self)
 
         retval["phase_uuids"] = [[item.uuid if item else "" for item in row] for row in map(list, self.phase_matrix)]
@@ -523,92 +517,6 @@ class Mixture(DataModel, Storable):
                     self.optimize()
                 else:
                     self.apply_current_data_object()
-
-    def update_refinement_treestore(self):
-        """
-            Called whenever the refinement view is opened, this creates a tree
-            store with the refinable properties and their minimum, maximum and
-            current value.
-        """
-        if self.parent is not None: # not linked so no valid phases!
-            self.refinables.clear()
-
-            def add_property(parent_node, obj, prop, is_grouper):
-                rp = RefinableWrapper(obj=obj, prop=prop, parent=self, is_grouper=is_grouper)
-                return parent_node.append(TreeNode(rp))
-
-            def parse_attribute(obj, prop, root_node):
-                """
-                    obj: the object
-                    attr: the attribute of obj or None if obj contains attributes
-                    root_node: the root TreeNode new iters should be put under
-                """
-                if prop is not None:
-                    if hasattr(obj, "get_uninherited_property_value"):
-                        value = obj.get_uninherited_property_value(prop)
-                    else:
-                        value = getattr(obj, prop.name)
-                else:
-                    value = obj
-
-                if isinstance(value, RefinementValue): # AtomRelation and UnitCellProperty
-                    new_node = add_property(root_node, value, prop, False)
-                elif hasattr(value, "__iter__"): # List or similar
-                    for new_obj in value:
-                        parse_attribute(new_obj, None, root_node)
-                elif isinstance(value, RefinementGroup): # Phase, Component, Probability
-                    if len(value.refinables) > 0:
-                        new_node = add_property(root_node, value, prop, True)
-                        for prop in value.refinables:
-                            parse_attribute(value, prop, new_node)
-                else: # regular values
-                    new_node = add_property(root_node, obj, prop, False)
-
-            for phase in self.parent.phases:
-                if phase in self.phase_matrix:
-                    parse_attribute(phase, None, self.refinables)
-
-    def auto_restrict(self): # TODO set a restrict range attribute on the PropIntels, so we can use custom ranges for each property
-        """
-            Convenience function that restricts the selected properties 
-            automatically by setting their minimum and maximum values.
-        """
-        with self.needs_update.hold():
-            for node in self.refinables.iter_children():
-                ref_prop = node.object
-                if ref_prop.refine and ref_prop.refinable:
-                    ref_prop.value_min = ref_prop.value * 0.8
-                    ref_prop.value_max = ref_prop.value * 1.2
-
-    def randomize(self):
-        """
-            Convenience function that randomize the selected properties.
-            Respects the current minimum and maximum values.
-            Executes an optimization after the randomization.
-        """
-        with self.data_changed.hold_and_emit():
-            with self.needs_update.hold_and_emit():
-                for node in self.refinables.iter_children():
-                    ref_prop = node.object
-                    if ref_prop.refine and ref_prop.refinable:
-                        ref_prop.value = random.uniform(ref_prop.value_min, ref_prop.value_max)
-
-    def get_refinement_method(self):
-        """
-            Returns the actual refinement method by translating the 
-            `refine_method` attribute using the `Meta.all_refine_methods` dict
-        """
-        return self.Meta.all_refine_methods[self.refine_method]
-
-    def setup_refine_options(self):
-        """
-            Constructs a refinement options dictionary containing default settings 
-        """
-        if self.refine_options == None:
-            options = self.get_refinement_method().options
-            self.refine_options = {
-                name: default for name, arg, typ, default, limits in options
-            }
 
     # ------------------------------------------------------------
     #      Various other things:

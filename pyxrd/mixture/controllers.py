@@ -7,7 +7,7 @@
 
 import logging
 logger = logging.getLogger(__name__)
-import gtk
+import gtk, gobject
 import sys
 
 from mvc import Controller, Observer
@@ -16,8 +16,8 @@ from pyxrd.generic.views.treeview_tools import new_text_column, new_pb_column, n
 from pyxrd.generic.mathtext_support import create_pb_from_mathtext
 from pyxrd.generic.controllers import DialogController, BaseController, ObjectListStoreController
 
-from pyxrd.mixture.models.parspace import ParameterSpaceGenerator
-from pyxrd.mixture.models.refine_context import RefineSetupError
+from pyxrd.refinement.parspace import ParameterSpaceGenerator
+from pyxrd.refinement.refine_context import RefineSetupError
 from pyxrd.mixture.models import Mixture
 from pyxrd.mixture.views import EditMixtureView, RefinementView, RefinementResultView
 from pyxrd.generic.controllers.objectliststore_controllers import wrap_list_property_to_treemodel
@@ -59,7 +59,7 @@ class RefinementResultsController(DialogController):
     # ------------------------------------------------------------
     @Controller.observe("solution_added", signal=True)
     def notif_solution_added(self, model, prop_name, info):
-        if self.model.mixture.make_psp_plots:
+        if self.model.mixture.refiner.make_psp_plots:
             new_solution, new_residual = info.arg
             self.parspace_gen.record(new_solution, new_residual)
 
@@ -114,6 +114,8 @@ class RefinementController(DialogController):
         "refinables",
         "make_psp_plots",
     ]
+
+    gui_timeout_id = None
 
     @property
     def treemodel(self):
@@ -211,21 +213,11 @@ class RefinementController(DialogController):
         """
             Update the method options tree store (when a new method is selected)
         """
-        # 1 get the method:
-        refine_method = self.model.get_refinement_method()
-
-        # 2 get the options:
-        options = refine_method.options
-
         tv = self.view['tv_method_options']
-
-        # 3 make a liststore
-        store = gtk.ListStore(str, object, str, object, object, object)
-        for name, arg, typ, default, limits in options:
-            store.append([name, default, arg, typ, default, limits])
-
+        store = gtk.ListStore(str)
+        for arg in self.model.refine_options.keys():
+            store.append([arg])
         tv.set_model(store)
-
         return tv
 
     def _setup_method_options_treeview(self):
@@ -237,83 +229,53 @@ class RefinementController(DialogController):
         tv = self._update_method_options_store()
 
         # The name of the option:
-        tv.append_column(new_text_column("Name", text_col=0))
+
+        def get_name(column, cell, model, itr, *args):
+            arg, = tv.get_model().get(itr, 0)
+            cell.set_property(
+                "markup", self.model.get_refinement_option(arg).description)
+
+        tv.append_column(new_text_column("Name", text_col=0, data_func=get_name))
 
         # The value of the option:
         def get_value(column, cell, model, itr, *args):
-            name, value, arg, typ, default, limits = tv.get_model().get(itr, 0, 1, 2, 3, 4, 5)
-            if typ in (int, float, str):
-                value = str(value)
-                cell.set_property("sensitive", True)
-                cell.set_property("editable", True)
-            else:
-                value = ""
-                cell.set_property("sensitive", False)
-                cell.set_property("editable", False)
-            cell.set_property("markup", value)
+            arg, = tv.get_model().get(itr, 0)
+            cell.set_property("sensitive", True)
+            cell.set_property("editable", True)
+            cell.set_property("markup", self.model.get_refinement_option_value(arg))
             return
         def on_value_edited(rend, path, new_text, col):
             store = tv.get_model()
             itr = store.get_iter(path)
-            name, value, arg, typ, default, limits = store.get(itr, 0, 1, 2, 3, 4, 5)
-            if typ in (int, float, str):
-                try:
-                    value = typ(new_text)
-                    if typ in (int, float,):
-                        min_value, max_value = limits
-                        if min_value is not None: value = max(min_value, value)
-                        if max_value is not None: value = min(max_value, value)
-                        store.set_value(itr, col, value)
-                    elif limits is not None:
-                        if value in limits:
-                            store.set_value(itr, col, value)
-                        else:
-                            raise ValueError
-                except ValueError:
-                    pass
-            else:
+            arg, = store.get(itr, 0)
+            try:
+                self.model.set_refinement_option_value(arg, new_text)
+            except ValueError:
                 pass
             return True
         tv.append_column(new_text_column(
-            "Value", text_col=1,
+            "Value", text_col=0,
             data_func=get_value,
-            edited_callback=(on_value_edited, (1,)),
-        ))
-
-        # An optional checkbox:
-        def get_check_value(column, cell, model, itr, *args):
-            name, value, arg, typ, default, limits = tv.get_model().get(itr, 0, 1, 2, 3, 4, 5)
-            if typ in (bool,):
-                value = bool(value)
-                cell.set_property("active", value)
-                cell.set_property("visible", True)
-                cell.set_property("sensitive", True)
-                cell.set_property("activatable", True)
-            else:
-                cell.set_property("visible", False)
-                cell.set_property("sensitive", False)
-                cell.set_property("activatable", False)
-            return
-        def on_value_toggled(cell, path, col):
-            store = tv.get_model()
-            itr = store.get_iter(path)
-            name, value, arg, typ, default, limits = store.get(itr, 0, 1, 2, 3, 4, 5)
-            if typ in (bool,):
-                store.set_value(itr, col, cell.get_active())
-            else:
-                pass
-            return True
-
-        tv.append_column(new_toggle_column(
-                "",
-                data_func=get_check_value,
-                toggled_callback=(on_value_toggled, (1,)),
-                resizable=False,
-                expand=False
+            edited_callback=(on_value_edited, (0,)),
         ))
 
     def register_view(self, view):
+        # Create the method treeview:
         self._setup_method_options_treeview()
+        # Connect the cancel button (custom widget):
+        view.connect_cancel_request(self._on_refinement_cancelled)
+
+    def cleanup(self):
+        if hasattr(self, "view"):
+            del self.view
+        if hasattr(self, "results_view"):
+            del self.results_view
+        if hasattr(self, "results_controller"):
+            del self.results_controller
+        if hasattr(self, "model"):
+            self.relieve_model(self.model)
+
+
 
     # ------------------------------------------------------------
     #      Notifications of observable properties
@@ -344,20 +306,13 @@ class RefinementController(DialogController):
 
     @DialogController.status_message("Refining mixture...", "refine_mixture")
     def on_refine_clicked(self, event):
+        with self.model.mixture.needs_update.hold():
+            with self.model.mixture.data_changed.hold():
+                if len(self.model.mixture.specimens) > 0:
 
-        # Make sure we can refine:
-        with self.model.needs_update.hold():
-            with self.model.data_changed.hold():
-                if len(self.model.specimens) > 0:
-                    # Setup mixture based on chosen refinement options:
-                    self.model.refine_options = {}
-                    option_store = self.view['tv_method_options'].get_model()
-                    for name, value, arg, typ, default, limits in option_store: # @UnusedVariable
-                        self.model.refine_options[arg] = value
-
-                    # Setup context:
+                    # Create the refinement context
                     try:
-                        self.model.refiner.setup_context(store=True)
+                        self.model.setup_context(store=True)
                     except RefineSetupError, msg:
                         self.run_information_dialog("There was an error when creating the refinement setup:\n%s" % msg, parent=self.view.get_toplevel())
                         return
@@ -366,45 +321,53 @@ class RefinementController(DialogController):
                     # the refinement to allow for solutions to be recorded!
                     self.results_view = RefinementResultView(parent=self.view.parent)
                     self.results_controller = RefinementResultsController(
-                        model=self.model.refiner.context,
+                        model=self.model.context,
                         view=self.results_view,
                         parent=self
                     )
 
-                    # Run the refinement thread:
-                    self.view.show_refinement_info(
-                        self.model.refiner.refine,  # REFINE METHOD
-                        self._update_gui,           # GUI UPDATER
-                        self._on_complete           # ON COMPLETE CALLBACK
-                    )
+                    # Launch a timeout GUI updater:
+                    self.gui_timeout_id = gobject.timeout_add(250, self._on_update_gui)
+
+                    # Run the refinement, threaded:
+                    self.model.refine(
+                        threaded=True,
+                        on_complete=self._on_refinement_complete)
+
+                    # Show the context updates in the gui:
+                    self.view.show_refinement_info()
+                    self.view.start_spinner()
+
                 else:
                     self.run_information_dialog("Cannot refine an empty mixture!", parent=self.view.get_toplevel())
 
-    def _on_complete(self, context, *args, **kwargs):
+    def _on_refinement_complete(self, context, *args, **kwargs):
         """ Called when the refinement is completed """
+        gobject.source_remove(self.gui_timeout_id)
+        self.view.stop_spinner()
+        self.view.update_refinement_status("Processing...")
         if self.model.make_psp_plots:
-            self.model.refiner.context.status_message = "Generating parameter space plots..."
+            self.model.context.status_message = "Generating parameter space plots..."
             self.results_controller.generate_images()
+        self.view.hide_refinement_info()
 
-        self.results_view.present()
         self.view.hide()
+        self.results_view.present()
 
-    def _update_gui(self):
-        """ Called when the refinement window needs an update """
+    def _on_refinement_cancelled(self, context, *args, **kwargs):
+        """ Called when the refinement is cancelled by the user """
+        self.view.stop_spinner()
+        self.view.update_refinement_status("Cancelling...")
+        self.model.cancel()
+        self.view.hide_refinement_info()
+
+    def _on_update_gui(self):
+        """ Called using a gobject timeout """
         self.view.update_refinement_info(
-            self.model.refiner.context.last_residual,
-            self.model.refiner.context.status_message
+            self.model.context.last_residual,
+            self.model.context.status_message
         )
-
-    def cleanup(self):
-        if hasattr(self, "view"):
-            del self.view
-        if hasattr(self, "results_view"):
-            del self.results_view
-        if hasattr(self, "results_controller"):
-            del self.results_controller
-        if hasattr(self, "model"):
-            self.relieve_model(self.model)
+        return True
 
     pass # end of class
 
@@ -526,13 +489,13 @@ class EditMixtureController(BaseController):
         self.model.optimize()
 
     def on_refine_clicked(self, widget, *args):
-        self.model.update_refinement_treestore()
+        self.model.refiner.update_refinement_treestore()
         if self.ref_view is not None:
             self.ref_view.hide()
             self.ref_ctrl.cleanup()
         self.view.parent.hide()
         self.ref_view = RefinementView(parent=self.parent.view)
-        self.ref_ctrl = RefinementController(model=self.model, view=self.ref_view, parent=self)
+        self.ref_ctrl = RefinementController(model=self.model.refiner, view=self.ref_view, parent=self)
         self.ref_view.present()
 
     def on_composition_clicked(self, widget, *args):

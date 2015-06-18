@@ -47,11 +47,8 @@ class TestRefinement(unittest.TestCase):
         for index, method in enumerate(self.mixture.Meta.all_refine_methods):
             self.mixture.refine_method = index
             self.mixture.randomize()
-            self.mixture.setup_refine_options()
             self.mixture.refiner.setup_context()
             self.mixture.refiner.refine(stop=None)
-
-
 
     # TODO:
     #  - set_data_object

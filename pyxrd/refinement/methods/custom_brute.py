@@ -12,21 +12,21 @@ import numpy as np
 
 from pyxrd.calculations.mixture import get_optimized_mixture
 
-from .refine_run import RefineRun
+from ..refine_method import RefineMethod
+from ..refine_method_option import RefineMethodOption
 from pyxrd.generic.async import HasAsyncCalls
 
 
 def evaluate(data_object):
     return get_optimized_mixture(data_object).residual
 
-class RefineBruteForceRun(RefineRun, HasAsyncCalls):
+class RefineBruteForceRun(RefineMethod, HasAsyncCalls):
     name = "Brute force algorithm"
     description = "Refinement using a Brute Force algorithm"
     index = 3
     disabled = False
-    options = [
-        ('Number of samples', 'num_samples', int, 11, [3, 1000]),
-    ]
+
+    num_samples = RefineMethodOption('Number of samples', 11, [3, 1000], int)
 
     def run(self, context, num_samples=11, stop=None, **kwargs):
         """

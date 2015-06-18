@@ -8,7 +8,8 @@
 import numpy as np
 import scipy
 
-from .refine_run import RefineRun
+from ..refine_method import RefineMethod
+from ..refine_method_option import RefineMethodOption
 
 import logging
 logger = logging.getLogger(__name__)
@@ -17,16 +18,19 @@ MAXFUN = 15000
 MAXITER = 15000
 IPRINT = 0
 
-class RefineLBFGSBRun(RefineRun):
+class RefineLBFGSBRun(RefineMethod):
+    """
+        An implementation of the L BFGS B refinement algorithm.
+    """
+
     name = "L BFGS B algorithm"
     description = "Refinement using the L BFGS B algorithm"
     index = 0
     disabled = False
-    options = [
-        ('Maximum # of function calls', 'maxfun', int, MAXFUN, [1, 1000000]),
-        ('Maximum # of iterations', 'maxiter', int, MAXITER, [1, 1000000]),
-        ('Output level [-1,0,1]', 'iprint', int, IPRINT, [-1, 1]),
-    ]
+
+    maxfun = RefineMethodOption('Maximum # of function calls', MAXFUN, [1, 1000000], int)
+    maxiter = RefineMethodOption('Maximum # of iterations', MAXITER, [1, 1000000], int)
+    iprint = RefineMethodOption('Output level [-1,0,1]', IPRINT, [-1, 1], int)
 
     def run(self, context, maxfun=MAXFUN, maxiter=MAXITER, iprint=IPRINT, **kwargs):
         """
@@ -46,14 +50,17 @@ class RefineLBFGSBRun(RefineRun):
 
     pass # end of class
 
-class RefineBruteForceRun(RefineRun):
+class RefineBruteForceRun(RefineMethod):
+    """
+        An implementation of the Brute Force refinement algorithm.
+    """
+
     name = "Brute force algorithm"
     description = "Refinement using a Brute Force algorithm"
     index = 3
     disabled = False
-    options = [
-        ('Number of samples', 'num_samples', int, 10, [3, 1000]),
-    ]
+
+    num_samples = RefineMethodOption('Number of samples', 10, [3, 1000], int)
 
     def run(self, context, num_samples=10, **kwargs):
         """
@@ -74,17 +81,19 @@ class RefineBruteForceRun(RefineRun):
 
     pass # end of class
 
-class RefineBasinHoppingRun(RefineRun):
+class RefineBasinHoppingRun(RefineMethod):
+    """
+        An implementation of the Basin Hopping refinement algorithm.
+    """
 
     name = "Basin Hopping Algorithm"
     description = "Refinement using a basin hopping algorithm"
     index = 4
     disabled = False
-    options = [
-         ('Number of iterations', 'niter', int, 100, [10, 10000]),
-         ('Temperature criterion', 'T', float, 3.0, [0.0, None]),
-         ('Displacement stepsize', 'stepsize', float, 1.0, [0.0, None]),
-    ]
+
+    niter = RefineMethodOption('Number of iterations', 100, [10, 10000], int)
+    T = RefineMethodOption('Temperature criterion', 3.0, [0.0, None], int)
+    stepsize = RefineMethodOption('Displacement step size', 1.0, [0.0, None], float)
 
     def run(self, context, niter=100, T=3.0, stepsize=1.0, **kwargs):
         """

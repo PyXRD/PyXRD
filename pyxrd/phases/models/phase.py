@@ -16,8 +16,8 @@ from pyxrd.generic.io import storables, Storable, get_case_insensitive_glob, COM
 from pyxrd.generic.models import DataModel
 from pyxrd.calculations.phases import get_diffracted_intensity
 from pyxrd.calculations.data_objects import PhaseData
-from pyxrd.generic.refinement.mixins import RefinementGroup
-from pyxrd.generic.refinement.metaclasses import PyXRDRefinableMeta
+from pyxrd.refinement.refinables.mixins import RefinementGroup
+from pyxrd.refinement.refinables.metaclasses import PyXRDRefinableMeta
 
 from pyxrd.probabilities.models import get_correct_probability_model
 

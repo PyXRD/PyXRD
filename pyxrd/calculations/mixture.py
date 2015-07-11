@@ -76,14 +76,14 @@ def _get_residuals(x, mixture):
                 bgshift = bgshift if settings.BGSHIFT else 0.0
                 calc = get_summed_intensities(specimen, scale, fractions, bgshift)
             else:
-                logger.warning("_get_residual reports: 'No phases found!'")
+                logger.warning("_get_residuals reports: 'No phases found!'")
                 calc = np.zeros_like(specimen.observed_intensity)
             if specimen.observed_intensity.size > 0:
                 rps.append(_get_specimen_residual(specimen, calc))
             else:
-                logger.warning("_get_residual reports: 'Zero observations found!'")
+                logger.warning("_get_residuals reports: 'Zero observations found!'")
         else:
-            logger.warning("_get_residual reports: 'None found!'")
+            logger.warning("_get_residuals reports: 'None found!'")
     rps[0] = np.average(rps[1:])
     return tuple(rps)
 

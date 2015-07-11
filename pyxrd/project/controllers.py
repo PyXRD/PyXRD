@@ -12,13 +12,14 @@ import os
 from functools import partial
 
 import pango
-import gtk
+import gtk, gobject
 
 from mvc import Controller
 
 from pyxrd.generic.controllers.line_controllers import BackgroundController
 from pyxrd.generic.views.line_views import BackgroundView
 from pyxrd.generic.views.widgets import ThreadedTaskBox
+from pyxrd.generic.threads import CancellableThread
 from pyxrd.generic.views.treeview_tools import new_text_column, new_toggle_column, new_pb_column
 from pyxrd.generic.controllers import BaseController, ObjectListStoreController
 from pyxrd.specimen.models import Specimen
@@ -112,6 +113,9 @@ class ProjectController(ObjectListStoreController):
             filenames = dialog.get_filenames()
             parser = dialog.get_filter().get_data("parser")
 
+            task = ThreadedTaskBox()
+            window = self.get_custom_dialog(task, parent=self.view.get_top_widget())
+
             # Status:
             status_dict = dict(
                 total_files=len(filenames),
@@ -120,7 +124,7 @@ class ProjectController(ObjectListStoreController):
             )
 
             # Task:
-            def load_specimens(status_dict=None, stop=None):
+            def load_specimens(stop=None):
                 for filename in filenames:
                     if stop is not None and stop.is_set():
                         return
@@ -139,29 +143,9 @@ class ProjectController(ObjectListStoreController):
                         status_dict["specimens"] += specimens
                     status_dict["current_file"] += 1
 
-            # Create task box:
-            task = ThreadedTaskBox(partial(load_specimens, status_dict=status_dict), None)
-            window = self.get_custom_dialog(task, parent=self.view.get_top_widget())
-            window.show_all()
-
             # Cancel & stop events:
-            def on_interrupted(status_dict, *args, **kwargs):
+            def on_interrupted(*args, **kwargs):
                 window.hide()
-            task.connect("cancelrequested", partial(on_interrupted, status_dict))
-            task.connect("stoprequested", partial(on_interrupted, status_dict))
-
-            # Complete event:
-            def on_complete(status_dict, widget, *args, **kwargs):
-                last_iter = None
-                for specimen in status_dict["specimens"]:
-                    last_iter = self.model.specimens.append(specimen)
-                if last_iter is not None:
-                    self.view["project_specimens"].set_cursor(last_iter)
-                parent = widget.get_parent()
-                parent.destroy()
-                widget.destroy()
-
-            task.connect("complete", partial(on_complete, status_dict))
 
             # Status label update:
             def gui_callback():
@@ -169,10 +153,30 @@ class ProjectController(ObjectListStoreController):
                     status_dict["current_file"],
                     status_dict["total_files"]
                 ))
-            task.gui_callback = gui_callback
+                return True
+            gui_timeout_id = gobject.timeout_add(250, gui_callback)
+
+            # Complete event:
+            def on_complete(*args, **kwargs):
+                last_iter = None
+                for specimen in status_dict["specimens"]:
+                    last_iter = self.model.specimens.append(specimen)
+                if last_iter is not None:
+                    self.view["project_specimens"].set_cursor(last_iter)
+                gobject.source_remove(gui_timeout_id)
+                window.hide()
+                window.destroy()
 
             # Run task box:
-            task.start("Loading ...")
+            task.connect("cancelrequested", on_interrupted)
+            task.connect("stoprequested", on_interrupted)
+            task.set_status("Loading ...")
+            task.start()
+            window.show_all()
+
+            # Run thread:
+            self.thread = CancellableThread(load_specimens, on_complete)
+            self.thread.start()
 
         self.run_load_dialog(title="Select XRD files for import",
                              on_accept_callback=on_accept,

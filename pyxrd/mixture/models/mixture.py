@@ -311,7 +311,7 @@ class Mixture(DataModel, Storable):
                         for j in range(shape[1]):
                             if self.phase_matrix[i, j] == phase:
                                 self.phase_matrix[i, j] = None
-                self.update_refinement_treestore()
+                self.refiner.update_refinement_treestore()
 
     def unset_specimen(self, specimen):
         """ Clears a specimen slot in the specimen list """
@@ -335,7 +335,7 @@ class Mixture(DataModel, Storable):
                         if phase is not None and not phase in self.parent.phases:
                             raise RuntimeError, "Cannot add a phase to a Mixture which is not inside the project!"
                         self.phase_matrix[specimen_slot, phase_slot] = phase
-                    self.update_refinement_treestore()
+                    self.refiner.update_refinement_treestore()
 
     def get_specimen(self, specimen_slot):
         """Returns the specimen at the given slot position or None if not set"""
@@ -399,7 +399,7 @@ class Mixture(DataModel, Storable):
                 else:
                     self.phase_matrix = np.concatenate([self.phase_matrix.copy(), [[None]] * n ], axis=1)
                     self.phase_matrix[:, m] = None
-                self.update_refinement_treestore()
+                self.refiner.update_refinement_treestore()
         return m
 
     def del_phase_slot(self, phase_slot):
@@ -412,7 +412,7 @@ class Mixture(DataModel, Storable):
                     self.fractions = np.delete(self.fractions, phase_slot)
                     self.phase_matrix = np.delete(self.phase_matrix, phase_slot, axis=1)
                 # Update our refinement tree store to reflect current state
-                self.update_refinement_treestore()
+                self.refiner.update_refinement_treestore()
         # Inform any interested party they need to update their representation
         self.needs_reset.emit()
 
@@ -449,7 +449,7 @@ class Mixture(DataModel, Storable):
                     self.bgshifts = np.delete(self.bgshifts, specimen_slot)
                     self.phase_matrix = np.delete(self.phase_matrix, specimen_slot, axis=0)
                 # Update our refinement tree store to reflect current state
-                self.update_refinement_treestore()
+                self.refiner.update_refinement_treestore()
         # Inform any interested party they need to update their representation
         self.needs_reset.emit()
 

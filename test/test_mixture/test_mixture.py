@@ -164,7 +164,7 @@ class TestMixture(unittest.TestCase):
         self.assertEqual(self.mixture.phase_matrix[0, 0], None)
 
     def test_randomize_empty_mixture(self):
-        self.mixture.randomize()
+        self.mixture.refiner.randomize()
 
     def _refinement_setup(self):
         # TODO maybe add some more variation in the type of Phases?
@@ -192,7 +192,7 @@ class TestMixture(unittest.TestCase):
                 refinables.append((ref_prop, ref_prop.value))
 
         # Randomize:
-        self.mixture.randomize()
+        self.mixture.refiner.randomize()
 
         # Check all of them have been randomized:
         # It is possible (but unlikely) that the randomized value
@@ -202,7 +202,7 @@ class TestMixture(unittest.TestCase):
             self.assertNotEqual(pre_val, ref_prop.value)
 
     def test_auto_restrict_empy_mixture(self):
-        self.mixture.auto_restrict()
+        self.mixture.refiner.auto_restrict()
 
     def test_auto_restrict(self):
         self._refinement_setup()
@@ -216,7 +216,7 @@ class TestMixture(unittest.TestCase):
                 refinables.append((ref_prop, ref_prop.value))
 
         # Randomize:
-        self.mixture.auto_restrict()
+        self.mixture.refiner.auto_restrict()
 
         # Check all of them have been restricted:
         for ref_prop, pre_val in refinables:

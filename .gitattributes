@@ -1,0 +1,2 @@
+pyxrd/__version.py filter=versioning
+mvc/__version.py filter=versioning

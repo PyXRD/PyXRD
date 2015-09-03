@@ -27,6 +27,7 @@ LOG_NORMAL_MAX_CSDS_FACTOR = 2.5
 
 ### What type of residual error we use: ###
 #   "Rp" = 'standard' pattern Rp factor
+#   "Rpw" = 'weighted' pattern Rp factor
 #   "Rpder" = Rp factor of first-derivatives
 RESIDUAL_METHOD = "Rp"
 

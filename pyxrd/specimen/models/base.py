@@ -130,7 +130,7 @@ class Specimen(DataModel, Storable):
         self._display_residuals = bool(value)
         self.visuals_changed.emit()
 
-    _display_derivatives = True
+    _display_derivatives = False
     def get_display_derivatives(self): return self._display_derivatives
     def set_display_derivatives(self, value):
         self._display_derivatives = bool(value)
@@ -140,7 +140,7 @@ class Specimen(DataModel, Storable):
         if self.display_stats_in_lbl and (self.project is not None and self.project.layout_mode == "FULL"):
             label = self.sample_name
             label += "\nRp = %.1f%%" % not_none(self.statistics.Rp, 0.0)
-            label += "\nRp' = %.1f%%" % not_none(self.statistics.Rpder, 0.0)
+            label += "\nRwp = %.1f%%" % not_none(self.statistics.Rwp, 0.0)
             return label
         else:
             return self.sample_name
@@ -310,7 +310,7 @@ class Specimen(DataModel, Storable):
                 self.display_calculated = bool(self.get_kwarg(kwargs, True, "display_calculated"))
                 self.display_experimental = bool(self.get_kwarg(kwargs, True, "display_experimental"))
                 self.display_residuals = bool(self.get_kwarg(kwargs, True, "display_residuals"))
-                self.display_derivatives = bool(self.get_kwarg(kwargs, True, "display_derivatives"))
+                self.display_derivatives = bool(self.get_kwarg(kwargs, False, "display_derivatives"))
                 self.display_phases = bool(self.get_kwarg(kwargs, False, "display_phases"))
                 self.display_stats_in_lbl = bool(self.get_kwarg(kwargs, True, "display_stats_in_lbl"))
 
@@ -485,7 +485,7 @@ class Specimen(DataModel, Storable):
             )
             self.update_visuals(phases)
         if settings.GUI_MODE:
-            self.statistics.update_statistics()
+            self.statistics.update_statistics(derived=self.display_derivatives)
 
     def get_phase_intensities(self, phases):
         """

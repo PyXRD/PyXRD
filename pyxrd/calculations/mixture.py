@@ -18,10 +18,11 @@ logger = logging.getLogger(__name__)
 
 from .specimen import calculate_phase_intensities, get_summed_intensities
 from .exceptions import wrap_exceptions
-from .statistics import Rp, Rpder
+from .statistics import Rp, Rpw, Rpder
 
 __residual_method_map = {
     "Rp" : Rp,
+    "Rpw" : Rpw,
     "Rpder": Rpder
 }
 

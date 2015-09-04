@@ -22,6 +22,7 @@
 #  Boston, MA 02110, USA.
 #  -------------------------------------------------------------------------
 
+import weakref
 import types
 import gtk
 
@@ -36,6 +37,21 @@ class BaseObjectListStore(gtk.GenericTreeModel):
     # PROPERTIES
     _columns = None # list of tuples (name, type)
     _class_type = None
+
+    __weakref_model = None
+    @property
+    def _model(self):
+        if self.__weakref_model is not None:
+            return self.__weakref_model()
+        else:
+            return None
+    @_model.setter
+    def _model(self, value):
+        if value is not None:
+            self.__weakref_model = weakref.ref(value)
+        else:
+            self.__weakref_model = None
+
 
     # ------------------------------------------------------------
     #      Initialization and other internals

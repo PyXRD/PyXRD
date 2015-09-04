@@ -53,8 +53,11 @@ class EditPhaseController(BaseController):
 
     @property
     def phases_treemodel(self):
-        prop = self.model.project.Meta.get_prop_intel_by_name("phases")
-        return wrap_list_property_to_treemodel(self.model.project, prop)
+        if self.model.project is not None:
+            prop = self.model.project.Meta.get_prop_intel_by_name("phases")
+            return wrap_list_property_to_treemodel(self.model.project, prop)
+        else:
+            return None
 
     def register_view(self, view):
         BaseController.register_view(self, view)
@@ -84,7 +87,7 @@ class EditPhaseController(BaseController):
                 self.reset_components_controller()
             elif intel.name == "probabilities":
                 self.reset_probabilities_controller()
-            elif intel.name == "based_on":
+            elif intel.name == "based_on" and self.phases_treemodel is not None:
                 combo = self.view["phase_based_on"]
 
                 combo.set_model(self.phases_treemodel)

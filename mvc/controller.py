@@ -153,13 +153,15 @@ class Controller(Observer):
     def _idle_register_view(self, view):
         """Internal method that calls register_view"""
         assert(self.view is not None)
+        if self.model is not None:
+            self.__autoconnect_signals()
 
-        self.__autoconnect_signals()
-
-        self.register_view(self.view)
-        self.register_adapters()
-        if self.auto_adapt: self.adapt()
-        return False
+            self.register_view(self.view)
+            self.register_adapters()
+            if self.auto_adapt: self.adapt()
+            return False
+        else:
+            return True
 
     def _clear_adapters(self):
         """Clears & disconnects all adapters from this controller"""

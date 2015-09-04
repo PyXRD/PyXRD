@@ -190,6 +190,7 @@ class Refiner(ChildModel):
                 on_complete(context)
         else:
             def thread_completed(context):
+                #Assuming this is GTK-thread safe (i.e. wrapped in @run_when_idle)
                 on_complete(context)
                 self.thread = None
             self.thread = CancellableThread(refine_method, thread_completed)

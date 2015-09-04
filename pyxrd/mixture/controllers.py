@@ -6,6 +6,7 @@
 # Complete license can be found in the LICENSE file.
 
 import logging
+from pyxrd.generic.gtk_tools.utils import run_when_idle
 logger = logging.getLogger(__name__)
 import gtk, gobject
 import sys
@@ -341,6 +342,7 @@ class RefinementController(DialogController):
                 else:
                     self.run_information_dialog("Cannot refine an empty mixture!", parent=self.view.get_toplevel())
 
+    @run_when_idle
     def _on_refinement_complete(self, context, *args, **kwargs):
         """ Called when the refinement is completed """
         gobject.source_remove(self.gui_timeout_id)
@@ -383,13 +385,19 @@ class EditMixtureController(BaseController):
 
     @property
     def specimens_treemodel(self):
-        prop = self.model.project.Meta.get_prop_intel_by_name("specimens")
-        return wrap_list_property_to_treemodel(self.model.project, prop)
+        if self.model.project is not None:
+            prop = self.model.project.Meta.get_prop_intel_by_name("specimens")
+            return wrap_list_property_to_treemodel(self.model.project, prop)
+        else:
+            return None
 
     @property
     def phases_treemodel(self):
-        prop = self.model.project.Meta.get_prop_intel_by_name("phases")
-        return wrap_list_property_to_treemodel(self.model.project, prop)
+        if self.model.project is not None:
+            prop = self.model.project.Meta.get_prop_intel_by_name("phases")
+            return wrap_list_property_to_treemodel(self.model.project, prop)
+        else:
+            return None
 
     def register_adapters(self):
         self.create_ui()

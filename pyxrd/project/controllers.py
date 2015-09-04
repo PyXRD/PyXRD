@@ -9,7 +9,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 import os
-from functools import partial
 
 import pango
 import gtk, gobject
@@ -19,6 +18,7 @@ from mvc import Controller
 from pyxrd.generic.controllers.line_controllers import BackgroundController
 from pyxrd.generic.views.line_views import BackgroundView
 from pyxrd.generic.views.widgets import ThreadedTaskBox
+from pyxrd.generic.gtk_tools.utils import run_when_idle
 from pyxrd.generic.threads import CancellableThread
 from pyxrd.generic.views.treeview_tools import new_text_column, new_toggle_column, new_pb_column
 from pyxrd.generic.controllers import BaseController, ObjectListStoreController
@@ -135,10 +135,14 @@ class ProjectController(ObjectListStoreController):
                         message += str(msg) + "</i>\n\n"
                         message += "This is most likely caused by an invalid or unsupported file format."
                         logger.exception(message)
-                        self.run_information_dialog(
-                            message=message,
-                            parent=self.view.get_top_widget()
-                        )
+                        @run_when_idle
+                        def run_dialog():
+                            self.run_information_dialog(
+                                message=message,
+                                parent=self.view.get_top_widget()
+                            )
+                            return False
+                        run_dialog()
                     else:
                         status_dict["specimens"] += specimens
                     status_dict["current_file"] += 1
@@ -157,6 +161,7 @@ class ProjectController(ObjectListStoreController):
             gui_timeout_id = gobject.timeout_add(250, gui_callback)
 
             # Complete event:
+            @run_when_idle
             def on_complete(*args, **kwargs):
                 last_iter = None
                 for specimen in status_dict["specimens"]:

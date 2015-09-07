@@ -1,19 +1,18 @@
 #!/bin/python
-        
+
 import sys, os
 import subprocess
 import re
 import fileinput
-        
-def update_version(filename, version):
-    
-    with open(filename, 'rw') as f:
-        for line in fileinput.input(filename, inplace=True):
-            rexp = "__version__\s*=.*"
-            line = re.sub(rexp, "__version__ = \"%s\"\n" % version, line),
-            print line[0],
 
-assert len(sys.argv) > 1
+def update_version(filename, version):
+    for line in fileinput.input(filename, inplace=True):
+        rexp = "__version__\s*=.*"
+        line = re.sub(rexp, "__version__ = \"%s\"\n" % version, line),
+        print line[0],
+
+assert len(sys.argv) > 1, "You need to specify the version (e.g. 6.6.6)"
+assert "v" not in sys.argv[1], "You need to the version (e.g. 6.6.6)"
 
 update_version(os.path.abspath("pyxrd/__version.py"), sys.argv[1])
 update_version(os.path.abspath("mvc/__version.py"), sys.argv[1])

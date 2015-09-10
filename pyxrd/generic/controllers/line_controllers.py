@@ -51,12 +51,16 @@ class LinePropertiesController(BaseController):
         """
         self.view[self.view.widget_format % "color"].set_sensitive(not self.model.inherit_color)
         self.view["spb_%s" % self.view.widget_format % "lw"].set_sensitive(not self.model.inherit_lw)
+        self.view[self.view.widget_format % "ls"].set_sensitive(not self.model.inherit_ls)
+        self.view[self.view.widget_format % "marker"].set_sensitive(not self.model.inherit_marker)
 
     # ------------------------------------------------------------
     #      Notifications of observable properties
     # ------------------------------------------------------------
     @BaseController.observe("inherit_color", assign=True)
     @BaseController.observe("inherit_lw", assign=True)
+    @BaseController.observe("inherit_ls", assign=True)
+    @BaseController.observe("inherit_marker", assign=True)
     def notif_color_toggled(self, model, prop_name, info):
         self.update_sensitivities()
 

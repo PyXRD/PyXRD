@@ -83,6 +83,39 @@ CALCULATED_COLOR = "#FF0000"
 EXPERIMENTAL_LINEWIDTH = 1.0
 CALCULATED_LINEWIDTH = 2.0
 
+CALCULATED_LINESTYLE = "-"
+EXPERIMENTAL_LINESTYLE = "-"
+
+CALCULATED_MARKER = ""
+EXPERIMENTAL_MARKER = ""
+
+PATTERN_LINE_STYLES = {
+    "": "Nothing",
+    "-": "Solid",
+    "--": "Dashed",
+    "-.": "Dash Dot",
+    ":": "Dotted"
+}
+
+PATTERN_MARKERS = {
+    "": "No marker",
+    ".": "Point",
+    ",": "Pixel",
+    "+": "Plus",
+    "x": "Cross",
+    "D": "Diamond",
+    "o": "Circle",
+    "v": "Triangle down",
+    "^": "Triangle up",
+    "<": "Triangle left",
+    ">": "Triangle right",
+    "8": "Octagon",
+    "s": "Square",
+    "p": "Pentagon",
+    "*": "Star",
+    "h": "Hexagon",
+}
+
 PATTERN_SHIFT_POSITIONS = {
     0.42574: "Quartz    0.42574   SiO2",
     0.3134:  "Silicon   0.31355   Si",

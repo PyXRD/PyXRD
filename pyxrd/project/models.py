@@ -71,6 +71,10 @@ class Project(DataModel, Storable):
             PropIntel(name="display_exp_color", label="Experimental color", data_type=str, widget_type="color", **PropIntel.ST_WID),
             PropIntel(name="display_calc_lw", label="Calculated linewidth", data_type=int, widget_type="spin", **PropIntel.ST_WID),
             PropIntel(name="display_exp_lw", label="Experimental linewidth", data_type=int, widget_type="spin", **PropIntel.ST_WID),
+            OptionPropIntel(name="display_calc_ls", label="Calculated linestyle", data_type=str, options=settings.PATTERN_LINE_STYLES, **PropIntel.ST_WID),
+            OptionPropIntel(name="display_exp_ls", label="Experimental linestyle", data_type=str, options=settings.PATTERN_LINE_STYLES, **PropIntel.ST_WID),
+            OptionPropIntel(name="display_calc_marker", label="Calculated line marker", data_type=str, options=settings.PATTERN_MARKERS, **PropIntel.ST_WID),
+            OptionPropIntel(name="display_exp_marker", label="Experimental line marker", data_type=str, options=settings.PATTERN_MARKERS, **PropIntel.ST_WID),
             PropIntel(name="display_plot_offset", label="Pattern offset", data_type=float, widget_type="float_entry", **PropIntel.ST_WID),
             PropIntel(name="display_group_by", label="Group patterns by", data_type=int, widget_type="spin", **PropIntel.ST_WID),
             PropIntel(name="display_label_pos", label="Default label position", data_type=float, widget_type="float_entry", **PropIntel.ST_WID),
@@ -363,6 +367,46 @@ class Project(DataModel, Storable):
             self._display_exp_lw = float(value)
             self.visuals_changed.emit()
 
+    _display_calc_ls = settings.CALCULATED_LINESTYLE
+    @property
+    def display_calc_ls(self):
+        """ The default calculated profile linestyle """
+        return self._display_calc_ls
+    @display_calc_ls.setter
+    def display_calc_ls(self, value):
+        self._display_calc_ls = value
+        self.visuals_changed.emit()
+
+    _display_exp_ls = settings.EXPERIMENTAL_LINESTYLE
+    @property
+    def display_exp_ls(self):
+        """ The default experimental profile linestyle """
+        return self._display_exp_ls
+    @display_exp_ls.setter
+    def display_exp_ls(self, value):
+        self._display_exp_ls = value
+        self.visuals_changed.emit()
+
+    _display_calc_marker = settings.CALCULATED_MARKER
+    @property
+    def display_calc_marker(self):
+        """ The default calculated profile marker """
+        return self._display_calc_marker
+    @display_calc_marker.setter
+    def display_calc_marker(self, value):
+        self._display_calc_marker = value
+        self.visuals_changed.emit()
+
+    _display_exp_marker = settings.EXPERIMENTAL_MARKER
+    @property
+    def display_exp_marker(self):
+        """ The default experimental profile marker """
+        return self._display_exp_marker
+    @display_exp_marker.setter
+    def display_exp_marker(self, value):
+        self._display_exp_marker = value
+        self.visuals_changed.emit()
+
     #: The list of specimens
     specimens = []
     #: The list of phases
@@ -415,6 +459,10 @@ class Project(DataModel, Storable):
                 self.display_exp_color = self.get_kwarg(kwargs, self.display_exp_color, "display_exp_color")
                 self.display_calc_lw = self.get_kwarg(kwargs, self.display_calc_lw, "display_calc_lw")
                 self.display_exp_lw = self.get_kwarg(kwargs, self.display_exp_lw, "display_exp_lw")
+                self.display_calc_ls = self.get_kwarg(kwargs, self.display_calc_ls, "display_calc_ls")
+                self.display_exp_ls = self.get_kwarg(kwargs, self.display_exp_ls, "display_exp_ls")
+                self.display_calc_marker = self.get_kwarg(kwargs, self.display_calc_marker, "display_calc_marker")
+                self.display_exp_marker = self.get_kwarg(kwargs, self.display_exp_marker, "display_exp_marker")
                 self.display_plot_offset = self.get_kwarg(kwargs, self.display_plot_offset, "display_plot_offset")
                 self.display_group_by = self.get_kwarg(kwargs, self.display_group_by, "display_group_by")
                 self.display_label_pos = self.get_kwarg(kwargs, self.display_label_pos, "display_label_pos")

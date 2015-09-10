@@ -102,6 +102,10 @@ class PyXRDLine(DataModel, StorableXYData):
             PropIntel(name="inherit_color", data_type=bool, storable=True, has_widget=True, widget_type="toggle"),
             PropIntel(name="lw", data_type=float, storable=True, has_widget=True, widget_type="spin"),
             PropIntel(name="inherit_lw", data_type=bool, storable=True, has_widget=True, widget_type="toggle"),
+            OptionPropIntel(name="ls", data_type=str, storable=True, has_widget=True, options=settings.PATTERN_LINE_STYLES),
+            PropIntel(name="inherit_ls", data_type=bool, storable=True, has_widget=True, widget_type="toggle"),
+            OptionPropIntel(name="marker", data_type=str, storable=True, has_widget=True, options=settings.PATTERN_MARKERS),
+            PropIntel(name="inherit_marker", data_type=bool, storable=True, has_widget=True, widget_type="toggle"),
         ]
         store_id = "PyXRDLine"
         inherit_format = "display_exp_%s"
@@ -151,6 +155,48 @@ class PyXRDLine(DataModel, StorableXYData):
             self._inherit_lw = value
             self.visuals_changed.emit()
 
+    _ls = "-"
+    def get_ls(self):
+        if self.inherit_ls:
+            try:
+                return getattr(self.parent.parent, type(self).Meta.inherit_format % "ls", self._ls)
+            except AttributeError: # occurs when e.g. a parent is None
+                return self._ls
+        else:
+            return self._ls
+    def set_ls(self, value):
+        if self._ls != value:
+            self._ls = value
+            self.visuals_changed.emit()
+
+    _inherit_ls = True
+    def get_inherit_ls(self): return self._inherit_ls
+    def set_inherit_ls(self, value):
+        if value != self._inherit_ls:
+            self._inherit_ls = value
+            self.visuals_changed.emit()
+
+    _marker = ""
+    def get_marker(self):
+        if self.inherit_marker:
+            try:
+                return getattr(self.parent.parent, type(self).Meta.inherit_format % "marker", self._marker)
+            except AttributeError: # occurs when e.g. a parent is None
+                return self._marker
+        else:
+            return self._marker
+    def set_marker(self, value):
+        if self._marker != value:
+            self._marker = value
+            self.visuals_changed.emit()
+
+    _inherit_marker = True
+    def get_inherit_marker(self): return self._inherit_marker
+    def set_inherit_marker(self, value):
+        if value != self._inherit_marker:
+            self._inherit_marker = value
+            self.visuals_changed.emit()
+
     # REGULAR PROPERTIES:
     @property
     def max_intensity(self):
@@ -176,6 +222,10 @@ class PyXRDLine(DataModel, StorableXYData):
                 inherit_color: whether to use the parent-level color or its own
                 lw: the line width of this line
                 inherit_lw: whether to use the parent-level line width or its own
+                ls: the line style of this line
+                inherit_ls: whether to use the parent-level line style or its own
+                marker: the line marker of this line
+                inherit_marker: whether to use the parent-level line marker or its own
         """
         my_kwargs = self.pop_kwargs(kwargs,
             *[names[0] for names in PyXRDLine.Meta.get_local_storable_properties()]
@@ -189,6 +239,10 @@ class PyXRDLine(DataModel, StorableXYData):
             self.inherit_color = bool(self.get_kwarg(kwargs, self.inherit_color, "inherit_color"))
             self.lw = float(self.get_kwarg(kwargs, self.lw, "lw"))
             self.inherit_lw = bool(self.get_kwarg(kwargs, self.inherit_lw, "inherit_lw"))
+            self.ls = self.get_kwarg(kwargs, self.ls, "ls")
+            self.inherit_ls = bool(self.get_kwarg(kwargs, self.inherit_ls, "inherit_ls"))
+            self.marker = self.get_kwarg(kwargs, self.marker, "marker")
+            self.inherit_marker = bool(self.get_kwarg(kwargs, self.inherit_marker, "inherit_marker"))
 
     # ------------------------------------------------------------
     #      Input/Output stuff

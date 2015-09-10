@@ -226,7 +226,9 @@ def plot_pattern(pattern, axes, scale=1, offset=0, cap=0, **kwargs):
     line.update(dict(
         data=apply_transform(pattern.get_xy_data(), scale=scale, offset=offset, cap=cap),
         color=pattern.color,
-        linewidth=pattern.lw
+        linewidth=pattern.lw,
+        ls=getattr(pattern, "ls", "-"),
+        marker=getattr(pattern, "marker", "")
     ))
     if not line in axes.get_lines():
         axes.add_line(line)

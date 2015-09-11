@@ -17,7 +17,6 @@ from mvc.adapters import DummyAdapter
 
 from pyxrd.generic.controllers import BaseController, DialogController, TreeViewMixin
 from pyxrd.generic.views.treeview_tools import setup_treeview, new_text_column
-
 from pyxrd.file_parsers.xrd_parsers import xrd_parsers
 from pyxrd.file_parsers.exc_parsers import exc_parsers
 
@@ -111,11 +110,11 @@ class SpecimenController(DialogController, TreeViewMixin):
     #      Methods & Functions
     # ------------------------------------------------------------
     def get_experimental_pattern_tree_model(self):
-        return wrap_xydata_to_treemodel(self.model, Specimen.experimental_pattern)
+        return wrap_xydata_to_treemodel(self.model, type(self.model).experimental_pattern)
     def get_calculated_pattern_tree_model(self):
-        return wrap_xydata_to_treemodel(self.model, Specimen.calculated_pattern)
+        return wrap_xydata_to_treemodel(self.model, type(self.model).calculated_pattern)
     def get_exclusion_ranges_tree_model(self):
-        return wrap_xydata_to_treemodel(self.model, Specimen.exclusion_ranges)
+        return wrap_xydata_to_treemodel(self.model, type(self.model).exclusion_ranges)
 
     #used to keep a permanent fix on a child controller, prevents early GC
     _child_ctrl_ref = None

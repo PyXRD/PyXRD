@@ -88,81 +88,6 @@
       </packing>
     </child>
     <child>
-      <object class="GtkAlignment" id="gonio_radius_algn">
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="xalign">0</property>
-        <property name="xscale">0</property>
-        <child>
-          <object class="GtkEntry" id="gonio_radius">
-            <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="invisible_char">•</property>
-            <property name="primary_icon_activatable">False</property>
-            <property name="secondary_icon_activatable">False</property>
-          </object>
-        </child>
-      </object>
-      <packing>
-        <property name="left_attach">1</property>
-        <property name="right_attach">3</property>
-        <property name="top_attach">1</property>
-        <property name="bottom_attach">2</property>
-        <property name="x_options">GTK_FILL</property>
-        <property name="y_options">GTK_FILL</property>
-      </packing>
-    </child>
-    <child>
-      <object class="GtkAlignment" id="gonio_soller1_algn">
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="xalign">0</property>
-        <property name="xscale">0</property>
-        <child>
-          <object class="GtkEntry" id="gonio_soller1">
-            <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="invisible_char">•</property>
-            <property name="primary_icon_activatable">False</property>
-            <property name="secondary_icon_activatable">False</property>
-          </object>
-        </child>
-      </object>
-      <packing>
-        <property name="left_attach">1</property>
-        <property name="right_attach">3</property>
-        <property name="top_attach">3</property>
-        <property name="bottom_attach">4</property>
-        <property name="x_options">GTK_FILL</property>
-        <property name="y_options">GTK_FILL</property>
-      </packing>
-    </child>
-    <child>
-      <object class="GtkAlignment" id="gonio_divergence_algn">
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="xalign">0</property>
-        <property name="xscale">0</property>
-        <child>
-          <object class="GtkEntry" id="gonio_divergence">
-            <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="invisible_char">•</property>
-            <property name="primary_icon_activatable">False</property>
-            <property name="secondary_icon_activatable">False</property>
-          </object>
-        </child>
-      </object>
-      <packing>
-        <property name="left_attach">1</property>
-        <property name="right_attach">3</property>
-        <property name="top_attach">2</property>
-        <property name="bottom_attach">3</property>
-        <property name="x_options">GTK_FILL</property>
-        <property name="y_options">GTK_FILL</property>
-      </packing>
-    </child>
-    <child>
       <object class="GtkLabel" id="gonio_soller1_lbl">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
@@ -173,31 +98,6 @@
       <packing>
         <property name="top_attach">3</property>
         <property name="bottom_attach">4</property>
-        <property name="x_options">GTK_FILL</property>
-        <property name="y_options">GTK_FILL</property>
-      </packing>
-    </child>
-    <child>
-      <object class="GtkAlignment" id="gonio_soller2_algn">
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="xalign">0</property>
-        <property name="xscale">0</property>
-        <child>
-          <object class="GtkEntry" id="gonio_soller2">
-            <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="invisible_char">•</property>
-            <property name="primary_icon_activatable">False</property>
-            <property name="secondary_icon_activatable">False</property>
-          </object>
-        </child>
-      </object>
-      <packing>
-        <property name="left_attach">1</property>
-        <property name="right_attach">3</property>
-        <property name="top_attach">4</property>
-        <property name="bottom_attach">5</property>
         <property name="x_options">GTK_FILL</property>
         <property name="y_options">GTK_FILL</property>
       </packing>
@@ -218,31 +118,6 @@
       </packing>
     </child>
     <child>
-      <object class="GtkAlignment" id="gonio_min_2theta_algn">
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="xalign">0</property>
-        <property name="xscale">0</property>
-        <child>
-          <object class="GtkEntry" id="gonio_min_2theta">
-            <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="invisible_char">•</property>
-            <property name="primary_icon_activatable">False</property>
-            <property name="secondary_icon_activatable">False</property>
-          </object>
-        </child>
-      </object>
-      <packing>
-        <property name="left_attach">1</property>
-        <property name="right_attach">3</property>
-        <property name="top_attach">5</property>
-        <property name="bottom_attach">6</property>
-        <property name="x_options">GTK_FILL</property>
-        <property name="y_options">GTK_FILL</property>
-      </packing>
-    </child>
-    <child>
       <object class="GtkLabel" id="gonio_min_2theta_lbl">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
@@ -253,31 +128,6 @@
       <packing>
         <property name="top_attach">5</property>
         <property name="bottom_attach">6</property>
-        <property name="x_options">GTK_FILL</property>
-        <property name="y_options">GTK_FILL</property>
-      </packing>
-    </child>
-    <child>
-      <object class="GtkAlignment" id="gonio_max_2theta_algn">
-        <property name="visible">True</property>
-        <property name="can_focus">False</property>
-        <property name="xalign">0</property>
-        <property name="xscale">0</property>
-        <child>
-          <object class="GtkEntry" id="gonio_max_2theta">
-            <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <property name="invisible_char">•</property>
-            <property name="primary_icon_activatable">False</property>
-            <property name="secondary_icon_activatable">False</property>
-          </object>
-        </child>
-      </object>
-      <packing>
-        <property name="left_attach">1</property>
-        <property name="right_attach">3</property>
-        <property name="top_attach">6</property>
-        <property name="bottom_attach">7</property>
         <property name="x_options">GTK_FILL</property>
         <property name="y_options">GTK_FILL</property>
       </packing>
@@ -612,9 +462,113 @@
       </packing>
     </child>
   </object>
-  <object class="GtkImage" id="img_export1">
-    <property name="visible">True</property>
-    <property name="can_focus">False</property>
-    <property name="stock">gtk-floppy</property>
+    <child>
+      <object class="GtkEventBox" id="container_radius">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <child>
+          <placeholder/>
+        </child>
+      </object>
+      <packing>
+        <property name="left_attach">1</property>
+        <property name="right_attach">3</property>
+        <property name="top_attach">1</property>
+        <property name="bottom_attach">2</property>
+        <property name="y_options">GTK_FILL</property>
+        <property name="x_padding">5</property>
+        <property name="y_padding">5</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkEventBox" id="container_divergence">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <child>
+          <placeholder/>
+        </child>
+      </object>
+      <packing>
+        <property name="left_attach">1</property>
+        <property name="right_attach">3</property>
+        <property name="top_attach">2</property>
+        <property name="bottom_attach">3</property>
+        <property name="y_options">GTK_FILL</property>
+        <property name="x_padding">5</property>
+        <property name="y_padding">5</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkEventBox" id="container_soller1">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <child>
+          <placeholder/>
+        </child>
+      </object>
+      <packing>
+        <property name="left_attach">1</property>
+        <property name="right_attach">3</property>
+        <property name="top_attach">3</property>
+        <property name="bottom_attach">4</property>
+        <property name="y_options">GTK_FILL</property>
+        <property name="x_padding">5</property>
+        <property name="y_padding">5</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkEventBox" id="container_soller2">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <child>
+          <placeholder/>
+        </child>
+      </object>
+      <packing>
+        <property name="left_attach">1</property>
+        <property name="right_attach">3</property>
+        <property name="top_attach">4</property>
+        <property name="bottom_attach">5</property>
+        <property name="y_options">GTK_FILL</property>
+        <property name="x_padding">5</property>
+        <property name="y_padding">5</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkEventBox" id="container_min_2theta">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <child>
+          <placeholder/>
+        </child>
+      </object>
+      <packing>
+        <property name="left_attach">1</property>
+        <property name="right_attach">3</property>
+        <property name="top_attach">5</property>
+        <property name="bottom_attach">6</property>
+        <property name="y_options">GTK_FILL</property>
+        <property name="x_padding">5</property>
+        <property name="y_padding">5</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkEventBox" id="container_max_2theta">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <child>
+          <placeholder/>
+        </child>
+      </object>
+      <packing>
+        <property name="left_attach">1</property>
+        <property name="right_attach">3</property>
+        <property name="top_attach">6</property>
+        <property name="bottom_attach">7</property>
+        <property name="y_options">GTK_FILL</property>
+        <property name="x_padding">5</property>
+        <property name="y_padding">5</property>
+      </packing>
+    </child>
   </object>
 </interface>

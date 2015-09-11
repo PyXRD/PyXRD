@@ -10,8 +10,8 @@ import numpy as np
 
 from mvc.models.properties import (
     FloatProperty, IntegerProperty, BoolProperty,
-    SignalMixin
-, LabeledProperty)
+    SignalMixin, LabeledProperty
+)
 
 from pyxrd.refinement.refinables.properties import DataMixin
 
@@ -51,7 +51,7 @@ class Goniometer(DataModel, Storable):
         self._data_object.wavelength_distribution = zip(x.tolist(), y.tolist())
         return self._data_object
 
-    project = property(DataModel.parent.fget, DataModel.parent.fset)
+    specimen = property(DataModel.parent.fget, DataModel.parent.fset)
 
     # PROPERTIES:
 
@@ -59,7 +59,7 @@ class Goniometer(DataModel, Storable):
     #: experimental data)
     min_2theta = FloatProperty(
         default=3.0, text="Start angle", minimum=0.0, maximum=180.0,
-        tabular=True, persistent=True, visible=False,
+        tabular=True, persistent=True, visible=True,
         signal_name="data_changed",
         mix_with=(DataMixin, SignalMixin)
     )
@@ -68,15 +68,15 @@ class Goniometer(DataModel, Storable):
     #: experimental data)
     max_2theta = FloatProperty(
         default=3.0, text="End angle", minimum=0.0, maximum=180.0,
-        tabular=True, persistent=True, visible=False,
+        tabular=True, persistent=True, visible=True,
         signal_name="data_changed",
         mix_with=(DataMixin, SignalMixin)
     )
 
     #: The number of steps between start and end angle
     steps = IntegerProperty(
-        default=2500, text="Steps", minimum=0,
-        tabular=True, persistent=True, visible=False,
+        default=2500, text="Steps", minimum=0, maximum=10000,
+        tabular=True, persistent=True, visible=True,
         signal_name="data_changed",
         mix_with=(DataMixin, SignalMixin)
     )
@@ -92,39 +92,39 @@ class Goniometer(DataModel, Storable):
     #: The wavelength of the generated X-rays (in nm)
     wavelength = FloatProperty(
         default=0.154056, text="Wavelength", minimum=0.0,
-        tabular=True, persistent=True, visible=False,
-        signal_name="data_changed",
+        tabular=True, persistent=True, visible=True,
+        signal_name="data_changed", widget_type='float_entry',
         mix_with=(DataMixin, SignalMixin)
     )
 
     #: The first Soller slit size (in °)
     soller1 = FloatProperty(
-        default=2.3, text="Soller 1", minimum=0,
-        tabular=True, persistent=True, visible=False,
+        default=2.3, text="Soller 1", minimum=0.0, maximum=10.0,
+        tabular=True, persistent=True, visible=True,
         signal_name="data_changed",
         mix_with=(DataMixin, SignalMixin)
     )
 
     #: The second Soller slit size (in °)
     soller2 = FloatProperty(
-        default=2.3, text="Soller 2", minimum=0,
-        tabular=True, persistent=True, visible=False,
+        default=2.3, text="Soller 2", minimum=0.0, maximum=10.0,
+        tabular=True, persistent=True, visible=True,
         signal_name="data_changed",
         mix_with=(DataMixin, SignalMixin)
     )
 
     #: The radius of the goniometer (in cm)
     radius = FloatProperty(
-        default=24.0, text="Radius", minimum=0,
-        tabular=True, persistent=True, visible=False,
+        default=24.0, text="Radius", minimum=0.0, maximum=200.0,
+        tabular=True, persistent=True, visible=True,
         signal_name="data_changed",
         mix_with=(DataMixin, SignalMixin)
     )
 
     #: The divergence slit size of the goniometer (in °)
     divergence = FloatProperty(
-        default=0.5, text="Divergence", minimum=0,
-        tabular=True, persistent=True, visible=False,
+        default=0.5, text="Divergence", minimum=0.0, maximum=90.0,
+        tabular=True, persistent=True, visible=True,
         signal_name="data_changed",
         mix_with=(DataMixin, SignalMixin)
     )
@@ -135,7 +135,7 @@ class Goniometer(DataModel, Storable):
     #: Where I* is the corrected and I is the uncorrected intensity.
     has_ads = BoolProperty(
         default=False, text="Has ADS",
-        tabular=True, persistent=True, visible=False,
+        tabular=True, persistent=True, visible=True,
         signal_name="data_changed",
         mix_with=(DataMixin, SignalMixin)
     )
@@ -143,32 +143,32 @@ class Goniometer(DataModel, Storable):
     #: The factor in the ads equation (see :attr:`has_ads`)
     ads_fact = FloatProperty(
         default=1.0, text="ADS Factor",
-        tabular=True, persistent=True, visible=False,
-        signal_name="data_changed",
+        tabular=True, persistent=True, visible=True,
+        signal_name="data_changed", widget_type='entry',
         mix_with=(DataMixin, SignalMixin)
     )
 
     #: The phase factor in the ads equation (see :attr:`has_ads`)
     ads_phase_fact = FloatProperty(
         default=1.0, text="ADS Phase Factor",
-        tabular=True, persistent=True, visible=False,
-        signal_name="data_changed",
+        tabular=True, persistent=True, visible=True,
+        signal_name="data_changed", widget_type='entry',
         mix_with=(DataMixin, SignalMixin)
     )
 
     #: The phase shift in the ads equation (see :attr:`has_ads`)
     ads_phase_shift = FloatProperty(
         default=0.0, text="ADS Phase Shift",
-        tabular=True, persistent=True, visible=False,
-        signal_name="data_changed",
+        tabular=True, persistent=True, visible=True,
+        signal_name="data_changed", widget_type='entry',
         mix_with=(DataMixin, SignalMixin)
     )
 
     #: The constant in the ads equation (see :attr:`has_ads`)
     ads_const = FloatProperty(
         default=0.0, text="ADS Constant",
-        tabular=True, persistent=True, visible=False,
-        signal_name="data_changed",
+        tabular=True, persistent=True, visible=True,
+        signal_name="data_changed", widget_type='entry',
         mix_with=(DataMixin, SignalMixin)
     )
 

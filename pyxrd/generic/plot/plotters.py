@@ -474,36 +474,39 @@ def plot_specimen(project, specimen, labels, marker_lbls, label_offset, plot_lef
     plot_label(specimen, labels, label_offset, plot_left, axes)
     #make_draggable(getattr(specimen, "__plot_label_artist", None), drag_y_handler=project.on_label_dragged)
 
-def plot_statistics(project, specimen, stats_y_pos, stats_height, axes):
+def plot_statistics(project, specimen, spec_scale, stats_y_pos, stats_height, axes):
 
     # Scales & shifts the pattern so the zero line plots in the middle.
-    def plot_pattern_middle(pattern, axes, height, max_I, offset, **kwargs):
-        max_I = max(max_I, 1)
-        scale = height / (max_I * 2)
-        offset = offset + max_I * scale
+    def plot_pattern_middle(pattern, axes, height, vscale, offset, **kwargs):
+        """
+            Height is the fraction of the plot reserved for the residual pattern
+            vscale is a user scaling factor applied to the residual pattern
+            offset is the offset of the residual pattern position from the x-axis of the plot
+        """
+        # Offset to the middle of the available space:
+        offset = offset + 0.5 * height
+        # If the intensity difference is smaller then the space available, don't scale
+        scale = spec_scale * 0.5 * vscale
         plot_pattern(pattern, axes, scale=scale, offset=offset, **kwargs)
 
     if specimen.display_residuals and specimen.statistics.residual_pattern is not None:
         plot_pattern_middle(
             specimen.statistics.residual_pattern,
             axes, height=stats_height,
-            max_I=specimen.statistics.residual_pattern.abs_max_intensity,
-            offset=stats_y_pos, alpha=0.65
+            vscale=specimen.display_residual_scale,
+            offset=stats_y_pos, alpha=0.75
         )
     if specimen.display_derivatives:
-        max_I = 0.0
         for pattern in (
                 specimen.statistics.der_residual_pattern,
                 specimen.statistics.der_exp_pattern,
                 specimen.statistics.der_calc_pattern):
             if pattern is not None:
-                max_I = max(max_I, pattern.abs_max_intensity)
-        for pattern in (
-                specimen.statistics.der_residual_pattern,
-                specimen.statistics.der_exp_pattern,
-                specimen.statistics.der_calc_pattern):
-            if pattern is not None:
-                plot_pattern_middle(pattern, axes, height=stats_height, max_I=max_I, offset=stats_y_pos, alpha=0.65)
+                plot_pattern_middle(
+                    pattern, axes, height=stats_height,
+                    vscale=specimen.display_residual_scale,
+                    offset=stats_y_pos, alpha=0.65
+                )
 
 def plot_specimens(axes, pos_setup, project, specimens):
     """
@@ -556,7 +559,7 @@ def plot_specimens(axes, pos_setup, project, specimens):
             spec_scale = spec_scale * 0.65
 
             plot_statistics(
-                project, specimen,
+                project, specimen, spec_scale,
                 stats_y_pos, stats_height,
                 axes
             )

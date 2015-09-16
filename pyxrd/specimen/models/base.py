@@ -46,6 +46,7 @@ class Specimen(DataModel, Storable):
             PropIntel(name="display_vshift", label="Vertical shift of the plot", data_type=float, is_column=True, storable=True, has_widget=True, widget_type="spin"),
             PropIntel(name="display_vscale", label="Vertical scale of the plot", data_type=float, is_column=True, storable=True, has_widget=True, widget_type="spin"),
             PropIntel(name="display_residuals", label="Display residual patterns", data_type=bool, is_column=True, storable=True, has_widget=True),
+            PropIntel(name="display_residual_scale", label="Residual pattern scale", data_type=float, minimum=0.0, is_column=True, storable=True, has_widget=True, widget_type="spin"),
             PropIntel(name="display_derivatives", label="Display derivative patterns", data_type=bool, is_column=True, storable=True, has_widget=True),
             PropIntel(name="goniometer", label="Goniometer", data_type=object, is_column=True, storable=True, has_widget=True, widget_type="custom"),
             PropIntel(name="calculated_pattern", label="Calculated diffractogram", data_type=object, is_column=True, storable=True, has_widget=True, widget_type="xy_list_view"),
@@ -136,14 +137,21 @@ class Specimen(DataModel, Storable):
         self._display_derivatives = bool(value)
         self.visuals_changed.emit()
 
+    _display_residual_scale = 1.0
+    def get_display_residual_scale(self): return self._display_residual_scale
+    def set_display_residual_scale(self, value):
+        self._display_residual_scale = float(value)
+        self.visuals_changed.emit()
+
     def get_label(self):
-        if self.display_stats_in_lbl and (self.project is not None and self.project.layout_mode == "FULL"):
-            label = self.sample_name
-            label += "\nRp = %.1f%%" % not_none(self.statistics.Rp, 0.0)
-            label += "\nRwp = %.1f%%" % not_none(self.statistics.Rwp, 0.0)
-            return label
-        else:
-            return self.sample_name
+        label = self.sample_name
+        if (self.project is not None and self.project.layout_mode == "FULL"):
+            if self.display_stats_in_lbl:
+                label += "\nR$_p$ = %.1f%%" % not_none(self.statistics.Rp, 0.0)
+                label += "\nR$_{wp}$ = %.1f%%" % not_none(self.statistics.Rwp, 0.0)
+            if self.display_residual_scale != 1.0:
+                label += "\n\nResidual x%0.1f " % not_none(self.display_residual_scale, 1.0)
+        return label
 
     _calculated_pattern = None
     def get_calculated_pattern(self): return self._calculated_pattern
@@ -310,6 +318,7 @@ class Specimen(DataModel, Storable):
                 self.display_calculated = bool(self.get_kwarg(kwargs, True, "display_calculated"))
                 self.display_experimental = bool(self.get_kwarg(kwargs, True, "display_experimental"))
                 self.display_residuals = bool(self.get_kwarg(kwargs, True, "display_residuals"))
+                self.display_residual_scale = float(self.get_kwarg(kwargs, 1.0, "display_residual_scale"))
                 self.display_derivatives = bool(self.get_kwarg(kwargs, False, "display_derivatives"))
                 self.display_phases = bool(self.get_kwarg(kwargs, False, "display_phases"))
                 self.display_stats_in_lbl = bool(self.get_kwarg(kwargs, True, "display_stats_in_lbl"))

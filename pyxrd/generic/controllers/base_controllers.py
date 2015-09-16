@@ -38,20 +38,27 @@ class DialogMixin(object):
 
     def extract_filename(self, dialog, filters=None):
         """ Extracts the selected filename from a gtk.Dialog """
-        glob = self.get_selected_glob(dialog.get_filter(), filters=filters)
-        filename = self._adjust_filename(dialog.get_filename(), glob)
+        globs = self.get_selected_globs(dialog.get_filter(), filters=filters)
+        filename = self._adjust_filename(dialog.get_filename(), globs)
         dialog.set_filename(filename)
         return filename
 
-    def _adjust_filename(self, filename, glob):
+    def _adjust_filename(self, filename, globs):
         """ Adjusts a given filename so it ends with the proper extension """
-        if glob:
-            extension = glob[1:]
-            if filename[len(filename) - len(extension):].lower() != extension.lower():
-                filename = "%s%s" % (filename, glob[1:])
-        return filename
+        if globs:
+            possible_fns = []
+            for glob in globs:
+                if glob is not None:
+                    extension = glob[1:]
+                    if filename[len(filename) - len(extension):].lower() != extension.lower():
+                        possible_fns.append("%s%s" % (filename, glob[1:]))
+                    else:
+                        return filename # matching extension is returned immediately
+            return possible_fns[0] # otherwise add extension of the first filter
+        else:
+            return filename
 
-    def get_selected_glob(self, filter, filters=None):
+    def get_selected_globs(self, filter, filters=None):
         """ Returns the extension glob corresponding to the selected filter """
         selected_name = filter.get_name()
         for fltr in (filters or self.file_filters):
@@ -62,7 +69,7 @@ class DialogMixin(object):
                 name, globs = parser.description, parser.extensions
             if selected_name == name:
                 if len(globs) and globs[0] != "*.*":
-                    return retrieve_lowercase_extension(globs[0])
+                    return [retrieve_lowercase_extension(glob) for glob in globs]
                 else:
                     return None
 

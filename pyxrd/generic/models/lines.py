@@ -7,6 +7,7 @@
 
 import logging
 from pyxrd.generic.models.properties import InheritableMixin
+from mvc.models.properties.tools import modify
 logger = logging.getLogger(__name__)
 
 import numpy as np
@@ -399,28 +400,36 @@ class CalculatedLine(PyXRDLine):
 
     specimen = property(DataModel.parent.fget, DataModel.parent.fset)
 
-    #: The line color
-    color = StringProperty(
-        default=settings.CALCULATED_COLOR , text="Label",
-        visible=True, persistent=True, widget_type="color",
-        inherit_flag="inherit_color", inherit_from="parent.parent.display_calc_color",
-        signal_name="visuals_changed",
-        mix_with=(InheritableMixin, SignalMixin)
-    )
-
-    #: The linewidth in points
-    lw = FloatProperty(
-        default=settings.CALCULATED_LINEWIDTH, text="Linewidth",
-        visible=True, persistent=True, widget_type="spin",
-        inherit_flag="inherit_lw", inherit_from="parent.parent.display_calc_lw",
-        signal_name="visuals_changed",
-        mix_with=(InheritableMixin, SignalMixin),
-    )
+    # PROPERTIES:
 
     phase_colors = ListProperty(
         default=[], test="Phase colors",
         mix_with=(SignalMixin,),
         signal_name="visuals_changed",
+    )
+
+    #: The line color
+    color = modify(PyXRDLine.color,
+        default=settings.CALCULATED_COLOR,
+        inherit_from="parent.parent.display_calc_color"
+    )
+
+    #: The linewidth in points
+    lw = modify(PyXRDLine.lw,
+        default=settings.CALCULATED_LINEWIDTH,
+        inherit_from="parent.parent.display_calc_lw"
+    )
+
+    #: A short string describing the (matplotlib) linestyle
+    ls = modify(PyXRDLine.ls,
+        default=settings.CALCULATED_LINESTYLE,
+        inherit_from="parent.parent.display_calc_ls"
+    )
+
+    #: A short string describing the (matplotlib) marker
+    marker = modify(PyXRDLine.marker,
+        default=settings.CALCULATED_MARKER,
+        inherit_from="parent.parent.display_calc_marker"
     )
 
     pass # end of class
@@ -437,21 +446,26 @@ class ExperimentalLine(PyXRDLine):
     # PROPERTIES:
 
     #: The line color
-    color = StringProperty(
-        default=settings.EXPERIMENTAL_COLOR , text="Label",
-        visible=True, persistent=True, widget_type="color",
-        inherit_flag="inherit_color", inherit_from="parent.parent.display_exp_color",
-        signal_name="visuals_changed",
-        mix_with=(InheritableMixin, SignalMixin)
+    color = modify(PyXRDLine.color,
+        default=settings.EXPERIMENTAL_COLOR,
+        inherit_from="parent.parent.display_exp_color"
+    )
+    #: The linewidth in points
+    lw = modify(PyXRDLine.lw,
+        default=settings.EXPERIMENTAL_LINEWIDTH,
+        inherit_from="parent.parent.display_exp_lw"
     )
 
-    #: The linewidth in points
-    lw = FloatProperty(
-        default=settings.EXPERIMENTAL_LINEWIDTH, text="Linewidth",
-        visible=True, persistent=True, widget_type="spin",
-        inherit_flag="inherit_lw", inherit_from="parent.parent.display_exp_lw",
-        signal_name="visuals_changed",
-        mix_with=(InheritableMixin, SignalMixin),
+    #: A short string describing the (matplotlib) linestyle
+    ls = modify(PyXRDLine.ls,
+        default=settings.EXPERIMENTAL_LINESTYLE,
+        inherit_from="parent.parent.display_exp_ls"
+    )
+
+    #: A short string describing the (matplotlib) marker
+    marker = modify(PyXRDLine.marker,
+        default=settings.EXPERIMENTAL_MARKER,
+        inherit_from="parent.parent.display_exp_marker"
     )
 
     #: The value to cap the pattern at (in raw values)

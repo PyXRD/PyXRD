@@ -46,10 +46,10 @@ class Controller(Observer):
 
     @property
     def __user_props(self):
-        assert(not (self.auto_adapt_included is not None and self.auto_adapt_excluded is not None),
-            "Controller '%s' has set both auto_adapt_included and auto_adapt_excluded!" % self)
-        assert(self.model is not None,
-            "Controller '%s' has None as model! Did you forget to pass it as a keyword argument?" % self)
+        assert not (self.auto_adapt_included is not None and self.auto_adapt_excluded is not None), \
+            "Controller '%s' has set both auto_adapt_included and auto_adapt_excluded!" % self
+        assert self.model is not None, \
+            "Controller '%s' has None as model! Did you forget to pass it as a keyword argument?" % self
         if not self._controller_scope_aplied:
             props = [prop.name for prop in self.model.Meta.all_properties]
             if self.auto_adapt_included is not None:

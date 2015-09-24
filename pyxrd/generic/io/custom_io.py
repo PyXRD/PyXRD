@@ -185,7 +185,7 @@ class Storable(object):
                 retval[label] = getattr(self, label)
             else:
                 try:
-                    retval[label] = getattr(type(self), store_private)
+                    retval[label] = getattr(self, store_private)
                 except (TypeError, AttributeError):
                     retval[label] = getattr(type(self), label)._get(self)
 

@@ -208,7 +208,7 @@ class Specimen(DataModel, Storable):
     #: A :class:`~pyxrd.specimen.models.Statistics` instance
     statistics = LabeledProperty(
         default=None, text="Markers",
-        visible=False, persistent=True, tabular=True,
+        visible=False, persistent=False, tabular=True,
     )
 
     #: A list :class:`~pyxrd.specimen.models.Marker` instances

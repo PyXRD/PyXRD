@@ -21,7 +21,7 @@ class Refiner(object):
     """
         A model for the refinement procedure.
     """
-       
+
     method = None
     
     history = None

@@ -38,11 +38,18 @@ def _parse_args():
     del parser # free some memory
     return args
 
-def _setup_logging(debug, log_file, scripted=False):
-    if not os.path.exists(os.path.dirname(log_file)):
+def setup_logging(debug=False, log_file=None, basic=False):
+    """
+        Setup logging module.
+         debug: flag indicating wether PyXRD should spew out debug messages
+         log_file: filename used for storing the logged messages
+         basic: flag indicating if a full logger should be setup (False) or
+                if simple, sparse logging is enough (True) 
+    """
+    if log_file is not None and not os.path.exists(os.path.dirname(log_file)):
         os.makedirs(os.path.dirname(log_file))
 
-    if not scripted:
+    if not basic:
         logging.basicConfig(level=logging.DEBUG if debug else logging.INFO,
                             format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
                             datefmt='%m-%d %H:%M',
@@ -64,13 +71,14 @@ def _setup_logging(debug, log_file, scripted=False):
         logging.basicConfig(format='%(name)s - %(levelname)s: %(message)s')
 
 def _apply_settings(no_gui, debug):
-
+    # Apply settings
     from pyxrd.data import settings
-    # apply settings
     settings.apply_runtime_settings(no_gui=no_gui, debug=debug)
 
-    _setup_logging(settings.DEBUG, settings.LOG_FILENAME, no_gui)
+    # Setup logging for real
+    setup_logging(settings.DEBUG, settings.LOG_FILENAME, no_gui)
 
+    # Return the settings
     return settings
 
 def _run_user_script(args):

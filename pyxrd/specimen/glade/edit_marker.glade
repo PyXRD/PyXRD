@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- Generated with glade 3.16.1 -->
 <interface>
-  <!-- interface-requires gtk+ 3.0 -->
   <object class="GtkAdjustment" id="entry_nanometer">
     <property name="upper">100</property>
     <property name="step_increment">0.050000000000000003</property>
@@ -247,7 +247,6 @@
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="invisible_char">•</property>
-            <property name="invisible_char_set">True</property>
             <property name="primary_icon_activatable">False</property>
             <property name="secondary_icon_activatable">False</property>
           </object>
@@ -270,7 +269,7 @@
         <child>
           <object class="GtkSpinButton" id="spb_angle">
             <property name="visible">True</property>
-            <property name="can_focus">False</property>
+            <property name="can_focus">True</property>
             <property name="invisible_char">•</property>
             <property name="width_chars">4</property>
             <property name="truncate_multiline">True</property>

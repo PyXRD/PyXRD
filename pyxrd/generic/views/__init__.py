@@ -121,8 +121,9 @@ class BaseView(View):
 
     def get_toplevel(self):
         for w in self:
-            return self[w].get_toplevel()
-            break # just for ref
+            if hasattr(self[w], 'get_toplevel'):
+                return self[w].get_toplevel()
+                break # just for ref
 
 class TitleView():
     """

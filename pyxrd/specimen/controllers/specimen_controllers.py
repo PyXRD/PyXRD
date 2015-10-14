@@ -123,6 +123,9 @@ class SpecimenController(DialogController, TreeViewMixin):
     def get_exclusion_ranges_tree_model(self):
         return wrap_xydata_to_treemodel(self.model, self.model.Meta.get_prop_intel_by_name("exclusion_ranges"))
 
+    #used to keep a permanent fix on a child controller, prevents early GC
+    _child_ctrl_ref = None
+
     def update_calc_treeview(self, tv):
         """
             Updates the calculated pattern TreeView layout
@@ -146,7 +149,7 @@ class SpecimenController(DialogController, TreeViewMixin):
             Opens the 'remove background' dialog.
         """
         bg_view = BackgroundView(parent=self.view)
-        BackgroundController(model=self.model.experimental_pattern, view=bg_view, parent=self)
+        self._child_ctrl_ref = BackgroundController(model=self.model.experimental_pattern, view=bg_view, parent=self)
         bg_view.present()
 
     def add_noise(self):
@@ -154,7 +157,7 @@ class SpecimenController(DialogController, TreeViewMixin):
             Opens the 'add noise' dialog.
         """
         an_view = AddNoiseView(parent=self.view)
-        AddNoiseController(model=self.model.experimental_pattern, view=an_view, parent=self)
+        self._child_ctrl_ref = AddNoiseController(model=self.model.experimental_pattern, view=an_view, parent=self)
         an_view.present()
 
     def smooth_data(self):
@@ -162,7 +165,7 @@ class SpecimenController(DialogController, TreeViewMixin):
             Opens the 'smooth data' dialog.
         """
         sd_view = SmoothDataView(parent=self.view)
-        SmoothDataController(model=self.model.experimental_pattern, view=sd_view, parent=self)
+        self._child_ctrl_ref = SmoothDataController(model=self.model.experimental_pattern, view=sd_view, parent=self)
         sd_view.present()
 
     def shift_data(self):
@@ -170,7 +173,7 @@ class SpecimenController(DialogController, TreeViewMixin):
             Opens the 'shift data' dialog.
         """
         sh_view = ShiftDataView(parent=self.view)
-        ShiftDataController(model=self.model.experimental_pattern, view=sh_view, parent=self)
+        self._child_ctrl_ref = ShiftDataController(model=self.model.experimental_pattern, view=sh_view, parent=self)
         sh_view.present()
 
     def strip_peak(self):
@@ -178,7 +181,7 @@ class SpecimenController(DialogController, TreeViewMixin):
             Opens the 'strip peak' dialog.
         """
         st_view = StripPeakView(parent=self.view)
-        StripPeakController(model=self.model.experimental_pattern, view=st_view, parent=self)
+        self._child_ctrl_ref = StripPeakController(model=self.model.experimental_pattern, view=st_view, parent=self)
         st_view.present()
 
     def peak_area(self):
@@ -186,7 +189,7 @@ class SpecimenController(DialogController, TreeViewMixin):
             Opens the 'peak area' dialog.
         """
         pa_view = CalculatePeakAreaView(parent=self.view)
-        CalculatePeakAreaController(model=self.model.experimental_pattern, view=pa_view, parent=self)
+        self._child_ctrl_ref = CalculatePeakAreaController(model=self.model.experimental_pattern, view=pa_view, parent=self)
         pa_view.present()
 
     # ------------------------------------------------------------

@@ -218,13 +218,7 @@ class MainPlotController (PlotController):
                 project, specimens
             )
             # get mixtures for the selected specimens:
-            mixtures = []
-            for mixture in project.mixtures:
-                for specimen in specimens:
-                    if specimen in mixture.specimens:
-                        mixtures.append(mixture)
-                        break
-            plot_mixtures(self.plot, project, mixtures)
+            plot_mixtures(self.plot, project, [ mixture for mixture in project.mixtures if any(specimen in mixture.specimens for specimen in specimens) ])
 
         update_axes(
             self.plot, self.position_setup,

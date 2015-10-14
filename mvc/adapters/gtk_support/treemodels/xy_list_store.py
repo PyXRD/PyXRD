@@ -65,6 +65,7 @@ class XYListStore(BaseObjectListStore, Observer):
     # ------------------------------------------------------------
     def __init__(self, model, prop):
         # Check this really is an XYData property:
+        self._flush()
         self._model = model
         self._prop_name = prop.name
         _data = getattr(self._model, self._prop_name, None)
@@ -75,7 +76,7 @@ class XYListStore(BaseObjectListStore, Observer):
         # Continue initialisation:
         BaseObjectListStore.__init__(self, Point)
         Observer.__init__(self, model=self._data)
-        self.set_property("leak-references", True)
+        self.set_property("leak-references", False)
 
         self._last_length = len(self)
         self._last_num_col = self._data.num_columns
@@ -99,18 +100,18 @@ class XYListStore(BaseObjectListStore, Observer):
         #    for the lost elements, if longer emit insert signals
         row_diff = len(self._data) - self._last_length
         if row_diff > 0:
-            for i in range(self._last_length, self._last_length + row_diff, 1):
+            for i in xrange(self._last_length, self._last_length + row_diff, 1):
                 path = self.on_get_path(i)
                 itr = self.get_iter(path)
                 self.row_inserted(path, itr)
         elif row_diff < 0:
-            for i in range(self._last_length, self._last_length + row_diff - 1, -1):
+            for i in xrange(self._last_length, self._last_length + row_diff - 1, -1):
                 path = self.on_get_path(i)
                 self.row_deleted(path)
         self._last_length = len(self._data)
 
         # 3. Emit row-changed signals for all other rows:
-        for i in range(0, len(self._data)):
+        for i in xrange(0, len(self._data)):
             path = self.on_get_path(i)
             itr = self.get_iter(path)
             self.row_changed(path, itr)
@@ -122,14 +123,32 @@ class XYListStore(BaseObjectListStore, Observer):
         return gtk.TREE_MODEL_LIST_ONLY
 
     def on_get_iter(self, path): # returns a rowref, they're actually just paths
-        try:
-            i = path[0]
-            if i >= 0 and i < len(self):
-                return [i, ]
-            else:
-                return None
-        except IndexError:
-            return None
+
+        if not path in self._cache:
+            try:
+                i = path[0]
+                if i >= 0 and i < len(self):
+                    self._cache[path] = [i, ]
+            except IndexError:
+                pass
+        return self._cache.get(path, None)
+        self._schedule_flush()
+        return
+
+    def _schedule_flush(self):
+        if not self._flush_scheduled:
+            def idle_add():
+                gobject.idle_add(self._flush)
+                return False # delete timeout
+
+            gobject.timeout_add(500, idle_add)
+            self._flush_scheduled = True
+
+    def _flush(self):
+        self.invalidate_iters()
+        self._cache = {} # del _cache - keep no ref to this dict
+        self._flush_scheduled = False
+        return False # In case we are called from idle signal
 
     def on_get_value(self, rowref, column):
         if column == self.c_x:

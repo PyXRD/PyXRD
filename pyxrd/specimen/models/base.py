@@ -179,7 +179,12 @@ class Specimen(DataModel, Storable):
     def set_exclusion_ranges(self, value):
         if value != self._exclusion_ranges:
             with self.data_changed.hold_and_emit():
+                if self._exclusion_ranges is not None:
+                    self.relieve_model(self._exclusion_ranges)
                 self._exclusion_ranges = value
+                if self._exclusion_ranges is not None:
+                    self.observe_model(self._exclusion_ranges)
+
 
     _goniometer = None
     def get_goniometer(self): return self._goniometer
@@ -292,10 +297,8 @@ class Specimen(DataModel, Storable):
                     parent=self,
                     **calc_pattern_old_kwargs
                 )
-                self.observe_model(self.experimental_pattern)
 
                 self.exclusion_ranges = PyXRDLine(data=self.get_kwarg(kwargs, None, "exclusion_ranges"), parent=self)
-                self.observe_model(self.exclusion_ranges)
 
                 self.goniometer = self.parse_init_arg(
                     self.get_kwarg(kwargs, None, "goniometer", "project_goniometer"),
@@ -337,7 +340,10 @@ class Specimen(DataModel, Storable):
     # ------------------------------------------------------------
     @DataModel.observe("data_changed", signal=True)
     def notify_data_changed(self, model, prop_name, info):
-        self.data_changed.emit() # propagate signal
+        if model == self.calculated_pattern:
+            self.visuals_changed.emit() # don't propagate this as data_changed
+        else:
+            self.data_changed.emit() # propagate signal
 
     @DataModel.observe("visuals_changed", signal=True)
     def notify_visuals_changed(self, model, prop_name, info):

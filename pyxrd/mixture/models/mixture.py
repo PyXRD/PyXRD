@@ -259,7 +259,6 @@ class Mixture(DataModel, Storable):
         with self.data_changed.hold():
             self.update()
 
-    internal_recurs = False
     @DataModel.observe("data_changed", signal=True)
     def notify_data_changed(self, model, prop_name, info):
         if not model == self and not (
@@ -345,10 +344,11 @@ class Mixture(DataModel, Storable):
         """Sets the specimen at the given slot position"""
         if self.parent is not None: #no parent = no valid specimens
             with self.needs_update.hold_and_emit():
-                with self._relieve_and_observe_specimens():
-                    if specimen is not None and not specimen in self.parent.specimens:
-                        raise RuntimeError, "Cannot add a specimen to a Mixture which is not inside the project!"
-                    self.specimens[specimen_slot] = specimen
+                with self.data_changed.hold():
+                    with self._relieve_and_observe_specimens():
+                        if specimen is not None and not specimen in self.parent.specimens:
+                            raise RuntimeError, "Cannot add a specimen to a Mixture which is not inside the project!"
+                        self.specimens[specimen_slot] = specimen
 
     @contextmanager
     def _relieve_and_observe_specimens(self):

@@ -266,10 +266,20 @@ class SpecimenController(DialogController, TreeViewMixin):
 
     def on_export_exclusion_ranges_clicked(self, widget, data=None):
         def on_accept(dialog):
-            filename = self.extract_filename(dialog, filters=self.excl_filters)
-            if filename[-3:].lower() == "exc":
+            filename = self.extract_filename(dialog)
+            ffilter = dialog.get_filter()
+            parser = ffilter.get_data("parser")
+            try:
                 header = "%s %s" % (self.model.name, self.model.sample_name)
-                self.model.exclusion_ranges.save_data(filename, header=header)
+                self.model.exclusion_ranges.save_data(parser, filename, header=header)
+            except Exception:
+                message = "An unexpected error has occurred when trying to save '%s'.\n" % os.path.basename(filename)
+                message += "Contact the developer about this!"
+                self.run_information_dialog(
+                    message=message,
+                    parent=self.view.get_top_widget()
+                )
+
         self.run_save_dialog(title="Select file for exclusion ranges export",
                              on_accept_callback=on_accept,
                              parent=self.view.get_top_widget(),
@@ -277,7 +287,7 @@ class SpecimenController(DialogController, TreeViewMixin):
 
     def on_replace_experimental_data(self, *args, **kwargs):
         def on_accept(dialog):
-            filename = dialog.get_filename()
+            filename = self.extract_filename(dialog)
             ffilter = dialog.get_filter()
             parser = ffilter.get_data("parser")
             try:

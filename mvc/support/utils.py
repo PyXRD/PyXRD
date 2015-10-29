@@ -26,6 +26,12 @@
 import os
 from uuid import uuid4 as get_uuid
 
+def round_sig(x, sig=1):
+    if x == 0:
+        return 0
+    else:
+        return round(x, sig - int(floor(log10(abs(x)))) - 1)
+
 def not_none(passed, default):
     """Returns `passed` if not None, else `default` is returned"""
     return passed if passed is not None else default

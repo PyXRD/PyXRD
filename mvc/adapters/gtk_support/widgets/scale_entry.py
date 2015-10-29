@@ -1,5 +1,5 @@
 # coding=UTF-8
-# ex:ts=4:sw=4:et: 
+# ex:ts=4:sw=4:et:
 #  -------------------------------------------------------------------------
 #  Copyright (C) 2014 by Mathijs Dumon <mathijs dot dumon at gmail dot com>
 #
@@ -23,6 +23,8 @@
 #  -------------------------------------------------------------------------
 
 import gtk, gobject
+
+from mvc.support.utils import round_sig
 
 class ScaleEntry(gtk.HBox):
     """

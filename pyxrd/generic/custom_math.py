@@ -34,12 +34,6 @@ def solve_division(A, B):
     at = np.transpose(A, axes=(0, 2, 1))
     return np.array([np.transpose(np.linalg.lstsq(bt[i], at[i])[0]) for i in range(bt.shape[0])])
 
-def round_sig(x, sig=1):
-    if x == 0:
-        return 0
-    else:
-        return round(x, sig - int(floor(log10(abs(x)))) - 1)
-
 def capint(lower, value, upper, out=None):
     if value < lower or value > upper:
         return out if out is not None else min(max(value, lower), upper)

@@ -14,9 +14,13 @@ logger = logging.getLogger(__name__)
 
 try:
     import gtk
-    gtk.gdk.threads_init() # @UndefinedVariable
+    import gobject
 except ImportError:
-    pass
+    logger.warning("Could not import gtk or gobject!")
+else:
+    # Initialize multi-threading in gtk:
+    gtk.gdk.threads_init() # @UndefinedVariable
+    gobject.threads_init() # @UndefinedVariable
 
 def _parse_args():
     parser = argparse.ArgumentParser()

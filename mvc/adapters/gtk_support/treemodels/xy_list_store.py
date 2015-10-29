@@ -90,6 +90,9 @@ class XYListStore(BaseObjectListStore, Observer):
             self._emit_update()
 
     def _emit_update(self):
+        # Invalidate iters, we're (probably) changing stuff:
+        self._schedule_flush()
+
         # 1. check if number of columns has changed since last update
         #    if it has changed, emit the corresponding event
         if self._last_num_col != self._data.num_columns:

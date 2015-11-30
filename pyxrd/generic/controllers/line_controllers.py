@@ -282,17 +282,22 @@ class BackgroundController(PatternActionController):
         parser = dialog.get_filter().get_data("parser")
         data_objects = None
         try:
+            # Parse the pattern file
             data_objects = parser.parse(filename)
             pattern = data_objects[0].data
             bg_pattern_x = pattern[:, 0].copy()
             bg_pattern_y = pattern[:, 1].copy()
             del pattern
 
-            if bg_pattern_x.shape != self.model.data_x.shape:
-                raise ValueError, "Shape mismatch: background pattern (shape = %s) and experimental data (shape = %s) need to have the same length!" % (bg_pattern_x.shape, self.model.data_x.shape)
-                dialog.unselect_filename(filename)
-            else:
-                self.model.bg_pattern = bg_pattern_y
+            # Interpolate/Extrapolate where needed to match data shape and range
+            from scipy.interpolate import interp1d
+            f = interp1d(
+                bg_pattern_x, bg_pattern_y,
+                bounds_error=False, fill_value=0
+            )
+            bg_xnew = self.model.data_x
+            bg_ynew = f(bg_xnew)
+            self.model.bg_pattern = bg_ynew
         except Exception as msg:
             message = "An unexpected error has occured when trying to parse %s:\n\n<i>" % os.path.basename(filename)
             message += str(msg) + "</i>\n\n"

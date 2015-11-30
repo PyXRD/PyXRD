@@ -99,7 +99,7 @@ class Statistics(ChildModel):
         try:
             if cal_y is not None and exp_y is not None and cal_y.size > 0 and exp_y.size > 0:
                 # Get the selector for areas to consider in the statistics:
-                selector = self.specimen.get_exclusion_selector(exp_x)
+                selector = self.specimen.get_exclusion_selector()
 
                 if derived:
                     # Calculate and set first derivate patterns:

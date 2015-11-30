@@ -67,7 +67,7 @@ class Specimen(DataModel, Storable):
         # self._data_object.phases = None #clear this
         self._data_object.goniometer = self.goniometer.data_object
         self._data_object.range_theta = self.__get_range_theta()
-        self._data_object.selected_range = self.get_exclusion_selector(self._data_object.range_theta)
+        self._data_object.selected_range = self.get_exclusion_selector()
         try:
             self._data_object.observed_intensity = self.experimental_pattern.data_y[:, 0]
         except IndexError:
@@ -430,23 +430,19 @@ class Specimen(DataModel, Storable):
                     self.markers.append(new_marker)
                 i += 1
 
-    def get_exclusion_selector(self, x):
+    def get_exclusion_selector(self):
         """
         Get the numpy selector array for non-excluded data
         
-        *x* a numpy ndarray containing the 2-theta values (in radians)
-        
         :rtype: a numpy ndarray
         """
-        if x is not None:
-            x = x * 360.0 / pi
-            selector = np.ones(x.shape, dtype=bool)
-            data = np.sort(np.asarray(self.exclusion_ranges.get_xy_data()), axis=0)
-            for x0, x1 in zip(*data):
-                new_selector = ((x < x0) | (x > x1))
-                selector = selector & new_selector
-            return selector
-        return None
+        x = self.__get_range_theta() * 360.0 / pi # convert to degrees
+        selector = np.ones(x.shape, dtype=bool)
+        data = np.sort(np.asarray(self.exclusion_ranges.get_xy_data()), axis=0)
+        for x0, x1 in zip(*data):
+            new_selector = ((x < x0) | (x > x1))
+            selector = selector & new_selector
+        return selector
 
     def get_exclusion_xy(self):
         """

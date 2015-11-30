@@ -49,8 +49,9 @@ def get_machine_correction_range(specimen):
     if specimen.absorption > 0.0:
         correction_range *= np.minimum(1.0 - np.exp(-2.0 * specimen.absorption / range_st), 1.0)
     # And finally correct for sample length:
-    L_Rta = specimen.sample_length / (goniometer.radius * tan(radians(goniometer.divergence)))
-    correction_range *= np.minimum(range_st * L_Rta, 1)
+    if not bool(goniometer.has_ads):
+        L_Rta = specimen.sample_length / (goniometer.radius * tan(radians(goniometer.divergence)))
+        correction_range *= np.minimum(range_st * L_Rta, 1)
     return correction_range
 
 def get_nm_from_t(theta, wavelength=0.154056, zero_for_inf=False):

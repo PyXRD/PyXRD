@@ -19,8 +19,6 @@ try:
 except ImportError:
     logger.warning("Could not import SCOOP, falling back to multiprocessing pool!")
 
-from pyxrd.data import settings
-
 pool = None
 pool_stop = None
 
@@ -33,13 +31,29 @@ def _close_pool():
         pool.close()
         pool.join()
 
-def _worker_initializer(pool_stop, *args):
-    from pyxrd.core import _apply_settings
-    _apply_settings(True, settings.DEBUG)
-    logger.info("Worker process initialized")
+def _worker_initializer(pool_stop, debug, *args):
+
+    # Spoof command line arguments so settings are loaded with correct
+    # debugging flag
+    import sys
+    if debug and not "-d" in sys.argv:
+        sys.argv.insert(1, "-d")
+    if not debug and "-d" in sys.argv:
+        sys.argv.remove("-d")
+
+    # Load settings
+    from pyxrd.data import settings
+
+    if settings.DEBUG:
+        from pyxrd import stacktracer
+        stacktracer.trace_start(
+            "trace-worker-%s.html" % multiprocessing.current_process().name,
+            interval=5, auto=True) # Set auto flag to always update file!
+    logger.info("Worker process initialized, DEBUG=%s" % debug)
 
 def _create_pool(force=False):
     global pool, pool_stop
+    from pyxrd.data import settings
 
     if pool_stop is None: # First time this is called
         pool_stop = multiprocessing.Event()
@@ -47,7 +61,8 @@ def _create_pool(force=False):
 
     if pool is None or force:
         pool_stop.clear()
-        pool = multiprocessing.Pool(initializer=_worker_initializer, initargs=(pool_stop,))
+        logger.warning("Creating pool, DEBUG=%s" % settings.DEBUG)
+        pool = multiprocessing.Pool(initializer=_worker_initializer, initargs=(pool_stop, settings.DEBUG,))
 
     return pool
 

@@ -5,7 +5,7 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-import os
+import argparse, os, sys
 from pyxrd.__version import __version__
 from appdirs import user_data_dir, user_log_dir
 
@@ -218,30 +218,58 @@ PARSER_MODULES = [
     'pyxrd.specimen.parsers'
 ]
 
-### Runtime Settings Retrieval ###
 SETTINGS_APPLIED = False
+ARGS = None
+
+### Runtime Settings Retrieval ###
+
+def _parse_args():
+    """ Parses command line arguments """
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "filename", nargs="?", default="",
+        help="A PyXRD project filename"
+    )
+    parser.add_argument(
+        "-s", "--script", default="",
+        help="Can be used to pass a script containing a run() function"
+    )
+    parser.add_argument(
+        "-d", "--debug", dest='debug', action='store_const',
+        const=True, default=False,
+        help='Run in debug mode'
+    )
+
+    args = parser.parse_args()
+    del parser # free some memory
+    return args
+
 __apply_lock__ = False
-def apply_runtime_settings(no_gui=True, debug=False):
+def apply_runtime_settings(override_debug=False):
     """Apply runtime settings, can and needs to be called only once"""
     global __apply_lock__, SETTINGS_APPLIED
     if not __apply_lock__ and not SETTINGS_APPLIED:
         __apply_lock__ = True
-        global GUI_MODE
-        GUI_MODE = not no_gui
 
-        global DEBUG
-        global DATA_REG, DATA_DIRS, DATA_FILES
+        # Get command line arguments
+        global ARGS
+        ARGS = _parse_args()
+
+        # Set gui flag
+        global GUI_MODE
+        GUI_MODE = not bool(ARGS.script)
 
         # Set debug flag
-        DEBUG = debug
+        global DEBUG
+        DEBUG = ARGS.debug or override_debug
 
         # Setup data registry:
-        import sys
+        global DATA_REG, DATA_DIRS, DATA_FILES
         from pyxrd.generic.io.data_registry import DataRegistry
         DATA_REG = DataRegistry(dirs=DATA_DIRS, files=DATA_FILES)
 
         # If we are running in GUI mode, setup GUI stuff:
-        if not no_gui:
+        if GUI_MODE:
             import matplotlib
             import gtk
 
@@ -292,5 +320,9 @@ def apply_runtime_settings(no_gui=True, debug=False):
         logger.info("Runtime settings applied")
     __apply_lock__ = False
     SETTINGS_APPLIED = True
+
+# Automatic setting initialization:
+if not SETTINGS_APPLIED:
+    apply_runtime_settings()
 
 # ## end of settings

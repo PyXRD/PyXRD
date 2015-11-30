@@ -8,7 +8,7 @@
 # Complete license can be found in the LICENSE file.
 
 import warnings
-import argparse, os
+import os
 import logging
 logger = logging.getLogger(__name__)
 
@@ -22,82 +22,21 @@ else:
     gtk.gdk.threads_init() # @UndefinedVariable
     gobject.threads_init() # @UndefinedVariable
 
-def _parse_args():
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "filename", nargs="?", default="",
-        help="A PyXRD project filename"
-    )
-    parser.add_argument(
-        "-s", "--script", default="",
-        help="Can be used to pass a script containing a run() function"
-    )
-    parser.add_argument(
-        "-d", "--debug", dest='debug', action='store_const',
-        const=True, default=False,
-        help='Run in debug mode'
-    )
-
-    args = parser.parse_args()
-    del parser # free some memory
-    return args
-
-def setup_logging(debug=False, log_file=None, basic=False):
-    """
-        Setup logging module.
-         debug: flag indicating wether PyXRD should spew out debug messages
-         log_file: filename used for storing the logged messages
-         basic: flag indicating if a full logger should be setup (False) or
-                if simple, sparse logging is enough (True) 
-    """
-    if log_file is not None and not os.path.exists(os.path.dirname(log_file)):
-        os.makedirs(os.path.dirname(log_file))
-
-    if not basic:
-        logging.basicConfig(level=logging.DEBUG if debug else logging.INFO,
-                            format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
-                            datefmt='%m-%d %H:%M',
-                            filename=log_file,
-                            filemode='w')
-
-        # Get root logger:
-        logger = logging.getLogger()
-
-        # Setup error stream:
-        console = logging.StreamHandler()
-        full = logging.Formatter("%(name)s - %(levelname)s: %(message)s")
-        console.setFormatter(full)
-
-        # Add console logger to the root logger:
-        logger.addHandler(console)
-    else:
-        # Very basic output for the root object:
-        logging.basicConfig(format='%(name)s - %(levelname)s: %(message)s')
-
-def _apply_settings(no_gui, debug):
-    # Apply settings
-    from pyxrd.data import settings
-    settings.apply_runtime_settings(no_gui=no_gui, debug=debug)
-
-    # Setup logging for real
-    setup_logging(settings.DEBUG, settings.LOG_FILENAME, no_gui)
-
-    # Return the settings
-    return settings
-
-def _run_user_script(args):
+def _run_user_script():
     """
         Runs the user script specified in the command-line arguments.
     """
+    from pyxrd.data import settings
+
     try:
         import imp
-        user_script = imp.load_source('user_script', args.script)
+        user_script = imp.load_source('user_script', settings.ARGS.script)
     except any as err:
-        err.args = "Error when trying to import %s: %s" % (args.script, err.args)
+        err.args = "Error when trying to import %s: %s" % (settings.ARGS.script, err.args)
         raise
-    user_script.run(args)
+    user_script.run(settings.ARGS)
 
-def _run_gui(args):
+def _run_gui():
 
     # Display a splash screen showing the loading status...
     from pkg_resources import resource_filename # @UnresolvedImport
@@ -106,11 +45,6 @@ def _run_gui(args):
 
     filename = resource_filename(__name__, "application/icons/pyxrd.png")
     splash = SplashScreen(filename, __version__)
-
-    # Check if this is already provided:
-    splash.set_message("Parsing arguments ...")
-    if not isinstance(args, argparse.ArgumentParser):
-        args = _parse_args()
 
     # Run GUI:
     splash.set_message("Loading GUI ...")
@@ -123,14 +57,16 @@ def _run_gui(args):
     from pyxrd.application.controllers import AppController
     from pyxrd.generic.gtk_tools.gtkexcepthook import plugin_gtk_exception_hook
 
+    filename = settings.ARGS.filename #@UndefinedVariable
+
     # Check if a filename was passed, if so try to load it
     project = None
-    if args.filename != "":
+    if filename != "":
         try:
-            logging.info("Opening project: %s" % args.filename)
-            project = Project.load_object(args.filename)
+            logging.info("Opening project: %s" % filename)
+            project = Project.load_object(filename)
         except IOError:
-            logging.info("Could not load project file %s: IOError" % args.filename)
+            logging.info("Could not load project file %s: IOError" % filename)
             # FIXME the user should be informed of this in a dialog...
 
     # Disable unity overlay scrollbars as they cause bugs with modal windows
@@ -152,7 +88,6 @@ def _run_gui(args):
     AppController(m, v, gtk_exception_hook=gtk_exception_hook)
 
     # Free this before continuing
-    del args
     del project
     del splash
 
@@ -164,21 +99,25 @@ def run_main():
         Parsers command line arguments and launches PyXRD accordingly.
     """
 
-    # Setup & parse keyword arguments:
-    args = _parse_args()
+    # Get settings
+    from pyxrd.data import settings
 
-    # Apply settings
-    settings = _apply_settings(bool(args.script), args.debug)
+    if settings.DEBUG:
+        from pyxrd import stacktracer
+        stacktracer.trace_start(
+            "trace.html",
+            interval=5, auto=True) # Set auto flag to always update file!
 
     try:
-        if args.script:
+        if settings.ARGS.script:
             # Run the specified user script:
-            _run_user_script(args)
+            _run_user_script()
         else:
             # Run the GUI:
-            _run_gui(args)
+            _run_gui()
     except:
         raise # re-raise the error
     finally:
         for finalizer in settings.FINALIZERS:
             finalizer()
+        if settings.DEBUG: stacktracer.trace_stop()

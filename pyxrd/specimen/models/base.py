@@ -285,17 +285,17 @@ class Specimen(DataModel, Storable):
                     **calc_pattern_old_kwargs
                 )
 
-                calc_pattern_old_kwargs = {}
+                exp_pattern_old_kwargs = {}
                 for kw in ("exp_color", "exp_lw", "inherit_exp_color", "inherit_exp_lw"):
                     if kw in kwargs:
-                        calc_pattern_old_kwargs[kw.replace("exp_", "")] = kwargs.pop(kw)
+                        exp_pattern_old_kwargs[kw.replace("exp_", "")] = kwargs.pop(kw)
                 self.experimental_pattern = self.parse_init_arg(
                     self.get_kwarg(kwargs, None, "experimental_pattern", "data_experimental_pattern"),
                     ExperimentalLine,
                     child=True, default_is_class=True,
                     label="Experimental Profile",
                     parent=self,
-                    **calc_pattern_old_kwargs
+                    **exp_pattern_old_kwargs
                 )
 
                 self.exclusion_ranges = PyXRDLine(data=self.get_kwarg(kwargs, None, "exclusion_ranges"), parent=self)

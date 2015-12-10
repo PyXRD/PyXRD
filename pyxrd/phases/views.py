@@ -55,6 +55,12 @@ class EditPhaseView(BaseView, HasChildView):
             self._add_child_view(view.get_top_widget(), self[self.components_view_container])
         return view
 
+class EditRawPatternPhaseView(BaseView):
+    title = "Edit Raw Pattern Phase"
+    builder = resource_filename(__name__, "glade/raw_pattern_phase.glade")
+    top = "edit_raw_pattern_phase"
+    widget_format = "rp_phase_%s"
+
 class EditAtomRatioView(DialogView):
     title = "Edit Atom Ratio"
     subview_builder = resource_filename(__name__, "glade/ratio.glade")
@@ -205,6 +211,8 @@ class AddPhaseView(DialogView):
     subview_builder = resource_filename(__name__, "glade/addphase.glade")
     subview_toplevel = "add_phase_container"
 
+    active_type = "empty" # | default | raw
+
     def __init__(self, *args, **kwargs):
         DialogView.__init__(self, *args, **kwargs)
 
@@ -214,13 +222,28 @@ class AddPhaseView(DialogView):
     def get_R(self):
         return int(self["R"].get_value_as_int())
 
-    def get_phase(self):
-        itr = self["cmb_default_phases"].get_active_iter()
-        if itr:
-            val = self["cmb_default_phases"].get_model().get_value(itr, 1)
-            return val if val else None
+    def get_phase_type(self):
+        if self.active_type == "empty":
+            return "empty"
+        elif self.active_type == "default":
+            itr = self["cmb_default_phases"].get_active_iter()
+            if itr:
+                val = self["cmb_default_phases"].get_model().get_value(itr, 1)
+            return val if val else "empty"
         else:
-            return None
+            return "raw"
+
+    def update_sensitivities(self):
+        self["cont_empty_phase"].set_sensitive(False)
+        self["cont_default_phase"].set_sensitive(False)
+        if self["rdb_empty_phase"].get_active():
+            self.active_type = "empty"
+            self["cont_empty_phase"].set_sensitive(True)
+        elif self["rdb_default_phase"].get_active():
+            self.active_type = "default"
+            self["cont_default_phase"].set_sensitive(True)
+        else:
+            self.active_type = "raw"
 
     @property
     def phase_combo_box(self):

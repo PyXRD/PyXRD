@@ -5,14 +5,16 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
+import logging
+logger = logging.getLogger(__name__)
+
 import numpy as np
+from scipy.interpolate import interp1d
 
 from pyxrd.generic.custom_math import mmult
 
 from pyxrd.calculations.CSDS import calculate_distribution
 from pyxrd.calculations.components import get_factors
-import logging
-logger = logging.getLogger(__name__)
 
 def get_structure_factors(range_stl, G, comp_list):
     """
@@ -62,7 +64,25 @@ def get_absolute_scale(components, CSDS_real_mean, W):
     else:
         return 0.0
 
-def get_diffracted_intensity(range_stl, phase):
+def get_diffracted_intensity(range_theta, range_stl, phase):
+    if phase.type == "AbtractPhase":
+        raise NotImplementedError
+    elif phase.type == "RawPatternPhase":
+        return _get_raw_intensity(range_theta, range_stl, phase)
+    else:
+        return _get_diffracted_intensity(range_theta, range_stl, phase)
+
+def _get_raw_intensity(range_theta, range_stl, phase):
+    assert phase.type == "RawPatternPhase", "Must be RawPatternPhase!"
+    f = interp1d(
+        phase.raw_pattern_x, phase.raw_pattern_y,
+        bounds_error=False, fill_value=0
+    )
+    i = f(np.rad2deg(2 * range_theta))
+    return i
+
+def _get_diffracted_intensity(range_theta, range_stl, phase):
+    assert phase.type == "Phase", "Must be Phase!"
     # Check probability model, if invalid return zeros instead of the actual pattern:
     if not phase.valid_probs:
         logger.debug("- calc: get_diffracted_intensity reports: 'Invalid probability found!'")

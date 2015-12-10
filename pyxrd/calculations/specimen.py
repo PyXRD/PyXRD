@@ -18,13 +18,17 @@ def get_intensity(range_theta, range_stl, soller1, soller2, phase):
         Gets intensity for a single taking the
         lorentz polarization factor into account.
     """
-    intensity = get_diffracted_intensity(range_stl, phase)
-    lpf = get_lorentz_polarisation_factor(
-        range_theta,
-        phase.sigma_star,
-        soller1, soller2
-    )
-    return intensity * lpf
+
+    intensity = get_diffracted_intensity(range_theta, range_stl, phase)
+    if phase.apply_lpf:
+        lpf = get_lorentz_polarisation_factor(
+            range_theta,
+            phase.sigma_star,
+            soller1, soller2
+        )
+        return intensity * lpf
+    else:
+        return intensity
 
 def calculate_phase_intensities(specimen):
     """
@@ -35,13 +39,22 @@ def calculate_phase_intensities(specimen):
 
     correction_range = get_machine_correction_range(specimen)
 
-    return correction_range, correction_range * np.array([
-        get_intensity(
-            specimen.range_theta, range_stl,
-            specimen.goniometer.soller1, specimen.goniometer.soller2,
-            phase
-        )  if phase != None else np.zeros_like(range_stl) for phase in specimen.phases
-    ], dtype=np.float_)
+    def get_phase_intensities(phases):
+        for phase in phases:
+            if phase != None:
+                correction = correction_range if phase.apply_correction else 1.0
+                yield get_intensity(
+                    specimen.range_theta, range_stl,
+                    specimen.goniometer.soller1, specimen.goniometer.soller2,
+                    phase
+                ) * correction
+            else:
+                yield np.zeros_like(range_stl)
+
+    return (
+        correction_range,
+        np.array([I for I in get_phase_intensities(specimen.phases)], dtype=np.float_)
+     )
 
 def get_summed_intensities(specimen, scale, fractions, bgshift):
     """

@@ -5,28 +5,27 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from atom_relation_controllers import (
-    EditUnitCellPropertyController, 
-    EditAtomRatioController, 
-    EditAtomContentsController, 
+from .atom_relation_controllers import (
+    EditUnitCellPropertyController,
+    EditAtomRatioController,
+    EditAtomContentsController,
     ContentsListController,
     EditAtomRelationsController
 )
 
-from CSDS_controllers import (
+from .CSDS_controllers import (
     EditCSDSTypeController,
     EditCSDSDistributionController
 )
 
-from layer_controllers import EditLayerController
+from .layer_controllers import EditLayerController
 
-from component_controllers import (
+from .component_controllers import (
     ComponentsController,
     EditComponentController
 )
 
-from phase_controllers import (
-    EditPhaseController,
-    PhasesController,
-    AddPhaseController
-)
+from .add_phase_controller import AddPhaseController
+from .edit_phase_controller import EditPhaseController
+from .raw_pattern_phase_controller import EditRawPatternPhaseController
+from .phases_controller import PhasesController

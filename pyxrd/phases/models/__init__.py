@@ -6,9 +6,11 @@
 # Complete license can be found in the LICENSE file.
 
 from .phase import Phase
+from .raw_pattern_phase import RawPatternPhase
 from .component import Component
 
 __all__ = [
     "Phase",
+    "RawPatternPhase",
     "Component",
 ]

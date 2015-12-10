@@ -5,36 +5,29 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from random import choice
-import zipfile
 from warnings import warn
 
 from mvc import Observer, PropIntel
 from mvc.observers import ListObserver
 
-from pyxrd.generic.io import storables, Storable, get_case_insensitive_glob, COMPRESSION
-from pyxrd.generic.models import DataModel
-from pyxrd.calculations.phases import get_diffracted_intensity
-from pyxrd.calculations.data_objects import PhaseData
+from pyxrd.generic.io import storables, Storable, get_case_insensitive_glob
 from pyxrd.refinement.refinables.mixins import RefinementGroup
 from pyxrd.refinement.refinables.metaclasses import PyXRDRefinableMeta
 
 from pyxrd.probabilities.models import get_correct_probability_model
 
+from .abstract_phase import AbstractPhase
 from .CSDS import DritsCSDSDistribution
 from .component import Component
 
 @storables.register()
-class Phase(DataModel, Storable, RefinementGroup):
+class Phase(AbstractPhase, Storable, RefinementGroup):
 
     # MODEL INTEL:
     __metaclass__ = PyXRDRefinableMeta
-    class Meta(DataModel.Meta):
+    class Meta(AbstractPhase.Meta):
         properties = [
-            PropIntel(name="name", data_type=unicode, label="Name", is_column=True, has_widget=True, storable=True),
             PropIntel(name="based_on", data_type=object, label="Based on phase", is_column=True, has_widget=True, widget_type='custom'),
-            PropIntel(name="G", data_type=int, label="# of components", is_column=True, has_widget=True, widget_type="entry", storable=True),
-            PropIntel(name="R", data_type=int, label="Reichweite", is_column=True, has_widget=True, widget_type="entry"),
             PropIntel(name="sigma_star", data_type=float, label=u"σ* [°]", math_label="$\sigma^*$ [°]", is_column=True, has_widget=True, storable=True, refinable=True, minimum=0.0, maximum=90.0, inh_name="inherit_sigma_star", stor_name="_sigma_star", inh_from="based_on"),
             PropIntel(name="display_color", data_type=str, label="Display color", is_column=True, has_widget=True, widget_type='color', storable=True, inh_name="inherit_display_color", stor_name="_display_color", inh_from="based_on"),
             PropIntel(name="inherit_sigma_star", data_type=bool, label="Inh. sigma star", is_column=True, has_widget=True, storable=True),
@@ -52,7 +45,7 @@ class Phase(DataModel, Storable, RefinementGroup):
     _data_object = None
     @property
     def data_object(self):
-
+        self._data_object.type = "Phase"
         self._data_object.valid_probs = (all(self.probabilities.P_valid) and all(self.probabilities.W_valid))
 
         if self._data_object.valid_probs:
@@ -76,11 +69,9 @@ class Phase(DataModel, Storable, RefinementGroup):
 
         return self._data_object
 
-    project = property(DataModel.parent.fget, DataModel.parent.fset)
+    project = property(AbstractPhase.parent.fget, AbstractPhase.parent.fset)
 
     # PROPERTIES:
-    name = "New Phase"
-
     def get_inherit_CSDS_distribution(self): return self._CSDS_distribution.inherited
     def set_inherit_CSDS_distribution(self, value): self._CSDS_distribution.inherited = value
 
@@ -180,10 +171,13 @@ class Phase(DataModel, Storable, RefinementGroup):
             return len(self.components)
         else:
             return 0
+    G = property(get_G, AbstractPhase.G.fset) #@UndefinedVariable
+
 
     def get_R(self):
         if self.probabilities:
             return self.probabilities.R
+    G = property(get_G, AbstractPhase.R.fset) #@UndefinedVariable
 
     # Flag indicating whether or not the links (based_on and linked_with) should
     # be saved as well.
@@ -216,8 +210,9 @@ class Phase(DataModel, Storable, RefinementGroup):
     def __init__(self, *args, **kwargs):
 
         my_kwargs = self.pop_kwargs(kwargs,
-            "data_name", "data_CSDS_distribution", "data_sigma_star", "data_components",
-            "data_G", "R", "data_R", "data_probabilities", "based_on_uuid", "based_on_index",
+            "data_CSDS_distribution", "data_sigma_star", "data_components",
+            "data_G", "G", "data_R", "R",
+            "data_probabilities", "based_on_uuid", "based_on_index",
             "inherit_probabilities",
             *[names[0] for names in Phase.Meta.get_local_storable_properties()]
         )
@@ -226,10 +221,6 @@ class Phase(DataModel, Storable, RefinementGroup):
 
         with self.data_changed.hold():
 
-            self._data_object = PhaseData()
-
-            self.name = self.get_kwarg(kwargs, self.name, "name", "data_name")
-
             CSDS_distribution = self.get_kwarg(kwargs, None, "CSDS_distribution", "data_CSDS_distribution")
             self.CSDS_distribution = self.parse_init_arg(
                 CSDS_distribution, DritsCSDSDistribution, child=True,
@@ -237,7 +228,6 @@ class Phase(DataModel, Storable, RefinementGroup):
             )
             self.inherit_CSDS_distribution = self.get_kwarg(kwargs, False, "inherit_CSDS_distribution")
 
-            self.display_color = self.get_kwarg(kwargs, choice(self.line_colors), "display_color")
             self.sigma_star = self.get_kwarg(kwargs, self._sigma_star, "sigma_star", "data_sigma_star")
 
             self.inherit_display_color = self.get_kwarg(kwargs, False, "inherit_display_color")
@@ -326,60 +316,30 @@ class Phase(DataModel, Storable, RefinementGroup):
             # make sure inherited probabilities are up-to-date
             self.probabilities.update()
 
-    @classmethod
-    def save_phases(cls, phases, filename):
-        """
-            Saves multiple phases to a single file.
-        """
+    def _pre_multi_save(self, phases, ordered_phases):
+        ## Override from base class
 
-        for phase in phases:
-            if phase.based_on != "" and not phase.based_on in phases:
-                phase.save_links = False
-            Component.export_atom_types = True
-            for component in phase.components:
-                component.save_links = phase.save_links
+        if self.based_on != "" and not self.based_on in phases:
+            self.save_links = False
+        Component.export_atom_types = True
+        for component in self.components:
+            component.save_links = self.save_links
 
-        ordered_phases = list(phases) # make a copy
-        if len(phases) > 1:
-            for phase in phases:
-                if phase.based_on in phases:
-                    index = ordered_phases.index(phase)
-                    index2 = ordered_phases.index(phase.based_on)
-                    if index < index2:
-                        ordered_phases.remove(phase.based_on)
-                        ordered_phases.insert(index, phase.based_on)
+        # Make sure parent is first in ordered list:
+        if self.based_on in phases:
+            index = ordered_phases.index(self)
+            index2 = ordered_phases.index(self.based_on)
+            if index < index2:
+                ordered_phases.remove(self.based_on)
+                ordered_phases.insert(index, self.based_on)
 
-        with zipfile.ZipFile(filename, 'w', compression=COMPRESSION) as zfile:
-            for i, phase in enumerate(ordered_phases):
-                zfile.writestr("%d###%s" % (i, phase.uuid), phase.dump_object())
-        for phase in ordered_phases:
-            phase.save_links = True
-            for component in phase.components:
-                component.save_links = True
-            Component.export_atom_types = False
+    def _post_multi_save(self):
+        ## Override from base class
 
-        # After export we change all the UUID's
-        # This way, we're sure that we're not going to import objects with
-        # duplicate UUID's!
-        type(cls).object_pool.change_all_uuids()
-
-    @classmethod
-    def load_phases(cls, filename, parent=None):
-        """
-            Returns multiple phases loaded from a single file.
-        """
-        # Before import, we change all the UUID's
-        # This way we're sure that we're not going to import objects
-        # with duplicate UUID's!
-        type(cls).object_pool.change_all_uuids()
-        if zipfile.is_zipfile(filename):
-            with zipfile.ZipFile(filename, 'r') as zfile:
-                for name in zfile.namelist():
-                    # i, hs, uuid = name.partition("###")
-                    # if uuid=='': uuid = i
-                    yield cls.load_object(zfile.open(name), parent=parent)
-        else:
-            yield cls.load_object(filename, parent=parent)
+        self.save_links = True
+        for component in self.components:
+            component.save_links = True
+        Component.export_atom_types = False
 
     def save_object(self, export=False, **kwargs):
         for component in self.components:
@@ -409,26 +369,5 @@ class Phase(DataModel, Storable, RefinementGroup):
     # ------------------------------------------------------------
     def _update_interference_distributions(self):
         return self.CSDS_distribution.distrib
-
-    def get_diffracted_intensity(self, range_theta, range_stl, lpf_args, correction_range):
-        """
-            Calculates the diffracted intensity (relative scale) for a given
-            theta-range, a matching sin(theta)/lambda range, phase quantity,
-            while employing the passed lorentz-polarization factor callback and
-            the passed correction factor.
-            
-            Will return zeros when the probability of this model is invalid
-            
-            Reference: X-Ray Diffraction by Disordered Lamellar Structures,
-            V. Drits, C. Tchoubar - Springer-Verlag Berlin 1990
-        """
-        phase = self.data_object
-        if phase.valid_probs:
-            return get_diffracted_intensity(
-                range_theta, range_stl, lpf_args, correction_range, phase
-            )
-        else:
-            return get_diffracted_intensity(None, None, None, None, phase)
-
 
     pass # end of class

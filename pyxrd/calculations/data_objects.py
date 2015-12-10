@@ -179,6 +179,12 @@ class ProbabilityData(DataObject):
 class PhaseData(DataObject):
     """ The DataObject describing a phase """
 
+    #: A flag indicating whether to apply Lorentz-polarization factor or not
+    apply_lpf = True
+
+    #: A flag indicating whether to apply machine corrections or not
+    apply_correction = True
+
     #: A list of :class:`~ComponentData` instances
     components = None
 

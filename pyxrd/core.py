@@ -36,7 +36,7 @@ def _run_user_script():
         raise
     user_script.run(settings.ARGS)
 
-def _run_gui():
+def _run_gui(project=None):
 
     # Display a splash screen showing the loading status...
     from pkg_resources import resource_filename # @UnresolvedImport
@@ -60,7 +60,6 @@ def _run_gui():
     filename = settings.ARGS.filename #@UndefinedVariable
 
     # Check if a filename was passed, if so try to load it
-    project = None
     if filename != "":
         try:
             logging.info("Opening project: %s" % filename)
@@ -88,7 +87,6 @@ def _run_gui():
     AppController(m, v, gtk_exception_hook=gtk_exception_hook)
 
     # Free this before continuing
-    del project
     del splash
 
     # lets get this show on the road:

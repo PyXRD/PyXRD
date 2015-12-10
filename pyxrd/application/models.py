@@ -102,6 +102,7 @@ class AppModel(PyXRDModel):
         super(AppModel, self).__init__()
         self.needs_plot_update = Signal()
         self.current_project = project
+        if project: project.parent = self
         self._statistics_visible = False
 
     # ------------------------------------------------------------

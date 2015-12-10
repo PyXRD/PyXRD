@@ -62,6 +62,9 @@ class AppController (BaseController):
         #if self._idle_redraw_id is None:
         self._idle_redraw_id = gobject.idle_add(self.redraw_plot)
 
+        if self.model.project_loaded:
+            self.reset_project_controller()
+
         self.push_status_msg("Done.")
 
     def register_view(self, view):
@@ -85,6 +88,9 @@ class AppController (BaseController):
         self.atom_types = AtomTypesController(model=self.model.current_project, view=self.view.atom_types, parent=self)
         self.mixtures = MixturesController(model=self.model.current_project, view=self.view.mixtures, parent=self)
         self.reset_specimen_controller()
+        self.view.update_project_sensitivities(self.model.project_loaded)
+        self.set_layout_mode(self.model.current_project.layout_mode)
+        self.update_title()
 
     def reset_specimen_controller(self):
         """ Recreates only the specimen controllers """
@@ -96,6 +102,11 @@ class AppController (BaseController):
         else:
             self.specimen = None
             self.markers = None
+        self.view.update_specimen_sensitivities(
+            self.model.single_specimen_selected,
+            self.model.multiple_specimens_selected
+        )
+        self.idle_redraw_plot()
 
     # ------------------------------------------------------------
     #      Notifications of observable properties
@@ -113,19 +124,11 @@ class AppController (BaseController):
     @BaseController.observe("current_project", assign=True, after=True)
     def notif_project_update(self, model, prop_name, info):
         self.reset_project_controller()
-        self.view.update_project_sensitivities(self.model.project_loaded)
-        self.set_layout_mode(self.model.current_project.layout_mode)
-        self.update_title()
 
     @BaseController.observe("current_specimen", assign=True, after=True)
     @BaseController.observe("current_specimens", assign=True, after=True)
     def notif_specimen_changed(self, model, prop_name, info):
         self.reset_specimen_controller()
-        self.view.update_specimen_sensitivities(
-            self.model.single_specimen_selected,
-            self.model.multiple_specimens_selected
-        )
-        self.idle_redraw_plot()
 
     # ------------------------------------------------------------
     #      View updating

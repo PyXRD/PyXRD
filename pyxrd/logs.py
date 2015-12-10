@@ -17,7 +17,7 @@ def setup_logging(basic=False):
     from pyxrd.data import settings
 
     # Whether PyXRD should spew out debug messages
-    debug = not settings.DEBUG
+    debug = settings.DEBUG
     # Filename used for storing the logged messages
     log_file = settings.LOG_FILENAME
     # Flag indicating if a full logger should be setup (False) or

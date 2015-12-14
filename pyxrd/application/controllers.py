@@ -59,8 +59,7 @@ class AppController (BaseController):
         self.atom_types = None
         self.mixtures = None
 
-        #if self._idle_redraw_id is None:
-        self._idle_redraw_id = gobject.idle_add(self.redraw_plot)
+        self.idle_redraw_plot()
 
         if self.model.project_loaded:
             self.reset_project_controller()
@@ -138,6 +137,8 @@ class AppController (BaseController):
     _needs_redraw = False
     def idle_redraw_plot(self):
         """Adds a redraw plot function as 'idle' action to the main GTK loop."""
+        if self._idle_redraw_id is None:
+            self._idle_redraw_id = gobject.idle_add(self.redraw_plot)
         self._needs_redraw = True
 
     @BaseController.status_message("Updating display...")
@@ -150,7 +151,12 @@ class AppController (BaseController):
                 project=self.model.current_project,
                 specimens=self.model.current_specimens[::-1]
             )
-        return True #don't remove source
+        if self._needs_redraw:
+            return True
+        else:
+            self._idle_redraw_id = None
+            return False
+
 
     def update_title(self):
         """Convenience method for setting the application view's title"""

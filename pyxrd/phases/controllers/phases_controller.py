@@ -93,7 +93,8 @@ class PhasesController(ObjectListStoreController):
                 self.add_object(RawPatternPhase())
             else:
                 filename = phase_type
-                self.model.load_phases(filename, insert_index=index)
+                if filename != None:
+                    self.model.load_phases(filename, insert_index=index)
 
         # TODO re-use this and reset the COMBO etc.
         self.add_model = Model()

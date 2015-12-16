@@ -226,10 +226,9 @@ class AddPhaseView(DialogView):
         if self.active_type == "empty":
             return "empty"
         elif self.active_type == "default":
-            itr = self["cmb_default_phases"].get_active_iter()
-            if itr:
-                val = self["cmb_default_phases"].get_model().get_value(itr, 1)
-            return val if val else "empty"
+            itr = self.phase_combo_box.get_active_iter()
+            val = self.phase_combo_box.get_model().get_value(itr, 1) if itr else None
+            return val
         else:
             return "raw"
 

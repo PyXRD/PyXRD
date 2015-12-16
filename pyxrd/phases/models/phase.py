@@ -354,7 +354,7 @@ class Phase(AbstractPhase, Storable, RefinementGroup):
         return retval
 
     def json_properties(self):
-        retval = Storable.json_properties(self)
+        retval = super(Phase, self).json_properties()
         if not self.save_links:
             for prop in self.Meta.all_properties:
                 if prop.inh_name:

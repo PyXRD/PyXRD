@@ -90,10 +90,10 @@ class AbstractPhase(DataModel, Storable):
     def resolve_json_references(self):
         pass # nothing to do, sub-classes should override
 
-    def _pre_multi_save(self, phases):
+    def _pre_multi_save(self, phases, ordered_phases):
         pass # nothing to do, sub-classes should override
 
-    def _post_multi_save(self, phases):
+    def _post_multi_save(self):
         pass # nothing to do, sub-classes should override
 
     @classmethod
@@ -103,7 +103,7 @@ class AbstractPhase(DataModel, Storable):
         """
         ordered_phases = list(phases) # make a copy
         for phase in phases:
-            phase._pre_multi_save()
+            phase._pre_multi_save(phases, ordered_phases)
 
         with zipfile.ZipFile(filename, 'w', compression=COMPRESSION) as zfile:
             for i, phase in enumerate(ordered_phases):

@@ -58,8 +58,27 @@ class TestPhase(unittest.TestCase):
     test_inherit_CSDS_distribution = create_object_attribute_test("phase", "inherit_CSDS_distribution", True)
     test_inherit_sigma_star = create_object_attribute_test("phase", "inherit_sigma_star", True)
     test_inherit_probabilities = create_object_attribute_test("phase", "inherit_probabilities", True)
-
-    # TODO:
-    #  - test export / import
+    
+    def test_import_export(self):
+        import cStringIO
+        phases = [Phase(R=0, G=1), Phase(R=1, G=2)]
+        fn = cStringIO.StringIO()
+        Phase.save_phases(phases, filename=fn)
+        loaded_phases = list(Phase.load_phases(fn))
+        
+        def strip_uuid(data):
+            new_data = []
+            for line in data.split('\n'):
+                if "uuid" not in line:
+                    new_data.append(line)
+            return "\n".join(new_data)
+        
+        outp1 = [strip_uuid(phase.dump_object()) for phase in phases]
+        outp2 = [strip_uuid(phase.dump_object()) for phase in loaded_phases]
+        self.assertEqual(outp1, outp2)
+            
+            
+    
+    
 
     pass # end of class

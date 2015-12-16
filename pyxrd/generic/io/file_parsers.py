@@ -321,9 +321,12 @@ class ASCIIParser(BaseParser):
         """
             Writes the header to the first line, and will write x, y1, ..., yn
             rows for each column inside the x and ys arguments.
-            Header argument should not include a newline.
+            Header argument should not include a newline, and can be a string or
+            any iterable containing strings.
         """
         f = open(filename, 'w')
+        if not isinstance(header, basestring): # python 3: ... , str)!
+            header = delimiter.join(header) # assume this is an iterable
         f.write(u"%s\n" % header)
         np.savetxt(f, np.insert(ys, 0, x, axis=0).transpose(), fmt="%.8f", delimiter=delimiter)
         f.close()

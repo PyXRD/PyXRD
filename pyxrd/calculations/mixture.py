@@ -5,16 +5,15 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-import time
 from itertools import izip
+import time
+import logging
+logger = logging.getLogger(__name__)
 
 import numpy as np
 from scipy.optimize import fmin_l_bfgs_b
 
 from pyxrd.data import settings
-settings.apply_runtime_settings()
-import logging
-logger = logging.getLogger(__name__)
 
 from .specimen import calculate_phase_intensities, get_summed_intensities
 from .exceptions import wrap_exceptions

@@ -11,6 +11,7 @@ if __name__ == "__main__":
 
     # Init settings, first import will trigger initialization
     from pyxrd.data import settings
+    settings.initialize()
 
     # Setup basic logging
     from pyxrd.logs import setup_logging

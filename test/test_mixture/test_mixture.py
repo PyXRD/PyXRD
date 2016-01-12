@@ -11,6 +11,8 @@ import unittest
 
 from test.utils import create_object_attribute_test
 
+from pyxrd.data import settings
+
 from pyxrd.phases.models import Phase
 from pyxrd.specimen.models import Specimen
 from pyxrd.project.models import Project
@@ -30,6 +32,7 @@ class TestMixture(unittest.TestCase):
     atom_type = None
 
     def setUp(self):
+        settings.initialize()
         self.project = Project(name="TestProject")
         self.mixture = Mixture(name="TestMixture", parent=self.project)
 

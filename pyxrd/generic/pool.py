@@ -43,6 +43,7 @@ def _worker_initializer(pool_stop, debug, *args):
 
     # Load settings
     from pyxrd.data import settings
+    settings.initialize()
 
     if settings.DEBUG:
         from pyxrd import stacktracer
@@ -54,6 +55,7 @@ def _worker_initializer(pool_stop, debug, *args):
 def _create_pool(force=False):
     global pool, pool_stop
     from pyxrd.data import settings
+    settings.initialize()
 
     if pool_stop is None: # First time this is called
         pool_stop = multiprocessing.Event()

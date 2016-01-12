@@ -247,7 +247,7 @@ def _parse_args():
     return args
 
 __apply_lock__ = False
-def apply_runtime_settings(override_debug=False):
+def initialize(override_debug=False):
     """Apply runtime settings, can and needs to be called only once"""
     global __apply_lock__, SETTINGS_APPLIED
     if not __apply_lock__ and not SETTINGS_APPLIED:
@@ -322,9 +322,5 @@ def apply_runtime_settings(override_debug=False):
         logger.info("Runtime settings applied")
     __apply_lock__ = False
     SETTINGS_APPLIED = True
-
-# Automatic setting initialization:
-if not SETTINGS_APPLIED:
-    apply_runtime_settings()
 
 # ## end of settings

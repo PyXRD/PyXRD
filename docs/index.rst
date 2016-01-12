@@ -51,6 +51,7 @@ Contents
    :maxdepth: 2
    
    api/index
+   scripts-tutorial/index
 
 Indices and tables
 ==================

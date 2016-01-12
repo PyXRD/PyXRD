@@ -28,6 +28,7 @@ from pyxrd.generic.models.lines import PyXRDLine
 from markers import Marker
 from statistics import Statistics
 
+from ..parsers import EXCParser #@UnusedImport leave this so it gets registered
 
 @storables.register()
 class Specimen(DataModel, Storable):

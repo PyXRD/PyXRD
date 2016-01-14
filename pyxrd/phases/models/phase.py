@@ -5,6 +5,7 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
+from random import choice
 from warnings import warn
 
 from mvc import Observer, PropIntel
@@ -29,7 +30,7 @@ class Phase(AbstractPhase, Storable, RefinementGroup):
         properties = [
             PropIntel(name="based_on", data_type=object, label="Based on phase", is_column=True, has_widget=True, widget_type='custom'),
             PropIntel(name="sigma_star", data_type=float, label=u"σ* [°]", math_label="$\sigma^*$ [°]", is_column=True, has_widget=True, storable=True, refinable=True, minimum=0.0, maximum=90.0, inh_name="inherit_sigma_star", stor_name="_sigma_star", inh_from="based_on"),
-            PropIntel(name="display_color", data_type=str, label="Display color", is_column=True, has_widget=True, widget_type='color', storable=True, inh_name="inherit_display_color", stor_name="_display_color", inh_from="based_on"),
+            PropIntel(name="display_color", data_type=str, label="Display color", is_column=True, has_widget=True, widget_type='color', storable=True, inh_name="inherit_display_color", stor_name="_display_color", inh_from="inh_from"),
             PropIntel(name="inherit_sigma_star", data_type=bool, label="Inh. sigma star", is_column=True, has_widget=True, storable=True),
             PropIntel(name="inherit_display_color", data_type=bool, label="Inh. display color", is_column=True, has_widget=True, storable=True),
             PropIntel(name="inherit_CSDS_distribution", data_type=bool, label="Inh. mean CSDS", is_column=True, has_widget=True, storable=True),
@@ -183,15 +184,6 @@ class Phase(AbstractPhase, Storable, RefinementGroup):
     # be saved as well.
     save_links = True
 
-    line_colors = [
-        "#004488",
-        "#FF4400",
-        "#559911",
-        "#770022",
-        "#AACC00",
-        "#441177",
-    ]
-
     # REFINEMENT GROUP IMPLEMENTATION:
     @property
     def refine_title(self):
@@ -228,9 +220,10 @@ class Phase(AbstractPhase, Storable, RefinementGroup):
             )
             self.inherit_CSDS_distribution = self.get_kwarg(kwargs, False, "inherit_CSDS_distribution")
 
-            self.sigma_star = self.get_kwarg(kwargs, self._sigma_star, "sigma_star", "data_sigma_star")
-
+            self.display_color = self.get_kwarg(kwargs, choice(self.line_colors), "display_color")
             self.inherit_display_color = self.get_kwarg(kwargs, False, "inherit_display_color")
+
+            self.sigma_star = self.get_kwarg(kwargs, self._sigma_star, "sigma_star", "data_sigma_star")
             self.inherit_sigma_star = self.get_kwarg(kwargs, False, "inherit_sigma_star")
 
             self.components = self.get_list(kwargs, [], "components", "data_components", parent=self)

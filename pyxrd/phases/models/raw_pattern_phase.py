@@ -5,6 +5,7 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
+from random import choice
 import numpy as np
 
 from mvc import PropIntel
@@ -25,7 +26,7 @@ class RawPatternPhase(AbstractPhase, Storable):
     __metaclass__ = PyXRDRefinableMeta
     class Meta(AbstractPhase.Meta):
         properties = [
-            PropIntel(name="name", data_type=unicode, label="Name", is_column=True, has_widget=True, storable=True),
+            PropIntel(name="display_color", data_type=str, label="Display color", is_column=True, has_widget=True, widget_type='color', storable=True),
             PropIntel(name="raw_pattern", label="Raw pattern", data_type=object, is_column=True, storable=True, has_widget=True, widget_type="xy_list_view"),
         ]
         store_id = "RawPatternPhase"
@@ -71,6 +72,13 @@ class RawPatternPhase(AbstractPhase, Storable):
             _max = max(_max, np.max(self.raw_pattern.max_intensity))
         return _max
 
+    _display_color = "#FFB600"
+    def get_display_color(self): return self._display_color
+    def set_display_color(self, value):
+        if self._display_color != value:
+            with self.visuals_changed.hold_and_emit():
+                self._display_color = value
+
     # ------------------------------------------------------------
     #      Initialization and other internals
     # ------------------------------------------------------------
@@ -87,6 +95,8 @@ class RawPatternPhase(AbstractPhase, Storable):
                 data=self.get_kwarg(kwargs, None, "raw_pattern"),
                 parent=self
             )
+            self.display_color = self.get_kwarg(kwargs, choice(self.line_colors), "display_color")
+            self.inherit_display_color = self.get_kwarg(kwargs, False, "inherit_display_color")
 
     def __repr__(self):
         return "RawPatternPhase(name='%s')" % (self.name)

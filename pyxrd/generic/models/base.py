@@ -74,7 +74,51 @@ class PyXRDModel(Model):
 
     pass # end of class
 
-class ChildModel(PyXRDModel):
+class InheritableMixin(object):
+    """
+        A mixin class providing functionality for inheritable properties. 
+    """
+
+    def get_uninherited_property_value(self, prop):
+        """
+            Gets the 'private' value for the given attribute name
+            from the object, by-passing the regular inheritance rules.
+        """
+        if prop.inh_name is not None:
+            return self._get_inheritable_property_value(prop.name, apply_inheritance=False)
+        else:
+            return getattr(self, prop.name)
+
+    def _get_inheritable_property_value(self, prop, apply_inheritance=True):
+        """
+            Gets either the own or the inherited value for the given attribute 
+            name or PropIntel object, applying the inheritance rules if the keyword 
+            'apply_inheritance' is True.
+        """
+        if isinstance(prop, types.StringTypes):
+            prop = self.Meta.get_prop_intel_by_name(prop)
+        inh_from = self._get_inherit_from(prop)
+        if apply_inheritance and self._is_inheritable(prop) and inh_from is not None:
+            return getattr(inh_from, prop.name)
+        else:
+            return getattr(self, prop.get_private_name())
+
+    def _get_inherit_from(self, prop):
+        if isinstance(prop, types.StringTypes):
+            prop = self.Meta.get_prop_intel_by_name(prop)
+        if prop.inh_from is not None:
+            return rec_getattr(self, prop.inh_from, None)
+        else:
+            return None
+
+    def _is_inheritable(self, prop):
+        if isinstance(prop, types.StringTypes):
+            prop = self.Meta.get_prop_intel_by_name(prop)
+        return prop.inh_name is not None and getattr(self, prop.inh_name, False)
+
+    pass # end of class
+
+class ChildModel(PyXRDModel, InheritableMixin):
     """
         A PyXRDModel with child-parent relation support.
         Additionally, if you have properties that can actually be 'inherited'
@@ -125,43 +169,6 @@ class ChildModel(PyXRDModel):
         self.removed = Signal()
         self.added = Signal()
         self.parent = parent
-
-    def get_uninherited_property_value(self, prop):
-        """
-            Gets the 'private' value for the given attribute name
-            from the object, by-passing the regular inheritance rules.
-        """
-        if prop.inh_name is not None:
-            return self._get_inheritable_property_value(prop.name, apply_inheritance=False)
-        else:
-            return getattr(self, prop.name)
-
-    def _get_inheritable_property_value(self, prop, apply_inheritance=True):
-        """
-            Gets either the own or the inherited value for the given attribute 
-            name or PropIntel object, applying the inheritance rules if the keyword 
-            'apply_inheritance' is True.
-        """
-        if isinstance(prop, types.StringTypes):
-            prop = self.Meta.get_prop_intel_by_name(prop)
-        inh_from = self._get_inherit_from(prop)
-        if apply_inheritance and self._is_inheritable(prop) and inh_from is not None:
-            return getattr(inh_from, prop.name)
-        else:
-            return getattr(self, prop.get_private_name())
-
-    def _get_inherit_from(self, prop):
-        if isinstance(prop, types.StringTypes):
-            prop = self.Meta.get_prop_intel_by_name(prop)
-        if prop.inh_from is not None:
-            return rec_getattr(self, prop.inh_from, None)
-        else:
-            return None
-
-    def _is_inheritable(self, prop):
-        if isinstance(prop, types.StringTypes):
-            prop = self.Meta.get_prop_intel_by_name(prop)
-        return prop.inh_name is not None and getattr(self, prop.inh_name, False)
 
     pass # end of class
 

@@ -5,7 +5,6 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from random import choice
 import zipfile
 
 from mvc.models.prop_intel import PropIntel
@@ -39,13 +38,6 @@ class AbstractPhase(DataModel, Storable):
     # PROPERTIES:
     name = "New Phase"
 
-    _display_color = "#FFB600"
-    def get_display_color(self): return self._display_color
-    def set_display_color(self, value):
-        if self._display_color != value:
-            with self.visuals_changed.hold_and_emit():
-                self._display_color = value
-
     def get_G(self):
         return 0
 
@@ -78,8 +70,6 @@ class AbstractPhase(DataModel, Storable):
             self._data_object = PhaseData()
 
             self.name = self.get_kwarg(kwargs, self.name, "name", "data_name")
-            self.display_color = self.get_kwarg(kwargs, choice(self.line_colors), "display_color")
-
 
     def __repr__(self):
         return "AbstractPhase(name='%s')" % (self.name)

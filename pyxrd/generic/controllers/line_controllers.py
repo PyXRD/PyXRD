@@ -10,6 +10,7 @@ import os
 from pyxrd.generic.io.file_parsers import parsers
 from pyxrd.generic.controllers import BaseController, DialogController
 from pyxrd.generic.plot.eye_dropper import EyeDropper
+from mvc.adapters.gtk_support.dialogs.dialog_factory import DialogFactory
 
 
 class LinePropertiesController(BaseController):
@@ -254,7 +255,7 @@ class BackgroundController(PatternActionController):
     def register_view(self, view):
         super(BackgroundController, self).register_view(view)
         view.set_file_dialog(
-            self.get_load_dialog(
+            DialogFactory.get_load_dialog(
                 title="Open XRD file for import",
                 parent=view.get_top_widget()
             ),
@@ -278,10 +279,13 @@ class BackgroundController(PatternActionController):
         # This should allow more flexibility:
         #  Patterns should be allowed to not have the exact same shape,
         #  add an x-shift variable to align them
-        filename = dialog.get_filename()
-        parser = dialog.get_filter().get_data("parser")
+        filename = dialog.filename
+        parser = dialog.parser
         data_objects = None
-        try:
+        message = "An unexpected error has occurred when trying to parse %s:\n\n<i>" % os.path.basename(filename)
+        message += "{}</i>\n\n"
+        message += "This is most likely caused by an invalid or unsupported file format."
+        with DialogFactory.error_dialog_handler(message, parent=self.view.get_toplevel(), reraise=False):
             # Parse the pattern file
             data_objects = parser.parse(filename)
             pattern = data_objects[0].data
@@ -298,13 +302,5 @@ class BackgroundController(PatternActionController):
             bg_xnew = self.model.data_x
             bg_ynew = f(bg_xnew)
             self.model.bg_pattern = bg_ynew
-        except Exception as msg:
-            message = "An unexpected error has occured when trying to parse %s:\n\n<i>" % os.path.basename(filename)
-            message += str(msg) + "</i>\n\n"
-            message += "This is most likely caused by an invalid or unsupported file format."
-            self.run_information_dialog(
-                message=message,
-                parent=self.view.get_top_widget()
-            )
 
     pass # end of class

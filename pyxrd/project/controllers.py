@@ -13,6 +13,7 @@ import os
 import pango
 import gtk, gobject
 
+from mvc.adapters.gtk_support.dialogs.dialog_factory import DialogFactory
 from mvc import Controller
 
 from pyxrd.generic.controllers.line_controllers import BackgroundController
@@ -114,8 +115,8 @@ class ProjectController(ObjectListStoreController):
             parser = dialog.get_filter().get_data("parser")
 
             task = ThreadedTaskBox()
-            window = self.get_custom_dialog(task, parent=self.view.get_top_widget())
-
+            window = DialogFactory.get_custom_dialog(
+                 task, parent=self.view.get_top_widget())
             # Status:
             status_dict = dict(
                 total_files=len(filenames),
@@ -137,10 +138,10 @@ class ProjectController(ObjectListStoreController):
                         logger.exception(message)
                         @run_when_idle
                         def run_dialog():
-                            self.run_information_dialog(
+                            DialogFactory.get_information_dialog(
                                 message=message,
                                 parent=self.view.get_top_widget()
-                            )
+                            ).run()
                             return False
                         run_dialog()
                     else:
@@ -183,10 +184,9 @@ class ProjectController(ObjectListStoreController):
             self.thread = CancellableThread(load_specimens, on_complete)
             self.thread.start()
 
-        self.run_load_dialog(title="Select XRD files for import",
-                             on_accept_callback=on_accept,
+        DialogFactory.get_load_dialog(title="Select XRD files for import",
                              parent=self.view.get_top_widget(),
-                             multiple=True)
+                             multiple=True).run(on_accept)
 
     @BaseController.status_message("Deleting specimen...", "del_specimen")
     def delete_selected_specimens(self):
@@ -200,10 +200,10 @@ class ProjectController(ObjectListStoreController):
                 for obj in selection:
                     if obj is not None:
                         self.model.specimens.remove(obj)
-            self.run_confirmation_dialog(
+            DialogFactory.get_confirmation_dialog(
                 message='Deleting a specimen is irreversible!\nAre You sure you want to continue?',
-                on_accept_callback=delete_objects,
-                parent=self.view.get_top_widget())
+                parent=self.view.get_top_widget()
+            ).run(delete_objects)
 
     @BaseController.status_message("Removing backgrounds...", "del_bg_specimen")
     def remove_backgrounds(self, specimens):
@@ -233,10 +233,10 @@ class ProjectController(ObjectListStoreController):
                     bg_view.present()
 
         # Ask user if he/she wants automation:
-        self.run_confirmation_dialog(
+        DialogFactory.get_confirmation_dialog(
             "Do you want to perform an automated linear background subtraction?",
-            on_automated, on_not_automated, parent=self.parent.view.get_top_widget()
-        )
+            parent=self.parent.view.get_top_widget()
+        ).run(on_automated, on_not_automated)
 
     def edit_specimen(self):
         selection = self.get_selected_objects()

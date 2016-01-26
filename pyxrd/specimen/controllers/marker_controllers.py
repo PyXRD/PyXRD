@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 import gtk
 
+from mvc.adapters.gtk_support.dialogs.dialog_factory import DialogFactory
 from mvc import Controller
 
 from pyxrd.generic.plot.eye_dropper import EyeDropper
@@ -143,15 +144,20 @@ class MarkersController(ObjectListStoreController):
     def on_load_object_clicked(self, event):
         def on_accept(dialog):
             with self._multi_operation_context():
-                for marker in Marker.get_from_csv(dialog.get_filename(), self.model):
+                for marker in Marker.get_from_csv(dialog.filename, self.model):
                     self.model.markers.append(marker)
-        self.run_load_dialog("Import markers", on_accept, parent=self.view.get_top_widget())
+        DialogFactory.get_load_dialog(
+            "Import markers", parent=self.view.get_top_widget(),
+            filters=self.file_filters
+        ).run(on_accept)
 
     def on_save_object_clicked(self, event):
         def on_accept(dialog):
-            filename = self.extract_filename(dialog)
-            Marker.save_as_csv(filename, self.get_selected_objects())
-        self.run_save_dialog("Export markers", on_accept, parent=self.view.get_top_widget())
+            Marker.save_as_csv(dialog.filename, self.get_selected_objects())
+        DialogFactory.get_save_dialog(
+            "Export markers", parent=self.view.get_top_widget(),
+            filters=self.file_filters
+        ).run(on_accept)
 
     def create_new_object_proxy(self):
         return Marker(label="New Marker", parent=self.model)
@@ -176,11 +182,12 @@ class MarkersController(ObjectListStoreController):
             def on_accept(dialog):
                 self.model.clear_markers()
                 sel_view.present()
-
             def on_reject(dialog):
                 sel_view.present()
-            self.run_confirmation_dialog("Do you want to clear the current markers for this pattern?",
-                                         on_accept, on_reject, parent=self.view.get_top_widget())
+            DialogFactory.get_confirmation_dialog(
+                "Do you want to clear the current markers for this pattern?",
+                parent=self.view.get_top_widget()
+            ).run(on_accept, on_reject)
         else:
             sel_view.present()
 

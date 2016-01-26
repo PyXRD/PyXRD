@@ -11,8 +11,10 @@ logger = logging.getLogger(__name__)
 
 import gtk
 
-from mvc.adapters import DummyAdapter
+from mvc.adapters.gtk_support.dialogs.dialog_factory import DialogFactory
 from mvc.adapters.gtk_support.tree_view_adapters import wrap_xydata_to_treemodel
+from mvc.adapters import DummyAdapter
+
 from pyxrd.generic.controllers import BaseController, DialogController, TreeViewMixin
 from pyxrd.generic.views.treeview_tools import setup_treeview, new_text_column
 from pyxrd.generic.io.xrd_parsers import CSVParser, CPIParser
@@ -38,7 +40,6 @@ from pyxrd.generic.views.line_views import (
     StripPeakView,
     CalculatePeakAreaView
 )
-from pyxrd.data import settings
 
 class SpecimenController(DialogController, TreeViewMixin):
     """
@@ -244,72 +245,58 @@ class SpecimenController(DialogController, TreeViewMixin):
     def on_import_exclusion_ranges_clicked(self, widget, data=None):
         def on_confirm(dialog):
             def on_accept(dialog):
-                filename = dialog.get_filename()
-                ffilter = dialog.get_filter()
-                parser = ffilter.get_data("parser")
-                try:
+                filename = dialog.filename
+                parser = dialog.parser
+                message = "An unexpected error has occured when trying to parse %s:\n\n<i>" % os.path.basename(filename)
+                message += "{}</i>\n\n"
+                message += "This is most likely caused by an invalid or unsupported file format."
+                
+                with DialogFactory.error_dialog_handler(message, parent=self.view.get_toplevel(), reraise=False):
                     self.model.exclusion_ranges.load_data(parser, filename, clear=True)
-                except Exception as msg:
-                    message = "An unexpected error has occured when trying to parse %s:\n\n<i>" % os.path.basename(filename)
-                    message += str(msg) + "</i>\n\n"
-                    message += "This is most likely caused by an invalid or unsupported file format."
-                    self.run_information_dialog(
-                        message=message,
-                        parent=self.view.get_top_widget()
-                    )
-            self.run_load_dialog(title="Import exclusion ranges",
-                                 on_accept_callback=on_accept,
-                                 parent=self.view.get_top_widget(),
-                                 filters=self.excl_filters)
-        self.run_confirmation_dialog("Importing exclusion ranges will erase all current data.\nAre you sure you want to continue?",
-                                     on_confirm, parent=self.view.get_top_widget())
+            DialogFactory.get_load_dialog(
+                title="Import exclusion ranges", parent=self.view.get_top_widget(),
+                filters=self.excl_filters
+            ).run(on_accept)
+        DialogFactory.get_confirmation_dialog(
+            "Importing exclusion ranges will erase all current data.\nAre you sure you want to continue?",
+            parent=self.view.get_top_widget()
+        ).run(on_confirm)
 
     def on_export_exclusion_ranges_clicked(self, widget, data=None):
         def on_accept(dialog):
-            filename = self.extract_filename(dialog)
-            ffilter = dialog.get_filter()
-            parser = ffilter.get_data("parser")
-            try:
+            filename = dialog.filename
+            parser = dialog.parser
+            message = "An unexpected error has occurred when trying to save '%s'.\n" % os.path.basename(filename)
+            message += "Contact the developer about this!"
+            with DialogFactory.error_dialog_handler(message, parent=self.view.get_toplevel(), reraise=False):
                 header = "%s %s" % (self.model.name, self.model.sample_name)
                 self.model.exclusion_ranges.save_data(parser, filename, header=header)
-            except Exception:
-                message = "An unexpected error has occurred when trying to save '%s'.\n" % os.path.basename(filename)
-                message += "Contact the developer about this!"
-                self.run_information_dialog(
-                    message=message,
-                    parent=self.view.get_top_widget()
-                )
-
-        self.run_save_dialog(title="Select file for exclusion ranges export",
-                             on_accept_callback=on_accept,
-                             parent=self.view.get_top_widget(),
-                             filters=self.excl_filters)
+        DialogFactory.get_save_dialog(
+            "Select file for exclusion ranges export", 
+            parent=self.view.get_top_widget(), filters=self.excl_filters
+        ).run(on_accept)
 
     def on_replace_experimental_data(self, *args, **kwargs):
         def on_accept(dialog):
-            filename = self.extract_filename(dialog)
-            ffilter = dialog.get_filter()
-            parser = ffilter.get_data("parser")
-            try:
+            filename = dialog.filename
+            parser = dialog.parser
+            message = "An unexpected error has occurred when trying to parse '%s'.\n" % os.path.basename(filename)
+            message += "This is most likely caused by an invalid or unsupported file format."
+            with DialogFactory.error_dialog_handler(message, parent=self.view.get_toplevel(), reraise=False):
                 self.model.experimental_pattern.load_data(parser, filename, clear=True)
-            except Exception:
-                message = "An unexpected error has occured when trying to parse '%s'.\n" % os.path.basename(filename)
-                message += "This is most likely caused by an invalid or unsupported file format."
-                self.run_information_dialog(
-                    message=message,
-                    parent=self.view.get_top_widget()
-                )
-                raise
-        self.run_load_dialog(title="Open XRD file for import",
-                            on_accept_callback=on_accept,
-                             parent=self.view.get_top_widget())
+        DialogFactory.get_load_dialog(
+            "Open XRD file for import", parent=self.view.get_top_widget(),
+            filter=self.file_filters
+        ).run(on_accept)
         return True
 
     def on_btn_import_experimental_data_clicked(self, widget, data=None):
         def on_confirm(dialog):
             self.on_replace_experimental_data()
-        self.run_confirmation_dialog("Importing a new experimental file will erase all current data.\nAre you sure you want to continue?",
-                                     on_confirm, parent=self.view.get_top_widget())
+        DialogFactory.get_confirmation_dialog(
+            "Importing a new experimental file will erase all current data.\nAre you sure you want to continue?",
+            parent=self.view.get_top_widget()
+        ).run(on_confirm)
         return True
 
     def on_export_experimental_data(self, *args, **kwargs):
@@ -323,24 +310,16 @@ class SpecimenController(DialogController, TreeViewMixin):
 
     def _export_data(self, line):
         def on_accept(dialog):
-            filename = self.extract_filename(dialog)
-            ffilter = dialog.get_filter()
-            parser = ffilter.get_data("parser")
-            try:
+            filename = dialog.filename
+            parser = dialog.parser
+            message = "An unexpected error has occurred when trying to save to '%s'." % os.path.basename(filename)
+            with DialogFactory.error_dialog_handler(message, parent=self.view.get_toplevel(), reraise=False):
                 line.save_data(parser, filename, **self.model.get_export_meta_data())
-            except Exception:
-                message = "An unexpected error has occured when trying to save to '%s'." % os.path.basename(filename)
-                self.run_information_dialog(
-                    message=message,
-                    parent=self.view.get_top_widget()
-                )
-                raise
         ext_less_fname = os.path.splitext(self.model.name)[0]
-        self.run_save_dialog(title="Select file for export",
-                             on_accept_callback=on_accept,
-                             parent=self.view.get_top_widget(),
-                             filters=self.export_filters,
-                             suggest_name=ext_less_fname)
+        DialogFactory.get_save_dialog(
+            "Select file for export", parent=self.view.get_top_widget(),
+            filters=self.export_filters, suggest_name=ext_less_fname
+        ).run(on_accept)
 
     pass # end of class
 

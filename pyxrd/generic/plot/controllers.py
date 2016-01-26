@@ -9,7 +9,6 @@ from pkg_resources import resource_filename # @UnresolvedImport
 
 import gtk
 import logging
-from pyxrd.generic.plot.axes_setup import PositionSetup, update_axes
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -24,12 +23,13 @@ except ImportError:
 
 from mpl_toolkits.axisartist import Subplot
 
+from mvc.adapters.gtk_support.dialogs.dialog_factory import DialogFactory
+
 from pyxrd.data import settings
-
+from pyxrd.generic.plot.axes_setup import PositionSetup, update_axes
 from pyxrd.generic.plot.plotters import plot_specimens, plot_mixtures
-from pyxrd.generic.controllers import DialogMixin
 
-class PlotController(DialogMixin):
+class PlotController(object):
     """
         A base class for matplotlib-canvas controllers that, sets up the 
         widgets and has image exporting functionality.
@@ -128,25 +128,20 @@ class PlotController(DialogMixin):
 
         # What to do when the user wants to save this:
         def on_accept(dialog):
-            # Get the selected file type and name:
-            cur_fltr = dialog.get_filter()
-            filename = dialog.get_filename()
-            # Add the correct extension if not present yet:
-            for fltr in self.file_filters:
-                if cur_fltr.get_name() == fltr[0]:
-                    if filename[len(filename) - 4:] != fltr[1][1:]:
-                        filename = "%s%s" % (filename, fltr[1][1:])
-                    break
             # Get the width, height & dpi
             width = float(entry_w.get_text())
             height = float(entry_h.get_text())
             dpi = float(entry_dpi.get_text())
             i_width, i_height = width / dpi, height / dpi
             # Save it all right!
-            self.save_figure(filename, dpi, i_width, i_height)
+            self.save_figure(dialog.filename, dpi, i_width, i_height)
 
         # Ask the user where, how and if he wants to save:
-        self.run_save_dialog("Save Graph", on_accept, None, parent=parent, suggest_name=suggest_name, extra_widget=size_expander)
+        DialogFactory.get_save_dialog(
+            "Save Graph", parent=parent,
+            filters=self.file_filters, suggest_name=suggest_name, 
+            extra_widget=size_expander
+        ).run(on_accept)
 
     def save_figure(self, filename, dpi, i_width, i_height):
         """

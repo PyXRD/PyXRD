@@ -19,7 +19,7 @@ def setup_project(projectf):
     # memory usage, so if no projectf was passed to improve_solutions, this
     # module does not use more then it needs.
     from pyxrd.data import settings
-    settings.apply_runtime_settings()
+    settings.initialize()
 
     from pyxrd.project.models import Project
     type(Project).object_pool.clear()
@@ -42,7 +42,7 @@ def run_refinement(projectf, mixture_index, options):
     if projectf is not None:
         from pyxrd.data import settings
         settings.CACHE = None
-        settings.apply_runtime_settings()
+        settings.initialize()
 
         from pyxrd.generic import pool
         pool.get_pool()

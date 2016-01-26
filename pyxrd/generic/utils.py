@@ -7,6 +7,7 @@
 
 import time
 import hashlib
+import sys
 
 def rec_getattr(obj, attr, default):
     """Get object's attribute. May use dot notation.

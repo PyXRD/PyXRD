@@ -5,7 +5,7 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-import gtk, sys
+import gtk
 
 class FloatEntryValidator:
     def __init__(self, entry):
@@ -58,4 +58,4 @@ class FloatEntryValidator:
         self.entry.handler_unblock(self.insert_handlerid)        
         
     def entry_delete_text(self, entry, start, end):
-       self.validate()
+        self.validate()

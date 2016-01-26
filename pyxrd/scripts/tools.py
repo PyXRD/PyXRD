@@ -31,7 +31,7 @@ def reload_settings(clear_script=True):
 
     from pyxrd.data import settings
     settings.SETTINGS_APPLIED = False # clear this flag to reload settings
-    settings.apply_runtime_settings() # reload settings
+    settings.initialize() # reload settings
 
 def launch_gui(project=None):
     """ Launches the GUI, you should run reload_settings before calling this! """

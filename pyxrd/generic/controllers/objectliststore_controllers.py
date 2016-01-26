@@ -10,11 +10,13 @@ from contextlib import contextmanager
 import gtk
 
 from mvc.adapters.gtk_support.tree_view_adapters import wrap_list_property_to_treemodel
+from mvc.adapters.gtk_support.dialogs.dialog_factory import DialogFactory
 
 from pyxrd.generic.utils import not_none
 from pyxrd.generic.views.treeview_tools import new_text_column, setup_treeview
 
-from base_controllers import DialogController, BaseController
+from .base_controller import BaseController
+from .dialog_controller import DialogController
 
 
 class TreeModelMixin(object):
@@ -331,7 +333,9 @@ class TreeControllerMixin(TreeViewMixin, TreeModelMixin):
             parent = self.view.get_top_widget()
             if not isinstance(parent, gtk.Window): # @UndefinedVariable
                 parent = None
-            self.run_confirmation_dialog(message=self.delete_msg, on_accept_callback=delete_objects, parent=parent)
+            DialogFactory.get_confirmation_dialog(
+                message=self.delete_msg, parent=parent
+            ).run(delete_objects)
 
 
 class ObjectListStoreController(DialogController, TreeControllerMixin):

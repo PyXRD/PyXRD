@@ -5,8 +5,6 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-import gtk
-
 from cell_renderer_tools import get_default_renderer, parse_callback, parse_kwargs
 
 def add_renderer_with_attrs(combo, col_attrs, rend):

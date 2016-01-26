@@ -6,6 +6,7 @@
 # Complete license can be found in the LICENSE file.
 
 import logging
+from mvc.adapters.gtk_support.dialogs.dialog_factory import DialogFactory
 logger = logging.getLogger(__name__)
 
 from mvc import Controller
@@ -173,7 +174,9 @@ class ComponentsController(ChildObjectListStoreController):
                 new_comps.append(comp)
             num_nc = len(new_comps)
             if num_oc != num_nc:
-                self.run_information_dialog("The number of components to import must equal the number of selected components!")
+                DialogFactory.get_information_dialog(
+                    "The number of components to import must equal the number of selected components!"
+                ).run()
                 return
             else:
                 self.select_object(None)
@@ -183,7 +186,9 @@ class ComponentsController(ChildObjectListStoreController):
                     i = self.model.components.index(old_comp)
                     self.model.components[i] = new_comp
         else:
-            self.run_information_dialog("No components selected to replace!")
+            DialogFactory.get_information_dialog(
+                "No components selected to replace!"
+            ).run()
 
     # ------------------------------------------------------------
     #      GTK Signal handlers
@@ -191,13 +196,20 @@ class ComponentsController(ChildObjectListStoreController):
     def on_save_object_clicked(self, event):
         def on_accept(dialog):
             logger.info("Exporting components...")
-            filename = self.extract_filename(dialog)
-            Component.save_components(self.get_selected_objects(), filename=filename)
-        self.run_save_dialog("Export components", on_accept, parent=self.view.get_toplevel())
+            Component.save_components(self.get_selected_objects(), filename=dialog.filename)
+        DialogFactory.get_save_dialog(
+            "Export components", parent=self.view.get_toplevel(),
+            filters=self.file_filters
+         ).run(on_accept)
         return True
 
     def on_load_object_clicked(self, event):
         def on_accept(dialog):
-            self.load_components(dialog.get_filename())
-        self.run_load_dialog("Import components", on_accept, parent=self.view.get_toplevel())
+            self.load_components(dialog.filename)
+        DialogFactory.get_load_dialog(
+            "Import components", parent=self.view.get_toplevel(),
+            filters=self.file_filters
+        ).run(on_accept)
         return True
+    
+    pass #end of class

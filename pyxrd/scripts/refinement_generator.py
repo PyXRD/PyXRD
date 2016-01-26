@@ -24,8 +24,6 @@ from pyxrd.project.models import Project
 ADDED 0.01 NOISE
 """
 
-from pyxrd.data import settings
-
 def run(args):
     """
     This is a simple script that will open a PyXRD project file,

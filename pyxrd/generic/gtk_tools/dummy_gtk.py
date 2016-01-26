@@ -5,7 +5,8 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from pyxrd.generic.utils import get_new_uuid
+from mvc.support.utils import get_new_uuid
+
 
 __all__ = [
     "gobject",

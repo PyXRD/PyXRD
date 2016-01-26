@@ -8,12 +8,12 @@
 from contextlib import contextmanager
 
 import logging
-
 logger = logging.getLogger(__name__)
 
 import gtk
 
 from mvc import Model
+from mvc.adapters.gtk_support.dialogs.dialog_factory import DialogFactory
 
 from pyxrd.generic.gtk_tools.utils import convert_string_to_gdk_color_int
 from pyxrd.generic.views.treeview_tools import new_pb_column
@@ -120,14 +120,20 @@ class PhasesController(ObjectListStoreController):
     def on_save_object_clicked(self, event):
         def on_accept(dialog):
             logger.info("Exporting phases...")
-            filename = self.extract_filename(dialog)
-            Phase.save_phases(self.get_selected_objects(), filename=filename)
-        self.run_save_dialog("Export phase", on_accept, parent=self.view.get_top_widget())
+            Phase.save_phases(self.get_selected_objects(), filename=dialog.filename)
+        DialogFactory.get_save_dialog(
+            "Export phase", parent=self.view.get_top_widget(),
+            filters=self.file_filters
+        ).run(on_accept)
         return True
 
 
     def on_load_object_clicked(self, event):
         def on_accept(dialog):
-            self.load_phases(dialog.get_filename())
-        self.run_load_dialog("Import phase", on_accept, parent=self.view.get_top_widget())
+            logger.info("Importing phases...")
+            self.load_phases(dialog.filename)
+        DialogFactory.get_load_dialog(
+            "Import phase", parent=self.view.get_top_widget(),
+            filters=self.file_filters
+        ).run(on_accept)
         return True

@@ -7,12 +7,13 @@
 
 import gtk
 
+from mvc.adapters.gtk_support.dialogs.dialog_factory import DialogFactory
+
 from pyxrd.generic.views.treeview_tools import new_text_column, new_combo_column, create_float_data_func, setup_treeview
 from pyxrd.generic.controllers.objectliststore_controllers import wrap_list_property_to_treemodel
 from pyxrd.generic.controllers import InlineObjectListStoreController
 
 from pyxrd.atoms.models import Atom
-
 
 class EditLayerController(InlineObjectListStoreController):
     """ 
@@ -81,25 +82,29 @@ class EditLayerController(InlineObjectListStoreController):
     # ------------------------------------------------------------
     def on_save_object_clicked(self, widget, user_data=None):
         def on_accept(save_dialog):
-            filename = self.extract_filename(save_dialog, self.file_filters)
-            Atom.save_as_csv(filename, self.get_all_objects())
-        self.run_save_dialog(
-            "Export atoms", on_accept, parent=self.view.get_toplevel(),
-             suggest_name="%s%s" % (self.model.name.lower(),
-             self.model_property_name.replace("data", "").lower())
-         )
+            Atom.save_as_csv(save_dialog.filename, self.get_all_objects())
+        suggest_name = "%s%s" % (
+            self.model.name.lower(),
+            self.model_property_name.replace("data", "").lower()
+        )
+        DialogFactory.get_save_dialog(
+            "Export atoms", parent=self.view.get_toplevel(),
+            suggest_name=suggest_name, filters=self.file_filters,
+        ).run(on_accept)
 
     def on_load_object_clicked(self, widget, user_data=None):
         def import_layer(dialog):
-            def on_accept(open_dialog):
-                filename = self.extract_filename(open_dialog, self.file_filters)
+            def on_accept(dialog):
                 self.treemodel_data.clear()
-                Atom.get_from_csv(filename, self.treemodel_data.append, self.model)
-            self.run_load_dialog("Import atoms", on_accept, parent=self.view.get_toplevel())
-        self.run_confirmation_dialog(
+                Atom.get_from_csv(dialog.filename, self.treemodel_data.append, self.model)
+            DialogFactory.get_load_dialog(
+                "Import atoms", parent=self.view.get_toplevel(),
+                filters=self.file_filters
+            ).run(on_accept)
+        DialogFactory.get_confirmation_dialog(
             message="Are you sure?\nImporting a layer file will clear the current list of atoms!",
-             on_accept_callback=import_layer, parent=self.view.get_toplevel()
-         )
+            parent=self.view.get_toplevel()
+        ).run(import_layer)
 
     def on_atom_type_changed(self, combo, path, new_iter, user_data=None):
         """Called when the user selects an AtomType from the combo box"""

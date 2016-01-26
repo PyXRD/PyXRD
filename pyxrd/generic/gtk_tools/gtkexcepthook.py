@@ -216,11 +216,7 @@ class GtkExceptionHook():
         try:
             trace = self.analyze(exctyp, value, tb).getvalue()
         except:
-            try:
-                trace = _("Exception while analyzing the exception.") + "\n"
-                trace += analyse_simple (exctyp, value, tb).getvalue()
-            except:
-                trace = _("Exception while analyzing the exception.")
+            trace = _("Exception while analyzing the exception.")
         buf = textview.get_buffer()
         buf.set_text (trace)
 

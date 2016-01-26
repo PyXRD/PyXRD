@@ -12,6 +12,7 @@ import gtk
 import gobject
 
 from mvc.support.utils import not_none
+from mvc.adapters.gtk_support.dialogs.dialog_factory import DialogFactory
 
 from pyxrd.data import settings
 
@@ -182,7 +183,9 @@ class AppController (BaseController):
         filename = filename or self.model.current_filename
 
         # Try to save the project:
-        with self.ui_error_handler("An error has occurred while saving!"):
+        with DialogFactory.error_dialog_handler(
+                "An error has occurred while saving!",
+                parent=self.view.get_toplevel(), reraise=False):
             self.model.current_project.save_object(filename)
 
         # Set the current filename property and update the title
@@ -191,22 +194,23 @@ class AppController (BaseController):
 
     def save_project_as(self, title="Save project as"):
         def on_accept(dialog):
-            self.save_project(filename=self.extract_filename(dialog))
+            self.save_project(filename=dialog.filename)
         suggest_name, suggest_folder = None, None
         if self.model.current_filename is not None:
             # Set the name and directory of the file dialog to the current
             # project location:
             suggest_name = basename(self.model.current_filename)
             suggest_folder = dirname(self.model.current_filename)
-        self.run_save_dialog(title=title,
-                             suggest_name=suggest_name,
-                             suggest_folder=suggest_folder,
-                             on_accept_callback=on_accept,
-                             parent=self.view.get_top_widget())
+        DialogFactory.get_save_dialog(title=title,
+             suggest_name=suggest_name,
+             suggest_folder=suggest_folder,
+             parent=self.view.get_top_widget()).run(on_accept)
 
     def open_project(self, filename):
         # Try to load the project:
-        with self.ui_error_handler("An error has occurred.\n Your project was not loaded!"):
+        with DialogFactory.error_dialog_handler(
+                "An error has occurred.\n Your project was not loaded!", 
+                parent=self.view.get_toplevel(), reraise=False):
             self.model.current_project = Project.load_object(filename, parent=self.model)
 
         # Set the current filename property and update the title
@@ -217,21 +221,19 @@ class AppController (BaseController):
         """Convenience function for loading projects from different sources
         following similar user interaction paths"""
         action = not_none(action, self.open_project)
-        filter = not_none(filters, self.file_filters)
+        filters = not_none(filters, self.file_filters)
         def on_open_project(confirm_dialog):
             def on_accept(dialog):
-                gobject.idle_add(action, self.extract_filename(dialog))
+                gobject.idle_add(action, dialog.filename)
                 return True
-            self.run_load_dialog(
+            DialogFactory.get_load_dialog(
                 title=title,
-                on_accept_callback=on_accept,
                 filters=filters,
-                parent=self.view.get_top_widget())
+                parent=self.view.get_top_widget()).run(on_accept)
         if self.model.current_project and self.model.current_project.needs_saving:
-            self.run_confirmation_dialog(
+            DialogFactory.get_confirmation_dialog(
                 confirm_msg,
-                on_open_project,
-                parent=self.view.get_top_widget())
+                parent=self.view.get_top_widget()).run(on_open_project)
         else:
             on_open_project(None)
 
@@ -247,7 +249,9 @@ class AppController (BaseController):
         self.view.project.present()
 
     def import_project_from_xml(self, filename):
-        with self.ui_error_handler("An error has occurred.\n Your project was not imported!"):
+        with DialogFactory.error_dialog_handler(
+                "An error has occurred.\n Your project was not imported!",
+                parent=self.view.get_toplevel(), reraise=False):
             self.model.current_project = Project.create_from_sybilla_xml(filename, parent=self.model)
 
         self.model.current_filename = None
@@ -276,11 +280,10 @@ class AppController (BaseController):
         def on_reject(dialog):
             return True
         if self.model.current_project and self.model.current_project.needs_saving:
-            self.run_confirmation_dialog(
+            DialogFactory.get_confirmation_dialog(
                 "The current project has unsaved changes,\n"
                 "are you sure you want to quit?",
-                on_accept, on_reject,
-                parent=self.view.get_top_widget())
+                parent=self.view.get_top_widget()).run(on_accept, on_reject)
             return True
         else:
             return on_accept(None)
@@ -325,7 +328,7 @@ class AppController (BaseController):
             if self.model.current_project.layout_mode == "FULL":
                 message += "\tCalculated data:\t\t( %.4f , %.4f )"
             message = message % (x_pos, exp_y, x_pos, calc_y)
-            self.run_information_dialog(message, parent=self.view.get_toplevel())
+            DialogFactory.get_information_dialog(message, parent=self.view.get_toplevel()).run()
             del self.edc
 
         self.edc = EyeDropper(self.plot_controller, parse_x_pos)
@@ -338,10 +341,10 @@ class AppController (BaseController):
         def on_accept(dialog):
             self.new_project()
         if self.model.current_project and self.model.current_project.needs_saving:
-            self.run_confirmation_dialog(
+            DialogFactory.get_confirmation_dialog(
                 "The current project has unsaved changes,\n"
                 "are you sure you want to create a new project?",
-                on_accept, parent=self.view.get_top_widget())
+                parent=self.view.get_top_widget()).run(on_accept)
         else:
             on_accept(None)
 

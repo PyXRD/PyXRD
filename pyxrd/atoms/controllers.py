@@ -10,6 +10,7 @@ from contextlib import contextmanager
 import numpy as np
 
 from mvc import Controller
+from mvc.adapters.gtk_support.dialogs.dialog_factory import DialogFactory
 
 from pyxrd.generic.controllers import BaseController, ObjectListStoreController
 from pyxrd.atoms.models import AtomType
@@ -78,24 +79,32 @@ class AtomTypesController(ObjectListStoreController): # FIXME THIS NEES CLEAN-UP
     #      GTK Signal handlers
     # ------------------------------------------------------------
     def on_load_object_clicked(self, event):
-        def on_accept(open_dialog):
-            fltr = open_dialog.get_filter()
-            filename = open_dialog.get_filename()
+        def on_accept(dialog):
+            filename = dialog.filename
+            # TODO FIXME This is ugly as hell! Use parsers instead!
+            fltr = dialog.get_filter()
             if fltr.get_name() == self.file_filters[0][0]:
                 self.model.load_atom_types_from_csv(filename)
             elif fltr.get_name() == self.file_filters[1][0]:
                 self.model.load_atom_types(filename)
-        self.run_load_dialog("Import atom types", on_accept, parent=self.view.get_top_widget())
+        DialogFactory.get_load_dialog(
+            "Import atom types", parent=self.view.get_top_widget(),
+            filters=self.file_filters
+        ).run(on_accept)
 
     def on_save_object_clicked(self, event):
-        def on_accept(save_dialog):
-            fltr = save_dialog.get_filter()
-            filename = self.extract_filename(save_dialog, self.file_filters)
+        def on_accept(dialog):
+            filename = dialog.filename
+            # TODO FIXME This is ugly as hell! Use parsers instead!
+            fltr = dialog.get_filter()
             if fltr.get_name() == self.file_filters[0][0]:
                 AtomType.save_atom_types(filename, self.get_selected_objects())
             elif fltr.get_name() == self.file_filters[1][0]:
                 AtomType.save_as_csv(filename, self.get_selected_objects())
-        self.run_save_dialog("Export atom types", on_accept, parent=self.view.get_top_widget())
+        DialogFactory.get_save_dialog(
+            "Export atom types", parent=self.view.get_top_widget(),
+            filters=self.file_filters
+        ).run(on_accept)
 
     pass # end of class
 

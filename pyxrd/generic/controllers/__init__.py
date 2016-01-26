@@ -5,7 +5,7 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from objectliststore_controllers import (
+from .objectliststore_controllers import (
     TreeViewMixin,
     TreeModelMixin,
     TreeControllerMixin,
@@ -13,11 +13,8 @@ from objectliststore_controllers import (
     ChildObjectListStoreController,
     InlineObjectListStoreController,
 )
-from base_controllers import (
-    DialogMixin,
-    BaseController,
-    DialogController
-)
+from .base_controller import BaseController
+from .dialog_controller import DialogController
 
 __all__ = [
     "TreeViewMixin",
@@ -26,7 +23,6 @@ __all__ = [
     "ObjectListStoreController",
     "ChildObjectListStoreController",
     "InlineObjectListStoreController",
-    "DialogMixin",
     "BaseController",
     "DialogController"
 ]

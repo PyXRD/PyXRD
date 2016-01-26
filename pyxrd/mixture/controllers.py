@@ -6,23 +6,24 @@
 # Complete license can be found in the LICENSE file.
 
 import logging
-from pyxrd.generic.gtk_tools.utils import run_when_idle
 logger = logging.getLogger(__name__)
+
 import gtk, gobject
 import sys
+from contextlib import contextmanager
 
 from mvc import Controller, Observer
+from mvc.adapters.gtk_support.dialogs.dialog_factory import DialogFactory
 
+from pyxrd.generic.gtk_tools.utils import run_when_idle
 from pyxrd.generic.views.treeview_tools import new_text_column, new_pb_column, new_toggle_column
 from pyxrd.generic.mathtext_support import create_pb_from_mathtext
 from pyxrd.generic.controllers import DialogController, BaseController, ObjectListStoreController
 
 from pyxrd.refinement.parspace import ParameterSpaceGenerator
-from pyxrd.refinement.refine_context import RefineSetupError
 from pyxrd.mixture.models import Mixture
 from pyxrd.mixture.views import EditMixtureView, RefinementView, RefinementResultView
 from pyxrd.generic.controllers.objectliststore_controllers import wrap_list_property_to_treemodel
-from contextlib import contextmanager
 
 class RefinementResultsController(DialogController):
     """
@@ -310,13 +311,11 @@ class RefinementController(DialogController):
         with self.model.mixture.needs_update.hold():
             with self.model.mixture.data_changed.hold():
                 if len(self.model.mixture.specimens) > 0:
-
                     # Create the refinement context
-                    try:
+                    with DialogFactory.error_dialog_handler(
+                            "There was an error when creating the refinement setup:\n{}", 
+                            parent=self.view.get_toplevel(), reraise=False):
                         self.model.setup_context(store=True)
-                    except RefineSetupError, msg:
-                        self.run_information_dialog("There was an error when creating the refinement setup:\n%s" % msg, parent=self.view.get_toplevel())
-                        return
 
                     # Setup results controller, this needs to be done prior to running
                     # the refinement to allow for solutions to be recorded!
@@ -340,7 +339,9 @@ class RefinementController(DialogController):
                     self.view.start_spinner()
 
                 else:
-                    self.run_information_dialog("Cannot refine an empty mixture!", parent=self.view.get_toplevel())
+                    DialogFactory.get_information_dialog(
+                        "Cannot refine an empty mixture!", parent=self.view.get_toplevel()
+                    ).run()
 
     @run_when_idle
     def _on_refinement_complete(self, context, *args, **kwargs):
@@ -514,7 +515,9 @@ class EditMixtureController(BaseController):
         for row in self.model.get_composition_matrix():
             comp += "%s %s\n" % (re.sub(r'(\d+)', r'<sub>\1</sub>', row[0]), " ".join(row[1:]))
         comp += "</span>"
-        self.run_information_dialog(comp, parent=self.view.get_toplevel())
+        DialogFactory.get_information_dialog(
+            comp, parent=self.view.get_toplevel()
+        ).run()
 
     pass # end of class
 

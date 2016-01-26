@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 import gtk
 
+from mvc.adapters.gtk_support.dialogs.dialog_factory import DialogFactory
 from mvc.adapters.gtk_support.tree_view_adapters import wrap_xydata_to_treemodel, \
     wrap_list_property_to_treemodel
 
@@ -112,29 +113,30 @@ class EditRawPatternPhaseController(BaseController, TreeViewMixin):
 
     def on_replace_raw_pattern(self, *args, **kwargs):
         def on_accept(dialog):
-            filename = self.extract_filename(dialog)
-            ffilter = dialog.get_filter()
-            parser = ffilter.get_data("parser")
+            filename = dialog.filename
+            parser = dialog.parser
             try:
                 self.model.raw_pattern.load_data(parser, filename, clear=True)
             except Exception:
                 message = "An unexpected error has occured when trying to parse '%s'.\n" % os.path.basename(filename)
                 message += "This is most likely caused by an invalid or unsupported file format."
-                self.run_information_dialog(
-                    message=message,
-                    parent=self.view.get_toplevel()
-                )
+                DialogFactory.get_information_dialog(
+                    message=message, parent=self.view.get_toplevel()
+                ).run()
                 raise
-        self.run_load_dialog(title="Open XRD file for import",
-                            on_accept_callback=on_accept,
-                            parent=self.view.get_toplevel())
+        DialogFactory.get_load_dialog(
+            "Open XRD file for import", parent=self.view.get_toplevel(),
+            filters=self.file_filters
+        ).run(on_accept)
         return True
 
     def on_btn_import_raw_pattern_clicked(self, widget, data=None):
         def on_confirm(dialog):
             self.on_replace_raw_pattern()
-        self.run_confirmation_dialog("Importing a new experimental file will erase all current data.\nAre you sure you want to continue?",
-                                     on_confirm, parent=self.view.get_toplevel())
+        DialogFactory.get_confirmation_dialog(
+            "Importing a new experimental file will erase all current data.\nAre you sure you want to continue?",
+            parent=self.view.get_toplevel()
+        ).run(on_confirm)
         return True
 
     def on_export_raw_pattern(self, *args, **kwargs):
@@ -145,21 +147,21 @@ class EditRawPatternPhaseController(BaseController, TreeViewMixin):
 
     def _export_data(self, line):
         def on_accept(dialog):
-            filename = self.extract_filename(dialog)
-            ffilter = dialog.get_filter()
-            parser = ffilter.get_data("parser")
+            filename = dialog.filename
+            parser = dialog.parser
             try:
                 line.save_data(parser, filename, **self.model.get_export_meta_data())
             except Exception:
                 message = "An unexpected error has occured when trying to save to '%s'." % os.path.basename(filename)
-                self.run_information_dialog(
-                    message=message,
-                    parent=self.view.get_toplevel()
-                )
+                DialogFactory.get_information_dialog(
+                    message=message, parent=self.view.get_toplevel()
+                ).run()
                 raise
         ext_less_fname = os.path.splitext(self.model.name)[0]
-        self.run_save_dialog(title="Select file for export",
-                             on_accept_callback=on_accept,
-                             parent=self.view.get_toplevel(),
-                             filters=self.rp_export_filters,
-                             suggest_name=ext_less_fname)
+        DialogFactory.get_save_dialog(
+            "Select file for export", parent=self.view.get_toplevel(),
+            filters=self.rp_export_filters,
+            suggest_name=ext_less_fname
+        ).run(on_accept)
+    
+    pass #end of class

@@ -10,19 +10,14 @@
 """
 
 import os, sys
+
+from mvc.support.file_utils import get_case_insensitive_glob, retrieve_lowercase_extension, relpath
+
 # Small workaround to provide a unicode-aware open method:
 if sys.version_info[0] < 3: # Pre Python 3.0
     import codecs
     _open_func_bak = open # Make a back up, just in case
     open = codecs.open #@ReservedAssignment
-
-def get_case_insensitive_glob(*strings):
-    '''Ex: '*.ora' => '*.[oO][rR][aA]' '''
-    return ['*.%s' % ''.join(["[%s%s]" % (c.lower(), c.upper()) for c in string.split('.')[1]]) for string in strings]
-
-def retrieve_lowercase_extension(glob):
-    '''Ex: '*.[oO][rR][aA]' => '*.ora' '''
-    return ''.join([ c.replace("[", "").replace("]", "")[:-1] for c in glob.split('][')])
 
 def sizeof_fmt(num):
     ''' Returns a human-friendly string when given a size in bytes '''

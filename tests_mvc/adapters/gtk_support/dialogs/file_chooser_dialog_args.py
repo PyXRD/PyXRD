@@ -1,7 +1,7 @@
 # coding=UTF-8
 # ex:ts=4:sw=4:et=on
 #  -------------------------------------------------------------------------
-#  Copyright (C) 2014 by Mathijs Dumon <mathijs dot dumon at gmail dot com>
+#  Copyright (C) 2016 by Mathijs Dumon <mathijs dot dumon at gmail dot com>
 #
 #  mvc is a framework derived from the original pygtkmvc framework
 #  hosted at: <http://sourceforge.net/projects/pygtkmvc/>
@@ -22,33 +22,20 @@
 #  Boston, MA 02110, USA.
 #  -------------------------------------------------------------------------
 
+import os
+
 import gtk
+from pyxrd.generic.io.utils import get_case_insensitive_glob
 
-from .utils import run_dialog
-
-class MessageDialog(gtk.MessageDialog):
-    
-    accept_responses = (
-        gtk.RESPONSE_ACCEPT, # @UndefinedVariable
-        gtk.RESPONSE_YES, # @UndefinedVariable
-        gtk.RESPONSE_APPLY, # @UndefinedVariable
-        gtk.RESPONSE_OK # @UndefinedVariable
+def get_file_chooser_kwags():    
+    return dict( 
+        action = gtk.FILE_CHOOSER_ACTION_SAVE,
+        title = "The dialog title",
+        parent = gtk.Window(),
+        suggest_name = "suggested_file_name",
+        suggest_folder = os.path.expanduser("~"),
+        extra_widget = gtk.Label("Test Label"),
+        filters = [ ("Text File", get_case_insensitive_glob("*.txt")) ],
+        multiple = False,
+        confirm_overwrite = True          
     )
-    
-    def __init__(self, 
-             message, parent=None,
-             type=gtk.MESSAGE_INFO,  # @ReservedAssignment
-             flags=gtk.DIALOG_DESTROY_WITH_PARENT, 
-             buttons=gtk.BUTTONS_NONE):
-        super(MessageDialog, self).__init__(
-            parent=parent,
-            type=type,
-            flags=gtk.DIALOG_DESTROY_WITH_PARENT,
-            buttons=buttons)
-        self.set_markup(message)
-        
-    #override
-    def run(self, *args, **kwargs):
-        return run_dialog(self, *args, **kwargs)
-        
-    pass #end of class

@@ -100,7 +100,7 @@ class EditUnitCellPropertyController(BaseController, AtomComboMixin):
     }
 
     def __init__(self, extra_props, **kwargs):
-        BaseController.__init__(self, **kwargs)
+        super(EditUnitCellPropertyController, self).__init__(**kwargs)
         self.extra_props = extra_props
 
     def register_adapters(self):
@@ -213,7 +213,7 @@ class ContentsListController(InlineObjectListStoreController):
         self._reset_treeview(tv, model)
 
     def __init__(self, treemodel_property_name, **kwargs):
-        super(InlineObjectListStoreController, self).__init__(
+        super(ContentsListController, self).__init__(
             treemodel_property_name=treemodel_property_name,
             enable_import=False, enable_export=False, **kwargs
         )
@@ -295,7 +295,7 @@ class EditAtomRelationsController(InlineObjectListStoreController):
         self._reset_treeview(tv, model)
 
     def __init__(self, **kwargs):
-        super(InlineObjectListStoreController, self).__init__(
+        super(EditAtomRelationsController, self).__init__(
             enable_import=False, enable_export=False, **kwargs)
 
     def create_new_object_proxy(self):

@@ -204,6 +204,7 @@ class AppController (BaseController):
         DialogFactory.get_save_dialog(title=title,
              suggest_name=suggest_name,
              suggest_folder=suggest_folder,
+             filters=self.file_filters,
              parent=self.view.get_top_widget()).run(on_accept)
 
     def open_project(self, filename):

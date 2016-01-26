@@ -2,7 +2,7 @@
 # ex:ts=4:sw=4:et=on
 #  -------------------------------------------------------------------------
 #  Copyright (C) 2014 by Mathijs Dumon <mathijs dot dumon at gmail dot com>
-#  Copyright (C) 2007 by Roberto Cavada <roboogle@gmail.com>
+#  Copyright (C) 2005 by Roberto Cavada <roboogle@gmail.com>
 #
 #  mvc is a framework derived from the original pygtkmvc framework
 #  hosted at: <http://sourceforge.net/projects/pygtkmvc/>
@@ -23,39 +23,11 @@
 #  Boston, MA 02110, USA.
 #  -------------------------------------------------------------------------
 
-import os
-from uuid import uuid4 as get_uuid
+import unittest
 
-def round_sig(x, sig=1):
-    if x == 0:
-        return 0
-    else:
-        return round(x, sig - int(floor(log10(abs(x)))) - 1)
+def run_all_tests(*args, **kwargs):
+    all_tests = get_all_tests()
+    unittest.TextTestRunner().run(all_tests)
 
-def not_none(passed, default):
-    """Returns `passed` if not None, else `default` is returned"""
-    return passed if passed is not None else default
-
-def getmembers(_object, _predicate):
-    """This is an implementation of inspect.getmembers, as in some versions 
-    of python it may be buggy. 
-    See issue at http://bugs.python.org/issue1785"""
-    # This should be:
-    # return inspect.getmembers(_object, _predicate)
-
-    # ... and it is re-implemented as:
-    observers = []
-    for key in dir(_object):
-        try: m = getattr(_object, key)
-        except AttributeError: continue
-        if _predicate(m): observers.append((key, m))
-        pass
-    return observers
-
-def get_new_uuid():
-    return unicode(get_uuid().hex)
-
-def get_unique_list(seq):
-    seen = set()
-    seen_add = seen.add
-    return [x for x in seq if x not in seen and not seen_add(x)]
+def get_all_tests():
+    return unittest.TestLoader().discover('.')

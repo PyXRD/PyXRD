@@ -9,9 +9,8 @@
 
 import unittest
 
-from test.utils import create_object_attribute_test
+from test.utils import create_object_attribute_test, mock_settings
 
-from pyxrd.data import settings
 from pyxrd.project.models import Project
 
 __all__ = [
@@ -23,7 +22,7 @@ class TestProject(unittest.TestCase):
     project = None
 
     def setUp(self):
-        settings.initialize()
+        mock_settings();
         self.project = Project(name="Test Project")
 
     def tearDown(self):

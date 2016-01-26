@@ -5,7 +5,7 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from math import log10, floor, exp, sqrt, log, pi
+from math import exp, sqrt, log, pi
 
 import numpy as np
 

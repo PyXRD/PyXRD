@@ -204,12 +204,12 @@ class SpecimenController(DialogController, TreeViewMixin):
         return super(SpecimenController, self).on_btn_ok_clicked(event)
 
     def on_exclusion_ranges_tv_cursor_changed(self, tv):
-        path, col = tv.get_cursor()
+        path, col = tv.get_cursor()  # @UnusedVariable
         self.view["btn_del_exclusion_ranges"].set_sensitive(path is not None)
         return True
 
     def on_exp_data_tv_cursor_changed(self, tv):
-        path, col = tv.get_cursor()
+        path, col = tv.get_cursor()  # @UnusedVariable
         self.view["btn_del_experimental_data"].set_sensitive(path is not None)
         return True
 

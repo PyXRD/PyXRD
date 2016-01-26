@@ -282,6 +282,7 @@ class BackgroundController(PatternActionController):
         filename = dialog.filename
         parser = dialog.parser
         data_objects = None
+        
         message = "An unexpected error has occurred when trying to parse %s:\n\n<i>" % os.path.basename(filename)
         message += "{}</i>\n\n"
         message += "This is most likely caused by an invalid or unsupported file format."

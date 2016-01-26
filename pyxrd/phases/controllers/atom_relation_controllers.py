@@ -142,7 +142,7 @@ class EditAtomContentsController(DialogController):
     widget_handlers = { 'custom': 'widget_handler' }
 
     def __init__(self, *args, **kwargs):
-        DialogController.__init__(self, *args, **kwargs)
+        super(EditAtomContentsController, self).__init__(*args, **kwargs)
         self.contents_list_view = InlineObjectListStoreView(parent=self.view)
         self.contents_list_controller = ContentsListController("atom_contents", model=self.model, view=self.contents_list_view, parent=self)
 
@@ -213,7 +213,7 @@ class ContentsListController(InlineObjectListStoreController):
         self._reset_treeview(tv, model)
 
     def __init__(self, treemodel_property_name, **kwargs):
-        InlineObjectListStoreController.__init__(self,
+        super(InlineObjectListStoreController, self).__init__(
             treemodel_property_name=treemodel_property_name,
             enable_import=False, enable_export=False, **kwargs
         )
@@ -295,7 +295,8 @@ class EditAtomRelationsController(InlineObjectListStoreController):
         self._reset_treeview(tv, model)
 
     def __init__(self, **kwargs):
-        InlineObjectListStoreController.__init__(self, enable_import=False, enable_export=False, **kwargs)
+        super(InlineObjectListStoreController, self).__init__(
+            enable_import=False, enable_export=False, **kwargs)
 
     def create_new_object_proxy(self):
         return self.add_type(parent=self.model)

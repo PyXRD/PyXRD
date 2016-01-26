@@ -117,6 +117,7 @@ class ProjectController(ObjectListStoreController):
             task = ThreadedTaskBox()
             window = DialogFactory.get_custom_dialog(
                  task, parent=self.view.get_top_widget())
+            
             # Status:
             status_dict = dict(
                 total_files=len(filenames),
@@ -308,10 +309,10 @@ class ProjectController(ObjectListStoreController):
                 self.select_object(None)
             self.view.show_specimens_context_menu(event)
             return True
-        elif event.type == gtk.gdk._2BUTTON_PRESS and specimen is not None and col.get_data("colnr") == self.treemodel.c_name:
+        elif event.type == gtk.gdk._2BUTTON_PRESS and specimen is not None and col.get_data("colnr") == self.treemodel.c_name:  # @UndefinedVariable
             self.parent.on_edit_specimen_activate(event)
             return True
-        elif (event.button == 1 or event.type == gtk.gdk._2BUTTON_PRESS) and specimen is not None:
+        elif (event.button == 1 or event.type == gtk.gdk._2BUTTON_PRESS) and specimen is not None:  # @UndefinedVariable
             column = col.get_data("colnr")
             if column in (self.treemodel.c_display_experimental,
                     self.treemodel.c_display_calculated,

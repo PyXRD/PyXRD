@@ -163,5 +163,5 @@ class EditRawPatternPhaseController(BaseController, TreeViewMixin):
             filters=self.rp_export_filters,
             suggest_name=ext_less_fname
         ).run(on_accept)
-    
+        
     pass #end of class

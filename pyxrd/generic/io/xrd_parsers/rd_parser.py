@@ -6,7 +6,7 @@
 # Complete license can be found in the LICENSE file.
 
 import os, struct
-from io import SEEK_SET, SEEK_CUR, SEEK_END
+from io import SEEK_SET #, SEEK_CUR, SEEK_END
 
 import numpy as np
 

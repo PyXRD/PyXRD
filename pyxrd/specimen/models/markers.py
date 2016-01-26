@@ -8,14 +8,13 @@
 from mvc import Signal, PropIntel, OptionPropIntel
 
 import numpy as np
-from scipy import stats
 from scipy.interpolate import interp1d
 
 from pyxrd.data import settings
 from pyxrd.generic.io import unicode_open, storables, Storable
 from pyxrd.generic.models import ChildModel, DataModel
 from pyxrd.generic.models.mixins import CSVMixin
-from pyxrd.generic.peak_detection import multi_peakdetect, score_minerals
+from pyxrd.generic.peak_detection import score_minerals
 
 
 class MineralScorer(DataModel):

@@ -101,7 +101,7 @@ class GtkExceptionHook():
         nlines = 3
         frecs = inspect.getinnerframes (tb, nlines)
         trace.write ('Traceback (most recent call last):\n')
-        for frame, fname, lineno, funcname, context, cindex in frecs:
+        for frame, fname, lineno, funcname, context, _ in frecs:
             trace.write ('  File "%s", line %d, ' % (fname, lineno))
             args, varargs, varkw, lcls = inspect.getargvalues (frame)
 
@@ -161,8 +161,8 @@ class GtkExceptionHook():
         if self.exception_dialog_active:
             return
 
-        gtk.gdk.pointer_ungrab(gtk.gdk.CURRENT_TIME)
-        gtk.gdk.keyboard_ungrab(gtk.gdk.CURRENT_TIME)
+        gtk.gdk.pointer_ungrab(gtk.gdk.CURRENT_TIME)  # @UndefinedVariable
+        gtk.gdk.keyboard_ungrab(gtk.gdk.CURRENT_TIME)  # @UndefinedVariable
 
         self.exception_dialog_active = True
         # Create the dialog

@@ -388,13 +388,13 @@ def _get_win_folder_from_registry(csidl_name):
         "CSIDL_LOCAL_APPDATA": "Local AppData",
     }[csidl_name]
 
-    key = _winreg.OpenKey(_winreg.HKEY_CURRENT_USER,
+    key = _winreg.OpenKey(_winreg.HKEY_CURRENT_USER,  # @UndefinedVariable
         r"Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders")
-    dir, type = _winreg.QueryValueEx(key, shell_folder_name)
+    dir, _ = _winreg.QueryValueEx(key, shell_folder_name)  # @UndefinedVariable
     return dir
 
 def _get_win_folder_with_pywin32(csidl_name):
-    from win32com.shell import shellcon, shell
+    from win32com.shell import shellcon, shell  # @UnresolvedImport
     dir = shell.SHGetFolderPath(0, getattr(shellcon, csidl_name), 0, 0)
     # Try to make this a unicode path because SHGetFolderPath does
     # not return unicode strings when there is unicode data in the
@@ -440,18 +440,18 @@ def _get_win_folder_with_ctypes(csidl_name):
             break
     if has_high_char:
         buf2 = ctypes.create_unicode_buffer(1024)
-        if ctypes.windll.kernel32.GetShortPathNameW(buf.value, buf2, 1024):
+        if ctypes.windll.kernel32.GetShortPathNameW(buf.value, buf2, 1024):  # @UndefinedVariable
             buf = buf2
 
     return buf.value
 
 if sys.platform == "win32":
     try:
-        import win32com.shell
+        import win32com.shell  # @UnusedImport
         _get_win_folder = _get_win_folder_with_pywin32
     except ImportError:
         try:
-            import ctypes
+            import ctypes  # @UnusedImport
             _get_win_folder = _get_win_folder_with_ctypes
         except ImportError:
             _get_win_folder = _get_win_folder_from_registry

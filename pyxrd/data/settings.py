@@ -320,6 +320,7 @@ def initialize(override_debug=False):
         import logging
         logger = logging.getLogger(__name__)
         logger.info("Runtime settings applied")
+
     __apply_lock__ = False
     SETTINGS_APPLIED = True
 

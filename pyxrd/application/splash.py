@@ -5,8 +5,6 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from pkg_resources import resource_filename # @UnresolvedImport
-
 import gtk
 import gobject
 from time import time, sleep

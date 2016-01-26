@@ -36,7 +36,7 @@ class RefineLBFGSBRun(RefineMethod):
         """
             Refinement using the L BFGS B algorithm
         """
-        context.last_solution, context.last_residual, d = scipy.optimize.fmin_l_bfgs_b(# @UnusedVariable
+        context.last_solution, context.last_residual, d = scipy.optimize.fmin_l_bfgs_b(# @UnusedVariable @UndefinedVariable
             context.get_residual_for_solution,
             context.initial_solution,
             approx_grad=True,
@@ -66,7 +66,7 @@ class RefineBruteForceRun(RefineMethod):
         """
             Refinement using a Brute Force algorithm
         """
-        vals = scipy.optimize.brute(
+        vals = scipy.optimize.brute(  # @UndefinedVariable
             context.get_residual_for_solution,
             context.ranges,
             Ns=num_samples,
@@ -99,7 +99,7 @@ class RefineBasinHoppingRun(RefineMethod):
         """
             Refinement using a Basin Hopping Algorithm
         """
-        vals = scipy.optimize.basinhopping(
+        vals = scipy.optimize.basinhopping(  # @UndefinedVariable
             context.get_residual_for_solution,
             context.initial_solution,
             niter=niter,

@@ -8,6 +8,9 @@
 import csv
 
 class CSVMixin(object):
+    """
+        Model mixin providing CSV export and import functionality
+    """
 
     class Meta():
         csv_storables = [] # list of tuples "label", "property_name"

@@ -18,7 +18,7 @@ from pyxrd.project.views import ProjectView
 from pyxrd.specimen.views import SpecimenView, EditMarkersView
 from pyxrd.application.icons import get_icon_list
 
-class AppView(BaseView, HasChildView, FormattedTitleView):
+class AppView(FormattedTitleView, HasChildView, BaseView):
     """
         The main application interface view.
         

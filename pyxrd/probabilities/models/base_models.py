@@ -18,7 +18,7 @@ from pyxrd.generic.models.properties import IndexProperty
 from pyxrd.refinement.refinables.mixins import RefinementGroup
 from pyxrd.refinement.refinables.metaclasses import PyXRDRefinableMeta
 
-class _AbstractProbability(DataModel, Storable, RefinementGroup):
+class _AbstractProbability(RefinementGroup, DataModel, Storable):
 
     # MODEL INTEL:
     __metaclass__ = PyXRDRefinableMeta

@@ -79,7 +79,7 @@ class HoldableSignal(Signal):
         if not self._emissions_pending:
             self._emissions_pending = bool(len(self._ignore_levels) == 0)
 
-class DefaultSignal (Signal):
+class DefaultSignal(Signal):
     """
         A signal that can (optionally) call a before and after handler before
         the actuall signal will be emitted.

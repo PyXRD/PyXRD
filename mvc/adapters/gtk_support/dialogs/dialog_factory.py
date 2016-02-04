@@ -28,15 +28,15 @@ from contextlib import contextmanager
 from .message_dialog import MessageDialog
 from .file_chooser_dialog import FileChooserDialog
 
-class DialogFactory(object):  
-    
+class DialogFactory(object):
+
     # ------------------------------------------------------------
     #      File dialog creators
     # ------------------------------------------------------------
-    
+
     @staticmethod
     def get_file_dialog(
-            action, title, parent=None, 
+            action, title, parent=None,
             suggest_name=None, suggest_folder=None,
             extra_widget=None, filters=[],
             multiple=False, confirm_overwrite=True):
@@ -50,7 +50,7 @@ class DialogFactory(object):
 
     @staticmethod
     def get_save_dialog(
-            title, parent=None, 
+            title, parent=None,
             suggest_name=None, suggest_folder=None,
             extra_widget=None, filters=[],
             confirm_overwrite=True):
@@ -59,13 +59,13 @@ class DialogFactory(object):
         # Does not allow selecting multiple files
         return DialogFactory.get_file_dialog(
             action=gtk.FILE_CHOOSER_ACTION_SAVE, title=title, parent=parent,
-            suggest_name=suggest_name, suggest_folder=suggest_folder, 
+            suggest_name=suggest_name, suggest_folder=suggest_folder,
             extra_widget=extra_widget, filters=filters,
             multiple=False, confirm_overwrite=confirm_overwrite)
-    
+
     @staticmethod
     def get_load_dialog(
-            title, parent=None, 
+            title, parent=None,
             suggest_name=None, suggest_folder=None,
             extra_widget=None, filters=[],
             multiple=True):
@@ -74,7 +74,7 @@ class DialogFactory(object):
         # Disables overwrite confirmation (doesn't matter really)
         return DialogFactory.get_file_dialog(
             action=gtk.FILE_CHOOSER_ACTION_OPEN, title=title, parent=parent,
-            suggest_name=suggest_name, suggest_folder=suggest_folder, 
+            suggest_name=suggest_name, suggest_folder=suggest_folder,
             extra_widget=extra_widget, filters=filters,
             multiple=multiple, confirm_overwrite=False)
 
@@ -97,7 +97,7 @@ class DialogFactory(object):
         return DialogFactory.get_message_dialog(
             message,
             type=gtk.MESSAGE_WARNING,
-            parent=parent            
+            parent=parent
         )
 
     @staticmethod
@@ -109,7 +109,7 @@ class DialogFactory(object):
             buttons=gtk.BUTTONS_OK,
             parent=parent
         )
-        
+
     @staticmethod
     def get_error_dialog(message, parent=None):
         """ Error dialog creator """
@@ -123,7 +123,8 @@ class DialogFactory(object):
     # ------------------------------------------------------------
     #      Custom dialog creator
     # ------------------------------------------------------------
-    def get_custom_dialog(self, content, parent=None):
+    @staticmethod
+    def get_custom_dialog(content, parent=None):
         window = gtk.Window()
         window.set_border_width(10)
         window.set_modal(True)

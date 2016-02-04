@@ -32,10 +32,6 @@ class ComponentPropMixin(object):
         properties using a string description (e.g. 'layer_atoms.1' or 'b_cell')
     """
 
-    def __init__(self, *args, **kwargs):
-        # Nothing to do but ignore any extraneous args & kwargs passed down
-        super(ComponentPropMixin, self).__init__()
-
     def _parseattr(self, attr):
         """
             Function used for handling (deprecated) 'property strings':
@@ -75,7 +71,7 @@ class ComponentPropMixin(object):
             return self.component, attr
 
 @storables.register()
-class AtomRelation(DataModel, Storable, ComponentPropMixin, RefinementValue):
+class AtomRelation(ComponentPropMixin, RefinementValue, DataModel, Storable):
 
     # MODEL INTEL:
     __metaclass__ = PyXRDRefinableMeta
@@ -395,8 +391,8 @@ class AtomContentObject(Model):
     prop = None
     amount = 0.0
 
-    def __init__(self, atom, prop, amount, **kwargs):
-        super(AtomContentObject, self).__init__()
+    def __init__(self, atom, prop, amount, *args, **kwargs):
+        super(AtomContentObject, self).__init__(*args, **kwargs)
         self.atom = atom
         self.prop = prop
         self.amount = amount

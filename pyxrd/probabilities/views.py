@@ -28,7 +28,7 @@ def get_correct_probability_views(probability, parent_view):
         else:
             raise ValueError, "Cannot (yet) handle R%d for %d layer structures!" % (R, G)
 
-class EditProbabilitiesView(BaseView, HasChildView):
+class EditProbabilitiesView(HasChildView, BaseView):
     """
         Container view containing one `MatrixView` and one `IndependentsView`
     """
@@ -58,7 +58,7 @@ class ProbabilityViewMixin():
     def update_matrices(self, W, P):
         raise NotImplementedError
 
-class IndependentsView(BaseView, HasChildView, ProbabilityViewMixin):
+class IndependentsView(HasChildView, ProbabilityViewMixin, BaseView):
     """
         Generic view that is able to generate an two-column list of inputs and 
         labels using the 'labels' argument passed upon creation.
@@ -154,7 +154,7 @@ class IndependentsView(BaseView, HasChildView, ProbabilityViewMixin):
 
     pass # end of class
 
-class MatrixView(BaseView, HasChildView, ProbabilityViewMixin):
+class MatrixView(HasChildView, ProbabilityViewMixin, BaseView):
     """
         Generic view that is able to generate and update a P and W 'matrix'
         table with labels having correct tooltips (e.g. P110). Can be used for

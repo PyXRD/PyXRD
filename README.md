@@ -69,6 +69,9 @@ This is what should be present on your system.
  * Matplotlib 1.2.1 or later
  * PyParsing 1.5.7 or later
  * (optional) DEAP 1.0.0 or later
+ 
+Additionally, to be able to run the unit tests, you'll need to install 
+pyton-mock (>= 1.3.0). To just run PyXRD, you won't need it though.
 
 Windows
 -------

@@ -26,7 +26,7 @@ from .atom_relations import AtomRelation
 from .unit_cell_prop import UnitCellProperty
 
 @storables.register()
-class Component(DataModel, Storable, RefinementGroup):
+class Component(RefinementGroup, DataModel, Storable):
 
     # MODEL INTEL:
     __metaclass__ = PyXRDRefinableMeta

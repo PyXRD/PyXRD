@@ -19,7 +19,7 @@ from pyxrd.refinement.refinables.metaclasses import PyXRDRefinableMeta
 from .atom_relations import ComponentPropMixin
 
 @storables.register()
-class UnitCellProperty(DataModel, Storable, ComponentPropMixin, RefinementValue):
+class UnitCellProperty(ComponentPropMixin, RefinementValue, DataModel, Storable):
     """
         UnitCellProperty's are an integral part of a component and allow to 
         calculate the dimensions of the unit cell based on compositional

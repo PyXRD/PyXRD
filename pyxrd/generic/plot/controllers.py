@@ -139,7 +139,7 @@ class PlotController(object):
         # Ask the user where, how and if he wants to save:
         DialogFactory.get_save_dialog(
             "Save Graph", parent=parent,
-            filters=self.file_filters, suggest_name=suggest_name, 
+            filters=self.file_filters, suggest_name=suggest_name,
             extra_widget=size_expander
         ).run(on_accept)
 
@@ -168,7 +168,7 @@ class PlotController(object):
         self.figure.set_size_inches((original_width, original_height))
         self.figure.canvas.draw() # replot
 
-class MainPlotController (PlotController):
+class MainPlotController(PlotController):
     """
         A controller for the main plot canvas.
     """

@@ -22,7 +22,7 @@ from .CSDS import DritsCSDSDistribution
 from .component import Component
 
 @storables.register()
-class Phase(AbstractPhase, Storable, RefinementGroup):
+class Phase(RefinementGroup, AbstractPhase):
 
     # MODEL INTEL:
     __metaclass__ = PyXRDRefinableMeta

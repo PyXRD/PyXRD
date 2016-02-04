@@ -10,7 +10,7 @@ import numpy as np
 
 from mvc import PropIntel
 
-from pyxrd.generic.io import storables, Storable, get_case_insensitive_glob
+from pyxrd.generic.io import storables, get_case_insensitive_glob
 from pyxrd.generic.io.xrd_parsers import XRDParser #@UnusedImport leave this to register!
 from pyxrd.generic.io.file_parsers import parsers
 from pyxrd.generic.models.lines import PyXRDLine
@@ -20,7 +20,7 @@ from pyxrd.refinement.refinables.metaclasses import PyXRDRefinableMeta
 from .abstract_phase import AbstractPhase
 
 @storables.register()
-class RawPatternPhase(AbstractPhase, Storable):
+class RawPatternPhase(AbstractPhase):
 
     # MODEL INTEL:
     __metaclass__ = PyXRDRefinableMeta

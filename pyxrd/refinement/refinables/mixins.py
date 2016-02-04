@@ -34,10 +34,6 @@ class _RefinementBase(object):
         
     """
 
-    def __init__(self, *args, **kwargs):
-        # Nothing to do but ignore any extraneous args & kwargs passed down
-        super(_RefinementBase, self).__init__()
-
     @property
     def refine_title(self):
         return "Refinement Base"

@@ -20,7 +20,7 @@ from pyxrd.calculations.data_objects import AtomTypeData, AtomData
 from pyxrd.calculations.atoms import get_atomic_scattering_factor, get_structure_factor
 
 @storables.register()
-class AtomType(DataModel, Storable, CSVMixin):
+class AtomType(CSVMixin, DataModel, Storable):
     """
     An AtomType model contains all the physical & chemical information for 
     one ion, e.g. Fe3+ & Fe2+ are two different AtomTypes.

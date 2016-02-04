@@ -15,7 +15,7 @@ from matplotlib.backends.backend_gtkcairo import FigureCanvasGTKCairo as FigureC
 from pyxrd.generic.views import BaseView, HasChildView, DialogView
 from mvc.adapters.gtk_support.widgets import ScaleEntry
 
-class EditPhaseView(BaseView, HasChildView):
+class EditPhaseView(HasChildView, BaseView):
     title = "Edit Phases"
     builder = resource_filename(__name__, "glade/phase.glade")
     top = "edit_phase"
@@ -78,7 +78,7 @@ class EditAtomRatioView(DialogView):
 
     pass # end of class
 
-class EditAtomContentsView(DialogView, HasChildView):
+class EditAtomContentsView(HasChildView, DialogView):
     title = "Edit Atom Contents"
     subview_builder = resource_filename(__name__, "glade/contents.glade")
     subview_toplevel = "edit_contents"
@@ -97,7 +97,7 @@ class EditAtomContentsView(DialogView, HasChildView):
 
     pass # end of class
 
-class EditComponentView(BaseView, HasChildView):
+class EditComponentView(HasChildView, BaseView):
     title = "Edit Component"
     builder = resource_filename(__name__, "glade/component.glade")
     top = "edit_component"

@@ -21,7 +21,7 @@ from pyxrd.generic.views.treeview_tools import setup_treeview, new_text_column
 
 from ..models import RawPatternPhase
 
-class EditRawPatternPhaseController(BaseController, TreeViewMixin):
+class EditRawPatternPhaseController(TreeViewMixin, BaseController):
     """ 
         Controller for the phase edit view
     """
@@ -163,5 +163,5 @@ class EditRawPatternPhaseController(BaseController, TreeViewMixin):
             filters=self.rp_export_filters,
             suggest_name=ext_less_fname
         ).run(on_accept)
-        
+
     pass #end of class

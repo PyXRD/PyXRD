@@ -118,7 +118,7 @@ class InheritableMixin(object):
 
     pass # end of class
 
-class ChildModel(PyXRDModel, InheritableMixin):
+class ChildModel(InheritableMixin, PyXRDModel):
     """
         A PyXRDModel with child-parent relation support.
         Additionally, if you have properties that can actually be 'inherited'

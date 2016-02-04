@@ -117,7 +117,7 @@ class ProjectController(ObjectListStoreController):
             task = ThreadedTaskBox()
             window = DialogFactory.get_custom_dialog(
                  task, parent=self.view.get_top_widget())
-            
+
             # Status:
             status_dict = dict(
                 total_files=len(filenames),
@@ -186,6 +186,7 @@ class ProjectController(ObjectListStoreController):
             self.thread.start()
 
         DialogFactory.get_load_dialog(title="Select XRD files for import",
+                             filters=self.file_filters,
                              parent=self.view.get_top_widget(),
                              multiple=True).run(on_accept)
 

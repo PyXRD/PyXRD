@@ -125,7 +125,7 @@ class BaseView(View):
                 return self[w].get_toplevel()
                 break # just for ref
 
-class TitleView():
+class TitleView(BaseView):
     """
         Mix-in that provides title support for views.
         The class attribute 'title' can be set, if so, this class will
@@ -134,6 +134,7 @@ class TitleView():
     title = None
 
     def __init__(self, *args, **kwargs):
+        super(TitleView, self).__init__(*args, **kwargs)
         if self.title is not None: self.set_title(self.title)
 
     def set_title(self, title):
@@ -158,7 +159,7 @@ class FormattedTitleView(TitleView):
 
     pass # end of class
 
-class HasChildView():
+class HasChildView(object):
     """
         Mixin that provides a function to add childviews to containers
     """
@@ -173,7 +174,9 @@ class HasChildView():
         new_child.show_all()
         return new_child
 
-class DialogView(BaseView, TitleView, HasChildView):
+    pass # end of class
+
+class DialogView(HasChildView, TitleView):
     """
         Generalised view for editing stuff with an OK button
     """
@@ -185,12 +188,11 @@ class DialogView(BaseView, TitleView, HasChildView):
     subview_builder = ""
     subview_toplevel = None
 
-    def __init__(self, container_widget=None, subview_builder=None, subview_toplevel=None, **kwargs):
+    def __init__(self, container_widget=None, subview_builder=None, subview_toplevel=None, *args, **kwargs):
         self.container_widget = container_widget or self.container_widget
         self.subview_builder = subview_builder or self.subview_builder
         self.subview_toplevel = subview_toplevel or self.subview_toplevel
-        BaseView.__init__(self, **kwargs)
-        TitleView.__init__(self)
+        super(DialogView, self).__init__(*args, **kwargs)
         self._builder.add_from_file(self.subview_builder)
         self._add_child_view(self[self.subview_toplevel], self[self.container_widget])
         return
@@ -284,7 +286,7 @@ class ObjectListStoreViewMixin(HasChildView):
 
         return self.edit_view
 
-class ObjectListStoreView(DialogView, ObjectListStoreViewMixin):
+class ObjectListStoreView(ObjectListStoreViewMixin, DialogView):
     """
         Generalised view for editing objects inside an ObjectListStore (using a customisable child view)
          - Standalone version (inside a DialogView)
@@ -296,7 +298,7 @@ class ObjectListStoreView(DialogView, ObjectListStoreViewMixin):
         DialogView.__init__(self, **kwargs)
         ObjectListStoreViewMixin.__init__(self, edit_view_container=edit_view_container, display_buttons=display_buttons, load_label=load_label, save_label=save_label, **kwargs)
 
-class ChildObjectListStoreView(BaseView, ObjectListStoreViewMixin):
+class ChildObjectListStoreView(ObjectListStoreViewMixin, BaseView):
     """
         Generalised view for editing objects inside an ObjectListStore (using a customisable child view)
          - Child version (to be embedded by a controller)

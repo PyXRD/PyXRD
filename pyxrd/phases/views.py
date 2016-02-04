@@ -78,7 +78,7 @@ class EditAtomRatioView(DialogView):
 
     pass # end of class
 
-class EditAtomContentsView(HasChildView, DialogView):
+class EditAtomContentsView(DialogView):
     title = "Edit Atom Contents"
     subview_builder = resource_filename(__name__, "glade/contents.glade")
     subview_toplevel = "edit_contents"

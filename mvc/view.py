@@ -44,7 +44,7 @@ class View (object):
 
     def __init__(self, top=None,
                  parent=None,
-                 builder=None):
+                 builder=None, *args, **kwargs):
         """
         Only the first three may be given as positional arguments. If an
         argument is empty a class attribute of the same name is used. This
@@ -60,6 +60,8 @@ class View (object):
         The last two only work if *builder* is used, not if you
         intend to create widgets later from code.
         """
+        super(View, self).__init__(*args, **kwargs)
+
         self.manualWidgets = {}
         self.autoWidgets = {}
         self.__autoWidgets_calculated = False

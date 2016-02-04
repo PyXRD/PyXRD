@@ -19,8 +19,6 @@ class AppModel(PyXRDModel):
                 update. This models listens for the 'needs_update' signal on the
                 loaded project and propagates this accordingly.
             current_project: the currently loaded project
-            statistics_visble: a boolean indicating whether or not statistic
-                should be visible
             current_specimen: the currently selected specimen, is None if more
                 than one specimen is selected.
             current_specimens: a list of currently selected specimens, is never
@@ -36,7 +34,6 @@ class AppModel(PyXRDModel):
             PropIntel(name="current_project", observable=True),
             PropIntel(name="current_specimen", observable=True),
             PropIntel(name="current_specimens", observable=True),
-            PropIntel(name="statistics_visible", observable=True),
             PropIntel(name="needs_plot_update", observable=True)
         ]
 
@@ -55,11 +52,6 @@ class AppModel(PyXRDModel):
         self.clear_selected()
         self.needs_plot_update.emit()
     current_filename = None
-
-    _statistics_visible = None
-    def set_statistics_visible(self, value): self._statistics_visible = value
-    def get_statistics_visible(self):
-        return self._statistics_visible and self.current_specimen is not None and self.current_project.layout_mode != 1
 
     _current_specimen = None
     def get_current_specimen(self): return self._current_specimen
@@ -103,7 +95,6 @@ class AppModel(PyXRDModel):
         self.needs_plot_update = Signal()
         self.current_project = project
         if project: project.parent = self
-        self._statistics_visible = False
 
     # ------------------------------------------------------------
     #      Notifications of observable properties

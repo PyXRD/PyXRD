@@ -8,7 +8,8 @@
 from random import choice
 import numpy as np
 
-from mvc import PropIntel
+from mvc.models.properties import LabeledProperty
+from mvc.models.properties.signal_mixin import SignalMixin
 
 from pyxrd.generic.io import storables, get_case_insensitive_glob
 from pyxrd.generic.models.lines import PyXRDLine
@@ -24,10 +25,6 @@ class RawPatternPhase(RefinementGroup, AbstractPhase):
     # MODEL INTEL:
     __metaclass__ = PyXRDRefinableMeta
     class Meta(AbstractPhase.Meta):
-        properties = [
-            PropIntel(name="display_color", data_type=str, label="Display color", is_column=True, has_widget=True, widget_type='color', storable=True),
-            PropIntel(name="raw_pattern", label="Raw pattern", data_type=object, is_column=True, storable=True, has_widget=True, widget_type="xy_list_view"),
-        ]
         store_id = "RawPatternPhase"
         file_filters = [
             ("Phase file", get_case_insensitive_glob("*.PHS")),
@@ -65,16 +62,21 @@ class RawPatternPhase(RefinementGroup, AbstractPhase):
     def refinables(self):
         return []
 
-    _raw_pattern = None
-    def get_raw_pattern(self): return self._raw_pattern
+    raw_pattern = LabeledProperty(
+        default=None, text="Raw pattern",
+        visible=True, persistent=True, tabular=True,
+        inheritable=True, inherit_flag="inherit_CSDS_distribution", inherit_from="based_on.CSDS_distribution",
+        signal_name="data_changed",
+        mix_with=(SignalMixin,)
+    )
+    @raw_pattern.setter
     def set_raw_pattern(self, value):
         if value != self._raw_pattern:
-            with self.data_changed.hold_and_emit():
-                if self._raw_pattern is not None:
-                    self.relieve_model(self._raw_pattern)
-                self._raw_pattern = value
-                if self._raw_pattern is not None:
-                    self.observe_model(self._raw_pattern)
+            if self.raw_pattern is not None:
+                self.relieve_model(self.raw_pattern)
+            type(self).raw_pattern._set(self, value)
+            if self.raw_pattern is not None:
+                self.observe_model(self.raw_pattern)
 
     @property
     def max_intensity(self):
@@ -84,20 +86,13 @@ class RawPatternPhase(RefinementGroup, AbstractPhase):
             _max = max(_max, np.max(self.raw_pattern.max_intensity))
         return _max
 
-    _display_color = "#FFB600"
-    def get_display_color(self): return self._display_color
-    def set_display_color(self, value):
-        if self._display_color != value:
-            with self.visuals_changed.hold_and_emit():
-                self._display_color = value
-
     # ------------------------------------------------------------
     #      Initialization and other internals
     # ------------------------------------------------------------
     def __init__(self, *args, **kwargs):
 
         my_kwargs = self.pop_kwargs(kwargs,
-            *[names[0] for names in RawPatternPhase.Meta.get_local_storable_properties()]
+            *[prop.label for prop in RawPatternPhase.Meta.get_local_persistent_properties()]
         )
         super(RawPatternPhase, self).__init__(*args, **kwargs)
         kwargs = my_kwargs

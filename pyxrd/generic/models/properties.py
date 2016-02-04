@@ -27,7 +27,7 @@ class InheritableMixin(object):
     def __get__(self, instance, owner=None):
         if instance is None:
             return self
-        value = super(InheritableMixin, self).__get__(instance, owner)
+        value = self.get_uninherited(instance, owner)
         if self.inheritable and rec_getattr(instance, self.inherit_flag, False):
             value = rec_getattr(instance, self.inherit_from, value)
         return value

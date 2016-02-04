@@ -5,14 +5,13 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from random import choice
 from warnings import warn
 
 from mvc import Observer
 from mvc.observers import ListObserver
 from mvc.models.properties import (
     StringProperty, SignalMixin, BoolProperty, LabeledProperty,
-    FloatProperty, ListProperty, IntegerProperty, ReadOnlyMixin
+    FloatProperty, ListProperty
 )
 
 from pyxrd.generic.io import storables, get_case_insensitive_glob
@@ -27,7 +26,6 @@ from pyxrd.probabilities.models import get_correct_probability_model
 from .abstract_phase import AbstractPhase
 from .CSDS import DritsCSDSDistribution
 from .component import Component
-
 
 @storables.register()
 class Phase(RefinementGroup, AbstractPhase):
@@ -71,12 +69,6 @@ class Phase(RefinementGroup, AbstractPhase):
     project = property(AbstractPhase.parent.fget, AbstractPhase.parent.fset)
 
     # PROPERTIES:
-
-    #: The name of this Phase
-    name = StringProperty(
-        default="New Phase", text="Name",
-        visible=True, persistent=True, tabular=True,
-    )
 
     #: Flag indicating whether the CSDS distribution is inherited from the
     #: :attr:`based_on` phase or not.
@@ -132,8 +124,6 @@ class Phase(RefinementGroup, AbstractPhase):
                 component.linked_with = None
         if _based_on is not None:
             self.observe_model(_based_on)
-        else:
-            self._clear_inherited_flags()
 
     # INHERITABLE PROPERTIES:
 
@@ -187,7 +177,11 @@ class Phase(RefinementGroup, AbstractPhase):
 
     #: The color this phase's X-ray diffraction pattern should have.
     display_color = StringProperty(
-        default="#FFB600", text="Display color",
+        fset=AbstractPhase.display_color.fset,
+        fget=AbstractPhase.display_color.fget,
+        fdel=AbstractPhase.display_color.fdel,
+        doc=AbstractPhase.display_color.__doc__,
+        default="#008600", text="Display color",
         visible=True, persistent=True, tabular=True, widget_type='color',
         inheritable=True, inherit_flag="inherit_display_color", inherit_from="based_on.display_color",
         signal_name="visuals_changed",
@@ -203,11 +197,7 @@ class Phase(RefinementGroup, AbstractPhase):
     )
 
     #: The # of components
-    @IntegerProperty(
-        default=0, text="# of components",
-        visible=True, persistent=True, tabular=True, widget_type="entry",
-        mix_with=(ReadOnlyMixin,)
-    )
+    @AbstractPhase.G.getter
     def G(self):
         if self.components is not None:
             return len(self.components)
@@ -215,12 +205,8 @@ class Phase(RefinementGroup, AbstractPhase):
             return 0
 
     #: The # of components
-    @IntegerProperty(
-        default=0, text="Reichweite",
-        visible=True, persistent=False, tabular=True, widget_type="entry",
-        mix_with=(ReadOnlyMixin,)
-    )
-    def R(self):
+    @AbstractPhase.R.getter
+    def get_R(self):
         if self.probabilities:
             return self.probabilities.R
 
@@ -267,7 +253,7 @@ class Phase(RefinementGroup, AbstractPhase):
             self.display_color = self.get_kwarg(kwargs, choice(self.line_colors), "display_color")
             self.inherit_display_color = self.get_kwarg(kwargs, False, "inherit_display_color")
 
-            self.sigma_star = self.get_kwarg(kwargs, self._sigma_star, "sigma_star", "data_sigma_star")
+            self.sigma_star = self.get_kwarg(kwargs, self.sigma_star, "sigma_star", "data_sigma_star")
             self.inherit_sigma_star = self.get_kwarg(kwargs, False, "inherit_sigma_star")
 
             self.components = self.get_list(kwargs, [], "components", "data_components", parent=self)
@@ -381,7 +367,7 @@ class Phase(RefinementGroup, AbstractPhase):
         retval = super(Phase, self).json_properties()
         if not self.save_links:
             for prop in self.Meta.all_properties:
-                if prop.inherit_flag:
+                if getattr(prop, "inherit_flag", False):
                     retval[prop.inherit_flag] = False
             retval["based_on_uuid"] = ""
         else:
@@ -393,5 +379,14 @@ class Phase(RefinementGroup, AbstractPhase):
     # ------------------------------------------------------------
     def _update_interference_distributions(self):
         return self.CSDS_distribution.distrib
+
+    def get_based_on_root(self):
+        """
+            Gets the root object in the based_on chain
+        """
+        if self.based_on is not None:
+            return self.based_on.get_based_on_root()
+        else:
+            return self
 
     pass # end of class

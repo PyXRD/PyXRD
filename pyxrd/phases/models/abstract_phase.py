@@ -6,8 +6,11 @@
 # Complete license can be found in the LICENSE file.
 
 import zipfile
+from random import choice
 
-from mvc.models.prop_intel import PropIntel
+from mvc.models.properties import (
+    StringProperty, SignalMixin, IntegerProperty, ReadOnlyMixin
+)
 
 from pyxrd.generic.io import storables, Storable, COMPRESSION
 from pyxrd.generic.models import DataModel
@@ -16,17 +19,11 @@ from pyxrd.calculations.data_objects import PhaseData
 from pyxrd.calculations.phases import get_diffracted_intensity
 from pyxrd.file_parsers.json_parser import JSONParser
 
-
 @storables.register()
 class AbstractPhase(DataModel, Storable):
 
     # MODEL INTEL:
     class Meta(DataModel.Meta):
-        properties = [
-            PropIntel(name="name", data_type=unicode, label="Name", is_column=True, has_widget=True, storable=True),
-            PropIntel(name="G", data_type=int, label="# of components", is_column=True, has_widget=True, widget_type="entry", storable=True),
-            PropIntel(name="R", data_type=int, label="Reichweite", is_column=True, has_widget=True, widget_type="entry"),
-        ]
         store_id = "AbstractPhase"
 
     _data_object = None
@@ -37,13 +34,38 @@ class AbstractPhase(DataModel, Storable):
     project = property(DataModel.parent.fget, DataModel.parent.fset)
 
     # PROPERTIES:
-    name = "New Phase"
 
-    def get_G(self):
+    #: The name of this Phase
+    name = StringProperty(
+        default="New Phase", text="Name",
+        visible=True, persistent=True, tabular=True,
+    )
+
+    #: The # of components
+    @IntegerProperty(
+        default=0, text="# of components",
+        visible=True, persistent=True, tabular=True, widget_type="entry",
+        mix_with=(ReadOnlyMixin,)
+    )
+    def G(self):
         return 0
 
-    def get_R(self):
+    #: The Reichweite
+    @IntegerProperty(
+        default=0, text="Reichweite",
+        visible=True, persistent=False, tabular=True, widget_type="entry",
+        mix_with=(ReadOnlyMixin,)
+    )
+    def R(self):
         return 0
+
+    #: The color this phase's X-ray diffraction pattern should have.
+    display_color = StringProperty(
+        default="#FFB600", text="Display color",
+        visible=True, persistent=True, tabular=True, widget_type='color',
+        signal_name="visuals_changed",
+        mix_with=(SignalMixin,)
+    )
 
     line_colors = [
         "#004488",
@@ -61,7 +83,7 @@ class AbstractPhase(DataModel, Storable):
 
         my_kwargs = self.pop_kwargs(kwargs,
             "data_name", "data_G", "data_R",
-            *[names[0] for names in AbstractPhase.Meta.get_local_storable_properties()]
+            *[prop.label for prop in AbstractPhase.Meta.get_local_persistent_properties()]
         )
         super(AbstractPhase, self).__init__(*args, **kwargs)
         kwargs = my_kwargs
@@ -71,6 +93,7 @@ class AbstractPhase(DataModel, Storable):
             self._data_object = PhaseData()
 
             self.name = self.get_kwarg(kwargs, self.name, "name", "data_name")
+            self.display_color = self.get_kwarg(kwargs, choice(self.line_colors), "display_color")
 
     def __repr__(self):
         return "AbstractPhase(name='%s')" % (self.name)

@@ -550,7 +550,7 @@ class Component(RefinementGroup, DataModel, Storable):
         if self.phase == None or not self.save_links:
             retval = Storable.json_properties(self)
             for prop in self.Meta.all_properties:
-                if prop.inherit_flag:
+                if getattr(prop, "inherit_flag", False):
                     retval[prop.inherit_flag] = False
         else:
             retval = Storable.json_properties(self)

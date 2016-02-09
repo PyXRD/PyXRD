@@ -33,21 +33,32 @@ def run_dialog(dialog,
 
     # Using an event prevents deadlocks, because we can return to the Main Loop
     def _dialog_response_cb(dialog, response):
-        retval = None
         if response in dialog.accept_responses and on_accept_callback is not None:
-            retval = on_accept_callback(dialog)
+            on_accept_callback(dialog)
         elif on_reject_callback is not None:
-            retval = on_reject_callback(dialog)
+            on_reject_callback(dialog)
         if destroy:
             dialog.destroy()
         else:
             dialog.hide()
-        return retval
-
-    # Connect callback and present the dialog
+        return not destroy
     dialog.connect('response', _dialog_response_cb)
+
+    # Adding the delete event prevents the dialog from being destroyed if the
+    # user indicated it should persist
+    def delete_event(dialog, event):
+        if on_reject_callback is not None:
+            on_reject_callback(dialog)
+        if destroy:
+            dialog.destroy()
+        else:
+            dialog.hide()
+        return not destroy
+    dialog.connect("delete_event", delete_event)
+
+    # Present the dialog
     dialog.set_modal(True)
-    dialog.show()
+    dialog.show_all()
 
 def retrieve_lowercase_extension(glob):
     '''Ex: '*.[oO][rR][aA]' => '*.ora' '''

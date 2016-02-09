@@ -27,28 +27,31 @@ import gtk
 from .utils import run_dialog
 
 class MessageDialog(gtk.MessageDialog):
-    
+
     accept_responses = (
         gtk.RESPONSE_ACCEPT, # @UndefinedVariable
         gtk.RESPONSE_YES, # @UndefinedVariable
         gtk.RESPONSE_APPLY, # @UndefinedVariable
         gtk.RESPONSE_OK # @UndefinedVariable
     )
-    
-    def __init__(self, 
+
+    def __init__(self,
              message, parent=None,
              type=gtk.MESSAGE_INFO,  # @ReservedAssignment
-             flags=gtk.DIALOG_DESTROY_WITH_PARENT, 
-             buttons=gtk.BUTTONS_NONE):
+             flags=gtk.DIALOG_DESTROY_WITH_PARENT,
+             buttons=gtk.BUTTONS_NONE,
+             persist=False):
         super(MessageDialog, self).__init__(
             parent=parent,
             type=type,
             flags=gtk.DIALOG_DESTROY_WITH_PARENT,
             buttons=buttons)
+        self.persist = persist
         self.set_markup(message)
-        
+
     #override
     def run(self, *args, **kwargs):
+        kwargs['destroy'] = not self.persist
         return run_dialog(self, *args, **kwargs)
-        
+
     pass #end of class

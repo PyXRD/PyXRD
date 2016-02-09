@@ -1,5 +1,6 @@
 # coding=UTF-8
 # ex:ts=4:sw=4:et=on
+from functools import wraps
 
 # Copyright (c) 2013, Mathijs Dumon
 # All rights reserved.
@@ -26,6 +27,7 @@ class StatusBarMixin(object):
     @staticmethod
     def status_message(message, cid=None):
         def decorator(func):
+            @wraps(func)
             def wrapper(self, *args, **kwargs):
                 self.push_status_msg(message, cid)
                 res = func(self, *args, **kwargs)

@@ -51,7 +51,10 @@ class AppModel(PyXRDModel):
         if self._current_project is not None: self.observe_model(self._current_project)
         self.clear_selected()
         self.needs_plot_update.emit()
-    current_filename = None
+
+    @property
+    def current_filename(self):
+        return self.current_project.filename if self.current_project else None
 
     _current_specimen = None
     def get_current_specimen(self): return self._current_specimen

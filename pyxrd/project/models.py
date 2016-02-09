@@ -5,6 +5,8 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
+from contextlib import contextmanager
+import types
 import logging
 logger = logging.getLogger(__name__)
 
@@ -24,7 +26,7 @@ from pyxrd.mixture.models.mixture import Mixture
 from pyxrd.generic.utils import not_none
 from pyxrd.specimen.models.base import Specimen
 from pyxrd.generic.exit_stack import ExitStack
-from contextlib import contextmanager
+
 
 @storables.register()
 class Project(DataModel, Storable):
@@ -103,6 +105,9 @@ class Project(DataModel, Storable):
         ]
 
     # PROPERTIES:
+
+    filename = None
+
     #: The project name
     name = ""
     #: The project data (string)
@@ -436,7 +441,7 @@ class Project(DataModel, Storable):
         """
         my_kwargs = self.pop_kwargs(kwargs,
             "goniometer", "data_goniometer", "data_atom_types", "data_phases",
-            "axes_yscale", "axes_xscale",
+            "axes_yscale", "axes_xscale", "filename",
             *[names[0] for names in type(self).Meta.get_local_storable_properties()]
         )
         super(Project, self).__init__(*args, **kwargs)
@@ -445,6 +450,7 @@ class Project(DataModel, Storable):
         with self.data_changed.hold():
             with self.visuals_changed.hold():
 
+                self.filename = self.get_kwarg(kwargs, self.filename, "filename")
                 self.layout_mode = self.get_kwarg(kwargs, self.layout_mode, "layout_mode")
 
                 self.display_marker_align = self.get_kwarg(kwargs, self.display_marker_align, "display_marker_align")
@@ -622,15 +628,19 @@ class Project(DataModel, Storable):
         project.needs_saving = False # don't mark this when just loaded
         return project
 
-    def save_object(self, file): # @ReservedAssignment
-        Storable.save_object(self, file, zipped=True)
+    def save_object(self, filename): # @ReservedAssignment
+        Storable.save_object(self, filename, zipped=True)
         type(self).object_pool.change_all_uuids()
+        if isinstance(filename, types.StringTypes):
+            self.filename = filename
         self.needs_saving = False
 
     @classmethod
     def load_object(cls, filename, data=None, parent=None):
         type(cls).object_pool.change_all_uuids()
-        return Storable.load_object(filename, data=data, parent=parent)
+        project = Storable.load_object(filename, data=data, parent=parent)
+        project.filename = filename
+        return project
 
     def to_json_multi_part(self):
         to_json = self.to_json()

@@ -6,6 +6,7 @@
 # Complete license can be found in the LICENSE file.
 
 from contextlib import contextmanager
+from os.path import dirname
 
 import numpy as np
 
@@ -61,6 +62,40 @@ class AtomTypesController(ObjectListStoreController): # FIXME THIS NEES CLEAN-UP
     ]
     title = "Edit Atom Types"
 
+    _export_atomtypes_dialog = None
+    @property
+    def export_atomtypes_dialog(self):
+        """ Creates & returns the 'export atom types' dialog """
+        if self._export_atomtypes_dialog is None:
+            # Default location of the database:
+            current_folder = dirname(settings.DATA_REG.get_file_path("ATOM_SCAT_FACTORS"))
+            # Create the dialog once, and re-use
+            self._export_atomtypes_dialog = DialogFactory.get_save_dialog(
+                title="Export atom types",
+                current_folder=current_folder,
+                persist=True,
+                filters=self.file_filters,
+                parent=self.view.get_top_widget()
+            )
+        return self._export_atomtypes_dialog
+
+    _import_atomtypes_dialog = None
+    @property
+    def import_atomtypes_dialog(self):
+        """ Creates & returns the 'import atom types' dialog """
+        if self._import_atomtypes_dialog is None:
+            # Default location of the database:
+            current_folder = dirname(settings.DATA_REG.get_file_path("ATOM_SCAT_FACTORS"))
+            # Create the dialog once, and re-use
+            self._import_atomtypes_dialog = DialogFactory.get_load_dialog(
+                title="Import atom types",
+                current_folder=current_folder,
+                persist=True, multiple=False,
+                filters=self.file_filters,
+                parent=self.view.get_top_widget()
+            )
+        return self._import_atomtypes_dialog
+
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------
@@ -87,10 +122,7 @@ class AtomTypesController(ObjectListStoreController): # FIXME THIS NEES CLEAN-UP
                 self.model.load_atom_types_from_csv(filename)
             elif fltr.get_name() == self.file_filters[1][0]:
                 self.model.load_atom_types(filename)
-        DialogFactory.get_load_dialog(
-            "Import atom types", parent=self.view.get_top_widget(),
-            filters=self.file_filters
-        ).run(on_accept)
+        self.import_atomtypes_dialog.run(on_accept)
 
     def on_save_object_clicked(self, event):
         def on_accept(dialog):
@@ -98,13 +130,10 @@ class AtomTypesController(ObjectListStoreController): # FIXME THIS NEES CLEAN-UP
             # TODO FIXME This is ugly as hell! Use parsers instead!
             fltr = dialog.get_filter()
             if fltr.get_name() == self.file_filters[0][0]:
-                AtomType.save_atom_types(filename, self.get_selected_objects())
-            elif fltr.get_name() == self.file_filters[1][0]:
                 AtomType.save_as_csv(filename, self.get_selected_objects())
-        DialogFactory.get_save_dialog(
-            "Export atom types", parent=self.view.get_top_widget(),
-            filters=self.file_filters
-        ).run(on_accept)
+            elif fltr.get_name() == self.file_filters[1][0]:
+                AtomType.save_atom_types(filename, self.get_selected_objects())
+        self.export_atomtypes_dialog.run(on_accept)
 
     pass # end of class
 

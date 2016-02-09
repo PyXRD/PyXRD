@@ -218,7 +218,7 @@ class AtomType(CSVMixin, DataModel, Storable):
             yield cls.load_object(filename, parent=parent)
 
     @classmethod
-    def save_atom_types(cls, atom_types, filename):
+    def save_atom_types(cls, filename, atom_types):
         """
             Saves multiple AtomTypes to a single (JSON) file.
         """

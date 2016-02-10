@@ -796,20 +796,15 @@ class Project(DataModel, Storable):
     # ------------------------------------------------------------
     #      AtomType's list related
     # ------------------------------------------------------------
-    def load_atom_types_from_csv(self, filename):
+    def load_atom_types(self, filename, parser):
         """
-        Loads all :class:`~pyxrd.atoms.models.AtomType` objects from the CSV
+        Loads all :class:`~pyxrd.atoms.models.AtomType` objects from the
         file specified by *filename*.
         """
-        for atom_type in AtomType.get_from_csv(filename, parent=self):
-            self.atom_types.append(atom_type)
-
-    def load_atom_types(self, filename):
-        """
-        Loads all :class:`~pyxrd.atoms.models.AtomType` objects from the JSON
-        file specified by *filename*.
-        """
-        for atom_type in AtomType.load_atom_types(filename, parent=self):
+        # make sure we have no duplicate UUID's
+        type(AtomType).object_pool.change_all_uuids()
+        for atom_type in AtomType.load_atom_types_from_generator(
+                parser.parse(filename), parent=self):
             self.atom_types.append(atom_type)
 
     pass # end of class

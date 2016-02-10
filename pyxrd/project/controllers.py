@@ -9,6 +9,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 import os
+from contextlib import contextmanager
 
 import pango
 import gtk, gobject
@@ -23,8 +24,11 @@ from pyxrd.generic.gtk_tools.utils import run_when_idle
 from pyxrd.generic.threads import CancellableThread
 from pyxrd.generic.views.treeview_tools import new_text_column, new_toggle_column, new_pb_column
 from pyxrd.generic.controllers import BaseController, ObjectListStoreController
+
+from pyxrd.file_parsers.xrd_parsers import xrd_parsers
+
 from pyxrd.specimen.models import Specimen
-from contextlib import contextmanager
+
 
 
 class ProjectController(ObjectListStoreController):
@@ -34,8 +38,6 @@ class ProjectController(ObjectListStoreController):
     columns = [ ]
     delete_msg = "Deleting a specimen is irreversible!\nAre You sure you want to continue?"
     auto_adapt = True
-
-    file_filters = Specimen.Meta.file_filters
 
     def register_view(self, view):
         if view is not None and self.model is not None:
@@ -186,7 +188,7 @@ class ProjectController(ObjectListStoreController):
             self.thread.start()
 
         DialogFactory.get_load_dialog(title="Select XRD files for import",
-                             filters=self.file_filters,
+                             filters=xrd_parsers.get_import_file_filters(),
                              parent=self.view.get_top_widget(),
                              multiple=True).run(on_accept)
 

@@ -7,13 +7,12 @@
 
 from functools import partial
 from warnings import warn
-import zipfile
 
 from mvc import Observer, PropIntel
 
 import numpy as np
 
-from pyxrd.generic.io import storables, Storable, get_case_insensitive_glob, COMPRESSION
+from pyxrd.generic.io import storables, Storable, get_case_insensitive_glob
 from pyxrd.generic.models import DataModel
 from pyxrd.generic.models.mixins import CSVMixin
 from pyxrd.calculations.data_objects import AtomTypeData, AtomData
@@ -42,11 +41,6 @@ class AtomType(CSVMixin, DataModel, Storable):
             PropIntel(name="par_b%d" % i, label="b%d" % i, data_type=float, widget_type="float_entry", **PropIntel.ST_WID_COL) for i in xrange(1, 6)
         ]
         csv_storables = [(prop.name, prop.name) for prop in properties if prop.storable]
-
-        file_filters = [
-            ("Atom types CSV file", get_case_insensitive_glob("*.atl")),
-            ("Atom types JSON file", get_case_insensitive_glob("*.ztl"))
-        ]
 
     #: The project this AtomType belongs to or None. Effectively an alias for `parent`.
     project = property(DataModel.parent.fget, DataModel.parent.fset)
@@ -201,37 +195,26 @@ class AtomType(CSVMixin, DataModel, Storable):
     #      Input/Output stuff
     # ------------------------------------------------------------
     @classmethod
-    def load_atom_types(cls, filename, parent=None):
-        """
-            Returns multiple AtomTypes loaded from a single (JSON) file.
-        """
-        # Before import, we change all the UUID's
-        # This way we're sure that we're not going to import objects
-        # with duplicate UUID's!
-        type(cls).object_pool.change_all_uuids()
-
-        if zipfile.is_zipfile(filename):
-            with zipfile.ZipFile(filename, 'r') as zfile:
-                for name in zfile.namelist():
-                    yield cls.load_object(zfile.open(name), parent=parent)
-        else:
-            yield cls.load_object(filename, parent=parent)
-
-    @classmethod
-    def save_atom_types(cls, filename, atom_types):
-        """
-            Saves multiple AtomTypes to a single (JSON) file.
-        """
-        type(cls).object_pool.change_all_uuids()
-
-        with zipfile.ZipFile(filename, 'w', compression=COMPRESSION) as zfile:
-            for i, atom_type in enumerate(atom_types):
-                zfile.writestr("%d###%s" % (i, atom_type.uuid), atom_type.dump_object())
-
-        # After export we change all the UUID's
-        # This way, we're sure that we're not going to import objects with
-        # duplicate UUID's!
-        type(cls).object_pool.change_all_uuids()
+    def load_atom_types_from_generator(cls, generator, parent=None):
+        for atom_type in generator:
+            if atom_type.is_json:
+                yield cls.load_object(atom_type.file, parent=parent)
+            else:
+                yield cls(
+                    par_a1=atom_type.par_a1, par_a2=atom_type.par_a2,
+                    par_a3=atom_type.par_a3, par_a4=atom_type.par_a4,
+                    par_a5=atom_type.par_a5,
+                    par_b1=atom_type.par_b1, par_b2=atom_type.par_b2,
+                    par_b3=atom_type.par_b3, par_b4=atom_type.par_b4,
+                    par_b5=atom_type.par_b5,
+                    par_c=atom_type.par_c,
+                    atom_nr=atom_type.atom_nr,
+                    name=atom_type.name,
+                    charge=atom_type.charge,
+                    weight=atom_type.weight,
+                    debye=atom_type.debye,
+                    parent=parent
+                )
 
     pass # end of class
 

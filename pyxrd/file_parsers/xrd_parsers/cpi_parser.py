@@ -6,26 +6,25 @@
 # Complete license can be found in the LICENSE file.
 
 import os
+from datetime import date
 
 import numpy as np
 
-from datetime import date
-
-from pyxrd.generic.io.file_parsers import BaseParser, register_parser
 from pyxrd.generic.io.utils import get_case_insensitive_glob
 from pyxrd.generic.utils import u
 
+from ..base_parser import BaseParser
+from .namespace import xrd_parsers
 from .xrd_parser_mixin import XRDParserMixin
 
-@register_parser()
+@xrd_parsers.register_parser()
 class CPIParser(XRDParserMixin, BaseParser):
     """
         ASCII Sietronics *.CPI format parser
     """
+
     description = "Sietronics *.CPI"
-    namespace = "xrd"
     extensions = get_case_insensitive_glob("*.CPI", "*.CPD", "*.CPS")
-    can_write = True
 
     @classmethod
     def parse_header(cls, filename, f=None, data_objects=None, close=False):
@@ -76,8 +75,6 @@ class CPIParser(XRDParserMixin, BaseParser):
     @classmethod
     def parse_data(cls, filename, f=None, data_objects=None, close=False):
         filename, f, close = cls._get_file(filename, f=f, close=close)
-
-        data_objects = cls.parse_header(filename, f=f, data_objects=data_objects)
 
         # CPI files are singletons, so no need to iterate over the list,
         # there is only one data object instance:

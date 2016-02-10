@@ -11,5 +11,6 @@ import sys, os
 base = os.path.dirname(__file__)
 sys.path.insert(0, os.path.join(base, "pyxrd"))
 
-from test import run_all_tests
-run_all_tests()
+if __name__ == "__main__":
+    from test import run_all_tests
+    run_all_tests()

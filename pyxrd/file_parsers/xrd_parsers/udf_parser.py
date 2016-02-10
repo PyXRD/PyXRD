@@ -9,19 +9,20 @@ import os
 
 import numpy as np
 
-from pyxrd.generic.io.file_parsers import BaseParser, register_parser
 from pyxrd.generic.io.utils import get_case_insensitive_glob
 from pyxrd.generic.utils import u
 
+from ..base_parser import BaseParser
+from .namespace import xrd_parsers
 from .xrd_parser_mixin import XRDParserMixin
 
-@register_parser()
+@xrd_parsers.register_parser()
 class UDFParser(XRDParserMixin, BaseParser):
     """
         ASCII Philips *.UDF format
     """
+
     description = "Philips *.UDF"
-    namespace = "xrd"
     extensions = get_case_insensitive_glob("*.UDF")
 
     @classmethod
@@ -82,8 +83,6 @@ class UDFParser(XRDParserMixin, BaseParser):
     @classmethod
     def parse_data(cls, filename, f=None, data_objects=None, close=False):
         filename, f, close = cls._get_file(filename, f=f, close=close)
-
-        data_objects = cls.parse_header(filename, f=f, data_objects=data_objects)
 
         # UDF files are singletons, so no need to iterate over the list,
         # there is only one data object instance:

@@ -17,10 +17,11 @@ from mvc.adapters import DummyAdapter
 
 from pyxrd.generic.controllers import BaseController, DialogController, TreeViewMixin
 from pyxrd.generic.views.treeview_tools import setup_treeview, new_text_column
-from pyxrd.generic.io.xrd_parsers import CSVParser, CPIParser
+
+from pyxrd.file_parsers.xrd_parsers import xrd_parsers
+from pyxrd.file_parsers.exc_parsers import exc_parsers
 
 from pyxrd.goniometer.controllers import InlineGoniometerController
-from pyxrd.specimen.models.base import Specimen
 
 from pyxrd.generic.controllers.line_controllers import (
     LinePropertiesController,
@@ -44,15 +45,7 @@ from pyxrd.generic.views.line_views import (
 class SpecimenController(DialogController, TreeViewMixin):
     """
         Specimen controller.
-        
-        Attributes:
-            export_filters: the file filter tuples for exporting XRD patterns
-            excl_filters: the file filter tuples for exporting exclusion ranges
     """
-
-    file_filters = Specimen.Meta.file_filters
-    export_filters = Specimen.Meta.export_filters
-    excl_filters = Specimen.Meta.excl_filters
 
     widget_handlers = {
         'custom':  'custom_handler',
@@ -250,12 +243,12 @@ class SpecimenController(DialogController, TreeViewMixin):
                 message = "An unexpected error has occured when trying to parse %s:\n\n<i>" % os.path.basename(filename)
                 message += "{}</i>\n\n"
                 message += "This is most likely caused by an invalid or unsupported file format."
-                
+
                 with DialogFactory.error_dialog_handler(message, parent=self.view.get_toplevel(), reraise=False):
                     self.model.exclusion_ranges.load_data(parser, filename, clear=True)
             DialogFactory.get_load_dialog(
                 title="Import exclusion ranges", parent=self.view.get_top_widget(),
-                filters=self.excl_filters
+                filters=exc_parsers.get_import_file_filters()
             ).run(on_accept)
         DialogFactory.get_confirmation_dialog(
             "Importing exclusion ranges will erase all current data.\nAre you sure you want to continue?",
@@ -272,8 +265,8 @@ class SpecimenController(DialogController, TreeViewMixin):
                 header = "%s %s" % (self.model.name, self.model.sample_name)
                 self.model.exclusion_ranges.save_data(parser, filename, header=header)
         DialogFactory.get_save_dialog(
-            "Select file for exclusion ranges export", 
-            parent=self.view.get_top_widget(), filters=self.excl_filters
+            "Select file for exclusion ranges export",
+            parent=self.view.get_top_widget(), filters=exc_parsers.get_export_file_filters()
         ).run(on_accept)
 
     def on_replace_experimental_data(self, *args, **kwargs):
@@ -286,7 +279,7 @@ class SpecimenController(DialogController, TreeViewMixin):
                 self.model.experimental_pattern.load_data(parser, filename, clear=True)
         DialogFactory.get_load_dialog(
             "Open XRD file for import", parent=self.view.get_top_widget(),
-            filter=self.file_filters
+            filter=xrd_parsers.get_import_file_filters()
         ).run(on_accept)
         return True
 
@@ -318,7 +311,7 @@ class SpecimenController(DialogController, TreeViewMixin):
         ext_less_fname = os.path.splitext(self.model.name)[0]
         DialogFactory.get_save_dialog(
             "Select file for export", parent=self.view.get_top_widget(),
-            filters=self.export_filters, suggest_name=ext_less_fname
+            filters=xrd_parsers.get_export_file_filters(), suggest_name=ext_less_fname
         ).run(on_accept)
 
     pass # end of class

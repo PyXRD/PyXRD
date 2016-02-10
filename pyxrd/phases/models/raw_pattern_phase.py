@@ -11,11 +11,9 @@ import numpy as np
 from mvc import PropIntel
 
 from pyxrd.generic.io import storables, get_case_insensitive_glob
-from pyxrd.generic.io.xrd_parsers import XRDParser #@UnusedImport leave this to register!
-from pyxrd.generic.io.file_parsers import parsers
 from pyxrd.generic.models.lines import PyXRDLine
-
 from pyxrd.refinement.refinables.metaclasses import PyXRDRefinableMeta
+from pyxrd.file_parsers.xrd_parsers import xrd_parsers
 
 from .abstract_phase import AbstractPhase
 
@@ -33,9 +31,8 @@ class RawPatternPhase(AbstractPhase):
         file_filters = [
             ("Phase file", get_case_insensitive_glob("*.PHS")),
         ]
-        rp_filters = [parser.file_filter for parser in parsers["xrd"]]
-        rp_export_filters = [parser.file_filter for parser in parsers["xrd"] if parser.can_write]
-
+        rp_filters = xrd_parsers.get_import_file_filters()
+        rp_export_filters = xrd_parsers.get_export_file_filters()
 
     _data_object = None
     @property

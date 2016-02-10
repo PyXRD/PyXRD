@@ -212,14 +212,6 @@ DATA_FILES = [
     ("MINERALS", "mineral_references.csv", "DEFAULT_DATA"),
 ]
 
-### Parser module registration ###
-# Add your custom parser modules here, these should be absolute paths!
-PARSER_MODULES = [
-    'pyxrd.generic.io.file_parsers',
-    'pyxrd.generic.io.xrd_parsers',
-    'pyxrd.specimen.parsers'
-]
-
 SETTINGS_APPLIED = False
 ARGS = None
 
@@ -306,11 +298,6 @@ def initialize(override_debug=False):
                 os.makedirs(path)
             except OSError:
                 pass
-
-        # Register file parsers:
-        for name in PARSER_MODULES:
-            if not name.startswith('.'): # do not import relative paths!
-                __import__(name)
 
         # Free some memory at this point:
         import gc

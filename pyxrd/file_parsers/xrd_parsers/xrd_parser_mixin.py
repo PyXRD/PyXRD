@@ -11,10 +11,8 @@ class XRDParserMixin(object):
     """
         This is a mixin class which provides common functionality and attributes
         for XRD-data parser classes.
-        Since it overrides certian class-attributes, this mixin should be first
-        in the list of base classes when creating a subclass.
     """
 
     data_object_type = XRDDataObject
-    
-    
+
+    pass #end of class

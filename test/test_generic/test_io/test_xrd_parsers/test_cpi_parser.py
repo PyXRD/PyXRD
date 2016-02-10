@@ -9,7 +9,7 @@
 import unittest
 
 from test.test_generic.test_io.test_file_parsers import TestParserMixin
-from pyxrd.generic.io.xrd_parsers import CPIParser
+from pyxrd.file_parsers.xrd_parsers import CPIParser
 
 
 __all__ = [

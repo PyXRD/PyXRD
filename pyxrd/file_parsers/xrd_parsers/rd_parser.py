@@ -10,21 +10,21 @@ from io import SEEK_SET #, SEEK_CUR, SEEK_END
 
 import numpy as np
 
-from pyxrd.generic.io.file_parsers import BaseParser, register_parser
 from pyxrd.generic.io.utils import get_case_insensitive_glob
 from pyxrd.generic.utils import u
 from pyxrd.generic.custom_math import capint as cap
 
+from ..base_parser import BaseParser
+from .namespace import xrd_parsers
 from .xrd_parser_mixin import XRDParserMixin
 
-@register_parser()
+@xrd_parsers.register_parser()
 class RDParser(XRDParserMixin, BaseParser):
     """
         Philips Binary V3 & V5 *.RD format parser
     """
 
     description = "Phillips Binary V3/V5 *.RD"
-    namespace = "xrd"
     extensions = get_case_insensitive_glob("*.RD")
     mimetypes = ["application/octet-stream", ]
 
@@ -113,8 +113,6 @@ class RDParser(XRDParserMixin, BaseParser):
     @classmethod
     def parse_data(cls, filename, f=None, data_objects=None, close=False):
         filename, f, close = cls._get_file(filename, f=f, close=close)
-
-        data_objects = cls.parse_header(filename, f=f, data_objects=data_objects)
 
         # RD files are singletons, so no need to iterate over the list,
         # there is only one XRDFile instance:

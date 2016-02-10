@@ -17,6 +17,7 @@ from pyxrd.generic.controllers import BaseController, ObjectListStoreController
 from pyxrd.atoms.models import AtomType
 from pyxrd.atoms.views import EditAtomTypeView
 from pyxrd.data import settings
+from pyxrd.file_parsers.atom_type_parsers import atom_type_parsers
 
 class EditAtomTypeController(BaseController):
     """
@@ -52,7 +53,8 @@ class AtomTypesController(ObjectListStoreController): # FIXME THIS NEES CLEAN-UP
     """
         Controller for an AtomType ObjectListStore model and view.
     """
-    file_filters = AtomType.Meta.file_filters
+    file_filters = property(fget=lambda *a: atom_type_parsers.get_file_filters())
+    export_filters = property(fget=lambda *a: atom_type_parsers.get_export_file_filters())
     treemodel_property_name = "atom_types"
     treemodel_class_type = AtomType
     columns = [ ("Atom type name", "c_name") ]
@@ -74,7 +76,7 @@ class AtomTypesController(ObjectListStoreController): # FIXME THIS NEES CLEAN-UP
                 title="Export atom types",
                 current_folder=current_folder,
                 persist=True,
-                filters=self.file_filters,
+                filters=self.export_filters,
                 parent=self.view.get_top_widget()
             )
         return self._export_atomtypes_dialog
@@ -114,26 +116,21 @@ class AtomTypesController(ObjectListStoreController): # FIXME THIS NEES CLEAN-UP
     #      GTK Signal handlers
     # ------------------------------------------------------------
     def on_load_object_clicked(self, event):
-        def on_accept(dialog):
-            filename = dialog.filename
-            # TODO FIXME This is ugly as hell! Use parsers instead!
-            fltr = dialog.get_filter()
-            if fltr.get_name() == self.file_filters[0][0]:
-                self.model.load_atom_types_from_csv(filename)
-            elif fltr.get_name() == self.file_filters[1][0]:
-                self.model.load_atom_types(filename)
-        self.import_atomtypes_dialog.run(on_accept)
+        self.import_atomtypes_dialog.run(
+            lambda dialog: self.model.load_atom_types(
+                dialog.filename,
+                dialog.parser
+            )
+        )
 
     def on_save_object_clicked(self, event):
-        def on_accept(dialog):
-            filename = dialog.filename
-            # TODO FIXME This is ugly as hell! Use parsers instead!
-            fltr = dialog.get_filter()
-            if fltr.get_name() == self.file_filters[0][0]:
-                AtomType.save_as_csv(filename, self.get_selected_objects())
-            elif fltr.get_name() == self.file_filters[1][0]:
-                AtomType.save_atom_types(filename, self.get_selected_objects())
-        self.export_atomtypes_dialog.run(on_accept)
+        self.export_atomtypes_dialog.run(
+            lambda dialog: dialog.parser.write(
+                dialog.filename,
+                self.get_selected_objects(),
+                AtomType.Meta.get_local_storable_properties()
+            )
+        )
 
     pass # end of class
 

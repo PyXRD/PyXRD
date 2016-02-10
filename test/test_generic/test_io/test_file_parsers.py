@@ -8,7 +8,7 @@
 
 import os, io
 
-from pyxrd.generic.io.file_parsers import BaseParser
+from pyxrd.file_parsers.base_parser import BaseParser
 
 __all__ = [
     'TestParserMixin',

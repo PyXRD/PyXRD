@@ -9,7 +9,8 @@
 import unittest
 
 from test.test_generic.test_io.test_file_parsers import TestParserMixin, load_data_from_files
-from pyxrd.generic.io.xrd_parsers import BrkRAWParser
+
+from pyxrd.file_parsers.xrd_parsers import BrkRAWParser
 
 
 __all__ = [

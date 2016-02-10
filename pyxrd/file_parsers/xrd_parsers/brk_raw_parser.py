@@ -10,20 +10,20 @@ from io import SEEK_SET, SEEK_CUR
 
 import numpy as np
 
-from pyxrd.generic.io.file_parsers import BaseParser, register_parser
 from pyxrd.generic.io.utils import get_case_insensitive_glob
 from pyxrd.generic.utils import u
 
+from ..base_parser import BaseParser
+from .namespace import xrd_parsers
 from .xrd_parser_mixin import XRDParserMixin
 
-@register_parser()
+@xrd_parsers.register_parser()
 class BrkRAWParser(XRDParserMixin, BaseParser):
     """
         Bruker *.RAW format parser
     """
 
     description = "Bruker/Siemens Binary V1/V2/V3 *.RAW"
-    namespace = "xrd"
     extensions = get_case_insensitive_glob("*.RAW")
     mimetypes = ["application/octet-stream", ]
 
@@ -237,8 +237,6 @@ class BrkRAWParser(XRDParserMixin, BaseParser):
     @classmethod
     def parse_data(cls, filename, f=None, data_objects=None, close=False):
         filename, f, close = cls._get_file(filename, f=f, close=close)
-
-        data_objects = cls.parse_header(filename, f=f, data_objects=data_objects)
 
         for data_object in data_objects:
             if data_object.data == None:

@@ -5,23 +5,24 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from pyxrd.generic.io.file_parsers import BaseParser, register_parser
-from pyxrd.generic.io.utils import get_case_insensitive_glob
-
-from .xml_parser_mixin import XMLParserMixin
-from .xrd_parser_mixin import XRDParserMixin
-from zipfile import ZipFile
 import os
+from zipfile import ZipFile
+
+from pyxrd.generic.io.utils import get_case_insensitive_glob
 from pyxrd.generic.utils import not_none
 
-@register_parser()
+from ..base_parser import BaseParser
+from ..xml_parser_mixin import XMLParserMixin
+from .xrd_parser_mixin import XRDParserMixin
+from .namespace import xrd_parsers
+
+@xrd_parsers.register_parser()
 class BrkBRMLParser(XRDParserMixin, XMLParserMixin, BaseParser):
     """
         Bruker *.BRML format parser
     """
 
     description = "Bruker BRML files *.BRML"
-    namespace = "xrd"
     extensions = get_case_insensitive_glob("*.BRML")
     mimetypes = ["application/zip", ]
 

@@ -5,7 +5,7 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from pyxrd.generic.io.file_parsers import DataObject
+from ..data_object import DataObject
 from pyxrd.generic.utils import not_none
 
 class XRDDataObject(DataObject):

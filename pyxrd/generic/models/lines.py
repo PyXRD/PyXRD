@@ -21,9 +21,10 @@ from pyxrd.generic.io import storables, Storable
 from pyxrd.generic.custom_math import smooth, add_noise
 
 from pyxrd.generic.models.base import DataModel
-from pyxrd.generic.io.file_parsers import ASCIIParser
 from pyxrd.generic.utils import not_none
 from pyxrd.generic.peak_detection import multi_peakdetect
+
+#from pyxrd.file_parsers.ascii_parser import ASCIIParser
 
 @storables.register()
 class StorableXYData(XYData, Storable):

@@ -13,22 +13,23 @@ from mvc.observers import ListObserver
 import numpy as np
 
 from pyxrd.data import settings
+
 from pyxrd.generic.io import storables, Storable
-from pyxrd.generic.io.file_parsers import parsers
-from pyxrd.generic.io.xrd_parsers import XRDParser
 from pyxrd.generic.models import ExperimentalLine, CalculatedLine, DataModel
 from pyxrd.generic.peak_detection import peakdetect
+from pyxrd.generic.utils import not_none
+from pyxrd.generic.models.lines import PyXRDLine
+
 from pyxrd.calculations.specimen import calculate_phase_intensities
 from pyxrd.calculations.data_objects import SpecimenData
 
 from pyxrd.goniometer.models import Goniometer
-from pyxrd.generic.utils import not_none
-from pyxrd.generic.models.lines import PyXRDLine
 
 from markers import Marker
 from statistics import Statistics
 
-from ..parsers import EXCParser #@UnusedImport leave this so it gets registered
+from pyxrd.file_parsers.xrd_parsers import xrd_parsers
+from pyxrd.file_parsers.exc_parsers import exc_parsers
 
 @storables.register()
 class Specimen(DataModel, Storable):
@@ -58,9 +59,8 @@ class Specimen(DataModel, Storable):
         ]
         store_id = "Specimen"
 
-        file_filters = [parser.file_filter for parser in parsers["xrd"]]
-        export_filters = [parser.file_filter for parser in parsers["xrd"] if parser.can_write]
-        excl_filters = [parser.file_filter for parser in parsers["exc"]]
+        export_filters = xrd_parsers.get_export_file_filters()
+        excl_filters = exc_parsers.get_import_file_filters()
 
     _data_object = None
     @property
@@ -364,14 +364,13 @@ class Specimen(DataModel, Storable):
     #      Input/Output stuff
     # ------------------------------------------------------------
     @staticmethod
-    def from_experimental_data(filename, parent, parser=None):
+    def from_experimental_data(filename, parent, parser=xrd_parsers._group_parser):
         """
             Returns a list of new :class:`~.specimen.models.Specimen`'s loaded
-            from `filename`, setting thjeir parent to `parent` using the given
-            parser or :class:`~.generic.io.xrd_parsers.XRDParser` if none passed.
+            from `filename`, setting their parent to `parent` using the given
+            parser.
         """
         specimens = list()
-        parser = not_none(parser, XRDParser)
         xrdfiles = parser.parse(filename)
         for xrdfile in xrdfiles:
             name, sample, generator = xrdfile.filename, xrdfile.name, xrdfile.data

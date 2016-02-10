@@ -7,11 +7,11 @@
 
 import os
 
-from pyxrd.generic.io.file_parsers import parsers
-from pyxrd.generic.controllers import BaseController, DialogController
-from pyxrd.generic.plot.eye_dropper import EyeDropper
 from mvc.adapters.gtk_support.dialogs.dialog_factory import DialogFactory
 
+from pyxrd.generic.controllers import BaseController, DialogController
+from pyxrd.generic.plot.eye_dropper import EyeDropper
+from pyxrd.file_parsers.xrd_parsers import xrd_parsers
 
 class LinePropertiesController(BaseController):
     """
@@ -242,7 +242,8 @@ class BackgroundController(PatternActionController):
         Controller for the experimental pattern 'remove background' action view.
     """
 
-    file_filters = [parser.file_filter for parser in parsers["xrd"]]
+    file_filters = xrd_parsers.get_file_filters()
+
     auto_adapt_included = [
         "bg_type",
         "bg_position",
@@ -282,7 +283,7 @@ class BackgroundController(PatternActionController):
         filename = dialog.filename
         parser = dialog.parser
         data_objects = None
-        
+
         message = "An unexpected error has occurred when trying to parse %s:\n\n<i>" % os.path.basename(filename)
         message += "{}</i>\n\n"
         message += "This is most likely caused by an invalid or unsupported file format."

@@ -22,8 +22,10 @@
 #  Boston, MA 02110, USA.
 #  -------------------------------------------------------------------------
 
-import gtk
+import sys
 from contextlib import contextmanager
+
+import gtk
 
 from .message_dialog import MessageDialog
 from .file_chooser_dialog import FileChooserDialog
@@ -125,7 +127,7 @@ class DialogFactory(object):
         return DialogFactory.get_message_dialog(
             message,
             parent=parent,
-            typ=gtk.MESSAGE_ERROR,
+            type=gtk.MESSAGE_ERROR,
             buttons=gtk.BUTTONS_OK,
             persist=persist
         )
@@ -153,8 +155,9 @@ class DialogFactory(object):
         is risen, a dialog will inform the user, optionally the error can be re-raised """
         try:
             yield
-        except any, msg:
+        except:
+            msg = message.format(sys.exc_info()[1])
             DialogFactory.get_error_dialog(
-               message.format(msg), parent=parent
+               msg, parent=parent
             ).run()
             if reraise: raise # This should be handled by the default UI bug dialog

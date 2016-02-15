@@ -21,6 +21,9 @@ from pyxrd.generic.controllers import BaseController
 from pyxrd.generic.plot.controllers import MainPlotController
 from pyxrd.generic.plot.eye_dropper import EyeDropper
 
+from pyxrd.file_parsers.project_parsers import JSONProjectParser
+from pyxrd.file_parsers.project_parsers import project_parsers
+
 from pyxrd.project.controllers import ProjectController
 from pyxrd.project.models import Project
 from pyxrd.specimen.controllers import SpecimenController, MarkersController
@@ -28,7 +31,6 @@ from pyxrd.specimen.controllers import SpecimenController, MarkersController
 from pyxrd.mixture.controllers import MixturesController
 from pyxrd.phases.controllers import PhasesController
 from pyxrd.atoms.controllers import AtomTypesController
-from pyxrd.file_parsers.json_parser import JSONParser
 
 class AppController (BaseController):
     """
@@ -36,9 +38,6 @@ class AppController (BaseController):
         In essence this delegates actions to its child controllers for Project,
         Mixture, Specimen, Phase, Marker and Atoms actions. 
     """
-
-    file_filters = Project.Meta.file_filters + [ ("All Files", "*.*"), ]
-    import_filters = Project.Meta.import_filters + [ ("All Files", "*.*"), ]
 
     # ------------------------------------------------------------
     #      Dialog properties
@@ -59,7 +58,7 @@ class AppController (BaseController):
                 title="Save project",
                 current_name=current_name,
                 current_folder=current_folder,
-                filters=self.file_filters,
+                filters=project_parsers.get_export_file_filters(),
                 persist=True,
                 parent=self.view.get_top_widget()
             )
@@ -79,6 +78,7 @@ class AppController (BaseController):
             self._load_project_dialog = DialogFactory.get_load_dialog(
                 title="Load project",
                 current_folder=current_folder,
+                filters=project_parsers.get_import_file_filters(),
                 persist=True,
                 parent=self.view.get_top_widget()
             )
@@ -230,21 +230,9 @@ class AppController (BaseController):
 
         # Try to save the project:
         with DialogFactory.error_dialog_handler(
-                "An error has occurred while saving!",
+                "An error has occurred while saving!\n<i>{0}</i>",
                 parent=self.view.get_toplevel(), reraise=False):
-            JSONParser.write(self.model.current_project, filename, zipped=True)
-            self.model.current_project.filename = filename
-
-        # Update the title
-        self.update_title()
-
-    def _open_project(self, filename):
-        # Try to load the project:
-        with DialogFactory.error_dialog_handler(
-                "An error has occurred.\n Your project was not loaded!",
-                parent=self.view.get_toplevel(), reraise=False):
-            self.model.current_project = JSONParser.parse(filename)
-            self.model.current_project.parent = self.model
+            JSONProjectParser.write(self.model.current_project, filename, zipped=True)
             self.model.current_project.filename = filename
 
         # Update the title
@@ -281,17 +269,21 @@ class AppController (BaseController):
     @confirm_discard_unsaved_changes(
         "The current project has unsaved changes,\n"
         "are you sure you want to load another project?")
-    def load_project(self, title, action=None, filters=None):
+    def load_project(self):
         """Convenience function for loading projects from different sources
         following similar user interaction paths"""
-        load_action = not_none(action, self._open_project)
-        filters = not_none(filters, self.file_filters)
+        def on_accept(dialog):
+            # Try to load the project:
+            with DialogFactory.error_dialog_handler(
+                    "An error has occurred:\n<i>{0}</i>\n Your project was not loaded!",
+                    parent=self.view.get_toplevel(), reraise=False):
+                self.model.current_project = dialog.parser.parse(dialog.filename)
+                self.model.current_project.parent = self.model
+                # Update the title
+                self.update_title()
+
         # Run the open/import project dialog:
-        self.load_project_dialog.update(
-            title=title, filters=filters
-        ).run(
-            lambda dialog: load_action(dialog.filename)
-        )
+        self.load_project_dialog.run(on_accept)
 
     @confirm_discard_unsaved_changes(
         "The current project has unsaved changes,\n"
@@ -304,19 +296,6 @@ class AppController (BaseController):
         self.update_title()
 
         # Show the edit project dialog
-        self.view.project.present()
-
-    @confirm_discard_unsaved_changes(
-        "The current project has unsaved changes,\n"
-        "are you sure you want to import another project?")
-    def import_project_from_xml(self, filename):
-        with DialogFactory.error_dialog_handler(
-                "An error has occurred.\n Your project was not imported!",
-                parent=self.view.get_toplevel(), reraise=False):
-            self.model.current_project = Project.create_from_sybilla_xml(
-                filename, parent=self.model
-            )
-        self.update_title()
         self.view.project.present()
 
     # ------------------------------------------------------------
@@ -405,20 +384,7 @@ class AppController (BaseController):
     def on_open_project_activate(self, widget, data=None):
         """Open an existing project. Asks the user if (s)he's sure when an 
         unsaved project is loaded."""
-        self.load_project(
-            title="Open project",
-            action=self._open_project,
-        )
-
-    @BaseController.status_message("Import Sybilla XML...", "import_project_xml")
-    def on_import_project_sybilla_activate(self, widget, data=None, title="Import Sybilla XML"):
-        """Import an existing Sybilla project from an XML file. Asks the user if
-        (s)he's sure when an unsaved project is loaded."""
-        self.load_project(
-            title="Import project",
-            action=self.import_project_from_xml,
-            filters=self.import_filters
-        )
+        self.load_project()
 
     @BaseController.status_message("Save project...", "save_project")
     def on_save_project_activate(self, widget, *args):

@@ -16,9 +16,9 @@ phase_parsers = ParserNamespace("PhaseParsers")
 
 @phase_parsers.register_parser()
 class JSONPhaseParser(JSONParser):
-    
+
     description = "Phase file *.PHS"
     extensions = get_case_insensitive_glob("*.PHS")
     mimetypes = ["application/octet-stream", "application/zip"]
-    
+
     pass #end of class

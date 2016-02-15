@@ -51,7 +51,7 @@ def _run_gui(project=None):
 
     # Now we can load these:
     from pyxrd.data import settings
-    from pyxrd.project.models import Project
+    from pyxrd.file_parsers.json_parser import JSONParser
     from pyxrd.application.models import AppModel
     from pyxrd.application.views import AppView
     from pyxrd.application.controllers import AppController
@@ -63,7 +63,7 @@ def _run_gui(project=None):
     if filename != "":
         try:
             logging.info("Opening project: %s" % filename)
-            project = Project.load_object(filename)
+            project = JSONParser.parse(filename)
         except IOError:
             logging.info("Could not load project file %s: IOError" % filename)
             # FIXME the user should be informed of this in a dialog...

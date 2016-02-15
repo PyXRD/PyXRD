@@ -83,13 +83,13 @@ class EditLayerController(InlineObjectListStoreController):
     def on_save_object_clicked(self, widget, user_data=None):
         def on_accept(save_dialog):
             Atom.save_as_csv(save_dialog.filename, self.get_all_objects())
-        suggest_name = "%s%s" % (
+        current_name = "%s%s" % (
             self.model.name.lower(),
             self.model_property_name.replace("data", "").lower()
         )
         DialogFactory.get_save_dialog(
             "Export atoms", parent=self.view.get_toplevel(),
-            suggest_name=suggest_name, filters=self.file_filters,
+            current_name=current_name, filters=self.file_filters,
         ).run(on_accept)
 
     def on_load_object_clicked(self, widget, user_data=None):

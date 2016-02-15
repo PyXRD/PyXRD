@@ -11,7 +11,8 @@ from warnings import warn
 from mvc import Observer, PropIntel
 from mvc.observers import ListObserver
 
-from pyxrd.generic.io import storables, Storable, get_case_insensitive_glob
+from pyxrd.file_parsers.json_parser import JSONParser
+from pyxrd.generic.io import storables, get_case_insensitive_glob
 from pyxrd.refinement.refinables.mixins import RefinementGroup
 from pyxrd.refinement.refinables.metaclasses import PyXRDRefinableMeta
 
@@ -328,23 +329,10 @@ class Phase(RefinementGroup, AbstractPhase):
 
     def _post_multi_save(self):
         ## Override from base class
-
         self.save_links = True
         for component in self.components:
             component.save_links = True
         Component.export_atom_types = False
-
-    def save_object(self, export=False, **kwargs):
-        for component in self.components:
-            component.export_atom_types = export
-            component.save_links = not export
-        self.save_links = not export
-        retval = Storable.save_object(self, **kwargs)
-        self.save_links = True
-        for component in self.components:
-            component.export_atom_types = False
-            component.save_links = True
-        return retval
 
     def json_properties(self):
         retval = super(Phase, self).json_properties()

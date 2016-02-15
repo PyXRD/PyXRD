@@ -12,7 +12,7 @@ import unittest
 from pkg_resources import resource_filename # @UnresolvedImport
 from test.setup import SKIP_REFINEMENT_TEST
 
-from pyxrd.project.models import Project
+from pyxrd.file_parsers.json_parser import JSONParser
 
 __all__ = [
     'TestRefinement',
@@ -29,7 +29,7 @@ class TestRefinement(unittest.TestCase):
     atom_type = None
 
     def setUp(self):
-        self.project = Project.load_object(resource_filename("test.test_mixture", "test refinement.pyxrd"))
+        self.project = JSONParser.parse(resource_filename("test.test_mixture", "test refinement.pyxrd"))
         self.mixture = self.project.mixtures[0]
 
     def tearDown(self):

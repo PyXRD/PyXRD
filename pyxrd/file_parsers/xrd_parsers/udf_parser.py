@@ -26,9 +26,12 @@ class UDFParser(XRDParserMixin, BaseParser):
     extensions = get_case_insensitive_glob("*.UDF")
 
     @classmethod
-    def parse_header(cls, filename, f=None, data_objects=None, close=False):
-        filename, f, close = cls._get_file(filename, f=f, close=close)
-
+    def _parse_header(cls, filename, fp, data_objects=None, close=False):
+        f = fp
+        try:
+            basename = u(os.path.basename(filename))
+        except AttributeError:
+            basename = None
         # Adapt XRDFile list
         data_objects = cls._adapt_data_object_list(data_objects, num_samples=1)
 
@@ -67,7 +70,7 @@ class UDFParser(XRDParserMixin, BaseParser):
         twotheta_count = int((twotheta_max - twotheta_min) / twotheta_step)
 
         data_objects[0].update(
-            filename=u(os.path.basename(filename)),
+            filename=basename,
             name=name,
             twotheta_min=twotheta_min,
             twotheta_max=twotheta_max,
@@ -81,8 +84,8 @@ class UDFParser(XRDParserMixin, BaseParser):
         return data_objects
 
     @classmethod
-    def parse_data(cls, filename, f=None, data_objects=None, close=False):
-        filename, f, close = cls._get_file(filename, f=f, close=close)
+    def _parse_data(cls, filename, fp, data_objects=None, close=False):
+        f = fp
 
         # UDF files are singletons, so no need to iterate over the list,
         # there is only one data object instance:

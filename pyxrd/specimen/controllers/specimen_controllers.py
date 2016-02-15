@@ -311,7 +311,7 @@ class SpecimenController(DialogController, TreeViewMixin):
         ext_less_fname = os.path.splitext(self.model.name)[0]
         DialogFactory.get_save_dialog(
             "Select file for export", parent=self.view.get_top_widget(),
-            filters=xrd_parsers.get_export_file_filters(), suggest_name=ext_less_fname
+            filters=xrd_parsers.get_export_file_filters(), current_name=ext_less_fname
         ).run(on_accept)
 
     pass # end of class

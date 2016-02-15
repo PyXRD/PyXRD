@@ -8,8 +8,11 @@
 
 import os
 import unittest
+from StringIO import StringIO
 
 from pyxrd.generic.io import storables, Storable
+
+from pyxrd.file_parsers.json_parser import JSONParser
 
 __all__ = [
     'TestParserMixin',
@@ -26,13 +29,13 @@ class TestStorable(unittest.TestCase):
 
     @storables.register()
     class DummyStorable(Storable):
-        
+
         __storables__ = [
             "name",
             "data",
             "my_daddy"
         ]
-        
+
         class Meta(Storable.Meta):
             store_id = "DummyStorable"
 
@@ -59,6 +62,7 @@ class TestStorable(unittest.TestCase):
         self.child_dump = self.child.dump_object()
         self.assertIn("".join(self.daddy_dump.split()), "".join(self.child_dump.split()))
 
+
     def test_decoding(self):
 
         child_encoded = """
@@ -83,8 +87,8 @@ class TestStorable(unittest.TestCase):
         }
     }
 }"""
-
-        decoded_child = self.DummyStorable.load_object(None, data=child_encoded)
+        f = StringIO(child_encoded)
+        decoded_child = JSONParser.parse(f)
 
         self.assertNotEqual(decoded_child, None)
         self.assertNotEqual(decoded_child.my_daddy, None)

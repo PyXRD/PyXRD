@@ -27,9 +27,14 @@ class CPIParser(XRDParserMixin, BaseParser):
     extensions = get_case_insensitive_glob("*.CPI", "*.CPD", "*.CPS")
 
     @classmethod
-    def parse_header(cls, filename, f=None, data_objects=None, close=False):
-        filename, f, close = cls._get_file(filename, f=f, close=close)
-
+    def _parse_header(cls, filename, fp, data_objects=None, close=False):
+        f = fp
+        
+        try:
+            basename = u(os.path.basename(filename))
+        except AttributeError:
+            basename = None
+        
         # Adapt XRDFile list
         data_objects = cls._adapt_data_object_list(data_objects, num_samples=1)
 
@@ -58,7 +63,7 @@ class CPIParser(XRDParserMixin, BaseParser):
                 name = line
 
         data_objects[0].update(
-            filename=u(os.path.basename(filename)),
+            filename=basename,
             name=name,
             target_type=target_type,
             alpha1=alpha1,
@@ -73,8 +78,8 @@ class CPIParser(XRDParserMixin, BaseParser):
         return data_objects
 
     @classmethod
-    def parse_data(cls, filename, f=None, data_objects=None, close=False):
-        filename, f, close = cls._get_file(filename, f=f, close=close)
+    def _parse_data(cls, filename, fp, data_objects=None, close=False):
+        f = fp
 
         # CPI files are singletons, so no need to iterate over the list,
         # there is only one data object instance:

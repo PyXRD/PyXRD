@@ -9,12 +9,12 @@ import zipfile
 
 from pyxrd.generic.io import get_case_insensitive_glob, COMPRESSION
 
-from pyxrd.file_parsers.base_parser import BaseParser
+from pyxrd.file_parsers.json_parser import JSONParser
 
 from .namespace import atom_type_parsers
 
 @atom_type_parsers.register_parser()
-class JSONAtomTypeParser(BaseParser):
+class JSONAtomTypeParser(JSONParser):
     """
         Atomic scattering factors JSON file parser
     """
@@ -26,20 +26,8 @@ class JSONAtomTypeParser(BaseParser):
     __file_mode__ = "rb"
 
     @classmethod
-    def parse_header(cls, filename, f=None, data_objects=None, close=False):
+    def _parse_header(cls, filename, fp, data_objects=None, close=False):
         return data_objects # just pass it on, nothing to do
-
-    @classmethod
-    def parse_data(cls, filename, f=None, data_objects=None, close=True, **fmt_params):
-        if zipfile.is_zipfile(filename):
-            with zipfile.ZipFile(filename, 'r') as zfile:
-                for name in zfile.namelist():
-                    yield cls.data_object_type(
-                        is_json=True,
-                        file=zfile.open(name),
-                    )
-        else:
-            raise IOError, "Invalid *.ZTL file format!"
 
     @classmethod
     def write(cls, filename, items, props):

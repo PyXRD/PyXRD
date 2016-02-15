@@ -29,21 +29,15 @@ class BrkBRMLParser(XRDParserMixin, XMLParserMixin, BaseParser):
     __file_mode__ = "r"
 
     @classmethod
-    def _get_file(cls, filename, f=None, close=None):
+    def _get_file(cls, fp, close=None):
         """
             Returns a three-tuple:
             filename, zipfile-object, close
         """
-        if hasattr(f, "read"):
-            if not isinstance(f, ZipFile):
-                return filename, ZipFile(f, cls.__file_mode__), False if close == None else close
-            else:
-                return filename, f, False if close == None else close
-        elif type(filename) is str:
-            return filename, ZipFile(filename, cls.__file_mode__), True if close == None else close
-        else:
-            raise TypeError, "Wrong argument: either a file object or a valid \
-                filename must be passed, not '%s' or '%s'" % (cls.description, filename, f)
+        filename, fp, close = BaseParser._get_file(fp, close=close)
+        if not isinstance(fp, ZipFile):
+            fp = ZipFile(fp, cls.__file_mode__)
+        return filename, fp, close
 
     @classmethod
     def _get_raw_data_files(cls, f, folder):
@@ -102,12 +96,17 @@ class BrkBRMLParser(XRDParserMixin, XMLParserMixin, BaseParser):
         return header_d
 
     @classmethod
-    def parse(cls, filename, f=None, data_objects=None, close=False):
-        filename, f, close = cls._get_file(filename, f=f, close=close)
+    def parse(cls, fp, data_objects=None, close=False):
+        filename, fp, close = cls._get_file(fp, close=close)
+
+        try:
+            basename = os.path.basename(filename)
+        except AttributeError:
+            basename = None
 
         num_samples = 0
 
-        zipinfos = f.infolist()
+        zipinfos = fp.infolist()
 
         processed_folders = []
 
@@ -121,11 +120,11 @@ class BrkBRMLParser(XRDParserMixin, XMLParserMixin, BaseParser):
 
                     processed_folders.append(folder)
 
-                    raw_data_files, sample_name = cls._get_raw_data_files(f, folder)
-                    header_d = cls._get_header_dict(f, folder)
+                    raw_data_files, sample_name = cls._get_raw_data_files(fp, folder)
+                    header_d = cls._get_header_dict(fp, folder)
 
                     for raw_data_filename in raw_data_files:
-                        with f.open(raw_data_filename) as contf:
+                        with fp.open(raw_data_filename) as contf:
                             _, root = cls.get_xml_for_file(contf)
 
                             for route in root.findall("./DataRoutes/DataRoute"):
@@ -205,7 +204,7 @@ class BrkBRMLParser(XRDParserMixin, XMLParserMixin, BaseParser):
 
                                 #Update header:
                                 data_object.update(
-                                    filename=os.path.basename(filename),
+                                    filename=basename,
                                     name=sample_name,
                                     time_step=1, # we converted to CPS
                                     twotheta_min=twotheta_min,
@@ -225,7 +224,7 @@ class BrkBRMLParser(XRDParserMixin, XMLParserMixin, BaseParser):
             #end if
         #end for
 
-        if close: f.close()
+        if close: fp.close()
         return data_objects
 
     pass # end of class

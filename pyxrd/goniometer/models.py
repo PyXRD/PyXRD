@@ -12,6 +12,7 @@ from mvc import PropIntel
 
 from pyxrd.generic.models import DataModel
 from pyxrd.generic.io import storables, Storable, get_case_insensitive_glob
+from pyxrd.file_parsers.json_parser import JSONParser
 from pyxrd.data import settings
 
 from pyxrd.calculations.goniometer import (
@@ -23,6 +24,7 @@ from pyxrd.calculations.goniometer import (
 )
 from pyxrd.calculations.data_objects import GonioData
 from pyxrd.generic.io.utils import retrieve_lowercase_extension
+
 
 @storables.register()
 class Goniometer(DataModel, Storable):
@@ -230,12 +232,12 @@ class Goniometer(DataModel, Storable):
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------
-    def reset_from_file(self, gonfile, data=None):
+    def reset_from_file(self, gonfile):
         """
         Loads & sets the parameters from the goniometer JSON file
         specified by `gonfile`, can be a filename or a file-like object.
         """
-        new_gonio = Goniometer.load_object(gonfile, data=data, parent=None)
+        new_gonio = JSONParser.parse(gonfile)
         with self.data_changed.hold():
             for prop in self.Meta.all_properties:
                 if prop.storable and prop.name != "uuid":

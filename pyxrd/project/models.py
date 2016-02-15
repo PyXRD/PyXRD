@@ -628,20 +628,6 @@ class Project(DataModel, Storable):
         project.needs_saving = False # don't mark this when just loaded
         return project
 
-    def save_object(self, filename): # @ReservedAssignment
-        Storable.save_object(self, filename, zipped=True)
-        type(self).object_pool.change_all_uuids()
-        if isinstance(filename, types.StringTypes):
-            self.filename = filename
-        self.needs_saving = False
-
-    @classmethod
-    def load_object(cls, filename, data=None, parent=None):
-        type(cls).object_pool.change_all_uuids()
-        project = Storable.load_object(filename, data=data, parent=parent)
-        project.filename = filename
-        return project
-
     def to_json_multi_part(self):
         to_json = self.to_json()
         properties = to_json["properties"]
@@ -782,14 +768,17 @@ class Project(DataModel, Storable):
     # ------------------------------------------------------------
     #      Phases list related
     # ------------------------------------------------------------
-    def load_phases(self, filename, insert_index=None):
+    def load_phases(self, filename, parser, insert_index=0):
         """
         Loads all :class:`~pyxrd.phase.models.Phase` objects from the file
         'filename'. An optional index can be given where the phases need to be
         inserted at.
         """
+        # make sure we have no duplicate UUID's
         insert_index = not_none(insert_index, 0)
-        for phase in Phase.load_phases(filename, parent=self):
+        type(Project).object_pool.change_all_uuids()
+        for phase in parser.parse(filename):
+            phase.parent = self
             self.phases.insert(insert_index, phase)
             insert_index += 1
 
@@ -802,9 +791,9 @@ class Project(DataModel, Storable):
         file specified by *filename*.
         """
         # make sure we have no duplicate UUID's
-        type(AtomType).object_pool.change_all_uuids()
-        for atom_type in AtomType.load_atom_types_from_generator(
-                parser.parse(filename), parent=self):
+        type(Project).object_pool.change_all_uuids()
+        for atom_type in parser.parse(filename):
+            atom_type.parent = self
             self.atom_types.append(atom_type)
 
     pass # end of class

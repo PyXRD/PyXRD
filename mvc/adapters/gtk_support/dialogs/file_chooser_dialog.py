@@ -40,12 +40,16 @@ class FileChooserDialog(gtk.FileChooserDialog):
 
     @property
     def parser(self):
-        return self.get_filter().get_data("parser")
+        try:
+            return self.get_filter().get_data("parser")
+        except AttributeError:
+            return None
 
     @property
     def filename(self):
         """ Extracts the selected filename from a gtk.Dialog """
-        filename = adjust_filename_to_globs(self.get_filename(), self.selected_globs)
+        filename = super(FileChooserDialog, self).get_filename()
+        filename = adjust_filename_to_globs(filename, self.selected_globs)
         self.set_filename(filename)
         return filename
 
@@ -124,7 +128,7 @@ class FileChooserDialog(gtk.FileChooserDialog):
             # Clear old filters:
             map(self.remove_filter, self.list_filters())
             # Set new filters:
-            self.filters = kwargs.pop("filters")
+            self.filters = list(kwargs.pop("filters"))
             for fltr in self._get_object_file_filters(self.filters):
                 self.add_filter (fltr)
 

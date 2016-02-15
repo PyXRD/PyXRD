@@ -27,15 +27,15 @@ import os
 import gtk
 from pyxrd.generic.io.utils import get_case_insensitive_glob
 
-def get_file_chooser_kwags():    
-    return dict( 
-        action = gtk.FILE_CHOOSER_ACTION_SAVE,
-        title = "The dialog title",
-        parent = gtk.Window(),
-        suggest_name = "suggested_file_name",
-        suggest_folder = os.path.expanduser("~"),
-        extra_widget = gtk.Label("Test Label"),
-        filters = [ ("Text File", get_case_insensitive_glob("*.txt")) ],
-        multiple = False,
-        confirm_overwrite = True          
+def get_file_chooser_kwags():
+    return dict(
+        action=gtk.FILE_CHOOSER_ACTION_SAVE,
+        title="The dialog title",
+        parent=gtk.Window(),
+        current_name="suggested_file_name",
+        current_folder=os.path.expanduser("~"),
+        extra_widget=gtk.Label("Test Label"),
+        filters=[ ("Text File", get_case_insensitive_glob("*.txt")) ],
+        multiple=False,
+        confirm_overwrite=True
     )

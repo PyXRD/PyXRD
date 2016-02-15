@@ -19,7 +19,9 @@ def run(args):
 
         # Save this right away:
         project_filename = "%s/%s" % (os.path.dirname(args.filename), os.path.basename(args.filename).replace(".xml", ".pyxrd", 1))
-        project.save_object(project_filename)
+
+        from pyxrd.file_parsers.json_parser import JSONParser
+        JSONParser.write(project, project_filename, zipped=True)
 
         # Relaunch processs
         args = [sys.argv[0], project_filename, ]

@@ -36,8 +36,8 @@ class TestParserMixin(object):
 
     def test_parsing(self):
         for data in self.file_data:
-            f = io.BytesIO(data)
-            data_objects = self.parser_class.parse("Test", f=f)
+            fp = io.BytesIO(data)
+            data_objects = self.parser_class.parse(fp)
             self.assertGreater(len(data_objects), 0)
 
     # TODO:

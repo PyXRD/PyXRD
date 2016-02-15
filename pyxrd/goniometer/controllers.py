@@ -8,10 +8,11 @@
 import gtk
 
 from mvc.adapters.gtk_support.treemodels.utils import (
-    create_treestore_from_directory, 
+    create_treestore_from_directory,
     create_valuestore_from_file)
 from mvc.adapters.gtk_support.dialogs.dialog_factory import DialogFactory
 
+from pyxrd.file_parsers.json_parser import JSONParser
 from pyxrd.generic.controllers import BaseController
 from pyxrd.goniometer.models import Goniometer
 
@@ -57,7 +58,7 @@ class InlineGoniometerController(BaseController):
     # ------------------------------------------------------------
     def on_btn_export_gonio_clicked(self, widget, *args):
         def on_accept(dialog):
-            self.model.save_object(dialog.filename)
+            JSONParser.write(self.model, dialog.filename)
             self.generate_import_combo()
         suggest_folder, _ = Goniometer.get_default_goniometers_path()
         DialogFactory.get_save_dialog(
@@ -78,7 +79,7 @@ class InlineGoniometerController(BaseController):
                 def on_accept(dialog):
                     self.model.reset_from_file(path)
                 DialogFactory.get_confirmation_dialog(
-                    "Are you sure?\nYou will loose the current settings!", 
+                    "Are you sure?\nYou will loose the current settings!",
                     parent=self.view.get_toplevel()
                 ).run(on_accept)
         combobox.set_active(-1) # deselect

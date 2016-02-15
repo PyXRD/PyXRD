@@ -44,8 +44,6 @@ class RawPatternPhase(AbstractPhase):
         self._data_object.apply_lpf = False
         self._data_object.apply_correction = False
 
-        print "Y DATA", self._data_object.raw_pattern_y
-
         return self._data_object
 
     project = property(AbstractPhase.parent.fget, AbstractPhase.parent.fset)

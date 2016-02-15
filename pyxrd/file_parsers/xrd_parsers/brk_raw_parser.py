@@ -30,8 +30,13 @@ class BrkRAWParser(XRDParserMixin, BaseParser):
     __file_mode__ = "rb"
 
     @classmethod
-    def parse_header(cls, filename, f=None, data_objects=None, close=False):
-        filename, f, close = cls._get_file(filename, f=f, close=close)
+    def _parse_header(cls, filename, fp, data_objects=None, close=False):
+        f = fp
+
+        try:
+            basename = u(os.path.basename(filename))
+        except AttributeError:
+            basename = None
 
         # Go to the start of the file
         f.seek(0, SEEK_SET)
@@ -84,7 +89,7 @@ class BrkRAWParser(XRDParserMixin, BaseParser):
                 )
 
                 data_objects[num_samples].update(
-                    filename=u(os.path.basename(filename)),
+                    filename=basename,
                     version=version,
                     name=sample_name,
                     time_step=time_step,
@@ -143,7 +148,7 @@ class BrkRAWParser(XRDParserMixin, BaseParser):
 
                 # Update XRDFile object:
                 data_objects[i].update(
-                    filename=u(os.path.basename(filename)),
+                    filename=basename,
                     version=version,
                     name=sample_name,
                     twotheta_min=twotheta_min,
@@ -215,7 +220,7 @@ class BrkRAWParser(XRDParserMixin, BaseParser):
                 f.seek(data_start + twotheta_count * 4)
 
                 data_objects[i].update(
-                    filename=u(os.path.basename(filename)),
+                    filename=basename,
                     version=version,
                     name=sample_name,
                     twotheta_min=twotheta_min,
@@ -235,20 +240,18 @@ class BrkRAWParser(XRDParserMixin, BaseParser):
         return data_objects
 
     @classmethod
-    def parse_data(cls, filename, f=None, data_objects=None, close=False):
-        filename, f, close = cls._get_file(filename, f=f, close=close)
-
+    def _parse_data(cls, filename, fp, data_objects=None, close=False):
         for data_object in data_objects:
             if data_object.data == None:
                 data_object.data = []
 
             # Parse data:
-            if f is not None:
+            if fp is not None:
                 if data_object.version in ("RAW1", "RAW2", "RAW3"):
-                    f.seek(data_object.data_start)
+                    fp.seek(data_object.data_start)
                     n = 0
                     while n < data_object.twotheta_count:
-                        y, = struct.unpack("f", f.read(4))
+                        y, = struct.unpack("f", fp.read(4))
                         data_object.data.append([
                             data_object.twotheta_min + data_object.twotheta_step * float(n + 0.5),
                             y
@@ -260,7 +263,7 @@ class BrkRAWParser(XRDParserMixin, BaseParser):
 
             data_object.data = np.array(data_object.data)
 
-        if close: f.close()
+        if close: fp.close()
         return data_objects
 
     pass # end of class

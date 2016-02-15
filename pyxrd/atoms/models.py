@@ -191,31 +191,6 @@ class AtomType(CSVMixin, DataModel, Storable):
         angstrom_range = ((stl_range * 0.05) ** 2)
         return get_atomic_scattering_factor(angstrom_range, self.data_object)
 
-    # ------------------------------------------------------------
-    #      Input/Output stuff
-    # ------------------------------------------------------------
-    @classmethod
-    def load_atom_types_from_generator(cls, generator, parent=None):
-        for atom_type in generator:
-            if atom_type.is_json:
-                yield cls.load_object(atom_type.file, parent=parent)
-            else:
-                yield cls(
-                    par_a1=atom_type.par_a1, par_a2=atom_type.par_a2,
-                    par_a3=atom_type.par_a3, par_a4=atom_type.par_a4,
-                    par_a5=atom_type.par_a5,
-                    par_b1=atom_type.par_b1, par_b2=atom_type.par_b2,
-                    par_b3=atom_type.par_b3, par_b4=atom_type.par_b4,
-                    par_b5=atom_type.par_b5,
-                    par_c=atom_type.par_c,
-                    atom_nr=atom_type.atom_nr,
-                    name=atom_type.name,
-                    charge=atom_type.charge,
-                    weight=atom_type.weight,
-                    debye=atom_type.debye,
-                    parent=parent
-                )
-
     pass # end of class
 
 @storables.register()

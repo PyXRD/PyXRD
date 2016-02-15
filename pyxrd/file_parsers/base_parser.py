@@ -7,6 +7,7 @@
 
 from .meta_parser import MetaParser
 from .data_object import DataObject
+import types
 
 class BaseParser(object):
     """
@@ -39,18 +40,15 @@ class BaseParser(object):
     file_filter = None
 
     @classmethod
-    def _get_file(cls, filename, f=None, close=None):
+    def _get_file(cls, fp, close=None):
         """
             Returns a three-tuple:
             filename, file-object, close
         """
-        if hasattr(f, "read"):
-            return filename, f, False if close == None else close
-        elif type(filename) is str:
-            return filename, open(filename, cls.__file_mode__), True if close == None else close
+        if isinstance(fp, types.StringType):
+            return fp, open(fp, cls.__file_mode__), True if close is None else close
         else:
-            raise TypeError, "Wrong argument: either a file object or a valid \
-                filename must be passed, not '%s' or '%s'" % (cls.description, filename, f)
+            return getattr(fp, 'name', None), fp, False if close is None else close
 
     @classmethod
     def _adapt_data_object_list(cls, data_objects, num_samples, only_extend=False):
@@ -70,7 +68,7 @@ class BaseParser(object):
         return data_objects
 
     @classmethod
-    def parse_header(cls, filename, f=None, data_objects=None, close=False):
+    def _parse_header(cls, filename, fp, data_objects=None, close=False):
         """
             This method is implemented by sub-classes.
             It should parse the file and returns a list of DataObjects 
@@ -86,7 +84,7 @@ class BaseParser(object):
         raise NotImplementedError
 
     @classmethod
-    def parse_data(cls, filename, f=None, data_objects=None, close=False):
+    def _parse_data(cls, filename, fp, data_objects=None, close=False):
         """
             This method is implemented by sub-classes.
             It should parse the file and return a list of DataObjects
@@ -103,7 +101,7 @@ class BaseParser(object):
 
 
     @classmethod
-    def parse(cls, filename, f=None, data_objects=None, close=True):
+    def parse(cls, fp, data_objects=None, close=True):
         """
             This method parses the file and return a list of DataObjects
             with both header and data properties filled in accordingly.
@@ -114,10 +112,10 @@ class BaseParser(object):
             Existing DataObjects can be passed as well and will then 
             be used instead of creating new ones.
         """
-        filename, f, close = cls._get_file(filename, f=f, close=close)
-        data_objects = cls.parse_header(filename, f=f, data_objects=data_objects)
-        data_objects = cls.parse_data(filename, f=f, data_objects=data_objects)
-        if close: f.close()
+        filename, fp, close = cls._get_file(fp, close=close)
+        data_objects = cls._parse_header(filename, fp, data_objects=data_objects)
+        data_objects = cls._parse_data(filename, fp, data_objects=data_objects)
+        if close: fp.close()
         return data_objects
 
     @classmethod

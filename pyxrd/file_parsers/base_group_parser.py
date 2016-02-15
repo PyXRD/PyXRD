@@ -22,9 +22,9 @@ class BaseGroupBarser(BaseParser):
     parsers = None
 
     @classmethod
-    def get_parser(cls, filename, f=None):
-        if not type(filename) is str and hasattr(f, 'name'):
-            filename = f.name
+    def get_parser(cls, filename, fp=None):
+        if not type(filename) is str and hasattr(fp, 'name'):
+            filename = fp.name
         if not type(filename) is str:
             raise TypeError, "Wrong type for filename (%s), must be a string, but %s was given" % (cls.description, type(filename))
         else:
@@ -57,19 +57,10 @@ class BaseGroupBarser(BaseParser):
                     break # just for the sake of clarity
 
     @classmethod
-    def parse_header(cls, filename, f=None, data_objects=None, close=False):
-        parser = cls.get_parser(filename, f=f)
-        return parser.parse_header(filename, f=f, data_objects=data_objects, close=close)
-
-    @classmethod
-    def parse_data(cls, filename, f=None, data_objects=None, close=False):
-        parser = cls.get_parser(filename, f=f)
-        return parser.parse_data(filename, f=f, data_objects=data_objects, close=close)
-
-    @classmethod
-    def parse(cls, filename, f=None, data_objects=None, close=True):
-        parser = cls.get_parser(filename, f=f)
-        return parser.parse(filename, data_objects=data_objects, close=close)
+    def parse(cls, fp, data_objects=None, close=True):
+        filename, fp, close = cls._get_file(fp, close=close)
+        parser = cls.get_parser(filename, fp=fp)
+        return parser.parse(fp, data_objects=data_objects, close=close)
 
     @classmethod
     def setup_file_filter(cls):

@@ -22,6 +22,8 @@ from pyxrd.refinement.refinables.metaclasses import PyXRDRefinableMeta
 
 from pyxrd.atoms.models import Atom
 
+from pyxrd.file_parsers.json_parser import JSONParser
+
 from .atom_relations import AtomRelation
 from .unit_cell_prop import UnitCellProperty
 
@@ -513,9 +515,13 @@ class Component(RefinementGroup, DataModel, Storable):
         if zipfile.is_zipfile(filename):
             with zipfile.ZipFile(filename, 'r') as zfile:
                 for uuid in zfile.namelist():
-                    yield cls.load_object(zfile.open(uuid), parent=parent)
+                    obj = JSONParser.parse(zfile.open(uuid))
+                    obj.parent = parent
+                    yield obj
         else:
-            yield cls.load_object(filename, parent=parent)
+            obj = JSONParser.parse(filename)
+            obj.parent = parent
+            yield obj
 
     def json_properties(self):
         if self.phase == None or not self.save_links:

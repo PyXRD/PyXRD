@@ -24,6 +24,9 @@ from pyxrd.phases.views import (
     EditPhaseView, AddPhaseView, EditRawPatternPhaseView
 )
 
+from pyxrd.file_parsers.json_parser import JSONParser
+from pyxrd.file_parsers.phase_parsers import phase_parsers
+
 from ..models import Phase, RawPatternPhase
 
 from .edit_phase_controller import EditPhaseController
@@ -55,10 +58,10 @@ class PhasesController(ObjectListStoreController):
     def get_phases_tree_model(self, *args):
         return self.treemodel
 
-    def load_phases(self, filename):
+    def load_phases(self, filename, parser=JSONParser):
         index = self.get_selected_index()
         if index is not None: index += 1
-        self.model.load_phases(filename, insert_index=index)
+        self.model.load_phases(filename, parser=parser, insert_index=index)
 
     def setup_treeview_col_c_display_color(self, treeview, name, col_descr, col_index, tv_col_nr):
         def set_pb(column, cell_renderer, tree_model, iter, col_index): # @ReservedAssignment
@@ -94,7 +97,7 @@ class PhasesController(ObjectListStoreController):
             else:
                 filename = phase_type
                 if filename != None:
-                    self.model.load_phases(filename, insert_index=index)
+                    self.model.load_phases(filename, parser=JSONParser, insert_index=index)
 
         # TODO re-use this and reset the COMBO etc.
         self.add_model = Model()
@@ -123,7 +126,7 @@ class PhasesController(ObjectListStoreController):
             Phase.save_phases(self.get_selected_objects(), filename=dialog.filename)
         DialogFactory.get_save_dialog(
             "Export phase", parent=self.view.get_top_widget(),
-            filters=self.file_filters
+            filters=phase_parsers.get_export_file_filters()
         ).run(on_accept)
         return True
 
@@ -131,9 +134,9 @@ class PhasesController(ObjectListStoreController):
     def on_load_object_clicked(self, event):
         def on_accept(dialog):
             logger.info("Importing phases...")
-            self.load_phases(dialog.filename)
+            self.load_phases(dialog.filename, parser=dialog.parser)
         DialogFactory.get_load_dialog(
             "Import phase", parent=self.view.get_top_widget(),
-            filters=self.file_filters
+            filters=phase_parsers.get_import_file_filters()
         ).run(on_accept)
         return True

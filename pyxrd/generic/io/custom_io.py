@@ -5,8 +5,6 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-import os, types
-from shutil import move
 from collections import OrderedDict
 import logging
 logger = logging.getLogger(__name__)
@@ -16,7 +14,7 @@ try:
 except:
     from StringIO import StringIO #@Reimport
 
-from zipfile import ZipFile, is_zipfile
+from zipfile import ZipFile
 try:
     # Check if zlib is available, if so, we can use compression when saving
     import zlib #@UnusedImport
@@ -24,10 +22,7 @@ try:
 except ImportError:
     from zipfile import ZIP_STORED as COMPRESSION
 
-from traceback import format_exc
-
 from ..utils import not_none
-from .utils import unicode_open
 from .json_codec import PyXRDDecoder, PyXRDEncoder
 
 class StorableRegistry(dict):
@@ -136,7 +131,7 @@ class Storable(object):
     ###########################################################################
     # High-level JSON (de)serialisiation related methods & functions:
     ###########################################################################
-    def dump_object(self, zipped=False, filename=None):
+    def dump_object(self, zipped=False):
         """
             Returns this object serialized as a JSON string.
             If `zipped` is true it returns an in-memory ZipFile.
@@ -155,88 +150,6 @@ class Storable(object):
         Prints the output from dump_object().
         """
         print self.dump_object()
-
-    def save_object(self, file, zipped=False): # @ReservedAssignment
-        """
-        Saves the output from dump_object() to `filename`, optionally zipping it.
-        File can be either a filename or a file-like object. If it is a filename
-        extra precautions are taken to prevent malformed data overwriting a good
-        file. With file objects this is not the case.
-        """
-
-        filename = None
-        if isinstance(file, types.StringTypes):
-            # We have a filename, not a file object
-            filename = file
-            # Create temporary filenames for output, and a backup filename if
-            # the file already exists.
-            file = filename + ".tmp" # @ReservedAssignment
-            backup_name = filename + "~"
-
-        try:
-            if zipped:
-                # Try to safe the file as a zipfile:
-                with ZipFile(file, mode="w", compression=COMPRESSION) as f:
-                    for partname, json_object in self.to_json_multi_part():
-                        f.writestr(partname, PyXRDEncoder.dump_object(json_object))
-            else:
-                # Regular text file:
-                if filename is not None:
-                    with unicode_open(file, 'w') as f:
-                        PyXRDEncoder.dump_object_to_file(self, f)
-                else:
-                    PyXRDEncoder.dump_object_to_file(self, file)
-        except:
-            # In case saving fails, remove the temporary file:
-            if filename is not None and os.path.exists(file):
-                os.remove(file)
-            raise
-
-        if filename is not None:
-            # If target file exists, back it up:
-            if os.path.exists(filename):
-                move(filename, backup_name)
-            # Rename temporary saved file:
-            move(file, filename)
-
-    @classmethod
-    def load_object(cls, filename, data=None, parent=None):
-        """
-        Tries to create an instance from the file 'filename' (see below), or
-        from the JSON string 'data'. If data is passed, filename should be None,
-        or it will be ignored
-        
-        *filename* the actual filename or a file-like object
-        
-        *parent* optional parent to pass to the JSON decoder
-                
-        :rtype: the loaded object instance
-        """
-        if filename is not None:
-            try: # Assume filename is a path
-                if is_zipfile(filename): # ZIP files
-                    with ZipFile(filename, 'r') as zf:
-                        parts = dict()
-                        for name in zf.namelist():
-                            if name != "content":
-                                with zf.open(name) as pf:
-                                    parts[name] = pf.read()
-                        with zf.open('content') as cf:
-                            return PyXRDDecoder.decode_multi_part(cf.read(), parts=parts, mapper=storables, parent=parent)
-                else: # REGULAR files
-                    with unicode_open(filename, 'r') as f:
-                        return PyXRDDecoder.decode_file(f, mapper=storables, parent=parent)
-            except Exception as error: # Maybe filename is a file-like object?
-                logger.debug("Handling run-time error: %s" % error)
-                tb = format_exc()
-                try:
-                    return PyXRDDecoder.decode_file(filename, mapper=storables, parent=parent)
-                except:
-                    print tb
-                    raise # re-raise last error, filename is something weird
-        elif data is not None: # STRINGS:
-            return PyXRDDecoder.decode_string(data, mapper=storables, parent=parent)
-
 
     ###########################################################################
     # Low-level JSON (de)serialisiation related methods & functions:

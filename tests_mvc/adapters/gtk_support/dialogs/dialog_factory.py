@@ -34,7 +34,7 @@ __all__ = [
 class DialogFactoryTest(unittest.TestCase):
 
 
-    def setUp(self):        
+    def setUp(self):
         pass
 
 
@@ -45,12 +45,12 @@ class DialogFactoryTest(unittest.TestCase):
     def test_get_file_dialog(self):
         kwargs = get_file_chooser_kwags()
         dialog = DialogFactory.get_file_dialog(**kwargs)
-        
+
         self.assertEqual(dialog.get_action(), kwargs["action"], "Action attribute is not set correctly")
         self.assertEqual(dialog.get_title(), kwargs["title"], "Title attribute is not set correctly")
         self.assertEqual(dialog.get_parent(), kwargs["parent"], "Parent window is not set correctly")
-        self.assertEqual(dialog.get_current_name(), kwargs["suggest_name"], "Suggest name attribute is not set correctly")
-        self.assertEqual(dialog.get_current_folder(), kwargs["suggest_folder"], "Suggest folder attribute is not set correctly")
+        self.assertEqual(dialog.get_current_name(), kwargs["current_name"], "Current name attribute is not set correctly")
+        self.assertEqual(dialog.get_current_folder(), kwargs["current_folder"], "Current folder attribute is not set correctly")
         self.assertEqual(dialog.get_extra_widget(), kwargs["extra_widget"], "Extra widget attribute is not set correctly")
         self.assertEqual(dialog.filters, kwargs["filters"], "Filters attribute is not set correctly")
         self.assertEqual(dialog.get_select_multiple(), kwargs["multiple"], "Multiple attribute is not set correctly")

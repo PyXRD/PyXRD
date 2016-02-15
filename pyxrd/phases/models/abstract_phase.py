@@ -14,6 +14,7 @@ from pyxrd.generic.models import DataModel
 
 from pyxrd.calculations.data_objects import PhaseData
 from pyxrd.calculations.phases import get_diffracted_intensity
+from pyxrd.file_parsers.json_parser import JSONParser
 
 
 @storables.register()
@@ -106,24 +107,6 @@ class AbstractPhase(DataModel, Storable):
         # This way, we're sure that we're not going to import objects with
         # duplicate UUID's!
         type(cls).object_pool.change_all_uuids()
-
-    @classmethod
-    def load_phases(cls, filename, parent=None):
-        """
-            Returns multiple phases loaded from a single file.
-        """
-        # Before import, we change all the UUID's
-        # This way we're sure that we're not going to import objects
-        # with duplicate UUID's!
-        type(cls).object_pool.change_all_uuids()
-        if zipfile.is_zipfile(filename):
-            with zipfile.ZipFile(filename, 'r') as zfile:
-                for name in zfile.namelist():
-                    # i, hs, uuid = name.partition("###")
-                    # if uuid=='': uuid = i
-                    yield cls.load_object(zfile.open(name), parent=parent)
-        else:
-            yield cls.load_object(filename, parent=parent)
 
     # ------------------------------------------------------------
     #      Methods & Functions

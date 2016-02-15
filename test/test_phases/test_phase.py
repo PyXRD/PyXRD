@@ -14,6 +14,7 @@ from test.utils import create_object_attribute_test
 from pyxrd.data import settings
 
 from pyxrd.phases.models import Phase
+from pyxrd.file_parsers.phase_parsers import JSONPhaseParser
 
 __all__ = [
     'TestPhase',
@@ -67,7 +68,7 @@ class TestPhase(unittest.TestCase):
         phases = [Phase(R=0, G=1), Phase(R=1, G=2)]
         fn = cStringIO.StringIO()
         Phase.save_phases(phases, filename=fn)
-        loaded_phases = list(Phase.load_phases(fn))
+        loaded_phases = list(JSONPhaseParser.parse(fn))
 
         def strip_uuid(data):
             new_data = []

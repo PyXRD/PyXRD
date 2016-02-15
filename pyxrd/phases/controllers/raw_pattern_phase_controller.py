@@ -46,15 +46,12 @@ class EditRawPatternPhaseController(TreeViewMixin, BaseController):
     # ------------------------------------------------------------
     @staticmethod
     def custom_handler(self, intel, widget):
-        print intel, widget
         pass # nothing to do
 
     def setup_raw_pattern_tree_view(self, store, widget):
         """
             Creates the raw pattern TreeView layout and behavior
         """
-
-        print "CALLED!!"
 
         setup_treeview(widget, store,
             on_cursor_changed=self.on_raw_pattern_tv_cursor_changed,
@@ -161,7 +158,7 @@ class EditRawPatternPhaseController(TreeViewMixin, BaseController):
         DialogFactory.get_save_dialog(
             "Select file for export", parent=self.view.get_toplevel(),
             filters=self.rp_export_filters,
-            suggest_name=ext_less_fname
+            current_name=ext_less_fname
         ).run(on_accept)
 
     pass #end of class

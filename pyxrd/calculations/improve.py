@@ -15,18 +15,12 @@ from scipy.optimize import fmin_l_bfgs_b
 from .exceptions import wrap_exceptions
 
 def setup_project(projectf):
-    # Only import these at this point, the cause a considerable increase in
-    # memory usage, so if no projectf was passed to improve_solutions, this
-    # module does not use more then it needs.
-    from pyxrd.data import settings
-    settings.initialize()
-
+    from pyxrd.file_parsers.json_parser import JSONParser
     from pyxrd.project.models import Project
     type(Project).object_pool.clear()
 
-    f = StringIO()
-    f.write(projectf)
-    project = Project.load_object(f)
+    f = StringIO(projectf)
+    project = JSONParser.parse(f)
     f.close()
 
     return project
@@ -41,17 +35,15 @@ def run_refinement(projectf, mixture_index, options):
     """
     if projectf is not None:
         from pyxrd.data import settings
-        settings.CACHE = None
         settings.initialize()
 
         from pyxrd.generic import pool
         pool.get_pool()
 
-        from pyxrd.project.models import Project
-
-        type(Project).object_pool.clear()
-        project = Project.load_object(None, data=projectf)
+        # Retrieve project and mixture:
+        project = setup_project(projectf)
         del projectf
+
         import gc
         gc.collect()
 
@@ -68,6 +60,9 @@ def run_refinement(projectf, mixture_index, options):
 @wrap_exceptions
 def improve_solution(projectf, mixture_index, solution, residual, l_bfgs_b_kwargs={}):
     if projectf is not None:
+        from pyxrd.data import settings
+        settings.initialize()
+
         # Retrieve project and mixture:
         project = setup_project(projectf)
         del projectf

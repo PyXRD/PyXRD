@@ -35,15 +35,18 @@ class GenericXYCSVParser(XRDParserMixin, CSVBaseParser):
     }
 
     @classmethod
-    def parse_header(cls, filename, f=None, data_objects=None, close=False, **fmt_params):
+    def _parse_header(cls, filename, fp, data_objects=None, close=False, **fmt_params):
         fmt_params = dict(cls.default_fmt_params, **fmt_params)
-        filename, f, close = cls._get_file(filename, f=f, close=close)
+        f = fp
 
         # Goto start of file
         f.seek(0)
 
         # Get base filename:
-        basename = u(os.path.basename(filename))
+        try:
+            basename = u(os.path.basename(filename))
+        except AttributeError:
+            basename = None
 
         # Read in the first and last data line and put the file cursor back
         # at its original position
@@ -86,10 +89,8 @@ class GenericXYCSVParser(XRDParserMixin, CSVBaseParser):
         if close: f.close()
         return data_objects
     @classmethod
-    def parse_data(cls, filename, f=None, data_objects=None, close=False, **fmt_params):
-        filename, f, close = cls._get_file(filename, f=f, close=close)
-
-        data_objects = cls.parse_header(filename, f=f, data_objects=data_objects, **fmt_params)
+    def _parse_data(cls, filename, fp, data_objects=None, close=False, **fmt_params):
+        f = fp
 
         if f is not None:
             for row in csv.reader(f, **fmt_params):
@@ -108,22 +109,22 @@ class GenericXYCSVParser(XRDParserMixin, CSVBaseParser):
         return data_objects
 
     @classmethod
-    def parse(cls, filename, f=None, data_objects=None, close=True, **fmt_params):
+    def parse(cls, fp, data_objects=None, close=True, **fmt_params):
         """
             Files are sniffed for the used csv dialect, but an optional set of
             formatting parameters can be passed that will override the sniffed
             parameters.
         """
-        filename, f, close = cls._get_file(filename, f=f, close=close)
+        filename, f, close = cls._get_file(fp, close=close)
 
         # Guess dialect:
         fmt_params = cls.sniff(f, **fmt_params)
 
         # Parse header:
-        data_objects = cls.parse_header(filename, f=f, data_objects=data_objects, **fmt_params)
+        data_objects = cls._parse_header(filename, fp, data_objects=data_objects, **fmt_params)
 
         # Parse data:
-        data_objects = cls.parse_data(filename, f=f, data_objects=data_objects, **fmt_params)
+        data_objects = cls._parse_data(filename, fp, data_objects=data_objects, **fmt_params)
 
         if close: f.close()
         return data_objects

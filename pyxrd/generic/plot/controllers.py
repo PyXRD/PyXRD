@@ -84,7 +84,7 @@ class PlotController(object):
     # ------------------------------------------------------------
     #      Graph exporting
     # ------------------------------------------------------------
-    def save(self, parent=None, suggest_name="graph", size="auto", num_specimens=1, offset=0.75):
+    def save(self, parent=None, current_name="graph", size="auto", num_specimens=1, offset=0.75):
         """
             Displays a save dialog to export an image from the current plot.
         """
@@ -139,7 +139,7 @@ class PlotController(object):
         # Ask the user where, how and if he wants to save:
         DialogFactory.get_save_dialog(
             "Save Graph", parent=parent,
-            filters=self.file_filters, suggest_name=suggest_name,
+            filters=self.file_filters, current_name=current_name,
             extra_widget=size_expander
         ).run(on_accept)
 

@@ -28,6 +28,7 @@ from pyxrd.specimen.controllers import SpecimenController, MarkersController
 from pyxrd.mixture.controllers import MixturesController
 from pyxrd.phases.controllers import PhasesController
 from pyxrd.atoms.controllers import AtomTypesController
+from pyxrd.file_parsers.json_parser import JSONParser
 
 class AppController (BaseController):
     """
@@ -231,7 +232,8 @@ class AppController (BaseController):
         with DialogFactory.error_dialog_handler(
                 "An error has occurred while saving!",
                 parent=self.view.get_toplevel(), reraise=False):
-            self.model.current_project.save_object(filename)
+            JSONParser.write(self.model.current_project, filename, zipped=True)
+            self.model.current_project.filename = filename
 
         # Update the title
         self.update_title()
@@ -241,7 +243,9 @@ class AppController (BaseController):
         with DialogFactory.error_dialog_handler(
                 "An error has occurred.\n Your project was not loaded!",
                 parent=self.view.get_toplevel(), reraise=False):
-            self.model.current_project = Project.load_object(filename, parent=self.model)
+            self.model.current_project = JSONParser.parse(filename)
+            self.model.current_project.parent = self.model
+            self.model.current_project.filename = filename
 
         # Update the title
         self.update_title()

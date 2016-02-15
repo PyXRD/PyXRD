@@ -18,7 +18,6 @@ import multiprocessing
 import os
 import codecs
 import numpy as np
-from pyxrd.project.models import Project
 
 """
 ADDED 0.01 NOISE
@@ -72,7 +71,8 @@ def run(args):
         stop_event = multiprocessing.Event()
 
         logging.info("Loading project file...")
-        project = Project.load_object(project_file)
+        from pyxrd.file_parsers.json_parser import JSONParser
+        project = JSONParser.parse(project_file)
         logging.info(" ".join(["Running Project", os.path.basename(project_file), "Trial", k]))
 
         for i, mixture in enumerate(project.mixtures):
@@ -144,6 +144,6 @@ def run(args):
                     mixture.optimizer.optimize()
 
                     project_file_output = base_path + "/" + os.path.basename(project_file).replace(".pyxrd", "") + " - mixture %s - trial %s.pyxrd" % (str(i), str(k))
-                    project.save_object(file=project_file_output)
+                    JSONParser.write(project, project_file_output, zipped=True)
 
         pass # end

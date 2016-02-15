@@ -35,77 +35,73 @@ class ATLAtomTypeParser(CSVBaseParser):
     }
 
     @classmethod
-    def parse_header(cls, filename, f=None, data_objects=None, close=False, **fmt_params):
-        fmt_params = dict(cls.default_fmt_params, **fmt_params)
-        filename, f, close = cls._get_file(filename, f=f, close=close)
-
-        # Goto start of file
-        f.seek(0)
-
-        # Get base filename:
-        basename = u(os.path.basename(filename))
-
-        # Read in the first and last data line and put the file cursor back
-        # at its original position
-        header = cls.parse_raw_line(f.readline().strip(), str)
-        replace = [
-            "a%d" % i for i in range (1, 6)
-        ] + [
-            "b%d" % i for i in range (1, 6)
-        ] + [ "c", ]
-        header = [ "par_%s" % val if val in replace else val for val in header ]
-        data_start_pos = f.tell()
-        line_count, _ = cls.get_last_line(f)
-        f.seek(data_start_pos)
-
-        # Adapt DataObject list
-        data_objects = cls._adapt_data_object_list(data_objects, num_samples=line_count)
-
-        # Fill in header info:
-        for i in xrange(line_count):
-            data_objects[i].update(
-                filename=basename,
-                header=header
-            )
-
-        if close: f.close()
+    def _parse_header(cls, filename, fp, data_objects=None, close=False, **fmt_params):
+        try:
+            fmt_params = dict(cls.default_fmt_params, **fmt_params)
+    
+            # Goto start of file
+            fp.seek(0)
+    
+            # Get base filename:
+            basename = u(os.path.basename(filename))
+    
+            # Read in the first and last data line and put the file cursor back
+            # at its original position
+            header = cls.parse_raw_line(fp.readline().strip(), str)
+            replace = [
+                "a%d" % i for i in range (1, 6)
+            ] + [
+                "b%d" % i for i in range (1, 6)
+            ] + [ "c", ]
+            header = [ "par_%s" % val if val in replace else val for val in header ]
+            data_start_pos = fp.tell()
+            line_count, _ = cls.get_last_line(fp)
+            fp.seek(data_start_pos)
+    
+            # Adapt DataObject list
+            data_objects = cls._adapt_data_object_list(data_objects, num_samples=line_count)
+    
+            # Fill in header info:
+            for i in xrange(line_count):
+                data_objects[i].update(
+                    filename=basename,
+                    header=header
+                )
+        finally:
+            if close: fp.close()
         return data_objects
 
     @classmethod
-    def parse_data(cls, filename, f=None, data_objects=None, close=False, **fmt_params):
-        filename, f, close = cls._get_file(filename, f=f, close=close)
-
-        data_objects = cls.parse_header(filename, f=f, data_objects=data_objects, **fmt_params)
-
-        if f is not None:
-            for row, data_object in zip(csv.reader(f, **fmt_params), data_objects):
+    def _parse_data(cls, filename, fp, data_objects=None, close=False, **fmt_params):
+        if fp is not None:
+            for row, data_object in zip(csv.reader(fp, **fmt_params), data_objects):
                 if row:
                     for key, val in zip(data_object.header, row):
                         setattr(data_object, key, val)
                     data_object.is_json = False
 
-        if close: f.close()
+        if close: fp.close()
         return data_objects
 
     @classmethod
-    def parse(cls, filename, f=None, data_objects=None, close=True, **fmt_params):
+    def parse(cls, filename, fp, data_objects=None, close=True, **fmt_params):
         """
             Files are sniffed for the used csv dialect, but an optional set of
             formatting parameters can be passed that will override the sniffed
             parameters.
         """
-        filename, f, close = cls._get_file(filename, f=f, close=close)
+        filename, fp, close = cls._get_file(filename, fp, close=close)
 
         # Guess dialect
-        fmt_params = cls.sniff(f, **fmt_params)
+        fmt_params = cls.sniff(fp, **fmt_params)
 
         # Parse header
-        data_objects = cls.parse_header(filename, f=f, data_objects=data_objects, **fmt_params)
+        data_objects = cls.parse_header(filename, fp, data_objects=data_objects, **fmt_params)
 
         # Parse data
-        data_objects = cls.parse_data(filename, f=f, data_objects=data_objects, **fmt_params)
+        data_objects = cls.parse_data(filename, fp, data_objects=data_objects, **fmt_params)
 
-        if close: f.close()
+        if close: fp.close()
         return data_objects
 
     @classmethod

@@ -376,7 +376,7 @@ class Specimen(DataModel, Storable):
             name, sample, generator = xrdfile.filename, xrdfile.name, xrdfile.data
             specimen = Specimen(parent=parent, name=name, sample_name=sample)
             specimen.experimental_pattern.load_data_from_generator(generator, clear=True)
-            specimen.goniometer.reset_from_file(None, data=xrdfile.create_gon_file())
+            specimen.goniometer.reset_from_file(xrdfile.create_gon_file())
             specimens.append(specimen)
 
         return specimens

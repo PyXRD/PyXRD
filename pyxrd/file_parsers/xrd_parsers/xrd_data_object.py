@@ -5,8 +5,14 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
+try:
+    from cStringIO import StringIO
+except ImportError:
+    from StringIO import StringIO
+
 from ..data_object import DataObject
 from pyxrd.generic.utils import not_none
+
 
 class XRDDataObject(DataObject):
     """
@@ -70,8 +76,9 @@ class XRDDataObject(DataObject):
             twotheta_count=float(not_none(self.twotheta_count, 2500)),
             alpha_average=float(not_none(self.alpha_average, 0.154056)),
         )
-
-        return output
+        f = StringIO(output)
+        f.flush()
+        return f
 
 
     pass #end of class

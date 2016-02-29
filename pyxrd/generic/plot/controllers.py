@@ -235,7 +235,7 @@ class MainPlotController(PlotController):
                 # want the inverse of that
                 bboxi = bbox.inverse_transformed(self.figure.transFigure)
                 bboxes.append(bboxi)
-        except RuntimeError:
+        except (RuntimeError, ValueError):
             logger.exception("Caught unhandled exception when joining boundig boxes")
             return None # don't continue
         # this is the bbox that bounds all the bboxes, again in relative
@@ -266,7 +266,7 @@ class MainPlotController(PlotController):
         # Fix left side for wide specimen labels:
         if len(self.labels) > 0:
             bbox = self._get_joint_bbox(self.labels)
-            self.position_setup.left = 0.05 + bbox.width
+            if bbox is not None: self.position_setup.left = 0.05 + bbox.width
         # Fix top for high marker labels:
         if len(self.marker_lbls) > 0:
             bbox = self._get_joint_bbox([ label for label, flag, _ in self.marker_lbls if flag ])

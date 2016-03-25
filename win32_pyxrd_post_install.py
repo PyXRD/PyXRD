@@ -71,10 +71,10 @@ NAME = 'PyXRD.lnk'
 
 if sys.argv[1] == '-install':
     create_shortcut(# @UndefinedVariable
-        os.path.join(sys.prefix, 'pythonw.exe'), # Program
+        os.path.join(sys.prefix, 'Scripts\PyXRD.exe'), # Program
         'Run PyXRD', # Description
         NAME, # Filename
-        os.path.join(sys.prefix, 'Scripts/PyXRD-script.pyw'), # Arguments
+        '', # Arguments
         '', # Work dir
         resource_filename("pyxrd.application", "icons/pyxrd.ico") # icon path
     )

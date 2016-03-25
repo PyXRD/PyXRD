@@ -13,6 +13,7 @@ def get_install_requires():
         'numpy>=1.7',
         'scipy>=0.14',
         'matplotlib>=1.2.1',
+        'deap>=1.1.0',
     ]
 
 def read(fname):

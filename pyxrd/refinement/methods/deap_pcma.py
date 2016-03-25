@@ -12,7 +12,8 @@ logger = logging.getLogger(__name__)
 import numpy as np
 import random
 
-from pyxrd.generic.async import HasAsyncCalls
+from pyxrd.generic.async.has_async_calls import HasAsyncCalls
+from pyxrd.generic.async.cancellable import Cancellable
 
 from ..refine_method import RefineMethod
 from ..refine_method_option import RefineMethodOption
@@ -26,7 +27,7 @@ STAGN_TOL = 0.01
 STAGN_NGEN = 10
 NGEN = 100
 
-class RefinePCMAESRun(RefineMethod, HasAsyncCalls):
+class RefinePCMAESRun(RefineMethod, HasAsyncCalls, Cancellable):
     """
         Algorithm that will run CMA-ES strategies in parallel for a shorter # of
         generations, check them and reset unsuccessful runs.

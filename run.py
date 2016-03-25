@@ -17,11 +17,6 @@ if __name__ == "__main__":
     from pyxrd.logs import setup_logging
     setup_logging(basic=True)
 
-    # This will generate a very slim pool of worker processes, with as little
-    # as possible shared state
-    from pyxrd.generic.pool import get_pool
-    get_pool()
-
     # Setup & run PyXRD
     from pyxrd.core import run_main
     run_main()

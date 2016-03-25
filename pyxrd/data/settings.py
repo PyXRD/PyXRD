@@ -212,6 +212,12 @@ DATA_FILES = [
     ("MINERALS", "mineral_references.csv", "DEFAULT_DATA"),
 ]
 
+### Async calculation providers ###
+ASYNC_SERER_PROVIDERS = [
+   "pyxrd.server.provider.Pyro4AsyncServerProvider",
+   "pyxrd.generic.async.dummy_async_provider.DummyAsyncServerProvider",
+]
+
 SETTINGS_APPLIED = False
 ARGS = None
 

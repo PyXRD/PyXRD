@@ -18,8 +18,10 @@ import numpy as np
 from deap import creator, base
 from deap.tools import ParetoFront
 
+from pyxrd.generic.async.has_async_calls import HasAsyncCalls
+from pyxrd.generic.async.cancellable import Cancellable 
+
 from pyxrd.calculations.mixture import get_optimized_mixture
-from pyxrd.generic.async import HasAsyncCalls
 
 class pyxrd_array(creator._numpy_array):
     """
@@ -138,7 +140,7 @@ class PyXRDParetoFront(ParetoFront):
         import gc
         gc.collect()
 
-class AsyncEvaluatedAlgorithm(HasAsyncCalls):
+class AsyncEvaluatedAlgorithm(HasAsyncCalls, Cancellable):
 
     def do_async_evaluation(self, population, iter_func, eval_func):
         """ Utility that combines a submit and fetch cycle in a single

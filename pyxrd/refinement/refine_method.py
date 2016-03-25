@@ -8,7 +8,7 @@
 import logging
 logger = logging.getLogger(__name__)
 
-from pyxrd.generic.async import Cancellable
+from pyxrd.generic.async.cancellable import Cancellable
 from .refine_method_meta import RefineMethodMeta
 
 class RefineMethod(Cancellable):

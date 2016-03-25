@@ -11,16 +11,16 @@ from itertools import product, izip, combinations
 import numpy as np
 
 from pyxrd.calculations.mixture import get_optimized_mixture
+from pyxrd.generic.async.has_async_calls import HasAsyncCalls
+from pyxrd.generic.async.cancellable import Cancellable 
 
 from ..refine_method import RefineMethod
 from ..refine_method_option import RefineMethodOption
-from pyxrd.generic.async import HasAsyncCalls
-
 
 def evaluate(data_object):
     return get_optimized_mixture(data_object).residual
 
-class RefineBruteForceRun(RefineMethod, HasAsyncCalls):
+class RefineBruteForceRun(RefineMethod, HasAsyncCalls, Cancellable):
     name = "Brute force algorithm"
     description = "Refinement using a Brute Force algorithm"
     index = 3

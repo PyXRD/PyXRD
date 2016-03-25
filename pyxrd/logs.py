@@ -10,7 +10,7 @@
 import os
 import logging
 
-def setup_logging(basic=False):
+def setup_logging(basic=False, prefix=None):
     """
         Setup logging module.
     """
@@ -24,6 +24,9 @@ def setup_logging(basic=False):
     # if simple, sparse logging is enough (True)
     basic = not settings.GUI_MODE
 
+    fmt = '%(name)s - %(levelname)s: %(message)s'
+    if prefix is not None:
+        fmt = prefix + " " + fmt 
 
     if log_file is not None and not os.path.exists(os.path.dirname(log_file)):
         os.makedirs(os.path.dirname(log_file))
@@ -40,11 +43,11 @@ def setup_logging(basic=False):
 
         # Setup error stream:
         console = logging.StreamHandler()
-        full = logging.Formatter("%(name)s - %(levelname)s: %(message)s")
+        full = logging.Formatter(fmt)
         console.setFormatter(full)
 
         # Add console logger to the root logger:
         logger.addHandler(console)
     else:
         # Very basic output for the root object:
-        logging.basicConfig(format='%(name)s - %(levelname)s: %(message)s')
+        logging.basicConfig(format=fmt)

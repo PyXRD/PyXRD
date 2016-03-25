@@ -37,9 +37,6 @@ def run_refinement(projectf, mixture_index, options):
         from pyxrd.data import settings
         settings.initialize()
 
-        from pyxrd.generic import pool
-        pool.get_pool()
-
         # Retrieve project and mixture:
         project = setup_project(projectf)
         del projectf
@@ -55,6 +52,7 @@ def run_refinement(projectf, mixture_index, options):
 
         mixture.refiner.refine()
 
+        # TODO make this return a single object!!
         return list(context.best_solution), context.best_residual, (context.record_header, context.records) #@UndefinedVariable
 
 @wrap_exceptions

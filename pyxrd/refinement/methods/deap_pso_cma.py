@@ -17,7 +17,8 @@ import numpy as np
 
 from deap import creator, base, tools #@UnresolvedImport
 
-from pyxrd.generic.async import HasAsyncCalls, Cancellable
+from pyxrd.generic.async.cancellable import Cancellable
+from pyxrd.generic.async.has_async_calls import HasAsyncCalls
 
 from ..refine_method import RefineMethod
 from ..refine_method_option import RefineMethodOption
@@ -66,7 +67,7 @@ class SwarmStrategy(Cancellable):
     pass #end of class
 
 
-class SwarmAlgorithm(HasAsyncCalls):
+class SwarmAlgorithm(HasAsyncCalls, Cancellable):
 
     @property
     def ngen(self):

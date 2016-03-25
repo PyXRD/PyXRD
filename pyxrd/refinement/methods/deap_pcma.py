@@ -48,18 +48,18 @@ class RefinePCMAESRun(RefineMethod, HasAsyncCalls):
         # Fetch a project dump:
         with context.mixture.project.hold_child_signals():
             # Set the current refine method to RefineCMAESRun:
-            old_refine_method = context.mixture.refine_method
+            old_refine_method = context.mixture.refiner.refine_method
             old_initial_solution = context.initial_solution
-            for i, m in context.mixture.Meta.all_refine_methods.iteritems():
+            for i, m in context.mixture.refiner.refine_methods.iteritems():
                 if isinstance(m, RefineCMAESRun):
-                    context.mixture.refine_method = i
+                    context.mixture.refiner.refine_method = i
                     context.apply_solution(start)
                     break
             # Dump project in its entirety:
             projectf = context.mixture.project.dump_object()
             mixture_index = context.mixture.project.mixtures.index(context.mixture)
             # Reset the old refine method & options:
-            context.mixture.refine_method = old_refine_method
+            context.mixture.refiner.refine_method = old_refine_method
             context.apply_solution(old_initial_solution)
 
             return projectf, mixture_index, kwargs

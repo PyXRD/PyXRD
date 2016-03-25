@@ -279,7 +279,7 @@ class SpecimenController(DialogController, TreeViewMixin):
                 self.model.experimental_pattern.load_data(parser, filename, clear=True)
         DialogFactory.get_load_dialog(
             "Open XRD file for import", parent=self.view.get_top_widget(),
-            filter=xrd_parsers.get_import_file_filters()
+            filters=xrd_parsers.get_import_file_filters()
         ).run(on_accept)
         return True
 

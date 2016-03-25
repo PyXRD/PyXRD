@@ -48,12 +48,12 @@ def run_refinement(projectf, mixture_index, options):
         gc.collect()
 
         mixture = project.mixtures[mixture_index]
-        mixture.update_refinement_treestore()
+        mixture.refiner.update_refinement_treestore()
         mixture.refiner.setup_context(store=False) # we already have a dumped project
         context = mixture.refiner.context
         context.options = options
 
-        mixture.refiner.refine(stop=pool.pool_stop)
+        mixture.refiner.refine()
 
         return list(context.best_solution), context.best_residual, (context.record_header, context.records) #@UndefinedVariable
 

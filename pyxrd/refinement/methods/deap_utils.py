@@ -134,6 +134,9 @@ class PyXRDParetoFront(ParetoFront):
                 self.remove(i)
             if not is_dominated and not has_twin:
                 self.insert(ind)
+        # Run the garbage collector once for good measure
+        import gc
+        gc.collect()
 
 class AsyncEvaluatedAlgorithm(HasAsyncCalls):
 
@@ -155,5 +158,8 @@ class AsyncEvaluatedAlgorithm(HasAsyncCalls):
         for ind, result in izip(population, results):
             ind.fitness.values = self.fetch_async_result(result)
         del results
+        # Run the garbage collector once for good measure
+        import gc
+        gc.collect()
 
     pass #end of class

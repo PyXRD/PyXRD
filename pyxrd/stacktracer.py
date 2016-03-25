@@ -40,6 +40,9 @@ import os
 import time
 import threading
 
+import logging
+logger = logging.getLogger(__name__)
+
 class TraceDumper(threading.Thread):
     """Dump stack traces into a given file periodically."""
     def __init__(self, fpath, interval, auto):
@@ -54,6 +57,7 @@ class TraceDumper(threading.Thread):
         self.auto = auto
         self.interval = interval
         self.fpath = os.path.abspath(fpath)
+        logger.info("Tracing at file %s" % self.fpath)
         self.stop_requested = threading.Event()
         threading.Thread.__init__(self)
 

@@ -329,6 +329,8 @@ class RefinementController(DialogController):
                     # Launch a timeout GUI updater:
                     self.gui_timeout_id = gobject.timeout_add(250, self._on_update_gui)
 
+                    self.view.update_refinement_status("Refining...")
+
                     # Run the refinement, threaded:
                     self.model.refine(
                         threaded=True,
@@ -359,6 +361,7 @@ class RefinementController(DialogController):
 
     def _on_refinement_cancelled(self, context, *args, **kwargs):
         """ Called when the refinement is cancelled by the user """
+        gobject.source_remove(self.gui_timeout_id)
         self.view.stop_spinner()
         self.view.update_refinement_status("Cancelling...")
         self.model.cancel()
@@ -366,11 +369,14 @@ class RefinementController(DialogController):
 
     def _on_update_gui(self):
         """ Called using a gobject timeout """
-        self.view.update_refinement_info(
-            self.model.context.last_residual,
-            self.model.context.status_message
-        )
-        return True
+        if self.view is not None and self.model.context is not None:
+            self.view.update_refinement_info(
+                self.model.context.last_residual,
+                self.model.context.status_message
+            )
+            return True
+        else:
+            return False
 
     pass # end of class
 

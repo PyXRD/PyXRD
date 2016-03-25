@@ -29,7 +29,7 @@ class JSONParser(BaseParser):
     description = "PyXRD Object JSON"
     mimetypes = ["application/octet-stream", "application/zip"]
 
-    __file_mode__ = "rb"
+    __file_mode__ = "r"
 
     @classmethod
     def _parse_header(cls, filename, fp, data_objects=None, close=False):
@@ -43,7 +43,11 @@ class JSONParser(BaseParser):
             is_zipfile = zipfile.is_zipfile(f)
             f.seek(pre_pos)
             if is_zipfile: # ZIP files
-                with zipfile.ZipFile(f, 'r') as zf:
+                    if filename is not None:
+                        zf = zipfile.ZipFile(filename, cls.__file_mode__)
+                    else:
+                        f.seek(0)
+                        zf = zipfile.ZipFile(f, cls.__file_mode__)
 
                     namelist = zf.namelist()
 
@@ -52,8 +56,12 @@ class JSONParser(BaseParser):
                         decoder = json.JSONDecoder()
 
                         # Parse the content file
-                        with zf.open('content') as cf:
-                            obj = decoder.decode(cf.read())
+                        #with zf.open('content') as cf:
+                        #    obj = decoder.decode(cf.read())
+                        cf = zf.open('content', cls.__file_mode__)
+                        obj = decoder.decode(cf.read())
+                        cf.close()
+
 
                         # Make sure we have a dict at this point
                         if not hasattr(obj, "update"):
@@ -62,8 +70,9 @@ class JSONParser(BaseParser):
                         # Parse all the other files, and set accordingly in the content dict
                         for sub_name in namelist:
                             if sub_name != "content":
-                                with zf.open(sub_name) as zpf:
-                                    obj["properties"][sub_name] = decoder.decode(zpf.read())
+                                zpf = zf.open(sub_name, cls.__file_mode__) #with zf.open(sub_name) as zpf:
+                                obj["properties"][sub_name] = decoder.decode(zpf.read())
+                                zpf.close()
 
                         # Now parse the JSON dict to a Python object
                         data_objects = PyXRDDecoder(mapper=storables).__pyxrd_decode__(obj) or obj
@@ -71,9 +80,10 @@ class JSONParser(BaseParser):
                     else: # Multiple objects
                         data_objects = []
                         for sub_name in namelist:
-                            with zf.open(sub_name) as zpf:
-                                data_objects.append(cls.parse(zpf))
-
+                            zpf = zf.open(sub_name, cls.__file_mode__) #with zf.open(sub_name) as zpf:
+                            data_objects.append(cls.parse(zpf))
+                            zpf.close()
+                    zf.close()
             else: # REGULAR files
                 data_objects = PyXRDDecoder(mapper=storables).decode(f.read()) # json.load(f, cls=PyXRDDecoder, mapper=storables)
         except Exception as error: # Maybe filename is a file-like object?

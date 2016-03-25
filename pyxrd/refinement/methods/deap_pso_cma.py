@@ -177,6 +177,8 @@ class SwarmAlgorithm(HasAsyncCalls):
         self.toolbox.update(swarms, communicate=communicate)
 
     def _record(self, swarms):
+        self.context.status_message = "Processing ..."
+
         # Get the best solution so far:
         if hasattr(self.halloffame, "get_best"):
             best = self.halloffame.get_best()
@@ -193,6 +195,7 @@ class SwarmAlgorithm(HasAsyncCalls):
             self.logbook.record(gen=self.gen, evals=pop_size, best=best_f, **record)
             print self.logbook.stream
 
+        self.context.status_message = "Context update ..."
         # Update the context:
         self.context.update(best, best_f)
         self.context.record_state_data([

@@ -7,7 +7,7 @@
 
 from .meta_parser import MetaParser
 from .data_object import DataObject
-import types
+import types, io
 
 class BaseParser(object):
     """

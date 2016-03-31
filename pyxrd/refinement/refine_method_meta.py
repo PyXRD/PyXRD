@@ -35,8 +35,4 @@ class RefineMethodMeta(type):
 
         return cls
 
-    @classmethod
-    def get_all_methods(meta):  # @NoSelf
-        return meta.registered_methods
-
     pass #end of class

@@ -8,10 +8,11 @@
 import logging
 logger = logging.getLogger(__name__)
 
-from pyxrd.generic.async.cancellable import Cancellable
-from .refine_method_meta import RefineMethodMeta
+from refine_method_meta import RefineMethodMeta
+from refine_async_helper import RefineAsyncHelper
 
-class RefineMethod(Cancellable):
+class RefineMethod(RefineAsyncHelper):
+    
     """
         The `RefineMethod` class is the base class for refinement methods.
         Sub-classes will be registered in the metaclass.
@@ -29,21 +30,27 @@ class RefineMethod(Cancellable):
     #  - the range 0 - 999 is reserved for built-in methods
     #  - all other values can be used for third-party methods, it is up to the
     #    final user to check if they don't overlap. If these methods become
-    #    a built-in method, they recieve a new index in the preserved range
+    #    a built-in method, they'll receive a new index in the preserved range
     index = -1
 
     disabled = True
 
-    def __call__(self, context, stop=None, **kwargs):
+    def __call__(self, refiner, stop=None, **kwargs):
 
         self._stop = stop
 
+        options = self.get_options()
         for arg in self.options:
-            kwargs[arg] = kwargs.get(arg, context.options.get(arg, getattr(self, arg)))
+            options[arg] = kwargs.get(arg, getattr(self, arg))
 
-        return self.run(context, **kwargs)
+        return self.run(refiner, **options)
 
-    def run(self, context, **kwargs):
+    def run(self, refiner, **kwargs):
         raise NotImplementedError, "The run method of RefineRun should be implemented by sub-classes..."
+
+    def get_options(self):
+        """ Returns a dict containing the option attribute names as keys and
+        their values as values """
+        return { name: getattr(self, name) for name in self.options }
 
     pass #end of class

@@ -13,7 +13,8 @@ def get_install_requires():
         'numpy>=1.7',
         'scipy>=0.14',
         'matplotlib>=1.2.1',
-        'deap>=1.1.0',
+        'Pyro4>=4.41',
+        'deap>=1.0.1',
     ]
 
 def read(fname):
@@ -38,7 +39,7 @@ diffraction analysis of disordered lamellar structures""",
     license="BSD",
     setup_requires=[ "setuptools_git >= 0.3", ],
     scripts=['win32_pyxrd_post_install.py'],
-    packages=find_packages(exclude=["test.*", "test"]),
+    packages=find_packages(exclude=["test.*", "test", "tests_mvc", "tests_mvc.*"]),
     include_package_data=True,
     entry_points={
         'console_scripts': [ 'PyXRDScript = pyxrd.core:run_user_script' ],

@@ -97,8 +97,13 @@ def run_main():
         Parsers command line arguments and launches PyXRD accordingly.
     """
 
-    # Get settings
+    # Init settings, first import will trigger initialization
     from pyxrd.data import settings
+    settings.initialize()
+
+    # Setup basic logging
+    from pyxrd.logs import setup_logging
+    setup_logging(basic=True)
 
     if settings.DEBUG:
         from pyxrd import stacktracer
@@ -119,3 +124,6 @@ def run_main():
         for finalizer in settings.FINALIZERS:
             finalizer()
         if settings.DEBUG: stacktracer.trace_stop()
+
+if __name__ == "__main__":
+    run_main()

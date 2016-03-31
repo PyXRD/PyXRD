@@ -1,6 +1,7 @@
 #define MyAppName "PyXRD"
 #define MyAppVersion "|||VERSION|||"
-#define OutputDir ".\dist"
+
+#define OutputDir ".\dist"
 #define DepDir ".\dist\deps"
 
 ;
@@ -25,8 +26,8 @@ OutputDir="{#OutputDir}"
 Source: "{#DepDir}\python-2.7.11.msi"; DestDir: "{tmp}"; Flags: deleteafterinstall
 Source: "{#DepDir}\pygtk-all-in-one-2.24.2.win32-py2.7.msi"; DestDir: "{tmp}"; Flags: deleteafterinstall
 Source: "{#DepDir}\scipy-0.17.0-cp27-none-win32.whl"; DestDir: "{tmp}"; Flags: deleteafterinstall
-Source: "{#DepDir}\numpy-1.10.4+mkl-cp27-cp27m-win32.whl"; DestDir: "{tmp}"; Flags: deleteafterinstall
-Source: "{#OutputDir}\PyXRD-{#MyAppVersion}.win32-py2.7.exe"; DestDir: "{tmp}"; Flags: deleteafterinstall
+Source: "{#DepDir}\numpy-1.11.0+mkl-cp27-cp27m-win32.whl"; DestDir: "{tmp}"; Flags: deleteafterinstall
+Source: "{#OutputDir}\PyXRD-{#MyAppVersion}-py2-none-any.whl"; DestDir: "{tmp}"; Flags: deleteafterinstall
                                            
 [Run]
 StatusMsg: "Installing Python";     Filename: "msiexec.exe";            Parameters: "/i ""{tmp}\python-2.7.11.msi"" /passive ALLUSERS=1 TARGETDIR=""C:\Python27"""; Flags: runasoriginaluser;
@@ -36,11 +37,11 @@ StatusMsg: "Installing Wheel";      Filename: "C:\Python27\Python.exe"; Paramete
 StatusMsg: "Installing Pyro";       Filename: "C:\Python27\Python.exe"; Parameters: "-m pip install -U Pyro4"; Flags: runascurrentuser;
 StatusMsg: "Installing Deap";       Filename: "C:\Python27\Python.exe"; Parameters: "-m pip install -U deap"; Flags: runascurrentuser;
 StatusMsg: "Installing Pywin32";    Filename: "C:\Python27\Python.exe"; Parameters: "-m pip install -U pypiwin32"; Flags: runascurrentuser;
-StatusMsg: "Installing Numpy";      Filename: "C:\Python27\Python.exe"; Parameters: "-m pip install ""{tmp}\numpy-1.10.4+mkl-cp27-cp27m-win32.whl"""; Flags: runascurrentuser;
+StatusMsg: "Installing Numpy";      Filename: "C:\Python27\Python.exe"; Parameters: "-m pip install ""{tmp}\numpy-1.11.0+mkl-cp27-cp27m-win32.whl"""; Flags: runascurrentuser;
 StatusMsg: "Installing Scipy";      Filename: "C:\Python27\Python.exe"; Parameters: "-m pip install ""{tmp}\scipy-0.17.0-cp27-none-win32.whl"""; Flags: runascurrentuser;
 StatusMsg: "Installing Pyparsing";  Filename: "C:\Python27\Python.exe"; Parameters: "-m pip install -U pyparsing"; Flags: runascurrentuser;
 StatusMsg: "Installing Matplotlib"; Filename: "C:\Python27\Python.exe"; Parameters: "-m pip install -U matplotlib"; Flags: runascurrentuser;
-StatusMsg: "Installing PyXRD";      Filename: "C:\Python27\Python.exe"; Parameters: "-m pip install -U PyXRD"; Flags: runascurrentuser;
+StatusMsg: "Installing PyXRD";      Filename: "C:\Python27\Python.exe"; Parameters: "-m pip install -U ""{tmp}\PyXRD-{#MyAppVersion}-py2-none-any.whl"""; Flags: runascurrentuser;
 StatusMsg: "Installing PyXRD";      Filename: "C:\Python27\Python.exe"; Parameters: """C:\Python27\Scripts\win32_pyxrd_post_install.py"" -install"; Flags: runascurrentuser waituntilterminated;
 
 [UninstallDelete]

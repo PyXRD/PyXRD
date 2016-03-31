@@ -1,3 +1,14 @@
+recursive-exclude tests_mvc *
 recursive-exclude test *
 recursive-exclude build *
 recursive-exclude docs *
+
+recursive-include pyxrd *.glade
+recursive-include pyxrd/data *.atl
+recursive-include pyxrd/data *.csv
+recursive-include pyxrd/data *.png
+recursive-include pyxrd/data *.cmp
+recursive-include pyxrd/data *.gon
+
+recursive-include pyxrd/application *.png
+recursive-include pyxrd/application *.ico

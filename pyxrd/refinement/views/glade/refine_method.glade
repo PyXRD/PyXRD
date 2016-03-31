@@ -20,7 +20,7 @@
       </packing>
     </child>
     <child>
-      <object class="GtkComboBox" id="refine_method">
+      <object class="GtkComboBox" id="refine_method_index">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
       </object>

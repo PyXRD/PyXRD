@@ -117,60 +117,6 @@ class ParameterSpaceGenerator(object):
     def clear(self):
         del self.grid
 
-    def get_extents(self, centroid, mins, maxs, density=10):
-        """
-            Calculates extents for the given minimum and maximum values so
-            the centroid coordinates falls on the grid. This ensures the
-            minimum point can be acurately represented on the plot.
-            
-            This is achieved by slightly shifting the grid, or with other words,
-            the minimum and maximum values
-        """
-        slices = []
-        rmins = []
-        rmaxs = []
-        centroid_indexes = []
-        for c, mn, mx in zip(centroid, mins, maxs):
-            # Correct small offsets from the centroid.
-            # This assumes the centroid to be in the min and max ranges
-            normal = np.linspace(mn, mx, density)
-            idx = (np.abs(normal - c)).argmin()
-            centroid_indexes.append(idx)
-            closest = normal[idx]
-            diff = c - closest
-            rmin = mn + diff
-            rmax = mx + diff
-            rmins.append(rmin)
-            rmaxs.append(rmax)
-            slices.append(slice(rmin, rmax, complex(density)))
-
-        return np.array(centroid_indexes), np.array(rmins), np.array(rmaxs)
-
-    def parse_solutions(self, centroid, density=100):
-        """
-            Returns a tuple containing:
-                - point array (Nsolutions, Nparams) : contains 'coordinates'
-                - value array (Nsolutions) : contains residuals
-                - centroid indeces in the final grid
-                - grid minimum and maximum values shifted as explained in get_extents
-        """
-
-        flat_grid = self.grid.flatten()
-        points = np.array([item["point"] for item in flat_grid if item["point"] is not None])
-        values = np.array([item["value"] for item in flat_grid if item["point"] is not None])
-
-        assert len(points) > 3, "Need at least 3 points before we can make a plot!"
-
-        mins = points.min(axis=0)# shape=(self.num_params,))
-        maxs = points.max(axis=0)# shape=(self.num_params,))
-
-        return (points, values) + self.get_extents(
-            centroid=np.array(centroid),
-            mins=mins,
-            maxs=maxs,
-            density=density
-        )
-
     def clear_image(self, figure, message="Interpolation Error"):
         figure.clear()
         figure.text(0.5, 0.5, message, va="center", ha="center")

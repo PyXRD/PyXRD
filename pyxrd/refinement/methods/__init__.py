@@ -52,7 +52,4 @@ def import_submodules(package_name):
 
 __all__ = import_submodules(__name__).keys()
 
-from ..refine_method_meta import RefineMethodMeta
-get_all_refine_methods = RefineMethodMeta.get_all_methods
-
 

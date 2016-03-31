@@ -22,15 +22,13 @@ import scipy
 import itertools
 import random
 
+from pyxrd.refinement.refine_method import RefineMethod
+from pyxrd.refinement.refine_method_option import RefineMethodOption
+from pyxrd.refinement.refine_async_helper import RefineAsyncHelper
+
 from deap import base, creator, tools #@UnresolvedImport
 
-from .deap_utils import pyxrd_array, evaluate
-
-from ..refine_method import RefineMethod
-from ..refine_method_option import RefineMethodOption
-
-from pyxrd.refinement.methods.deap_utils import AsyncEvaluatedAlgorithm, \
-    PyXRDParetoFront, FitnessMin
+from deap_utils import pyxrd_array, PyXRDParetoFront, FitnessMin, result_func
 
 # Default settings:
 NGEN = 100
@@ -137,7 +135,7 @@ class MultiPSOStrategy(object):
 
     pass #end of class
 
-class MPSOAlgorithm(AsyncEvaluatedAlgorithm):
+class MPSOAlgorithm(RefineAsyncHelper):
     """
         Multi-particle-swarm optimization method adapted from the examples found
         in the DEAP project. Employs a T-test (two independent sample lists) to
@@ -158,7 +156,7 @@ class MPSOAlgorithm(AsyncEvaluatedAlgorithm):
     def __init__(self, toolbox, bounds, norms,
         ngen=NGEN, nswarms=NSWARMS, nexcess=NEXCESS,
         nparticles=NPARTICLES, conv_factr=CONV_FACTR,
-        stats=None, halloffame=None, verbose=True, context=None, stop=None):
+        stats=None, halloffame=None, verbose=True, refiner=None, stop=None):
         """
             TODO
         """
@@ -174,7 +172,7 @@ class MPSOAlgorithm(AsyncEvaluatedAlgorithm):
         self.stats = stats
         self.halloffame = halloffame
         self.verbose = verbose
-        self.context = context
+        self.refiner = refiner
 
         self._stop = stop
 
@@ -188,7 +186,7 @@ class MPSOAlgorithm(AsyncEvaluatedAlgorithm):
             for p in itertools.chain(*population):
                 if p.fitness.valid: continue
                 else: yield p
-        self.do_async_evaluation(None, give_unevaluated_particles, self.toolbox.evaluate)
+        self.do_async_evaluation(iter_func=give_unevaluated_particles, result_func=result_func)
         for swarm in population:
             for part in swarm:
                 self.toolbox.update_swarm(swarm, part)
@@ -196,9 +194,7 @@ class MPSOAlgorithm(AsyncEvaluatedAlgorithm):
 
     def _create_and_evaluate_swarm(self):
         """ Helper function that creates, evaluates and returns a new swarm """
-        particles = []
-        self.do_async_evaluation(particles,
-            self.toolbox.generate_particles, self.toolbox.evaluate)
+        particles = self.do_async_evaluation(iter_func=self.toolbox.generate_particles, result_func=result_func)
         return self.toolbox.swarm(particles)
 
     def _create_and_evaluate_population(self):
@@ -233,7 +229,7 @@ class MPSOAlgorithm(AsyncEvaluatedAlgorithm):
             self._tell(population)
 
         return (
-            self.context.best_solution,
+            self.refiner.history.best_solution,
             list(itertools.chain(*population)),
             self.converged_bests
         )
@@ -249,7 +245,7 @@ class MPSOAlgorithm(AsyncEvaluatedAlgorithm):
         """
 
         self.gen += 1
-        self.context.status_message = "Creating generation #%d" % (self.gen + 1)
+        self.refiner.status.message = "Creating generation #%d" % (self.gen + 1)
 
         if not population:
             # First iteration: create a new population of swarms
@@ -311,14 +307,7 @@ class MPSOAlgorithm(AsyncEvaluatedAlgorithm):
             print self.logbook.stream
 
         # Update the context:
-        self.context.update(best, best_f)
-        self.context.record_state_data([
-            ("best", best_f)
-        ] + [
-            (key, record[key][0]) for key in self.stats.functions.keys()
-        ] + [
-            ("par%d" % i, float(val)) for i, val in enumerate(best)
-        ])
+        self.refiner.update(best, iteration=self.gen, residual=best_f)
 
     pass #end of class
 
@@ -338,7 +327,7 @@ class RefineMPSORun(RefineMethod):
     nparticles = RefineMethodOption('Swarm size', NPARTICLES, [1, 50], int)
     conv_factr = RefineMethodOption('Convergence tolerance', CONV_FACTR, [0., 10.], float)
 
-    def _individual_creator(self, context, num_weights, bounds):
+    def _individual_creator(self, context, bounds):
         creator.create(
             "Particle", pyxrd_array,
             fitness=FitnessMin, #@UndefinedVariable
@@ -359,17 +348,16 @@ class RefineMPSORun(RefineMethod):
         stats.register("max", np.max, axis=0)
         return stats
 
-    def run(self, context, ngen=NGEN, nswarms=NSWARMS, nexcess=NEXCESS,
+    def run(self, refiner, ngen=NGEN, nswarms=NSWARMS, nexcess=NEXCESS,
             conv_factr=CONV_FACTR, nparticles=NPARTICLES, **kwargs):
 
         logger.info("Setting up the DEAP MPSO refinement algorithm")
 
         # Process some general stuff:
-        ndim = len(context.ref_props)
-        bounds = np.array(context.ranges)
+        ndim = len(refiner.refinables)
+        bounds = np.array(refiner.ranges)
         norms = np.abs(bounds[:, 1] - bounds[:, 0])
-        num_weights = len(context.mixture.specimens) + 1
-        self._individual_creator(context, num_weights, bounds)
+        self._individual_creator(refiner, bounds)
 
         # Strategy setup
         strategy = MultiPSOStrategy()
@@ -387,7 +375,6 @@ class RefineMPSORun(RefineMethod):
             pmin=bounds[:, 0], pmax=bounds[:, 1],
             smin=-norms / 2.0, smax=norms / 2.0
         )
-        toolbox.register("evaluate", evaluate)
         toolbox.register("update_particle", strategy.update_particle, chi=0.729843788, c=norms / np.amax(norms))
         toolbox.register("generate_particles", strategy.generate_particles, toolbox.particle, n=NPARTICLES)
 
@@ -401,16 +388,12 @@ class RefineMPSORun(RefineMethod):
             toolbox, bounds, norms,
             ngen, nswarms, nexcess, nparticles, conv_factr,
             stats=stats, halloffame=halloffame,
-            context=context, stop=self._stop, **kwargs
+            refiner=refiner, stop=self._stop, **kwargs
         )
 
         # Get this show on the road:
         logger.info("Running the MPSO algorithm...")
-        context.status = "running"
-        context.status_message = "Running MPSO algorithm ..."
         best, population, converged_bests = algorithm.run() # returns (best, population) tuple
-        context.status_message = "MPSO finished ..."
-        context.status = "finished"
 
         return best, population, converged_bests
 

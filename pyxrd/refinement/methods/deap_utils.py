@@ -6,22 +6,17 @@
 # Complete license can be found in the LICENSE file.
 
 import logging
-import functools
-import cPickle as pickle
 logger = logging.getLogger(__name__)
 
 from math import sqrt
-from itertools import izip
+
+import sys
+from operator import mul, truediv
 
 import numpy as np
 
 from deap import creator, base
 from deap.tools import ParetoFront
-
-from pyxrd.generic.async.has_async_calls import HasAsyncCalls
-from pyxrd.generic.async.cancellable import Cancellable 
-
-from pyxrd.calculations.mixture import get_optimized_mixture
 
 class pyxrd_array(creator._numpy_array):
     """
@@ -48,8 +43,8 @@ class pyxrd_array(creator._numpy_array):
 
     pass # end of class
 
-import sys
-from operator import mul, truediv
+def result_func(individual, fitness):
+    individual.fitness.values = fitness
 
 class FitnessMin(base.Fitness):
     weights = []
@@ -78,13 +73,6 @@ class FitnessMin(base.Fitness):
         return tuple(self.wvalues) == tuple(other.wvalues)
 
     pass #end of class
-
-def evaluate(data_object):
-    """
-        data_object should be an gzipped pickled data object 
-    """
-    return get_optimized_mixture(
-        pickle.loads(data_object)).residuals
 
 class PyXRDParetoFront(ParetoFront):
 
@@ -139,29 +127,3 @@ class PyXRDParetoFront(ParetoFront):
         # Run the garbage collector once for good measure
         import gc
         gc.collect()
-
-class AsyncEvaluatedAlgorithm(HasAsyncCalls, Cancellable):
-
-    def do_async_evaluation(self, population, iter_func, eval_func):
-        """ Utility that combines a submit and fetch cycle in a single
-        function call"""
-        results = []
-        if population is None:
-            population = []
-        for ind in iter_func():
-            result = self.submit_async_call(functools.partial(
-                eval_func,
-                self.context.get_pickled_data_object_for_solution(ind)
-            ))
-            population.append(ind)
-            results.append(result)
-            if self._user_cancelled(): # Stop submitting new individuals
-                break
-        for ind, result in izip(population, results):
-            ind.fitness.values = self.fetch_async_result(result)
-        del results
-        # Run the garbage collector once for good measure
-        import gc
-        gc.collect()
-
-    pass #end of class

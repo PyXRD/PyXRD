@@ -8,342 +8,163 @@
 import logging
 logger = logging.getLogger(__name__)
 
-import random
-import time
+import numpy as np
 
-from functools import partial
+from refine_history import RefineHistory
+from refine_status import RefineStatus
 
-from mvc import PropIntel, OptionPropIntel
-from mvc.models import TreeNode
+class RefineSetupError(ValueError):
+    """ Raised if an error exists in the refinement setup """
+    pass
 
-from pyxrd.data import settings
-from pyxrd.generic.models import ChildModel
-from pyxrd.generic.threads import CancellableThread
-
-from .refinables.mixins import RefinementValue, RefinementGroup
-from .refinables.wrapper import RefinableWrapper
-
-from .methods import get_all_refine_methods
-from .refine_context import RefineContext
-
-class Refiner(ChildModel):
+class Refiner(object):
     """
-        A simple model that plugs onto the Mixture model. It provides
-        the functionality related to refinement of parameters.
+        A model for the refinement procedure.
     """
+    
+    method = None
+    
+    history = None
+    status = None
 
-    # MODEL INTEL:
-    class Meta(ChildModel.Meta):
-        properties = [ # TODO add labels
-            PropIntel(name="refinables", label="", has_widget=True, data_type=object, is_column=True, widget_type="object_tree_view", class_type=RefinableWrapper),
-            PropIntel(name="refine_options", label="", data_type=dict, is_column=False),
-            OptionPropIntel(name="refine_method", label="Refinement method", has_widget=True, data_type=int, options={ key: method.name for key, method in get_all_refine_methods().iteritems() }),
-            PropIntel(name="make_psp_plots", label="", data_type=bool, is_colum=False, has_widget=True, storable=False),
-        ]
-        store_id = "Refiner"
-
-    mixture = property(ChildModel.parent.fget, ChildModel.parent.fset)
-
-    #: Refinement context
-    context = None
-
-    #: Refinement thread (or None if not running)
-    thread = None
-
-    #: Flag, True if after refinement plots should be generated of the parameter space
-    make_psp_plots = False
-
-    #: TreeNode containing the refinable properties
     refinables = None
 
-    #: A dict containing an instance of each refinement method
-    refine_methods = None
+    def __init__(self, method, residual_callback, data_callback, refinables, event_cmgr):
+        super(Refiner, self).__init__()
+        
+        assert method is not None, "Cannot refine without a refinement method!"
+        assert callable(residual_callback), "Cannot refine without a residual callback!"
+        assert callable(data_callback), "Cannot refine without a data callback!"
+        assert refinables is not None, "Cannot refine without refinables!"
+        assert event_cmgr is not None, "Cannot refine without an event context manager!"
+        
+        # Set these:
+        self.method = method
+        self.residual_callback = residual_callback
+        self.data_callback = data_callback
+        self.event_cmgr = event_cmgr
 
-    _refine_method = 0
-    @property
-    def refine_method(self):
-        """ An integer describing which method to use for the refinement (see 
-        refinement.methods.get_all_refine_methods) """
-        return self._refine_method
-    @refine_method.setter
-    def refine_method(self, value): self._refine_method = int(value)
+        # Create the refinement history object:
+        logger.info("Setting up the refinement history.") 
+        self.history = RefineHistory()
 
-    #: A dict containing the current refinement options
-    @property
-    def refine_options(self):
-        method = self.get_refinement_method()
-        return { name: getattr(method, name) for name in method.options }
+        # Create the refinement status object:
+        logger.info("Setting up the refinement status object.")        
+        self.status = RefineStatus(self.history)
 
-    #: A dict containing all refinement options
-    @property
-    def all_refine_options(self):
-        return {
-            method.index : { name: getattr(method, name) for name in method.options }
-            for method in self.refine_methods.values()
-        }
+        # Setup the refinable property list:
+        logger.info("Refinement with the following refinables:")
+        self.refinables = []
+        self.ranges = ()
+        self.labels = ()
+        initial_values = []
+        for node in refinables.iter_children():
+            refinable = node.object
+            if refinable.refine and refinable.refinable:
+                logger.info(" - %s from %r" % (refinable.text_title, refinable.obj))
+                self.refinables.append(refinable)
+                initial_values.append(refinable.value)
+                if not (refinable.value_min < refinable.value_max):
+                    logger.info("Error in refinement setup!")
+                    self.status.error = True
+                    self.status.message = "Invalid parameter range for '%s'!" % (refinable.get_descriptor(),)
+                    raise RefineSetupError, "Invalid parameter range for '%s'!" % (refinable.get_descriptor(),)
+                self.ranges += ((refinable.value_min, refinable.value_max),)
+                self.labels += ((refinable.text_title, refinable.title),)
 
-    def __init__(self, *args, **kwargs):
-        my_kwargs = self.pop_kwargs(kwargs,
-            "refine_method", "refine_options"
-        )
-        super(Refiner, self).__init__(*args, **kwargs)
-        kwargs = my_kwargs
+        # Make sure we can refine something:
+        if len(self.refinables) == 0:
+            logger.error("No refinables selected!")
+            self.status.error = True
+            self.status.message = "No parameters selected!"
+            raise RefineSetupError, "No parameters selected!"      
 
-        # Setup the refinables treestore
-        self.refinables = TreeNode()
-
-        # Setup the refine methods
-        try:
-            self.refine_method = int(self.get_kwarg(kwargs, None, "refine_method"))
-        except ValueError:
-            self.refine_method = self.refine_method
-            pass # ignore faulty values, these indices change from time to time.
-
-        self.refine_methods = self.create_refine_methods(self.get_kwarg(kwargs, None, "refine_options"))
-
-        self.update_refinement_treestore()
-
-    # ------------------------------------------------------------
-    #      Methods & Functions
-    # ------------------------------------------------------------
-    def setup_context(self, store=False):
-        """
-            Creates a RefineContext object filled with parameters based on the
-            current state of the Mixture object.
-        """
-        self.context = RefineContext(
-            parent=self.parent,
-            options=self.parent.refine_options,
-            store=store
+        # Register the initial solution:
+        initial_solution = np.array(initial_values, dtype=float)
+        self.history.set_initial_solution(
+            initial_solution,
+            self.get_residual(initial_solution)
         )
 
-    def delete_context(self):
+    def apply_solution(self, solution):
         """
-            Clears the RefineContext from this model
+            Applies the given solution
         """
-        self.context = None
-
-    def _inner_refine(self, refine_method, context, stop=None, **kwargs):
-        # Suppress updates:
-        with self.mixture.needs_update.hold():
-            with self.mixture.data_changed.hold():
-                # If something has been selected: continue...
-                if len(context.ref_props) > 0:
-                    # Make sure the stop signal is not set from a previous run:
-                    if stop is not None:
-                        stop.clear()
-
-                    # Log some information:
-                    logger.info("-"*80)
-                    logger.info("Starting refinement with this setup:")
-                    msg_frm = "%22s: %s"
-                    logger.info(msg_frm % ("refinement method", refine_method))
-                    logger.info(msg_frm % ("number of parameters", len(context.ref_props)))
-                    logger.info(msg_frm % ("GUI mode", settings.GUI_MODE))
-
-                    # Record start time
-                    t1 = time.time()
-
-                    try: # Run until it ends or it raises an exception:
-                        refine_method(context, stop=stop)
-                    except any as error:
-                        logger.exception("Unhandled run-time error when refining: %s" % error)
-                        context.status = "error"
-                        context.status_message = "Error occurred..."
-                    else: # No errors occurred:
-                        if stop is not None and stop.is_set():
-                            context.status = "stopped"
-                            context.status_message = "Stopped ..."
-                            logger.info("Refinement was stopped prematurely")
-                        else:
-                            context.status = "finished"
-                            context.status_message = "Finished"
-                            logger.info("Refinement ended successfully")
-
-                    # Record end time
-                    t2 = time.time()
-
-                    # Log some more information:
-                    logger.info('%s took %0.3f ms' % ("Total refinement", (t2 - t1) * 1000.0))
-                    logger.info('Best solution found was:')
-                    for line in context.best_solution_to_string().split('\n'):
-                        logger.info(line)
-                    logger.info("-"*80)
-                else: # nothing selected for refinement
-                    context.status = "error"
-                    context.status_message = "No parameters selected!"
-                # Return the context to whatever called this
-                return context
-
-    def refine(self, threaded=False, on_complete=None, **kwargs):
-        """
-            This refines the selected properties using the selected algorithm.
-            This can be run asynchronously when threaded is set to True.
-        """
-
-        refine_method = partial(self._inner_refine,
-            self.get_refinement_method(), self.context, **kwargs)
-
-        if not threaded:
-            context = refine_method()
-            if callable(on_complete):
-                on_complete(context)
-        else:
-            def thread_completed(context):
-                #Assuming this is GTK-thread safe (i.e. wrapped in @run_when_idle)
-                on_complete(context)
-                self.thread = None
-            self.thread = CancellableThread(refine_method, thread_completed)
-            self.thread.start()
-
-    def cancel(self):
-        """
-            Cancels a threaded refinement, 
-            and will call the on_complete callback passed to `refine`
-        """
-        if self.thread is not None:
-            logger.info("Refinement cancelled")
-            self.thread.cancel()
-        else:
-            logger.info("Cannot cancel, no refinement running")
-        self.thread = None
-
-    def stop(self):
-        """ Stops a threaded refinement, not returning any result """
-        if self.thread is not None:
-            logger.info("Refinement stopped")
-            self.thread.stop()
-        else:
-            logger.info("Cannot stop, no refinement running")
-        self.thread = None
-
-    # ------------------------------------------------------------
-    #      Refinement Methods Management
-    # ------------------------------------------------------------
-    @staticmethod
-    def get_all_refine_methods():
-        return get_all_refine_methods()
-
-    @staticmethod
-    def create_refine_methods(refine_options):
-        """
-            Returns a dict of refine methods as values and their index as key
-            with the passed refine_options dict applied.
-        """
-
-        # 1. Create a list of refinement instances:
-        refine_methods = {}
-        for index, method in get_all_refine_methods().iteritems():
-            refine_methods[index] = method()
-
-        # 2. Create dict of default options
-        default_options = {}
-        for method in refine_methods.values():
-            default_options[method.index] = {
-                name: getattr(type(method), name).default for name in method.options
-            }
-
-        # 3. Apply the refine options to the methods
-        if not refine_options == None:
-            for index, options in zip(refine_options.keys(), refine_options.values()):
-                index = int(index)
-                if index in refine_methods:
-                    method = refine_methods[index]
-                    for arg, value in zip(options.keys(), options.values()):
-                        if hasattr(method, arg):
-                            setattr(method, arg, value)
-
-        return refine_methods
-
-    def get_refinement_method(self):
-        """
-            Returns the actual refinement method by translating the 
-            `refine_method` attribute
-        """
-        return self.refine_methods[self.refine_method]
-
-    def get_refinement_option(self, option):
-        return getattr(type(self.get_refinement_method()), option)
-
-    def get_refinement_option_value(self, option):
-        return getattr(self.get_refinement_method(), option)
-
-    def set_refinement_option_value(self, option, value):
-        return setattr(self.get_refinement_method(), option, value)
-
-    # ------------------------------------------------------------
-    #      Refinables Management
-    # ------------------------------------------------------------
-
-
-    # TODO set a restrict range attribute on the PropIntels, so we can use custom ranges for each property
-    def auto_restrict(self):
-        """
-            Convenience function that restricts the selected properties 
-            automatically by setting their minimum and maximum values.
-        """
-        with self.mixture.needs_update.hold():
-            for node in self.refinables.iter_children():
-                ref_prop = node.object
-                if ref_prop.refine and ref_prop.refinable:
-                    ref_prop.value_min = ref_prop.value * 0.8
-                    ref_prop.value_max = ref_prop.value * 1.2
-
-    def randomize(self):
-        """
-            Convenience function that randomize the selected properties.
-            Respects the current minimum and maximum values.
-            Executes an optimization after the randomization.
-        """
-        with self.mixture.data_changed.hold_and_emit():
-            with self.mixture.needs_update.hold_and_emit():
-                for node in self.refinables.iter_children():
-                    ref_prop = node.object
-                    if ref_prop.refine and ref_prop.refinable:
-                        ref_prop.value = random.uniform(ref_prop.value_min, ref_prop.value_max)
-
-    def update_refinement_treestore(self):
-        """
-            This creates a tree store with all refinable properties and their
-            minimum, maximum and current value.
-        """
-        if self.parent is not None: # not linked so no valid phases!
-            self.refinables.clear()
-
-            def add_property(parent_node, obj, prop, is_grouper):
-                rp = RefinableWrapper(obj=obj, prop=prop, parent=self.mixture, is_grouper=is_grouper)
-                return parent_node.append(TreeNode(rp))
-
-            def parse_attribute(obj, prop, root_node):
-                """
-                    obj: the object
-                    attr: the attribute of obj or None if obj contains attributes
-                    root_node: the root TreeNode new iters should be put under
-                """
-                if prop is not None:
-                    if hasattr(obj, "get_uninherited_property_value"):
-                        value = obj.get_uninherited_property_value(prop)
-                    else:
-                        value = getattr(obj, prop.name)
+        solution = np.asanyarray(solution)
+        with self.event_cmgr.hold():
+            for i, ref_prop in enumerate(self.refinables):
+                if not (solution.shape == ()):
+                    ref_prop.value = float(solution[i])
                 else:
-                    value = obj
+                    ref_prop.value = float(solution[()])
 
-                if isinstance(value, RefinementValue): # AtomRelation and UnitCellProperty
-                    new_node = add_property(root_node, value, prop, False)
-                elif hasattr(value, "__iter__"): # List or similar
-                    for new_obj in value:
-                        parse_attribute(new_obj, None, root_node)
-                elif isinstance(value, RefinementGroup): # Phase, Component, Probability
-                    if len(value.refinables) > 0:
-                        new_node = add_property(root_node, value, prop, True)
-                        for prop in value.refinables:
-                            parse_attribute(value, prop, new_node)
-                else: # regular values
-                    new_node = add_property(root_node, obj, prop, False)
+    def get_data_object(self, solution):
+        """
+            Gets the mixture data object after setting the given solution
+        """
+        with self.event_cmgr.ignore():
+            self.apply_solution(solution)
+            return self.data_callback()
+        
+    def get_residual(self, solution):
+        """
+            Gets the residual for the given solution after setting it
+        """
+        return self.residual_callback(self.get_data_object(solution))
 
-            for phase in self.mixture.project.phases:
-                if phase in self.mixture.phase_matrix:
-                    parse_attribute(phase, None, self.refinables)
+    def update(self, solution, residual=None, iteration=0):
+        """
+            Update's the refinement contect with the given solution:
+                - applies the solution & gets the residual if not given
+                - stores it in the history
+        """
+        residual = residual if residual is not None else self.get_residual(solution)
+        self.history.register_solution(iteration, solution, residual)
 
+    def apply_best_solution(self):
+        self.apply_solution(self.history.best_solution)
 
+    def apply_last_solution(self):
+        self.apply_solution(self.history.last_solution)
+
+    def apply_initial_solution(self):
+        self.apply_solution(self.history.initial_solution)
+    
+    def get_plot_samples(self):
+        return self.history.samples[:,self.history.PLOT_SAMPLE_SELECTOR]
+    
+    def get_plot_labels(self):
+        return [plot_label for plot_label, _ in self.labels] + ["Rp",]
+    
+    def refine(self, stop):       
+        # Suppress updates:
+        with self.event_cmgr.hold():
+            # Make sure the stop signal is not set from a previous run:
+            stop.clear()
+
+            # Log some information:
+            logger.info("-"*80)
+            logger.info("Starting refinement with this setup:")
+            msg_frm = "%22s: %s"
+            logger.info(msg_frm % ("refinement method", self.method))
+            logger.info(msg_frm % ("number of parameters", len(self.refinables)))
+
+            # Run the refinement:
+            with self.status:
+                with self.history:
+                    self.method(self, stop=stop)
+
+            # Log some more information:
+            logger.info('Total refinement took %0.3f ms' % self.status.get_total_time())
+            logger.info('Best solution found was:')                
+            for i, ref_prop in enumerate(self.refinables):
+                logger.info("%25s: %f" % (
+                    ref_prop.get_descriptor(), 
+                    self.history.best_solution[i]
+                ))
+            logger.info("-"*80)
+                
+            # Return us to whatever called this
+            return self
+        
     pass # end of class

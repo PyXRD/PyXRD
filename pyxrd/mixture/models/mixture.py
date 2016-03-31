@@ -24,7 +24,7 @@ from pyxrd.generic.io import storables, Storable
 from pyxrd.generic.models import DataModel
 
 from pyxrd.refinement.refinables.wrapper import RefinableWrapper
-from pyxrd.refinement.refiner import Refiner
+from pyxrd.refinement.refinement import Refinement
 
 from pyxrd.calculations.data_objects import MixtureData
 from pyxrd.phases.models.phase import Phase
@@ -38,7 +38,7 @@ class Mixture(DataModel, Storable):
         and experimental data. This is the main model you want to interact with,
         lower-level classes' functionality (mainly 
         :class:`~pyxrd.mixture.models.optimizers.Optimizer` and 
-        :class:`~pyxrd.mixture.models.refiner.Refiner`) are integrated into this
+        :class:`~pyxrd.mixture.models.refiner.Refinement`) are integrated into this
         class. 
         
         The Mixture is responsible for managing the phases and specimens lists
@@ -51,7 +51,7 @@ class Mixture(DataModel, Storable):
             PropIntel(name="name", label="Name", data_type=unicode, storable=True, has_widget=True, is_column=True),
             PropIntel(name="refinables", label="", data_type=object, widget_type="object_tree_view", class_type=RefinableWrapper),
             PropIntel(name="refine_options", label="", data_type=dict, storable=True, stor_name="all_refine_options"),
-            PropIntel(name="refine_method", label="", data_type=int, storable=True),
+            PropIntel(name="refine_method_index", label="", data_type=int, storable=True),
             PropIntel(name="auto_run", label="", data_type=bool, is_column=True, storable=True, has_widget=True),
             PropIntel(name="auto_bg", label="", data_type=bool, is_column=True, storable=True, has_widget=True),
             PropIntel(name="needs_update", label="", data_type=object, storable=False), # Signal used to indicate the mixture needs an update
@@ -102,23 +102,23 @@ class Mixture(DataModel, Storable):
     #: The tree of refinable properties
     @property
     def refinables(self):
-        return self.refiner.refinables
+        return self.refinement.refinables
 
     @property
-    def refine_method(self):
+    def refine_method_index(self):
         """ An integer describing which method to use for the refinement (see 
         mixture.models.methods.get_all_refine_methods) """
-        return self.refiner.refine_method
+        return self.refinement.refine_method_index
 
     #: A dict containing the current refinement options
     @property
     def refine_options(self):
-        return  self.refiner.refine_options
+        return  self.refinement.refine_options
 
     #: A dict containing all refinement options
     @property
     def all_refine_options(self):
-        return self.refiner.all_refine_options
+        return self.refinement.all_refine_options
 
     # Lists and matrices:
     #: A 2D numpy object array containing the combination matrix
@@ -174,7 +174,7 @@ class Mixture(DataModel, Storable):
         my_kwargs = self.pop_kwargs(kwargs,
             "data_name", "phase_uuids", "phase_indeces", "specimen_uuids",
             "specimen_indeces", "data_phases", "data_scales", "data_bgshifts",
-            "data_fractions", "data_refine_method", "fractions",
+            "data_fractions", "refine_method", "data_refine_method", "fractions",
             "bgshifts", "scales", "phases",
             *[names[0] for names in type(self).Meta.get_local_storable_properties()]
         )
@@ -234,8 +234,8 @@ class Mixture(DataModel, Storable):
             self._observe_phases()
 
             self.optimizer = Optimizer(parent=self)
-            self.refiner = Refiner(
-                refine_method=self.get_kwarg(kwargs, 0, "refine_method", "data_refine_method"),
+            self.refinement = Refinement(
+                refine_method_index=self.get_kwarg(kwargs, 0, "refine_method_index", "refine_method", "data_refine_method"),
                 refine_options=self.get_kwarg(kwargs, dict(), "refine_options"),
                 parent=self)
 
@@ -278,7 +278,7 @@ class Mixture(DataModel, Storable):
     #      Input/Output stuff
     # ------------------------------------------------------------
     def json_properties(self):
-        self.refiner.update_refinement_treestore()
+        self.refinement.update_refinement_treestore()
         retval = Storable.json_properties(self)
 
         retval["phase_uuids"] = [[item.uuid if item else "" for item in row] for row in map(list, self.phase_matrix)]
@@ -310,7 +310,7 @@ class Mixture(DataModel, Storable):
                         for j in range(shape[1]):
                             if self.phase_matrix[i, j] == phase:
                                 self.phase_matrix[i, j] = None
-                self.refiner.update_refinement_treestore()
+                self.refinement.update_refinement_treestore()
 
     def unset_specimen(self, specimen):
         """ Clears a specimen slot in the specimen list """
@@ -334,7 +334,7 @@ class Mixture(DataModel, Storable):
                         if phase is not None and not phase in self.parent.phases:
                             raise RuntimeError, "Cannot add a phase to a Mixture which is not inside the project!"
                         self.phase_matrix[specimen_slot, phase_slot] = phase
-                    self.refiner.update_refinement_treestore()
+                    self.refinement.update_refinement_treestore()
 
     def get_specimen(self, specimen_slot):
         """Returns the specimen at the given slot position or None if not set"""
@@ -399,7 +399,7 @@ class Mixture(DataModel, Storable):
                 else:
                     self.phase_matrix = np.concatenate([self.phase_matrix.copy(), [[None]] * n ], axis=1)
                     self.phase_matrix[:, m] = None
-                self.refiner.update_refinement_treestore()
+                self.refinement.update_refinement_treestore()
         return m
 
     def del_phase_slot(self, phase_slot):
@@ -412,7 +412,7 @@ class Mixture(DataModel, Storable):
                     self.fractions = np.delete(self.fractions, phase_slot)
                     self.phase_matrix = np.delete(self.phase_matrix, phase_slot, axis=1)
                 # Update our refinement tree store to reflect current state
-                self.refiner.update_refinement_treestore()
+                self.refinement.update_refinement_treestore()
         # Inform any interested party they need to update their representation
         self.needs_reset.emit()
 
@@ -449,7 +449,7 @@ class Mixture(DataModel, Storable):
                     self.bgshifts = np.delete(self.bgshifts, specimen_slot)
                     self.phase_matrix = np.delete(self.phase_matrix, specimen_slot, axis=0)
                 # Update our refinement tree store to reflect current state
-                self.refiner.update_refinement_treestore()
+                self.refinement.update_refinement_treestore()
         # Inform any interested party they need to update their representation
         self.needs_reset.emit()
 

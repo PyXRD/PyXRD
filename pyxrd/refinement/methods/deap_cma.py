@@ -18,9 +18,11 @@ import scipy
 
 from deap import cma, base, creator, tools #@UnresolvedImport
 
-from ..refine_method import RefineMethod
-from ..refine_method_option import RefineMethodOption
-from .deap_utils import pyxrd_array, evaluate, AsyncEvaluatedAlgorithm, PyXRDParetoFront, FitnessMin
+from pyxrd.refinement.refine_method import RefineMethod
+from pyxrd.refinement.refine_method_option import RefineMethodOption
+from pyxrd.refinement.refine_async_helper import RefineAsyncHelper
+
+from deap_utils import pyxrd_array, PyXRDParetoFront, FitnessMin, result_func
 
 # Default settings:
 NGEN = 100
@@ -206,7 +208,7 @@ class Strategy(cma.Strategy):
 
     pass #end of class
 
-class Algorithm(AsyncEvaluatedAlgorithm):
+class Algorithm(RefineAsyncHelper):
     """
         This algorithm implements the ask-tell model proposed in 
         [Colette2010]_, where ask is called `generate` and tell is called `update`.
@@ -226,7 +228,7 @@ class Algorithm(AsyncEvaluatedAlgorithm):
     gen = -1
     halloffame = None
 
-    context = None
+    refiner = None
 
     toolbox = None
     stats = None
@@ -239,7 +241,7 @@ class Algorithm(AsyncEvaluatedAlgorithm):
     #--------------------------------------------------------------------------
     def __init__(self, toolbox, halloffame, stats, ngen=NGEN,
                          verbose=__debug__, stagn_ngen=STAGN_NGEN,
-                         stagn_tol=STAGN_TOL, context=None, stop=None):
+                         stagn_tol=STAGN_TOL, refiner=None, stop=None):
         """
         :param toolbox: A :class:`~deap.base.Toolbox` that contains the evolution
                         operators.
@@ -254,7 +256,7 @@ class Algorithm(AsyncEvaluatedAlgorithm):
         :param stagn_tol: The stagnation tolerance. Higher values means a 
                             harsher tolerance, values should fall between 0 and 1
                     
-        :param context: PyXRD refinement context object
+        :param refiner: PyXRD refiner object
     
         :returns: The best individual and the final population.
         
@@ -277,7 +279,7 @@ class Algorithm(AsyncEvaluatedAlgorithm):
         self.verbose = verbose
         self.stagn_ngen = stagn_ngen
         self.stagn_tol = stagn_tol
-        self.context = context
+        self.refiner = refiner
 
         self.gen = 0
 
@@ -312,7 +314,7 @@ class Algorithm(AsyncEvaluatedAlgorithm):
                 logging.info("CMA: stagnation detected!")
                 break
 
-        return self.context.best_solution, population
+        return self.refiner.history.best_solution, population
 
     #--------------------------------------------------------------------------
     #    Stagnation calls:
@@ -323,7 +325,7 @@ class Algorithm(AsyncEvaluatedAlgorithm):
         return val
 
     def _is_stagnating(self):
-        self.context.status_message = "Checking for stagnation"
+        self.refiner.status.message = "Checking for stagnation"
         if self.gen >= self.stagn_ngen: # 10
             std, best = self.logbook.select("std", "best")
             std = np.array(std)[:, 0]
@@ -341,16 +343,23 @@ class Algorithm(AsyncEvaluatedAlgorithm):
     #--------------------------------------------------------------------------
     def _ask(self):
         self.gen += 1
-        self.context.status_message = "Creating generation #%d" % self.gen
-        population = []
-        self.do_async_evaluation(population)
+        self.refiner.status.message = "Creating generation #%d" % self.gen
+
+        def result_f(*args):
+            self.refiner.update(*args)
+            result_func(*args)
+
+        population = self.do_async_evaluation(
+            self.toolbox.generate, result_func=result_f
+        )
+        
         if self.halloffame is not None:
             self.halloffame.update(population)
 
         return population
 
     def _tell(self, population):
-        self.context.status_message = "Updating strategy"
+        self.refiner.status.message = "Updating strategy"
         self.toolbox.update(population)
 
     def _record(self, population):
@@ -365,24 +374,8 @@ class Algorithm(AsyncEvaluatedAlgorithm):
             self.logbook.record(gen=self.gen, evals=pop_size, best=best_f, **record)
             print self.logbook.stream
 
-        # Update the context:
-        self.context.update(best, best_f)
-        self.context.record_state_data([
-            ("gen", self.gen),
-            ("pop", pop_size),
-            ("best", best_f)
-        ] + [
-            (key, record[key][0]) for key in self.stats.functions.keys()
-        ] + [
-            ("par%d" % i, float(val)) for i, val in enumerate(best)
-        ])
-
-    #--------------------------------------------------------------------------
-    #    Async calls:
-    #--------------------------------------------------------------------------
-    def do_async_evaluation(self, population):
-        super(Algorithm, self).do_async_evaluation(
-            population, self.toolbox.generate, self.toolbox.evaluate)
+        # Update the refiner:
+        self.refiner.update(best, iteration=self.gen, residual=best_f)
 
     pass #end of class
 
@@ -399,11 +392,11 @@ class RefineCMAESRun(RefineMethod):
     stagn_ngen = RefineMethodOption('Minimum # of generations', STAGN_NGEN, [1, 10000], int)
     stagn_tol = RefineMethodOption('Fitness slope tolerance', STAGN_TOL, [0., 100.], float)
 
-    def _individual_creator(self, context, num_weights, bounds):
+    def _individual_creator(self, refiner, bounds):
         creator.create(
             "Individual", pyxrd_array,
             fitness=FitnessMin, # @UndefinedVariable
-            context=context,
+            refiner=refiner,
             min_bounds=bounds[:, 0].copy(),
             max_bounds=bounds[:, 1].copy(),
         )
@@ -423,17 +416,16 @@ class RefineCMAESRun(RefineMethod):
         return stats
 
     _has_been_setup = False
-    def _setup(self, context, ngen=NGEN, stagn_ngen=STAGN_NGEN, stagn_tol=STAGN_TOL, **kwargs):
+    def _setup(self, refiner, ngen=NGEN, stagn_ngen=STAGN_NGEN, stagn_tol=STAGN_TOL, **kwargs):
         if not self._has_been_setup:
             logger.info("Setting up the DEAP CMA-ES refinement algorithm (ngen=%d)" % ngen)
 
             # Process some general stuff:
-            bounds = np.array(context.ranges) #@UndefinedVariable
-            num_weights = len(context.mixture.specimens) + 1
-            create_individual = self._individual_creator(context, num_weights, bounds)
+            bounds = np.array(refiner.ranges) #@UndefinedVariable
+            create_individual = self._individual_creator(refiner, bounds)
 
             # Setup strategy:
-            centroid = create_individual(context.initial_solution)
+            centroid = create_individual(refiner.history.initial_solution)
             strat_kwargs = {}
             if "lambda_" in kwargs:
                 strat_kwargs["lambda_"] = kwargs.pop("lambda_")
@@ -444,7 +436,6 @@ class RefineCMAESRun(RefineMethod):
 
             # Toolbox setup:
             toolbox = base.Toolbox()
-            toolbox.register("evaluate", evaluate)
             toolbox.register("generate", strategy.generate, create_individual)
             toolbox.register("update", strategy.update)
 
@@ -456,21 +447,17 @@ class RefineCMAESRun(RefineMethod):
             # Create algorithm
             self.algorithm = Algorithm(
                 toolbox, halloffame, stats, ngen=ngen,
-                stagn_ngen=stagn_ngen, stagn_tol=stagn_tol, context=context, stop=self._stop)
+                stagn_ngen=stagn_ngen, stagn_tol=stagn_tol, refiner=refiner, stop=self._stop)
 
             self._has_been_setup = True
         return self.algorithm
 
-    def run(self, context, **kwargs):
+    def run(self, refiner, **kwargs):
         logger.info("CMA-ES run invoked with %s" % kwargs)
         self._has_been_setup = False #clear this for a new refinement
-        algorithm = self._setup(context, **kwargs)
+        algorithm = self._setup(refiner, **kwargs)
         # Get this show on the road:
         logger.info("Running the CMA-ES algorithm...")
-        context.status = "running"
-        context.status_message = "Running CMA-ES algorithm ..."
         algorithm.run()
-        context.status_message = "CMA-ES finished ..."
-        context.status = "finished"
 
     pass # end of class

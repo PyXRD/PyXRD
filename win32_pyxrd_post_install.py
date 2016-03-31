@@ -66,7 +66,7 @@ except NameError:
                 return shell.SHGetSpecialFolderPath(0, csidl, False)
         raise ValueError("%s is an unknown path ID" % (path_name,))
 
-DESKTOP_FOLDER = get_special_folder_path("CSIDL_COMMON_DESKTOPDIRECTORY") # @UndefinedVariable
+DESKTOP_FOLDER = get_special_folder_path("CSIDL_DESKTOPDIRECTORY") # @UndefinedVariable CSIDL_COMMON_DESKTOPDIRECTORY
 NAME = 'PyXRD.lnk'
 
 if sys.argv[1] == '-install':

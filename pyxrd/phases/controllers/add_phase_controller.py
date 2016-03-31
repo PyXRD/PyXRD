@@ -114,7 +114,7 @@ class AddPhaseController(DialogController):
         if event.keyval == gtk.keysyms.Return:
             self.view.hide()
             self.callback(
-                self.view.get_phase(), self.view.get_G(), self.view.get_R())
+                self.view.get_phase_type(), self.view.get_G(), self.view.get_R())
             return True
 
     def on_window_edit_dialog_delete_event(self, event, args=None):

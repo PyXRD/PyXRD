@@ -45,18 +45,10 @@ class TestRefinement(unittest.TestCase):
     @unittest.skipIf(SKIP_REFINEMENT_TEST, "Skipping refinement test")
     def test_refine_methods(self):
         for index, method in enumerate(self.mixture.Meta.all_refine_methods):
-            self.mixture.refine_method = index
-            self.mixture.randomize()
-            self.mixture.refiner.setup_context()
-            self.mixture.refiner.refine(stop=None)
-
-    # TODO:
-    #  - set_data_object
-    #  - optimize
-    #  - apply_current_data_object
-    #  - update
-    #  - get_refinement_method
-    #  - setup_refine_options
+            self.mixture.refine_method_index = index
+            self.mixture.refinement.randomize()
+            refiner = self.mixture.refinement.get_refiner()
+            refiner.refine(stop=None)
 
     pass # end of class
 

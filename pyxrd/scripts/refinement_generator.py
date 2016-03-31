@@ -23,6 +23,15 @@ import numpy as np
 ADDED 0.01 NOISE
 """
 
+def get_uniform_solutions(refiner, num):
+    """
+        Returns `num` solutions (uniformly distributed within their ranges) 
+        for the selected parameters.
+    """
+    start_solutions = np.random.random_sample((num, len(refiner.ref_props)))
+    ranges = np.asarray(refiner.ranges, dtype=float)
+    return ranges[:, 0] + start_solutions * (ranges[:, 1] - ranges[:, 0])
+
 def run(args):
     """
     This is a simple script that will open a PyXRD project file,
@@ -84,19 +93,19 @@ def run(args):
                 try:
                     with mixture.data_changed.hold():
 
-                        mixture.update_refinement_treestore()
-                        mixture.refiner.setup_context(store=True)
+                        mixture.refinement.update_refinement_treestore()
+                        refiner = mixture.refinement.get_refiner()
 
                         if int(k) == 0: #First run, create solutions & store for later use:
-                            start_solutions = mixture.refiner.context.get_uniform_solutions(50)
+                            start_solutions = get_uniform_solutions(refiner, 50)
                             np.savetxt(start_solutions_fname, start_solutions)
                         else:
                             start_solutions = np.loadtxt(start_solutions_fname)
 
-                        mixture.refiner.context.set_initial_solution(start_solutions[k, ...])
+                        refiner.update(start_solutions[k, ...], iteration=-1)
                         mixture.optimizer.optimize()
-
-                        mixture.refiner.refine(stop=stop_event)
+                        
+                        refiner.refine(stop_event)
                 except:
                     raise
                 finally:
@@ -107,8 +116,6 @@ def run(args):
                             ps = pstats.Stats(pr, stream=f).sort_stats(sortby)
                             ps.print_stats()
 
-                context = mixture.refiner.context
-
                 recordf = os.path.basename(project_file).replace(".pyxrd", "")
                 recordf = base_path + "/" + "record#" + str(k) + " " + recordf + " " + mixture.name
                 with codecs.open(recordf, 'w', 'utf-8') as f:
@@ -117,11 +124,11 @@ def run(args):
                     f.write(recordf + "\n")
                     f.write("Mixture " + str(i) + " and trial " + str(k) + "\n")
                     f.write("Property name, initial, best, min, max" + "\n")
-                    for j, ref_prop in enumerate(context.ref_props):
+                    for j, ref_prop in enumerate(refiner.refinable_properties):
                         line = ", ".join([
                             ref_prop.get_descriptor(),
-                            str(context.initial_solution[j]),
-                            str(context.best_solution[j]),
+                            str(refiner.history.initial_solution[j]),
+                            str(refiner.history.best_solution[j]),
                             str(ref_prop.value_min),
                             str(ref_prop.value_max),
                         ])
@@ -133,14 +140,9 @@ def run(args):
                         for record in records:
                             f.write(", ".join(map(lambda f: "%.7f" % f, record)) + "\n")
                         f.write("################################################################################\n")
-                    if context.record_header is not None:
-                        write_records(f, context.record_header, context.records)
-                    if hasattr(context, "pcma_records"):
-                        for record_header, records in context.pcma_records:
-                            write_records(f, record_header, records)
 
                     # Apply found solution and save:
-                    context.apply_best_solution()
+                    refiner.apply_best_solution()
                     mixture.optimizer.optimize()
 
                     project_file_output = base_path + "/" + os.path.basename(project_file).replace(".pyxrd", "") + " - mixture %s - trial %s.pyxrd" % (str(i), str(k))

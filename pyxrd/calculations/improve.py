@@ -26,12 +26,11 @@ def setup_project(projectf):
     return project
 
 @wrap_exceptions
-def run_refinement(projectf, mixture_index, options):
+def run_refinement(projectf, mixture_index):
     """
         Runs a refinement setup for 
             - projectf: project data
             - mixture_index: what mixture in the project to use
-            - options: refinement options
     """
     if projectf is not None:
         from pyxrd.data import settings
@@ -45,15 +44,11 @@ def run_refinement(projectf, mixture_index, options):
         gc.collect()
 
         mixture = project.mixtures[mixture_index]
-        mixture.refiner.update_refinement_treestore()
-        mixture.refiner.setup_context(store=False) # we already have a dumped project
-        context = mixture.refiner.context
-        context.options = options
+        mixture.refinement.update_refinement_treestore()
+        refiner = mixture.refinement.get_refiner()
+        refiner.refine()
 
-        mixture.refiner.refine()
-
-        # TODO make this return a single object!!
-        return list(context.best_solution), context.best_residual, (context.record_header, context.records) #@UndefinedVariable
+        return list(refiner.history.best_solution), refiner.history.best_residual
 
 @wrap_exceptions
 def improve_solution(projectf, mixture_index, solution, residual, l_bfgs_b_kwargs={}):
@@ -71,15 +66,14 @@ def improve_solution(projectf, mixture_index, solution, residual, l_bfgs_b_kwarg
 
             # Setup context again:
             mixture.update_refinement_treestore()
-            mixture.refiner.setup_context(store=False) # we already have a dumped project
-            context = mixture.refiner.context
+            refiner = mixture.refinement.get_refiner()
 
             # Refine solution
             vals = fmin_l_bfgs_b(
-                context.get_residual_for_solution,
+                refiner.get_residual,
                 solution,
                 approx_grad=True,
-                bounds=context.ranges,
+                bounds=refiner.ranges,
                 **l_bfgs_b_kwargs
             )
             new_solution, new_residual = tuple(vals[0:2])

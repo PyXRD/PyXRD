@@ -13,6 +13,12 @@ class XMLParserMixin(object):
     """
 
     @classmethod
+    def get_xml_for_string(cls, s):
+        """ Returns a tuple containing the XML tree and root objects """
+        root = ET.fromstring(s)
+        return ET.ElementTree(element=root), root
+
+    @classmethod
     def get_xml_for_file(cls, f):
         """ Returns a tuple containing the XML tree and root objects """
         tree = ET.parse(f)

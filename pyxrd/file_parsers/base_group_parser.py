@@ -5,6 +5,7 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
+import types
 import fnmatch
 
 from .base_parser import BaseParser
@@ -20,6 +21,27 @@ class BaseGroupBarser(BaseParser):
         filename argument.
     """
     parsers = None
+
+    @classmethod
+    def _get_file(cls, fp, close=None):
+        """
+            Returns a three-tuple:
+            if fp is a filename:
+            filename, filename, close
+            or if fp is file-like object:
+            filename, file, close
+            where filename can be None
+            Opening of the file is left to the actual parser class if a filename
+            was passed. If a file is passed, care must be taken to ensure it is
+            opened in the correct mode (the __file_mode__ attribute on the 
+            actual parsers class called). Therefore, it is safer to pass
+            filenames to a BaseGroupParser sub-class than it is to pass a 
+            file-like object. 
+        """
+        if isinstance(fp, types.StringType):
+            return fp, fp, True if close is None else close
+        else:
+            return getattr(fp, 'name', "Undefined"), fp, False if close is None else close
 
     @classmethod
     def get_parser(cls, filename, fp=None):
@@ -58,6 +80,12 @@ class BaseGroupBarser(BaseParser):
 
     @classmethod
     def parse(cls, fp, data_objects=None, close=True):
+        """
+            Parses the file 'fp' using one of the parsers in this group.
+            'fp' should preferably be a filename (str), but can be a file-like
+            object. Take care to open the file in the correct mode when passing
+            a file-like object.  
+        """
         filename, fp, close = cls._get_file(fp, close=close)
         parser = cls.get_parser(filename, fp=fp)
         return parser.parse(fp, data_objects=data_objects, close=close)

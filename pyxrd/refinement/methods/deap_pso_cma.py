@@ -146,6 +146,7 @@ class SwarmAlgorithm(RefineAsyncHelper):
         for _ in range(self.ngen):
             # Check if the user has cancelled:
             if self._user_cancelled():
+                self.refiner.status.message = "Stopping..."
                 logger.info("User cancelled execution, stopping ...")
                 break
 
@@ -163,6 +164,7 @@ class SwarmAlgorithm(RefineAsyncHelper):
     #--------------------------------------------------------------------------
     def _ask(self):
         self.gen += 1
+        self.refiner.status.message = "Creating generation #%d" % self.gen
 
         swarms = []
         def iter_func():
@@ -257,6 +259,7 @@ class RefinePSOCMAESRun(RefineMethod):
     def _setup(self, refiner, ngen=NGEN, ngen_comm=NGEN_COMM, nswarms=NSWARMS, **kwargs):
         if not self._has_been_setup:
             logger.info("Setting up the DEAP CMA-ES refinement algorithm (ngen=%d)" % ngen)
+            refiner.status.message = "Setting up algorithm..."
 
             # Process some general stuff:
             bounds = np.array(refiner.ranges) #@UndefinedVariable

@@ -300,6 +300,7 @@ class Algorithm(RefineAsyncHelper):
         for _ in range(self.ngen):
             # Check if the user has cancelled:
             if self._user_cancelled():
+                self.refiner.status.message = "Stopping..."
                 logger.info("User cancelled execution, stopping ...")
                 break
 
@@ -363,6 +364,8 @@ class Algorithm(RefineAsyncHelper):
         self.toolbox.update(population)
 
     def _record(self, population):
+        self.refiner.status.message = "Processing ..."
+        
         # Get the best solution so far:
         best = self.halloffame.get_best()
         best_f = best.fitness.values[0]
@@ -374,6 +377,7 @@ class Algorithm(RefineAsyncHelper):
             self.logbook.record(gen=self.gen, evals=pop_size, best=best_f, **record)
             print self.logbook.stream
 
+        self.refiner.status.message = "Refiner update ..."
         # Update the refiner:
         self.refiner.update(best, iteration=self.gen, residual=best_f)
 
@@ -419,6 +423,7 @@ class RefineCMAESRun(RefineMethod):
     def _setup(self, refiner, ngen=NGEN, stagn_ngen=STAGN_NGEN, stagn_tol=STAGN_TOL, **kwargs):
         if not self._has_been_setup:
             logger.info("Setting up the DEAP CMA-ES refinement algorithm (ngen=%d)" % ngen)
+            refiner.status.message = "Setting up algorithm..."
 
             # Process some general stuff:
             bounds = np.array(refiner.ranges) #@UndefinedVariable

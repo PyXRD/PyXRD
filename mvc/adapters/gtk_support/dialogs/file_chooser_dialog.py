@@ -49,8 +49,9 @@ class FileChooserDialog(gtk.FileChooserDialog):
     def filename(self):
         """ Extracts the selected filename from a gtk.Dialog """
         filename = super(FileChooserDialog, self).get_filename()
-        filename = adjust_filename_to_globs(filename, self.selected_globs)
-        self.set_filename(filename)
+        if filename is not None:
+            filename = adjust_filename_to_globs(filename, self.selected_globs)
+            self.set_filename(filename)
         return filename
 
     @property

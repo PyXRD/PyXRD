@@ -35,7 +35,7 @@ class BrkRAWParser(XRDParserMixin, BaseParser):
 
         try:
             basename = u(os.path.basename(filename))
-        except AttributeError:
+        except:
             basename = None
 
         # Go to the start of the file

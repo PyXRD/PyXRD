@@ -45,7 +45,7 @@ class GenericXYCSVParser(XRDParserMixin, CSVBaseParser):
         # Get base filename:
         try:
             basename = u(os.path.basename(filename))
-        except AttributeError:
+        except:
             basename = None
 
         # Read in the first and last data line and put the file cursor back
@@ -121,10 +121,10 @@ class GenericXYCSVParser(XRDParserMixin, CSVBaseParser):
         fmt_params = cls.sniff(f, **fmt_params)
 
         # Parse header:
-        data_objects = cls._parse_header(filename, fp, data_objects=data_objects, **fmt_params)
+        data_objects = cls._parse_header(filename, f, data_objects=data_objects, **fmt_params)
 
         # Parse data:
-        data_objects = cls._parse_data(filename, fp, data_objects=data_objects, **fmt_params)
+        data_objects = cls._parse_data(filename, f, data_objects=data_objects, **fmt_params)
 
         if close: f.close()
         return data_objects

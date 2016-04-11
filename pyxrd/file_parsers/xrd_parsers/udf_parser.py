@@ -30,7 +30,7 @@ class UDFParser(XRDParserMixin, BaseParser):
         f = fp
         try:
             basename = u(os.path.basename(filename))
-        except AttributeError:
+        except:
             basename = None
         # Adapt XRDFile list
         data_objects = cls._adapt_data_object_list(data_objects, num_samples=1)

@@ -6,6 +6,7 @@
 # Complete license can be found in the LICENSE file.
 
 import logging
+from _io import UnsupportedOperation
 logger = logging.getLogger(__name__)
 import json
 import zipfile
@@ -32,24 +33,35 @@ class JSONParser(BaseParser):
     __file_mode__ = "r"
 
     @classmethod
+    def _get_file(cls, fp, close=None):
+        """
+            Returns a three-tuple:
+            filename, zipfile-object, close
+        """
+        if isinstance(fp, types.StringType): # fp is a filename
+            filename = fp
+            if zipfile.is_zipfile(filename):
+                fp = zipfile.ZipFile(filename, cls.__file_mode__)
+            else:
+                fp = unicode_open(filename, cls.__file_mode__)
+            close = True if close is None else close
+        else: # fp is a file pointer
+            filename = getattr(fp, 'name', None)
+            if zipfile.is_zipfile(fp):
+                fp = zipfile.ZipFile(fp)
+            close = False if close is None else close
+        return filename, fp, close
+
+    @classmethod
     def _parse_header(cls, filename, fp, data_objects=None, close=False):
         return data_objects # just pass it on, nothing to do
 
     @classmethod
     def _parse_data(cls, filename, fp, data_objects=None, close=True):
-        f = fp
         try: # Assume filename is a path
-            pre_pos = f.tell()
-            is_zipfile = zipfile.is_zipfile(f)
-            f.seek(pre_pos)
+            is_zipfile = isinstance(fp, zipfile.ZipFile)
             if is_zipfile: # ZIP files
-                    if filename is not None:
-                        zf = zipfile.ZipFile(filename, cls.__file_mode__)
-                    else:
-                        f.seek(0)
-                        zf = zipfile.ZipFile(f, cls.__file_mode__)
-
-                    namelist = zf.namelist()
+                    namelist = fp.namelist()
 
                     if 'content' in namelist: # Multi-part object
                         obj = None
@@ -58,7 +70,7 @@ class JSONParser(BaseParser):
                         # Parse the content file
                         #with zf.open('content') as cf:
                         #    obj = decoder.decode(cf.read())
-                        cf = zf.open('content', cls.__file_mode__)
+                        cf = fp.open('content', cls.__file_mode__)
                         obj = decoder.decode(cf.read())
                         cf.close()
 
@@ -70,7 +82,7 @@ class JSONParser(BaseParser):
                         # Parse all the other files, and set accordingly in the content dict
                         for sub_name in namelist:
                             if sub_name != "content":
-                                zpf = zf.open(sub_name, cls.__file_mode__) #with zf.open(sub_name) as zpf:
+                                zpf = fp.open(sub_name, cls.__file_mode__) #with zf.open(sub_name) as zpf:
                                 obj["properties"][sub_name] = decoder.decode(zpf.read())
                                 zpf.close()
 
@@ -80,23 +92,27 @@ class JSONParser(BaseParser):
                     else: # Multiple objects
                         data_objects = []
                         for sub_name in namelist:
-                            zpf = zf.open(sub_name, cls.__file_mode__) #with zf.open(sub_name) as zpf:
+                            zpf = fp.open(sub_name, cls.__file_mode__) #with zf.open(sub_name) as zpf:
                             data_objects.append(cls.parse(zpf))
                             zpf.close()
-                    zf.close()
             else: # REGULAR files
-                data_objects = PyXRDDecoder(mapper=storables).decode(f.read()) # json.load(f, cls=PyXRDDecoder, mapper=storables)
+                fp.seek(0) # reset file position
+                data_objects = PyXRDDecoder(mapper=storables).decode(fp.read())
         except Exception as error: # Maybe filename is a file-like object?
-            logger.debug("Handling run-time error: %s" % error)
+            logger.warning("Handling run-time error: %s" % error)
             tb = format_exc()
             try:
-                data_objects = PyXRDDecoder.decode_file(f, mapper=storables)
+                try: 
+                    fp.seek(0)
+                except (UnsupportedOperation, AttributeError):
+                    logger.warning("Could not seek to start of file!")
+                data_objects = PyXRDDecoder.decode_file(fp, mapper=storables)
             except:
                 print tb
                 raise # re-raise last error, filename is something weird
 
         return data_objects
-        if close: f.close()
+        if close: fp.close()
 
     @staticmethod
     def write(obj, file, zipped=False): # @ReservedAssignment

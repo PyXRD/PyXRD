@@ -37,7 +37,7 @@ class BrkBRMLParser(XRDParserMixin, XMLParserMixin, BaseParser):
         if isinstance(fp, types.StringType):
             return fp, ZipFile(fp, cls.__file_mode__), True if close is None else close
         else:
-            return getattr(fp, 'name', "Undefined"), ZipFile(fp, cls.__file_mode__), False if close is None else close
+            return getattr(fp, 'name', None), ZipFile(fp, cls.__file_mode__), False if close is None else close
 
     @classmethod
     def _get_raw_data_files(cls, f, folder):

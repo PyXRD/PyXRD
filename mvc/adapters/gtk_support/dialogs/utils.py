@@ -22,6 +22,13 @@
 #  Boston, MA 02110, USA.
 #  -------------------------------------------------------------------------
 
+def _toggle_cb(dialog, event, cb):
+    cb_id_name = "%s_cb_id" % event.replace("-", "_")
+    cb_id = getattr(dialog, cb_id_name, None)
+    if cb_id is not None: dialog.disconnect(cb_id)
+    cb_id = dialog.connect(event, cb)
+    setattr(dialog, cb_id_name, cb_id)
+
 def run_dialog(dialog,
         on_accept_callback=None, on_reject_callback=None, destroy=True):
     """ Helper method - do not call directly """
@@ -29,10 +36,9 @@ def run_dialog(dialog,
     if not (on_accept_callback is None or callable(on_accept_callback)):
         raise ValueError("Accept callback must be None or callable")
     if not (on_reject_callback is None or callable(on_reject_callback)):
-        raise ValueError("Reject callback must be None or callable")
-
-    # Using an event prevents deadlocks, because we can return to the Main Loop
-    def _dialog_response_cb(dialog, response):
+        raise ValueError("Reject callback must be None or callable")      
+   
+    def _dialog_response_cb(dialog, response): 
         if response in dialog.accept_responses and on_accept_callback is not None:
             on_accept_callback(dialog)
         elif on_reject_callback is not None:
@@ -42,11 +48,11 @@ def run_dialog(dialog,
         else:
             dialog.hide()
         return not destroy
-    dialog.connect('response', _dialog_response_cb)
-
+    _toggle_cb(dialog, "response", _dialog_response_cb)
+    
     # Adding the delete event prevents the dialog from being destroyed if the
     # user indicated it should persist
-    def delete_event(dialog, event):
+    def delete_event_cb(dialog, event):
         if on_reject_callback is not None:
             on_reject_callback(dialog)
         if destroy:
@@ -54,8 +60,8 @@ def run_dialog(dialog,
         else:
             dialog.hide()
         return not destroy
-    dialog.connect("delete_event", delete_event)
-
+    _toggle_cb(dialog, "delete_event", delete_event_cb)
+    
     # Present the dialog
     dialog.set_modal(True)
     dialog.show_all()

@@ -48,7 +48,7 @@ class BaseParser(object):
         if isinstance(fp, types.StringType):
             return fp, open(fp, cls.__file_mode__), True if close is None else close
         else:
-            return getattr(fp, 'name', "Undefined"), fp, False if close is None else close
+            return getattr(fp, 'name', None), fp, False if close is None else close
 
     @classmethod
     def _adapt_data_object_list(cls, data_objects, num_samples, only_extend=False):

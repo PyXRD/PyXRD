@@ -8,7 +8,7 @@
 # Complete license can be found in the LICENSE file.
 
 import warnings
-import os
+import os, sys
 import logging
 logger = logging.getLogger(__name__)
 
@@ -126,4 +126,8 @@ def run_main():
         if settings.DEBUG: stacktracer.trace_stop()
 
 if __name__ == "__main__":
+    # Make sure the current path is used for loading PyXRD modules:
+    mod = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    if not mod in sys.path:
+        sys.path.insert(1, mod)
     run_main()

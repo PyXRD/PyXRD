@@ -41,7 +41,7 @@ class BaseGroupBarser(BaseParser):
         if isinstance(fp, types.StringType):
             return fp, fp, True if close is None else close
         else:
-            return getattr(fp, 'name', "Undefined"), fp, False if close is None else close
+            return getattr(fp, 'name', None), fp, False if close is None else close
 
     @classmethod
     def get_parser(cls, filename, fp=None):

@@ -32,7 +32,7 @@ class CPIParser(XRDParserMixin, BaseParser):
         
         try:
             basename = u(os.path.basename(filename))
-        except AttributeError:
+        except:
             basename = None
         
         # Adapt XRDFile list

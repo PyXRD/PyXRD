@@ -60,11 +60,11 @@ class InlineGoniometerController(BaseController):
         def on_accept(dialog):
             JSONParser.write(self.model, dialog.filename)
             self.generate_import_combo()
-        suggest_folder, _ = Goniometer.get_default_goniometers_path()
+        current_folder, _ = Goniometer.get_default_goniometers_path()
         DialogFactory.get_save_dialog(
             title="Select the goniometer setup file to save to",
             filters=self.file_filters,
-            suggest_folder=suggest_folder,
+            current_folder=current_folder,
             parent=self.view.parent.get_top_widget()
         ).run(on_accept)
 

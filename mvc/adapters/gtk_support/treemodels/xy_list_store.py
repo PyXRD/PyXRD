@@ -70,8 +70,9 @@ class XYListStore(BaseObjectListStore, Observer):
         self._prop_name = prop.name
         _data = getattr(self._model, self._prop_name, None)
         assert isinstance(_data, XYData), \
-            "Can only wrap XYData (or subclasses) instances to a " + \
-            "XYListStore, but got '%s' instead." % _data
+            "Can only wrap XYData (or subclasses) instances to a XYListStore," + \
+            "but got '%s' instead from property '%s' on model '%s'." % (
+                _data, self._prop_name, self._model)
 
         # Continue initialisation:
         BaseObjectListStore.__init__(self, Point)

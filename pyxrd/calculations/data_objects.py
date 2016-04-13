@@ -157,6 +157,9 @@ class GonioData(DataObject):
     #: The goniometer wavelength
     wavelength = None
 
+    #: The goniometer wavelength distribution
+    wavelength_distribution = None
+
     pass # end of class
 
 class ProbabilityData(DataObject):

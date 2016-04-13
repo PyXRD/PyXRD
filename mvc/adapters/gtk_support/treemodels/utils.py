@@ -82,15 +82,14 @@ def create_valuestore_from_file(filename, data_type=float):
             liststore.append(row)
     return liststore
 
-def create_treestore_from_directory(directory, extension):
+def create_treestore_from_directory(directory):
     import gtk
     treestore = gtk.TreeStore(str, str, bool)
     treestore.append(None, ("", "", True))
-    ext_len = len(extension)
     parents = {}
     for root, dirnames, filenames in os.walk(directory):
         for dirname in dirnames:
             parents[os.path.join(root, dirname)] = treestore.append(parents.get(root, None), (dirname, "", False))
         for filename in filenames:
-            treestore.append(parents.get(root, None), (filename[:-ext_len], "%s/%s" % (root, filename), True))
+            treestore.append(parents.get(root, None), (os.path.splitext(filename)[0], "%s/%s" % (root, filename), True))
     return treestore

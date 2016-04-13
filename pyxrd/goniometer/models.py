@@ -15,6 +15,9 @@ from pyxrd.generic.io import storables, Storable, get_case_insensitive_glob
 from pyxrd.file_parsers.json_parser import JSONParser
 from pyxrd.data import settings
 
+from pyxrd.generic.io.utils import retrieve_lowercase_extension
+from pyxrd.generic.models.lines import StorableXYData
+
 from pyxrd.calculations.goniometer import (
     get_lorentz_polarisation_factor,
     get_machine_correction_range,
@@ -23,7 +26,6 @@ from pyxrd.calculations.goniometer import (
     get_2t_from_nm, get_t_from_nm,
 )
 from pyxrd.calculations.data_objects import GonioData
-from pyxrd.generic.io.utils import retrieve_lowercase_extension
 
 
 @storables.register()
@@ -42,7 +44,8 @@ class Goniometer(DataModel, Storable):
             PropIntel(name="min_2theta", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
             PropIntel(name="max_2theta", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
             PropIntel(name="steps", data_type=int, storable=True, has_widget=True),
-            PropIntel(name="wavelength", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
+            PropIntel(name="wavelength", data_type=float, storable=False, has_widget=False, widget_type="float_entry"),
+            PropIntel(name="wavelength_distribution", data_type=object, storable=True, has_widget=True, widget_type="xy_list_view"),
             PropIntel(name="has_ads", data_type=bool, storable=True, has_widget=True),
             PropIntel(name="ads_fact", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
             PropIntel(name="ads_phase_fact", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
@@ -50,13 +53,13 @@ class Goniometer(DataModel, Storable):
             PropIntel(name="ads_const", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
         ]
         store_id = "Goniometer"
-        file_filters = [
-            ("Goniometer files", get_case_insensitive_glob("*.GON")),
-        ]
 
     _data_object = None
     @property
     def data_object(self):
+        self._data_object.wavelength = self.wavelength
+        x, y = self.wavelength_distribution.get_xy_data()
+        self._data_object.wavelength_distribution = zip(x.tolist(), y.tolist())
         return self._data_object
 
     project = property(DataModel.parent.fget, DataModel.parent.fset)
@@ -94,9 +97,15 @@ class Goniometer(DataModel, Storable):
     @property
     def wavelength(self):
         """The wavelength of the generated X-rays (in nm)"""
-        return self._data_object.wavelength
-    @wavelength.setter
-    def wavelength(self, value): self._set_data_property("wavelength", value)
+        # Get the dominant wavelength in the distribution:
+        x, y = self.wavelength_distribution.get_xy_data()
+        return float(x[np.argmax(y)])
+
+    _wavelength_distribution = None
+    @property
+    def wavelength_distribution(self):
+        """ The wavelength distribution """
+        return self._wavelength_distribution
 
     @property
     def soller1(self):
@@ -184,6 +193,7 @@ class Goniometer(DataModel, Storable):
         my_kwargs = self.pop_kwargs(kwargs,
             "data_radius", "data_divergence", "data_soller1", "data_soller2",
             "data_min_2theta", "data_max_2theta", "data_lambda", "lambda",
+            "wavelength",
             *[names[0] for names in type(self).Meta.get_local_storable_properties()]
         )
         super(Goniometer, self).__init__(*args, **kwargs)
@@ -206,32 +216,31 @@ class Goniometer(DataModel, Storable):
             self.min_2theta = self.get_kwarg(kwargs, 3.0, "min_2theta", "data_min_2theta")
             self.max_2theta = self.get_kwarg(kwargs, 45.0, "max_2theta", "data_max_2theta")
             self.steps = self.get_kwarg(kwargs, 2500, "steps")
-            self.wavelength = self.get_kwarg(kwargs, 0.154056, "wavelength", "data_lambda", "lambda")
+            
+            wavelength = self.get_kwarg(kwargs, None, "wavelength", "data_lambda", "lambda")
+            if not "wavelength_distribution" in kwargs and wavelength is not None:
+                default_wld = [ [wavelength,1.0], ]
+            else:
+                # A Cu wld:
+                default_wld = [
+                    [0.1544426,0.955148885],
+                    [0.153475,0.044851115],
+                ]                
+            self._wavelength_distribution = StorableXYData(
+               data=self.get_kwarg(kwargs, zip(*default_wld), "wavelength_distribution")
+            )           
 
+    # ------------------------------------------------------------
+    #      Input/Output stuff
+    # ------------------------------------------------------------
     def __reduce__(self):
         return (type(self), ((), self.json_properties()))
 
-    @classmethod
-    def get_default_goniometers_path(cls):
-        """
-            Returns a tuple containing the location of the default Goniometer
-            setup files and their file extension.
-        """
-        return (
-            settings.DATA_REG.get_directory_path("DEFAULT_GONIOS"),
-            retrieve_lowercase_extension(*cls.Meta.file_filters[0][1])
-        )
+    def json_properties(self):
+        props = Storable.json_properties(self)
+        props["wavelength_distribution"] = self.wavelength_distribution._serialize_data()
+        return props
 
-    @classmethod
-    def get_default_wavelengths_path(cls):
-        """
-            Returns the location of the default wavelengths file
-        """
-        return settings.DATA_REG.get_file_path("WAVELENGTHS")
-
-    # ------------------------------------------------------------
-    #      Methods & Functions
-    # ------------------------------------------------------------
     def reset_from_file(self, gonfile):
         """
         Loads & sets the parameters from the goniometer JSON file
@@ -240,9 +249,17 @@ class Goniometer(DataModel, Storable):
         new_gonio = JSONParser.parse(gonfile)
         with self.data_changed.hold():
             for prop in self.Meta.all_properties:
-                if prop.storable and prop.name != "uuid":
-                    setattr(self, prop.name, getattr(new_gonio, prop.name))
-
+                if prop.storable:
+                    if prop.name == "wavelength_distribution":
+                        self.wavelength_distribution.clear()
+                        self.wavelength_distribution.set_data(
+                            *new_gonio.wavelength_distribution.get_xy_data())  
+                    elif prop.name != "uuid":
+                        setattr(self, prop.name, getattr(new_gonio, prop.name))
+                        
+    # ------------------------------------------------------------
+    #      Methods & Functions
+    # ------------------------------------------------------------
     def get_nm_from_t(self, theta):
         """Converts a theta position to a nanometer value"""
         return get_nm_from_t(

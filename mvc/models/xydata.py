@@ -5,6 +5,8 @@ logger = logging.getLogger(__name__)
 import types, json
 import numpy as np
 
+from ..support.utils import pop_kwargs
+
 from .base import Model
 from .prop_intel import PropIntel
 
@@ -121,7 +123,7 @@ class XYData(Model):
 
         XYData.set_data(self, np.array([], dtype=float), np.zeros(shape=(0, 0), dtype=float))
 
-        my_kwargs = self.pop_kwargs(kwargs,
+        my_kwargs = pop_kwargs(kwargs,
             "names", "data",
             *[names[0] for names in type(self).Meta.get_local_storable_properties()]
         )
@@ -188,6 +190,12 @@ class XYData(Model):
                 logger.exception("Failed to load xy-data from serial string: %s" % sdata)
             else:
                 XYData.set_data(self, x, y)
+
+
+    def load_data_from_generator(self, generator, clear=True):
+        if clear: self.clear()
+        for x, y in generator:
+            self.append(x, y)
 
     # ------------------------------------------------------------
     #      X-Y Data Management Methods & Functions

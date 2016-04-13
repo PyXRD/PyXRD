@@ -1,6 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- Generated with glade 3.16.1 -->
 <interface>
-  <!-- interface-requires gtk+ 3.0 -->
+  <object class="GtkAdjustment" id="gonio_steps">
+    <property name="lower">1</property>
+    <property name="upper">5000</property>
+    <property name="value">2500</property>
+    <property name="step_increment">1</property>
+    <property name="page_increment">10</property>
+  </object>
+  <object class="GtkImage" id="img_export">
+    <property name="visible">True</property>
+    <property name="can_focus">False</property>
+    <property name="stock">gtk-floppy</property>
+  </object>
   <object class="GtkTable" id="edit_goniometer">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
@@ -13,7 +25,7 @@
         <property name="visible">True</property>
         <property name="can_focus">False</property>
         <property name="xalign">1</property>
-        <property name="label" translatable="yes">Wavelength (λ) &lt;i&gt;[nm]&lt;/i&gt;</property>
+        <property name="label" translatable="yes">Wavelength (λ)</property>
         <property name="use_markup">True</property>
       </object>
       <packing>
@@ -58,16 +70,13 @@
         <property name="xalign">0</property>
         <property name="xscale">0</property>
         <child>
-          <object class="GtkComboBox" id="wavelength_combo_box">
+          <object class="GtkButton" id="btn_edit_wld">
+            <property name="label" translatable="yes">Edit distribution</property>
             <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="has_entry">True</property>
-            <signal name="changed" handler="on_cmb_wavelength_changed" swapped="no"/>
-            <child internal-child="entry">
-              <object class="GtkEntry" id="gonio_wavelength">
-                <property name="can_focus">True</property>
-              </object>
-            </child>
+            <property name="can_focus">True</property>
+            <property name="receives_default">True</property>
+            <property name="tooltip_text" translatable="yes">Stores the current goniometer setup as a default.</property>
+            <signal name="clicked" handler="on_btn_edit_wld_clicked" swapped="no"/>
           </object>
         </child>
       </object>
@@ -411,7 +420,6 @@
             <property name="invisible_char">●</property>
             <property name="width_chars">7</property>
             <property name="text" translatable="yes">1.0</property>
-            <property name="invisible_char_set">True</property>
             <property name="primary_icon_activatable">False</property>
             <property name="secondary_icon_activatable">False</property>
           </object>
@@ -441,7 +449,6 @@
             <property name="invisible_char">●</property>
             <property name="width_chars">7</property>
             <property name="text" translatable="yes">0.0</property>
-            <property name="invisible_char_set">True</property>
             <property name="primary_icon_activatable">False</property>
             <property name="secondary_icon_activatable">False</property>
           </object>
@@ -471,7 +478,6 @@
             <property name="invisible_char">●</property>
             <property name="width_chars">7</property>
             <property name="text" translatable="yes">0.0</property>
-            <property name="invisible_char_set">True</property>
             <property name="primary_icon_activatable">False</property>
             <property name="secondary_icon_activatable">False</property>
           </object>
@@ -565,14 +571,7 @@
       </packing>
     </child>
   </object>
-  <object class="GtkAdjustment" id="gonio_steps">
-    <property name="lower">1</property>
-    <property name="upper">5000</property>
-    <property name="value">2500</property>
-    <property name="step_increment">1</property>
-    <property name="page_increment">10</property>
-  </object>
-  <object class="GtkImage" id="img_export">
+  <object class="GtkImage" id="img_export1">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
     <property name="stock">gtk-floppy</property>

@@ -9,6 +9,7 @@ from warnings import warn
 import weakref
 
 from mvc import Model, Signal, PropIntel
+from mvc.support.utils import pop_kwargs
 from pyxrd.generic.utils import not_none, rec_getattr
 
 from .signals import HoldableSignal
@@ -24,9 +25,7 @@ class PyXRDModel(Model):
         pass # end of class
 
     def pop_kwargs(self, kwargs, *keys):
-        return {
-            key: kwargs.pop(key) for key in keys if key in kwargs
-        }
+        return pop_kwargs(kwargs, *keys)
 
     def get_kwarg(self, fun_kwargs, default, *keywords):
         """

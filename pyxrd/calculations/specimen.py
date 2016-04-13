@@ -6,6 +6,7 @@
 # Complete license can be found in the LICENSE file.
 
 import numpy as np
+from scipy.interpolate.interpolate import interp1d
 
 from pyxrd.calculations.goniometer import (
     get_machine_correction_range,
@@ -51,9 +52,21 @@ def calculate_phase_intensities(specimen):
             else:
                 yield np.zeros_like(range_stl)
 
+    def interpolate_wavelength(I, new_wavelength, fraction):
+        new_theta = np.arcsin(range_stl * new_wavelength * 0.5)
+        f = interp1d(new_theta, I * fraction, bounds_error=False, fill_value=0.0)
+        return f(specimen.range_theta)
+
+    def apply_wavelength_distribution(I):
+        for new_wavelength, fraction in specimen.goniometer.wavelength_distribution:
+            I += interpolate_wavelength(I, new_wavelength, fraction)
+        return I
+
     return (
         correction_range,
-        np.array([I for I in get_phase_intensities(specimen.phases)], dtype=np.float_)
+        np.array([
+            apply_wavelength_distribution(I) for I in get_phase_intensities(specimen.phases)
+        ], dtype=np.float_)
      )
 
 def get_summed_intensities(specimen, scale, fractions, bgshift):

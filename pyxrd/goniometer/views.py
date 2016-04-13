@@ -7,7 +7,7 @@
 
 from pkg_resources import resource_filename # @UnresolvedImport
 
-from pyxrd.generic.views import BaseView
+from pyxrd.generic.views import BaseView, DialogView
 
 class InlineGoniometerView(BaseView):
     """
@@ -27,4 +27,16 @@ class InlineGoniometerView(BaseView):
     def wavelength_combo_box(self):
         return self["wavelength_combo_box"]
 
+    pass # end of class
+
+
+class WavelengthDistributionView(DialogView):
+    """
+        The wavelength distribution view.
+    """   
+    subview_builder = resource_filename(__name__, "glade/wavelength_distribution.glade")
+    subview_toplevel = "edit_wld"
+
+    widget_format = "wld_%s"
+    
     pass # end of class

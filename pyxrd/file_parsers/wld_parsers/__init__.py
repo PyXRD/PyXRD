@@ -10,15 +10,15 @@ from pyxrd.generic.io.utils import get_case_insensitive_glob
 from pyxrd.file_parsers.registry import ParserNamespace
 from pyxrd.file_parsers.xrd_parsers.csv_parser import GenericXYCSVParser
 
-exc_parsers = ParserNamespace("EXCParsers")
+wld_parsers = ParserNamespace("WLDParsers")
 
-@exc_parsers.register_parser()
-class EXCParser(GenericXYCSVParser):
+@wld_parsers.register_parser()
+class WLDParser(GenericXYCSVParser):
     """
-        ASCII *.DAT, *.CSV and *.TAB format parser
+        ASCII *.WLD format parser
     """
 
-    description = "Exclusion range file"
-    extensions = get_case_insensitive_glob("*.EXC")
+    description = "Wavelength distribution file"
+    extensions = get_case_insensitive_glob("*.WLD")
 
     pass # end of class

@@ -64,7 +64,7 @@ class AddPhaseController(DialogController):
 
     def reload_combo_model(self):
         cmb_model = create_treestore_from_directory(
-            settings.DATA_REG.get_directory_path("DEFAULT_PHASES"), ".phs")
+            settings.DATA_REG.get_directory_path("DEFAULT_PHASES"))
         self.view.phase_combo_box.set_model(cmb_model)
 
     # ------------------------------------------------------------

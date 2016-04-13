@@ -9,6 +9,7 @@ recursive-include pyxrd/data *.csv
 recursive-include pyxrd/data *.png
 recursive-include pyxrd/data *.cmp
 recursive-include pyxrd/data *.gon
+recursive-include pyxrd/data *.wld
 
 recursive-include pyxrd/application *.png
 recursive-include pyxrd/application *.ico

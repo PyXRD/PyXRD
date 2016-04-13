@@ -59,3 +59,8 @@ def get_unique_list(seq):
     seen = set()
     seen_add = seen.add
     return [x for x in seq if x not in seen and not seen_add(x)]
+
+def pop_kwargs(kwargs, *keys):
+    return {
+        key: kwargs.pop(key) for key in keys if key in kwargs
+    }

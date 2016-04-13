@@ -203,12 +203,12 @@ DATA_DIRS = [
     ("DEFAULT_PHASES", "default phases/", "USER_DATA"),
     ("DEFAULT_COMPONENTS", "default components/", "DEFAULT_DATA"),
     ("DEFAULT_GONIOS", "default goniometers/", "DEFAULT_DATA"),
+    ("DEFAULT_WL_DISTR", "default wavelength distributions/", "DEFAULT_DATA"),
     ("APPLICATION_ICONS", "icons/", "DEFAULT_DATA"),
 ]
 DATA_FILES = [
     ("COMPOSITION_CONV", "composition_conversion.csv", "DEFAULT_DATA"),
     ("ATOM_SCAT_FACTORS", "atomic scattering factors.atl", "DEFAULT_DATA"),
-    ("WAVELENGTHS", "wavelengths.csv", "DEFAULT_DATA"),
     ("MINERALS", "mineral_references.csv", "DEFAULT_DATA"),
 ]
 

@@ -27,7 +27,7 @@ from pyxrd.generic.peak_detection import multi_peakdetect
 #from pyxrd.file_parsers.ascii_parser import ASCIIParser
 
 @storables.register()
-class StorableXYData(XYData, Storable):
+class StorableXYData(DataModel, XYData, Storable):
     """
         A storable XYData model with additional I/O and CRUD abilities.
     """
@@ -78,17 +78,45 @@ class StorableXYData(XYData, Storable):
         xrdfiles = parser.parse(filename)
         if xrdfiles:
             self.load_data_from_generator(xrdfiles[0].data, clear=clear)
-
+            
     def load_data_from_generator(self, generator, clear=True):
-        with self.data_changed.hold():
-            if clear: self.clear()
-            for x, y in generator:
-                self.append(x, y)
+        with self.data_changed.hold_and_emit():
+            super(StorableXYData, self).load_data_from_generator(generator, clear=clear)
+
+    def set_data(self, x, y):
+        """
+            Sets data using the supplied x, y1, ..., yn arrays.
+        """
+        with self.data_changed.hold_and_emit():
+            super(StorableXYData, self).set_data(x, y)
+
+    def set_value(self, i, j, value):
+        with self.data_changed.hold_and_emit():
+            super(StorableXYData, self).set_value(i, j, value)
+
+    def append(self, x, y):
+        """
+            Appends data using the supplied x, y1, ..., yn arrays.
+        """
+        with self.data_changed.hold_and_emit():
+            super(StorableXYData, self).append(x, y)
+
+    def insert(self, pos, x, y):
+        """
+            Inserts data using the supplied x, y1, ..., yn arrays at the given
+            position.
+        """
+        with self.data_changed.hold_and_emit():
+            super(StorableXYData, self).insert(pos, x, y)
+
+    def remove_from_indeces(self, *indeces):
+        with self.data_changed.hold_and_emit():
+            super(StorableXYData, self).remove_from_indeces(*indeces)
 
     pass # end of class
 
 @storables.register()
-class PyXRDLine(DataModel, StorableXYData):
+class PyXRDLine(StorableXYData):
     """
         A PyXRDLine is an attribute holder for a real 'Line' object, whatever the
         plotting library used may be. Attributes are line width and
@@ -261,36 +289,6 @@ class PyXRDLine(DataModel, StorableXYData):
             del kwargs["data_label"]
             del kwargs["xy_data"]
         return cls(**kwargs)
-
-    def set_data(self, x, y):
-        """
-            Sets data using the supplied x, y1, ..., yn arrays.
-        """
-        with self.data_changed.hold_and_emit():
-            super(PyXRDLine, self).set_data(x, y)
-
-    def set_value(self, i, j, value):
-        with self.data_changed.hold_and_emit():
-            super(PyXRDLine, self).set_value(i, j, value)
-
-    def append(self, x, y):
-        """
-            Appends data using the supplied x, y1, ..., yn arrays.
-        """
-        with self.data_changed.hold_and_emit():
-            super(PyXRDLine, self).append(x, y)
-
-    def insert(self, pos, x, y):
-        """
-            Inserts data using the supplied x, y1, ..., yn arrays at the given
-            position.
-        """
-        with self.data_changed.hold_and_emit():
-            super(PyXRDLine, self).insert(pos, x, y)
-
-    def remove_from_indeces(self, *indeces):
-        with self.data_changed.hold_and_emit():
-            super(PyXRDLine, self).remove_from_indeces(*indeces)
 
     # ------------------------------------------------------------
     #      Convenience Methods & Functions

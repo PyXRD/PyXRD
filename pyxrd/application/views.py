@@ -95,9 +95,18 @@ class AppView(HasChildView, FormattedTitleView):
         if not settings.DEBUG:
             self.get_top_widget().maximize()
 
+        self._clear_gdk_windows()
         self.get_top_widget().show()
 
         return
+
+    def _clear_gdk_windows(self):
+        gdktops = gtk.gdk.window_get_toplevels()  # @UndefinedVariable
+        gtktop = self["main_window"]
+        our_gdktop = gtktop.get_window()        
+        for gdktop in gdktops:
+            if not our_gdktop == gdktop:
+                gdktop.hide()
 
     def setup_plot(self, plot_controller):
         self.plot_controller = plot_controller

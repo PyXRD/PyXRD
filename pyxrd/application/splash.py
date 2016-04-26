@@ -113,9 +113,11 @@ class SplashScreen(object):
     def __init__(self, filename, version=""):
         # DONT connect 'destroy' event here!
         gtk.window_set_auto_startup_notification(False)
+        gtk.window_set_default_icon_list(*get_icon_list())
         self.window = gtk.Window(gtk.WINDOW_TOPLEVEL)
         self.window.set_icon_list(*get_icon_list())
         self.window.set_title('PyXRD')
+        self.window.set_skip_taskbar_hint(True)
         self.window.set_position(gtk.WIN_POS_CENTER)
         self.window.set_decorated(False)
         self.window.set_resizable(False)
@@ -161,6 +163,7 @@ class SplashScreen(object):
             if gtk.events_pending():
                 gtk.main_iteration()
         self.window.destroy()
+        del self.window, self.lbl, self.img, self.version_lbl
 
 
     pass # end of class

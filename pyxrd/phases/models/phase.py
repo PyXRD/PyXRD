@@ -125,7 +125,7 @@ class Phase(RefinementGroup, AbstractPhase):
             return self
 
     # INHERITABLE PROPERTIES:
-    _sigma_star = 3.0
+    _sigma_star = 12.0
     def get_sigma_star(self): return self._get_inheritable_property_value("sigma_star")
     def set_sigma_star(self, value):
         value = float(value)

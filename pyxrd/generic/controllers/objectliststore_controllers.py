@@ -392,14 +392,25 @@ class InlineObjectListStoreController(BaseController, TreeControllerMixin):
     add_types = list()
     auto_adapt = False
 
+    _edit_dict = None
     def _edit_item(self, item):
         item_type = type(item)
-        for name, tpe, view, ctrl in self.add_types: # @UnusedVariable
-            if tpe == item_type:
-                vw = view()
-                ctrl(model=item, view=vw, parent=self)
-                vw.present()
-                break
+        if self._edit_dict is None:
+            # Create a edit dict which keeps track of our controllers
+            self._edit_dict = {}
+
+        # If the first time, create the view & controller
+        if not item in self._edit_dict:        
+            for name, tpe, view, ctrl in self.add_types: # @UnusedVariable
+                if tpe == item_type:
+                    vw = view()
+                    ctrl = ctrl(model=item, view=vw, parent=self)
+                    self._edit_dict[item] = (vw, ctrl)
+                    break
+        # Re-use previously created controllers
+        vw, ctrl = self._edit_dict[item]
+        vw.present()
+
 
     def _setup_combo_type(self, combo):
         if self.add_types:

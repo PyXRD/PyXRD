@@ -119,6 +119,8 @@ def R0_model_generator(pasG):
         set_attribute(label, BoolProperty(
             default=False, text=text,
             refinable=False, persistent=True, visible=True,
+            set_action_name="update",
+            mix_with=(SetActionMixin,)
         ))
 
     # CREATE TYPE AND REGISTER AS STORABLE:

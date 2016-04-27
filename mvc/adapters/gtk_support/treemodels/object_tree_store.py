@@ -55,7 +55,12 @@ class ObjectTreeStore(BaseObjectListStore):
         _root = getattr(model, prop.label, None)
 
         # Then continue:
-        BaseObjectListStore.__init__(self, prop.class_type)
+        try:
+            BaseObjectListStore.__init__(self, prop.data_type)
+        except ValueError, err:
+            msg = "ValueError (%r) was raised when initializing ObjectTreeStore for model '%s' and data type '%s'" % (err, model, prop.data_type)
+            msg += "\n Did you forget to set the data_type on the list property '%s'?" % prop.label
+            raise ValueError, msg
         self._model = model
         self._prop_name = prop.label
         self._object_node_map = dict()

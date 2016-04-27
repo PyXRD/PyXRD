@@ -94,7 +94,7 @@ class IndependentsView(HasChildView, ProbabilityViewMixin, BaseView):
                 new_lbl = self.create_mathtext_widget(prop.math_text, prop.label)
 
                 new_inp = ScaleEntry(lower=prop.minimum, upper=prop.maximum, enforce_range=True)
-                new_inp.set_tooltip_text(prop.label)
+                new_inp.set_tooltip_text(prop.text)
                 new_inp.set_name(self.widget_format % prop.label)
                 self[self.widget_format % prop.label] = new_inp
                 input_widgets[i] = new_inp
@@ -108,9 +108,9 @@ class IndependentsView(HasChildView, ProbabilityViewMixin, BaseView):
 
                     new_check = gtk.CheckButton(label="")
                     new_check.set_tooltip_text(inh_prop.text)
-                    new_check.set_name(self.widget_format % inh_prop.text)
+                    new_check.set_name(self.widget_format % inh_prop.label)
                     new_check.set_sensitive(False)
-                    self[self.widget_format % inh_prop.text] = new_check
+                    self[self.widget_format % inh_prop.label] = new_check
                     check_widgets[i] = new_check
                     table.attach(new_check, 1 + j, 2 + j, i / num_columns, (i / num_columns) + 1, xpadding=2, ypadding=2, xoptions=gtk.FILL)
 

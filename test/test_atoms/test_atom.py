@@ -8,6 +8,7 @@
 # Complete license can be found in the LICENSE file.
 
 import unittest
+from mock import Mock
 
 from test.utils import create_object_attribute_test
 
@@ -49,10 +50,12 @@ class TestAtom(unittest.TestCase):
         default_z = 9.0
         lattice_d = 5.4
         factor = 0.5
-        class DummyComponent(object):
-            def get_interlayer_stretch_factors(self):
-                return lattice_d, factor
-        parent = DummyComponent()
+        
+        parent = Mock()
+        parent.configure_mock(**{
+            'get_interlayer_stretch_factors.return_value': (lattice_d, factor)
+        })
+        
         atom = Atom(parent=parent)
         atom.stretch_values = True
         atom.default_z = default_z
@@ -67,5 +70,31 @@ class TestAtom(unittest.TestCase):
         rng = 2.0 * np.sin(np.arange(30)) / 0.154056
         res = self.atom.get_structure_factors(rng)
         self.assertIsNotNone(res)
+        
+    def test_loads_atom_type_by_name(self):
+        atom_json_dict = {
+            "uuid": "878341b04e9e11e2b238150ae229a525", 
+            "name": "O", 
+            "default_z": 0.66, 
+            "pn": 6.0, 
+            "atom_type_name": "O1-"
+        }
+        
+        oxygen = Mock()
+        oxygen.name = "O1-"
+        hydrogen = Mock()
+        hydrogen.name = "H+"
+                
+        project = Mock()
+        project.atom_types = [oxygen, hydrogen]
+        phase = Mock()
+        phase.attach_mock(project, 'project')
+        component = Mock()
+        component.attach_mock(phase, 'phase')
+        
+        atom = Atom.from_json(parent = component, **atom_json_dict)
+        atom.resolve_json_references()
+        self.assertEqual(atom.atom_type, oxygen)
+        
 
     pass # end of class

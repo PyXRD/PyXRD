@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- Generated with glade 3.16.1 -->
 <interface>
-  <!-- interface-requires gtk+ 3.0 -->
   <object class="GtkTable" id="edit_contents">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
@@ -34,7 +34,6 @@
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="invisible_char">•</property>
-            <property name="invisible_char_set">True</property>
             <property name="primary_icon_activatable">False</property>
             <property name="secondary_icon_activatable">False</property>
           </object>
@@ -65,7 +64,7 @@
       </packing>
     </child>
     <child>
-      <object class="GtkEventBox" id="contents_atom_contents">
+      <object class="GtkEventBox" id="atom_contents_container">
         <property name="height_request">150</property>
         <property name="visible">True</property>
         <property name="can_focus">False</property>
@@ -91,7 +90,6 @@
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="invisible_char">•</property>
-            <property name="invisible_char_set">True</property>
             <property name="primary_icon_activatable">False</property>
             <property name="secondary_icon_activatable">False</property>
           </object>

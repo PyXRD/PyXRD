@@ -135,22 +135,21 @@ class EditAtomContentsController(DialogController):
     """ 
         Controller for the atom contents edit dialog
     """
+    
+    auto_adapt_excluded = [
+        "atom_contents",
+    ]
 
     contents_list_view = None
     contents_list_controller = None
 
-    widget_handlers = { 'custom': 'widget_handler' }
-
     def __init__(self, *args, **kwargs):
         super(EditAtomContentsController, self).__init__(*args, **kwargs)
+        # Create atom contents controller:
         self.contents_list_view = InlineObjectListStoreView(parent=self.view)
         self.contents_list_controller = ContentsListController("atom_contents", model=self.model, view=self.contents_list_view, parent=self)
-
-    @staticmethod
-    def widget_handler(self, prop, widget):
-        if prop.label == "atom_contents":
-            self.view.set_contents_list_view(self.contents_list_view.get_top_widget())
-            return DummyAdapter(controller=self, prop=prop)
+        # Set subview:
+        self.view.set_contents_list_view(self.contents_list_view.get_top_widget())
 
     pass # end of class
 

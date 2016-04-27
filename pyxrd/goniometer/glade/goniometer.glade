@@ -461,7 +461,6 @@
         <property name="y_options">GTK_FILL</property>
       </packing>
     </child>
-  </object>
     <child>
       <object class="GtkEventBox" id="container_radius">
         <property name="visible">True</property>

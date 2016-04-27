@@ -6,6 +6,7 @@
 # Complete license can be found in the LICENSE file.
 
 from warnings import warn
+from random import choice
 
 from mvc import Observer
 from mvc.observers import ListObserver
@@ -206,7 +207,7 @@ class Phase(RefinementGroup, AbstractPhase):
 
     #: The # of components
     @AbstractPhase.R.getter
-    def get_R(self):
+    def R(self):
         if self.probabilities:
             return self.probabilities.R
 

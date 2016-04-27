@@ -85,10 +85,10 @@ class EditAtomContentsView(DialogView):
     modal = True
     widget_format = "contents_%s"
 
-    contents_list_view_container = widget_format % "atom_contents"
+    contents_list_view_container = "atom_contents_container"
 
     def set_contents_list_view(self, view):
-        self.contents_list_view = view
+        self[self.widget_format % "atom_contents"] = view
         return self._add_child_view(view, self[self.contents_list_view_container])
 
     @property

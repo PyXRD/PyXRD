@@ -32,7 +32,6 @@ from pyxrd.goniometer.models import Goniometer
 from pyxrd.file_parsers.xrd_parsers import xrd_parsers
 from pyxrd.file_parsers.exc_parsers import exc_parsers
 
-from ..parsers import EXCParser #@UnusedImport leave this so it gets registered
 from .markers import Marker
 from .statistics import Statistics
 

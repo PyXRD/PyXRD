@@ -131,13 +131,7 @@ class WavelengthDistributionController(DialogController, TreeViewMixin):
         widget.append_column(new_text_column(
             u'Fraction', text_col=store.c_y, editable=True,
             edited_callback=(self.on_xy_data_cell_edited, (self.model.wavelength_distribution, 1))))   
-      
-    # ------------------------------------------------------------
-    #      Methods & Functions
-    # ------------------------------------------------------------
-    def get_wavelength_distribution_tree_model(self):
-        return wrap_xydata_to_treemodel(self.model, self.model.Meta.get_prop_intel_by_name("wavelength_distribution"))
-    
+         
     # ------------------------------------------------------------
     #      GTK Signal handlers
     # ------------------------------------------------------------

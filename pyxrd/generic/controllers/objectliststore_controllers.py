@@ -62,8 +62,6 @@ class TreeViewMixin(object):
         Mixin that provides some generic methods to access or set the objects selected in a treeview.
     """
 
-    treeview_setup_format = "setup_%s_tree_view"
-
     def get_selected_object(self, tv):
         # call this implementation, not the overriden method:
         objects = TreeViewMixin.get_selected_objects(self, tv)

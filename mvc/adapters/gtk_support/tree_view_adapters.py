@@ -22,6 +22,9 @@
 #  Boston, MA 02110, USA.
 #  -------------------------------------------------------------------------
 
+import logging
+logger = logging.getLogger(__name__)
+
 import gtk
 from ..abstract_adapter import AbstractAdapter
 
@@ -77,8 +80,9 @@ class AbstractTreeViewAdapter(AbstractAdapter):
         if self._check_widget_type is not None:
             widget_type = type(widget)
             if not isinstance(widget, self._check_widget_type):
-                msg = "A '%s' can only be used for (a subclass of) a '%s' widget," + \
-                    " and not for a '%s'!" % (type(self), self._check_widget_type, widget_type)
+                msg = "A '%s' can only be used for (a subclass of) a '%s' widget, and not for a '%s'!" % (
+                       type(self), self._check_widget_type, widget_type
+                )
                 raise TypeError, msg
         self._connect_widget()
 
@@ -87,6 +91,11 @@ class AbstractTreeViewAdapter(AbstractAdapter):
         setup = getattr(self._controller, "setup_%s_tree_view" % self._prop.label, None)
         if callable(setup):
             setup(self._treestore, self._widget)
+        else:
+            logger.error("Could not find setup callable for tree view widget '%s' adapted to '%s'" % (
+                self._widget,
+                self._prop.label
+            ))
 
     def _disconnect_widget(self, widget=None):
         # TODO reset_tree_view support

@@ -23,7 +23,7 @@
 #  -------------------------------------------------------------------------
 
 from pyxrd.generic.utils import rec_getattr
-from contextlib import contextmanager
+from ...support import observables
 
 class SignalMixin(object):
     """
@@ -33,25 +33,25 @@ class SignalMixin(object):
     Expects two more keyword arguments to be passed to the property constructor:
         - signal_name: a dotted string describing where to get the signal object
           from the instance
-        - hold_signal: a flag indicating whether to hold the signal while setting
-          the property (True) or emit it before setting (False)
     """
 
     signal_name = "data_changed"
-    hold_signal = True
-
-    def __get_event_context__(self, instance):
-        signal = rec_getattr(instance, self.signal_name, None)
-        if self.hold_signal and signal is not None:
-            return signal.hold_and_emit
-        else:
-            def dummy():
-                yield
-                if signal is not None: signal.emit()
-            return contextmanager(dummy)
 
     def __set__(self, instance, value):
-        with self.__get_event_context__(instance)():
+        signal = rec_getattr(instance, self.signal_name, None)
+        if signal is not None:
+            # Get the old value
+            old = getattr(instance, self.label)
+            with signal.ignore():
+                super(SignalMixin, self).__set__(instance, value)
+            # Get the new value
+            new = getattr(instance, self.label)
+            # Check if we're dealing with some special class (in case we
+            # emit the signal anyway) or immutables (in case we only emit
+            # when the value has changed)  
+            if isinstance(old, observables.ObsWrapperBase) or old != new:
+                signal.emit()
+        else:
             super(SignalMixin, self).__set__(instance, value)
-
+            
     pass # end of class

@@ -6,16 +6,21 @@
 # Complete license can be found in the LICENSE file.
 
 import logging
-from pyxrd.generic.models.event_context_manager import EventContextManager
-from pyxrd.calculations.mixture import get_optimized_residual
 logger = logging.getLogger(__name__)
 
 import random
 
-from mvc import PropIntel, OptionPropIntel
+from mvc.models.properties import (
+    LabeledProperty, ListProperty, IntegerChoiceProperty, BoolProperty,
+    ReadOnlyMixin
+)
 from mvc.models import TreeNode
 
+from pyxrd.generic.models.event_context_manager import EventContextManager
+from pyxrd.generic.models.properties import InheritableMixin
 from pyxrd.generic.models import ChildModel
+
+from pyxrd.calculations.mixture import get_optimized_residual
 
 from .refinables.mixins import RefinementValue, RefinementGroup
 from .refinables.wrapper import RefinableWrapper
@@ -30,38 +35,44 @@ class Refinement(ChildModel):
 
     # MODEL INTEL:
     class Meta(ChildModel.Meta):
-        properties = [ # TODO add labels
-            PropIntel(name="refinables", label="", has_widget=True, data_type=object, is_column=True, widget_type="object_tree_view", class_type=RefinableWrapper),
-            PropIntel(name="refine_options", label="", data_type=dict, is_column=False),
-            OptionPropIntel(name="refine_method_index", label="Refinement method index", has_widget=True, data_type=int, options={ key: method.name for key, method in RefineMethodManager.get_all_methods().iteritems() }),
-            PropIntel(name="make_psp_plots", label="", data_type=bool, is_colum=False, has_widget=True, storable=False),
-        ]
         store_id = "Refinement"
 
     mixture = property(ChildModel.parent.fget, ChildModel.parent.fset)
 
     #: Flag, True if after refinement plots should be generated of the parameter space
-    make_psp_plots = False
+    make_psp_plots = BoolProperty(
+        default=False, text="Make parameter space plots",
+        tabular=False, visible=True, persistent=True
+    )
 
     #: TreeNode containing the refinable properties
-    refinables = None
+    refinables = ListProperty(
+        default=None, text="Refinables",
+        tabular=True, persistent=False, visible=True, 
+        data_type=RefinableWrapper,
+        cast_to=None, widget_type="object_tree_view"
+    )
 
     #: A dict containing an instance of each refinement method
     refine_methods = None
 
-    _refine_method_index = 0
-    @property
-    def refine_method_index(self):
-        """ An integer describing which method to use for the refinement """
-        return self._refine_method_index
-    @refine_method_index.setter
-    def refine_method_index(self, value): self._refine_method_index = int(value)
+
+    #: An integer describing which method to use for the refinement
+    refine_method_index = IntegerChoiceProperty(
+        default=0, text="Refinement method index",
+        tabular=True, persistent=True, visible=True,
+        choices={ key: method.name for key, method in RefineMethodManager.get_all_methods().iteritems() }
+    )
 
     #: A dict containing the current refinement options
-    @property
+    @LabeledProperty(
+        default=None, text="Refine options",
+        persistent=False, visible=False,
+        mix_with=(ReadOnlyMixin,)
+    )
     def refine_options(self):
         return self.get_refinement_method().get_options()
-
+    
     #: A dict containing all refinement options
     @property
     def all_refine_options(self):
@@ -172,10 +183,10 @@ class Refinement(ChildModel):
                     root_node: the root TreeNode new iters should be put under
                 """
                 if prop is not None:
-                    if hasattr(obj, "get_uninherited_property_value"):
-                        value = obj.get_uninherited_property_value(prop)
+                    if isinstance(prop, InheritableMixin):
+                        value = prop.get_uninherited(obj)
                     else:
-                        value = getattr(obj, prop.name)
+                        value = getattr(obj, prop.label)
                 else:
                     value = obj
 

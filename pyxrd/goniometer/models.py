@@ -9,20 +9,17 @@ from math import radians
 import numpy as np
 
 from mvc.models.properties import (
-    FloatProperty, IntegerProperty, BoolProperty,
-    SignalMixin, LabeledProperty
+    LabeledProperty, FloatProperty, IntegerProperty, BoolProperty,
+    SignalMixin, ReadOnlyMixin, ObserveMixin
 )
 
 from pyxrd.refinement.refinables.properties import DataMixin
 
 from pyxrd.generic.models import DataModel
-from pyxrd.generic.io import storables, Storable, get_case_insensitive_glob
-from pyxrd.file_parsers.json_parser import JSONParser
-from pyxrd.data import settings
-from pyxrd.generic.io.utils import retrieve_lowercase_extension
-
-from pyxrd.generic.io.utils import retrieve_lowercase_extension
+from pyxrd.generic.io import storables, Storable
 from pyxrd.generic.models.lines import StorableXYData
+
+from pyxrd.file_parsers.json_parser import JSONParser
 
 from pyxrd.calculations.goniometer import (
     get_lorentz_polarisation_factor,
@@ -84,18 +81,22 @@ class Goniometer(DataModel, Storable):
     #: The wavelength distribution
     wavelength_distribution = LabeledProperty(
         default=None, text="Wavelength distribution",
-        tabular=False, persistent=True, visible=False, 
+        tabular=False, persistent=True, visible=True, 
         signal_name="data_changed", widget_type="xy_list_view",
-        mix_with=(SignalMixin)
+        mix_with=(SignalMixin, ObserveMixin)
     )
 
-    #: The wavelength of the generated X-rays (in nm)
-    wavelength = FloatProperty(
-        default=0.154056, text="Wavelength", minimum=0.0,
-        tabular=True, persistent=True, visible=True,
-        signal_name="data_changed", widget_type='float_entry',
-        mix_with=(DataMixin, SignalMixin)
+    @FloatProperty(
+        default=0.154056, text="Wavelength",
+        tabular=True, persistent=False, visible=False,
+        signal_name="data_changed",
+        mix_with=(ReadOnlyMixin,)
     )
+    def wavelength(self):
+        """The wavelength of the generated X-rays (in nm)"""
+        # Get the dominant wavelength in the distribution:
+        x, y = self.wavelength_distribution.get_xy_data()
+        return float(x[np.argmax(y)])
 
     #: The first Soller slit size (in °)
     soller1 = FloatProperty(
@@ -221,7 +222,7 @@ class Goniometer(DataModel, Storable):
                     [0.1544426,0.955148885],
                     [0.153475,0.044851115],
                 ]                
-            self._wavelength_distribution = StorableXYData(
+            self.wavelength_distribution = StorableXYData(
                data=self.get_kwarg(kwargs, zip(*default_wld), "wavelength_distribution")
             )           
 

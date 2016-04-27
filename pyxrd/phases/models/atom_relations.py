@@ -84,7 +84,7 @@ class AtomRelation(ComponentPropMixin, RefinementValue, DataModel, Storable):
     #: The name of this AtomRelation
     name = StringProperty(
         default="", text="Name",
-        visible=False, persistent=True, tabular=True,
+        visible=True, persistent=True, tabular=True,
         signal_name="visuals_changed",
         mix_with=(SignalMixin,)
     )

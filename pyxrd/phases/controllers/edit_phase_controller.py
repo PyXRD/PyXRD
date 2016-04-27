@@ -44,8 +44,8 @@ class EditPhaseController(BaseController):
     @property
     def phases_treemodel(self):
         if self.model.project is not None:
-            prop = self.model.project.Meta.get_prop_intel_by_name("phases")
-            return wrap_list_property_to_treemodel(self.model.project, prop)
+            return wrap_list_property_to_treemodel(
+                self.model.project, type(self.model.project).phases)
         else:
             return None
 
@@ -69,15 +69,15 @@ class EditPhaseController(BaseController):
         self.view.set_components_view(self.components_view)
 
     @staticmethod
-    def custom_handler(self, intel, widget): # TODO split out these 4 properties in their own adapters
-        if intel.name in ("CSDS_distribution", "components", "probabilities", "based_on"):
-            if intel.name == "CSDS_distribution":
+    def custom_handler(self, prop, widget): # TODO split out these 4 properties in their own adapters
+        if prop.label in ("CSDS_distribution", "components", "probabilities", "based_on"):
+            if prop.label == "CSDS_distribution":
                 self.reset_csds_controller()
-            elif intel.name == "components":
+            elif prop.label == "components":
                 self.reset_components_controller()
-            elif intel.name == "probabilities":
+            elif prop.label == "probabilities":
                 self.reset_probabilities_controller()
-            elif intel.name == "based_on" and self.phases_treemodel is not None:
+            elif prop.label == "based_on" and self.phases_treemodel is not None:
                 combo = self.view["phase_based_on"]
 
                 combo.set_model(self.phases_treemodel)
@@ -94,7 +94,7 @@ class EditPhaseController(BaseController):
                         combo.set_active_iter (row.iter)
                         break
 
-            return DummyAdapter(controller=self, prop=intel)
+            return DummyAdapter(controller=self, prop=prop)
 
     def reset_csds_controller(self):
         if self.csds_controller is None:

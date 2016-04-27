@@ -12,7 +12,5 @@ from .status_bar_mixin import StatusBarMixin
 class BaseController(StatusBarMixin, Controller):
     file_filters = ("All Files", "*.*")
     widget_handlers = {} # handlers can be string representations of a class method
-    auto_adapt_included = None
-    auto_adapt_excluded = None
 
     pass # end of class

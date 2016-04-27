@@ -347,7 +347,6 @@ class Atom(DataModel, Storable):
         mix_with=(ReadOnlyMixin,)
     )
 
-    _atom_type_index = None
     _atom_type_uuid = None
     _atom_type_name = None
     def _set_atom_type(self, value):
@@ -361,7 +360,7 @@ class Atom(DataModel, Storable):
     #: The AtomType to be used for this Atom.
     atom_type = LabeledProperty(
         default=None, text="Atom Type",
-        visible=True, persistent=True, tabular=True, data_type=AtomType,
+        visible=True, persistent=False, tabular=True, data_type=AtomType,
         signal_name="data_changed",
         fset=_set_atom_type,
         mix_with=(SignalMixin,)
@@ -402,10 +401,9 @@ class Atom(DataModel, Storable):
         self.default_z = float(self.get_kwarg(kwargs, 0.0, "default_z", "data_z", "z"))
         self.pn = float(self.get_kwarg(kwargs, 0.0, "pn", "data_pn"))
 
-        self.atom_type = self.get_kwarg(kwargs, None, "atom_type", "data_atom_type")
+        self.atom_type = self.get_kwarg(kwargs, None, "atom_type")
         self._atom_type_uuid = self.get_kwarg(kwargs, None, "atom_type_uuid")
         self._atom_type_name = self.get_kwarg(kwargs, None, "atom_type_name")
-        self._atom_type_index = self.get_kwarg(kwargs, None, "atom_type_index")
 
     def __str__(self):
         return "<Atom %s(%s)>" % (self.name, repr(self))
@@ -446,23 +444,16 @@ class Atom(DataModel, Storable):
     def resolve_json_references(self):
         if getattr(self, "_atom_type_uuid", None) is not None:
             self.atom_type = type(type(self)).object_pool.get_object(self._atom_type_uuid)
-        if self.atom_type is None and \
-                getattr(self, "_atom_type_name", None) is not None or \
-                getattr(self, "_atom_type_index", None) is not None:
+        if getattr(self, "_atom_type_name", None) is not None:
             assert(self.component is not None)
             assert(self.component.phase is not None)
             assert(self.component.phase.project is not None)
-            if getattr(self, "_atom_type_name", None) is not None:
-                for atom_type in self.component.phase.project.atom_types:
-                    if atom_type.name == self._atom_type_name:
-                        self.atom_type = atom_type
-            else:
-                warn("The use of object indeces is deprected since version 0.4. \
-                    Please switch to using object UUIDs.", DeprecationWarning)
-                self.atom_type = self.component.phase.project.atom_types.get_user_data_from_path((self._atom_type_index,))
+            for atom_type in self.component.phase.project.atom_types:
+                if atom_type.name == self._atom_type_name:
+                    self.atom_type = atom_type
+                    break
         self._atom_type_uuid = None
         self._atom_type_name = None
-        self._atom_type_index = None
 
     def json_properties(self):
         retval = super(Atom, self).json_properties()

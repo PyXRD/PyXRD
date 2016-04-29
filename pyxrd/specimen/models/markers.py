@@ -175,9 +175,9 @@ class ThresholdSelector(ChildModel):
     #      Methods & Functions
     # ------------------------------------------------------------
     def get_xy(self):
-        if self._pattern == "exp":
+        if self.pattern == "exp":
             data_x, data_y = self.parent.experimental_pattern.get_xy_data()
-        elif self._pattern == "calc":
+        elif self.pattern == "calc":
             data_x, data_y = self.parent.calculated_pattern.get_xy_data()
         if data_y.size > 0:
             data_y = data_y / np.max(data_y)
@@ -187,10 +187,10 @@ class ThresholdSelector(ChildModel):
     def update_threshold_plot_data(self):
         if self.parent is not None and not self._updating_plot_data:
             self._updating_plot_data = True
-            if self._pattern == "exp":
+            if self.pattern == "exp":
                 p, t, m = self.parent.experimental_pattern.get_best_threshold(
                             self.max_threshold, self.steps)
-            elif self._pattern == "calc":
+            elif self.pattern == "calc":
                 p, t, m = self.parent.calculated_pattern.get_best_threshold(
                             self.max_threshold, self.steps)
             self.threshold_plot_data = p

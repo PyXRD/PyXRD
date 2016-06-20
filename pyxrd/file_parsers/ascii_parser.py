@@ -20,6 +20,7 @@ class ASCIIParser(BaseParser):
     @classmethod
     def get_last_line(cls, f):
         i = -1
+        f.seek(0)
         for i, l in enumerate(f):
             pass
         return i + 1, l

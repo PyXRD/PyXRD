@@ -30,6 +30,10 @@ class BrkRAWParser(XRDParserMixin, BaseParser):
     __file_mode__ = "rb"
 
     @classmethod
+    def _clean_bin_str(cls, val):
+        return u(str(val).replace("\0", "").strip())
+
+    @classmethod
     def _parse_header(cls, filename, fp, data_objects=None, close=False):
         f = fp
 
@@ -71,7 +75,7 @@ class BrkRAWParser(XRDParserMixin, BaseParser):
                 # (contain theta, khi and phi start point for eularian craddles)
                 f.seek(12, SEEK_CUR)
                 # Read sample name and wavelengths:
-                sample_name = u(str(f.read(32)).replace("\0", "").strip())
+                sample_name = cls._clean_bin_str(f.read(32))
                 alpha1, alpha2 = struct.unpack("ff", f.read(8))
                 # Skip 72 bytes:
                 f.seek(72, SEEK_CUR)
@@ -114,7 +118,7 @@ class BrkRAWParser(XRDParserMixin, BaseParser):
 
             # Read sample name:
             f.seek(8, SEEK_SET)
-            sample_name = u(str(f.read(32)).replace("\0", "").strip())
+            sample_name = cls._clean_bin_str(f.read(32))
             # Meta-data description, skip for now:
             # description = u(str(f.read(128)).replace("\0", "").strip())
             # date = u(str(f.read(10)).replace("\0", "").strip())
@@ -163,23 +167,38 @@ class BrkRAWParser(XRDParserMixin, BaseParser):
 
         elif version == "RAW3":
 
-            # Read file status:
+            # Read file status:    
+            f.seek(8, SEEK_SET)       
             file_status = { #@UnusedVariable
                 1: "done",
                 2: "active",
                 3: "aborted",
                 4: "interrupted"
-            }[int(struct.unpack("H", f.read(4))[0])]
+            }[int(struct.unpack("I", f.read(4))[0])]
 
             # Read number of samples inside this file:
-            num_samples, = struct.unpack("H", f.read(4))
-
-            # Adapt XRDFile list
-            data_objects = cls._adapt_data_object_list(data_objects, num_samples=num_samples)
+            f.seek(12, SEEK_SET)
+            num_samples, = struct.unpack("I", f.read(4))
 
             # Read in sample name:
             f.seek(326, SEEK_SET)
-            sample_name = str(f.read(60))
+            sample_name =  cls._clean_bin_str(f.read(60))
+
+            # Goniometer radius:
+            f.seek(564, SEEK_SET)
+            radius = float(struct.unpack("f", f.read(4))[0])
+
+            # Fixed divergence:
+            f.seek(568, SEEK_SET)
+            divergence = float(struct.unpack("f", f.read(4))[0])
+
+            # Primary soller
+            f.seek(576, SEEK_SET)
+            soller1 = float(struct.unpack("f", f.read(4))[0])
+
+            # Secondary soller
+            f.seek(592, SEEK_SET)
+            soller2 = float(struct.unpack("f", f.read(4))[0])
 
             # Get anode type:
             f.seek(608, SEEK_SET)
@@ -190,19 +209,31 @@ class BrkRAWParser(XRDParserMixin, BaseParser):
             alpha_average, alpha1, alpha2, beta, alpha_factor = (#@UnusedVariable
                 struct.unpack("ddddd", f.read(8 * 5)))
 
-
             # Get total recording time:
+            f.seek(664, SEEK_SET)
             time_total, = struct.unpack("f", f.read(4)) #@UnusedVariable
-
+            
+            # Adapt XRDFile lis & Skip to first block:t
+            data_objects = cls._adapt_data_object_list(data_objects, num_samples=num_samples)
+            f.seek(712, SEEK_SET)
+            
             # Read in per-sample meta data
             for i in range(num_samples):
                 # Store the start of the header:
                 header_start = f.tell()
 
-                # Get header length, data count and theta start position
-                header_length, twotheta_count = struct.unpack("HH", f.read(4))
-                theta_min, twotheta_min = struct.unpack("dd", f.read(8 * 2))#@UnusedVariable
-                data_start = header_start + header_length
+                # Get header length
+                f.seek(header_start + 0, SEEK_SET)
+                header_length, = struct.unpack("I", f.read(4))
+                assert header_length == 304, "Invalid format!"
+                
+                # Get data count and
+                f.seek(header_start + 4, SEEK_SET)
+                twotheta_count, = struct.unpack("I", f.read(4))
+                
+                # Get theta start positions
+                f.seek(header_start + 8, SEEK_SET)
+                theta_min, twotheta_min = struct.unpack("dd", f.read(8 * 2))#@UnusedVariable               
 
                 # Read step size
                 f.seek(header_start + 176, SEEK_SET)
@@ -216,9 +247,17 @@ class BrkRAWParser(XRDParserMixin, BaseParser):
                 f.seek(header_start + 240, SEEK_SET)
                 alpha_used, = struct.unpack("d", f.read(8))#@UnusedVariable
 
+                # Supplementary header size:
+                f.seek(header_start + 256, SEEK_SET)
+                supp_headers_size, = struct.unpack("I", f.read(4))
+                data_start = header_start + header_length + supp_headers_size
+
                 # Move to the end of the data:
                 f.seek(data_start + twotheta_count * 4)
-
+                
+                # Calculate last data point
+                twotheta_max = twotheta_min + twotheta_step * float(twotheta_count - 0.5)
+                
                 data_objects[i].update(
                     filename=basename,
                     version=version,
@@ -230,7 +269,11 @@ class BrkRAWParser(XRDParserMixin, BaseParser):
                     alpha1=alpha1,
                     alpha2=alpha2,
                     alpha_factor=alpha_factor,
-                    data_start=data_start
+                    data_start=data_start,
+                    radius=radius,
+                    soller1=soller1,
+                    soller2=soller2,
+                    divergence=divergence
                 )
 
         else:
@@ -244,7 +287,7 @@ class BrkRAWParser(XRDParserMixin, BaseParser):
         for data_object in data_objects:
             if data_object.data == None:
                 data_object.data = []
-
+            
             # Parse data:
             if fp is not None:
                 if data_object.version in ("RAW1", "RAW2", "RAW3"):
@@ -252,10 +295,8 @@ class BrkRAWParser(XRDParserMixin, BaseParser):
                     n = 0
                     while n < data_object.twotheta_count:
                         y, = struct.unpack("f", fp.read(4))
-                        data_object.data.append([
-                            data_object.twotheta_min + data_object.twotheta_step * float(n + 0.5),
-                            y
-                        ])
+                        x = data_object.twotheta_min + data_object.twotheta_step * float(n + 0.5)
+                        data_object.data.append([x,y])
                         n += 1
                 else:
                     raise IOError, "Only verson 1, 2 and 3 *.RAW files are supported!"

@@ -196,7 +196,7 @@ class XYListStore(BaseObjectListStore, Observer):
     def on_iter_n_children(self, rowref):
         if rowref is not None:
             return 0
-        return self._data_x.size
+        return len(self)
 
     def on_iter_nth_child(self, rowref, n):
         if rowref is not None:

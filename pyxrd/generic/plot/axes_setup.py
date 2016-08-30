@@ -83,7 +83,7 @@ def set_nm_ticks(axis, wavelength, xmin, xmax):
 
     pass #end of func
 
-def update_xaxis(axes, title=u'Angle (°2θ)', weight='heavy',
+def update_xaxis(axes, title=u'Angle (°2$\\theta$)', weight='heavy',
             rotation=0, ha="center", va="center",
             pad=0, size=16, nm_ticks=False, wavelength=None):
 

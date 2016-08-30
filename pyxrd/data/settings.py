@@ -276,15 +276,16 @@ def initialize(override_debug=DEBUG):
             # Setup matplotlib fonts:
             font = {
                 'weight' : 'heavy', 'size': 14,
+		'sans-serif' : 'Helvetica, Arial, sans-serif',
                 'family' : 'sans-serif',
             }
-            if sys.platform == "win32":
-                font['sans-serif'] = 'Verdana, Arial, Helvetica, sans-serif'
             matplotlib.rc('font', **font)
-            mathtext = {'default': 'regular', 'fontset': 'stixsans'}
+            mathtext = {
+                'default': 'regular',
+                'fontset': 'stixsans',
+            }
             matplotlib.rc('mathtext', **mathtext)
             # matplotlib.rc('text', **{'usetex':True})
-
             # Load our own icons:
             iconfactory = gtk.IconFactory()
             icons_path = DATA_REG.get_directory_path("APPLICATION_ICONS")

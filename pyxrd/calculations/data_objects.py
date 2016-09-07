@@ -92,14 +92,14 @@ class ComponentData(DataObject):
 class CSDSData(DataObject):
     """ The DataObject describing the CSDS distribution. """
 
-    #: mean CSDS
-    Tmean = None
+    #: average CSDS
+    average = None
 
     #: maximum CSDS
-    Tmax = None
+    maximum = None
 
     #: minimum CSDS
-    Tmin = None
+    minimum = None
 
     #: the alpha scale factor for the log-normal distribution
     alpha_scale = None

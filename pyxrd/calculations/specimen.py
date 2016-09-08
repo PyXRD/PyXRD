@@ -6,30 +6,37 @@
 # Complete license can be found in the LICENSE file.
 
 import numpy as np
+from math import radians, tan
 from scipy.interpolate.interpolate import interp1d
 
 from pyxrd.calculations.goniometer import (
-    get_machine_correction_range,
-    get_lorentz_polarisation_factor
+    get_fixed_to_ads_correction_range,
+    
 )
-from pyxrd.calculations.phases import get_diffracted_intensity
+from pyxrd.calculations.phases import get_intensity
 
-def get_intensity(range_theta, range_stl, soller1, soller2, phase):
-    """
-        Gets intensity for a single taking the
-        lorentz polarization factor into account.
-    """
 
-    intensity = get_diffracted_intensity(range_theta, range_stl, phase)
-    if phase.apply_lpf:
-        lpf = get_lorentz_polarisation_factor(
-            range_theta,
-            phase.sigma_star,
-            soller1, soller2
-        )
-        return intensity * lpf
-    else:
-        return intensity
+def get_machine_correction_range(specimen):
+    """
+        Calculate a correction factor for a certain sample length,
+        sample absorption and machine setup.
+    """
+    goniometer = specimen.goniometer
+    range_st = np.sin(specimen.range_theta)
+    correction_range = np.ones_like(specimen.range_theta)
+    
+    # Correct for automatic divergence slits first:
+    if bool(goniometer.has_ads):
+        correction_range *= get_fixed_to_ads_correction_range(
+            specimen.range_theta, goniometer)
+    # Then correct for sample absorption:
+    if specimen.absorption > 0.0:
+        correction_range *= np.minimum(1.0 - np.exp(-2.0 * specimen.absorption / range_st), 1.0)
+    # And finally correct for sample length:
+    if not bool(goniometer.has_ads):
+        L_Rta = specimen.sample_length / (goniometer.radius * tan(radians(goniometer.divergence)))
+        correction_range *= np.minimum(range_st * L_Rta, 1)
+    return correction_range
 
 def calculate_phase_intensities(specimen):
     """

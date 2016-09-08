@@ -40,7 +40,7 @@ class TestAtomCalcs(unittest.TestCase):
 
     def test_not_none(self):
         self.assertIsNotNone(self.atom_type_data)
-        self.assertIsNotNone(self.atomData)
+        self.assertIsNotNone(self.atom_data)
 
     def test_scattering_factor(self):
         result = get_atomic_scattering_factor(

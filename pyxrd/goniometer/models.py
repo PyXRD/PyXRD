@@ -20,7 +20,6 @@ from pyxrd.generic.models.lines import StorableXYData
 
 from pyxrd.calculations.goniometer import (
     get_lorentz_polarisation_factor,
-    get_machine_correction_range,
     get_fixed_to_ads_correction_range,
     get_nm_from_2t, get_nm_from_t,
     get_2t_from_nm, get_t_from_nm,
@@ -298,16 +297,6 @@ class Goniometer(DataModel, Storable):
         delta_theta = float(max_theta - min_theta) / float(self.steps)
         theta_range = (min_theta + delta_theta * np.arange(0, self.steps, dtype=float)) + delta_theta * 0.5
         return theta_range
-
-    def get_machine_correction_range(self, range_theta, sample_length, absorption):
-        """
-            Calculates correction factors for the given theta range, sample
-            length and absorption using the information about the goniometer's
-            geometry.
-        """
-        return get_machine_correction_range(
-            range_theta, sample_length, absorption, self.data_object
-        )
 
     def get_lorentz_polarisation_factor(self, range_theta, sigma_star):
         """

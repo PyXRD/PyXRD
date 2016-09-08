@@ -14,6 +14,7 @@ from scipy.interpolate import interp1d
 from pyxrd.generic.custom_math import mmult
 
 from pyxrd.calculations.CSDS import calculate_distribution
+from pyxrd.calculations.goniometer import get_lorentz_polarisation_factor
 from pyxrd.calculations.components import get_factors
 
 def get_structure_factors(range_stl, G, comp_list):
@@ -65,12 +66,33 @@ def get_absolute_scale(components, CSDS_real_mean, W):
         return 0.0
 
 def get_diffracted_intensity(range_theta, range_stl, phase):
+    """
+        Gets intensity for a single phase without taking the
+        lorentz polarization factor into account.
+    """
+    
     if phase.type == "AbtractPhase":
         raise NotImplementedError
     elif phase.type == "RawPatternPhase":
         return _get_raw_intensity(range_theta, range_stl, phase)
     else:
         return _get_diffracted_intensity(range_theta, range_stl, phase)
+
+def get_intensity(range_theta, range_stl, soller1, soller2, phase):
+    """
+        Gets intensity for a single phase taking the
+        lorentz polarization factor into account.
+    """
+
+    intensity = get_diffracted_intensity(range_theta, range_stl, phase)
+    if phase.apply_lpf:
+        return intensity * get_lorentz_polarisation_factor(
+            range_theta,
+            phase.sigma_star,
+            soller1, soller2
+        )
+    else:
+        return intensity
 
 def _get_raw_intensity(range_theta, range_stl, phase):
     assert phase.type == "RawPatternPhase", "Must be RawPatternPhase!"

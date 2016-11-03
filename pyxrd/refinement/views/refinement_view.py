@@ -67,10 +67,18 @@ class RefinementView(DialogView):
         self["refinables"].set_visible(True)
         self["refinables"].set_no_show_all(False)
 
-    def update_refinement_info(self, current_rp=None, message=None):
+    def update_refinement_info(self, current_rp=None, message=None, server_status=None):
         if not isnan(current_rp):
             self["current_residual"].set_text("%.2f" % current_rp)
         self["message"].set_text(not_none(message, ""))
+        self.update_server_status(server_status)
+        
+    def update_server_status(self, server_status):
+        color, title, descr = server_status
+        self["lbl_server_status"].set_markup("<span foreground=\"%s\">%s</span>" % (color, title))
+        self["lbl_server_status"].set_property("tooltip-text", descr)
+        self["lbl_server_status"].set_property("tooltip-text", descr)
+        self["lbl_server_status"].set_tooltip_text(descr)
 
     def update_refinement_status(self, status):
         self.refine_spin_box.set_status(status)

@@ -217,11 +217,11 @@ ASYNC_SERER_PROVIDERS = [
    "pyxrd.server.provider.Pyro4AsyncServerProvider",
    "pyxrd.generic.async.dummy_async_provider.DummyAsyncServerProvider",
 ]
-
-SETTINGS_APPLIED = False
-ARGS = None
+ASYNC_SERVER_PRELOAD = True
 
 ### Runtime Settings Retrieval ###
+SETTINGS_APPLIED = False
+ARGS = None
 
 def _parse_args():
     """ Parses command line arguments """

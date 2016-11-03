@@ -13,6 +13,7 @@ import sys
 
 from mvc.adapters.gtk_support.dialogs.dialog_factory import DialogFactory
 
+from pyxrd.generic.async.providers import get_status
 from pyxrd.generic.threads import CancellableThread
 from pyxrd.generic.gtk_tools.utils import run_when_idle
 from pyxrd.generic.views.treeview_tools import new_text_column, new_pb_column, new_toggle_column
@@ -174,6 +175,8 @@ class RefinementController(DialogController):
     def register_view(self, view):
         # Create the method treeview:
         self._setup_method_options_treeview()
+        # Update the server status:
+        self.view.update_server_status(get_status())
 
     def cleanup(self):
         if hasattr(self, "view"):
@@ -217,7 +220,8 @@ class RefinementController(DialogController):
             if self.view is not None and refiner is not None:
                 self.view.update_refinement_info(
                     refiner.history.last_residual,
-                    refiner.status.message
+                    refiner.status.message,
+                    get_status()
                 )
                 return True
             else:

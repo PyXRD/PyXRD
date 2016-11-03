@@ -27,6 +27,60 @@ class Pyro4AsyncServerProvider(object):
     """
     
     @classmethod
+    def check_nameserver_alive(cls):
+        try:
+            ns = Pyro4.naming.locateNS()
+            ns.ping()
+            return True
+        except any:
+            print_exc()
+            return False
+    
+    @classmethod
+    def check_server_is_listed(cls):
+        try:
+            ns = Pyro4.naming.locateNS()
+            objects = ns.list()
+            if settings.PYRO_NAME in objects:
+                return True
+            else:
+                return False
+        except any:
+            print_exc()
+            return False
+    
+    """
+        Async Provider Implementation: 
+    """
+    @classmethod
+    def get_status(cls):
+        """ should return a three-tuple consisting of the status colour, label and a description:
+            ("#FF0000", "Error", "Nameserver not running")
+        """
+        try:         
+            if not cls.check_nameserver_alive():
+                return ("#FFFF00", "Nameserver Error", "Pyro4 Nameserver not running")
+        except:
+            print_exc()
+            return ("#FF0000", "Nameserver Exception", "Exception when checking if Pyro4 Nameserver is running")
+        
+        try:         
+            if not cls.check_server_is_listed():
+                return ("#FFFF00", "Nameserver Error", "Pyro4 PyXRD server not listed")
+        except:
+            print_exc()
+            return ("#FF0000", "Nameserver Exception", "Exception when checking if Pyro4 PyXRD server is listed")
+        
+        try:         
+            if not cls.check_server_is_alive():
+                return ("#FFFF00", "PyXRD Server Error", "Cannot connect to Pyro4 PyXRD server")
+        except:
+            print_exc()
+            return ("#FF0000", "PyXRD Server Exception", "Exception when connecting to Pyro4 PyXRD server")
+                    
+        return ("#00FF00", "Connected (Pyro4)", "Succesfully connected to Pyro4 PyXRD Server")
+    
+    @classmethod
     def check_server_is_alive(cls):
         try:
             server = cls.get_server(auto_start=False)

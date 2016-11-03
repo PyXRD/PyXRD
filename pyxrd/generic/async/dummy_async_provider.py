@@ -12,6 +12,13 @@ class DummyAsyncServerProvider(object):
     _server = DummyAsyncServer()
     
     @classmethod
+    def get_status(cls):
+        """ should return a three-tuple consisting of the status colour, label and a description:
+            ("#FF0000", "Error", "Nameserver not running")
+        """            
+        return ("#00FF00", "Connected (Dummy)", "Succesfully connected to Dummy PyXRD Server")
+    
+    @classmethod
     def get_server(cls):
         return cls._server
     

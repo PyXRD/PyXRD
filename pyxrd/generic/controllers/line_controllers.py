@@ -242,7 +242,7 @@ class BackgroundController(PatternActionController):
         Controller for the experimental pattern 'remove background' action view.
     """
 
-    file_filters = xrd_parsers.get_file_filters()
+    file_filters = xrd_parsers.get_import_file_filters()
 
     auto_adapt_included = [
         "bg_type",
@@ -258,8 +258,8 @@ class BackgroundController(PatternActionController):
         view.set_file_dialog(
             DialogFactory.get_load_dialog(
                 title="Open XRD file for import",
-                filters=xrd_parsers.get_import_file_filters(),
-                parent=view.get_top_widget()
+                parent=view.get_top_widget(),
+                filters=self.file_filters
             ),
             self.on_pattern_file_set
         )

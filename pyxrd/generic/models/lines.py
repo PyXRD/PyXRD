@@ -562,7 +562,7 @@ class ExperimentalLine(PyXRDLine):
 
     #: Shift reference position
     shift_position = FloatChoiceProperty(
-        default=0.42574, text="Shift position", choices=settings.PATTERN_SMOOTH_TYPES,
+        default=0.42574, text="Shift position", choices=settings.PATTERN_SHIFT_POSITIONS,
         persistent=False, visible=True,
         signal_name="visuals_changed", set_action_name="setup_shift_variables",
         mix_with=(SignalMixin, SetActionMixin,)

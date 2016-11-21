@@ -111,15 +111,5 @@ class RefineHistory(object):
             raise RuntimeError, "Cannot perform analysis on an open refinement history"
         return self.samples[:,[self.ITERATION_INDEX,self.RESIDUAL_INDEX]].tolist()
         
-    """ MOVE  THIS ELSEWHERE, history doesn't know or care about names! 
-    def get_parameter_value_per_iteration(self, *parameter_names):
-        if not self._closed:
-            raise RuntimeError, "Cannot perform analysis on an open refinement history"
-        indexes = [
-            self.parameter_names.index(parameter_name) 
-            for parameter_name in parameter_names
-        ]
-        return self.samples[:,indexes].tolist()"""
-        
     pass #end of class
         

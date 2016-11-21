@@ -49,7 +49,7 @@ def Rpder(exp, calc):
 
 def Rpw(exp, calc):
     """
-        Calculated the 'weighted pattern R factor' (aka Rwp) for the given experimental and
+        Calculates the 'weighted pattern R factor' (aka Rwp) for the given experimental and
         calculated patterns (1D numpy arrays, y-values only)
         The weights are set equal to the inverse of the observed intensities.  
     """

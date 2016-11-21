@@ -126,7 +126,7 @@ class ThresholdSelector(ChildModel):
     max_threshold = FloatProperty(
         default=0.32, text="Maximum threshold",
         visible=True, persistent=False,
-        minimum=0.0, maximum=1.0,
+        minimum=0.0, maximum=1.0, widget_type="float_entry",
         set_action_name="update_threshold_plot_data",
         mix_with=(SetActionMixin,)
     )
@@ -142,17 +142,12 @@ class ThresholdSelector(ChildModel):
     sel_num_peaks = IntegerProperty(
         default=0, text="Selected number of peaks",
         visible=True, persistent=False,
-        #widget_type="label"
+        widget_type="label"
     )
 
-    sel_threshold = FloatProperty(
-        default=0.1, text="Selected threshold",
-        visible=True, persistent=False,
-    )
-    @sel_threshold.setter
     def set_sel_threshold(self, value):
         _sel_threshold = type(self).sel_threshold._get(self)
-        if value != _sel_threshold:
+        if value != _sel_threshold and len(self.threshold_plot_data[0]) > 0:
             _sel_threshold = value
             if _sel_threshold >= self.threshold_plot_data[0][-1]:
                 self.sel_num_peaks = self.threshold_plot_data[1][-1]
@@ -161,6 +156,12 @@ class ThresholdSelector(ChildModel):
             else:
                 self.sel_num_peaks = int(interp1d(*self.threshold_plot_data)(_sel_threshold))
             type(self).sel_threshold._set(self, _sel_threshold)
+    sel_threshold = FloatProperty(
+        default=0.1, text="Selected threshold",
+        visible=True, persistent=False,
+        widget_type="float_entry",
+        fset = set_sel_threshold
+    )
 
     threshold_plot_data = LabeledProperty(
         default=None, text="Threshold plot data",

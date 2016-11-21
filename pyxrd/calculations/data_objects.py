@@ -259,8 +259,5 @@ class MixtureData(DataObject):
     #: The number of phases
     m = 0
 
-
-    pass # end of class
-
     pass # end of class
 

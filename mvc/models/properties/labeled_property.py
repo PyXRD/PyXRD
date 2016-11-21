@@ -168,14 +168,14 @@ class LabeledProperty(Mixable):
         return self
 
     def setter(self, fset):
-        # Getter expects to be passed the descriptor
+        # Setter expects to be passed the descriptor
         if len(inspect.getargspec(fset).args) > 2:
             fset = self._inject_self(fset)
         self.fset = fset
         return self
 
     def deleter(self, fdel):
-        # Getter expects to be passed the descriptor
+        # Deleter expects to be passed the descriptor
         if len(inspect.getargspec(fdel).args) > 1:
             fdel = self._inject_self(fdel)
         self.fdel = fdel

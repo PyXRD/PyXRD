@@ -20,8 +20,6 @@ from pyxrd.generic.models.event_context_manager import EventContextManager
 from pyxrd.generic.models.properties import InheritableMixin
 from pyxrd.generic.models import ChildModel
 
-from pyxrd.calculations.mixture import get_optimized_residual
-
 from .refinables.mixins import RefinementValue, RefinementGroup
 from .refinables.wrapper import RefinableWrapper
 from .refine_method_manager import RefineMethodManager
@@ -119,10 +117,13 @@ class Refinement(ChildModel):
        
         return Refiner(
             method            = self.get_refinement_method(),
-            residual_callback = get_optimized_residual,
             data_callback     = lambda: self.mixture.data_object,
             refinables        = self.refinables,
             event_cmgr        = EventContextManager(self.mixture.needs_update, self.mixture.data_changed),
+            metadata          = dict(
+                phases          = self.mixture.phases,
+                num_specimens   = len(self.mixture.specimens),
+            )
         )
 
     # ------------------------------------------------------------

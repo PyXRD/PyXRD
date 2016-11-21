@@ -29,10 +29,11 @@ class Refiner(object):
 
     refinables = None
 
-    def __init__(self, method, residual_callback, data_callback, refinables, event_cmgr):
+    def __init__(self, method, data_callback, refinables, event_cmgr, metadata={}):
         super(Refiner, self).__init__()
         
         assert method is not None, "Cannot refine without a refinement method!"
+        residual_callback = method.residual_callback
         assert callable(residual_callback), "Cannot refine without a residual callback!"
         assert callable(data_callback), "Cannot refine without a data callback!"
         assert refinables is not None, "Cannot refine without refinables!"
@@ -43,6 +44,7 @@ class Refiner(object):
         self.residual_callback = residual_callback
         self.data_callback = data_callback
         self.event_cmgr = event_cmgr
+        self.metadata = metadata
 
         # Create the refinement history object:
         logger.info("Setting up the refinement history.") 
@@ -67,8 +69,8 @@ class Refiner(object):
                 if not (refinable.value_min < refinable.value_max):
                     logger.info("Error in refinement setup!")
                     self.status.error = True
-                    self.status.message = "Invalid parameter range for '%s'!" % (refinable.get_descriptor(),)
-                    raise RefineSetupError, "Invalid parameter range for '%s'!" % (refinable.get_descriptor(),)
+                    self.status.message = "Invalid parameter range for '%s'!" % (refinable.text_descriptor,)
+                    raise RefineSetupError, "Invalid parameter range for '%s'!" % (refinable.text_descriptor,)
                 self.ranges += ((refinable.value_min, refinable.value_max),)
                 self.labels += ((refinable.text_title, refinable.title),)
 
@@ -83,7 +85,7 @@ class Refiner(object):
         initial_solution = np.array(initial_values, dtype=float)
         self.history.set_initial_solution(
             initial_solution,
-            self.get_residual(initial_solution)
+            self.get_history_residual(self.get_residual(initial_solution))
         )
 
     def apply_solution(self, solution):
@@ -112,13 +114,21 @@ class Refiner(object):
         """
         return self.residual_callback(self.get_data_object(solution))
 
+    def get_history_residual(self, residual):
+        try:
+            return residual[0]
+        except IndexError:
+            return residual 
+
     def update(self, solution, residual=None, iteration=0):
         """
             Update's the refinement contect with the given solution:
                 - applies the solution & gets the residual if not given
                 - stores it in the history
         """
-        residual = residual if residual is not None else self.get_residual(solution)
+        residual = self.get_history_residual(
+            residual if residual is not None else self.get_residual(solution)
+        )
         self.history.register_solution(iteration, solution, residual)
 
     def apply_best_solution(self):
@@ -159,7 +169,7 @@ class Refiner(object):
             logger.info('Best solution found was:')                
             for i, ref_prop in enumerate(self.refinables):
                 logger.info("%25s: %f" % (
-                    ref_prop.get_descriptor(), 
+                    ref_prop.text_descriptor, 
                     self.history.best_solution[i]
                 ))
             logger.info("-"*80)

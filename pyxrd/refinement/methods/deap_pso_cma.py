@@ -90,7 +90,7 @@ class SwarmAlgorithm(RefineAsyncHelper):
     #    Initialization
     #--------------------------------------------------------------------------
     def __init__(self, toolbox, halloffame, stats, ngen=NGEN, ngen_comm=NGEN_COMM,
-                 verbose=__debug__, refiner=None, stop=None):
+                 verbose=__debug__, refiner=None, stop=None, eval_func=None, result_func=None):
         """
         :param toolbox: A :class:`~deap.base.Toolbox` that contains the evolution
                         operators.
@@ -126,6 +126,9 @@ class SwarmAlgorithm(RefineAsyncHelper):
         self.halloffame = halloffame
         self.verbose = verbose
         self.refiner = refiner
+
+        self.eval_func = eval_func
+        self.result_func = result_func
 
         self.gen = 0
 
@@ -175,11 +178,18 @@ class SwarmAlgorithm(RefineAsyncHelper):
                     yield solution
                 swarms.append(swarm)
 
+        if self.result_func is None:
+            self.result_func = result_func
+            
         def result_f(*args):
             self.refiner.update(*args)
-            result_func(*args)
+            self.result_func(*args)
 
-        population = self.do_async_evaluation(iter_func=iter_func, result_func=result_f)
+        population = self.do_async_evaluation(
+            iter_func=iter_func,
+            eval_func=self.eval_func,
+            result_func=result_f
+        )
 
         if self.halloffame is not None:
             self.halloffame.update(population)

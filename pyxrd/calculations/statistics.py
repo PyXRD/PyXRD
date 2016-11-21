@@ -77,3 +77,24 @@ def Rpe(exp, calc, num_params):
     # Re = Sqrt( (Points - Params) / Sum[ w * obs² ] )
     num_points = exp.size
     return np.sqrt((num_points - num_params) / np.sum(exp ** 2)) * 100
+
+def Rphase(exp, calc, phase):
+    """
+        Calculates the 'weighted phase R factor' (aka Rphase) for the given experimental and
+        calculated patterns (1D numpy arrays, y-values only)
+        The weights are set equal to the inverse of the observed intensities. 
+    """
+    # weighted Rp:
+    # Rwp = Sqrt ( Sum[w * (obs - calc)²] / Sum[w * obs²] )  w = 1 / Iobs
+    sm1 = 0
+    sm2 = 0
+    for i in range(exp.size):
+        t = (exp[i] - calc[i]) ** 2 * phase[i] / (exp[i]**2)
+        if not (np.isnan(t) or np.isinf(t)):
+            sm1 += t
+            sm2 += abs(phase[i])
+    try:
+        return sqrt(sm1 / sm2) * 100
+    except:
+        return 0
+    

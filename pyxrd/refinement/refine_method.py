@@ -11,6 +11,8 @@ logger = logging.getLogger(__name__)
 from refine_method_meta import RefineMethodMeta
 from refine_async_helper import RefineAsyncHelper
 
+from pyxrd.calculations.mixture import get_optimized_residual
+
 class RefineMethod(RefineAsyncHelper):
     
     """
@@ -34,6 +36,8 @@ class RefineMethod(RefineAsyncHelper):
     index = -1
 
     disabled = True
+    
+    residual_callback = property(fget=lambda *s: get_optimized_residual)
 
     def __call__(self, refiner, stop=None, **kwargs):
 

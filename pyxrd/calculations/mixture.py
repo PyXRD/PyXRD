@@ -17,12 +17,13 @@ from pyxrd.data import settings
 
 from .specimen import calculate_phase_intensities, get_summed_intensities
 from .exceptions import wrap_exceptions
-from .statistics import Rp, Rpw, Rpder
+from .statistics import Rp, Rpw, Rpder, Rphase
 
 __residual_method_map = {
     "Rp" : Rp,
     "Rpw" : Rpw,
-    "Rpder": Rpder
+    "Rpder": Rpder,
+    "Rphase": Rphase
 }
 
 def parse_solution(x, mixture):
@@ -66,6 +67,22 @@ def _get_specimen_residual(specimen, cal=None):
     cal = specimen.total_intensity if cal is None else cal
     cal = cal[specimen.selected_range]
     return __residual_method_map[settings.RESIDUAL_METHOD](exp, cal)
+
+def _get_phase_residuals(specimen, cal=None):
+    return [ _get_phase_residual(specimen, phase_index, cal) for phase_index in range(specimen.phase_intensities.shape[0]) ]
+
+def _get_phase_residual(specimen, phase_index, cal=None):
+    """
+        Returns the residual error for the given specimen and the (otionally)
+        given calculated data. If no calculated data is passed, the calculated
+        data stored in the specimen object is used (and assumed to be set).
+    """
+    exp = specimen.observed_intensity[specimen.selected_range]
+    cal = specimen.total_intensity if cal is None else cal
+    cal = cal[specimen.selected_range]
+    phase = specimen.phase_intensities[phase_index]
+    return __residual_method_map["Rphase"](exp, cal, phase)
+    
 
 def _get_residuals(x, mixture):
     fractions, scales, bgshifts = parse_solution(x, mixture)
@@ -189,16 +206,22 @@ def calculate_mixture(mixture, parsed=False):
         return mixture
     fractions = np.asanyarray(mixture.fractions)
 
+    # This will contain the following residuals:
+    # Average, Specimen1, Specimen2, ...
     mixture.residuals = [0.0, ]
+    # This will contain the average phase residuals 
+    mixture.phase_residuals = []
     for scale, bgshift, specimen in izip(mixture.scales, mixture.bgshifts, mixture.specimens):
         if specimen is not None:
             bgshift = bgshift if settings.BGSHIFT else 0.0
             specimen.total_intensity = get_summed_intensities(specimen, scale, fractions, bgshift)
             if specimen.observed_intensity.size > 0:
                 mixture.residuals.append(_get_specimen_residual(specimen))
+                mixture.phase_residuals.append(_get_phase_residuals(specimen))
             else:
                 logger.warning("calculate_mixture reports: 'Zero observations found!'")
     mixture.residuals[0] = np.average(mixture.residuals[1:])
+    mixture.phase_residuals = np.average(np.asanyarray(mixture.phase_residuals), axis=0).tolist()
     return mixture
 
 @wrap_exceptions
@@ -223,3 +246,13 @@ def get_optimized_residual(mixture):
     mixture = get_optimized_mixture(mixture)
     return mixture.residual
 
+@wrap_exceptions
+def get_optimized_residuals(mixture):
+    """
+        Calculates total intensities for the current mixture, after optimizing
+        fractions, scales & background shifts.
+        Returns all residuals instead of the mixture data object.
+    """
+    mixture = get_optimized_mixture(mixture)
+    return [mixture.residual, mixture.residuals[1:], mixture.phase_residuals] 
+    

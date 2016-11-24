@@ -22,7 +22,7 @@
 #  Boston, MA 02110, USA.
 #  -------------------------------------------------------------------------
 
-from pyxrd.generic.utils import not_none
+from mvc.support.utils import not_none
 
 class ValueWrapper(object):
 

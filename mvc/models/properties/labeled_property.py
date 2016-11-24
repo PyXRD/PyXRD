@@ -22,8 +22,8 @@
 #  Boston, MA 02110, USA.
 #  -------------------------------------------------------------------------
 
-from pyxrd.generic.utils import rec_getattr, rec_setattr
-from ...support.observables.value_wrapper import ValueWrapper
+from mvc.support.utils import  rec_getattr, rec_setattr
+from mvc.support.observables.value_wrapper import ValueWrapper
 import inspect
 
 class Mixable(object):
@@ -111,7 +111,7 @@ class LabeledProperty(Mixable):
     visible = False
 
     #: A string describing what kind of GUI widget can be used to display the
-    #: contents of this property. Check the :mod:`pyxrd.mvc.adapters` module.
+    #: contents of this property. Check the :mod:`mvc.adapters` module.
     widget_type = 'custom'
 
     #: A flag indicating whether this attribute should be visible in a table GUI

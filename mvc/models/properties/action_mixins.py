@@ -22,7 +22,7 @@
 #  Boston, MA 02110, USA.
 #  -------------------------------------------------------------------------
 
-from pyxrd.generic.utils import rec_getattr
+from mvc.support.utils import rec_getattr
 
 class SetActionMixin(object):
     """

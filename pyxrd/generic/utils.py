@@ -9,47 +9,7 @@ import time
 import hashlib
 import sys
 
-def rec_setattr(obj, attr, value):
-    """Set object's attribute. May use dot notation.
-
-    >>> class C(object): pass
-    >>> a = C()
-    >>> a.b = C()
-    >>> rec_setattr(a, 'b.c', 4)
-    >>> a.b.c
-    4
-    """
-    if obj is None:
-        raise AttributeError, "Cannot recursively set attribute (%s) on NoneType" % attr
-    else:
-        if '.' not in attr:
-            setattr(obj, attr, value)
-        else:
-            attr, attrs = attr.split('.', 1)
-            rec_setattr(getattr(obj, attr), attrs, value)
-
-def rec_getattr(obj, attr, default):
-    """Get object's attribute. May use dot notation.
-
-    >>> class C(object): pass
-    >>> a = C()
-    >>> a.b = C()
-    >>> a.b.c = 4
-    >>> rec_getattr(a, 'b.c')
-    4
-    """
-    if obj is None:
-        return default
-    else:
-        if '.' not in attr:
-            return getattr(obj, attr, default)
-        else:
-            attr, attrs = attr.split('.', 1)
-            return rec_getattr(getattr(obj, attr), attrs, default)
-
-def not_none(passed, default):
-    """Convenience function to check if a value is None and return a default if so"""
-    return passed if passed is not None else default
+from mvc.support.utils import rec_getattr, rec_setattr, not_none  # @UnusedImport keep it here
 
 def print_stack_plus():
     """

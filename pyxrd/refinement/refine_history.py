@@ -75,12 +75,18 @@ class RefineHistory(object):
     def last_residual(self):
         return float(self.last_entry[self.RESIDUAL_INDEX])
 
+    # ------------------------------------------------------------
+    #      Initialization and other internals
+    # ------------------------------------------------------------
     def __init__(self):
         self.samples = []
 
     def _sort_solutions_by_iteration(self):
         self.samples.sort(key=lambda s: s[0])
     
+    # ------------------------------------------------------------
+    #      ContextManager implementation
+    # ------------------------------------------------------------    
     def close(self):
         self._closed = True
         self._sort_solutions_by_iteration()
@@ -92,7 +98,10 @@ class RefineHistory(object):
     
     def __exit__(self, tp, value, traceback):
         self.close()
-    
+
+    # ------------------------------------------------------------
+    #      Solution registration:
+    # ------------------------------------------------------------    
     def set_initial_solution(self, solution, residual):
         if self._closed:
             raise RuntimeError, "Cannot change a closed refinement history!"

@@ -88,6 +88,9 @@ def Rphase(exp, calc, phase):
     # Rwp = Sqrt ( Sum[w * (obs - calc)²] / Sum[w * obs²] )  w = 1 / Iobs
     sm1 = 0
     sm2 = 0
+    exp = exp.flatten()
+    calc = calc.flatten()
+    phase = phase.flatten()   
     for i in range(exp.size):
         t = (exp[i] - calc[i]) ** 2 * phase[i] / (exp[i]**2)
         if not (np.isnan(t) or np.isinf(t)):

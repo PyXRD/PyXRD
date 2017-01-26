@@ -6,24 +6,21 @@
 # Complete license can be found in the LICENSE file.
 
 import logging
-
 logger = logging.getLogger(__name__)
-
-from contextlib import contextmanager
 
 from mvc import Controller
 from mvc.adapters.gtk_support.dialogs.dialog_factory import DialogFactory
 
-from pyxrd.generic.controllers import BaseController, ObjectListStoreController
+from pyxrd.generic.controllers import BaseController
 from pyxrd.generic.controllers.objectliststore_controllers import wrap_list_property_to_treemodel
-
-from pyxrd.mixture.models import Mixture
-from pyxrd.mixture.views import EditMixtureView
 
 from pyxrd.refinement.views.refinement_view import RefinementView
 from pyxrd.refinement.controllers.refinement_controller import RefinementController
 
-class EditMixtureController(BaseController):
+class EditInSituMixtureController(BaseController):
+    """
+        The controller for the edit InSituMixture view
+    """
 
     auto_adapt_excluded = [
         "refine_method_index",
@@ -47,6 +44,13 @@ class EditMixtureController(BaseController):
         else:
             return None
 
+    @property
+    def behavs_treemodel(self):
+        if self.model.project is not None:
+            return wrap_list_property_to_treemodel(self.model.project, type(self.model.project).behaviours)
+        else:
+            return None
+
     def register_adapters(self):
         self.create_ui()
 
@@ -59,6 +63,14 @@ class EditMixtureController(BaseController):
             self._add_phase_view(index)
         for index in range(len(self.model.specimens)):
             self._add_specimen_view(index)
+
+    def _is_behav_visible(self, model, itr, indcs):
+        behav = self.behavs_treemodel.get_user_data(itr) if itr is not None else None
+        if behav is not None:
+            phase = self.model.phase_matrix[indcs[0], indcs[1]]
+            return behav.is_compatible_with(phase)
+        else:
+            return False
 
     def _add_phase_view(self, phase_slot):
         """
@@ -75,10 +87,13 @@ class EditMixtureController(BaseController):
             self.model.del_phase_slot(phase_slot)
             widget.disconnect(widget.get_data("deleventid"))
 
-        self.view.add_phase_slot(self.phases_treemodel,
+        self.view.add_phase_slot(
+            self.phases_treemodel, self.behavs_treemodel, 
             on_phase_delete, on_label_changed, on_fraction_changed,
-            self.on_combo_changed, label=self.model.phases[phase_slot],
-            fraction=self.model.fractions[phase_slot], phases=self.model.phase_matrix)
+            None, self.on_phase_combo_changed, 
+            self._is_behav_visible, self.on_behav_combo_changed, 
+            label=self.model.phases[phase_slot], fraction=self.model.fractions[phase_slot], 
+            phases=self.model.phase_matrix, behavs=self.model.behaviour_matrix)        
 
     def _add_specimen_view(self, specimen_slot):
         """
@@ -101,11 +116,14 @@ class EditMixtureController(BaseController):
             self.model.del_specimen_slot(specimen_slot)
             widget.disconnect(widget.get_data("deleventid"))
 
-        self.view.add_specimen_slot(self.phases_treemodel,
-            self.specimens_treemodel, on_specimen_delete, on_scale_changed,
-            on_bgs_changed, on_specimen_changed, self.on_combo_changed,
+        self.view.add_specimen_slot(
+            self.phases_treemodel, self.behavs_treemodel, self.specimens_treemodel, 
+            on_specimen_delete, on_scale_changed, on_bgs_changed, on_specimen_changed, 
+            None, self.on_phase_combo_changed, 
+            self._is_behav_visible, self.on_behav_combo_changed,
             scale=self.model.scales[specimen_slot], bgs=self.model.bgshifts[specimen_slot],
-            specimen=self.model.specimens[specimen_slot], phases=self.model.phase_matrix)
+            specimen=self.model.specimens[specimen_slot], 
+            phases=self.model.phase_matrix, behavs=self.model.behaviour_matrix)
 
     # ------------------------------------------------------------
     #      Notifications of observable properties
@@ -121,10 +139,15 @@ class EditMixtureController(BaseController):
     # ------------------------------------------------------------
     #      GTK Signal handlers
     # ------------------------------------------------------------
-    def on_combo_changed(self, combobox, row, col):
+    def on_phase_combo_changed(self, combobox, row, col):
         itr = combobox.get_active_iter()
         phase = self.phases_treemodel.get_user_data(itr) if itr is not None else None
         self.model.set_phase(row, col, phase)
+        
+    def on_behav_combo_changed(self, combobox, row, col):
+        itr = combobox.get_active_iter()
+        behav = self.behavs_treemodel.get_user_data(itr) if itr is not None else None
+        self.model.set_behaviour(row, col, behav)
 
     def on_add_phase(self, widget, *args):
         with self.model.data_changed.hold():
@@ -165,36 +188,5 @@ class EditMixtureController(BaseController):
         DialogFactory.get_information_dialog(
             comp, parent=self.view.get_toplevel()
         ).run()
-
-    pass # end of class
-
-class MixturesController(ObjectListStoreController):
-
-    treemodel_property_name = "mixtures"
-    treemodel_class_type = Mixture
-    columns = [ ("Mixture name", "c_name") ]
-    delete_msg = "Deleting a mixture is irreverisble!\nAre You sure you want to continue?"
-    obj_type_map = [
-        (Mixture, EditMixtureView, EditMixtureController),
-    ]
-
-    def get_mixtures_tree_model(self, *args):
-        return self.treemodel
-
-    # ------------------------------------------------------------
-    #      GTK Signal handlers
-    # ------------------------------------------------------------
-    def on_load_object_clicked(self, event):
-        pass # cannot load mixtures
-    def on_save_object_clicked(self, event):
-        pass # cannot save mixtures
-
-    def create_new_object_proxy(self):
-        return Mixture(parent=self.model)
-
-    @contextmanager
-    def _multi_operation_context(self):
-        with self.model.data_changed.hold():
-            yield
 
     pass # end of class

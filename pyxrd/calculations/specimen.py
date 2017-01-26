@@ -71,9 +71,10 @@ def calculate_phase_intensities(specimen):
 
     return (
         correction_range,
-        np.array([
-            apply_wavelength_distribution(I) for I in get_phase_intensities(specimen.phases)
-        ], dtype=np.float_)
+        np.swapaxes(np.array([
+            [ apply_wavelength_distribution(I) for I in get_phase_intensities(specimen.phases[z_index]) ]
+              for z_index in range(len(specimen.z_list))
+        ], dtype=np.float_), 0, 1) # is of shape num_phases, num_patterns, num_observations
      )
 
 def get_summed_intensities(specimen, scale, fractions, bgshift):
@@ -83,6 +84,7 @@ def get_summed_intensities(specimen, scale, fractions, bgshift):
         value. Does not re-calculate phases or corrections and assumes
         these are calculated and stored in the specimen object.
     """
-    summed = np.sum((fractions * specimen.phase_intensities.transpose()).transpose(), axis=0)
+    weighted = (fractions * specimen.phase_intensities.transpose()).transpose()
+    summed = np.sum(weighted, axis=0)  # axis 0 = phase index, axis 1 = z index, axis 2 = x index
     result = scale * summed + bgshift * specimen.correction
     return result

@@ -5,8 +5,12 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from mixture import Mixture
+from .mixture import Mixture
+from .insitu_mixture import InSituMixture
+from .insitu_behaviours import InSituBehaviour
 
 __all__ = [
     "Mixture",
+    "InSituMixture",
+    "InSituBehaviour"
 ]

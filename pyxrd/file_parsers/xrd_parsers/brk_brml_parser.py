@@ -130,101 +130,128 @@ class BrkBRMLParser(XRDParserMixin, XMLParserMixin, BaseParser):
 
                     header_d = cls._get_header_dict(fp, folder)
                     raw_data_files, sample_name = cls._get_raw_data_files(fp, folder)
-
+               
                     for raw_data_filename in raw_data_files:
                         contf = fp.open(raw_data_filename)
-
+                        
                         _, root = cls.get_xml_for_file(contf)
+                        
+                        isScan = not ("NonAmbientModeData" in root.find("./DataRoutes/DataRoute/ScanInformation").get("ScanName"))
 
-                        for route in root.findall("./DataRoutes/DataRoute"):
-
-                            # Adapt XRDFile list & get last addition:
-                            data_objects = cls._adapt_data_object_list(
-                                data_objects,
-                                num_samples=(num_samples + 1),
-                                only_extend=True
-                            )
-                            data_object = data_objects[num_samples]
-
-                            # Get the Datum tags:
-                            datums = route.findall("Datum")
-                            data = []
-
-                            # Parse the RawDataView tags to find out what index in
-                            # the datum is used for what type of data:
-                            enabled_datum_index = None
-                            twotheta_datum_index = None
-                            intensity_datum_index = None
-                            steptime_datum_index = None
-                            for dataview in route.findall("./DataViews/RawDataView"):
-                                index = int(dataview.get("Start", 0))
-                                name = dataview.get("LogicName", default="Undefined")
-                                xsi_type = dataview.get("{http://www.w3.org/2001/XMLSchema-instance}type", default="Undefined")
-                                if name == "MeasuredTime":
-                                    steptime_datum_index = index
-                                elif name == "AbsorptionFactor":
-                                    enabled_datum_index = index
-                                elif name == "Undefined" and xsi_type == "VaryingRawDataView":
-                                    for i, definition in enumerate(dataview.findall("./Varying/FieldDefinitions")):
-                                        if definition.get("TwoTheta"):
-                                            index += i
-                                            break
-                                    twotheta_datum_index = index
-                                elif name == "Undefined" and xsi_type == "RecordedRawDataView":
-                                    intensity_datum_index = index
-
-                            # Parse the SubScanInfo list (usually only one), and
-                            # then parse the datums accordingly
-                            twotheta_min = None
-                            twotheta_max = None
-                            twotheta_count = 0
-                            for subscan in route.findall("./SubScans/SubScanInfo"):
-                                # Get the steps, where to start and the planned
-                                # time per step (measuredTimePerStep deviates
-                                # if the recording was interrupted):
-                                steps = int(subscan.get("MeasuredSteps"))
-                                start = int(subscan.get("StartStepNo"))
-                                steptime = float(subscan.get("PlannedTimePerStep"))
-
-                                for datum in datums[start:start + steps]:
-                                    values = datum.text.split(",")
-                                    if values[enabled_datum_index] == "1":
-                                        # Fetch values from the list:
-                                        datum_steptime = float(values[steptime_datum_index])
-                                        intensity = float(values[intensity_datum_index])
-                                        intensity /= float(steptime * datum_steptime)
-                                        twotheta = float(values[twotheta_datum_index])
-
-                                        # Keep track of min 2theta:
-                                        if twotheta_min is None:
-                                            twotheta_min = twotheta
-                                        else:
-                                            twotheta_min = min(twotheta_min, twotheta)
-
-                                        # Keep track of max 2theta:
-                                        if twotheta_max is None:
-                                            twotheta_max = twotheta
-                                        else:
-                                            twotheta_max = min(twotheta_max, twotheta)
-
-                                        # Append point and increase count:
-                                        data.append([twotheta, intensity])
-                                        twotheta_count += 1
-
-                            #Update header:
-                            data_object.update(
-                                filename=basename,
-                                name=sample_name,
-                                time_step=1, # we converted to CPS
-                                twotheta_min=twotheta_min,
-                                twotheta_max=twotheta_max,
-                                twotheta_count=twotheta_count,
-                                **header_d
-                            )
-
-                            data_object.data = data
-
-                            num_samples += 1
+                        if isScan:
+                            for route in root.findall("./DataRoutes/DataRoute"):
+                                # Adapt XRDFile list & get last addition:
+                                data_objects = cls._adapt_data_object_list(
+                                    data_objects,
+                                    num_samples=(num_samples + 1),
+                                    only_extend=True
+                                )
+                                data_object = data_objects[num_samples]
+    
+                                # Get the Datum tags:
+                                datums = route.findall("Datum")
+                                data = []
+    
+                                # Parse the RawDataView tags to find out what index in
+                                # the datum is used for what type of data:
+                                enabled_datum_index = None
+                                twotheta_datum_index = None
+                                intensity_datum_index = None
+                                steptime_datum_index = None
+                                relative_humidity_data, relative_humidity_index = None, None
+                                temperature_data, temperature_index = None, None
+                                temperature_index = None
+                                for dataview in route.findall("./DataViews/RawDataView"):
+                                    index = int(dataview.get("Start", 0))
+                                    name = dataview.get("LogicName", default="Undefined")
+                                    xsi_type = dataview.get("{http://www.w3.org/2001/XMLSchema-instance}type", default="Undefined")
+                                    if name == "MeasuredTime":
+                                        steptime_datum_index = index
+                                    elif name == "AbsorptionFactor":
+                                        enabled_datum_index = index
+                                    elif name == "Undefined" and xsi_type == "VaryingRawDataView":
+                                        for i, definition in enumerate(dataview.findall("./Varying/FieldDefinitions")):
+                                            if definition.get("TwoTheta"):
+                                                index += i
+                                                break
+                                        twotheta_datum_index = index
+                                    elif name == "Undefined" and xsi_type == "RecordedRawDataView":
+                                        logic_name = dataview.find("Recording").get("LogicName")
+                                        if logic_name == "ScanCounter":
+                                            intensity_datum_index = index
+                                        elif logic_name == "modeActualHum":
+                                            relative_humidity_index = index
+                                            relative_humidity_data = []
+                                        elif logic_name == "modeActualTemp":
+                                            temperature_index = index
+                                            temperature_data = []
+                                            
+                                # Parse the SubScanInfo list (usually only one), and
+                                # then parse the datums accordingly
+                                twotheta_min = None
+                                twotheta_max = None
+                                twotheta_count = 0
+                                for subscan in route.findall("./SubScans/SubScanInfo"):
+                                    # Get the steps, where to start and the planned
+                                    # time per step (measuredTimePerStep deviates
+                                    # if the recording was interrupted):
+                                    steps = int(subscan.get("MeasuredSteps"))
+                                    start = int(subscan.get("StartStepNo"))
+                                    steptime = float(subscan.get("PlannedTimePerStep"))
+    
+                                    for datum in datums[start:start + steps]:
+                                        values = datum.text.split(",")
+                                        if values[enabled_datum_index] == "1":
+                                            # Fetch values from the list:
+                                            datum_steptime = float(values[steptime_datum_index])
+                                            intensity = float(values[intensity_datum_index])
+                                            intensity /= float(steptime * datum_steptime)
+                                            twotheta = float(values[twotheta_datum_index])
+                                            
+                                            # If we have temperature or RH data, get them as well:
+                                            if temperature_index is not None:
+                                                temperature = float(values[temperature_index])
+                                                temperature_data.append(temperature) 
+                                            if relative_humidity_index is not None:
+                                                relative_humidity = float(values[relative_humidity_index])
+                                                relative_humidity_data.append(relative_humidity)                                        
+    
+                                            # Keep track of min 2theta:
+                                            if twotheta_min is None:
+                                                twotheta_min = twotheta
+                                            else:
+                                                twotheta_min = min(twotheta_min, twotheta)
+    
+                                            # Keep track of max 2theta:
+                                            if twotheta_max is None:
+                                                twotheta_max = twotheta
+                                            else:
+                                                twotheta_max = min(twotheta_max, twotheta)
+    
+                                            # Append point and increase count:
+                                            data.append([twotheta, intensity])
+                                            twotheta_count += 1
+    
+                                print "Parsing raw_data_filename:", raw_data_filename, isScan, len(data)
+    
+                                #Update header:
+                                data_object.update(
+                                    filename=basename,
+                                    name=sample_name,
+                                    time_step=1, # we converted to CPS
+                                    twotheta_min=twotheta_min,
+                                    twotheta_max=twotheta_max,
+                                    twotheta_count=twotheta_count,
+                                    **header_d
+                                )
+    
+                                data_object.data = data
+                                
+                                # These might be None:
+                                data_object.temperature_data = temperature_data
+                                data_object.relative_humidity_data = relative_humidity_data
+    
+                                num_samples += 1
 
                         #end for
                         contf.close()

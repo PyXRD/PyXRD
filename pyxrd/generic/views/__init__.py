@@ -64,22 +64,101 @@ class BaseView(View):
             widget.set_property('justify', gtk.JUSTIFY_CENTER)
         return widget
 
+    def _get_widget_container(self, prop, container, widget_name='widget'):
+        if not isinstance(container, gtk.Widget) and container is not None:
+            container = self[(container or "container_%s") % prop.label]
+            if container is None:
+                warn("%s container not found for '%s'!" % (widget_name.capitalize(), prop.label), Warning)
+                return False
+        elif container is None:
+            warn("No %s container given for '%s'!" % (widget_name.capitalize(), prop.label), Warning)
+        return container
+
+    def _add_widget_to_container(self, widget, container):
+        if container is not None:
+            child = container.get_child()
+            if child is not None:
+                container.remove(child)
+            container.add(widget)
+        widget.show_all()
+        return widget
+
+    def add_widget(self, prop, *args, **kwargs):
+        method = {
+           str: self.add_entry_widget,
+           float: self.add_scale_widget,
+        }.get(prop.data_type, None)
+        if method is not None:
+            return method(prop, *args, **kwargs)
+
     def add_scale_widget(self, prop, widget_format="default_%s", container=None, enforce_range=True):
         # TODO move these to a separate controller namespace module!
-        if not isinstance(container, gtk.Widget):
-            container = self[(container or "container_%s") % prop.label]
-            if container == None:
-                warn("Scale widget container not found for '%s'!" % prop.label, Warning)
-                return None
-        name = widget_format % prop.label
-        child = container.get_child()
-        if child is not None:
-            container.remove(child)
+        container = self._get_widget_container(prop, container, widget_name='scale widget')
+        # False indicates container lookup failed, None indicates no container is passed
+        if container == False: 
+            return None
         inp = ScaleEntry(prop.minimum, prop.maximum, enforce_range=enforce_range)
-        self[name] = inp
-        container.add(inp)
-        inp.show_all()
-        return inp
+        inp.set_tooltip_text(prop.title)
+        self[widget_format % prop.label] = inp
+        
+        return self._add_widget_to_container(inp, container)
+
+    def add_entry_widget(self, prop, widget_format="default_%s", container=None):
+        # TODO move these to a separate controller namespace module!
+        container = self._get_widget_container(prop, container, widget_name='entry widget')
+        # False indicates container lookup failed, None indicates no container is passed
+        if container == False: 
+            return None        
+        inp = gtk.Entry()
+        inp.set_tooltip_text(prop.title)
+        self[widget_format % prop.label] = inp
+        
+        return self._add_widget_to_container(inp, container)
+
+    def create_input_table(self, table, props, num_columns = 1, widget_callbacks=[]):
+        """
+            Places widgets (returned by the widget_callbacks) in the given table
+            for each property in props. The widget groups (i.e. list of widgets 
+            returned by the callbacks for a single property) can be placed in a
+            multi-column layout by increasing the num_columns value.
+        """
+        # total number of properties
+        num_props = len(props)
+        # number of widgets in each column
+        column_width = len(widget_callbacks)
+        # 2D array of widgets (each row is a group of widgets returned for a property)
+        widgets = [[None for _ in range(column_width)] for _ in range(num_props)]  
+        
+        # The actual number of rows needed in the table
+        num_table_rows = int(num_props / num_columns)
+        # The actual number of columns needed in the table
+        num_table_columns = num_columns*column_width
+        
+        # Resize the table widget accordingly
+        table.resize(num_table_rows,  num_table_columns)          
+
+        for i, prop in enumerate(props): # i = 0, 1, 2, 3, ...
+            # Calculate the column: column_index = 0, cw, 2*cw, 3*cw, ...
+            column_index = (i % num_columns) * column_width                
+            for widget_index in range(column_width):
+                # Create the widget:
+                widget = widget_callbacks[widget_index](prop)
+                
+                # Store it for the return value:
+                widgets[i][widget_index] = widget
+                
+                # Calculate where to place the widget:
+                column_offset = column_index + widget_index
+                row_offset = int(i / num_columns)
+                
+                # Attach it to the table               
+                table.attach(
+                    widget,
+                    column_offset, column_offset + 1,
+                    row_offset, row_offset + 1,
+                    xpadding=2, ypadding=2
+                )
+        return widgets
 
     def set_layout_mode(self, state):
         self.current_layout_state = state

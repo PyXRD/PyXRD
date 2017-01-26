@@ -105,8 +105,7 @@ def update_xaxis(axes, title=u'Angle (°2$\\theta$)', weight='heavy',
     if nm_ticks: set_nm_ticks(axis, wavelength, *axes.get_xlim())
 
 def update_lim(axes, pos_setup, project):
-    # Relimit and autoscale the view:
-    axes.relim()
+    # Autoscale the view:
     axes.autoscale_view(tight=True)
     xmin, xmax = axes.get_xlim()
 

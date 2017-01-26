@@ -15,6 +15,7 @@ from pyxrd.data import settings
 import numpy as np
 
 import matplotlib
+import matplotlib.colors as mcolors
 import matplotlib.transforms as transforms
 from matplotlib.patches import FancyBboxPatch, Rectangle
 from matplotlib.offsetbox import VPacker, HPacker, AnchoredOffsetbox, TextArea, AuxTransformBox
@@ -216,23 +217,45 @@ def apply_transform(data, scale=1, offset=0, cap=0):
     data_y = data_y * scale + offset # scale and offset the capped data
     return data_x, data_y
 
-def plot_pattern(pattern, axes, scale=1, offset=0, cap=0, **kwargs):
+def plot_pattern(pattern, axes, scale=1, offset=0, cap=0, z_data=[None], **kwargs):
     # setup or update the line
+    if len(z_data) > 1 and pattern.data_y.size > 0:
+        
+        pattern.color
+        
+        colors = [mcolors.colorConverter.to_rgba(pattern.color, 0), mcolors.colorConverter.to_rgba(pattern.color, 1)]
+        cmap = mcolors.LinearSegmentedColormap.from_list('mycmap', colors, N=100)
+        
+        angles = np.array(pattern.data_x, dtype=float)
+        intensities = np.array(pattern.data_y[:,:len(z_data)], dtype=float) * scale + offset
+        rh = np.array(map(float, z_data), dtype=float)
+        
+        rh = rh * scale + offset
+           
+        
+        cols = intensities.shape[0]
+        rows = intensities.shape[1]
+        X = np.ones(shape=(rows, cols), dtype=float) * angles #ANGLE
+        Y = (np.ones(shape=(cols, rows), dtype=float) * rh).transpose() #RH
+        Z = intensities.transpose()
+        axes.pcolormesh(X,Y,Z, cmap=cmap, shading='flat', edgecolors='None', rasterized=False)       
+        
+    else:
 
-    line = getattr_or_create(pattern, "__plot_line", (matplotlib.lines.Line2D, ([], []), {}))
-
-    if kwargs:
-        line.update(kwargs)
-    line.update(dict(
-        data=apply_transform(pattern.get_xy_data(), scale=scale, offset=offset, cap=cap),
-        color=pattern.color,
-        linewidth=pattern.lw,
-        ls=getattr(pattern, "ls", "-"),
-        marker=getattr(pattern, "marker", "")
-    ))
-    if not line in axes.get_lines():
-        axes.add_line(line)
-    pattern.__plot_line = line
+        line = getattr_or_create(pattern, "__plot_line", (matplotlib.lines.Line2D, ([], []), {}))
+    
+        if kwargs:
+            line.update(kwargs)
+        line.update(dict(
+            data=apply_transform(pattern.get_xy_data(), scale=scale, offset=offset, cap=cap),
+            color=pattern.color,
+            linewidth=pattern.lw,
+            ls=getattr(pattern, "ls", "-"),
+            marker=getattr(pattern, "marker", "")
+        ))
+        if not line in axes.get_lines():
+            axes.add_line(line)
+        pattern.__plot_line = line
 
 def make_draggable(artist, drag_x_handler=None, drag_y_handler=None):
     if artist != None:
@@ -251,11 +274,13 @@ def plot_specimen(project, specimen, labels, marker_lbls, label_offset, plot_lef
     """
     # Plot the patterns;
 
+    z_data = specimen.get_z_list()
+
     if specimen.display_experimental:
         pattern = specimen.experimental_pattern
 
         # plot the experimental pattern:
-        plot_pattern(pattern, axes, scale=scale, offset=offset, cap=pattern.cap_value)
+        plot_pattern(pattern, axes, scale=scale, offset=offset, cap=pattern.cap_value, z_data=z_data)
         #make_draggable(getattr(pattern, "__plot_line", None), drag_y_handler=specimen.on_pattern_dragged)
 
         # get some common data for the next lines:
@@ -387,19 +412,24 @@ def plot_specimen(project, specimen, labels, marker_lbls, label_offset, plot_lef
 
         ########################################################################
         # plot the pattern after peak stripping:
-        peak_area = getattr(specimen, "__plot_peak_area", None)
+        artists = getattr(specimen, "__plot_peak_area", None)
+        peak_area, peak_fwhm_line = artists if artists is not None else (None, None)
         if peak_area is not None and peak_area in axes.get_children():
             peak_area.remove()
-        if pattern.area_startx != 0.0 and pattern.area_endx != 0.0 and pattern.area_pattern is not None:
-            area_xdata, area_bg, area_ydata = pattern.area_pattern
-            _, area_bg = apply_transform((area_xdata.copy(), area_bg.copy()), scale=scale, offset=offset)
-            area_xdata, area_ydata = apply_transform((area_xdata.copy(), area_ydata.copy()), scale=scale, offset=offset)
-            peak_area = axes.fill_between(area_xdata, area_bg, area_ydata, interpolate=True, facecolor="#660099", zorder=10)
-        setattr(specimen, "__plot_peak_area", peak_area)
+        if peak_fwhm_line is not None and peak_fwhm_line in axes.get_children():
+            peak_fwhm_line.remove()
+        if pattern.peak_startx != 0.0 and pattern.peak_endx != 0.0 and pattern.peak_properties_pattern is not None:
+            peak_xdata, peak_bg, peak_ydata, peak_rootsx, peak_rootsy = pattern.peak_properties_pattern
+            _, peak_bg = apply_transform((peak_xdata.copy(), peak_bg.copy()), scale=scale, offset=offset)
+            peak_xdata, peak_ydata = apply_transform((peak_xdata.copy(), peak_ydata.copy()), scale=scale, offset=offset)
+            peak_rootsx, peak_rootsy = apply_transform((peak_rootsx.copy(), peak_rootsy.copy()), scale=scale, offset=offset)
+            peak_area = axes.fill_between(peak_xdata, peak_bg, peak_ydata, interpolate=True, facecolor="#660099", zorder=10)
+            peak_fwhm_line = axes.plot(peak_rootsx, peak_rootsy, color="#330033", zorder=11)
+        setattr(specimen, "__plot_peak_area", (peak_area, peak_fwhm_line))
 
     if specimen.display_calculated:
         pattern = specimen.calculated_pattern
-        plot_pattern(pattern, axes, scale=scale, offset=offset)
+        plot_pattern(pattern, axes, scale=scale, offset=offset, z_data=z_data)
         #if not specimen.display_experimental:
         #    make_draggable(getattr(pattern, "__plot_line", None), drag_y_handler=specimen.on_pattern_dragged)
 

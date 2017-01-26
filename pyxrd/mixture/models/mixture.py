@@ -58,13 +58,18 @@ class Mixture(DataModel, Storable):
         for i, specimen in enumerate(self.specimens):
             if specimen is not None:
                 data_object = specimen.data_object
-                data_object.phases = [None] * len(self.phases)
-                for j, phase in enumerate(self.phase_matrix[i, ...].flatten()):
-                    data_object.phases[j] = phase.data_object if phase is not None else None
+                data_object.phases = [[None] * len(self.phases) for _ in data_object.z_list]
+                for z_index in range(len(specimen.get_z_list())):
+                    for phase_index in range(self.phase_matrix.shape[1]):
+                        data_object.phases[z_index][phase_index] = self.get_phase_data_object(i, z_index, phase_index)
                 self._data_object.specimens[i] = data_object
             else:
                 self._data_object.specimens[i] = None
         return self._data_object
+
+    def get_phase_data_object(self, specimen_index, z_index, phase_index):
+        phase = self.phase_matrix[specimen_index, ...].flatten()[phase_index]
+        return phase.data_object if phase is not None else None
 
     project = property(DataModel.parent.fget, DataModel.parent.fset)
 
@@ -486,7 +491,7 @@ class Mixture(DataModel, Storable):
                     if calculate: # (re-)calculate if requested:
                         mixture = self.optimizer.calculate(mixture)
 
-                    for i, (specimen_data, specimen) in enumerate(izip(mixture.specimens, self.specimens)):
+                    for i, (specimen_data, specimen) in enumerate(izip(mixture.specimens[0], self.specimens)):
                         if specimen is not None:
                             with specimen.data_changed.ignore():
                                 specimen.update_pattern(

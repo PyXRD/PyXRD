@@ -129,6 +129,15 @@
       </object>
       <accelerator key="F7"/>
     </child>
+    <child>
+      <object class="GtkAction" id="edit_behaviours">
+        <property name="label" translatable="yes">Edit Behaviours</property>
+        <property name="short_label" translatable="yes">Behaviours</property>
+        <property name="stock_id">431-behaviour</property>
+        <property name="always_show_image">True</property>
+        <signal name="activate" handler="on_edit_behaviours" swapped="no"/>
+      </object>
+    </child>
   </object>
   <object class="GtkActionGroup" id="specimen_actions">
     <property name="sensitive">False</property>
@@ -825,6 +834,20 @@
                     <property name="can_focus">False</property>
                     <property name="tooltip_text" translatable="yes">Phases</property>
                     <property name="use_underline">True</property>
+                  </object>
+                  <packing>
+                    <property name="expand">False</property>
+                    <property name="homogeneous">True</property>
+                  </packing>
+                </child>
+                <child>
+                  <object class="GtkToolButton" id="tbtn_edit_behaviours">
+                    <property name="related_action">edit_behaviours</property>
+                    <property name="visible">True</property>
+                    <property name="can_focus">False</property>
+                    <property name="label" translatable="yes">Behaviours</property>
+                    <property name="use_underline">True</property>
+                    <property name="stock_id">431-behaviour</property>
                   </object>
                   <packing>
                     <property name="expand">False</property>

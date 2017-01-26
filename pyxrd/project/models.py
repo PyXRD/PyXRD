@@ -31,6 +31,7 @@ from pyxrd.atoms.models import AtomType
 from pyxrd.phases.models import Phase
 from pyxrd.specimen.models import Specimen
 from pyxrd.mixture.models.mixture import Mixture
+from pyxrd.mixture.models.insitu_behaviours import InSituBehaviour
 
 @storables.register()
 class Project(DataModel, Storable):
@@ -332,6 +333,12 @@ class Project(DataModel, Storable):
         visible=False, persistent=True
     )
 
+    #: The list of Behaviours
+    behaviours = ListProperty(
+        default=[], text="Behaviours", data_type=InSituBehaviour,
+        visible=False, persistent=True
+    )
+
     #: The list of mixtures
     mixtures = ListProperty(
         default=[], text="Mixture", data_type=Mixture,
@@ -438,6 +445,17 @@ class Project(DataModel, Storable):
                     model=self
                 )
 
+                # Observe behaviours:
+                self.behaviours = self.get_list(kwargs, [], "behaviours", parent=self)
+                for behaviour in self.behaviours:
+                    self.observe_model(behaviour)
+                self._behaviours_observer = ListObserver(
+                    self.on_behaviour_inserted,
+                    self.on_behaviour_removed,
+                    prop_name="behaviours",
+                    model=self
+                )
+
                 # Observe mixtures:
                 self.mixtures = self.get_list(kwargs, [], "mixtures", "data_mixtures", parent=self)
                 for mixture in self.mixtures:
@@ -525,6 +543,17 @@ class Project(DataModel, Storable):
             item.parent = None
             self.relieve_model(item)
 
+    def on_behaviour_inserted(self, item):
+        # Set parent and observe the new mixture:
+        if item.parent != self: item.parent = self
+        self.observe_model(item)
+
+    def on_behaviour_removed(self, item):
+        with self.data_changed.hold_and_emit():
+            # Clear parent & stop observing:
+            item.parent = None
+            self.relieve_model(item)
+
     @DataModel.observe("data_changed", signal=True)
     def notify_data_changed(self, model, prop_name, info):
         self.needs_saving = True
@@ -549,7 +578,7 @@ class Project(DataModel, Storable):
         to_json = self.to_json()
         properties = to_json["properties"]
 
-        for name in ("phases", "specimens", "atom_types", "mixtures"):
+        for name in ("phases", "specimens", "atom_types", "behaviours", "mixtures"):
             yield (name, properties.pop(name))
             properties[name] = "file://%s" % name
 

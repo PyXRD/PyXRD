@@ -27,7 +27,7 @@ from pyxrd.project.controllers import ProjectController
 from pyxrd.project.models import Project
 from pyxrd.specimen.controllers import SpecimenController, MarkersController
 
-from pyxrd.mixture.controllers import MixturesController
+from pyxrd.mixture.controllers import MixturesController, InSituBehavioursController
 from pyxrd.phases.controllers import PhasesController
 from pyxrd.atoms.controllers import AtomTypesController
 
@@ -130,6 +130,7 @@ class AppController (BaseController):
         self.view.reset_all_views()
         self.project = ProjectController(model=self.model.current_project, view=self.view.project, parent=self)
         self.phases = PhasesController(model=self.model.current_project, view=self.view.phases, parent=self)
+        self.behaviours = InSituBehavioursController(model=self.model.current_project, view=self.view.behaviours, parent=self)
         self.atom_types = AtomTypesController(model=self.model.current_project, view=self.view.atom_types, parent=self)
         self.mixtures = MixturesController(model=self.model.current_project, view=self.view.mixtures, parent=self)
         self.reset_specimen_controller()
@@ -422,6 +423,14 @@ class AppController (BaseController):
         if self.model.project_loaded:
             self.view.mixtures.present()
         pass
+
+    # ------------------------------------------------------------
+    #      GTK Signal handlers - Behaviour related
+    # ------------------------------------------------------------
+    def on_edit_behaviours(self, widget, data=None):
+        if self.model.project_loaded:
+            self.view.behaviours.present()
+        return True
 
     # ------------------------------------------------------------
     #      GTK Signal handlers - Specimen related

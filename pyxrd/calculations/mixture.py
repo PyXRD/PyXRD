@@ -63,9 +63,9 @@ def _get_specimen_residual(specimen, cal=None):
         given calculated data. If no calculated data is passed, the calculated
         data stored in the specimen object is used (and assumed to be set).
     """
-    exp = specimen.observed_intensity[specimen.selected_range]
+    exp = specimen.observed_intensity.transpose()[...,specimen.selected_range]
     cal = specimen.total_intensity if cal is None else cal
-    cal = cal[specimen.selected_range]
+    cal = cal[...,specimen.selected_range]
     return __residual_method_map[settings.RESIDUAL_METHOD](exp, cal)
 
 def _get_phase_residuals(specimen, cal=None):
@@ -77,9 +77,10 @@ def _get_phase_residual(specimen, phase_index, cal=None):
         given calculated data. If no calculated data is passed, the calculated
         data stored in the specimen object is used (and assumed to be set).
     """
-    exp = specimen.observed_intensity[specimen.selected_range]
+    
+    exp = specimen.observed_intensity.transpose()[...,specimen.selected_range]
     cal = specimen.total_intensity if cal is None else cal
-    cal = cal[specimen.selected_range]
+    cal = cal[...,specimen.selected_range]
     phase = specimen.phase_intensities[phase_index]
     return __residual_method_map["Rphase"](exp, cal, phase)
     
@@ -87,20 +88,24 @@ def _get_phase_residual(specimen, phase_index, cal=None):
 def _get_residuals(x, mixture):
     fractions, scales, bgshifts = parse_solution(x, mixture)
     rps = [0.0, ]
-    for scale, bgshift, specimen in izip(scales, bgshifts, mixture.specimens):
-        if specimen is not None:
-            if specimen.phase_intensities is not None:
-                bgshift = bgshift if settings.BGSHIFT else 0.0
-                calc = get_summed_intensities(specimen, scale, fractions, bgshift)
+    for scale, bgshift, zspecimens in izip(scales, bgshifts, mixture.specimens):
+        zrps = []
+        rps.append(zrps)
+        for specimen in zspecimens:
+            if specimen is not None:
+                if specimen.phase_intensities is not None:
+                    bgshift = bgshift if settings.BGSHIFT else 0.0
+                    calc = get_summed_intensities(specimen, scale, fractions, bgshift)
+                else:
+                    logger.warning("_get_residuals reports: 'No phases found!'")
+                    calc = np.zeros_like(specimen.observed_intensity)
+                if specimen.observed_intensity.size > 0:
+                    zrps.append(_get_specimen_residual(specimen, calc))
+                else:
+                    logger.warning("_get_residuals reports: 'Zero observations found!'")
             else:
-                logger.warning("_get_residuals reports: 'No phases found!'")
-                calc = np.zeros_like(specimen.observed_intensity)
-            if specimen.observed_intensity.size > 0:
-                rps.append(_get_specimen_residual(specimen, calc))
-            else:
-                logger.warning("_get_residuals reports: 'Zero observations found!'")
-        else:
-            logger.warning("_get_residuals reports: 'None found!'")
+                logger.warning("_get_residuals reports: 'None found!'")
+                
     rps[0] = np.average(rps[1:])
     return tuple(rps)
 
@@ -117,14 +122,18 @@ def parse_mixture(mixture, parsed=False):
         n = len(mixture.specimens)
         assert n > 0, "Need at least 1 specimen to optimize phase fractions, scales and background."
         m = 0
+        z = 0
         for specimen in mixture.specimens:
             if specimen is not None:
+                z = len(specimen.z_list)
                 m = len(specimen.phases)
                 break
-        assert m > 0, "Need at least 1 phase in each specimen to optimize phase fractions, scales and background."
-
+        assert z > 0, "Need at least 1 pattern in one of the specimens to optimize phase fractions, scales and background."
+        assert m > 0, "Need at least 1 phase in one of the specimen to optimize phase fractions, scales and background."
+        
         mixture.n = n
         mixture.m = m
+        mixture.z = z
 
         for specimen in mixture.specimens:
             if specimen is not None:
@@ -212,14 +221,19 @@ def calculate_mixture(mixture, parsed=False):
     # This will contain the average phase residuals 
     mixture.phase_residuals = []
     for scale, bgshift, specimen in izip(mixture.scales, mixture.bgshifts, mixture.specimens):
+        phase_residuals = 0
+        specimen_residual = 0
         if specimen is not None:
             bgshift = bgshift if settings.BGSHIFT else 0.0
             specimen.total_intensity = get_summed_intensities(specimen, scale, fractions, bgshift)
             if specimen.observed_intensity.size > 0:
-                mixture.residuals.append(_get_specimen_residual(specimen))
-                mixture.phase_residuals.append(_get_phase_residuals(specimen))
+                phase_residuals = _get_phase_residuals(specimen)
+                specimen_residual = _get_specimen_residual(specimen)
             else:
                 logger.warning("calculate_mixture reports: 'Zero observations found!'")
+        mixture.residuals.append(specimen_residual)
+        mixture.phase_residuals.append(phase_residuals)
+        
     mixture.residuals[0] = np.average(mixture.residuals[1:])
     mixture.phase_residuals = np.average(np.asanyarray(mixture.phase_residuals), axis=0).tolist()
     return mixture

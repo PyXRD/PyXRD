@@ -6,6 +6,7 @@
 # Complete license can be found in the LICENSE file.
 
 from math import pi, log
+from itertools import izip
 
 import numpy as np
 
@@ -24,7 +25,6 @@ from pyxrd.generic.utils import not_none
 from pyxrd.generic.models.lines import PyXRDLine
 
 from pyxrd.refinement.refinables.properties import DataMixin
-from pyxrd.calculations.specimen import calculate_phase_intensities
 from pyxrd.calculations.data_objects import SpecimenData
 
 from pyxrd.goniometer.models import Goniometer
@@ -48,15 +48,18 @@ class Specimen(DataModel, Storable):
     _data_object = None
     @property
     def data_object(self):
-        # self._data_object.phases = None #clear this
         self._data_object.goniometer = self.goniometer.data_object
         self._data_object.range_theta = self.__get_range_theta()
         self._data_object.selected_range = self.get_exclusion_selector()
+        self._data_object.z_list = self.get_z_list()
         try:
-            self._data_object.observed_intensity = self.experimental_pattern.data_y[:, 0]
+            self._data_object.observed_intensity = np.copy(self.experimental_pattern.data_y)
         except IndexError:
             self._data_object.observed_intensity = np.array([], dtype=float)
         return self._data_object
+
+    def get_z_list(self):
+        return self.experimental_pattern.z_data
 
     project = property(DataModel.parent.fget, DataModel.parent.fset)
 
@@ -366,21 +369,56 @@ class Specimen(DataModel, Storable):
     #      Input/Output stuff
     # ------------------------------------------------------------
     @staticmethod
-    def from_experimental_data(filename, parent, parser=xrd_parsers._group_parser):
+    def from_experimental_data(filename, parent, parser=xrd_parsers._group_parser, load_as_insitu=False):
         """
             Returns a list of new :class:`~.specimen.models.Specimen`'s loaded
             from `filename`, setting their parent to `parent` using the given
-            parser.
+            parser. If the load_as_insitu flag is set to true, 
         """
         specimens = list()
         xrdfiles = parser.parse(filename)
-        for xrdfile in xrdfiles:
-            name, sample, generator = xrdfile.filename, xrdfile.name, xrdfile.data
-            specimen = Specimen(parent=parent, name=name, sample_name=sample)
-            specimen.experimental_pattern.load_data_from_generator(generator, clear=True)
-            specimen.goniometer.reset_from_file(xrdfile.create_gon_file())
-            specimens.append(specimen)
-
+        if len(xrdfiles):
+            if xrdfiles[0].relative_humidity_data is not None: # we have relative humidity data
+                specimen = None
+                
+                # Setup list variables:
+                x_data = None
+                y_datas = []
+                rh_datas = []
+                
+                for xrdfile in xrdfiles:
+                    # Get data we need:
+                    name, sample, xy_data, rh_data = (
+                        xrdfile.filename, xrdfile.name, 
+                        xrdfile.data, xrdfile.relative_humidity_data
+                    )
+                    # Transform into numpy array for column selection
+                    xy_data = np.array(xy_data)
+                    rh_data = np.array(rh_data)
+                    if specimen is None:
+                        specimen = Specimen(parent=parent, name=name, sample_name=sample)
+                        specimen.goniometer.reset_from_file(xrdfile.create_gon_file())
+                        # Extract the 2-theta positions once:
+                        x_data = np.copy(xy_data[:,0])
+                    
+                    # Add a new sub-pattern:
+                    y_datas.append(np.copy(xy_data[:,1]))
+                    
+                    # Store the average RH for this pattern:
+                    rh_datas.append(np.average(rh_data))
+                    
+                specimen.experimental_pattern.load_data_from_generator(izip(x_data, np.asanyarray(y_datas).transpose()), clear=True)
+                specimen.experimental_pattern.y_names = map(lambda f: "%.1f" % f, rh_datas)
+                specimen.experimental_pattern.z_data = rh_datas
+                specimens.append(specimen)    
+            else: # regular (might be multi-pattern) file
+                for xrdfile in xrdfiles:
+                    name, sample, generator = xrdfile.filename, xrdfile.name, xrdfile.data
+                    specimen = Specimen(parent=parent, name=name, sample_name=sample)
+                    # TODO FIXME:
+                    specimen.experimental_pattern.load_data_from_generator(generator, clear=True)
+                    specimen.goniometer.reset_from_file(xrdfile.create_gon_file())
+                    specimens.append(specimen)
         return specimens
 
     def json_properties(self):
@@ -492,23 +530,24 @@ class Specimen(DataModel, Storable):
         if len(phases) == 0:
             self.calculated_pattern.clear()
         else:
-            self.calculated_pattern.set_data(
-                 self.__get_range_theta() * 360. / pi,
-                 np.vstack((total_intensity, phase_intensities)).transpose()
-            )
+            maxZ = len(self.get_z_list())
+            new_data = np.zeros((phase_intensities.shape[-1], maxZ + maxZ*len(phases))) 
+            for z_index in range(maxZ):   
+                # Set the total intensity for this z_index:
+                new_data[:, z_index] = total_intensity[z_index]
+                # Calculate phase intensity offsets:
+                phase_start_index = maxZ + z_index * len(phases)
+                phase_end_index = phase_start_index + len(phases)
+                # Set phase intensities for this z_index:                
+                new_data[:,phase_start_index:phase_end_index] = phase_intensities[:,z_index,:].transpose()
+                # Store in pattern:
+                self.calculated_pattern.set_data(
+                    self.__get_range_theta() * 360. / pi,
+                    new_data
+                )
             self.update_visuals(phases)
         if settings.GUI_MODE:
             self.statistics.update_statistics(derived=self.display_derivatives)
-
-    def get_phase_intensities(self, phases):
-        """
-        Gets phase intensities for the provided phases
-        
-        *phases* a list of phases with length N
-        
-        :rtype: a 2-tuple containing 2-theta values and phase intensities
-        """
-        return calculate_phase_intensities(self.data_object, phases)
 
     def convert_to_fixed(self):
         """

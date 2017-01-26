@@ -67,14 +67,8 @@ class SpecimenController(DialogController, TreeViewMixin):
         setup_treeview(widget, store,
             on_cursor_changed=self.on_exp_data_tv_cursor_changed,
             sel_mode=gtk.SELECTION_MULTIPLE)
-        # X Column:
-        widget.append_column(new_text_column(
-            u'°2θ', text_col=store.c_x, editable=True,
-            edited_callback=(self.on_xy_data_cell_edited, (self.model.experimental_pattern, 0))))
-        # Y Column:
-        widget.append_column(new_text_column(
-            u'Intensity', text_col=store.c_y, editable=True,
-            edited_callback=(self.on_xy_data_cell_edited, (self.model.experimental_pattern, 1))))
+        store.connect('columns_changed', self.on_exp_columns_changed)
+        self.update_exp_treeview(widget)
         # Other properties:
         self.exp_line_ctrl = LinePropertiesController(model=self.model.experimental_pattern, view=self.view.exp_line_view, parent=self)
 
@@ -85,7 +79,7 @@ class SpecimenController(DialogController, TreeViewMixin):
         setup_treeview(widget, store,
             on_cursor_changed=self.on_exp_data_tv_cursor_changed,
             sel_mode=gtk.SELECTION_NONE)
-        store.connect('columns_changed', self.on_calc_columns_changed),
+        store.connect('columns_changed', self.on_calc_columns_changed)
         self.update_calc_treeview(widget)
         # Other properties:
         self.calc_line_ctrl = LinePropertiesController(model=self.model.calculated_pattern, view=self.view.calc_line_view, parent=self)
@@ -136,6 +130,37 @@ class SpecimenController(DialogController, TreeViewMixin):
         for i in range(model.get_n_columns() - 2):
             tv.append_column(new_text_column(
                 self.model.calculated_pattern.get_y_name(i), text_col=i + 2, data_func=get_num))
+
+    def update_exp_treeview(self, tv):
+        """
+            Updates the experimental pattern TreeView layout
+        """
+        model = self.get_experimental_pattern_tree_model()
+
+        for column in tv.get_columns():
+            tv.remove_column(column)
+
+        def get_num(column, cell, model, itr, *data):
+            cell.set_property('text', '%.3f' % model.get_value(itr, column.get_col_attr('text')))
+        
+        n_columns = model.get_n_columns()
+        
+        if n_columns > 2:
+            for i in range(n_columns):
+                tv.append_column(new_text_column(
+                    self.model.calculated_pattern.get_y_name(i), text_col=i, editable=True,
+                    edited_callback=(self.on_xy_data_cell_edited, (self.model.experimental_pattern, i)),
+                    data_func=get_num
+                ))
+        else:
+            # X Column:
+            tv.append_column(new_text_column(
+                u'°2θ', text_col=model.c_x, editable=True,
+                edited_callback=(self.on_xy_data_cell_edited, (self.model.experimental_pattern, 0))))
+            # Y Column:
+            tv.append_column(new_text_column(
+                u'Intensity', text_col=model.c_y, editable=True,
+                edited_callback=(self.on_xy_data_cell_edited, (self.model.experimental_pattern, 1))))
 
     def remove_background(self):
         """
@@ -190,6 +215,9 @@ class SpecimenController(DialogController, TreeViewMixin):
     # ------------------------------------------------------------
     def on_calc_columns_changed(self, *args, **kwargs):
         self.update_calc_treeview(self.view["specimen_calculated_pattern"])
+
+    def on_exp_columns_changed(self, *args, **kwargs):
+        self.update_exp_treeview(self.view["specimen_experimental_pattern"])
 
     def on_btn_ok_clicked(self, event):
         self.parent.pop_status_msg('edit_specimen')

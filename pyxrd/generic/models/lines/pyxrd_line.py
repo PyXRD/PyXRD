@@ -108,15 +108,30 @@ class PyXRDLine(StorableXYData):
         visible=True, persistent=True,
         mix_with=(SignalMixin,), signal_name="visuals_changed",
     )
+    
+    #: z-data (e.g. relative humidity, temperature, for multi-column 'lines')
+    z_data = ListProperty(
+        default=None, text="Z data", data_type=float,
+        persistent=True, visible=False
+    ) 
 
     # REGULAR PROPERTIES:
     @property
     def max_intensity(self):
-        return self.max_y
+        if self.num_columns > 2:
+            if len(self.z_data):
+                return np.max(self.z_data)
+            else:
+                return 0
+        else:        
+            return self.max_y
 
     @property
     def min_intensity(self):
-        return self.min_y
+        if self.num_columns > 2:
+            return np.min(self.z_data)
+        else:        
+            return self.min_y
 
     @property
     def abs_max_intensity(self):
@@ -138,6 +153,7 @@ class PyXRDLine(StorableXYData):
                 inherit_ls: whether to use the parent-level line style or its own
                 marker: the line marker of this line
                 inherit_marker: whether to use the parent-level line marker or its own
+                z_data: the z-data associated with the columns in a multi-column pattern
         """
         my_kwargs = self.pop_kwargs(kwargs,
             *[prop.label for prop in PyXRDLine.Meta.get_local_persistent_properties()]
@@ -155,6 +171,7 @@ class PyXRDLine(StorableXYData):
             self.inherit_ls = bool(self.get_kwarg(kwargs, self.inherit_ls, "inherit_ls"))
             self.marker = self.get_kwarg(kwargs, self.marker, "marker")
             self.inherit_marker = bool(self.get_kwarg(kwargs, self.inherit_marker, "inherit_marker"))
+            self.z_data = list(self.get_kwarg(kwargs, [], "z_data"))
 
     # ------------------------------------------------------------
     #      Input/Output stuff

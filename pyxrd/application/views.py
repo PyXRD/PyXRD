@@ -43,13 +43,14 @@ class AppView(HasChildView, FormattedTitleView):
         "markers": EditMarkersView, # FIXME this should be part of the specimen view/controller code
         "phases": ObjectListStoreView,
         "atom_types": ObjectListStoreView,
-        # ("statistics": ???
+        "behaviours": ObjectListStoreView,
         "mixtures": ObjectListStoreView
     }
 
     widget_groups = {
         'full_mode_only': [
             "tbtn_edit_phases",
+            "tbtn_edit_behaviours",
             "tbtn_edit_atom_types",
             "tbtn_edit_mixtures",
             "tbtn_separator1",

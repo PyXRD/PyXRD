@@ -30,7 +30,7 @@ class EditInSituBehaviourView(BaseView):
             return new_lbl
 
         def create_input(prop):
-            new_inp = self.add_widget(prop, self.widget_format)
+            new_inp = self.add_widget(prop)
             new_inp.set_name(self.widget_format % prop.label)
             return new_inp
 

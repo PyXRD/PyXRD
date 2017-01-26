@@ -5,6 +5,9 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
+import logging
+logger = logging.getLogger(__name__)
+
 from pkg_resources import resource_filename # @UnresolvedImport
 
 from itertools import imap
@@ -27,6 +30,7 @@ class BaseView(View):
     modal = False
     resizable = True
     widget_format = "%s"
+    container_format = "container_%s"
 
     # A mapping of layout states and actions to be taken when switching to them.
     # Actions should be of the form `action::widget_group`, where the action is one
@@ -64,15 +68,8 @@ class BaseView(View):
             widget.set_property('justify', gtk.JUSTIFY_CENTER)
         return widget
 
-    def _get_widget_container(self, prop, container, widget_name='widget'):
-        if not isinstance(container, gtk.Widget) and container is not None:
-            container = self[(container or "container_%s") % prop.label]
-            if container is None:
-                warn("%s container not found for '%s'!" % (widget_name.capitalize(), prop.label), Warning)
-                return False
-        elif container is None:
-            warn("No %s container given for '%s'!" % (widget_name.capitalize(), prop.label), Warning)
-        return container
+    def _get_widget_container(self, prop):
+        return self[self.container_format % prop.label]
 
     def _add_widget_to_container(self, widget, container):
         if container is not None:
@@ -91,29 +88,23 @@ class BaseView(View):
         if method is not None:
             return method(prop, *args, **kwargs)
 
-    def add_scale_widget(self, prop, widget_format="default_%s", container=None, enforce_range=True):
-        # TODO move these to a separate controller namespace module!
-        container = self._get_widget_container(prop, container, widget_name='scale widget')
-        # False indicates container lookup failed, None indicates no container is passed
-        if container == False: 
-            return None
+    def add_scale_widget(self, prop, enforce_range=True):
+        # Create the widget:        
         inp = ScaleEntry(prop.minimum, prop.maximum, enforce_range=enforce_range)
         inp.set_tooltip_text(prop.title)
-        self[widget_format % prop.label] = inp
-        
-        return self._add_widget_to_container(inp, container)
+        self[self.widget_format % prop.label] = inp
+            
+        # Add & return the widget
+        return self._add_widget_to_container(inp, self._get_widget_container(prop))
 
-    def add_entry_widget(self, prop, widget_format="default_%s", container=None):
-        # TODO move these to a separate controller namespace module!
-        container = self._get_widget_container(prop, container, widget_name='entry widget')
-        # False indicates container lookup failed, None indicates no container is passed
-        if container == False: 
-            return None        
+    def add_entry_widget(self, prop):
+        # Create the widget:        
         inp = gtk.Entry()
         inp.set_tooltip_text(prop.title)
-        self[widget_format % prop.label] = inp
-        
-        return self._add_widget_to_container(inp, container)
+        self[self.widget_format % prop.label] = inp
+
+        # Add & return the widget
+        return self._add_widget_to_container(inp, self._get_widget_container(prop))
 
     def create_input_table(self, table, props, num_columns = 1, widget_callbacks=[]):
         """

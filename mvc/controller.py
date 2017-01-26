@@ -304,7 +304,7 @@ class Controller(Observer):
             widget = self.view[widget_name]
             if widget is None: # not in view
                 if prop is not None and prop.widget_type == 'scale':
-                        self.view.add_scale_widget(prop, widget_format=widget_format)
+                    self.view.add_scale_widget(prop)
                 else:
                     widget_name = None
 

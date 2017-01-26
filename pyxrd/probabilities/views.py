@@ -91,10 +91,10 @@ class IndependentsView(HasChildView, ProbabilityViewMixin, BaseView):
 
             for i, prop in enumerate(self.props):
 
-                new_lbl = self.create_mathtext_widget(prop.math_text, prop.label)
+                new_lbl = self.create_mathtext_widget(prop.math_title, prop.label)
 
                 new_inp = ScaleEntry(lower=prop.minimum, upper=prop.maximum, enforce_range=True)
-                new_inp.set_tooltip_text(prop.text)
+                new_inp.set_tooltip_text(prop.title)
                 new_inp.set_name(self.widget_format % prop.label)
                 self[self.widget_format % prop.label] = new_inp
                 input_widgets[i] = new_inp
@@ -104,10 +104,16 @@ class IndependentsView(HasChildView, ProbabilityViewMixin, BaseView):
                 table.attach(new_inp, 2 + j, 3 + j, i / num_columns, (i / num_columns) + 1, xpadding=2, ypadding=2)
 
                 if prop.inheritable is not None:
-                    inh_prop = all_props[prop.inherit_flag]
+                    inh_prop = all_props.get(prop.inherit_flag, None)
+                    if inh_prop is None:
+                        raise ValueError, "The inherit flag property `%s` is missing for `%s` on meta model with store id `%s`" % (
+                            prop.inherit_flag,
+                            prop.label,
+                            meta.store_id
+                        )
 
                     new_check = gtk.CheckButton(label="")
-                    new_check.set_tooltip_text(inh_prop.text)
+                    new_check.set_tooltip_text(inh_prop.title)
                     new_check.set_name(self.widget_format % inh_prop.label)
                     new_check.set_sensitive(False)
                     self[self.widget_format % inh_prop.label] = new_check

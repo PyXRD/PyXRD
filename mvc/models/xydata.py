@@ -183,12 +183,11 @@ class XYData(Model):
             data = np.array(data, dtype=float)
             try:
                 x = data[:, 0]
-                y = data[:, 1]
+                y = data[:, 1:]
             except IndexError:
                 logger.exception("Failed to load xy-data from serial string: %s" % sdata)
             else:
                 XYData.set_data(self, x, y)
-
 
     def load_data_from_generator(self, generator, clear=True):
         if clear: self.clear()

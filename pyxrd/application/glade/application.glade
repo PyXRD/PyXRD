@@ -1,5 +1,4 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Generated with glade 3.18.3 -->
 <interface>
   <object class="GtkAccelGroup" id="PyXRD_Main"/>
   <object class="GtkActionGroup" id="persistent_actions">
@@ -242,11 +241,11 @@
     </child>
     <child>
       <object class="GtkAction" id="peak_area">
-        <property name="label" translatable="yes">Peak area</property>
-        <property name="short_label" translatable="yes">Peak area</property>
+        <property name="label" translatable="yes">Peak properties</property>
+        <property name="short_label" translatable="yes">Peak properties</property>
         <property name="stock_id">430-area</property>
         <property name="always_show_image">True</property>
-        <signal name="activate" handler="on_peak_area" swapped="no"/>
+        <signal name="activate" handler="on_peak_properties" swapped="no"/>
       </object>
     </child>
   </object>

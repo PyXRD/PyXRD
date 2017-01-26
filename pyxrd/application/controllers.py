@@ -487,9 +487,9 @@ class AppController (BaseController):
             self.specimen.strip_peak()
         return True
 
-    def on_peak_area(self, event):
+    def on_peak_properties(self, event):
         if self.model.single_specimen_selected:
-            self.specimen.peak_area()
+            self.specimen.peak_properties()
         return True
 
     # ------------------------------------------------------------

@@ -10,6 +10,7 @@ logger = logging.getLogger(__name__)
 
 import numpy as np
 from scipy.integrate import trapz
+from scipy.interpolate import UnivariateSpline
 
 from mvc.models.properties.tools import modify
 from mvc.models.properties import (
@@ -161,31 +162,37 @@ class ExperimentalLine(PyXRDLine):
 
     ###########################################################################
 
-    #: The peak area calculation start position
-    area_startx = FloatProperty(
-        default=0.0, text="Peak area start position",
+    #: The peak properties calculation start position
+    peak_startx = FloatProperty(
+        default=0.0, text="Peak properties start position",
         persistent=False, visible=True, widget_type="float_entry",
-        set_action_name="update_area_pattern",
+        set_action_name="update_peak_properties",
         mix_with=(SetActionMixin,)
     )
 
-    #: The peak area calculation end position
-    area_endx = FloatProperty(
-        default=0.0, text="Peak area end position",
+    #: The peak properties calculation end position
+    peak_endx = FloatProperty(
+        default=0.0, text="Peak properties end position",
         persistent=False, visible=True, widget_type="float_entry",
-        action_name="update_area_pattern",
+        set_action_name="update_peak_properties",
         mix_with=(SetActionMixin,)
     )
 
+    #: The peak fwhm value
+    peak_fwhm_result = FloatProperty(
+        default=0.0, text="Peak FWHM value",
+        persistent=False, visible=True, widget_type="label",
+    )
+    
     #: The peak area value
-    area_result = FloatProperty(
+    peak_area_result = FloatProperty(
         default=0.0, text="Peak area value",
         persistent=False, visible=True, widget_type="label",
     )
 
-    #: The pattern where a peak area was calculated for
-    area_pattern = LabeledProperty(
-        default=None, text="Peak area pattern",
+    #: The patterns peak properties are calculated from
+    peak_properties_pattern = LabeledProperty(
+        default=None, text="Peak properties pattern",
         persistent=False, visible=False,
         signal_name="visuals_changed",
         mix_with=(SignalMixin,)
@@ -338,47 +345,53 @@ class ExperimentalLine(PyXRDLine):
     # ------------------------------------------------------------
     #       Peak area calculation
     # ------------------------------------------------------------
-    area_slope = 0.0
-    avg_area_starty = 0.0
-    avg_area_endy = 0.0
-    def update_area_pattern(self):
+    peak_bg_slope = 0.0
+    avg_starty = 0.0
+    avg_endy = 0.0
+    def update_peak_properties(self):
         with self.visuals_changed.hold_and_emit():
-            if self.area_endx < self.area_startx:
-                self.area_endx = self.area_startx + 1.0
+            if self.peak_endx < self.peak_startx:
+                self.peak_endx = self.peak_startx + 1.0
                 return # previous line will have re-invoked this method
 
             # calculate average starting point y value
-            condition = (self.data_x >= self.area_startx - 0.1) & (self.data_x <= self.area_startx + 0.1)
+            condition = (self.data_x >= self.peak_startx - 0.1) & (self.data_x <= self.peak_startx + 0.1)
             section = np.extract(condition, self.data_y[:, 0])
-            self.avg_area_starty = np.min(section)
+            self.avg_starty = np.min(section)
 
             # calculate average ending point y value
-            condition = (self.data_x >= self.area_endx - 0.1) & (self.data_x <= self.area_endx + 0.1)
+            condition = (self.data_x >= self.peak_endx - 0.1) & (self.data_x <= self.peak_endx + 0.1)
             section = np.extract(condition, self.data_y[:, 0])
-            self.avg_area_endy = np.min(section)
+            self.avg_endy = np.min(section)
 
             # Calculate new bg slope
-            self.area_slope = (self.avg_area_starty - self.avg_area_endy) / (self.area_startx - self.area_endx)
+            self.peak_bg_slope = (self.avg_starty - self.avg_endy) / (self.peak_startx - self.peak_endx)
 
             # Get the x-values in between start and end point:
-            condition = (self.data_x >= self.area_startx) & (self.data_x <= self.area_endx)
+            condition = (self.data_x >= self.peak_startx) & (self.data_x <= self.peak_endx)
             section_x = np.extract(condition, self.data_x)
             section_y = np.extract(condition, self.data_y)
-            bg_curve = (self.area_slope * (section_x - self.area_startx) + self.avg_area_starty)
+            bg_curve = (self.peak_bg_slope * (section_x - self.peak_startx) + self.avg_starty)
 
             #Calculate the peak area:
-            self.area_result = abs(trapz(section_y, x=section_x) - trapz(bg_curve, x=section_x))
+            self.peak_area_result = abs(trapz(section_y, x=section_x) - trapz(bg_curve, x=section_x))
 
-            # Calculate the new y-values:
-            self.area_pattern = (section_x, bg_curve, section_y)
+            # create a spline of of the peak (shifted down by half of its maximum)
+            fwhm_curve = section_y - bg_curve
+            peak_half_max = np.max(fwhm_curve)*0.5
+            spline = UnivariateSpline(section_x, fwhm_curve-peak_half_max, s=0)
+            roots = spline.roots() # find the roots = where the splin = 0
+            self.peak_fwhm_result = np.abs(roots[0] - roots[-1]) if (len(roots) >= 2) else 0
 
-    def clear_area_variables(self):
+            # Calculate the new y-values: x values, bg_curve y values, original pattern y values, x values for the FWHM, y values for the FWHM
+            self.peak_properties_pattern = (section_x, bg_curve, section_y, roots, spline(roots)+peak_half_max)
+
+    def clear_peak_properties_variables(self):
         with self.visuals_changed.hold_and_emit():
-            self._area_startx = 0.0
-            self._area_pattern = None
-            self._area_endx = 0.0
-            self.area_result = 0.0
-
+            self._peak_startx = 0.0
+            self._peak_properties_pattern = None
+            self._peak_endx = 0.0
+            self.peak_properties = 0.0
 
     # ------------------------------------------------------------
     #       Peak stripping

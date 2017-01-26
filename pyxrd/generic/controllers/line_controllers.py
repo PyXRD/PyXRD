@@ -29,9 +29,10 @@ class LinePropertiesController(BaseController):
         "bg_type",
         "bg_position",
         "bg_scale",
-        "area_startx",
-        "area_endx",
-        "area_result"
+        "peak_startx",
+        "peak_endx",
+        "peak_area_result",
+        "peak_fwhm_result"
     ] # these are handled by other controllers
 
     __LINEID__ = "TRUE"
@@ -150,26 +151,27 @@ class SmoothDataController(PatternActionController):
 
     pass # end of class
 
-class CalculatePeakAreaController(PatternActionController):
+class CalculatePeakPropertiesController(PatternActionController):
 
     auto_adapt_included = [
-        "area_startx",
-        "area_endx",
-        "area_result",
+        "peak_startx",
+        "peak_endx",
+        "peak_fwhm_result",
+        "peak_area_result"
     ]
     model_setup_method = None
-    model_action_method = "clear_area_variables"
-    model_cancel_method = "clear_area_variables"
+    model_action_method = "clear_peak_properties_variables"
+    model_cancel_method = "clear_peak_properties_variables"
 
     # ------------------------------------------------------------
     #      GTK Signal handlers
     # ------------------------------------------------------------
     def on_sample_start_clicked(self, event):
-        self.sample("area_startx")
+        self.sample("peak_startx")
         return True
 
     def on_sample_end_clicked(self, event):
-        self.sample("area_endx")
+        self.sample("peak_endx")
         return True
 
     def sample(self, attribute):
@@ -192,7 +194,6 @@ class CalculatePeakAreaController(PatternActionController):
         self.parent.parent.view.get_toplevel().present()
 
     pass # end of class
-
 
 class StripPeakController(PatternActionController):
 

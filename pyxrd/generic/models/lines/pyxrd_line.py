@@ -14,7 +14,7 @@ from scipy.interpolate import interp1d
 
 from mvc.models.properties import (
     StringProperty, BoolProperty, FloatProperty,
-    StringChoiceProperty, SignalMixin
+    StringChoiceProperty, SignalMixin, ListProperty
 )
 
 from pyxrd.data import settings

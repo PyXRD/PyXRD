@@ -29,7 +29,7 @@ from pyxrd.generic.controllers.line_controllers import (
     AddNoiseController,
     ShiftDataController,
     StripPeakController,
-    CalculatePeakAreaController,
+    CalculatePeakPropertiesController
 )
 
 from pyxrd.generic.views.line_views import (
@@ -38,7 +38,7 @@ from pyxrd.generic.views.line_views import (
     AddNoiseView,
     ShiftDataView,
     StripPeakView,
-    CalculatePeakAreaView
+    CalculatePeakPropertiesView
 )
 
 class SpecimenController(DialogController, TreeViewMixin):
@@ -177,12 +177,12 @@ class SpecimenController(DialogController, TreeViewMixin):
         self._child_ctrl_ref = StripPeakController(model=self.model.experimental_pattern, view=st_view, parent=self)
         st_view.present()
 
-    def peak_area(self):
+    def peak_properties(self):
         """
-            Opens the 'peak area' dialog.
+            Opens the 'peak properties' dialog.
         """
-        pa_view = CalculatePeakAreaView(parent=self.view)
-        self._child_ctrl_ref = CalculatePeakAreaController(model=self.model.experimental_pattern, view=pa_view, parent=self)
+        pa_view = CalculatePeakPropertiesView(parent=self.view)
+        self._child_ctrl_ref = CalculatePeakPropertiesController(model=self.model.experimental_pattern, view=pa_view, parent=self)
         pa_view.present()
 
     # ------------------------------------------------------------

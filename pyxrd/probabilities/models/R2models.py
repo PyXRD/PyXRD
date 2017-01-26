@@ -345,7 +345,7 @@ class R2G3Model(_AbstractProbability):
     _G = 3
     twothirds = 2.0 / 3.0
 
-    W1 = BoolProperty(
+    inherit_W1 = BoolProperty(
         default=False, text="Inherit flag for W1",
         persistent=True, visible=True,
     )

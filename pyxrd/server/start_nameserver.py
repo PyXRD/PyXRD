@@ -9,6 +9,7 @@
 
 # Keep these:
 import settings
+
 import Pyro4
 import Pyro4.naming
 
@@ -18,3 +19,4 @@ if __name__ == "__main__":
     setup_logging(basic=True, prefix="PYRO NAMESERVER:")
     
     Pyro4.naming.startNSloop()
+

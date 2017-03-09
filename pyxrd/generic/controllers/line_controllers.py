@@ -12,6 +12,7 @@ from mvc.adapters.gtk_support.dialogs.dialog_factory import DialogFactory
 from pyxrd.generic.controllers import BaseController, DialogController
 from pyxrd.generic.plot.eye_dropper import EyeDropper
 from pyxrd.file_parsers.xrd_parsers import xrd_parsers
+from pyxrd.data import settings
 
 class LinePropertiesController(BaseController):
     """
@@ -289,7 +290,7 @@ class BackgroundController(PatternActionController):
         message = "An unexpected error has occurred when trying to parse %s:\n\n<i>" % os.path.basename(filename)
         message += "{}</i>\n\n"
         message += "This is most likely caused by an invalid or unsupported file format."
-        with DialogFactory.error_dialog_handler(message, parent=self.view.get_toplevel(), reraise=False):
+        with DialogFactory.error_dialog_handler(message, parent=self.view.get_toplevel(), reraise=settings.DEBUG):
             # Parse the pattern file
             data_objects = parser.parse(filename)
             pattern = data_objects[0].data

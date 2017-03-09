@@ -73,25 +73,29 @@ class StorableXYData(DataModel, XYData, Storable):
             
     def load_data_from_generator(self, generator, clear=True):
         with self.data_changed.hold_and_emit():
-            super(StorableXYData, self).load_data_from_generator(generator, clear=clear)
+            with self.visuals_changed.hold_and_emit():
+                super(StorableXYData, self).load_data_from_generator(generator, clear=clear)
 
     def set_data(self, x, y):
         """
             Sets data using the supplied x, y1, ..., yn arrays.
         """
         with self.data_changed.hold_and_emit():
-            super(StorableXYData, self).set_data(x, y)
+            with self.visuals_changed.hold_and_emit():
+                super(StorableXYData, self).set_data(x, y)
 
     def set_value(self, i, j, value):
         with self.data_changed.hold_and_emit():
-            super(StorableXYData, self).set_value(i, j, value)
+            with self.visuals_changed.hold_and_emit():
+                super(StorableXYData, self).set_value(i, j, value)
 
     def append(self, x, y):
         """
             Appends data using the supplied x, y1, ..., yn arrays.
         """
         with self.data_changed.hold_and_emit():
-            super(StorableXYData, self).append(x, y)
+            with self.visuals_changed.hold_and_emit():
+                super(StorableXYData, self).append(x, y)
 
     def insert(self, pos, x, y):
         """
@@ -99,10 +103,12 @@ class StorableXYData(DataModel, XYData, Storable):
             position.
         """
         with self.data_changed.hold_and_emit():
-            super(StorableXYData, self).insert(pos, x, y)
+            with self.visuals_changed.hold_and_emit():
+                super(StorableXYData, self).insert(pos, x, y)
 
     def remove_from_indeces(self, *indeces):
         with self.data_changed.hold_and_emit():
-            super(StorableXYData, self).remove_from_indeces(*indeces)
+            with self.visuals_changed.hold_and_emit():
+                super(StorableXYData, self).remove_from_indeces(*indeces)
 
     pass # end of class

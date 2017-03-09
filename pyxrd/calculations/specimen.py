@@ -16,6 +16,11 @@ from pyxrd.calculations.goniometer import (
 from pyxrd.calculations.phases import get_intensity
 
 
+def get_clipped_intensities(specimen):
+    exp = specimen.observed_intensity.transpose()[...,specimen.selected_range]
+    cal = specimen.total_intensity[...,specimen.selected_range]
+    return exp, cal
+
 def get_machine_correction_range(specimen):
     """
         Calculate a correction factor for a certain sample length,
@@ -77,14 +82,8 @@ def calculate_phase_intensities(specimen):
         ], dtype=np.float_), 0, 1) # is of shape num_phases, num_patterns, num_observations
      )
 
-def get_summed_intensities(specimen, scale, fractions, bgshift):
-    """
-        Returns the total or summed intensity of all phases in the given 
-        specimen, with the given scale, phase fractions and background shift
-        value. Does not re-calculate phases or corrections and assumes
-        these are calculated and stored in the specimen object.
-    """
-    weighted = (fractions * specimen.phase_intensities.transpose()).transpose()
-    summed = np.sum(weighted, axis=0)  # axis 0 = phase index, axis 1 = z index, axis 2 = x index
-    result = scale * summed + bgshift * specimen.correction
-    return result
+def calculate_scaled_intensities(specimen, scale, fractions, bgshift):
+    specimen.background_intensity = bgshift * specimen.correction
+    specimen.scaled_phase_intensities = (fractions * specimen.phase_intensities.transpose()).transpose() * scale
+    specimen.total_intensity = np.sum(specimen.scaled_phase_intensities, axis=0) + specimen.background_intensity
+    return specimen

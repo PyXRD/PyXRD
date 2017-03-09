@@ -252,6 +252,12 @@ class MixtureData(DataObject):
 
     #: Whether this MixtureData object has been parsed (internal flag)
     parsed = False
+    
+    #: Whether this MixtureData object has been calculated (internal flag)
+    calculated = False
+
+    #: Whether this MixtureData object has been optimized (internal flag)
+    optimized = False
 
     #: The number of specimens
     n = 0
@@ -260,4 +266,3 @@ class MixtureData(DataObject):
     m = 0
 
     pass # end of class
-

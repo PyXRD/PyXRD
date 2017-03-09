@@ -1,0 +1,19 @@
+{
+    "type": "Goniometer", 
+    "properties": {
+        "uuid": "cbcb0178a13d4a299ae3c89b5b3f4e5a", 
+        "radius": 25.0, 
+        "divergence": 3.4, 
+        "soller1": 2.5, 
+        "soller2": 2.5, 
+        "min_2theta": 3.0, 
+        "max_2theta": 45.0, 
+        "steps": 2500, 
+        "wavelength_distribution": "[[0.154443,0.525022],[0.153475,0.024654],[0.139225,0.019616]]", 
+        "has_ads": true, 
+        "ads_fact": 1.0, 
+        "ads_phase_fact": 1.0, 
+        "ads_phase_shift": 0.0, 
+        "ads_const": 0.0
+    }
+}

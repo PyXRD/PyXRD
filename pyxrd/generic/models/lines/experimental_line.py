@@ -69,9 +69,10 @@ class ExperimentalLine(PyXRDLine):
     )
 
     @property
-    def max_intensity(self):
-        max_value = super(ExperimentalLine, self).max_intensity
-        if self.cap_value > 0:
+    def max_display_y(self):
+        max_value = super(ExperimentalLine, self).max_display_y
+        # Only cap single and multi-line patterns, not 2D images:
+        if self.cap_value > 0 and not (self.num_columns > 2 and len(self.z_data)):
             max_value = min(max_value, self.cap_value)
         return max_value
 

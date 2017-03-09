@@ -79,11 +79,11 @@ class RawPatternPhase(RefinementGroup, AbstractPhase):
                 self.observe_model(self.raw_pattern)
 
     @property
-    def max_intensity(self):
-        """The maximum intensity of the current loaded profile"""
+    def spec_max_display_y(self):
+        """The maximum intensity (y-axis) of the current loaded profile"""
         _max = 0.0
         if self.raw_pattern is not None:
-            _max = max(_max, np.max(self.raw_pattern.max_intensity))
+            _max = max(_max, np.max(self.raw_pattern.max_display_y))
         return _max
 
     # ------------------------------------------------------------

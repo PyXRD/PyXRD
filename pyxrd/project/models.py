@@ -607,20 +607,20 @@ class Project(DataModel, Storable):
         :rtype: tuple containing the scale factor and the (scaled) offset
         """
         if self.axes_ynormalize == 0 or (self.axes_ynormalize == 1 and specimen is None):
-            return (1.0 / (self.get_max_intensity() or 1.0), 1.0)
+            return (1.0 / (self.get_max_display_y() or 1.0), 1.0)
         elif self.axes_ynormalize == 1:
-            return (1.0 / (specimen.max_intensity or 1.0), 1.0)
+            return (1.0 / (specimen.get_max_display_y or 1.0), 1.0)
         elif self.axes_ynormalize == 2:
-            return (1.0, self.get_max_intensity())
+            return (1.0, self.get_max_display_y())
         else:
             raise ValueError, "Wrong value for 'axes_ysnormalize' in %s: is `%d`; should be 0, 1 or 2" % (self, self.axes_ynormalize)
 
-    def get_max_intensity(self):
-        max_intensity = 0
+    def get_max_display_y(self):
+        max_display_y = 0
         if self.parent is not None:
             for specimen in self.parent.current_specimens:
-                max_intensity = max(specimen.max_intensity, max_intensity)
-        return max_intensity
+                max_display_y = max(specimen.max_display_y, max_display_y)
+        return max_display_y
 
     @contextmanager
     def hold_child_signals(self):

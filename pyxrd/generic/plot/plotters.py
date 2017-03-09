@@ -160,7 +160,7 @@ def plot_hatches(project, specimen, offset, scale, axes):
     """
     # calculate the Y limits
     y0 = offset
-    y1 = offset + max(specimen.max_intensity * scale, 1.0)
+    y1 = offset + max(specimen.max_display_y * scale, 1.0)
 
     # these are easier to just remove for now, not too expensive
     leftborder, hatch, rightborder = getattr(specimen, "__plot_hatches_artists", (None, None, None))
@@ -218,11 +218,9 @@ def apply_transform(data, scale=1, offset=0, cap=0):
     return data_x, data_y
 
 def plot_pattern(pattern, axes, scale=1, offset=0, cap=0, z_data=[None], **kwargs):
-    # setup or update the line
+    
     if len(z_data) > 1 and pattern.data_y.size > 0:
-        
-        pattern.color
-        
+        # Update the 2d image   
         colors = [mcolors.colorConverter.to_rgba(pattern.color, 0), mcolors.colorConverter.to_rgba(pattern.color, 1)]
         cmap = mcolors.LinearSegmentedColormap.from_list('mycmap', colors, N=100)
         
@@ -231,7 +229,6 @@ def plot_pattern(pattern, axes, scale=1, offset=0, cap=0, z_data=[None], **kwarg
         rh = np.array(map(float, z_data), dtype=float)
         
         rh = rh * scale + offset
-           
         
         cols = intensities.shape[0]
         rows = intensities.shape[1]
@@ -241,7 +238,7 @@ def plot_pattern(pattern, axes, scale=1, offset=0, cap=0, z_data=[None], **kwarg
         axes.pcolormesh(X,Y,Z, cmap=cmap, shading='flat', edgecolors='None', rasterized=False)       
         
     else:
-
+        # setup or update the line
         line = getattr_or_create(pattern, "__plot_line", (matplotlib.lines.Line2D, ([], []), {}))
     
         if kwargs:
@@ -558,11 +555,11 @@ def plot_specimens(axes, pos_setup, project, specimens):
 
     for _, specimen in enumerate(specimens):
 
-        spec_max_intensity = float(specimen.max_intensity)
+        spec_max_display_y = float(specimen.max_display_y)
 
         # single specimen normalization:
         if project.axes_ynormalize == 1:
-            scale = (1.0 / spec_max_intensity) if spec_max_intensity != 0.0 else 1.0
+            scale = (1.0 / spec_max_display_y) if spec_max_display_y != 0.0 else 1.0
 
         spec_y_offset = specimen.display_vshift * scale_unit
         spec_y_pos = current_y_pos * scale_unit + spec_y_offset

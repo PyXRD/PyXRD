@@ -70,7 +70,7 @@ class XYData(Model):
 
     @property
     def max_y(self):
-        if len(self.data_x) > 1:
+        if len(self.data_y) > 1:
             return np.max(self.data_y)
         else:
             return 0

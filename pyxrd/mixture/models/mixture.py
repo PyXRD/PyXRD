@@ -53,12 +53,19 @@ class Mixture(DataModel, Storable):
     _data_object = None
     @property
     def data_object(self):
+        self._data_object.parsed = False
+        self._data_object.optimized = False
+        self._data_object.calculated = False
         self._data_object.specimens = [None] * len(self.specimens)
         self._data_object.auto_bg = self.auto_bg
+        
+        self._data_object.n = len(self.specimens)
+        self._data_object.m = len(self.phases)
+        
         for i, specimen in enumerate(self.specimens):
             if specimen is not None:
                 data_object = specimen.data_object
-                data_object.phases = [[None] * len(self.phases) for _ in data_object.z_list]
+                data_object.phases = [[None] * self._data_object.m for _ in data_object.z_list]
                 for z_index in range(len(specimen.get_z_list())):
                     for phase_index in range(self.phase_matrix.shape[1]):
                         data_object.phases[z_index][phase_index] = self.get_phase_data_object(i, z_index, phase_index)
@@ -242,7 +249,7 @@ class Mixture(DataModel, Storable):
             if len(self.scales) != n or len(self.specimens) != n or len(self.bgshifts) != n:
                 raise IndexError, "Shape mismatch: scales (%d), background shifts (%d) or specimens (%d) list lengths do not match with row count (%d) of phase matrix" % (len(self.scales), len(self.specimens), len(self.bgshifts), n)
             if len(self.phases) != m or len(self.fractions) != m:
-                raise IndexError, "Shape mismatch: fractions or phases lists do not match with column count of phase matrix"
+                raise IndexError, "Shape mismatch: fractions (%s) or phases (%d) lists do not match with column count of phase matrix (%d)" % (len(self.fractions), len(self.phases), m)
 
             self._observe_specimens()
             self._observe_phases()
@@ -488,15 +495,16 @@ class Mixture(DataModel, Storable):
                     self.scales[:] = list(mixture.scales)
                     self.bgshifts[:] = list(mixture.bgshifts)
 
-                    if calculate: # (re-)calculate if requested:
-                        mixture = self.optimizer.calculate(mixture)
+                    # reset flag when needed:
+                    mixture.calculated = mixture.calculated and not calculate
+                    mixture = self.optimizer.calculate(mixture)
 
-                    for i, (specimen_data, specimen) in enumerate(izip(mixture.specimens[0], self.specimens)):
+                    for i, (specimen_data, specimen) in enumerate(izip(mixture.specimens, self.specimens)):
                         if specimen is not None:
                             with specimen.data_changed.ignore():
                                 specimen.update_pattern(
                                     specimen_data.total_intensity,
-                                    specimen_data.phase_intensities * self.fractions[:, np.newaxis] * self.scales[i],
+                                    specimen_data.scaled_phase_intensities,
                                     self.phase_matrix[i, :]
                                 )
 

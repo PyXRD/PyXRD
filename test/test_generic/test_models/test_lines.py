@@ -63,7 +63,7 @@ class TestLineMixin():
     def test_data(self):
         self._set_some_data()
         self.assertEqual(self.line.num_columns, 3)
-        self.assertEqual(self.line.max_intensity, 160)
+        self.assertEqual(self.line.max_display_y, 160)
         self.assertEqual(self.line.size, 20)
         self.assertEqual(self.line.get_y_at_x(7), 10)
         self.assertEqual(self.line.get_y_at_x(10.5), 60)

@@ -17,6 +17,11 @@ from pyxrd.data.appdirs import user_log_dir
 from pyxrd_server import PyXRDServer
 from utils import start_script
 
+try:
+    from Pyro4.naming import NamingError
+except (AttributeError, ImportError):
+    from Pyro4.errors import NamingError
+
 import settings
 
 if __name__ == "__main__":
@@ -33,7 +38,7 @@ if __name__ == "__main__":
 
     try:
         ns = Pyro4.locateNS()
-    except Pyro4.naming.NamingError:
+    except NamingError:
         logger.info("NamingError encountered when trying to locate the nameserver")
         log_file = os.path.join(user_log_dir('PyXRD'), 'nameserver.log')
         start_script("start_nameserver.py", auto_kill=not settings.KEEP_SERVER_ALIVE, log_file=log_file)

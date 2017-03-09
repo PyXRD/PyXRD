@@ -8,8 +8,8 @@
 from pyxrd.generic.models import ChildModel
 
 from pyxrd.calculations.mixture import (
-    get_optimized_mixture,
     calculate_mixture,
+    calculate_and_optimize_mixture,
     get_residual,
     get_optimized_residual
 )
@@ -62,7 +62,7 @@ class Optimizer(ChildModel):
             the mixture.
         """
         try:
-            return get_optimized_mixture(*self.get_data_object(data_object))
+            return calculate_and_optimize_mixture(*self.get_data_object(data_object))
         except AssertionError:
             return None
 

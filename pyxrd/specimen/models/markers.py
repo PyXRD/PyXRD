@@ -79,7 +79,6 @@ class MineralScorer(DataModel):
     def __init__(self, marker_peaks=[], *args, **kwargs):
         super(MineralScorer, self).__init__(*args, **kwargs)
         self._matches = []
-        self.matches_changed = Signal()
 
         self.marker_peaks = marker_peaks # position, intensity
 

@@ -59,7 +59,7 @@ class Specimen(DataModel, Storable):
         return self._data_object
 
     def get_z_list(self):
-        return self.experimental_pattern.z_data
+        return list(self.experimental_pattern.z_data)
 
     project = property(DataModel.parent.fget, DataModel.parent.fset)
 
@@ -180,7 +180,7 @@ class Specimen(DataModel, Storable):
         default=None, text="Excluded ranges",
         visible=True, persistent=True, tabular=True,
         signal_name="data_changed", widget_type="xy_list_view",
-        mix_with=(SignalMixin,)
+        mix_with=(SignalMixin, ObserveMixin)
     )
 
     #: A :class:`~pyxrd.goniometer.models.Goniometer` instance
@@ -222,13 +222,16 @@ class Specimen(DataModel, Storable):
     )
 
     @property
-    def max_intensity(self):
-        """The maximum intensity of the current profile (both calculated and observed"""
+    def max_display_y(self):
+        """
+         The maximum intensity or z-value (display y axis) 
+         of the current profile (both calculated and observed)
+        """
         _max = 0.0
         if self.experimental_pattern is not None:
-            _max = max(_max, np.max(self.experimental_pattern.max_intensity))
+            _max = max(_max, np.max(self.experimental_pattern.max_display_y))
         if self.calculated_pattern is not None:
-            _max = max(_max, np.max(self.calculated_pattern.max_intensity))
+            _max = max(_max, np.max(self.calculated_pattern.max_display_y))
         return _max
 
     # ------------------------------------------------------------
@@ -378,7 +381,7 @@ class Specimen(DataModel, Storable):
         specimens = list()
         xrdfiles = parser.parse(filename)
         if len(xrdfiles):
-            if xrdfiles[0].relative_humidity_data is not None: # we have relative humidity data
+            if getattr(xrdfiles[0], "relative_humidity_data", None) is not None: # we have relative humidity data
                 specimen = None
                 
                 # Setup list variables:

@@ -115,15 +115,18 @@ class PyXRDLine(StorableXYData):
         persistent=True, visible=False
     ) 
 
-    # REGULAR PROPERTIES:
+    # REGULAR PROPERTIES:   
     @property
-    def max_intensity(self):
+    def max_display_y(self):
         if self.num_columns > 2:
-            if len(self.z_data):
+            # If there's several y-columns, check if we have z-data associated with them
+            # if so, it is a 2D pattern, otherwise this is a multi-line pattern
+            if len(self.z_data) > 2:
                 return np.max(self.z_data)
             else:
-                return 0
-        else:        
+                return self.max_y
+        else:
+            # If there's a single comumn of y-data, just get the max value
             return self.max_y
 
     @property
@@ -171,7 +174,7 @@ class PyXRDLine(StorableXYData):
             self.inherit_ls = bool(self.get_kwarg(kwargs, self.inherit_ls, "inherit_ls"))
             self.marker = self.get_kwarg(kwargs, self.marker, "marker")
             self.inherit_marker = bool(self.get_kwarg(kwargs, self.inherit_marker, "inherit_marker"))
-            self.z_data = list(self.get_kwarg(kwargs, [], "z_data"))
+            self.z_data = list(self.get_kwarg(kwargs, [0], "z_data"))
 
     # ------------------------------------------------------------
     #      Input/Output stuff

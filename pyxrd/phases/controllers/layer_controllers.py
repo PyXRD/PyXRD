@@ -20,6 +20,8 @@ class EditLayerController(InlineObjectListStoreController):
         Controller for the (inter)layer atom ObjectListStores
     """
     auto_adapt = False
+    enable_import = True
+    enable_export = True
     treemodel_class_type = Atom
     file_filters = Atom.Meta.layer_filters
     new_atom_type = None
@@ -85,7 +87,7 @@ class EditLayerController(InlineObjectListStoreController):
             Atom.save_as_csv(save_dialog.filename, self.get_all_objects())
         current_name = "%s%s" % (
             self.model.name.lower(),
-            self.model_property_name.replace("data", "").lower()
+            self.treemodel_property_name.replace("data", "").lower()
         )
         DialogFactory.get_save_dialog(
             "Export atoms", parent=self.view.get_toplevel(),
@@ -95,7 +97,7 @@ class EditLayerController(InlineObjectListStoreController):
     def on_load_object_clicked(self, widget, user_data=None):
         def import_layer(dialog):
             def on_accept(dialog):
-                self.treemodel_data.clear()
+                del self.treemodel_data[:] # clears the list
                 Atom.get_from_csv(dialog.filename, self.treemodel_data.append, self.model)
             DialogFactory.get_load_dialog(
                 "Import atoms", parent=self.view.get_toplevel(),

@@ -345,7 +345,7 @@ class Atom(DataModel, Storable):
 
         my_kwargs = self.pop_kwargs(kwargs,
             "data_name", "data_z", "z", "data_pn", "data_atom_type",
-            "atom_type_uuid", "atom_type_name", "atom_type_index",
+            "atom_type_uuid", "atom_type_name", "atom_type_index", "atom_type",
             *[names[0] for names in type(self).Meta.get_local_storable_properties()]
         )
         super(Atom, self).__init__(*args, **kwargs)
@@ -450,7 +450,7 @@ class Atom(DataModel, Storable):
 
         types = dict()
         if parent is not None:
-            for atom_type in parent.phase.project.atom_types._data:
+            for atom_type in parent.phase.project.atom_types:
                 if not atom_type.name in types:
                     types[atom_type.name] = atom_type
 

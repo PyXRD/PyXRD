@@ -86,7 +86,7 @@ class TreeViewMixin(object):
         return None
 
     def get_all_objects(self, tv):
-        return tv.get_model().get_raw_data()
+        return tv.get_model()._data
 
     def set_selected_paths(self, tv, paths):
         selection = tv.get_selection()
@@ -387,8 +387,8 @@ class InlineObjectListStoreController(BaseController, TreeControllerMixin):
         columns and edit support.
     """
     treeview = None
-    enable_import = True
-    enable_export = True
+    enable_import = False
+    enable_export = False
     add_types = list()
     auto_adapt = False
 
@@ -439,8 +439,8 @@ class InlineObjectListStoreController(BaseController, TreeControllerMixin):
         raise NotImplementedError
 
     def __init__(self, *args, **kwargs):
-        self.enable_import = kwargs.pop("enable_import", False)
-        self.enable_export = kwargs.pop("enable_export", False)
+        self.enable_import = kwargs.pop("enable_import", self.enable_import)
+        self.enable_export = kwargs.pop("enable_export", self.enable_export)
         super(InlineObjectListStoreController, self).__init__(*args, **kwargs)
 
     @BaseController.model.setter

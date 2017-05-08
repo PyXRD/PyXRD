@@ -234,7 +234,7 @@ class Component(RefinementGroup, DataModel, Storable):
     layer_atoms = ListProperty(
         default=None, text="Layer atoms",
         visible=True, persistent=True, tabular=True, widget_type="custom",
-        inheritable=True, inherit_flag="inherit_layer_atoms", inherit_from="linked_with_layer_atoms",
+        inheritable=True, inherit_flag="inherit_layer_atoms", inherit_from="linked_with.layer_atoms",
         signal_name="data_changed", data_type=Atom,
         mix_with=(SignalMixin, InheritableMixin)
     )

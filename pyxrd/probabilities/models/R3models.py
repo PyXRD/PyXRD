@@ -149,7 +149,7 @@ class R3G2Model(_AbstractProbability):
     #      Methods & Functions
     # ------------------------------------------------------------
     def update(self):
-        with self.data_changed.hold_and_emit():
+        with self.monitor_changes():
             self.mW[0] = self.W1
             self.mW[1] = 1.0 - self.W1
 

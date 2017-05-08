@@ -116,7 +116,7 @@ class R1G2Model(_AbstractProbability):
     #      Methods & Functions
     # ------------------------------------------------------------
     def update(self):
-        with self.data_changed.hold_and_emit():
+        with self.monitor_changes():
             self.mW[0] = self.W1
             self.mW[1] = 1.0 - self.mW[0]
             if self.mW[0] <= 0.5:
@@ -340,7 +340,7 @@ class R1G3Model(_AbstractProbability):
     #      Methods & Functions
     # ------------------------------------------------------------
     def update(self):
-        with self.data_changed.hold_and_emit():
+        with self.monitor_changes():
             self.mW[0] = self.W1
             self.mW[1] = (1 - self.mW[0]) * self.G1
             self.mW[2] = 1.0 - self.mW[0] - self.mW[1]
@@ -684,7 +684,7 @@ class R1G4Model(_AbstractProbability):
     #      Methods & Functions
     # ------------------------------------------------------------
     def update(self):
-        with self.data_changed.hold_and_emit():
+        with self.monitor_changes():
             self.mW[0] = self.W1
             self.mW[1] = (1.0 - self.mW[0]) * self.R1
             self.mW[2] = (1.0 - self.mW[0] - self.mW[1]) * self.R2

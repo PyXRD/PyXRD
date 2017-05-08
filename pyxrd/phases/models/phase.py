@@ -17,7 +17,7 @@ from mvc.models.properties import (
 
 from pyxrd.generic.io import storables, get_case_insensitive_glob
 
-from pyxrd.generic.models.properties import InheritableMixin
+from pyxrd.generic.models.properties import InheritableMixin, ObserveChildMixin
 from pyxrd.refinement.refinables.properties import RefinableMixin
 from pyxrd.refinement.refinables.mixins import RefinementGroup
 from pyxrd.refinement.refinables.metaclasses import PyXRDRefinableMeta
@@ -109,22 +109,17 @@ class Phase(RefinementGroup, AbstractPhase):
         default=None, text="Based on phase",
         visible=True, persistent=False, tabular=True,
         signal_name="data_changed",
-        mix_with=(SignalMixin,)
+        mix_with=(SignalMixin, ObserveChildMixin)
     )
     @based_on.setter
     def based_on(self, value):
-        _based_on = type(self).based_on._get(self)
-        if _based_on is not None:
-            self.relieve_model(_based_on)
+        old = type(self).based_on._get(self)
         if value == None or value.get_based_on_root() == self or value.parent != self.parent:
             value = None
-        if value != _based_on:
-            _based_on = value
-            type(self).based_on._set(self, _based_on)
+        if value != old:
+            type(self).based_on._set(self, value)
             for component in self.components:
                 component.linked_with = None
-        if _based_on is not None:
-            self.observe_model(_based_on)
 
     # INHERITABLE PROPERTIES:
 
@@ -144,37 +139,21 @@ class Phase(RefinementGroup, AbstractPhase):
         visible=True, persistent=True, tabular=True, refinable=True,
         inheritable=True, inherit_flag="inherit_CSDS_distribution", inherit_from="based_on.CSDS_distribution",
         signal_name="data_changed",
-        mix_with=(SignalMixin, RefinableMixin, InheritableMixin)
+        mix_with=(SignalMixin, RefinableMixin, InheritableMixin, ObserveChildMixin)
     )
-    @CSDS_distribution.setter
-    def CSDS_distribution(self, value):
-        _CSDS = type(self).CSDS_distribution._get(self)
-        if _CSDS is not None:
-            self.relieve_model(_CSDS)
-            _CSDS.parent = None
-        type(self).CSDS_distribution._set(self, value)
-        if value is not None:
-            value.parent = self
-            self.observe_model(value)
 
     # A :class:`~pyxrd._probabilities.models._AbstractProbability` subclass instance
     probabilities = LabeledProperty(
         default=None, text="Probablities",
         visible=True, persistent=True, tabular=True, refinable=True,
         signal_name="data_changed",
-        mix_with=(SignalMixin, RefinableMixin)
+        mix_with=(SignalMixin, RefinableMixin, ObserveChildMixin)
     )
     @probabilities.setter
     def probabilities(self, value):
-        _prob = type(self).probabilities._get(self)
-        if _prob is not None:
-            self.relieve_model(_prob)
-            _prob.parent = None
         type(self).probabilities._set(self, value)
         if value is not None:
             value.update()
-            value.parent = self
-            self.observe_model(value)
 
     #: The color this phase's X-ray diffraction pattern should have.
     display_color = StringProperty(

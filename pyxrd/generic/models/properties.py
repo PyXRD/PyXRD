@@ -5,7 +5,27 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
+from mvc.models.properties.observe_mixin import ObserveMixin
+
 from ..utils import rec_getattr
+
+class ObserveChildMixin(ObserveMixin):
+    """
+    A descriptor mixin that will make the instance observe and relieve the
+    objects set and clear and set the parent property on the old and new object respectively
+    """
+
+    def __relieve_old(self, instance, old, new):
+        if old is not None:
+            instance.relieve_model(old)
+            old.parent = None
+
+    def __observe_new(self, instance, old, new):
+        if new is not None:
+            new.parent = instance
+            instance.observe_model(new)
+
+    pass
 
 class InheritableMixin(object):
     """

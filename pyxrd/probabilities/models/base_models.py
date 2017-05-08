@@ -6,6 +6,8 @@
 # Complete license can be found in the LICENSE file.
 
 from itertools import product
+from copy import deepcopy
+from contextlib import contextmanager
 
 import numpy as np
 
@@ -285,5 +287,31 @@ class _AbstractProbability(RefinementGroup, DataModel, Storable):
     def get_probability_matrix(self): return self._P
 
     def get_independent_label_map(self): return self.Meta.independent_label_map
+
+    _stashed_lP = None
+    _stashed_lW = None
+    def _stash_matrices(self):
+        """ Stashes the matrices for an update """
+        self._stashed_lW = deepcopy(np.asanyarray(self._lW))
+        self._stashed_lP = deepcopy(np.asanyarray(self._lP))
+        
+    def _compare_stashed_matrices(self):
+        """ Unstashed matrices and compares with current values, if identical returns True """
+        if self._stashed_lP is not None and self._stashed_lW is not None:
+            result = np.array_equal(self._stashed_lW, np.asanyarray(self._lW))
+            result = result and np.array_equal(self._stashed_lP, np.asanyarray(self._lP))
+            self._stashed_lW = None
+            self._stashed_lP = None
+            return result
+        else:
+            return False
+        
+    @contextmanager
+    def monitor_changes(self):
+        with self.data_changed.hold():
+            self._stash_matrices()
+            yield
+            if not self._compare_stashed_matrices():
+                self.data_changed.emit()
 
     pass # end of class

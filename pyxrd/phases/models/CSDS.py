@@ -20,6 +20,7 @@ from mvc.models.properties import (
     GetActionMixin, LabeledProperty, BoolProperty, FloatProperty,
     ReadOnlyMixin, SetActionMixin
 )
+from mvc.models.properties.signal_mixin import SignalMixin
 
 class _AbstractCSDSDistribution(DataModel, Storable):
 
@@ -40,16 +41,16 @@ class _AbstractCSDSDistribution(DataModel, Storable):
     inherited = BoolProperty(
         default=False, text="Inherited",
         visible=False, persistent=False,
+        signal_name="data_changed", mix_with=(SignalMixin,)
     )
 
     distrib = LabeledProperty(
         default=None, text="CSDS Distribution",
         tabular=True, visible=False, persistent=False,
         get_action_name="_update_distribution",
-        mix_with=(GetActionMixin,)
+        signal_name="data_changed", 
+        mix_with=(SignalMixin, GetActionMixin,)
     )
-
-
 
     # PROPERTIES:
     #: The maximum value of this distribution
@@ -72,40 +73,45 @@ class _AbstractCSDSDistribution(DataModel, Storable):
         default=0.0, text="Average CSDS",
         minimum=1, maximum=200,
         tabular=True, persistent=True, visible=True, refinable=True,
+        signal_name="data_changed", 
         set_action_name="_update_distribution",
-        mix_with=(DataMixin, RefinableMixin, SetActionMixin)
+        mix_with=(SignalMixin, DataMixin, RefinableMixin, SetActionMixin)
     )
 
     alpha_scale = FloatProperty(
         default=0.0, text="α scale factor",
         minimum=0.0, maximum=10.0,
         tabular=True, persistent=True, visible=True, refinable=True,
+        signal_name="data_changed", 
         set_action_name="_update_distribution",
-        mix_with=(DataMixin, RefinableMixin, SetActionMixin)
+        mix_with=(SignalMixin, DataMixin, RefinableMixin, SetActionMixin)
     )
 
     alpha_offset = FloatProperty(
         default=0.0, text="α offset factor",
         minimum=-5, maximum=5,
         tabular=True, persistent=True, visible=True, refinable=True,
+        signal_name="data_changed", 
         set_action_name="_update_distribution",
-        mix_with=(DataMixin, RefinableMixin, SetActionMixin)
+        mix_with=(SignalMixin, DataMixin, RefinableMixin, SetActionMixin)
     )
 
     beta_scale = FloatProperty(
         default=0.0, text="β² scale factor",
         minimum=0.0, maximum=10.0,
         tabular=True, persistent=True, visible=True, refinable=True,
+        signal_name="data_changed", 
         set_action_name="_update_distribution",
-        mix_with=(DataMixin, RefinableMixin, SetActionMixin)
+        mix_with=(SignalMixin, DataMixin, RefinableMixin, SetActionMixin)
     )
 
     beta_offset = FloatProperty(
         default=0.0, text="β² offset factor",
         minimum=-5, maximum=5,
         tabular=True, persistent=True, visible=True, refinable=True,
+        signal_name="data_changed", 
         set_action_name="_update_distribution",
-        mix_with=(DataMixin, RefinableMixin, SetActionMixin)
+        mix_with=(SignalMixin, DataMixin, RefinableMixin, SetActionMixin)
     )
 
     # ------------------------------------------------------------
@@ -168,37 +174,32 @@ class DritsCSDSDistribution(_AbstractCSDSDistribution, RefinementValue):
         store_id = "DritsCSDSDistribution"
 
     # PROPERTIES:
-
     alpha_scale = FloatProperty(
         default=0.9485, text="α scale factor",
         minimum=0.0, maximum=10.0,
         tabular=True, persistent=False, visible=False, refinable=False,
-        set_action_name="_update_distribution",
-        mix_with=(ReadOnlyMixin, DataMixin, RefinableMixin, SetActionMixin)
+        mix_with=(ReadOnlyMixin, DataMixin, RefinableMixin)
     )
 
     alpha_offset = FloatProperty(
         default=0.017, text="α offset factor",
         minimum=-5, maximum=5,
         tabular=True, persistent=False, visible=False, refinable=False,
-        set_action_name="_update_distribution",
-        mix_with=(ReadOnlyMixin, DataMixin, RefinableMixin, SetActionMixin)
+        mix_with=(ReadOnlyMixin, DataMixin, RefinableMixin)
     )
 
     beta_scale = FloatProperty(
         default=0.1032, text="β² scale factor",
         minimum=0.0, maximum=10.0,
         tabular=True, persistent=False, visible=False, refinable=False,
-        set_action_name="_update_distribution",
-        mix_with=(ReadOnlyMixin, DataMixin, RefinableMixin, SetActionMixin)
+        mix_with=(ReadOnlyMixin, DataMixin, RefinableMixin)
     )
 
     beta_offset = FloatProperty(
         default=0.0034, text="β² offset factor",
         minimum=-5, maximum=5,
         tabular=True, persistent=False, visible=False, refinable=False,
-        set_action_name="_update_distribution",
-        mix_with=(ReadOnlyMixin, DataMixin, RefinableMixin, SetActionMixin)
+        mix_with=(ReadOnlyMixin, DataMixin, RefinableMixin)
     )
 
     # REFINEMENT VALUE IMPLEMENTATION:

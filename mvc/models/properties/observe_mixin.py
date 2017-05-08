@@ -28,13 +28,19 @@ class ObserveMixin(object):
     objects set.
     """
 
+    def __relieve_old(self, instance, old, new):
+        if old is not None:
+            instance.relieve_model(old)
+
+    def __observe_new(self, instance, old, new):
+        if new is not None:
+            instance.observe_model(new)
+
     def _set(self, instance, value):
         old = getattr(instance, self.label)
         if old != value:
-            if old is not None:
-                instance.relieve_model(old)
+            self.__relieve_old(instance, old, value)
             super(ObserveMixin, self)._set(instance, value)
-            if value is not None:
-                instance.observe_model(value)
+            self.__observe_new(instance, old, value)
 
     pass

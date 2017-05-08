@@ -66,7 +66,7 @@ def R0_model_generator(pasG):
         #      Methods & Functions
         # ------------------------------------------------------------
         def update(self):
-            with self.data_changed.hold_and_emit():
+            with self.monitor_changes():
                 if self.G > 1:
                     for i in range(self.G - 1):
                         name = "F%d" % (i + 1)

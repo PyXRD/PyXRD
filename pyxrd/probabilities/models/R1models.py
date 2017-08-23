@@ -16,6 +16,7 @@ from pyxrd.generic.models.properties import InheritableMixin
 from pyxrd.refinement.refinables.properties import RefinableMixin
 
 from .base_models import _AbstractProbability
+from mvc.models.properties.action_mixins import SetActionMixin
 
 __all__ = [
     "R1G2Model",
@@ -72,6 +73,8 @@ class R1G2Model(_AbstractProbability):
     inherit_W1 = BoolProperty(
         default=False, text="Inherit flag for W1",
         persistent=True, visible=True,
+        set_action_name="update",
+        mix_with=(SetActionMixin,)
     )
 
     W1 = FloatProperty(
@@ -79,12 +82,15 @@ class R1G2Model(_AbstractProbability):
         persistent=True, visible=True, refinable=True, store_private=True,
         minimum=0.0, maximum=1.0, is_independent=True, inheritable=True,
         inherit_flag="inherit_W1", inherit_from="parent.based_on.probabilities.W1",
-        mix_with=(RefinableMixin, InheritableMixin)
+        set_action_name="update",
+        mix_with=(SetActionMixin, RefinableMixin, InheritableMixin)
     )
 
     inherit_P11_or_P22 = BoolProperty(
         default=False, text="Inherit flag for P11_or_P22",
         persistent=True, visible=True,
+        set_action_name="update",
+        mix_with=(SetActionMixin,)
     )
 
     P11_or_P22 = FloatProperty(
@@ -95,7 +101,8 @@ class R1G2Model(_AbstractProbability):
         persistent=True, visible=True, refinable=True, store_private=True,
         minimum=0.0, maximum=1.0, is_independent=True, inheritable=True,
         inherit_flag="inherit_P11_or_P22", inherit_from="parent.based_on.probabilities.P11_or_P22",
-        mix_with=(RefinableMixin, InheritableMixin)
+        set_action_name="update",
+        mix_with=(SetActionMixin, RefinableMixin, InheritableMixin)
     )
 
     # ------------------------------------------------------------
@@ -236,18 +243,23 @@ class R1G3Model(_AbstractProbability):
     inherit_W1 = BoolProperty(
         default=False, text="Inherit flag for W1",
         persistent=True, visible=True,
+        set_action_name="update",
+        mix_with=(SetActionMixin,)
     )
     W1 = FloatProperty(
         default=0.8, text="W1", math_text=r"$W_1$",
         persistent=True, visible=True, refinable=True, store_private=True,
         minimum=0.0, maximum=1.0, is_independent=True, inheritable=True,
         inherit_flag="inherit_W1", inherit_from="parent.based_on.probabilities.W1",
-        mix_with=(RefinableMixin, InheritableMixin)
+        set_action_name="update",
+        mix_with=(SetActionMixin, RefinableMixin, InheritableMixin)
     )
 
     inherit_P11_or_P22 = BoolProperty(
         default=False, text="Inherit flag for P11_or_P22",
         persistent=True, visible=True,
+        set_action_name="update",
+        mix_with=(SetActionMixin,)
     )
     P11_or_P22 = FloatProperty(
         default=0.7, text="P11_or_P22",
@@ -257,12 +269,15 @@ class R1G3Model(_AbstractProbability):
         persistent=True, visible=True, refinable=True, store_private=True,
         minimum=0.0, maximum=1.0, is_independent=True, inheritable=True,
         inherit_flag="inherit_P11_or_P22", inherit_from="parent.based_on.probabilities.P11_or_P22",
-        mix_with=(RefinableMixin, InheritableMixin)
+        set_action_name="update",
+        mix_with=(SetActionMixin, RefinableMixin, InheritableMixin)
     )
 
     inherit_G1 = BoolProperty(
         default=False, text="Inherit flag for G1",
         persistent=True, visible=True,
+        set_action_name="update",
+        mix_with=(SetActionMixin,)
     )
     G1 = FloatProperty(
         default=0.7, text="W2/(W2+W3)",
@@ -270,12 +285,15 @@ class R1G3Model(_AbstractProbability):
         persistent=True, visible=True, refinable=True, store_private=True,
         minimum=0.0, maximum=1.0, is_independent=True, inheritable=True,
         inherit_flag="inherit_G1", inherit_from="parent.based_on.probabilities.G1",
-        mix_with=(RefinableMixin, InheritableMixin)
+        set_action_name="update",
+        mix_with=(SetActionMixin, RefinableMixin, InheritableMixin)
     )
 
     inherit_G2 = BoolProperty(
         default=False, text="Inherit flag for G2",
         persistent=True, visible=True,
+        set_action_name="update",
+        mix_with=(SetActionMixin,)
     )
     G2 = FloatProperty(
         default=0.7, text="(W22+W23)/(W22+W23+W32+W33)",
@@ -283,12 +301,15 @@ class R1G3Model(_AbstractProbability):
         persistent=True, visible=True, refinable=True, store_private=True,
         minimum=0.0, maximum=1.0, is_independent=True, inheritable=True,
         inherit_flag="inherit_G2", inherit_from="parent.based_on.probabilities.G2",
-        mix_with=(RefinableMixin, InheritableMixin)
+        set_action_name="update",
+        mix_with=(SetActionMixin, RefinableMixin, InheritableMixin)
     )
 
     inherit_G3 = BoolProperty(
         default=False, text="Inherit flag for G3",
         persistent=True, visible=True,
+        set_action_name="update",
+        mix_with=(SetActionMixin,)
     )
     G3 = FloatProperty(
         default=0.7, text="W22/(W22+W23)",
@@ -296,12 +317,15 @@ class R1G3Model(_AbstractProbability):
         persistent=True, visible=True, refinable=True, store_private=True,
         minimum=0.0, maximum=1.0, is_independent=True, inheritable=True,
         inherit_flag="inherit_G3", inherit_from="parent.based_on.probabilities.G3",
-        mix_with=(RefinableMixin, InheritableMixin)
+        set_action_name="update",
+        mix_with=(SetActionMixin, RefinableMixin, InheritableMixin)
     )
 
     inherit_G4 = BoolProperty(
         default=False, text="Inherit flag for G4",
         persistent=True, visible=True,
+        set_action_name="update",
+        mix_with=(SetActionMixin,)
     )
     G4 = FloatProperty(
         default=0.7, text="W23/(W32+W33)",
@@ -309,7 +333,8 @@ class R1G3Model(_AbstractProbability):
         persistent=True, visible=True, refinable=True, store_private=True,
         minimum=0.0, maximum=1.0, is_independent=True, inheritable=True,
         inherit_flag="inherit_G4", inherit_from="parent.based_on.probabilities.G4",
-        mix_with=(RefinableMixin, InheritableMixin)
+        set_action_name="update",
+        mix_with=(SetActionMixin, RefinableMixin, InheritableMixin)
     )
 
     # ------------------------------------------------------------
@@ -486,18 +511,23 @@ class R1G4Model(_AbstractProbability):
     inherit_W1 = BoolProperty(
         default=False, text="Inherit flag for W1",
         persistent=True, visible=True,
+        set_action_name="update",
+        mix_with=(SetActionMixin,)
     )
     W1 = FloatProperty(
         default=0.6, text="W1", math_text=r"$W_1$",
         persistent=True, visible=True, refinable=True, store_private=True,
         minimum=0.0, maximum=1.0, is_independent=True, inheritable=True,
         inherit_flag="inherit_W1", inherit_from="parent.based_on.probabilities.W1",
-        mix_with=(RefinableMixin, InheritableMixin)
+        set_action_name="update",
+        mix_with=(SetActionMixin, RefinableMixin, InheritableMixin)
     )
 
     inherit_P11_or_P22 = BoolProperty(
         default=False, text="Inherit flag for P11_or_P22",
         persistent=True, visible=True,
+        set_action_name="update",
+        mix_with=(SetActionMixin,)
     )
     P11_or_P22 = FloatProperty(
         default=0.25, text="P11_or_P22",
@@ -507,12 +537,15 @@ class R1G4Model(_AbstractProbability):
         persistent=True, visible=True, refinable=True, store_private=True,
         minimum=0.0, maximum=1.0, is_independent=True, inheritable=True,
         inherit_flag="inherit_P11_or_P22", inherit_from="parent.based_on.probabilities.P11_or_P22",
-        mix_with=(RefinableMixin, InheritableMixin)
+        set_action_name="update",
+        mix_with=(SetActionMixin, RefinableMixin, InheritableMixin)
     )
 
     inherit_R1 = BoolProperty(
         default=False, text="Inherit flag for R1",
         persistent=True, visible=True,
+        set_action_name="update",
+        mix_with=(SetActionMixin,)
     )
     R1 = FloatProperty(
         default=0.5, text="W2/(W2+W3+W4)",
@@ -520,12 +553,15 @@ class R1G4Model(_AbstractProbability):
         persistent=True, visible=True, refinable=True, store_private=True,
         minimum=0.0, maximum=1.0, is_independent=True, inheritable=True,
         inherit_flag="inherit_R1", inherit_from="parent.based_on.probabilities.R1",
-        mix_with=(RefinableMixin, InheritableMixin)
+        set_action_name="update",
+        mix_with=(SetActionMixin, RefinableMixin, InheritableMixin)
     )
 
     inherit_R2 = BoolProperty(
         default=False, text="Inherit flag for R2",
         persistent=True, visible=True,
+        set_action_name="update",
+        mix_with=(SetActionMixin,)
     )
     R2 = FloatProperty(
         default=0.5, text="W3/(W3+W4)",
@@ -533,12 +569,15 @@ class R1G4Model(_AbstractProbability):
         persistent=True, visible=True, refinable=True, store_private=True,
         minimum=0.0, maximum=1.0, is_independent=True, inheritable=True,
         inherit_flag="inherit_R2", inherit_from="parent.based_on.probabilities.R2",
-        mix_with=(RefinableMixin, InheritableMixin)
+        set_action_name="update",
+        mix_with=(SetActionMixin, RefinableMixin, InheritableMixin)
     )
 
     inherit_G1 = BoolProperty(
         default=False, text="Inherit flag for G1",
         persistent=True, visible=True,
+        set_action_name="update",
+        mix_with=(SetActionMixin,)
     )
     G1 = FloatProperty(
         default=0.5, text="(W22+W23+W24)/(W22+W23+W24+W32+W33+W34+W42+W43+W44)",
@@ -546,12 +585,15 @@ class R1G4Model(_AbstractProbability):
         persistent=True, visible=True, refinable=True, store_private=True,
         minimum=0.0, maximum=1.0, is_independent=True, inheritable=True,
         inherit_flag="inherit_G1", inherit_from="parent.based_on.probabilities.G1",
-        mix_with=(RefinableMixin, InheritableMixin)
+        set_action_name="update",
+        mix_with=(SetActionMixin, RefinableMixin, InheritableMixin)
     )
 
     inherit_G2 = BoolProperty(
         default=False, text="Inherit flag for G2",
         persistent=True, visible=True,
+        set_action_name="update",
+        mix_with=(SetActionMixin,)
     )
     G2 = FloatProperty(
         default=0.4, text="(W32+W33+W34)/(W32+W33+W34+W42+W43+W44)",
@@ -559,12 +601,15 @@ class R1G4Model(_AbstractProbability):
         persistent=True, visible=True, refinable=True, store_private=True,
         minimum=0.0, maximum=1.0, is_independent=True, inheritable=True,
         inherit_flag="inherit_G2", inherit_from="parent.based_on.probabilities.G2",
-        mix_with=(RefinableMixin, InheritableMixin)
+        set_action_name="update",
+        mix_with=(SetActionMixin, RefinableMixin, InheritableMixin)
     )
 
     inherit_G11 = BoolProperty(
         default=False, text="Inherit flag for G11",
         persistent=True, visible=True,
+        set_action_name="update",
+        mix_with=(SetActionMixin,)
     )
     G11 = FloatProperty(
         default=0.5, text="W22/(W22+W23+W24)",
@@ -572,12 +617,15 @@ class R1G4Model(_AbstractProbability):
         persistent=True, visible=True, refinable=True, store_private=True,
         minimum=0.0, maximum=1.0, is_independent=True, inheritable=True,
         inherit_flag="inherit_G11", inherit_from="parent.based_on.probabilities.G11",
-        mix_with=(RefinableMixin, InheritableMixin)
+        set_action_name="update",
+        mix_with=(SetActionMixin, RefinableMixin, InheritableMixin)
     )
 
     inherit_G12 = BoolProperty(
         default=False, text="Inherit flag for G12",
         persistent=True, visible=True,
+        set_action_name="update",
+        mix_with=(SetActionMixin,)
     )
     G12 = FloatProperty(
         default=0.5, text="W23/(W23+W24)",
@@ -585,12 +633,15 @@ class R1G4Model(_AbstractProbability):
         persistent=True, visible=True, refinable=True, store_private=True,
         minimum=0.0, maximum=1.0, is_independent=True, inheritable=True,
         inherit_flag="inherit_G12", inherit_from="parent.based_on.probabilities.G12",
-        mix_with=(RefinableMixin, InheritableMixin)
+        set_action_name="update",
+        mix_with=(SetActionMixin, RefinableMixin, InheritableMixin)
     )
 
     inherit_G21 = BoolProperty(
         default=False, text="Inherit flag for G21",
         persistent=True, visible=True,
+        set_action_name="update",
+        mix_with=(SetActionMixin,)
     )
     G21 = FloatProperty(
         default=0.8, text="W32/(W32+W33+W34)",
@@ -598,12 +649,15 @@ class R1G4Model(_AbstractProbability):
         persistent=True, visible=True, refinable=True, store_private=True,
         minimum=0.0, maximum=1.0, is_independent=True, inheritable=True,
         inherit_flag="inherit_G21", inherit_from="parent.based_on.probabilities.G21",
-        mix_with=(RefinableMixin, InheritableMixin)
+        set_action_name="update",
+        mix_with=(SetActionMixin, RefinableMixin, InheritableMixin)
     )
 
     inherit_G22 = BoolProperty(
         default=False, text="Inherit flag for G22",
         persistent=True, visible=True,
+        set_action_name="update",
+        mix_with=(SetActionMixin,)
     )
     G22 = FloatProperty(
         default=0.8, text="W33/(W32+W34)",
@@ -611,12 +665,15 @@ class R1G4Model(_AbstractProbability):
         persistent=True, visible=True, refinable=True, store_private=True,
         minimum=0.0, maximum=1.0, is_independent=True, inheritable=True,
         inherit_flag="inherit_G22", inherit_from="parent.based_on.probabilities.G22",
-        mix_with=(RefinableMixin, InheritableMixin)
+        set_action_name="update",
+        mix_with=(SetActionMixin, RefinableMixin, InheritableMixin)
     )
 
     inherit_G31 = BoolProperty(
         default=False, text="Inherit flag for G31",
         persistent=True, visible=True,
+        set_action_name="update",
+        mix_with=(SetActionMixin,)
     )
     G31 = FloatProperty(
         default=0.7, text="W42/(W42+W43+W44)",
@@ -624,12 +681,15 @@ class R1G4Model(_AbstractProbability):
         persistent=True, visible=True, refinable=True, store_private=True,
         minimum=0.0, maximum=1.0, is_independent=True, inheritable=True,
         inherit_flag="inherit_G31", inherit_from="parent.based_on.probabilities.G31",
-        mix_with=(RefinableMixin, InheritableMixin)
+        set_action_name="update",
+        mix_with=(SetActionMixin, RefinableMixin, InheritableMixin)
     )
 
     inherit_G32 = BoolProperty(
         default=False, text="Inherit flag for G32",
         persistent=True, visible=True,
+        set_action_name="update",
+        mix_with=(SetActionMixin,)
     )
     G32 = FloatProperty(
         default=0.5, text="W43/(W43+W44)",
@@ -637,7 +697,8 @@ class R1G4Model(_AbstractProbability):
         persistent=True, visible=True, refinable=True, store_private=True,
         minimum=0.0, maximum=1.0, is_independent=True, inheritable=True,
         inherit_flag="inherit_G32", inherit_from="parent.based_on.probabilities.G32",
-        mix_with=(RefinableMixin, InheritableMixin)
+        set_action_name="update",
+        mix_with=(SetActionMixin, RefinableMixin, InheritableMixin)
     )
 
     # ------------------------------------------------------------

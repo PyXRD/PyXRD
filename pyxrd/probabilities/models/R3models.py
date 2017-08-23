@@ -15,6 +15,7 @@ from pyxrd.generic.models.properties import InheritableMixin
 from pyxrd.refinement.refinables.properties import RefinableMixin
 
 from .base_models import _AbstractProbability
+from mvc.models.properties.action_mixins import SetActionMixin
 
 __all__ = [
     "R3G2Model"
@@ -109,18 +110,23 @@ class R3G2Model(_AbstractProbability):
     inherit_W1 = BoolProperty(
         default=False, text="Inherit flag for W1",
         persistent=True, visible=True,
+        set_action_name="update",
+        mix_with=(SetActionMixin,)
     )
     W1 = FloatProperty(
         default=0.85, text="W1 (> 2/3)", math_text=r"$W_1 (> \frac{2}{3})$",
         persistent=True, visible=True, refinable=True, store_private=True,
         minimum=2.0 / 3.0, maximum=1.0, is_independent=True, inheritable=True,
         inherit_flag="inherit_W1", inherit_from="parent.based_on.probabilities.W1",
-        mix_with=(RefinableMixin, InheritableMixin)
+        set_action_name="update",
+        mix_with=(SetActionMixin, RefinableMixin, InheritableMixin)
     )
 
     inherit_P1111_or_P2112 = BoolProperty(
         default=False, text="Inherit flag for P1111_or_P2112",
         persistent=True, visible=True,
+        set_action_name="update",
+        mix_with=(SetActionMixin,)
     )
     P1111_or_P2112 = FloatProperty(
         default=0.75, text="P1111 (W1 < 3/4) or\nP2112 (W1 > 3/4)",
@@ -130,7 +136,8 @@ class R3G2Model(_AbstractProbability):
         persistent=True, visible=True, refinable=True, store_private=True,
         minimum=0.0, maximum=1.0, is_independent=True, inheritable=True,
         inherit_flag="inherit_P1111_or_P2112", inherit_from="parent.based_on.probabilities.P1111_or_P2112",
-        mix_with=(RefinableMixin, InheritableMixin)
+        set_action_name="update",
+        mix_with=(SetActionMixin, RefinableMixin, InheritableMixin)
     )
 
     # ------------------------------------------------------------

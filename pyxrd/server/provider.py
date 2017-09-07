@@ -14,6 +14,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 import Pyro4
+import Pyro4.naming
 
 from pyxrd.generic.async.exceptions import *
 from pyxrd.data.appdirs import user_log_dir

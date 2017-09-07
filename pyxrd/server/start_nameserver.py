@@ -10,6 +10,7 @@
 # Keep these:
 import settings
 import Pyro4
+import Pyro4.naming
 
 if __name__ == "__main__":
     

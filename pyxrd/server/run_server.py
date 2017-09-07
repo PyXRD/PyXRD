@@ -10,6 +10,7 @@
 import os
 
 import Pyro4
+import Pyro4.naming
 
 from pyxrd.data.appdirs import user_log_dir
 

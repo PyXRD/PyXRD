@@ -27,9 +27,7 @@ def read(fname):
 setup(
     name="PyXRD",
     version=get_version(),
-    description="""\
-PyXRD is a python implementation of the matrix algorithm developed for the X-ray
-diffraction analysis of disordered lamellar structures""",
+    description="PyXRD is a python implementation of the matrix algorithm developed for the X-ray diffraction analysis of disordered lamellar structures",
     long_description=read('README.md'),
     keywords="XRD disorder mixed-layers",
     author="Mathijs Dumon",

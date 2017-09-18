@@ -60,3 +60,5 @@ pyxrd/temp.aux
 pyxrd/temp.dvi
 pyxrd/temp.log
 pyxrd/temp.tex
+docs/server-client\ arch.svg
+

@@ -91,6 +91,7 @@ class ScaleEntry(gtk.HBox):
 
     def _emit_changed(self):
         self.emit('changed')
+        self._idle_changed_id = None;
 
     def on_adj_value_changed(self, adj, *args):
         self._idle_emit_changed()

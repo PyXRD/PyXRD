@@ -226,7 +226,7 @@ class RefinementController(DialogController):
                 return True
             else:
                 return False
-        return gobject.timeout_add(250, _on_update_gui)
+        return gobject.timeout_add(500, _on_update_gui, priority=gobject.PRIORITY_LOW)
 
     def _launch_refine_thread(self, refiner, gui_timeout_id):
         @run_when_idle

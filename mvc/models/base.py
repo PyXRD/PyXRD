@@ -29,10 +29,16 @@ logger = logging.getLogger(__name__)
 
 from weakref import WeakKeyDictionary
 
-
-try: import threading as threading
-except ImportError: import dummy_threading as threading
-
+try:
+    import threading as threading
+except ImportError: 
+    import dummy_threading as threading
+    
+try:
+    from fastrlock.rlock import FastRLock as RLock
+except ImportError:    
+    from threading import RLock
+    
 from ..support.utils import not_none
 from ..support.collections.weak_list import WeakList
 from ..support.observables import ObsWrapperBase, Signal
@@ -142,7 +148,7 @@ class Model(Observer):
         Observer.__init__(self)
 
 
-        self._prop_lock = threading.RLock() # @UndefinedVariable
+        self._prop_lock = RLock() # @UndefinedVariable
         self.__observers = WeakList()
         self.__observer_threads = WeakKeyDictionary()
 

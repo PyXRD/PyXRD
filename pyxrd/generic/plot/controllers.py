@@ -9,6 +9,7 @@ from pkg_resources import resource_filename # @UnresolvedImport
 
 import gtk
 import logging
+from pyxrd.generic.plot.motion_tracker import MotionTracker
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
@@ -184,6 +185,7 @@ class MainPlotController(PlotController):
         self.position_setup = PositionSetup()
 
         self.app_controller = app_controller
+                
         PlotController.__init__(self, *args, **kwargs)
 
     def setup_content(self):
@@ -195,6 +197,8 @@ class MainPlotController(PlotController):
         # Connect events:
         self.canvas.mpl_connect('draw_event', self.fix_after_drawing)
         self.canvas.mpl_connect('resize_event', self.fix_after_drawing)
+
+        self.mtc = MotionTracker(self, self.app_controller.update_plot_status)
 
         self.update()
 

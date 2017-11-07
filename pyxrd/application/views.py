@@ -161,6 +161,15 @@ class AppView(HasChildView, FormattedTitleView):
         self["specimen_actions"].set_sensitive(single_specimen_selected)
         self["specimens_actions"].set_sensitive(single_specimen_selected or multiple_specimen_selected)
 
+    def update_plot_status(self, angularpos, dspacing, experimental, calculated=None):
+        wrapper = "<span font_family=\"monospace\">%s</span>"
+        text = ""
+        if angularpos is not None:
+            text = "20=% 3.2f °    d=% 3.2f nm    I<sub>e</sub>=% 5d" % (angularpos, dspacing, experimental)
+            if calculated is not None:
+                text += "    I<sub>c</sub>=% 5d" % calculated
+        self["lbl_plot_info"].set_markup(wrapper % text) 
+        
     # ------------------------------------------------------------
     #      View update methods
     # ------------------------------------------------------------

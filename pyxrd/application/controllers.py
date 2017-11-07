@@ -12,7 +12,6 @@ from functools import wraps
 import gtk
 import gobject
 
-from mvc.support.utils import not_none
 from mvc.adapters.gtk_support.dialogs.dialog_factory import DialogFactory
 
 from pyxrd.data import settings
@@ -96,7 +95,6 @@ class AppController (BaseController):
 
         # Plot controller:
         self.plot_controller = MainPlotController(self)
-        view.setup_plot(self.plot_controller)
 
         # Child controllers:
         self.project = None
@@ -120,6 +118,7 @@ class AppController (BaseController):
             view.set_layout_mode(self.model.current_project.layout_mode)
         else:
             view.set_layout_mode(settings.DEFAULT_LAYOUT)
+        view.setup_plot(self.plot_controller)
 
     def set_model(self, model):
         """ Sets the model in this controller """
@@ -216,6 +215,20 @@ class AppController (BaseController):
             self.model.single_specimen_selected,
             self.model.multiple_specimens_selected
         )
+
+    def update_plot_status(self, x_pos, event):
+        if x_pos > 0 and self.model.current_specimen is not None:
+            # Get experimental data at the sampled point
+            exp_y = self.model.current_specimen.experimental_pattern.get_y_at_x(x_pos)
+            dspacing = self.model.current_specimen.goniometer.get_nm_from_2t(x_pos)
+            # Get calculated data if applicable
+            if self.model.current_project.layout_mode == "FULL":
+                calc_y = self.model.current_specimen.calculated_pattern.get_y_at_x(x_pos)
+                self.view.update_plot_status(x_pos, dspacing, exp_y, calc_y)
+            else:
+                self.view.update_plot_status(x_pos, dspacing, exp_y, None)
+        else:
+            self.view.update_plot_status(None, None, None, None)
 
     def set_layout_mode(self, mode):
         """Convenience method for updating the application view's layout mode"""

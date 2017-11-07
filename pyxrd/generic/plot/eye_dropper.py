@@ -23,7 +23,7 @@ class EyeDropper():
     def _on_motion(self, event):
         if self._window is not None:
             self._window.set_cursor(gtk.gdk.Cursor(gtk.gdk.CROSSHAIR)) # @UndefinedVariable
-        return True
+        return False
 
     def _on_click(self, event):
         x_pos = -1

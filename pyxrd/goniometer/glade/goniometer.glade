@@ -16,7 +16,7 @@
   <object class="GtkTable" id="edit_goniometer">
     <property name="visible">True</property>
     <property name="can_focus">False</property>
-    <property name="n_rows">11</property>
+    <property name="n_rows">12</property>
     <property name="n_columns">3</property>
     <property name="column_spacing">12</property>
     <property name="row_spacing">6</property>
@@ -24,9 +24,9 @@
       <object class="GtkLabel" id="gonio_lambda_lbl">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="xalign">1</property>
         <property name="label" translatable="yes">Wavelength (λ)</property>
         <property name="use_markup">True</property>
+        <property name="xalign">1</property>
       </object>
       <packing>
         <property name="x_options">GTK_FILL</property>
@@ -37,9 +37,9 @@
       <object class="GtkLabel" id="gonio_radius_lbl">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="xalign">1</property>
         <property name="label" translatable="yes">Radius &lt;i&gt;[cm]&lt;/i&gt;</property>
         <property name="use_markup">True</property>
+        <property name="xalign">1</property>
       </object>
       <packing>
         <property name="top_attach">1</property>
@@ -52,9 +52,9 @@
       <object class="GtkLabel" id="gonio_divergence_lbl">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="xalign">1</property>
         <property name="label" translatable="yes">Divergence &lt;i&gt;[°]&lt;/i&gt;</property>
         <property name="use_markup">True</property>
+        <property name="xalign">1</property>
       </object>
       <packing>
         <property name="top_attach">2</property>
@@ -166,9 +166,9 @@
       <object class="GtkLabel" id="gonio_soller1_lbl">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="xalign">1</property>
         <property name="label" translatable="yes">Soller 1 &lt;i&gt;[°]&lt;/i&gt;</property>
         <property name="use_markup">True</property>
+        <property name="xalign">1</property>
       </object>
       <packing>
         <property name="top_attach">3</property>
@@ -206,9 +206,9 @@
       <object class="GtkLabel" id="gonio_soller2_lbl">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="xalign">1</property>
         <property name="label" translatable="yes">Soller 2 &lt;i&gt;[°]&lt;/i&gt;</property>
         <property name="use_markup">True</property>
+        <property name="xalign">1</property>
       </object>
       <packing>
         <property name="top_attach">4</property>
@@ -246,9 +246,9 @@
       <object class="GtkLabel" id="gonio_min_2theta_lbl">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="xalign">1</property>
         <property name="label" translatable="yes">Minimal 2θ &lt;i&gt;[°]&lt;/i&gt;</property>
         <property name="use_markup">True</property>
+        <property name="xalign">1</property>
       </object>
       <packing>
         <property name="top_attach">5</property>
@@ -286,9 +286,9 @@
       <object class="GtkLabel" id="gonio_max_2theta_lbl">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="xalign">1</property>
         <property name="label" translatable="yes">Maximal 2θ &lt;i&gt;[°]&lt;/i&gt;</property>
         <property name="use_markup">True</property>
+        <property name="xalign">1</property>
       </object>
       <packing>
         <property name="top_attach">6</property>
@@ -304,8 +304,8 @@
       </object>
       <packing>
         <property name="right_attach">3</property>
-        <property name="top_attach">9</property>
-        <property name="bottom_attach">10</property>
+        <property name="top_attach">10</property>
+        <property name="bottom_attach">11</property>
         <property name="y_options"/>
         <property name="y_padding">5</property>
       </packing>
@@ -314,15 +314,15 @@
       <object class="GtkLabel" id="lbl_import">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="xalign">1</property>
         <property name="label" translatable="yes">Load setup:</property>
         <property name="use_markup">True</property>
+        <property name="xalign">1</property>
       </object>
       <packing>
         <property name="left_attach">1</property>
         <property name="right_attach">2</property>
-        <property name="top_attach">10</property>
-        <property name="bottom_attach">11</property>
+        <property name="top_attach">11</property>
+        <property name="bottom_attach">12</property>
         <property name="x_options">GTK_FILL</property>
         <property name="y_options">GTK_FILL</property>
       </packing>
@@ -344,8 +344,8 @@
       <packing>
         <property name="left_attach">2</property>
         <property name="right_attach">3</property>
-        <property name="top_attach">10</property>
-        <property name="bottom_attach">11</property>
+        <property name="top_attach">11</property>
+        <property name="bottom_attach">12</property>
         <property name="y_options">GTK_FILL</property>
       </packing>
     </child>
@@ -360,8 +360,8 @@
         <signal name="clicked" handler="on_btn_export_gonio_clicked" swapped="no"/>
       </object>
       <packing>
-        <property name="top_attach">10</property>
-        <property name="bottom_attach">11</property>
+        <property name="top_attach">11</property>
+        <property name="bottom_attach">12</property>
         <property name="x_options"/>
         <property name="y_options"/>
       </packing>
@@ -504,8 +504,8 @@
       <packing>
         <property name="left_attach">1</property>
         <property name="right_attach">3</property>
-        <property name="top_attach">8</property>
-        <property name="bottom_attach">9</property>
+        <property name="top_attach">9</property>
+        <property name="bottom_attach">10</property>
         <property name="x_options">GTK_FILL</property>
         <property name="y_options">GTK_FILL</property>
       </packing>
@@ -520,8 +520,8 @@
         <property name="draw_indicator">True</property>
       </object>
       <packing>
-        <property name="top_attach">8</property>
-        <property name="bottom_attach">9</property>
+        <property name="top_attach">9</property>
+        <property name="bottom_attach">10</property>
         <property name="x_options">GTK_FILL</property>
         <property name="y_options">GTK_FILL</property>
       </packing>
@@ -530,9 +530,9 @@
       <object class="GtkLabel" id="lbl_steps_gonio">
         <property name="visible">True</property>
         <property name="can_focus">False</property>
-        <property name="xalign">1</property>
         <property name="label" translatable="yes">2θ Steps</property>
         <property name="use_markup">True</property>
+        <property name="xalign">1</property>
       </object>
       <packing>
         <property name="top_attach">7</property>
@@ -566,6 +566,47 @@
         <property name="right_attach">3</property>
         <property name="top_attach">7</property>
         <property name="bottom_attach">8</property>
+        <property name="x_options">GTK_FILL</property>
+        <property name="y_options">GTK_FILL</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkLabel" id="gonio_mcr_2theta_lbl">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="label" translatable="yes">Monochromator 2θ &lt;i&gt;[°]&lt;/i&gt;</property>
+        <property name="use_markup">True</property>
+        <property name="xalign">1</property>
+        <property name="tooltip_text" translatable="yes">The Bragg angle of the monochromator crystal. Zet to zero if not present, use 28.44 for silicon and 26.53 for carbon crystals.</property>
+      </object>
+      <packing>
+        <property name="top_attach">8</property>
+        <property name="bottom_attach">9</property>
+        <property name="x_options">GTK_FILL</property>
+        <property name="y_options">GTK_FILL</property>
+      </packing>
+    </child>
+    <child>
+      <object class="GtkAlignment" id="gonio_mcr_2theta_algn">
+        <property name="visible">True</property>
+        <property name="can_focus">False</property>
+        <property name="xalign">0</property>
+        <property name="xscale">0</property>
+        <child>
+          <object class="GtkEntry" id="gonio_mcr_2theta">
+            <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="invisible_char">•</property>
+            <property name="primary_icon_activatable">False</property>
+            <property name="secondary_icon_activatable">False</property>
+          </object>
+        </child>
+      </object>
+      <packing>
+        <property name="left_attach">1</property>
+        <property name="right_attach">3</property>
+        <property name="top_attach">8</property>
+        <property name="bottom_attach">9</property>
         <property name="x_options">GTK_FILL</property>
         <property name="y_options">GTK_FILL</property>
       </packing>

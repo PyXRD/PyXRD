@@ -78,7 +78,7 @@ def get_diffracted_intensity(range_theta, range_stl, phase):
     else:
         return _get_diffracted_intensity(range_theta, range_stl, phase)
 
-def get_intensity(range_theta, range_stl, soller1, soller2, phase):
+def get_intensity(range_theta, range_stl, soller1, soller2, mcr_2theta, phase):
     """
         Gets intensity for a single phase taking the
         lorentz polarization factor into account.
@@ -89,7 +89,7 @@ def get_intensity(range_theta, range_stl, soller1, soller2, phase):
         return intensity * get_lorentz_polarisation_factor(
             range_theta,
             phase.sigma_star,
-            soller1, soller2
+            soller1, soller2, mcr_2theta 
         )
     else:
         return intensity

@@ -136,6 +136,9 @@ class GonioData(DataObject):
     #: The divergence size
     divergence = None
 
+    #: The Bragg angle of the monochromator (or 0° if not present)
+    mcr_2theta = 0
+
     #: Whether and Automatic Divergence Slit correction should be performed
     has_ads = None
 

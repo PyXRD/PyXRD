@@ -53,7 +53,7 @@ def calculate_phase_intensities(specimen):
                 correction = correction_range if phase.apply_correction else 1.0
                 yield get_intensity(
                     specimen.range_theta, range_stl,
-                    specimen.goniometer.soller1, specimen.goniometer.soller2,
+                    specimen.goniometer.soller1, specimen.goniometer.soller2, specimen.goniometer.mcr_2theta,
                     phase
                 ) * correction
             else:

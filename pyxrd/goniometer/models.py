@@ -45,6 +45,7 @@ class Goniometer(DataModel, Storable):
             PropIntel(name="steps", data_type=int, storable=True, has_widget=True),
             PropIntel(name="wavelength", data_type=float, storable=False, has_widget=False, widget_type="float_entry"),
             PropIntel(name="wavelength_distribution", data_type=object, storable=True, has_widget=True, widget_type="xy_list_view"),
+            PropIntel(name="mcr_2theta", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
             PropIntel(name="has_ads", data_type=bool, storable=True, has_widget=True),
             PropIntel(name="ads_fact", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
             PropIntel(name="ads_phase_fact", data_type=float, storable=True, has_widget=True, widget_type="float_entry"),
@@ -135,6 +136,15 @@ class Goniometer(DataModel, Storable):
     def divergence(self, value):
         value = max(value, 1e-10)
         self._set_data_property("divergence", value)
+
+    @property
+    def mcr_2theta(self):
+        """
+        Angular value (in degrees) for a monochromator correction - use 28.44 for silicon and 26.53 for carbon.
+        """
+        return self._data_object.mcr_2theta
+    @mcr_2theta.setter
+    def mcr_2theta(self, value): self._set_data_property("mcr_2theta", value)
 
     @property
     def has_ads(self):
@@ -305,7 +315,7 @@ class Goniometer(DataModel, Storable):
             geometry.
         """
         return get_lorentz_polarisation_factor(
-            range_theta, sigma_star, self.data_object
+            range_theta, sigma_star, self.soller1, self.soller2, self.mcr_2theta
         )
 
     def get_ADS_to_fixed_correction(self, range_theta):

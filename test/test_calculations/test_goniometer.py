@@ -32,6 +32,7 @@ class TestGoniometerCalcs(unittest.TestCase):
         self.goniometer_data_kwargs = dict(
             min_2theta = 3.0,
             max_2theta = 45,
+            mcr_2theta = 0,
             steps = 2500,
             soller1 = 2.3,
             soller2 = 2.3,
@@ -74,7 +75,7 @@ class TestGoniometerCalcs(unittest.TestCase):
         result = get_lorentz_polarisation_factor(
             np.asanyarray([2.2551711385, 2.478038901, 2.7001518288, 2.9214422642, 3.1418428, 3.3612863, 3.5797059197, 3.7970351263]),
             12,
-            self.goniometer_data.soller1, self.goniometer_data.soller2
+            self.goniometer_data.soller1, self.goniometer_data.soller2, self.goniometer_data.mcr_2theta
         )
         self.assertIsNotNone(result)
         self.assertEquals(np.allclose(

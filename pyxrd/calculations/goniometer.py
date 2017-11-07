@@ -17,17 +17,21 @@ def get_S(soller1, soller2):
     _S1S2 = soller1 * soller2
     return _S, _S1S2
 
-def get_lorentz_polarisation_factor(range_theta, sigma_star, soller1, soller2):
-    """
-        Get the lorentz polarisation factor for the given sigma-star value,
-        soller slits and the given theta range
-    """
+def get_T(range_theta, sigma_star, soller1, soller2):
     sigma_star = float(max(sigma_star, 1e-18))
     S, _ = get_S(soller1, soller2)
     range_st = np.sin(range_theta)
     Q = S / (sqrt8 * range_st * sigma_star)
-    T = erf(Q) * sqrt2pi / (2.0 * sigma_star * S) - 2.0 * range_st * (1.0 - np.exp(-(Q ** 2.0))) / (S ** 2.0)
-    return (1.0 + np.cos(2.0 * range_theta) ** 2) * T / range_st
+    return erf(Q) * sqrt2pi / (2.0 * sigma_star * S) - 2.0 * range_st * (1.0 - np.exp(-(Q ** 2.0))) / (S ** 2.0)
+
+def get_lorentz_polarisation_factor(range_theta, sigma_star, soller1, soller2, mcr_2theta):
+    """
+        Get the lorentz polarisation factor for the given sigma-star value,
+        soller slits, monochromator Bragg angle and the given theta range
+    """
+    T = get_T(range_theta, sigma_star, soller1, soller2)
+    pol = np.cos(np.radians(mcr_2theta)) ** 2
+    return T * (1.0 + pol * (np.cos(2.0 * range_theta) ** 2)) / (pol * np.sin(range_theta))
 
 def get_fixed_to_ads_correction_range(range_theta, goniometer):
     ads = (np.sin(goniometer.ads_phase_fact * range_theta + radians(goniometer.ads_phase_shift)) - goniometer.ads_const) / goniometer.ads_fact

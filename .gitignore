@@ -5,6 +5,7 @@
 TODO*
 batch_file_*
 setuptools-*
+.fuse_hidden*
 
 # Generated file
 PyXRD.iss

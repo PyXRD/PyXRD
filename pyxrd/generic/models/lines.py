@@ -49,6 +49,7 @@ class StorableXYData(DataModel, XYData, Storable):
                 lw: the line width of this line
                 inherit_lw: whether to use the parent-level line width or its own
         """
+        if "z_data" in kwargs: del kwargs["z_data"]
         if "xy_store" in kwargs:
             kwargs["data"] = kwargs.pop("xy_store")
         super(StorableXYData, self).__init__(*args, **kwargs)

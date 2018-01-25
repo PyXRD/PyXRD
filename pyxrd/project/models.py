@@ -441,7 +441,7 @@ class Project(DataModel, Storable):
         """
         my_kwargs = self.pop_kwargs(kwargs,
             "goniometer", "data_goniometer", "data_atom_types", "data_phases",
-            "axes_yscale", "axes_xscale", "filename",
+            "axes_yscale", "axes_xscale", "filename", "behaviours",
             *[names[0] for names in type(self).Meta.get_local_storable_properties()]
         )
         super(Project, self).__init__(*args, **kwargs)
@@ -562,10 +562,10 @@ class Project(DataModel, Storable):
             # Clear parent:
             item.parent = None
             # Clear links with other phases:
-            if item.based_on is not None:
+            if getattr(item, "based_on", None) is not None:
                 item.based_on = None
             for phase in self.phases:
-                if phase.based_on == item:
+                if getattr(phase, "based_on", None) == item:
                     phase.based_on = None
             # Remove phase from mixtures:
             for mixture in self.mixtures:

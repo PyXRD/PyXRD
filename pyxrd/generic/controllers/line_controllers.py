@@ -258,6 +258,7 @@ class BackgroundController(PatternActionController):
         view.set_file_dialog(
             DialogFactory.get_load_dialog(
                 title="Open XRD file for import",
+                filters=xrd_parsers.get_import_file_filters(),
                 parent=view.get_top_widget()
             ),
             self.on_pattern_file_set
@@ -275,7 +276,7 @@ class BackgroundController(PatternActionController):
     # ------------------------------------------------------------
     #      GTK Signal handlers
     # ------------------------------------------------------------
-    def on_pattern_file_set(self, dialog):
+    def on_pattern_file_set(self, button, dialog):
         # TODO
         # This should allow more flexibility:
         #  Patterns should be allowed to not have the exact same shape,

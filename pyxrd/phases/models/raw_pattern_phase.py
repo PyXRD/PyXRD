@@ -13,12 +13,13 @@ from mvc import PropIntel
 from pyxrd.generic.io import storables, get_case_insensitive_glob
 from pyxrd.generic.models.lines import PyXRDLine
 from pyxrd.refinement.refinables.metaclasses import PyXRDRefinableMeta
+from pyxrd.refinement.refinables.mixins import RefinementGroup
 from pyxrd.file_parsers.xrd_parsers import xrd_parsers
 
 from .abstract_phase import AbstractPhase
 
 @storables.register()
-class RawPatternPhase(AbstractPhase):
+class RawPatternPhase(RefinementGroup, AbstractPhase):
 
     # MODEL INTEL:
     __metaclass__ = PyXRDRefinableMeta
@@ -47,6 +48,22 @@ class RawPatternPhase(AbstractPhase):
         return self._data_object
 
     project = property(AbstractPhase.parent.fget, AbstractPhase.parent.fset)
+
+    @property
+    def refine_title(self):
+        return "Raw Pattern Phase"
+
+    @property
+    def is_refinable(self):
+        return False
+
+    @property
+    def children_refinable(self):
+        return False
+
+    @property
+    def refinables(self):
+        return []
 
     _raw_pattern = None
     def get_raw_pattern(self): return self._raw_pattern

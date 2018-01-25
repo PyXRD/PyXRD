@@ -35,7 +35,7 @@ class Component(RefinementGroup, DataModel, Storable):
     class Meta(DataModel.Meta):
         properties = [
             PropIntel(name="name", data_type=unicode, label="Name", is_column=True, has_widget=True, storable=True),
-            PropIntel(name="linked_with", data_type=object, label="Linked with", widget_type='custom', is_column=True, has_widget=True),
+            PropIntel(name="linked_with", data_type=object, label="Linked with", widget_type='custom', is_column=True, has_widget=True, storable=True),
             PropIntel(name="d001", data_type=float, label="Cell length c [nm]", is_column=True, has_widget=True, storable=True, refinable=True, minimum=0.0, maximum=5.0, inh_name="inherit_d001", stor_name="_d001", inh_from="linked_with"),
             PropIntel(name="lattice_d", data_type=float, label="Lattice c length [nm]"),
             PropIntel(name="default_c", data_type=float, label="Default c length [nm]", is_column=True, has_widget=True, storable=True, minimum=0.0, maximum=5.0, inh_name="inherit_default_c", stor_name="_default_c", inh_from="linked_with"),
@@ -291,7 +291,7 @@ class Component(RefinementGroup, DataModel, Storable):
 
         my_kwargs = self.pop_kwargs(kwargs,
             "data_name", "data_layer_atoms", "data_interlayer_atoms", "data_atom_relations",
-            "data_atom_ratios", "data_d001", "data_default_c", "data_delta_c",
+            "data_atom_ratios", "data_d001", "data_default_c", "data_delta_c", "lattice_d",
             "data_cell_a", "data_ucp_a", "data_cell_b", "data_ucp_b",
             "linked_with_uuid", "linked_with_index", "inherit_cell_a", "inherit_cell_b",
             *[names[0] for names in type(self).Meta.get_local_storable_properties()]

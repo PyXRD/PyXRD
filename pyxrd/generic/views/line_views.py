@@ -50,7 +50,7 @@ class BackgroundView(DialogView):
 
     def set_file_dialog(self, dialog, callback):
         fcb_bg_pattern = gtk.FileChooserButton(dialog)
-        fcb_bg_pattern.connect("file-set", callback)
+        fcb_bg_pattern.connect("file-set", callback, dialog)
         self["fcb_bg_container"].add(fcb_bg_pattern)
 
     pass #end of class

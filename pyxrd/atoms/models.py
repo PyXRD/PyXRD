@@ -344,7 +344,7 @@ class Atom(DataModel, Storable):
         """
 
         my_kwargs = self.pop_kwargs(kwargs,
-            "data_name", "data_z", "z", "data_pn", "data_atom_type",
+            "data_name", "data_z", "z", "data_pn", "data_atom_type", "stretch_z",
             "atom_type_uuid", "atom_type_name", "atom_type_index", "atom_type",
             *[names[0] for names in type(self).Meta.get_local_storable_properties()]
         )

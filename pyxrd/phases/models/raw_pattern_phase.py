@@ -10,6 +10,7 @@ import numpy as np
 
 from mvc.models.properties import LabeledProperty
 from mvc.models.properties.signal_mixin import SignalMixin
+from mvc.models.properties.observe_mixin import ObserveMixin
 
 from pyxrd.generic.io import storables, get_case_insensitive_glob
 from pyxrd.generic.models.lines import PyXRDLine
@@ -67,16 +68,8 @@ class RawPatternPhase(RefinementGroup, AbstractPhase):
         visible=True, persistent=True, tabular=True,
         inheritable=True, inherit_flag="inherit_CSDS_distribution", inherit_from="based_on.CSDS_distribution",
         signal_name="data_changed",
-        mix_with=(SignalMixin,)
+        mix_with=(SignalMixin, ObserveMixin,)
     )
-    @raw_pattern.setter
-    def set_raw_pattern(self, value):
-        if value != self._raw_pattern:
-            if self.raw_pattern is not None:
-                self.relieve_model(self.raw_pattern)
-            type(self).raw_pattern._set(self, value)
-            if self.raw_pattern is not None:
-                self.observe_model(self.raw_pattern)
 
     @property
     def spec_max_display_y(self):
@@ -90,7 +83,6 @@ class RawPatternPhase(RefinementGroup, AbstractPhase):
     #      Initialization and other internals
     # ------------------------------------------------------------
     def __init__(self, *args, **kwargs):
-
         my_kwargs = self.pop_kwargs(kwargs,
             *[prop.label for prop in RawPatternPhase.Meta.get_local_persistent_properties()]
         )

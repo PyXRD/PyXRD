@@ -163,8 +163,8 @@ class BrkBRMLParser(XRDParserMixin, XMLParserMixin, BaseParser):
                                 temperature_index = None
                                 for dataview in route.findall("./DataViews/RawDataView"):
                                     index = int(dataview.get("Start", 0))
-                                    name = dataview.get("LogicName", default="Undefined")
-                                    xsi_type = dataview.get("{http://www.w3.org/2001/XMLSchema-instance}type", default="Undefined")
+                                    name = dataview.get("LogicName") or "Undefined"
+                                    xsi_type = dataview.get("{http://www.w3.org/2001/XMLSchema-instance}type") or "Undefined"
                                     if name == "MeasuredTime":
                                         steptime_datum_index = index
                                     elif name == "AbsorptionFactor":

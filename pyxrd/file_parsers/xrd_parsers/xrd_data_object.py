@@ -13,7 +13,6 @@ except ImportError:
 from ..data_object import DataObject
 from pyxrd.generic.utils import not_none
 
-
 class XRDDataObject(DataObject):
     """
         A generic class holding all the information retrieved from an XRD data

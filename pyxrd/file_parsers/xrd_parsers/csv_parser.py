@@ -35,12 +35,12 @@ class GenericXYCSVParser(XRDParserMixin, CSVBaseParser):
     }
 
     @classmethod
-    def _parse_header(cls, filename, fp, data_objects=None, close=False, **fmt_params):
+    def _parse_header(cls, filename, fp, data_objects=None, close=False, split_columns=True, has_header=True, file_start=0, **fmt_params):
         fmt_params = dict(cls.default_fmt_params, **fmt_params)
         f = fp
 
         # Goto start of file
-        f.seek(0)
+        f.seek(file_start)
 
         # Get base filename:
         try:
@@ -51,6 +51,8 @@ class GenericXYCSVParser(XRDParserMixin, CSVBaseParser):
         # Read in the first and last data line and put the file cursor back
         # at its original position
         header = f.readline().strip()
+        if not has_header:
+            f.seek(file_start) # go back to the start, we still use the first line as header, but also as data
         data_start_pos = f.tell()
         first_line = f.readline().strip()
         twotheta_count, last_line = cls.get_last_line(f)
@@ -89,7 +91,7 @@ class GenericXYCSVParser(XRDParserMixin, CSVBaseParser):
         if close: f.close()
         return data_objects
     @classmethod
-    def _parse_data(cls, filename, fp, data_objects=None, close=False, **fmt_params):
+    def _parse_data(cls, filename, fp, data_objects=None, close=False, split_columns=True, has_header=True, **fmt_params):
         f = fp
 
         if f is not None:
@@ -109,7 +111,7 @@ class GenericXYCSVParser(XRDParserMixin, CSVBaseParser):
         return data_objects
 
     @classmethod
-    def parse(cls, fp, data_objects=None, close=True, **fmt_params):
+    def parse(cls, fp, data_objects=None, close=True, split_columns=True, **fmt_params):
         """
             Files are sniffed for the used csv dialect, but an optional set of
             formatting parameters can be passed that will override the sniffed
@@ -118,13 +120,13 @@ class GenericXYCSVParser(XRDParserMixin, CSVBaseParser):
         filename, f, close = cls._get_file(fp, close=close)
 
         # Guess dialect:
-        fmt_params = cls.sniff(f, **fmt_params)
+        fmt_params, has_header, file_start = cls.sniff(f, **fmt_params)
 
         # Parse header:
-        data_objects = cls._parse_header(filename, f, data_objects=data_objects, **fmt_params)
+        data_objects = cls._parse_header(filename, f, data_objects=data_objects, split_columns=split_columns, has_header=has_header, file_start=file_start, **fmt_params)
 
         # Parse data:
-        data_objects = cls._parse_data(filename, f, data_objects=data_objects, **fmt_params)
+        data_objects = cls._parse_data(filename, f, data_objects=data_objects, split_columns=split_columns, has_header=has_header, **fmt_params)
 
         if close: f.close()
         return data_objects
@@ -134,10 +136,10 @@ class GenericXYCSVParser(XRDParserMixin, CSVBaseParser):
 @xrd_parsers.register_parser()
 class CSVParser(GenericXYCSVParser):
     """
-        ASCII *.DAT, *.CSV and *.TAB format parser
+        ASCII *.DAT, *.CSV, *.TAB and *.XY format parser
     """
 
-    description = "ASCII XRD data"
-    extensions = get_case_insensitive_glob("*.DAT", "*.CSV", "*.TAB")
+    description = "CSV XRD data"
+    extensions = get_case_insensitive_glob("*.DAT", "*.CSV", "*.TAB", "*.XY")
 
     pass # end of class

@@ -93,7 +93,7 @@ class ATLAtomTypeParser(CSVBaseParser):
         filename, fp, close = cls._get_file(filename, fp, close=close)
 
         # Guess dialect
-        fmt_params = cls.sniff(fp, **fmt_params)
+        fmt_params, _, _ = cls.sniff(fp, **fmt_params)
 
         # Parse header
         data_objects = cls.parse_header(filename, fp, data_objects=data_objects, **fmt_params)

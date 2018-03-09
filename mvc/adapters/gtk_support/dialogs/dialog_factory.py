@@ -150,7 +150,7 @@ class DialogFactory(object):
 
     @staticmethod
     @contextmanager
-    def error_dialog_handler(message, parent=None, reraise=True):
+    def error_dialog_handler(message, parent=None, reraise=True, print_tb=True):
         """ Context manager that can be used to wrap error-prone code. If an error
         is risen, a dialog will inform the user, optionally the error can be re-raised """
         try:
@@ -161,3 +161,6 @@ class DialogFactory(object):
                msg, parent=parent
             ).run()
             if reraise: raise # This should be handled by the default UI bug dialog
+            elif print_tb:
+                from traceback import print_exc
+                print_exc()

@@ -81,21 +81,6 @@ class PyXRDDecoder(json.JSONDecoder):
     # Convenience functions: use these!
     ###########################################################################
     @classmethod
-    def decode_multi_part(cls, obj, mapper, parts={}, **kwargs):
-        """
-            Utility function that allows for multi-part (ZipFile) JSON objects
-            Shortens the length of the main file, e.g. by splitting out lists of
-            other objects into separate files.
-        """
-        decoder = cls(mapper, **kwargs)
-        obj = json.JSONDecoder.decode(decoder, obj)
-        if not hasattr(obj, "update"):
-            raise RuntimeError, "Decoding a multi-part JSON object requires the root to be a dictionary object!"
-        for partname, partobj in parts.iteritems():
-            obj["properties"][partname] = json.JSONDecoder.decode(decoder, partobj)
-        return decoder.__pyxrd_decode__(obj) or obj
-
-    @classmethod
     def decode_file(cls, f, mapper, parent=None):
         return json.load(f, cls=PyXRDDecoder, mapper=mapper, parent=parent)
 

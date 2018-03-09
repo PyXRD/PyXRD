@@ -18,6 +18,8 @@ from mvc.models.properties import (
 
 from mvc.observers import ListObserver
 
+from pyxrd.__version import __version__
+
 from pyxrd.data import settings
 
 from pyxrd.generic.models import DataModel
@@ -583,6 +585,7 @@ class Project(DataModel, Storable):
             properties[name] = "file://%s" % name
 
         yield ("content", to_json)
+        yield ("version", __version__)
 
     @staticmethod
     def create_from_sybilla_xml(filename, **kwargs):

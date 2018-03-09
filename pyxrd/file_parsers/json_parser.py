@@ -6,15 +6,18 @@
 # Complete license can be found in the LICENSE file.
 
 import logging
-from _io import UnsupportedOperation
 logger = logging.getLogger(__name__)
+
+from distutils.version import LooseVersion
+
 import json
 import zipfile
 import types
-import os
+import os, io
 
 from shutil import move
-from traceback import format_exc
+
+from pyxrd.__version import __version__
 
 from pyxrd.file_parsers.base_parser import BaseParser
 from pyxrd.generic.io.json_codec import PyXRDDecoder, PyXRDEncoder
@@ -58,61 +61,69 @@ class JSONParser(BaseParser):
 
     @classmethod
     def _parse_data(cls, filename, fp, data_objects=None, close=True):
-        try: # Assume filename is a path
-            is_zipfile = isinstance(fp, zipfile.ZipFile)
-            if is_zipfile: # ZIP files
-                    namelist = fp.namelist()
+        # At this point filename is just there for information; fp can safely be
+        # assumed to be a file pointer - if not, not our problem
+        is_zipfile = isinstance(fp, zipfile.ZipFile)
+        if is_zipfile: # ZIP files
+                namelist = fp.namelist()
+                if 'content' in namelist: # Multi-part object (e.g. project)
+                    obj = None
+                    decoder = json.JSONDecoder()
 
-                    if 'content' in namelist: # Multi-part object
-                        obj = None
-                        decoder = json.JSONDecoder()
+                    def get_named_item(fpt, name):
+                        try:
+                            cf = fpt.open(name, cls.__file_mode__)
+                            obj = decoder.decode(cf.read())
+                        finally:
+                            cf.close()
+                        return obj
+                    
+                    # Parse the content file
+                    obj = get_named_item(fp, 'content')
+                    
+                    # Check for a version tag:
+                    if 'version' in namelist:
+                        namelist.remove('version')
+                        version = get_named_item(fp, 'version')
+                        if LooseVersion(version) > LooseVersion(__version__):
+                            raise RuntimeError, "Unsupported project" + \
+                                  "version '%s', program version is '%s'" % (
+                                version, __version__
+                            )
+                    else:
+                        logging.warn("Loading pre-v0.8 file format, " +
+                                     "might be deprecated!")
 
-                        # Parse the content file
-                        #with zf.open('content') as cf:
-                        #    obj = decoder.decode(cf.read())
-                        cf = fp.open('content', cls.__file_mode__)
-                        obj = decoder.decode(cf.read())
-                        cf.close()
+                    # Make sure we have a dict at this point
+                    if not hasattr(obj, "update"):
+                        raise RuntimeError, "Decoding a multi-part JSON " + \
+                          "object requires the root to be a dictionary object!"
 
+                    # Parse all the other files, and set accordingly in the content dict
+                    for sub_name in namelist:
+                        if sub_name != "content":
+                            obj["properties"][sub_name] = get_named_item(
+                                fp, sub_name)
 
-                        # Make sure we have a dict at this point
-                        if not hasattr(obj, "update"):
-                            raise RuntimeError, "Decoding a multi-part JSON object requires the root to be a dictionary object!"
-
-                        # Parse all the other files, and set accordingly in the content dict
-                        for sub_name in namelist:
-                            if sub_name != "content":
-                                zpf = fp.open(sub_name, cls.__file_mode__) #with zf.open(sub_name) as zpf:
-                                obj["properties"][sub_name] = decoder.decode(zpf.read())
-                                zpf.close()
-
-                        # Now parse the JSON dict to a Python object
-                        data_objects = PyXRDDecoder(mapper=storables).__pyxrd_decode__(obj) or obj
-
-                    else: # Multiple objects
-                        data_objects = []
-                        for sub_name in namelist:
-                            zpf = fp.open(sub_name, cls.__file_mode__) #with zf.open(sub_name) as zpf:
-                            data_objects.append(cls.parse(zpf))
-                            zpf.close()
-            else: # REGULAR files
-                fp.seek(0) # reset file position
-                data_objects = PyXRDDecoder(mapper=storables).decode(fp.read())
-        except Exception as error: # Maybe filename is a file-like object?
-            logger.warning("Handling run-time error: %s" % error)
-            tb = format_exc()
+                    # Now parse the JSON dict to a Python object
+                    data_objects = PyXRDDecoder(mapper=storables).__pyxrd_decode__(obj) or obj
+                else: # Multiple objects in one zip file (e.g. phases)
+                    data_objects = []
+                    for sub_name in namelist:
+                        zpf = fp.open(sub_name, cls.__file_mode__)
+                        data_objects.append(cls.parse(zpf))
+                        zpf.close()
+        elif hasattr(fp, 'seek'): # Regular file
             try:
-                try: 
-                    fp.seek(0)
-                except (UnsupportedOperation, AttributeError):
-                    logger.warning("Could not seek to start of file!")
-                data_objects = PyXRDDecoder.decode_file(fp, mapper=storables)
-            except:
-                print tb
-                raise # re-raise last error, filename is something weird
+                fp.seek(0) # reset file position
+            except io.UnsupportedOperation:
+                pass # ignore these
+            data_objects = PyXRDDecoder.decode_file(fp, mapper=storables)
+        else:
+            pass # use filename?
 
-        return data_objects
         if close: fp.close()
+        return data_objects
 
     @staticmethod
     def write(obj, file, zipped=False): # @ReservedAssignment

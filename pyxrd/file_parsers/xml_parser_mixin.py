@@ -5,7 +5,26 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-import xml.etree.ElementTree as ET
+try:
+    from lxml import ET
+except ImportError:
+    try:
+        # Python 2.5
+        import xml.etree.cElementTree as ET
+    except ImportError:
+        try:
+            # Python 2.5
+            import xml.etree.ElementTree as ET
+        except ImportError:
+            try:
+                # normal cElementTree install
+                import cElementTree as ET
+            except ImportError:
+                try:
+                    # normal ElementTree install
+                    import elementtree.ElementTree as ET
+                except ImportError:
+                    print "Failed to import ElementTree from any known place" 
 
 class XMLParserMixin(object):
     """

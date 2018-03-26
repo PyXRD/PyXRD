@@ -34,8 +34,7 @@ def get_lorentz_polarisation_factor(range_theta, sigma_star, soller1, soller2, m
     return T * (1.0 + pol * (np.cos(2.0 * range_theta) ** 2)) / (pol * np.sin(range_theta))
 
 def get_fixed_to_ads_correction_range(range_theta, goniometer):
-    ads = (np.sin(goniometer.ads_phase_fact * range_theta + radians(goniometer.ads_phase_shift)) - goniometer.ads_const) / goniometer.ads_fact
-    return ads
+    return np.sin(range_theta)
 
 def get_nm_from_t(theta, wavelength=0.154056, zero_for_inf=False):
     """

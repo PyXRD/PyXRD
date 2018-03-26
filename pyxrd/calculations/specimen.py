@@ -31,15 +31,17 @@ def get_machine_correction_range(specimen):
     correction_range = np.ones_like(specimen.range_theta)
     
     # Correct for automatic divergence slits first:
-    if bool(goniometer.has_ads):
+    if goniometer.divergence_mode == "AUTOMATIC":
         correction_range *= get_fixed_to_ads_correction_range(
             specimen.range_theta, goniometer)
     # Then correct for sample absorption:
-    if specimen.absorption > 0.0:
-        correction_range *= np.minimum(1.0 - np.exp(-2.0 * specimen.absorption / range_st), 1.0)
-    # And finally correct for sample length:
-    if not bool(goniometer.has_ads):
-        L_Rta = specimen.sample_length / (goniometer.radius * tan(radians(goniometer.divergence)))
+    if goniometer.has_absorption_correction > 0.0:
+        absorption = goniometer.absorption * goniometer.sample_surf_density * 1e-3
+        if absorption > 0.0:
+            correction_range *= np.minimum(1.0 - np.exp(-2.0 * absorption / range_st), 1.0)
+    # And finally correct for sample length, if fixed slits were used:
+    if goniometer.divergence_mode == "FIXED" and goniometer.divergence > 0:
+        L_Rta = goniometer.sample_length / (goniometer.radius * tan(radians(goniometer.divergence)))
         correction_range *= np.minimum(range_st * L_Rta, 1)
     return correction_range
 

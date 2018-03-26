@@ -24,7 +24,6 @@ from pyxrd.generic.peak_detection import peakdetect
 from pyxrd.generic.utils import not_none
 from pyxrd.generic.models.lines import PyXRDLine
 
-from pyxrd.refinement.refinables.properties import DataMixin
 from pyxrd.calculations.data_objects import SpecimenData
 
 from pyxrd.goniometer.models import Goniometer
@@ -191,22 +190,6 @@ class Specimen(DataModel, Storable):
         mix_with=(SignalMixin, ObserveMixin,)
     )
 
-    #: The irradiated sample length
-    sample_length = FloatProperty(
-        default=0.0, text="Sample length [cm]", minimum=0.0,
-        visible=True, persistent=True, tabular=True,
-        signal_name="data_changed", widget_type="spin",
-        mix_with=(SignalMixin, DataMixin)
-    )
-
-    #: The sample mass absorption coefficient
-    absorption = FloatProperty(
-        default=0.0, text="Absorption coeff. (µ*g)", minimum=0.0,
-        visible=True, persistent=True, tabular=True,
-        signal_name="data_changed", widget_type="spin",
-        mix_with=(SignalMixin, DataMixin)
-    )
-
     #: A :class:`~pyxrd.specimen.models.Statistics` instance
     statistics = LabeledProperty(
         default=None, text="Markers",
@@ -242,8 +225,6 @@ class Specimen(DataModel, Storable):
             Valid keyword arguments for a Specimen are:
                 name: the name of the specimen
                 sample_name: the sample name of the specimen
-                sample_length: the sample length of the specimen
-                absorption: the mass absorption of the specimen
                 calculated_pattern: the calculated pattern
                 experimental_pattern: the experimental pattern
                 exclusion_ranges: the exclusion ranges XYListStore
@@ -266,7 +247,7 @@ class Specimen(DataModel, Storable):
             "calc_color", "calc_lw", "inherit_calc_color", "inherit_calc_lw",
             "exp_color", "exp_lw", "inherit_exp_color", "inherit_exp_lw",
             "project_goniometer", "data_markers", "bg_shift", "abs_scale",
-            "exp_cap_value",
+            "exp_cap_value", "sample_length", "absorption",
             *[prop.label for prop in Specimen.Meta.get_local_persistent_properties()]
         )
         super(Specimen, self).__init__(*args, **kwargs)
@@ -278,9 +259,7 @@ class Specimen(DataModel, Storable):
             with self.data_changed.hold_and_emit():
                 self.name = self.get_kwarg(kwargs, "", "name", "data_name")
                 self.sample_name = self.get_kwarg(kwargs, "", "sample_name", "data_sample")
-                self.sample_length = float(self.get_kwarg(kwargs, settings.SPECIMEN_SAMPLE_LENGTH, "sample_length", "data_sample_length"))
-                self.absorption = float(self.get_kwarg(kwargs, 0.9, "absorption"))
-
+                
                 calc_pattern_old_kwargs = {}
                 for kw in ("calc_color", "calc_lw", "inherit_calc_color", "inherit_calc_lw"):
                     if kw in kwargs:
@@ -308,11 +287,21 @@ class Specimen(DataModel, Storable):
                 )
 
                 self.exclusion_ranges = PyXRDLine(data=self.get_kwarg(kwargs, None, "exclusion_ranges"), parent=self)
-
+                
+                # Extract old kwargs if they are there:
+                gonio_kwargs = {}
+                sample_length = self.get_kwarg(kwargs, None, "sample_length", "data_sample_length")
+                if sample_length is not None:
+                    gonio_kwargs["sample_length"] = float(sample_length)
+                absorption = self.get_kwarg(kwargs, None, "absorption")
+                if absorption is not None: # assuming a surface density of at least 20 mg/cm²:
+                    gonio_kwargs["absorption"] = float(absorption) / 0.02
+                    
+                # Initialize goniometer (with optional old kwargs):
                 self.goniometer = self.parse_init_arg(
                     self.get_kwarg(kwargs, None, "goniometer", "project_goniometer"),
                     Goniometer, child=True, default_is_class=True,
-                    parent=self,
+                    parent=self, **gonio_kwargs
                 )
 
                 self.markers = self.get_list(kwargs, None, "markers", "data_markers", parent=self)

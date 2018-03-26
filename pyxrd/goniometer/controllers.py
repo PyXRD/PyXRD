@@ -12,10 +12,8 @@ logger = logging.getLogger(__name__)
 
 import gtk
 
-from mvc.support.file_utils import retrieve_lowercase_extension
 from mvc.adapters.gtk_support.treemodels.utils import create_treestore_from_directory
 from mvc.adapters.gtk_support.dialogs.dialog_factory import DialogFactory
-from mvc.adapters.gtk_support.tree_view_adapters import wrap_xydata_to_treemodel
 
 from pyxrd.file_parsers.wld_parsers import wld_parsers
 from pyxrd.file_parsers.goniometer_parsers import goniometer_parsers
@@ -28,7 +26,6 @@ from pyxrd.generic.controllers.objectliststore_controllers import TreeViewMixin
 from pyxrd.generic.views.treeview_tools import setup_treeview, new_text_column
 
 from pyxrd.goniometer.views import WavelengthDistributionView
-from pyxrd.goniometer.models import Goniometer
 
 class InlineGoniometerController(BaseController):
     """
@@ -37,6 +34,7 @@ class InlineGoniometerController(BaseController):
     """
 
     auto_adapt_excluded = [ 'wavelength_distribution', ]
+
 
     # ------------------------------------------------------------
     #      Initialisation and other internals
@@ -47,6 +45,23 @@ class InlineGoniometerController(BaseController):
         self.wld_view = WavelengthDistributionView()
         self.wld_ctrl = WavelengthDistributionController(model=self.model, view=self.wld_view, parent=self)
         
+        self.update_soller_sensitivity()
+        self.update_divergence_label()
+        self.update_absorption_sensitivity()     
+
+    def update_soller_sensitivity(self):
+        self.view["gonio_soller1_spb"].set_sensitive(self.model.has_soller1)
+        self.view["gonio_soller2_spb"].set_sensitive(self.model.has_soller2)
+
+    def update_divergence_label(self):
+        if self.model.divergence_mode == "AUTOMATIC":
+            self.view["unit_divergence_lbl"].set_markup("<i>[mm]</i>")
+        elif self.model.divergence_mode == "FIXED":
+            self.view["unit_divergence_lbl"].set_markup("<i>[°]</i>")
+
+    def update_absorption_sensitivity(self):
+        self.view["sample_surf_density_spb"].set_sensitive(self.model.has_absorption_correction)
+        self.view["absorption_spb"].set_sensitive(self.model.has_absorption_correction)
 
     def generate_import_combo(self):
         # TODO seperate this more the gtk level...
@@ -92,6 +107,25 @@ class InlineGoniometerController(BaseController):
 
     def on_btn_edit_wld_clicked(self, widget, *args):
         self.wld_view.show_all()
+
+    # ------------------------------------------------------------
+    #      Notifications of observable properties
+    # ------------------------------------------------------------
+    @BaseController.observe("has_soller1", assign=True, after=True)
+    def notif_has_soller1(self, model, prop_name, info):
+        self.update_soller_sensitivity()
+
+    @BaseController.observe("has_soller2", assign=True, after=True)
+    def notif_has_soller2(self, model, prop_name, info):
+        self.update_soller_sensitivity()
+    
+    @BaseController.observe("divergence_mode", assign=True, after=True)
+    def notif_divergence(self, model, prop_name, info):
+        self.update_divergence_label()
+        
+    @BaseController.observe("has_absorption_correction", assign=True, after=True)
+    def notif_absorption(self, model, prop_name, info):
+        self.update_absorption_sensitivity()
 
     pass # end of class
 

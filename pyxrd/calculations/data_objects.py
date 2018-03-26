@@ -127,32 +127,29 @@ class GonioData(DataObject):
     #: The number of steps in between the lower and upper 2-theta bounds
     steps = None
 
+    #: If the first soller slits are present
+    has_soller1 = False
+    
     #: The first soller slit size
     soller1 = None
+
+    #: If the first soller slits are present
+    has_soller2 = False
 
     #: The second soller slit size
     soller2 = None
 
-    #: The divergence size
+    #: The divergence slit mode
+    divergence_mode = "FIXED"
+
+    #: The divergence size (degrees (fixed) or mm (auto))
     divergence = None
 
     #: The Bragg angle of the monochromator (or 0° if not present)
     mcr_2theta = 0
 
-    #: Whether and Automatic Divergence Slit correction should be performed
-    has_ads = None
-
-    #: ADS Factor
-    ads_fact = None
-
-    #: ADS phase factor
-    ads_phase_fact = None
-
-    #: ADS phase shift
-    ads_phase_shift = None
-
-    #: ADS constant
-    ads_const = None
+    #: Flag indicating if intensities need to be corrected for absorption 
+    has_absorption_correction = None
 
     #: The goniometer radius
     radius = None
@@ -162,6 +159,9 @@ class GonioData(DataObject):
 
     #: The goniometer wavelength distribution
     wavelength_distribution = None
+    
+    #: The sample length
+    sample_length = None
 
     pass # end of class
 
@@ -210,9 +210,6 @@ class SpecimenData(DataObject):
 
     #: A :class:`~GonioData` instance
     goniometer = None
-
-    #: The sample length
-    sample_length = None
 
     #: The sample absorption
     absorption = None

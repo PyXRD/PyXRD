@@ -22,10 +22,6 @@ class SpecimenView(DialogView, HasChildView):
 
     widget_groups = {
         'full_mode_only': [
-            "absorption_align",
-            "absorption_lbl",
-            "spec_length_lbl",
-            "entry_sample_length_align",
             "specimen_display_calculated",
             "specimen_display_stats_in_lbl",
             "specimen_display_phases",

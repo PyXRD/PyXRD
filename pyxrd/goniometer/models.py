@@ -9,9 +9,11 @@ from math import radians
 import numpy as np
 
 from mvc.models.properties import (
-    LabeledProperty, FloatProperty, IntegerProperty, BoolProperty,
+    LabeledProperty, FloatProperty, IntegerProperty, BoolProperty, StringChoiceProperty,
     SignalMixin, ReadOnlyMixin, ObserveMixin
 )
+
+from pyxrd.data import settings
 
 from pyxrd.refinement.refinables.properties import DataMixin
 
@@ -27,7 +29,7 @@ from pyxrd.calculations.goniometer import (
     get_nm_from_2t, get_nm_from_t,
     get_2t_from_nm, get_t_from_nm,
 )
-from pyxrd.calculations.data_objects import GonioData
+from pyxrd.calculations.data_objects import GonioData 
 
 
 @storables.register()
@@ -57,7 +59,7 @@ class Goniometer(DataModel, Storable):
     min_2theta = FloatProperty(
         default=3.0, text="Start angle", minimum=0.0, maximum=180.0,
         tabular=True, persistent=True, visible=True,
-        signal_name="data_changed",
+        signal_name="data_changed",  widget_type="spin",
         mix_with=(DataMixin, SignalMixin)
     )
 
@@ -66,7 +68,7 @@ class Goniometer(DataModel, Storable):
     max_2theta = FloatProperty(
         default=3.0, text="End angle", minimum=0.0, maximum=180.0,
         tabular=True, persistent=True, visible=True,
-        signal_name="data_changed",
+        signal_name="data_changed",  widget_type="spin",
         mix_with=(DataMixin, SignalMixin)
     )
 
@@ -74,7 +76,7 @@ class Goniometer(DataModel, Storable):
     steps = IntegerProperty(
         default=2500, text="Steps", minimum=0, maximum=10000,
         tabular=True, persistent=True, visible=True,
-        signal_name="data_changed",
+        signal_name="data_changed",  widget_type="spin",
         mix_with=(DataMixin, SignalMixin)
     )
 
@@ -96,11 +98,28 @@ class Goniometer(DataModel, Storable):
         """The wavelength of the generated X-rays (in nm)"""
         # Get the dominant wavelength in the distribution:
         x, y = self.wavelength_distribution.get_xy_data()
-        return float(x[np.argmax(y)])
+        wl = float(y[np.argmax(x)])
+        return wl
+
+    #: Flag indicating if the first soller slit is present or not
+    has_soller1 = BoolProperty(
+        default=True, text="Soller 1",
+        tabular=True, persistent=True, visible=True,
+        signal_name="data_changed",
+        mix_with=(DataMixin, SignalMixin)
+    )
 
     #: The first Soller slit size (in °)
     soller1 = FloatProperty(
         default=2.3, text="Soller 1", minimum=0.0, maximum=10.0,
+        tabular=True, persistent=True, visible=True,
+        signal_name="data_changed", widget_type="spin",
+        mix_with=(DataMixin, SignalMixin)
+    )
+
+    #: Flag indicating if the second soller slit is present or not
+    has_soller2 = BoolProperty(
+        default=True, text="Soller 2",
         tabular=True, persistent=True, visible=True,
         signal_name="data_changed",
         mix_with=(DataMixin, SignalMixin)
@@ -110,7 +129,7 @@ class Goniometer(DataModel, Storable):
     soller2 = FloatProperty(
         default=2.3, text="Soller 2", minimum=0.0, maximum=10.0,
         tabular=True, persistent=True, visible=True,
-        signal_name="data_changed",
+        signal_name="data_changed", widget_type="spin",
         mix_with=(DataMixin, SignalMixin)
     )
 
@@ -118,59 +137,64 @@ class Goniometer(DataModel, Storable):
     radius = FloatProperty(
         default=24.0, text="Radius", minimum=0.0, maximum=200.0,
         tabular=True, persistent=True, visible=True,
-        signal_name="data_changed",
+        signal_name="data_changed", widget_type="spin",
         mix_with=(DataMixin, SignalMixin)
     )
 
-    #: The divergence slit size of the goniometer (in °)
+    #: The divergence slit mode of the goniometer
+    divergence_mode = StringChoiceProperty(
+        default=settings.DEFAULT_DIVERGENCE_MODE, text="Divergence mode",
+        visible=True, persistent=True, choices=settings.DIVERGENCE_MODES,
+        signal_name="data_changed",
+        mix_with=(DataMixin, SignalMixin,)
+    )
+
+    #: The divergence slit size (if fixed) or irradiated sample length (if automatic)
     divergence = FloatProperty(
         default=0.5, text="Divergence", minimum=0.0, maximum=90.0,
         tabular=True, persistent=True, visible=True,
-        signal_name="data_changed",
+        signal_name="data_changed", widget_type="spin",
         mix_with=(DataMixin, SignalMixin)
     )
 
-    #: Flag indicating whether an automatic divergence slit was used, and a
-    #: correction should be applied:
-    #:     I*(2t) = I(2t) * ((divergence * ads_fact) / (np.sin(ads_phase_fact * 2t + ads_phase_shift) - ads_const))
-    #: Where I* is the corrected and I is the uncorrected intensity.
-    has_ads = BoolProperty(
-        default=False, text="Has ADS",
+    #: Flag indicating if the second soller slit is present or not
+    has_absorption_correction = BoolProperty(
+        default=False, text="Absorption correction",
         tabular=True, persistent=True, visible=True,
         signal_name="data_changed",
         mix_with=(DataMixin, SignalMixin)
     )
 
-    #: The factor in the ads equation (see :attr:`has_ads`)
-    ads_fact = FloatProperty(
-        default=1.0, text="ADS Factor",
-        tabular=True, persistent=True, visible=True,
-        signal_name="data_changed", widget_type='entry',
+    #: The actual sample length
+    sample_length = FloatProperty(
+        default=1.25, text="Sample length [cm]", minimum=0.0,
+        visible=True, persistent=True, tabular=True,
+        signal_name="data_changed", widget_type="spin",
+        mix_with=(DataMixin, SignalMixin)
+    )
+    
+    #: The sample surface density
+    sample_surf_density = FloatProperty(
+        default=20.0, text="Sample surface density [mg/cm²]", minimum=0.0,
+        visible=True, persistent=True, tabular=True,
+        signal_name="data_changed", widget_type="spin",
         mix_with=(DataMixin, SignalMixin)
     )
 
-    #: The phase factor in the ads equation (see :attr:`has_ads`)
-    ads_phase_fact = FloatProperty(
-        default=1.0, text="ADS Phase Factor",
-        tabular=True, persistent=True, visible=True,
-        signal_name="data_changed", widget_type='entry',
+    #: The sample mass absorption coefficient
+    absorption = FloatProperty(
+        default=45.0, text="Mass attenuation coeff. [cm²/g]", minimum=0.0,
+        visible=True, persistent=True, tabular=True,
+        signal_name="data_changed", widget_type="spin",
         mix_with=(DataMixin, SignalMixin)
     )
-
-    #: The phase shift in the ads equation (see :attr:`has_ads`)
-    ads_phase_shift = FloatProperty(
-        default=0.0, text="ADS Phase Shift",
+    
+    #: Angular value (in degrees) for a monochromator correction - use 28.44 for silicon and 26.53 for carbon.
+    mcr_2theta = FloatProperty(
+        default=0.0, text="Monochromator 2θ", minimum=0.0, maximum=90.0,
         tabular=True, persistent=True, visible=True,
-        signal_name="data_changed", widget_type='entry',
-        mix_with=(DataMixin, SignalMixin)
-    )
-
-    #: The constant in the ads equation (see :attr:`has_ads`)
-    ads_const = FloatProperty(
-        default=0.0, text="ADS Constant",
-        tabular=True, persistent=True, visible=True,
-        signal_name="data_changed", widget_type='entry',
-        mix_with=(DataMixin, SignalMixin)
+        signal_name="data_changed", widget_type="spin",
+        mix_with=(DataMixin, SignalMixin,)
     )
 
     # ------------------------------------------------------------
@@ -189,7 +213,8 @@ class Goniometer(DataModel, Storable):
         my_kwargs = self.pop_kwargs(kwargs,
             "data_radius", "data_divergence", "data_soller1", "data_soller2",
             "data_min_2theta", "data_max_2theta", "data_lambda", "lambda",
-            "wavelength",
+            "wavelength", "has_ads", "ads_fact", "ads_phase_fact", "ads_phase_shift",
+            "ads_const",
             *[prop.label for prop in Goniometer.Meta.get_local_persistent_properties()]
         )
         super(Goniometer, self).__init__(*args, **kwargs)
@@ -199,20 +224,40 @@ class Goniometer(DataModel, Storable):
 
         with self.data_changed.hold():
             self.radius = self.get_kwarg(kwargs, 24.0, "radius", "data_radius")
-            self.divergence = self.get_kwarg(kwargs, 0.5, "divergence", "data_divergence")
-            self.has_ads = self.get_kwarg(kwargs, False, "has_ads")
-            self.ads_fact = self.get_kwarg(kwargs, 1.0, "ads_fact")
-            self.ads_phase_fact = self.get_kwarg(kwargs, 1.0, "ads_phase_fact")
-            self.ads_phase_shift = self.get_kwarg(kwargs, 0.0, "ads_phase_shift")
-            self.ads_const = self.get_kwarg(kwargs, 0.0, "ads_const")
-
-            self.soller1 = self.get_kwarg(kwargs, 2.3, "soller1", "data_soller1")
-            self.soller2 = self.get_kwarg(kwargs, 2.3, "soller2", "data_soller2")
-
-            self.min_2theta = self.get_kwarg(kwargs, 3.0, "min_2theta", "data_min_2theta")
-            self.max_2theta = self.get_kwarg(kwargs, 45.0, "max_2theta", "data_max_2theta")
-            self.steps = self.get_kwarg(kwargs, 2500, "steps")
             
+            #: Parse divergence mode (including old-style keywords):
+            new_div_mode = self.get_kwarg(kwargs, None, "divergence_mode")
+            if new_div_mode is None: # old style project
+                old_ads = self.get_kwarg(kwargs, None, "has_ads")
+                if old_ads is not None and old_ads: # if we have ads, set as such:
+                    new_div_mode = "AUTOMATIC"
+                else: # otherwise it was angular fixed slits
+                    new_div_mode = settings.DEFAULT_DIVERGENCE_MODE
+            self.divergence_mode = new_div_mode
+
+            # Divergence value:                
+            self.divergence = self.get_kwarg(kwargs, 0.5, "divergence", "data_divergence")
+
+            # Monochromator correction:
+            self.mcr_2theta = float(self.get_kwarg(kwargs, 0, "mcr_2theta"))
+
+            # Soller slits:
+            self.has_soller1 = self.get_kwarg(kwargs, True, "has_soller1")
+            self.soller1 = float(self.get_kwarg(kwargs, 2.3, "soller1", "data_soller1"))
+            self.has_soller2 = self.get_kwarg(kwargs, True, "has_soller2")
+            self.soller2 = float(self.get_kwarg(kwargs, 2.3, "soller2", "data_soller2"))
+
+            # Angular range settings for calculated patterns:
+            self.min_2theta = float(self.get_kwarg(kwargs, 3.0, "min_2theta", "data_min_2theta"))
+            self.max_2theta = float(self.get_kwarg(kwargs, 45.0, "max_2theta", "data_max_2theta"))
+            self.steps = int(self.get_kwarg(kwargs, 2500, "steps"))
+
+            # Sample characteristics
+            self.sample_length = float(self.get_kwarg(kwargs, settings.DEFAULT_SAMPLE_LENGTH, "sample_length"))
+            self.absorption = float(self.get_kwarg(kwargs, 45.0, "absorption"))
+            self.sample_surf_density = float(self.get_kwarg(kwargs, 20.0, "sample_surf_density"))
+            self.has_absorption_correction = bool(self.get_kwarg(kwargs, False, "has_absorption_correction"))
+                       
             wavelength = self.get_kwarg(kwargs, None, "wavelength", "data_lambda", "lambda")
             if not "wavelength_distribution" in kwargs and wavelength is not None:
                 default_wld = [ [wavelength,1.0], ]

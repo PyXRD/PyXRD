@@ -128,7 +128,12 @@ PATTERN_SHIFT_TYPE = "Displacement" # or "Linear"
 PATTERN_SMOOTH_TYPES = { 0: "Moving Triangle" }
 PATTERN_BG_TYPES = { 0: "Linear", 1: "Pattern" }
 
-SPECIMEN_SAMPLE_LENGTH = 1.25 # in cm
+DIVERGENCE_MODES = {
+    "AUTOMATIC": "Automatic divergence",
+    "FIXED": "Fixed divergence"
+}
+DEFAULT_DIVERGENCE_MODE = "FIXED"
+DEFAULT_SAMPLE_LENGTH = 1.25 # in cm
 
 PLOT_OFFSET = 0.75
 PATTERN_GROUP_BY = 1

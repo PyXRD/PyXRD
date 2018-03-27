@@ -290,7 +290,7 @@ class AppController (BaseController):
             # Try to load the project:
             with DialogFactory.error_dialog_handler(
                     "An error has occurred:\n<i>{0}</i>\n Your project was not loaded!",
-                    parent=self.view.get_toplevel(), reraise=False):
+                    parent=self.view.get_toplevel(), title="Parsing error", reraise=False):
                 self.model.current_project = dialog.parser.parse(dialog.filename)
                 self.model.current_project.parent = self.model
                 # Update the title

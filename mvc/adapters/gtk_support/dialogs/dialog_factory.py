@@ -90,7 +90,7 @@ class DialogFactory(object):
     #      Message dialog creators
     # ------------------------------------------------------------
     @staticmethod
-    def get_message_dialog(message, type, buttons=gtk.BUTTONS_YES_NO, persist=False, parent=None):  # @ReservedAssignment
+    def get_message_dialog(message, type, buttons=gtk.BUTTONS_YES_NO, persist=False, parent=None, title=None):  # @ReservedAssignment
         """ Generic message dialog creator """
         return MessageDialog(
             message=message,
@@ -98,38 +98,42 @@ class DialogFactory(object):
             type=type,
             flags=gtk.DIALOG_DESTROY_WITH_PARENT,
             buttons=buttons,
-            persist=persist)
+            persist=persist,
+            title=title)
 
     @staticmethod
-    def get_confirmation_dialog(message, persist=False, parent=None):
+    def get_confirmation_dialog(message, persist=False, parent=None, title=None):
         """ Confirmation dialog creator """
         return DialogFactory.get_message_dialog(
             message,
             parent=parent,
             type=gtk.MESSAGE_WARNING,
-            persist=persist
+            persist=persist,
+            title=title
         )
 
     @staticmethod
-    def get_information_dialog(message, persist=False, parent=None):
+    def get_information_dialog(message, persist=False, parent=None, title=None):
         """ Information dialog creator """
         return DialogFactory.get_message_dialog(
             message,
             parent=parent,
             type=gtk.MESSAGE_INFO,
             buttons=gtk.BUTTONS_OK,
-            persist=persist
+            persist=persist,
+            title=title
         )
 
     @staticmethod
-    def get_error_dialog(message, persist=False, parent=None):
+    def get_error_dialog(message, persist=False, parent=None, title=None):
         """ Error dialog creator """
         return DialogFactory.get_message_dialog(
             message,
             parent=parent,
             type=gtk.MESSAGE_ERROR,
             buttons=gtk.BUTTONS_OK,
-            persist=persist
+            persist=persist,
+            title=title
         )
 
     # ------------------------------------------------------------
@@ -149,8 +153,8 @@ class DialogFactory(object):
 
 
     @staticmethod
-    @contextmanager
-    def error_dialog_handler(message, parent=None, reraise=True, print_tb=True):
+    @contextmanager  
+    def error_dialog_handler(message, parent=None, title=None, reraise=True, print_tb=True):
         """ Context manager that can be used to wrap error-prone code. If an error
         is risen, a dialog will inform the user, optionally the error can be re-raised """
         try:
@@ -158,7 +162,7 @@ class DialogFactory(object):
         except:
             msg = message.format(sys.exc_info()[1])
             DialogFactory.get_error_dialog(
-               msg, parent=parent
+               msg, title=title, parent=parent
             ).run()
             if reraise: raise # This should be handled by the default UI bug dialog
             elif print_tb:

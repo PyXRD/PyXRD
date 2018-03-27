@@ -40,7 +40,8 @@ class MessageDialog(gtk.MessageDialog):
              type=gtk.MESSAGE_INFO,  # @ReservedAssignment
              flags=gtk.DIALOG_DESTROY_WITH_PARENT,
              buttons=gtk.BUTTONS_NONE,
-             persist=False):
+             persist=False,
+             title=None):
         super(MessageDialog, self).__init__(
             parent=parent,
             type=type,
@@ -48,6 +49,8 @@ class MessageDialog(gtk.MessageDialog):
             buttons=buttons)
         self.persist = persist
         self.set_markup(message)
+        if title is not None:
+            self.set_title(title)
 
     #override
     def run(self, *args, **kwargs):

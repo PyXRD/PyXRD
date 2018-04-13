@@ -23,7 +23,7 @@ def get_T(range_theta, sigma_star, soller1, soller2):
     range_st = np.sin(range_theta)
     Q = S / (sqrt8 * range_st * sigma_star)
     return erf(Q) * sqrt2pi / (2.0 * sigma_star * S) - 2.0 * range_st * (1.0 - np.exp(-(Q ** 2.0))) / (S ** 2.0)
-
+ 
 def get_lorentz_polarisation_factor(range_theta, sigma_star, soller1, soller2, mcr_2theta):
     """
         Get the lorentz polarisation factor for the given sigma-star value,
@@ -31,7 +31,17 @@ def get_lorentz_polarisation_factor(range_theta, sigma_star, soller1, soller2, m
     """
     T = get_T(range_theta, sigma_star, soller1, soller2)
     pol = np.cos(np.radians(mcr_2theta)) ** 2
-    return T * (1.0 + pol * (np.cos(2.0 * range_theta) ** 2)) / (pol * np.sin(range_theta))
+    return T * (1.0 + pol * (np.cos(2.0 * range_theta) ** 2)) / np.sin(range_theta)
+
+def get_monochromator_corr(range_theta, mcr_2theta):
+    """
+        Returns a correction for a secondary beam monochromator to be applied when the 
+        Lorentz-Polarization has already been applied (without this correction).
+        Is used in combination with the nist_fpa module.
+    """
+    pol = np.cos(np.radians(mcr_2theta)) ** 2
+    sinrt = np.sin(range_theta)
+    return (1 + pol * np.cos(2.0 * range_theta)) * ( 1 + sinrt) / ( 2.0 * sinrt * np.cos(range_theta) ** 2 * (1 + pol))
 
 def get_fixed_to_ads_correction_range(range_theta, goniometer):
     return np.sin(range_theta)

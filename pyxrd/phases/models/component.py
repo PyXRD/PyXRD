@@ -226,7 +226,7 @@ class Component(RefinementGroup, DataModel, Storable):
     delta_c = FloatProperty(
         default=0.0, text="C length dev. [nm]", minimum=0.0, maximum=0.05,
         visible=True, persistent=True, tabular=True,
-        inheritable=True, inherit_flag="inherit_default_c", inherit_from="linked_with.delta_c",
+        inheritable=True, inherit_flag="inherit_delta_c", inherit_from="linked_with.delta_c",
         signal_name="data_changed",
         mix_with=(SignalMixin, InheritableMixin, RefinableMixin)
     )

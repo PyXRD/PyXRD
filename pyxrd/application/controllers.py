@@ -327,6 +327,10 @@ class AppController (BaseController):
         self.view["about_window"].show()
         return True
 
+    def on_main_window_destroy_event(self, widget, event):
+        self.quit()
+        return True
+
     def on_main_window_delete_event(self, widget, event):
         self.quit()
         return True

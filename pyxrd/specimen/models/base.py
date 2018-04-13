@@ -247,7 +247,7 @@ class Specimen(DataModel, Storable):
             "calc_color", "calc_lw", "inherit_calc_color", "inherit_calc_lw",
             "exp_color", "exp_lw", "inherit_exp_color", "inherit_exp_lw",
             "project_goniometer", "data_markers", "bg_shift", "abs_scale",
-            "exp_cap_value", "sample_length", "absorption",
+            "exp_cap_value", "sample_length", "absorption", "sample_z_dev",
             *[prop.label for prop in Specimen.Meta.get_local_persistent_properties()]
         )
         super(Specimen, self).__init__(*args, **kwargs)

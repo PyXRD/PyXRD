@@ -116,9 +116,8 @@ class Model(Observer):
     # ------------------------------------------------------------
     #      Initialization and other internals
     # ------------------------------------------------------------
-    def __init__(self):
-        Observer.__init__(self)
-
+    def __init__(self, *args, **kwargs):
+        super(Model, self).__init__(*args, **kwargs)
 
         self._prop_lock = RLock() # @UndefinedVariable
         self.__observers = WeakList()

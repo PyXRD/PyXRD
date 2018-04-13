@@ -150,6 +150,12 @@ class GonioData(DataObject):
 
     #: Flag indicating if intensities need to be corrected for absorption 
     has_absorption_correction = None
+    
+    #: The sample mass absorption coefficient (mg/cm²)
+    absorption = 45.0
+    
+    #: The sample surface density (cm²/g)
+    sample_surf_density = 20.0
 
     #: The goniometer radius
     radius = None

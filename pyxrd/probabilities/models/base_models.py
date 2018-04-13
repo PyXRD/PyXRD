@@ -25,7 +25,7 @@ class _AbstractProbability(RefinementGroup, DataModel, Storable):
     # MODEL INTEL:
     __metaclass__ = PyXRDRefinableMeta
     class Meta(DataModel.Meta):
-        independent_label_map = []
+        pass
 
     phase = property(DataModel.parent.fget, DataModel.parent.fset)
 
@@ -70,6 +70,13 @@ class _AbstractProbability(RefinementGroup, DataModel, Storable):
     def mW(self, indeces, value):
         r, ind = self._get_Wxy_from_indeces(indeces)
         self._lW[r][ind] = value
+
+    @property
+    def _flags(self):
+        return [
+            1 if getattr(self, prop.inherit_flag, False) else 0
+            for prop in self.Meta.all_properties if getattr(prop, "inheritable", False) 
+        ]
 
     # REFINEMENT GROUP IMPLEMENTATION:
     @property
@@ -124,10 +131,6 @@ class _AbstractProbability(RefinementGroup, DataModel, Storable):
     # ------------------------------------------------------------
     #      Methods & Functions
     # ------------------------------------------------------------
-    def get_prob_descriptions(self):
-        for prop, name in self.Meta.independent_label_map: # @UnusedVariable
-            yield "%s: %.3f" % (prop, getattr(self, prop))
-
     def update(self):
         raise NotImplementedError
 
@@ -157,8 +160,6 @@ class _AbstractProbability(RefinementGroup, DataModel, Storable):
 
         # one extra W matrix:
         self._lW[-1][:] = np.dot(self._W, self._P)
-
-
 
     def validate(self):
         """
@@ -286,20 +287,21 @@ class _AbstractProbability(RefinementGroup, DataModel, Storable):
 
     def get_probability_matrix(self): return self._P
 
-    def get_independent_label_map(self): return self.Meta.independent_label_map
-
     _stashed_lP = None
     _stashed_lW = None
+    _stashed_flags = None
     def _stash_matrices(self):
         """ Stashes the matrices for an update """
         self._stashed_lW = deepcopy(np.asanyarray(self._lW))
         self._stashed_lP = deepcopy(np.asanyarray(self._lP))
+        self._stashed_flags = deepcopy(np.asarray(self._flags))
         
     def _compare_stashed_matrices(self):
         """ Unstashed matrices and compares with current values, if identical returns True """
         if self._stashed_lP is not None and self._stashed_lW is not None:
             result = np.array_equal(self._stashed_lW, np.asanyarray(self._lW))
             result = result and np.array_equal(self._stashed_lP, np.asanyarray(self._lP))
+            result = result and np.array_equal(self._stashed_flags, np.asanyarray(self._flags))
             self._stashed_lW = None
             self._stashed_lP = None
             return result

@@ -47,7 +47,10 @@ class ObjectListStore(BaseObjectListStore):
 
     @property
     def _data(self):
-        return getattr(self._model, self._prop_name, None)
+        if self._model is not None:
+            return getattr(self._model, self._prop_name, None)
+        else:
+            return []
 
     def is_wrapping(self, model, prop_name):
         return self._model == model and self._prop_name == prop_name

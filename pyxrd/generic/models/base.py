@@ -5,14 +5,15 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-import types
+import logging
+logger = logging.getLogger(__name__)
+
 import weakref
 from warnings import warn
 
 from mvc import Model
 from mvc.models.properties import LabeledProperty, SignalProperty
 from mvc.support.utils import pop_kwargs, not_none
-from pyxrd.generic.utils import rec_getattr
 
 class PyXRDModel(Model):
     """
@@ -30,6 +31,9 @@ class PyXRDModel(Model):
 
         pass # end of class
 
+    # ------------------------------------------------------------
+    #      Methods & functions
+    # ------------------------------------------------------------
     def pop_kwargs(self, kwargs, *keys):
         return pop_kwargs(kwargs, *keys)
 

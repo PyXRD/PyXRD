@@ -11,16 +11,17 @@ logger = logging.getLogger(__name__)
 import os
 from contextlib import contextmanager
 
-import pango
-import gtk, gobject
+import gi
+gi.require_version('Gtk', '3.0')  # @UndefinedVariable
+from gi.repository import GObject, Pango, Gdk # @UnresolvedImport
 
-from mvc.adapters.gtk_support.dialogs.dialog_factory import DialogFactory
 from mvc import Controller
+from mvc.adapters.gtk_support.dialogs.dialog_factory import DialogFactory
+from mvc.support.idle_call import run_when_idle
 
 from pyxrd.generic.controllers.line_controllers import BackgroundController
 from pyxrd.generic.views.line_views import BackgroundView
 from pyxrd.generic.views.widgets import ThreadedTaskBox
-from pyxrd.generic.gtk_tools.utils import run_when_idle
 from pyxrd.generic.threads import CancellableThread
 from pyxrd.generic.views.treeview_tools import new_text_column, new_toggle_column, new_pb_column
 from pyxrd.generic.controllers import BaseController, ObjectListStoreController
@@ -69,8 +70,8 @@ class ProjectController(ObjectListStoreController):
             text_col=store.c_name,
             min_width=125,
             xalign=0.0,
-            ellipsize=pango.ELLIPSIZE_END)
-        col.set_data("colnr", store.c_name)
+            ellipsize=Pango.EllipsizeMode.END)
+        setattr(col, "colnr", store.c_name)
         widget.append_column(col)
 
         # Check boxes:
@@ -89,7 +90,7 @@ class ProjectController(ObjectListStoreController):
                     expand=False,
                     activatable=True,
                     active_col=colnr)
-            col.set_data("colnr", colnr)
+            setattr(col, "colnr", colnr)
             widget.append_column(col)
 
         setup_check_column('Exp', store.c_display_experimental)
@@ -100,7 +101,7 @@ class ProjectController(ObjectListStoreController):
         # Up and down arrows:
         def setup_image_button(image, colnr):
             col = new_pb_column("", resizable=False, expand=False, stock_id=image)
-            col.set_data("colnr", colnr)
+            setattr(col, "colnr", colnr)
             widget.append_column(col)
         setup_image_button("213-up-arrow", 501)
         setup_image_button("212-down-arrow", 502)
@@ -114,7 +115,7 @@ class ProjectController(ObjectListStoreController):
             ## TODO MOVE THIS (PARTIALLY?) TO THE MODEL LEVEL ##
 
             filenames = dialog.get_filenames()
-            parser = dialog.get_filter().get_data("parser")
+            parser = getattr(dialog.get_filter(), "parser")
 
             task = ThreadedTaskBox()
             window = DialogFactory.get_custom_dialog(
@@ -162,7 +163,7 @@ class ProjectController(ObjectListStoreController):
                     status_dict["total_files"]
                 ))
                 return True
-            gui_timeout_id = gobject.timeout_add(250, gui_callback)
+            gui_timeout_id = GObject.timeout_add(250, gui_callback)
 
             # Complete event:
             @run_when_idle
@@ -172,7 +173,7 @@ class ProjectController(ObjectListStoreController):
                     last_iter = self.model.specimens.append(specimen)
                 if last_iter is not None:
                     self.view["project_specimens"].set_cursor(last_iter)
-                gobject.source_remove(gui_timeout_id)
+                GObject.source_remove(gui_timeout_id)
                 window.hide()
                 window.destroy()
 
@@ -300,7 +301,7 @@ class ProjectController(ObjectListStoreController):
         ret = tv.get_path_at_pos(int(event.x), int(event.y))
         if ret is not None:
             path, col, x, y = ret
-            specimen = self.treemodel.get_user_data_from_path(path) # FIXME
+            specimen = self.treemodel.get_user_data_from_path(path)
         if event.button == 3:
             if specimen is not None:
                 # clicked a specimen which is not in the current selection,
@@ -312,11 +313,11 @@ class ProjectController(ObjectListStoreController):
                 self.select_object(None)
             self.view.show_specimens_context_menu(event)
             return True
-        elif event.type == gtk.gdk._2BUTTON_PRESS and specimen is not None and col.get_data("colnr") == self.treemodel.c_name:  # @UndefinedVariable
+        elif event.type == Gdk.EventType._2BUTTON_PRESS and specimen is not None and getattr(col, "colnr") == self.treemodel.c_name:  # @UndefinedVariable
             self.parent.on_edit_specimen_activate(event)
             return True
-        elif (event.button == 1 or event.type == gtk.gdk._2BUTTON_PRESS) and specimen is not None:  # @UndefinedVariable
-            column = col.get_data("colnr")
+        elif (event.button == 1 or event.type == Gdk.EventType._2BUTTON_PRESS) and specimen is not None:  # @UndefinedVariable
+            column = getattr(col, "colnr")
             if column in (self.treemodel.c_display_experimental,
                     self.treemodel.c_display_calculated,
                     self.treemodel.c_display_phases):

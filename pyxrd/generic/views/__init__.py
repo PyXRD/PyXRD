@@ -13,12 +13,14 @@ from pkg_resources import resource_filename # @UnresolvedImport
 from itertools import imap
 from warnings import warn
 
-import gtk
+import gi
+gi.require_version('Gtk', '3.0')  # @UndefinedVariable
+from gi.repository import Gtk  # @UnresolvedImport
+
 from mvc.view import View
 
 from pyxrd.data import settings
 from mvc.adapters.gtk_support.widgets import ScaleEntry
-from pyxrd.generic.mathtext_support import create_image_from_mathtext
 from pyxrd.generic.models.mathtext_support import get_string_safe
 
 class BaseView(View):
@@ -51,7 +53,7 @@ class BaseView(View):
         super(BaseView, self).__init__(*args, **kwargs)
         self.parent = kwargs.get("parent", None)
         top = self.get_toplevel()
-        if isinstance(top, gtk.Window):
+        if isinstance(top, Gtk.Window):
             top.set_resizable(self.resizable)
             top.set_modal(self.modal)
         if self.parent:
@@ -60,12 +62,13 @@ class BaseView(View):
     def create_mathtext_widget(self, text, fallback_text=""):
         # TODO move these to a separate controller namespace module!
         try:
+            from pyxrd.generic.mathtext_support import create_image_from_mathtext
             widget = create_image_from_mathtext(text)
         except:
             if fallback_text: text = fallback_text
-            widget = gtk.Label(text)
+            widget = Gtk.Label(label=text)
             widget.set_use_markup(True)
-            widget.set_property('justify', gtk.JUSTIFY_CENTER)
+            widget.set_justify(Gtk.Justification.CENTER)
         return widget
 
     def _get_widget_container(self, prop):
@@ -99,7 +102,7 @@ class BaseView(View):
 
     def add_entry_widget(self, prop):
         # Create the widget:        
-        inp = gtk.Entry()
+        inp = Gtk.Entry()
         inp.set_tooltip_text(prop.title)
         self[self.widget_format % prop.label] = inp
 
@@ -242,7 +245,7 @@ class HasChildView(object):
         child = container.get_child()
         if child is not None:
             container.remove(child)
-        if isinstance(container, gtk.ScrolledWindow) and not (type(new_child) in (gtk.TextView, gtk.TreeView, gtk.IconView, gtk.Viewport)):
+        if isinstance(container, Gtk.ScrolledWindow) and not (type(new_child) in (Gtk.TextView, Gtk.TreeView, Gtk.IconView, Gtk.Viewport)):
             container.add_with_viewport(new_child)
         else:
             container.add(new_child)
@@ -344,7 +347,7 @@ class ObjectListStoreViewMixin(HasChildView):
     _on_sr_id = None
     def on_size_requested(self, *args):
         sr = self.child_view.size_request()
-        self[self.edit_view_container].set_size_request(sr[0] + 20, -1)
+        self[self.edit_view_container].set_size_request(sr.height + 20, -1)
 
     def set_edit_view(self, view):
         if self._on_sr_id is not None and self.child_view is not None:
@@ -352,11 +355,11 @@ class ObjectListStoreViewMixin(HasChildView):
         self.edit_view = view
         self.child_view = view.get_top_widget()
         self._add_child_view(self.child_view, self[self.edit_view_container])
-        if isinstance(self[self.edit_view_container], gtk.ScrolledWindow):
+        if isinstance(self[self.edit_view_container], Gtk.ScrolledWindow):
             sr = self.child_view.get_size_request()
             self[self.edit_view_container].set_size_request(sr[0], -1)
-            self[self.edit_view_container].set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
-            self._on_sr_id = self.child_view.connect("size-request", self.on_size_requested)
+            self[self.edit_view_container].set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+            self._on_sr_id = self.child_view.connect("size-allocate", self.on_size_requested)
 
 
         return self.edit_view

@@ -22,18 +22,21 @@
 #  Boston, MA 02110, USA.
 #  -------------------------------------------------------------------------
 
-import gtk
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
+
 from .basic import GtkAdapter
 
 class ExpanderAdapter(GtkAdapter):
     """
-        An adapter for a gtk.Expander widget
+        An adapter for a Gtk.Expander widget
     """
     widget_types = ["expander"]
-    _check_widget_type = gtk.Expander
+    _check_widget_type = Gtk.Expander
 
-    _wid_read = GtkAdapter.static_to_class(gtk.Expander.get_expanded)
-    _wid_write = GtkAdapter.static_to_class(gtk.Expander.set_expanded)
+    _wid_read = GtkAdapter.static_to_class(Gtk.Expander.get_expanded)
+    _wid_write = GtkAdapter.static_to_class(Gtk.Expander.set_expanded)
     _signal = "activate"
 
     pass # end of class

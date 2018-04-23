@@ -22,17 +22,19 @@
 #  Boston, MA 02110, USA.
 #  -------------------------------------------------------------------------
 
-import gtk
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
 from .basic import GtkAdapter
 
 class AdjustmentAdapter(GtkAdapter):
     """
-        An adapter for a gtk.Adjustment widget
+        An adapter for a Gtk.Adjustment widget
     """
     widget_types = ["spin", "spin_button"]
 
-    _wid_read = GtkAdapter.static_to_class(gtk.Adjustment.get_value)
-    _wid_write = GtkAdapter.static_to_class(gtk.Adjustment.set_value)
+    _wid_read = GtkAdapter.static_to_class(Gtk.Adjustment.get_value)
+    _wid_write = GtkAdapter.static_to_class(Gtk.Adjustment.set_value)
     _signal = "value-changed"
 
     pass # end of class

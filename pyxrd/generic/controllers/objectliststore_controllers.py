@@ -7,7 +7,9 @@
 
 from contextlib import contextmanager
 
-import gtk
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
 
 from mvc.adapters.gtk_support.tree_view_adapters import wrap_list_property_to_treemodel
 from mvc.adapters.gtk_support.dialogs.dialog_factory import DialogFactory
@@ -73,7 +75,10 @@ class TreeViewMixin(object):
         selection = tv.get_selection()
         if selection.count_selected_rows() >= 1:
             model, paths = selection.get_selected_rows()
-            return map(model.get_user_data_from_path, paths)
+            if hasattr(model, "get_tree_node_object_from_path"):
+                return map(model.get_tree_node_object_from_path, paths)    
+            else:
+                return map(model.get_user_data_from_path, paths)
         return None
 
     def get_selected_paths(self, tv):
@@ -157,8 +162,8 @@ class TreeControllerMixin(TreeViewMixin, TreeModelMixin):
             for obj_tp, view_tp, ctrl_tp in self.obj_type_map: # @UnusedVariable
                 if isinstance(obj, obj_tp):
                     return view_tp(parent=self.view)
-            raise NotImplementedError, ("Unsupported object type; subclasses of"
-                " TreeControllerMixin need to define an obj_type_map attribute!")
+            raise NotImplementedError, ("Unsupported object type %s; subclasses of"
+                " TreeControllerMixin need to define an obj_type_map attribute!" % obj)
 
     def get_new_edit_controller(self, obj, view, parent=None):
         """
@@ -204,7 +209,7 @@ class TreeControllerMixin(TreeViewMixin, TreeModelMixin):
                 
             The method should return True upon success or False otherwise.
         """
-        sel_mode = gtk.SELECTION_MULTIPLE if self.multi_selection else gtk.SELECTION_SINGLE # @UndefinedVariable
+        sel_mode = Gtk.SelectionMode.MULTIPLE if self.multi_selection else Gtk.SelectionMode.SINGLE # @UndefinedVariable
         setup_treeview(
             tv, self.treemodel,
             sel_mode=sel_mode,
@@ -329,7 +334,7 @@ class TreeControllerMixin(TreeViewMixin, TreeModelMixin):
                         if callable(callback): callback(obj)
                     self.edit_object(None)
             parent = self.view.get_top_widget()
-            if not isinstance(parent, gtk.Window): # @UndefinedVariable
+            if not isinstance(parent, Gtk.Window): # @UndefinedVariable
                 parent = None
             DialogFactory.get_confirmation_dialog(
                 message=self.delete_msg, parent=parent
@@ -412,13 +417,13 @@ class InlineObjectListStoreController(BaseController, TreeControllerMixin):
 
     def _setup_combo_type(self, combo):
         if self.add_types:
-            store = gtk.ListStore(str, object, object, object) # @UndefinedVariable
+            store = Gtk.ListStore(str, object, object, object) # @UndefinedVariable
             for name, type, view, ctrl in self.add_types: # @ReservedAssignment
                 store.append([name, type, view, ctrl])
 
             combo.set_model(store)
 
-            cell = gtk.CellRendererText() # @UndefinedVariable
+            cell = Gtk.CellRendererText() # @UndefinedVariable
             combo.pack_start(cell, True)
             combo.add_attribute(cell, 'text', 0)
 

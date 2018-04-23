@@ -258,7 +258,12 @@ class Specimen(DataModel, Storable):
         with self.visuals_changed.hold_and_emit():
             with self.data_changed.hold_and_emit():
                 self.name = self.get_kwarg(kwargs, "", "name", "data_name")
-                self.sample_name = self.get_kwarg(kwargs, "", "sample_name", "data_sample")
+                sample_name = self.get_kwarg(kwargs, "", "sample_name", "data_sample")
+                try:
+                    sample_name = sample_name.encode("ascii", "ignore")
+                except AttributeError:
+                    pass
+                self.sample_name = sample_name
                 
                 calc_pattern_old_kwargs = {}
                 for kw in ("calc_color", "calc_lw", "inherit_calc_color", "inherit_calc_lw"):

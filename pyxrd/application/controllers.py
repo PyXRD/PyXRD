@@ -9,10 +9,12 @@ import os
 from os.path import basename, dirname
 from functools import wraps
 
-import gtk
-import gobject
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
 
 from mvc.adapters.gtk_support.dialogs.dialog_factory import DialogFactory
+from mvc.support.idle_call import IdleCallHandler
 
 from pyxrd.data import settings
 
@@ -27,7 +29,7 @@ from pyxrd.project.controllers import ProjectController
 from pyxrd.project.models import Project
 from pyxrd.specimen.controllers import SpecimenController, MarkersController
 
-from pyxrd.mixture.controllers import MixturesController, InSituBehavioursController
+from pyxrd.mixture.controllers import MixturesController #, InSituBehavioursController
 from pyxrd.phases.controllers import PhasesController
 from pyxrd.atoms.controllers import AtomTypesController
 
@@ -113,12 +115,12 @@ class AppController (BaseController):
 
     def register_view(self, view):
         """ Registers the view with this controller """
+        view.setup_plot(self.plot_controller)
         if self.model.project_loaded:
             self.update_sensitivities()
             view.set_layout_mode(self.model.current_project.layout_mode)
         else:
             view.set_layout_mode(settings.DEFAULT_LAYOUT)
-        view.setup_plot(self.plot_controller)
 
     def set_model(self, model):
         """ Sets the model in this controller """
@@ -130,7 +132,7 @@ class AppController (BaseController):
         self.view.reset_all_views()
         self.project = ProjectController(model=self.model.current_project, view=self.view.project, parent=self)
         self.phases = PhasesController(model=self.model.current_project, view=self.view.phases, parent=self)
-        self.behaviours = InSituBehavioursController(model=self.model.current_project, view=self.view.behaviours, parent=self)
+        #self.behaviours = InSituBehavioursController(model=self.model.current_project, view=self.view.behaviours, parent=self)
         self.atom_types = AtomTypesController(model=self.model.current_project, view=self.view.atom_types, parent=self)
         self.mixtures = MixturesController(model=self.model.current_project, view=self.view.mixtures, parent=self)
         self.reset_specimen_controller()
@@ -143,8 +145,7 @@ class AppController (BaseController):
         if self.model.specimen_selected:
             specimen_view = self.view.reset_child_view("specimen")
             self.specimen = SpecimenController(model=self.model.current_specimen, view=specimen_view, parent=self)
-            markers_view = self.view.reset_child_view("markers")
-            self.markers = MarkersController(model=self.model.current_specimen, view=markers_view, parent=self)
+            self.show_markers_for(self.model.current_specimen)
         else:
             self.specimen = None
             self.markers = None
@@ -153,6 +154,17 @@ class AppController (BaseController):
             self.model.multiple_specimens_selected
         )
         self.idle_redraw_plot()
+
+    def show_markers_for(self, specimen):
+        markers_view = self.view.reset_child_view("markers")
+        self.markers = MarkersController(model=specimen, view=markers_view, parent=self)
+        
+    def show_marker(self, marker):
+        markers_view = self.view.reset_child_view("markers")
+        self.markers = MarkersController(model=marker.specimen, view=markers_view, parent=self)
+        self.view.markers.present()
+        IdleCallHandler.call_idle(self.markers.select_object, marker)
+             
 
     # ------------------------------------------------------------
     #      Notifications of observable properties
@@ -185,7 +197,7 @@ class AppController (BaseController):
     def idle_redraw_plot(self):
         """Adds a redraw plot function as 'idle' action to the main GTK loop."""
         if self._idle_redraw_id is None:
-            self._idle_redraw_id = gobject.idle_add(self.redraw_plot)
+            self._idle_redraw_id = IdleCallHandler.call_idle(self.redraw_plot)
         self._needs_redraw = True
 
     @BaseController.status_message("Updating display...")
@@ -277,7 +289,7 @@ class AppController (BaseController):
         "The current project has unsaved changes,\n"
         "are you sure you want to quit?")
     def quit(self, *args, **kwargs):
-        gtk.main_quit()
+        Gtk.main_quit()
         return False
 
     @confirm_discard_unsaved_changes(
@@ -357,6 +369,12 @@ class AppController (BaseController):
             num_specimens=len(self.model.current_specimens),
             offset=self.model.current_project.display_plot_offset)
 
+    def on_toggled_plot_toolbar(self, action):
+        if action.get_active():
+            self.view.show_plot_toolbar()
+        else:
+            self.view.hide_plot_toolbar()
+
     @BaseController.status_message("Sampling...", "sampling")
     def on_sample_point(self, event):
         """
@@ -432,8 +450,8 @@ class AppController (BaseController):
     #      GTK Signal handlers - Behaviour related
     # ------------------------------------------------------------
     def on_edit_behaviours(self, widget, data=None):
-        if self.model.project_loaded:
-            self.view.behaviours.present()
+        #if self.model.project_loaded:
+        #    self.view.behaviours.present()
         return True
 
     # ------------------------------------------------------------
@@ -528,6 +546,9 @@ class AppController (BaseController):
         if self.model.current_specimen is not None:
             self.view.markers.present()
         return True
+
+    def edit_marker(self, marker):
+        self.show_markers_for(marker.specimen)
 
     pass # end of class
 

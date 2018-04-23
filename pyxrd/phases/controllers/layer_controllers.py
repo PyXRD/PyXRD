@@ -5,7 +5,9 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-import gtk
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
 
 from mvc.adapters.gtk_support.dialogs.dialog_factory import DialogFactory
 
@@ -36,7 +38,7 @@ class EditLayerController(InlineObjectListStoreController):
     #      Initialization and other internals
     # ------------------------------------------------------------
     def _setup_treeview(self, tv, model):
-        setup_treeview(tv, model, sel_mode=gtk.SELECTION_MULTIPLE, reset=True)
+        setup_treeview(tv, model, sel_mode=Gtk.SelectionMode.MULTIPLE, reset=True)
         tv.set_model(model)
 
         # Add Atom name, default z, calculated z and #:
@@ -46,7 +48,7 @@ class EditLayerController(InlineObjectListStoreController):
                 data_func=create_float_data_func() if is_float else None,
                 editable=editable,
                 edited_callback=(self.on_item_cell_edited, (model, colnr)) if editable else None,
-                resizable=False,
+                resizable=True,
                 text_col=colnr))
         add_text_col('Atom name', model.c_name, is_float=False)
         add_text_col('Def. Z (nm)', model.c_default_z)

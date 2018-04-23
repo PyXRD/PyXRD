@@ -119,7 +119,7 @@ class TreeNode(object):
         except IndexError:
             return None
 
-    def get_indeces(self):
+    def get_indices(self):
         parent = self.parent
         node = self
         indeces = tuple()

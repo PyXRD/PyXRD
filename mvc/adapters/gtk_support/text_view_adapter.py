@@ -22,7 +22,9 @@
 #  Boston, MA 02110, USA.
 #  -------------------------------------------------------------------------
 
-import gtk
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
 from .basic import GtkAdapter
 
 class TextViewAdapter(GtkAdapter):
@@ -30,7 +32,7 @@ class TextViewAdapter(GtkAdapter):
         An adapter for a TextView widget.
     """
     widget_types = ["text_view", ]
-    _check_widget_type = gtk.TextView
+    _check_widget_type = Gtk.TextView
 
     _prop_cast = False
 
@@ -54,7 +56,7 @@ class TextViewAdapter(GtkAdapter):
             # TODO
             self._buffer = self._read_property()
         else: # assume string type
-            self._buffer = gtk.TextBuffer()
+            self._buffer = Gtk.TextBuffer()
 
         super(TextViewAdapter, self).__init__(controller, prop, widget,
                  value_error=value_error, spurious=spurious, update=update)

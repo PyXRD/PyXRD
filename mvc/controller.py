@@ -29,8 +29,9 @@ logger = logging.getLogger(__name__)
 from .observers import Observer
 from .support.exceptions import TooManyCandidatesError
 
+from .support.idle_call import IdleCallHandler
+
 import types
-import gobject
 
 class Controller(Observer):
 
@@ -91,7 +92,7 @@ class Controller(Observer):
             self.__view = view
             if self.__view is not None:
                 if self.register_lazy:
-                    gobject.idle_add(self._idle_register_view, self.__view, priority=gobject.PRIORITY_HIGH)
+                    IdleCallHandler.call_idle(self._idle_register_view, self.__view)
                 else:
                     self._idle_register_view(self.__view)
     def _del_view(self):

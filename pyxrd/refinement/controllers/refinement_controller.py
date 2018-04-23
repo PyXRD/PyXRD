@@ -6,16 +6,18 @@
 # Complete license can be found in the LICENSE file.
 
 import logging
+from mvc.support.idle_call import run_when_idle
 logger = logging.getLogger(__name__)
 
-import gtk, gobject
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk, GObject
 import sys
 
 from mvc.adapters.gtk_support.dialogs.dialog_factory import DialogFactory
 
 from pyxrd.generic.async.providers import get_status
 from pyxrd.generic.threads import CancellableThread
-from pyxrd.generic.gtk_tools.utils import run_when_idle
 from pyxrd.generic.views.treeview_tools import new_text_column, new_pb_column, new_toggle_column
 from pyxrd.generic.mathtext_support import create_pb_from_mathtext
 from pyxrd.generic.controllers import DialogController
@@ -43,14 +45,14 @@ class RefinementController(DialogController):
 
         if sys.platform == "win32":
             def get_label(column, cell, model, itr, user_data=None):
-                ref_prop = model.get_user_data(itr)
+                ref_prop = model.get_tree_node_object(itr)
                 cell.set_property("text", ref_prop.get_text_title())
                 return
             widget.append_column(new_text_column('Name/Prop', xalign=0.0, data_func=get_label))
         else:
             # Labels are parsed for mathtext markup into pb's:
             def get_pb(column, cell, model, itr, user_data=None):
-                ref_prop = model.get_user_data(itr)
+                ref_prop = model.get_tree_node_object(itr)
                 try:
                     if not hasattr(ref_prop, "pb") or not ref_prop.pb:
                         ref_prop.pb = create_pb_from_mathtext(
@@ -128,7 +130,7 @@ class RefinementController(DialogController):
             Update the method options tree store (when a new method is selected)
         """
         tv = self.view['tv_method_options']
-        store = gtk.ListStore(str, str)
+        store = Gtk.ListStore(str, str)
         method = self.model.get_refinement_method()
         for arg in method.options:
             description = getattr(type(method), arg).description
@@ -226,7 +228,7 @@ class RefinementController(DialogController):
                 return True
             else:
                 return False
-        return gobject.timeout_add(500, _on_update_gui, priority=gobject.PRIORITY_LOW)
+        return GObject.timeout_add(500, _on_update_gui, priority=GObject.PRIORITY_LOW)
 
     def _launch_refine_thread(self, refiner, gui_timeout_id):
         @run_when_idle
@@ -234,7 +236,7 @@ class RefinementController(DialogController):
             """ Called when the refinement is completed """
             self.thread = None
             
-            gobject.source_remove(gui_timeout_id)
+            GObject.source_remove(gui_timeout_id)
             self.view.stop_spinner()
             
             # Make some plots:
@@ -260,7 +262,7 @@ class RefinementController(DialogController):
         # Connect the cancel button (custom widget):
         def thread_cancelled(*args, **kwargs):
             """ Called when the refinement is cancelled by the user """
-            gobject.source_remove(gui_timeout_id)
+            GObject.source_remove(gui_timeout_id)
             self.view.stop_spinner()
             
             self.view.update_refinement_status("Cancelling...")

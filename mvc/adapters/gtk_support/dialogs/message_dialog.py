@@ -22,30 +22,32 @@
 #  Boston, MA 02110, USA.
 #  -------------------------------------------------------------------------
 
-import gtk
+import gi
+gi.require_version('Gtk', '3.0')  # @UndefinedVariable
+from gi.repository import Gtk  # @UnresolvedImport
 
 from .utils import run_dialog
 
-class MessageDialog(gtk.MessageDialog):
+class MessageDialog(Gtk.MessageDialog):
 
     accept_responses = (
-        gtk.RESPONSE_ACCEPT, # @UndefinedVariable
-        gtk.RESPONSE_YES, # @UndefinedVariable
-        gtk.RESPONSE_APPLY, # @UndefinedVariable
-        gtk.RESPONSE_OK # @UndefinedVariable
+        Gtk.ResponseType.ACCEPT, # @UndefinedVariable
+        Gtk.ResponseType.YES, # @UndefinedVariable
+        Gtk.ResponseType.APPLY, # @UndefinedVariable
+        Gtk.ResponseType.OK # @UndefinedVariable
     )
 
     def __init__(self,
              message, parent=None,
-             type=gtk.MESSAGE_INFO,  # @ReservedAssignment
-             flags=gtk.DIALOG_DESTROY_WITH_PARENT,
-             buttons=gtk.BUTTONS_NONE,
+             type=Gtk.MessageType.INFO,  # @ReservedAssignment
+             flags=Gtk.DialogFlags.DESTROY_WITH_PARENT,
+             buttons=Gtk.ButtonsType.NONE,
              persist=False,
              title=None):
         super(MessageDialog, self).__init__(
             parent=parent,
             type=type,
-            flags=gtk.DIALOG_DESTROY_WITH_PARENT,
+            flags=flags,
             buttons=buttons)
         self.persist = persist
         self.set_markup(message)

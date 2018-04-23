@@ -22,12 +22,16 @@
 #  Boston, MA 02110, USA.
 #  -------------------------------------------------------------------------
 
-import gtk
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gdk
 
 def _parse_color_string(value):
     """Converts a hex-formatted (e.g. #FFFFFF) string to a Gdk color object"""
-    return gtk.gdk.color_parse(value)  # @UndefinedVariable
+    color = Gdk.RGBA()
+    color.parse(value)
+    return color  # @UndefinedVariable
 
 def _parse_color_value(value):
     """Converts a Gdk color object to a hex-formatted string (e.g. #FFFFFF)"""
-    return "#%02x%02x%02x" % (int(value.red_float * 255), int(value.green_float * 255), int(value.blue_float * 255))
+    return "#%02x%02x%02x" % (int(value.red * 255), int(value.green * 255), int(value.blue * 255))

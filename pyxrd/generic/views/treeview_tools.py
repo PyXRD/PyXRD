@@ -5,33 +5,35 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-import gtk
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
 
 from cell_renderer_tools import get_default_renderer, parse_callback, parse_kwargs
 
-class PyXRDTreeViewColumn(gtk.TreeViewColumn):
+class PyXRDTreeViewColumn(Gtk.TreeViewColumn):
     """
         A custom TreeViewColumn that stores information about its attribute 
         mappings and provides acces to them with the get_col_attr function.
     """
 
     def __init__(self, title=None, cell_renderer=None, **kwargs):
-        gtk.TreeViewColumn.__init__(self, title, cell_renderer)
+        Gtk.TreeViewColumn.__init__(self, title, cell_renderer)
         self._attrs = dict()
         self.set_attributes(cell_renderer, **kwargs)
 
     def set_attributes(self, cell_renderer, **kwargs):
         for key, val in kwargs.iteritems():
             self._attrs[key] = val
-        gtk.TreeViewColumn.set_attributes(self, cell_renderer, **kwargs)
+        Gtk.TreeViewColumn.set_attributes(self, cell_renderer, **kwargs)
 
     def add_attribute(self, cell_renderer, attribute, column):
         self._attrs[attribute] = column
-        gtk.TreeViewColumn.set_attributes(self, cell_renderer, attribute, column)
+        Gtk.TreeViewColumn.set_attributes(self, cell_renderer, attribute, column)
 
     def clear_attributes(self, cell_renderer):
         self._attrs = dict()
-        gtk.TreeViewColumn.clear_attributes(self, cell_renderer)
+        Gtk.TreeViewColumn.clear_attributes(self, cell_renderer)
 
     def get_col_attr(self, attr):
         return self._attrs.get(attr, -1)
@@ -41,7 +43,7 @@ def _get_default_column(title, rend,
         spacing=0,
         visible=True,
         resizable=True,
-        sizing=0,
+        sizing=1,
         fixed_width=-1,
         min_width=-1,
         max_width=-1,
@@ -51,7 +53,7 @@ def _get_default_column(title, rend,
         reorderable=False,
         sort_column_id=-1,
         sort_indicator=False,
-        sort_order=gtk.SORT_ASCENDING,
+        sort_order=Gtk.SortType.ASCENDING,
         col_attrs={}):
     """
         Creates a PyXRDTreeViewColumn using the arguments passed. Column 
@@ -67,10 +69,10 @@ def _get_default_column(title, rend,
     col.set_resizable(resizable)
     col.set_sizing(sizing)
     if fixed_width >= 0:
-        col.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+        col.set_sizing(Gtk.TreeViewColumnSizing.Fixed)
         col.set_fixed_width(fixed_width)
     else:
-        col.set_sizing(gtk.TREE_VIEW_COLUMN_GROW_ONLY)
+        col.set_sizing(Gtk.TreeViewColumnSizing.GROW_ONLY)
     col.set_min_width(min_width)
     col.set_max_width(max_width)
     col.set_title(title)
@@ -92,7 +94,7 @@ def new_text_column(title,
         spacing=0,
         visible=True,
         resizable=True,
-        sizing=0,
+        sizing=1,
         fixed_width=-1,
         min_width=-1,
         max_width=-1,
@@ -102,7 +104,7 @@ def new_text_column(title,
         reorderable=False,
         sort_column_id=-1,
         sort_indicator=False,
-        sort_order=gtk.SORT_ASCENDING,
+        sort_order=Gtk.SortType.ASCENDING,
         **kwargs):
     """
         Creates a TreeViewColumn packed with a CellRendererText .
@@ -110,7 +112,7 @@ def new_text_column(title,
     kwargs, col_attrs = parse_kwargs(**kwargs)
     alignment = alignment if alignment is not None else kwargs["xalign"]
 
-    rend = get_default_renderer(gtk.CellRendererText, **kwargs)
+    rend = get_default_renderer(Gtk.CellRendererText, **kwargs)
     if edited_callback is not None:
         callback, args = parse_callback(edited_callback, reduce=False)
         rend.connect('edited', callback, *args)
@@ -140,7 +142,7 @@ def new_pb_column(title,
         spacing=0,
         visible=True,
         resizable=True,
-        sizing=0,
+        sizing=1,
         fixed_width=-1,
         min_width=-1,
         max_width=-1,
@@ -150,7 +152,7 @@ def new_pb_column(title,
         reorderable=False,
         sort_column_id=-1,
         sort_indicator=False,
-        sort_order=gtk.SORT_ASCENDING,
+        sort_order=Gtk.SortType.ASCENDING,
         **kwargs):
     """
         Creates a TreeViewColumn packed with a CellRendererPixbuf.
@@ -158,7 +160,7 @@ def new_pb_column(title,
     kwargs, col_attrs = parse_kwargs(**kwargs)
     alignment = alignment if alignment is not None else kwargs["xalign"]
 
-    rend = get_default_renderer(gtk.CellRendererPixbuf, **kwargs)
+    rend = get_default_renderer(Gtk.CellRendererPixbuf, **kwargs)
 
     col = _get_default_column(
         title, rend,
@@ -186,7 +188,7 @@ def new_toggle_column(title,
         spacing=0,
         visible=True,
         resizable=True,
-        sizing=0,
+        sizing=1,
         fixed_width=-1,
         min_width=-1,
         max_width=-1,
@@ -196,7 +198,7 @@ def new_toggle_column(title,
         reorderable=False,
         sort_column_id=-1,
         sort_indicator=False,
-        sort_order=gtk.SORT_ASCENDING,
+        sort_order=Gtk.SortType.ASCENDING,
         **kwargs):
     """
         Creates a TreeViewColumn packed with a CellRendererToggle.
@@ -204,7 +206,7 @@ def new_toggle_column(title,
     kwargs, col_attrs = parse_kwargs(**kwargs)
     alignment = alignment if alignment is not None else kwargs["xalign"]
 
-    rend = get_default_renderer(gtk.CellRendererToggle, **kwargs)
+    rend = get_default_renderer(Gtk.CellRendererToggle, **kwargs)
     if toggled_callback is not None:
         callback, args = parse_callback(toggled_callback, reduce=False)
         rend.connect('toggled', callback, *args)
@@ -238,7 +240,7 @@ def new_combo_column(title,
         spacing=0,
         visible=True,
         resizable=True,
-        sizing=0,
+        sizing=1,
         fixed_width=-1,
         min_width=-1,
         max_width=-1,
@@ -248,7 +250,7 @@ def new_combo_column(title,
         reorderable=False,
         sort_column_id=-1,
         sort_indicator=False,
-        sort_order=gtk.SORT_ASCENDING,
+        sort_order=Gtk.SortType.ASCENDING,
         **kwargs):
     """
         Creates a TreeViewColumn packed with a CellRendererCombo.
@@ -256,7 +258,7 @@ def new_combo_column(title,
     kwargs, col_attrs = parse_kwargs(**kwargs)
     alignment = alignment if alignment is not None else kwargs["xalign"]
 
-    rend = get_default_renderer(gtk.CellRendererCombo, **kwargs)
+    rend = get_default_renderer(Gtk.CellRendererCombo, **kwargs)
     if changed_callback is not None:
         callback, args = parse_callback(changed_callback, reduce=False)
         rend.connect('changed', callback, *args)
@@ -315,7 +317,7 @@ def setup_treeview(tv, model,
         reset=False,
         on_cursor_changed=None,
         on_selection_changed=None,
-        sel_mode=gtk.SELECTION_SINGLE):
+        sel_mode=Gtk.SelectionMode.SINGLE):
     """
         Sets up a treeview (signal connection, sets selection mode).
     """

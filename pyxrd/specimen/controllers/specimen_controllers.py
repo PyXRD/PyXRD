@@ -9,7 +9,9 @@ import os, locale
 import logging
 logger = logging.getLogger(__name__)
 
-import gtk
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk  # @UnresolvedImport
 
 from mvc.adapters.gtk_support.dialogs.dialog_factory import DialogFactory
 from mvc.adapters.gtk_support.tree_view_adapters import wrap_xydata_to_treemodel
@@ -66,7 +68,7 @@ class SpecimenController(DialogController, TreeViewMixin):
         """
         setup_treeview(widget, store,
             on_cursor_changed=self.on_exp_data_tv_cursor_changed,
-            sel_mode=gtk.SELECTION_MULTIPLE)
+            sel_mode=Gtk.SelectionMode.MULTIPLE)
         store.connect('columns_changed', self.on_exp_columns_changed)
         self.update_exp_treeview(widget)
         # Other properties:
@@ -78,7 +80,7 @@ class SpecimenController(DialogController, TreeViewMixin):
         """
         setup_treeview(widget, store,
             on_cursor_changed=self.on_exp_data_tv_cursor_changed,
-            sel_mode=gtk.SELECTION_NONE)
+            sel_mode=Gtk.SelectionMode.NONE)
         store.connect('columns_changed', self.on_calc_columns_changed)
         self.update_calc_treeview(widget)
         # Other properties:
@@ -90,13 +92,19 @@ class SpecimenController(DialogController, TreeViewMixin):
         """
         setup_treeview(widget, store,
             on_cursor_changed=self.on_exclusion_ranges_tv_cursor_changed,
-            sel_mode=gtk.SELECTION_MULTIPLE)
+            sel_mode=Gtk.SelectionMode.MULTIPLE)
+        
+        def data_func(col, cell, model, iter, colnr):
+            cell.set_property("text", "%g" % model.get(iter, colnr)[0])
+        
         widget.append_column(new_text_column(
             u'From [°2θ]', text_col=store.c_x, editable=True,
+            data_func = (data_func, (store.c_x,)),
             edited_callback=(self.on_xy_data_cell_edited, (self.model.exclusion_ranges, 0)),
             resizable=True, expand=True))
         widget.append_column(new_text_column(
             u'To [°2θ]', text_col=store.c_y, editable=True,
+            data_func = (data_func, (store.c_y,)),
             edited_callback=(self.on_xy_data_cell_edited, (self.model.exclusion_ranges, 1)),
             resizable=True, expand=True))
 
@@ -122,14 +130,14 @@ class SpecimenController(DialogController, TreeViewMixin):
         for column in tv.get_columns():
             tv.remove_column(column)
 
-        def get_num(column, cell, model, itr, *data):
-            cell.set_property('text', '%.3f' % model.get_value(itr, column.get_col_attr('text')))
+        def get_num(column, cell, model, itr, col_id):
+            cell.set_property('text', '%.3f' % model.get_value(itr, col_id))
 
-        tv.append_column(new_text_column(u'2θ', text_col=model.c_x, data_func=get_num))
-        tv.append_column(new_text_column(u'Cal', text_col=model.c_y, data_func=get_num))
+        tv.append_column(new_text_column(u'2θ', data_func=(get_num, (model.c_x,))))
+        tv.append_column(new_text_column(u'Cal', data_func=(get_num, (model.c_y,)) ))
         for i in range(model.get_n_columns() - 2):
             tv.append_column(new_text_column(
-                self.model.calculated_pattern.get_y_name(i), text_col=i + 2, data_func=get_num))
+                self.model.calculated_pattern.get_y_name(i), data_func=(get_num, (i+2,))))
 
     def update_exp_treeview(self, tv):
         """
@@ -140,26 +148,28 @@ class SpecimenController(DialogController, TreeViewMixin):
         for column in tv.get_columns():
             tv.remove_column(column)
 
-        def get_num(column, cell, model, itr, *data):
-            cell.set_property('text', '%.3f' % model.get_value(itr, column.get_col_attr('text')))
+        def get_num(column, cell, model, itr, col_id):
+            cell.set_property('text', '%.3f' % model.get_value(itr, col_id))
         
         n_columns = model.get_n_columns()
         
         if n_columns > 2:
             for i in range(n_columns):
                 tv.append_column(new_text_column(
-                    self.model.calculated_pattern.get_y_name(i), text_col=i, editable=True,
+                    self.model.calculated_pattern.get_y_name(i), editable=True,
                     edited_callback=(self.on_xy_data_cell_edited, (self.model.experimental_pattern, i)),
-                    data_func=get_num
+                    data_func=(get_num, (i,))
                 ))
         else:
             # X Column:
             tv.append_column(new_text_column(
-                u'°2θ', text_col=model.c_x, editable=True,
+                u'°2θ', editable=True,
+                data_func=(get_num, (model.c_x,)),
                 edited_callback=(self.on_xy_data_cell_edited, (self.model.experimental_pattern, 0))))
             # Y Column:
             tv.append_column(new_text_column(
-                u'Intensity', text_col=model.c_y, editable=True,
+                u'Intensity', editable=True,
+                data_func=(get_num, (model.c_y,)),
                 edited_callback=(self.on_xy_data_cell_edited, (self.model.experimental_pattern, 1))))
 
     def remove_background(self):

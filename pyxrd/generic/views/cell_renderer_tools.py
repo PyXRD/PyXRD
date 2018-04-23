@@ -5,17 +5,19 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-import gtk
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
 
 renderer_map = {
-    'text': gtk.CellRendererText,
-    'accel': gtk.CellRendererAccel,
-    'combo': gtk.CellRendererCombo,
-    'spin': gtk.CellRendererSpin,
-    'pixbuf': gtk.CellRendererPixbuf,
-    'progress': gtk.CellRendererProgress,
-    'spinner': gtk.CellRendererSpinner,
-    'toggle': gtk.CellRendererToggle,
+    'text': Gtk.CellRendererText,
+    'accel': Gtk.CellRendererAccel,
+    'combo': Gtk.CellRendererCombo,
+    'spin': Gtk.CellRendererSpin,
+    'pixbuf': Gtk.CellRendererPixbuf,
+    'progress': Gtk.CellRendererProgress,
+    'spinner': Gtk.CellRendererSpinner,
+    'toggle': Gtk.CellRendererToggle,
 }
 
 def get_default_renderer(type, **kwargs):

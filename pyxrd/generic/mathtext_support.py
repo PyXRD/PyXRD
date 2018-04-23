@@ -10,4 +10,5 @@ from pyxrd.generic.models.mathtext_support import get_plot_safe, mt_frac, mt_ran
 try:
     from pyxrd.generic.plot.mathtext_support import create_pb_from_mathtext, create_image_from_mathtext # @UnusedImport
 except ImportError:
+    raise
     pass

@@ -10,7 +10,9 @@ from contextlib import contextmanager
 import logging
 logger = logging.getLogger(__name__)
 
-import gtk
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import GdkPixbuf
 
 from mvc import Model
 from mvc.adapters.gtk_support.dialogs.dialog_factory import DialogFactory
@@ -74,7 +76,7 @@ class PhasesController(ObjectListStoreController):
                 phase = tree_model.get_user_data(iter)
                 pb, old_color = getattr(phase, "__col_c_pb", (None, None))
                 if old_color != color:
-                    pb = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB, True, 8, 10, 20)  # @UndefinedVariable
+                    pb = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, True, 8, 10, 20)  # @UndefinedVariable
                     pb.fill(color)
                     setattr(phase, "__col_c_pb", (color, pb))
                 cell_renderer.set_property('pixbuf', pb)

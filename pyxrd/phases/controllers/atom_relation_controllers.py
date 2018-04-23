@@ -6,11 +6,12 @@
 # Complete license can be found in the LICENSE file.
 
 import logging
+from docutils.parsers.rst.directives import path
 logger = logging.getLogger(__name__)
 
-import gtk, pango
-
-from mvc.adapters.dummy_adapter import DummyAdapter
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk, Pango
 
 from pyxrd.generic.views.treeview_tools import (
     new_text_column,
@@ -73,8 +74,8 @@ class AtomComboMixin(object):
                     itr = combo.get_active_iter()
                     if itr is not None:
                         val = combo.get_model().get(itr, 0, 1)
-                        setattr(controller.model, combo.get_data('model_prop'), val)
-                combo.set_data('model_prop', prop.label)
+                        setattr(controller.model, getattr(combo, 'model_prop'), val)
+                setattr(combo, 'model_prop', prop.label)
                 combo.connect('changed', on_changed)
 
                 def on_item_changed(*args):
@@ -163,35 +164,31 @@ class ContentsListController(InlineObjectListStoreController):
     treemodel_class_type = AtomContentObject
 
     def _reset_treeview(self, tv, model):
-        setup_treeview(tv, model, sel_mode=gtk.SELECTION_MULTIPLE, reset=True)
+        setup_treeview(tv, model, sel_mode=Gtk.SelectionMode.MULTIPLE, reset=True)
         tv.set_model(model)
 
         # Atom column:
-        def atom_renderer(column, cell, model, itr, (obj_col, lbl_col)):
-            obj = model.get_value(itr, obj_col)
-            if lbl_col is not None:
-                lbl = model.get_value(itr, lbl_col)
-                if callable(lbl): lbl = lbl(obj)
-                cell.set_property("text", lbl)
+        self.combo_model = self.model.create_prop_store()
+        self.combo_model2 = Gtk.ListStore(str)
+        for row in self.combo_model:
+            self.combo_model2.append(row[2:3])
+              
+        def atom_renderer(column, cell, model, itr, *args):
+            obj = model.get_value(itr, 0)
+            if hasattr(obj, "name"):
+                cell.set_property('text', obj.name)
             else:
-                if hasattr(obj, "name"):
-                    cell.set_property('text', obj.name)
-                else:
-                    cell.set_property('text', '#NA#')
-        def adjust_combo(cell, editable, path, data=None):
-            if editable is not None:
-                rend = gtk.CellRendererText()
-                editable.clear()
-                editable.pack_start(rend)
-                editable.set_cell_data_func(rend, atom_renderer, (0, 2))
+                cell.set_property('text', '#NA#')      
+        
         tv.append_column(new_combo_column(
             "Atoms",
+            data_func=atom_renderer,
             changed_callback=self.on_atom_changed,
             edited_callback=self.on_atom_edited,
-            editing_started_callback=adjust_combo,
             xalign=0.0,
-            model=self.model.create_prop_store(),
-            data_func=(atom_renderer, (0, None)),
+            expand=False,
+            has_entry=False,
+            model=self.combo_model2,
             text_column=0,
             editable=True))
 
@@ -220,16 +217,19 @@ class ContentsListController(InlineObjectListStoreController):
     def create_new_object_proxy(self):
         return AtomContentObject(None, None, 1.0)
 
-    def on_atom_changed(self, combo, path, new_iter, user_data=None):
-        self.new_val = combo.get_property("model").get(new_iter, 0, 1)
-        print self.new_val
+    def on_atom_changed(self, combo, path, new_iter):
+        # translate dummy iter to real iter:
+        new_iter = self.combo_model.get_iter(self.combo_model2.get_path(new_iter))
+        self.new_val = self.combo_model.get(new_iter, 0, 1)
+        pass
 
-    def on_atom_edited(self, combo, path, new_text, args=None):
+    def on_atom_edited(self, combo, path, new_text, model=None):
         if self.new_val:
             new_atom, new_prop = self.new_val
             self.model.set_atom_content_values(path, new_atom, new_prop)
             self.new_val = None
         return True
+
 
     pass # end of class
 
@@ -247,14 +247,14 @@ class EditAtomRelationsController(InlineObjectListStoreController):
     ]
 
     def _reset_treeview(self, tv, model):
-        setup_treeview(tv, model, sel_mode=gtk.SELECTION_MULTIPLE, reset=True)
+        setup_treeview(tv, model, sel_mode=Gtk.SelectionMode.MULTIPLE, reset=True)
         tv.set_model(model)
 
         # Name column:
         def text_renderer(column, cell, model, itr, args=None):
             driven_by_other = model.get_value(itr, model.c_driven_by_other)
             cell.set_property('editable', not driven_by_other)
-            cell.set_property('style', pango.STYLE_ITALIC if driven_by_other else pango.STYLE_NORMAL)
+            cell.set_property('style', Pango.Style.ITALIC if driven_by_other else Pango.Style.NORMAL)
         col = new_text_column(
             'Name',
             data_func=text_renderer,
@@ -262,7 +262,7 @@ class EditAtomRelationsController(InlineObjectListStoreController):
             edited_callback=(self.on_item_cell_edited, (model, model.c_name)),
             resizable=False,
             text_col=model.c_name)
-        col.set_data("col_descr", 'Name')
+        setattr(col, "col_descr", 'Name')
         tv.append_column(col)
 
         # Value of the relation:
@@ -277,13 +277,13 @@ class EditAtomRelationsController(InlineObjectListStoreController):
             edited_callback=(self.on_item_cell_edited, (model, model.c_value)),
             resizable=False,
             text_col=model.c_value)
-        col.set_data("col_descr", 'Value')
+        setattr(col, "col_descr", 'Value')
         tv.append_column(col)
 
         # Up, down and edit arrows:
         def setup_image_button(image, colnr):
             col = new_pb_column(" ", resizable=False, expand=False, stock_id=image)
-            col.set_data("col_descr", colnr)
+            setattr(col, "col_descr", colnr)
             tv.append_column(col)
         setup_image_button("213-up-arrow", "Up")
         setup_image_button("212-down-arrow", "Down")
@@ -308,9 +308,9 @@ class EditAtomRelationsController(InlineObjectListStoreController):
             path, col, x, y = ret
             model = tv.get_model()
             relation = model.get_user_data_from_path(path)
-            column = col.get_data("col_descr")
+            column = getattr(col, "col_descr")
         if event.button == 1 and relation is not None:
-            column = col.get_data("col_descr")
+            column = getattr(col, "col_descr")
             if column == "Edit":
                 self._edit_item(relation)
                 return True

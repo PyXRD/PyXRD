@@ -7,16 +7,19 @@
 
 from pkg_resources import resource_filename # @UnresolvedImport
 
-import gtk
+import gi
+from pyxrd.generic.plot.click_catcher import ClickCatcher
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
+
 import logging
-from pyxrd.generic.plot.motion_tracker import MotionTracker
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 import matplotlib
 import matplotlib.transforms as transforms
 from matplotlib.figure import Figure
-from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanvasGTK
+from matplotlib.backends.backend_gtk3agg import FigureCanvasGTK3Agg as FigureCanvasGTK
 try:
     from matplotlib.pyparsing import ParseFatalException
 except ImportError:
@@ -27,6 +30,7 @@ from mpl_toolkits.axisartist import Subplot
 from mvc.adapters.gtk_support.dialogs.dialog_factory import DialogFactory
 
 from pyxrd.data import settings
+from pyxrd.generic.plot.motion_tracker import MotionTracker
 from pyxrd.generic.plot.axes_setup import PositionSetup, update_axes
 from pyxrd.generic.plot.plotters import plot_specimens, plot_mixtures
 
@@ -59,8 +63,10 @@ class PlotController(object):
         self.setup_content()
 
     def setup_figure(self):
-        style = gtk.Style()
-        self.figure = Figure(dpi=72, edgecolor=str(style.bg[2]), facecolor=str(style.bg[0]))
+        # FIXME style = Gtk.StyleContext.new()
+        # FIXME edgecolor = style.get_color(Gtk.StateFlags.PRELIGHT).to_color().to_string()
+        # FIXME facecolor = style.get_color(Gtk.StateFlags.NORMAL).to_color().to_string()
+        self.figure = Figure(dpi=72) #, edgecolor=str(edgecolor), facecolor=str(facecolor))
         self.figure.subplots_adjust(hspace=0.0, wspace=0.0)
 
     def setup_canvas(self):
@@ -97,18 +103,18 @@ class PlotController(object):
             width, height, dpi = map(float, size.replace("@", "x").split("x"))
 
         # Load gui:
-        builder = gtk.Builder()
+        builder = Gtk.Builder()
         builder.add_from_file(resource_filename("pyxrd.specimen", "glade/save_graph_size.glade")) # FIXME move this to this namespace!!
         size_expander = builder.get_object("size_expander")
         cmb_presets = builder.get_object("cmb_presets")
 
         # Setup combo with presets:
-        cmb_store = gtk.ListStore(str, int, int, float)
+        cmb_store = Gtk.ListStore(str, int, int, float)
         for row in settings.OUTPUT_PRESETS:
             cmb_store.append(row)
         cmb_presets.clear()
         cmb_presets.set_model(cmb_store)
-        cell = gtk.CellRendererText()
+        cell = Gtk.CellRendererText()
         cmb_presets.pack_start(cell, True)
         cmb_presets.add_attribute(cell, 'text', 0)
         def on_cmb_changed(cmb, *args):
@@ -182,6 +188,8 @@ class MainPlotController(PlotController):
         self.scale = 1.0
         self.stats = False
 
+        self._last_pos = None
+
         self.position_setup = PositionSetup()
 
         self.app_controller = app_controller
@@ -199,8 +207,9 @@ class MainPlotController(PlotController):
         self.canvas.mpl_connect('resize_event', self.fix_after_drawing)
 
         self.mtc = MotionTracker(self, self.app_controller.update_plot_status)
+        self.cc = ClickCatcher(self)
 
-        self.update()
+        #self.update()
 
     # ------------------------------------------------------------
     #      Update methods
@@ -213,7 +222,7 @@ class MainPlotController(PlotController):
 
         if project and specimens:
             self.labels, self.marker_lbls = plot_specimens(
-                self.plot, self.position_setup,
+                self.plot, self.position_setup, self.cc,
                 project, specimens
             )
             # get mixtures for the selected specimens:
@@ -229,8 +238,7 @@ class MainPlotController(PlotController):
     # ------------------------------------------------------------
     #      Plot position and size calculations
     # ------------------------------------------------------------
-    def _get_joint_bbox(self, container):
-        renderer = self._find_renderer()
+    def _get_joint_bbox(self, container, renderer):
         bboxes = []
         try:
             for text in container:
@@ -256,8 +264,6 @@ class MainPlotController(PlotController):
             #makes this easy.
             renderer = self.figure.canvas.get_renderer()
         else:
-            #Others don't, but since this is called in the 'fix_after_drawing',
-            # a renderer has been created, so we can get it like this:
             renderer = self.figure._cachedRenderer
         return renderer
 
@@ -267,18 +273,22 @@ class MainPlotController(PlotController):
             Is executed after an initial draw event, since we can then retrieve
             the actual label dimensions and shift/resize the plot accordingly.
         """
+        renderer = self._find_renderer()        
+        if not renderer or not self._canvas.get_realized():
+            return False
+        
         # Fix left side for wide specimen labels:
         if len(self.labels) > 0:
-            bbox = self._get_joint_bbox(self.labels)
+            bbox = self._get_joint_bbox(self.labels, renderer)
             if bbox is not None: self.position_setup.left = 0.05 + bbox.width
         # Fix top for high marker labels:
         if len(self.marker_lbls) > 0:
-            bbox = self._get_joint_bbox([ label for label, flag, _ in self.marker_lbls if flag ])
+            bbox = self._get_joint_bbox([ label for label, flag, _ in self.marker_lbls if flag ], renderer)
             if bbox is not None: self.position_setup.top = 1.0 - (0.05 + bbox.height) #Figure top - marker margin
         # Fix bottom for x-axis label:
         bottom_label = self.plot.axis["bottom"].label
         if bottom_label is not None:
-            bbox = self._get_joint_bbox([bottom_label])
+            bbox = self._get_joint_bbox([bottom_label], renderer)
             if bbox is not None: self.position_setup.bottom = 0.10 - min(bbox.ymin, 0.0)
 
         # Calculate new plot position & set it:
@@ -292,9 +302,18 @@ class MainPlotController(PlotController):
         # Adjust marker label position
         for label, flag, y_offset in self.marker_lbls:
             if flag:
-                label.set_y(plot_pos[1] + plot_pos[3] + y_offset - 0.025)
+                newy = plot_pos[1] + plot_pos[3] + y_offset - 0.025
+                label.set_y(newy)
 
-        self.figure.canvas.draw()
+        update_axes(
+            self.plot, self.position_setup,
+            None, None
+        )
+        
+        _new_pos = self.position_setup.to_string()
+        if _new_pos != self._last_pos:
+            self.figure.canvas.draw()
+        self._last_pos = _new_pos
 
         return False
 

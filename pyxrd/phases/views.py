@@ -7,10 +7,12 @@
 
 from pkg_resources import resource_filename # @UnresolvedImport
 
-import gtk
+import gi
+gi.require_version('Gtk', '3.0')  # @UndefinedVariable
+from gi.repository import Gtk  # @UnresolvedImport
 
 from matplotlib.figure import Figure
-from matplotlib.backends.backend_gtkcairo import FigureCanvasGTKCairo as FigureCanvasGTK
+from matplotlib.backends.backend_gtk3cairo import FigureCanvasGTK3Cairo as FigureCanvasGTK
 
 from pyxrd.generic.views import BaseView, HasChildView, DialogView
 from mvc.adapters.gtk_support.widgets import ScaleEntry
@@ -158,8 +160,8 @@ class EditCSDSDistributionView(BaseView):
         self.setup_matplotlib_widget()
 
     def setup_matplotlib_widget(self):
-        style = gtk.Style()
-        self.figure = Figure(dpi=72, edgecolor=str(style.bg[2]), facecolor=str(style.bg[2]))
+        #style = Gtk.Style()
+        self.figure = Figure(dpi=72) #, edgecolor=str(style.bg[2]), facecolor=str(style.bg[2]))
 
         self.plot = self.figure.add_subplot(111)
         self.figure.subplots_adjust(bottom=0.20)
@@ -192,12 +194,12 @@ class EditCSDSDistributionView(BaseView):
         rows = tbl.get_property("n-rows") + 1
         tbl.resize(rows, 2)
 
-        lbl = gtk.Label(label)
+        lbl = Gtk.Label(label=label)
         lbl.set_alignment(1.0, 0.5)
-        tbl.attach(lbl, 0, 1, rows - 1, rows, gtk.FILL, gtk.FILL)
+        tbl.attach(lbl, 0, 1, rows - 1, rows, Gtk.AttachOptions.FILL, Gtk.AttachOptions.FILL)
 
         inp = ScaleEntry(minimum, maximum, enforce_range=True)
-        tbl.attach(inp, 1, 2, rows - 1, rows, gtk.FILL, gtk.FILL)
+        tbl.attach(inp, 1, 2, rows - 1, rows, Gtk.AttachOptions.FILL, Gtk.AttachOptions.FILL)
 
         tbl.show_all()
 

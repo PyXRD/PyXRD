@@ -67,7 +67,7 @@ class EditMixtureController(BaseController):
 
         def on_phase_delete(widget):
             self.model.del_phase_slot(phase_slot)
-            widget.disconnect(widget.get_data("deleventid"))
+            widget.disconnect(getattr(widget, "deleventid"))
 
         self.view.add_phase_slot(self.phases_treemodel,
             on_phase_delete, on_label_changed, on_fraction_changed,
@@ -93,7 +93,7 @@ class EditMixtureController(BaseController):
 
         def on_specimen_delete(widget):
             self.model.del_specimen_slot(specimen_slot)
-            widget.disconnect(widget.get_data("deleventid"))
+            widget.disconnect(getattr(widget, "deleventid"))
 
         self.view.add_specimen_slot(self.phases_treemodel,
             self.specimens_treemodel, on_specimen_delete, on_scale_changed,

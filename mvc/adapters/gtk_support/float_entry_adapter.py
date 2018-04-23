@@ -23,15 +23,18 @@
 #  -------------------------------------------------------------------------
 
 import re
-import gtk
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
+
 from .entry_adapter import EntryAdapter
 
 class FloatEntryAdapter(EntryAdapter):
     """
-        An adapter for a gtk.Entry widget holding a float.
+        An adapter for a Gtk.Entry widget holding a float.
     """
     widget_types = ["float_entry", "float_input"]
-    _check_widget_type = gtk.Entry
+    _check_widget_type = Gtk.Entry
     _signal = "changed"
 
     def __init__(self, *args, **kwargs):

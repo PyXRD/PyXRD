@@ -24,9 +24,14 @@
 
 import weakref
 import types
-import gtk
 
-class BaseObjectListStore(gtk.GenericTreeModel):
+import gi
+gi.require_version('Gtk', '3.0')  # @UndefinedVariable
+from gi.repository import Gtk  # @UnresolvedImport
+
+from .generic_tree_model import GenericTreeModel
+
+class BaseObjectListStore(GenericTreeModel):
     """
         Base mixin for creating GenericTreeModel implementations for lists of
         objects. It maps the columns of the store with properties of the object.
@@ -57,7 +62,7 @@ class BaseObjectListStore(gtk.GenericTreeModel):
     #      Initialization and other internals
     # ------------------------------------------------------------
     def __init__(self, class_type):
-        gtk.GenericTreeModel.__init__(self)
+        GenericTreeModel.__init__(self)
         self.set_property("leak-references", False)
         if class_type is None:
             raise ValueError, 'Invalid class_type for %s! Expecting object, but None was given' % type(self)
@@ -87,7 +92,7 @@ class BaseObjectListStore(gtk.GenericTreeModel):
     #      Methods & Functions
     # ------------------------------------------------------------
     def on_get_flags(self):
-        return gtk.TREE_MODEL_LIST_ONLY | gtk.TREE_MODEL_ITERS_PERSIST
+        return Gtk.TreeModelFlags.LIST_ONLY | Gtk.TreeModelFlags.ITERS_PERSIST
 
     def on_get_n_columns(self):
         return len(self._columns)

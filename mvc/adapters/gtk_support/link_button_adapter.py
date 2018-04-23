@@ -22,18 +22,21 @@
 #  Boston, MA 02110, USA.
 #  -------------------------------------------------------------------------
 
-import gtk
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
+
 from .basic import GtkAdapter
 
 class LinkButtonAdapter(GtkAdapter):
     """
-        An adapter for a gtk.LinkButton widget
+        An adapter for a Gtk.LinkButton widget
     """
     widget_types = ["link", "link_button"]
-    _check_widget_type = gtk.LinkButton
+    _check_widget_type = Gtk.LinkButton
 
-    _wid_read = GtkAdapter.static_to_class(gtk.LinkButton.get_uri)
-    _wid_write = GtkAdapter.static_to_class(gtk.LinkButton.set_uri)
+    _wid_read = GtkAdapter.static_to_class(Gtk.LinkButton.get_uri)
+    _wid_write = GtkAdapter.static_to_class(Gtk.LinkButton.set_uri)
     _signal = "clicked"
 
     pass # end of class

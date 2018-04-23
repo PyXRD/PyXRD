@@ -129,18 +129,20 @@ class BaseParser(object):
         """
         if cls.file_filter == None and cls.description != "" and cls.extensions:
             try:
-                import gtk
+                import gi
+                gi.require_version('Gtk', '3.0')
+                from gi.repository import Gtk
             except ImportError:
                 pass
             else:
                 # Init file filter:
-                cls.file_filter = gtk.FileFilter()
+                cls.file_filter = Gtk.FileFilter()
                 cls.file_filter.set_name(cls.description)
                 for mtpe in cls.mimetypes:
                     # cls.file_filter.add_mime_type(mtpe)
                     pass
                 for expr in cls.extensions:
                     cls.file_filter.add_pattern(expr)
-                cls.file_filter.set_data("parser", cls)
+                setattr(cls.file_filter, "parser", cls)
 
     pass # end of class

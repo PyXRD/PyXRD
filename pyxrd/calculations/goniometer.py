@@ -8,7 +8,7 @@
 import numpy as np
 
 from scipy.special import erf
-from math import sqrt, radians
+from math import sqrt
 
 from pyxrd.generic.custom_math import sqrt2pi, sqrt8
 
@@ -32,16 +32,6 @@ def get_lorentz_polarisation_factor(range_theta, sigma_star, soller1, soller2, m
     T = get_T(range_theta, sigma_star, soller1, soller2)
     pol = np.cos(np.radians(mcr_2theta)) ** 2
     return T * (1.0 + pol * (np.cos(2.0 * range_theta) ** 2)) / np.sin(range_theta)
-
-def get_monochromator_corr(range_theta, mcr_2theta):
-    """
-        Returns a correction for a secondary beam monochromator to be applied when the 
-        Lorentz-Polarization has already been applied (without this correction).
-        Is used in combination with the nist_fpa module.
-    """
-    pol = np.cos(np.radians(mcr_2theta)) ** 2
-    sinrt = np.sin(range_theta)
-    return (1 + pol * np.cos(2.0 * range_theta)) * ( 1 + sinrt) / ( 2.0 * sinrt * np.cos(range_theta) ** 2 * (1 + pol))
 
 def get_fixed_to_ads_correction_range(range_theta, goniometer):
     return np.sin(range_theta)

@@ -5,7 +5,7 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-import gtk
+from mvc.support.idle_call import IdleCallHandler
 
 class FloatEntryValidator:
     def __init__(self, entry):
@@ -36,7 +36,7 @@ class FloatEntryValidator:
 
     def entry_focus_out(self, entry, event):
         self.validate(reset_if_invalid=True)
-        return gtk.FALSE
+        return False
 
     def entry_insert_text(self, entry, new_text, new_text_length, position):
         self.entry.stop_emission('insert-text')
@@ -52,9 +52,9 @@ class FloatEntryValidator:
         if self.has_valid_val:
             new_text = text
             self.entry.set_text(new_text)
-            gtk.idle_add(lambda: self.entry.set_position(pos + (len(new_text) - len(old_text))))
-        #while gtk.events_pending():
-        #    gtk.main_iteration(False)
+            IdleCallHandler.call_idle(lambda: self.entry.set_position(pos + (len(new_text) - len(old_text))))
+        #while Gtk.events_pending():
+        #    Gtk.main_iteration(False)
         self.entry.handler_unblock(self.insert_handlerid)        
         
     def entry_delete_text(self, entry, start, end):

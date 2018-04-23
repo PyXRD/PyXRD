@@ -24,17 +24,20 @@
 
 import os
 
-import gtk
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
+
 from pyxrd.generic.io.utils import get_case_insensitive_glob
 
 def get_file_chooser_kwags():
     return dict(
-        action=gtk.FILE_CHOOSER_ACTION_SAVE,
+        action=Gtk.FileChooserAction.SAVE,
         title="The dialog title",
-        parent=gtk.Window(),
+        parent=Gtk.Window(),
         current_name="suggested_file_name",
         current_folder=os.path.expanduser("~"),
-        extra_widget=gtk.Label("Test Label"),
+        extra_widget=Gtk.Label(label="Test Label"),
         filters=[ ("Text File", get_case_insensitive_glob("*.txt")) ],
         multiple=False,
         confirm_overwrite=True

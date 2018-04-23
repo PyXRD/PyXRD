@@ -76,11 +76,12 @@ class StorableRegistry(dict):
         'phases.models/Component': 'Component',
         'phases.models/Phase': 'Phase',
         'project.models/Project': 'Project',
+        'InSituMixture': None
     }
 
     def __getitem__(self, key):
         key = self.aliases.get(key, key)
-        return super(StorableRegistry, self).__getitem__(key)
+        return super(StorableRegistry, self).__getitem__(key) if key is not None else None
 
     def register(self):
         """

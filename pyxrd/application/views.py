@@ -7,8 +7,11 @@
 
 from pkg_resources import resource_filename # @UnresolvedImport
 
-import gtk
-from matplotlib.backends.backend_gtkagg import NavigationToolbar2GTKAgg as NavigationToolbar
+import gi
+gi.require_version('Gtk', '3.0')  # @UndefinedVariable
+from gi.repository import Gtk, GdkPixbuf  # @UnresolvedImport
+
+from matplotlib.backends.backend_gtk3 import NavigationToolbar2GTK3 as NavigationToolbar
 
 from pyxrd.data import settings
 
@@ -50,7 +53,7 @@ class AppView(HasChildView, FormattedTitleView):
     widget_groups = {
         'full_mode_only': [
             "tbtn_edit_phases",
-            "tbtn_edit_behaviours",
+            #"tbtn_edit_behaviours",
             "tbtn_edit_atom_types",
             "tbtn_edit_mixtures",
             "tbtn_separator1",
@@ -60,8 +63,7 @@ class AppView(HasChildView, FormattedTitleView):
             "separator5",
             "main_menu_item_edit_phases",
             "main_menu_item_edit_atom_types",
-            "main_menu_item_edit_mixtures",
-            "navtoolbar"
+            "main_menu_item_edit_mixtures"
         ]
     }
 
@@ -79,22 +81,23 @@ class AppView(HasChildView, FormattedTitleView):
 
         def on_aboutbox_close(widget, event=None):
             self["about_window"].hide()
-            return gtk.TRUE
+            return True
 
         self["about_window"].set_version(settings.VERSION)
-        pixbuf = gtk.gdk.pixbuf_new_from_file(resource_filename(__name__, "icons/pyxrd.png")) # @UndefinedVariable
-        scaled_buf = pixbuf.scale_simple(212, 160, gtk.gdk.INTERP_BILINEAR) # @UndefinedVariable
+        
+        pixbuf = GdkPixbuf.Pixbuf.new_from_file(resource_filename(__name__, "icons/pyxrd.png")) # @UndefinedVariable
+        scaled_buf = pixbuf.scale_simple(212, 160, GdkPixbuf.InterpType.BILINEAR) # @UndefinedVariable
         self["about_window"].set_logo(scaled_buf)
         self["about_window"].connect("response", on_aboutbox_response)
         self["about_window"].connect("close", on_aboutbox_close)
         self["about_window"].connect("delete_event", on_aboutbox_close)
 
-        self["main_window"].set_icon_list(*get_icon_list())
+        self["main_window"].set_icon_list(get_icon_list())
 
-        # self.set_layout_modes()
         self.reset_all_views()
         if not settings.DEBUG:
             self.get_top_widget().maximize()
+        self.set_layout_mode(settings.DEFAULT_LAYOUT)
 
         self._clear_gdk_windows()
         self.get_top_widget().show()
@@ -102,7 +105,7 @@ class AppView(HasChildView, FormattedTitleView):
         return
 
     def _clear_gdk_windows(self):
-        gdktops = gtk.gdk.window_get_toplevels()  # @UndefinedVariable
+        gdktops = Gtk.Window.list_toplevels()
         gtktop = self["main_window"]
         our_gdktop = gtktop.get_window()        
         for gdktop in gdktops:
@@ -117,6 +120,7 @@ class AppView(HasChildView, FormattedTitleView):
         self.nav_toolbar.set_name("navtoolbar")
         self["navtoolbar"] = self.nav_toolbar
         self["navtoolbar_box"].add(self.nav_toolbar)
+        self.nav_toolbar.hide()
 
     def reset_child_view(self, view_name, class_type=None):
         if getattr(self, view_name, None) is not None:
@@ -178,6 +182,12 @@ class AppView(HasChildView, FormattedTitleView):
         super(AppView, self).set_layout_mode(mode)
         for view_name in self.child_views:
             getattr(self, view_name).set_layout_mode(mode)
+
+    def show_plot_toolbar(self):
+        self.nav_toolbar.show()
+        
+    def hide_plot_toolbar(self):
+        self.nav_toolbar.hide()
 
     def show(self, *args, **kwargs):
         BaseView.show(self, *args, **kwargs)

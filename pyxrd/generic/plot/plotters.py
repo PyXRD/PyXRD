@@ -126,7 +126,7 @@ def plot_marker_line(project, marker, offset, base_y, axes):
         except: pass
     marker.__plot_line = line
 
-def plot_markers(project, specimen, marker_lbls, offset, scale, marker_scale, axes):
+def plot_markers(cc, project, specimen, marker_lbls, offset, scale, marker_scale, axes):
     """
         Plots a specimens markers using the given offset and scale
     """
@@ -151,6 +151,7 @@ def plot_markers(project, specimen, marker_lbls, offset, scale, marker_scale, ax
         plot_marker_line(project, marker, offset, base_y, axes)
         text = plot_marker_text(project, marker, offset, marker_scale, base_y, axes)
         if text is not None:
+            cc.register_artist(text, cc.edit_marker, marker)
             marker_lbls.append((text, marker.base == 0, marker.y_offset))
 
 def plot_hatches(project, specimen, offset, scale, axes):
@@ -263,7 +264,7 @@ def make_draggable(artist, drag_x_handler=None, drag_y_handler=None):
             draggable.update(artist, drag_x_handler, drag_y_handler)
         artist.__draggable = draggable
 
-def plot_specimen(project, specimen, labels, marker_lbls, label_offset, plot_left,
+def plot_specimen(cc, project, specimen, labels, marker_lbls, label_offset, plot_left,
         offset, scale, marker_scale, axes):
     """
         Plots a specimens patterns, markers and hatches using the given
@@ -496,7 +497,7 @@ def plot_specimen(project, specimen, labels, marker_lbls, label_offset, plot_lef
     # exclusion ranges;
     plot_hatches(project, specimen, offset, scale, axes)
     # markers;
-    plot_markers(project, specimen, marker_lbls, offset, scale, marker_scale, axes)
+    plot_markers(cc, project, specimen, marker_lbls, offset, scale, marker_scale, axes)
     # & label:
     plot_label(specimen, labels, label_offset, plot_left, axes)
     #make_draggable(getattr(specimen, "__plot_label_artist", None), drag_y_handler=project.on_label_dragged)
@@ -535,7 +536,7 @@ def plot_statistics(project, specimen, spec_scale, stats_y_pos, stats_height, ax
                     offset=stats_y_pos, alpha=0.65
                 )
 
-def plot_specimens(axes, pos_setup, project, specimens):
+def plot_specimens(axes, pos_setup, cc, project, specimens):
     """
         Plots multiple specimens within the context of a project
     """
@@ -592,7 +593,7 @@ def plot_specimens(axes, pos_setup, project, specimens):
             )
 
         plot_specimen(
-            project, specimen, labels, marker_lbls,
+            cc, project, specimen, labels, marker_lbls,
             lbl_y_pos, pos_setup.left, spec_y_pos, spec_scale, scale_unit,
             axes
         )

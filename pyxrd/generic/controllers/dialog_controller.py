@@ -5,7 +5,9 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-import gtk
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gdk
 
 from pyxrd.generic.controllers.base_controller import BaseController
 
@@ -22,7 +24,7 @@ class DialogController(BaseController):
         return True
 
     def on_keypress(self, widget, event):
-        if event.keyval == gtk.keysyms.Escape:
+        if event.keyval == Gdk.keyval_from_name("Escape"):
             self.on_cancel()
             return True
 

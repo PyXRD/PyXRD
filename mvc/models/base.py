@@ -372,7 +372,7 @@ class Model(Observer):
         return
 
     def __notify_observer__(self, observer, method, *args, **kwargs):
-        """This makes a call either through the gtk.idle list or a
+        """This makes a call either through the Gtk.idle list or a
         direct method call depending whether the caller's thread is
         different from the observer's thread"""
 

@@ -8,7 +8,9 @@
 import logging
 logger = logging.getLogger(__name__)
 
-import gtk
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
 
 from mvc import Controller
 
@@ -27,7 +29,7 @@ class EditCSDSTypeController(BaseController):
     def reset_type_store(self):
         if self.view is not None:
             combo = self.view["cmb_type"]
-            store = gtk.ListStore(str, object) # @UndefinedVariable
+            store = Gtk.ListStore(str, object) # @UndefinedVariable
 
             for cls in CSDS_distribution_types:
                 store.append([cls.Meta.description, cls])
@@ -43,7 +45,7 @@ class EditCSDSTypeController(BaseController):
         self.view = view
         combo = self.view["cmb_type"]
         combo.connect('changed', self.on_changed)
-        cell = gtk.CellRendererText() # @UndefinedVariable
+        cell = Gtk.CellRendererText() # @UndefinedVariable
         combo.pack_start(cell, True)
         combo.add_attribute(cell, 'markup', 0)
         self.reset_type_store()

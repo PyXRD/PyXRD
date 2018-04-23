@@ -21,19 +21,22 @@
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor,
 #  Boston, MA 02110, USA.
 #  -------------------------------------------------------------------------
-import gtk
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
+
 from .basic import GtkAdapter
 from ._gtk_color_utils import _parse_color_string, _parse_color_value
 
 class ColorButtonAdapter(GtkAdapter):
     """
-        An adapter for a gtk.Label widget
+        An adapter for a Gtk.Label widget
     """
     widget_types = ["color", "color_button"]
-    _check_widget_type = gtk.ColorButton
+    _check_widget_type = Gtk.ColorButton
 
-    _wid_read = GtkAdapter.static_to_class(gtk.ColorButton.get_color)
-    _wid_write = GtkAdapter.static_to_class(gtk.ColorButton.set_color)
+    _wid_read = lambda s, w: w.get_rgba()
+    _wid_write = lambda s, w, v: w.set_rgba(v) if w.get_realized() else None
     _signal = "color-set"
 
     _prop_read = lambda s, *a: _parse_color_string(*a)

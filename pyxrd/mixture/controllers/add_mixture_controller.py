@@ -5,7 +5,10 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-import gtk
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk, Gdk
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -31,14 +34,11 @@ class AddMixtureController(DialogController):
         self.callback(self.view.get_mixture_type())
         return True
 
-    def on_rdb_toggled(self, widget):
-        self.view.update_sensitivities()
-
     def on_keypress(self, widget, event):
-        if event.keyval == gtk.keysyms.Escape:
+        if event.keyval == Gdk.keyval_from_name("Escape"):
             self.view.hide()
             return True
-        if event.keyval == gtk.keysyms.Return:
+        if event.keyval == Gdk.keyval_from_name("Return"):
             return self.on_btn_ok_clicked(event)
 
     def on_window_edit_dialog_delete_event(self, event, args=None):

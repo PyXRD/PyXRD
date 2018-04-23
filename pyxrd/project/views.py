@@ -48,7 +48,7 @@ class ProjectView(DialogView):
         self["nbk_edit_project"].set_current_page(0)
 
     def show_specimens_context_menu(self, event):
-        self["specimen_popup"].popup(None, None, None, event.button, event.time)
+        self["specimen_popup"].popup(None, None, None, None, event.button, event.time)
 
     def hide_specimens_context_menu(self):
         self["specimen_popup"].hide()

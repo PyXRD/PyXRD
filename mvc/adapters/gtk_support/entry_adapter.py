@@ -22,18 +22,21 @@
 #  Boston, MA 02110, USA.
 #  -------------------------------------------------------------------------
 
-import gtk
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
+
 from .basic import GtkAdapter
 
 class EntryAdapter(GtkAdapter):
     """
-        An adapter for a gtk.Entry widget
+        An adapter for a Gtk.Entry widget
     """
     widget_types = ["entry", "input"]
-    _check_widget_type = gtk.Entry
+    _check_widget_type = Gtk.Entry
 
-    _wid_read = lambda c, w: gtk.Entry.get_text(w)
-    _wid_write = lambda c, w, v: gtk.Entry.set_text(w, str(v))
+    _wid_read = lambda c, w: Gtk.Entry.get_text(w)
+    _wid_write = lambda c, w, v: Gtk.Entry.set_text(w, str(v))
     _signal = "changed"
 
     pass # end of class

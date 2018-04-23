@@ -22,18 +22,20 @@
 #  Boston, MA 02110, USA.
 #  -------------------------------------------------------------------------
 
-import gtk
+import gi
+gi.require_version('Gtk', '3.0')  # @UndefinedVariable
+from gi.repository import Gtk  # @UnresolvedImport
 
 from .utils import adjust_filename_to_globs, retrieve_lowercase_extension, run_dialog
 import os
 
-class FileChooserDialog(gtk.FileChooserDialog):
+class FileChooserDialog(Gtk.FileChooserDialog):
 
     accept_responses = (
-        gtk.RESPONSE_ACCEPT, # @UndefinedVariable
-        gtk.RESPONSE_YES, # @UndefinedVariable
-        gtk.RESPONSE_APPLY, # @UndefinedVariable
-        gtk.RESPONSE_OK # @UndefinedVariable
+        Gtk.ResponseType.ACCEPT, # @UndefinedVariable
+        Gtk.ResponseType.YES, # @UndefinedVariable
+        Gtk.ResponseType.APPLY, # @UndefinedVariable
+        Gtk.ResponseType.OK # @UndefinedVariable
     )
 
     persist = False
@@ -41,13 +43,13 @@ class FileChooserDialog(gtk.FileChooserDialog):
     @property
     def parser(self):
         try:
-            return self.get_filter().get_data("parser")
+            return getattr(self.get_filter(), "parser")
         except AttributeError:
             return None
 
     @property
     def filename(self):
-        """ Extracts the selected filename from a gtk.Dialog """
+        """ Extracts the selected filename from a Gtk.Dialog """
         filename = super(FileChooserDialog, self).get_filename()
         if filename is not None:
             filename = adjust_filename_to_globs(filename, self.selected_globs)
@@ -66,7 +68,7 @@ class FileChooserDialog(gtk.FileChooserDialog):
                 try:
                     name, globs = fltr
                 except TypeError: # filter is not a tuple, perhaps it is a FileFilter from a parser
-                    parser = fltr.get_data("parser")
+                    parser = getattr(fltr, "parser")
                     name, globs = parser.description, parser.extensions
                 if selected_name == name:
                     if len(globs) and globs[0] != "*.*":
@@ -138,15 +140,15 @@ class FileChooserDialog(gtk.FileChooserDialog):
         return self
 
     def _get_object_file_filters(self, filters=[]):
-        """ Parses a list of textual file filter globs or gtk.FileFilter objects
-         into gtk.FileFilter objects """
+        """ Parses a list of textual file filter globs or Gtk.FileFilter objects
+         into Gtk.FileFilter objects """
         for obj in filters:
-            if isinstance(obj, gtk.FileFilter):
+            if isinstance(obj, Gtk.FileFilter):
                 yield obj
             else:
-                # if not a gtk.FileFilter we assume it is a glob tuple
+                # if not a Gtk.FileFilter we assume it is a glob tuple
                 name, re = obj
-                ffilter = gtk.FileFilter()
+                ffilter = Gtk.FileFilter()
                 ffilter.set_name(name)
                 if isinstance(re, (str, unicode)):
                     ffilter.add_pattern(re)

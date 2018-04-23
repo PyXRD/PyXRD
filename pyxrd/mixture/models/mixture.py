@@ -219,7 +219,7 @@ class Mixture(DataModel, Storable):
                 self.phase_matrix = np.array([[type(type(self)).object_pool.get_object(uuid) if uuid else None for uuid in row] for row in phase_uuids], dtype=np.object_)
             elif phase_indeces and self.parent is not None:
                 warn("The use of object indices is deprecated since version 0.4. Please switch to using object UUIDs.", DeprecationWarning)
-                self.phase_matrix = np.array([[self.parent.phases.get_user_data_from_index(index) if index != -1 else None for index in row] for row in phase_indeces], dtype=np.object_)
+                self.phase_matrix = np.array([[self.parent.phases[index] if index != -1 else None for index in row] for row in phase_indeces], dtype=np.object_)
             else:
                 self.phase_matrix = np.empty(shape=(0, 0), dtype=np.object_)
 
@@ -230,7 +230,7 @@ class Mixture(DataModel, Storable):
                 self.specimens = [type(type(self)).object_pool.get_object(uuid) if uuid else None for uuid in specimen_uuids]
             elif specimen_indeces and self.parent is not None:
                 warn("The use of object indices is deprecated since version 0.4. Please switch to using object UUIDs.", DeprecationWarning)
-                self.specimens = [self.parent.specimens.get_user_data_from_index(index) if index != -1 else None for index in specimen_indeces]
+                self.specimens = [self.parent.specimens[index] if index != -1 else None for index in specimen_indeces]
             else:
                 self.specimens = list()
 

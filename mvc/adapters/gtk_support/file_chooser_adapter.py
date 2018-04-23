@@ -22,18 +22,21 @@
 #  Boston, MA 02110, USA.
 #  -------------------------------------------------------------------------
 
-import gtk
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
+
 from .basic import GtkAdapter
 
 class FileChooserAdapter(GtkAdapter):
     """
-        An adapter for a gtk.FileChooser widget
+        An adapter for a Gtk.FileChooser widget
     """
     widget_types = ["file", "file_chooser"]
-    _check_widget_type = gtk.FileChooser
+    _check_widget_type = Gtk.FileChooser
 
-    _wid_read = GtkAdapter.static_to_class(gtk.FileChooser.get_filename)
-    _wid_write = GtkAdapter.static_to_class(gtk.FileChooser.set_filename)
+    _wid_read = GtkAdapter.static_to_class(Gtk.FileChooser.get_filename)
+    _wid_write = GtkAdapter.static_to_class(Gtk.FileChooser.set_filename)
     _signal = "file-set"
 
     pass # end of class

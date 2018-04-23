@@ -7,7 +7,9 @@
 
 from pkg_resources import resource_filename  # @UnresolvedImport
 
-import gtk
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
 
 import numpy as np
 
@@ -34,8 +36,8 @@ class EditMixtureView(BaseView):
 
         self.labels = [ self["lbl_scales"], self["lbl_fractions"], self["lbl_phases"], self["lbl_bgshifts"], self["lbl_specimens"] ]
 
-        self["scolled_window"].set_policy(gtk.POLICY_NEVER, gtk.POLICY_AUTOMATIC)
-        self.matrix.connect("size-request", self.on_size_requested)
+        self["scolled_window"].set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        # TODO FIXME self.matrix.connect("size-request", self.on_size_requested)
 
         self.reset_view()
 
@@ -56,7 +58,7 @@ class EditMixtureView(BaseView):
 
     def on_size_requested(self, *args):
         sr = self.matrix.size_request()
-        self[self.top].set_size_request(sr[0] + 100, -1)
+        self[self.top].set_size_request(sr.width + 100, -1)
 
     def set_edit_view(self, view):
         if self._on_sr_id is not None and self.child_view is not None:
@@ -64,7 +66,7 @@ class EditMixtureView(BaseView):
         self.edit_view = view
         self.child_view = view.get_top_widget()
         self._add_child_view(self.child_view, self[self.edit_view_container])
-        if isinstance(self[self.edit_view_container], gtk.ScrolledWindow):
+        if isinstance(self[self.edit_view_container], Gtk.ScrolledWindow):
             sr = self.child_view.get_size_request()
             self[self.edit_view_container].set_size_request(sr[0], -1)
 
@@ -85,22 +87,22 @@ class EditMixtureView(BaseView):
         r, c = self.matrix.get_property('n_rows'), self.matrix.get_property('n_columns')
         self.matrix.resize(r + 1, c)
 
-        del_icon = gtk.Image()
-        del_icon.set_from_stock ("192-circle-remove", gtk.ICON_SIZE_SMALL_TOOLBAR)
-        new_phase_del_btn = gtk.Button()
+        del_icon = Gtk.Image.new()
+        del_icon.set_from_stock ("192-circle-remove", Gtk.IconSize.SMALL_TOOLBAR)
+        new_phase_del_btn = Gtk.Button.new()
         new_phase_del_btn.set_image(del_icon)
         rid = new_phase_del_btn.connect("clicked", del_phase_callback)
-        new_phase_del_btn.set_data("deleventid", rid)
-        self.matrix.attach(new_phase_del_btn, 0, 1, r, r + 1, gtk.FILL, 0)
+        setattr(new_phase_del_btn, "deleventid", rid)
+        self.matrix.attach(new_phase_del_btn, 0, 1, r, r + 1, Gtk.AttachOptions.FILL, 0)
 
         new_phase_input = self._get_new_input(label, callback=label_callback)
         self.phase_inputs.append(new_phase_input)
-        self.matrix.attach(new_phase_input, 1, 2, r, r + 1, gtk.EXPAND | gtk.FILL, 0)
+        self.matrix.attach(new_phase_input, 1, 2, r, r + 1, Gtk.AttachOptions.EXPAND | Gtk.AttachOptions.FILL, 0)
 
         new_fraction_input = self._get_new_input(str(fraction), callback=fraction_callback)
         FloatEntryValidator(new_fraction_input)
         self.fraction_inputs.append(new_fraction_input)
-        self.matrix.attach(new_fraction_input, 2, 3, r, r + 1, gtk.EXPAND | gtk.FILL, 0)
+        self.matrix.attach(new_fraction_input, 2, 3, r, r + 1, Gtk.AttachOptions.EXPAND | Gtk.AttachOptions.FILL, 0)
 
         self.phase_combos.resize((c - self.base_width, r + 1 - self.base_height))
         for col in range(c - self.base_width):
@@ -113,27 +115,27 @@ class EditMixtureView(BaseView):
         r, c = self.matrix.get_property('n_rows'), self.matrix.get_property('n_columns')
         self.matrix.resize(r, c + 1)
 
-        del_icon = gtk.Image()
-        del_icon.set_from_stock("192-circle-remove", gtk.ICON_SIZE_SMALL_TOOLBAR)
-        new_specimen_del_btn = gtk.Button()
+        del_icon = Gtk.Image.new()
+        del_icon.set_from_stock("192-circle-remove", Gtk.IconSize.SMALL_TOOLBAR)
+        new_specimen_del_btn = Gtk.Button.new()
         new_specimen_del_btn.set_image(del_icon)
         rid = new_specimen_del_btn.connect("clicked", del_specimen_callback)
-        new_specimen_del_btn.set_data("deleventid", rid)
-        self.matrix.attach(new_specimen_del_btn, c, c + 1, 0, 1, gtk.EXPAND | gtk.FILL, 0)
+        setattr(new_specimen_del_btn, "deleventid", rid)
+        self.matrix.attach(new_specimen_del_btn, c, c + 1, 0, 1, Gtk.AttachOptions.EXPAND | Gtk.AttachOptions.FILL, 0)
 
         new_specimen_combo = self._get_new_combo(specimen_store, specimen_store.c_name, default=specimen, callback=specimen_callback)
         self.specimen_combos.append(new_specimen_combo)
-        self.matrix.attach(new_specimen_combo, c, c + 1, 1, 2, gtk.EXPAND | gtk.FILL, 0)
+        self.matrix.attach(new_specimen_combo, c, c + 1, 1, 2, Gtk.AttachOptions.EXPAND | Gtk.AttachOptions.FILL, 0)
 
         new_bgs_input = self._get_new_input(str(bgs), callback=bgs_callback)
         FloatEntryValidator(new_bgs_input)
         self.bgs_inputs.append(new_bgs_input)
-        self.matrix.attach(new_bgs_input, c, c + 1, 2, 3, gtk.EXPAND | gtk.FILL, 0)
+        self.matrix.attach(new_bgs_input, c, c + 1, 2, 3, Gtk.AttachOptions.EXPAND | Gtk.AttachOptions.FILL, 0)
 
         new_scale_input = self._get_new_input(str(scale), callback=scale_callback)
         FloatEntryValidator(new_scale_input)
         self.scale_inputs.append(new_scale_input)
-        self.matrix.attach(new_scale_input, c, c + 1, 3, 4, gtk.EXPAND | gtk.FILL, 0)
+        self.matrix.attach(new_scale_input, c, c + 1, 3, 4, Gtk.AttachOptions.EXPAND | Gtk.AttachOptions.FILL, 0)
 
         self.phase_combos.resize((c + 1 - self.base_width, r - self.base_height))
         for row in range(r - self.base_height):
@@ -145,7 +147,7 @@ class EditMixtureView(BaseView):
         """
             Creates a new text input box.
         """
-        new_input = gtk.Entry()
+        new_input = Gtk.Entry.new()
         new_input.set_text(text)
         new_input.set_alignment(0.0)
         new_input.set_width_chars(width)
@@ -159,7 +161,7 @@ class EditMixtureView(BaseView):
         """
         new_phase_combo = self._get_new_combo(model, text_column, default, callback, r, c)
         self.phase_combos[r, c] = new_phase_combo
-        self.matrix.attach(new_phase_combo, self.base_width + r, self.base_width + r + 1, self.base_height + c, self.base_height + c + 1, gtk.EXPAND | gtk.FILL, 0)
+        self.matrix.attach(new_phase_combo, self.base_width + r, self.base_width + r + 1, self.base_height + c, self.base_height + c + 1, Gtk.AttachOptions.EXPAND | Gtk.AttachOptions.FILL, 0)
 
     def _get_new_combo(self, model, text_column, default, callback, *args):
         """
@@ -167,10 +169,10 @@ class EditMixtureView(BaseView):
             the given column as text column, the given default value set as 
             active row, and connecting the given callback with 'changed' signal.
         """
-        combobox = gtk.ComboBox(model)
+        combobox = Gtk.ComboBox.new_with_model(model)
         combobox.set_size_request(75, -1)
-        cell = gtk.CellRendererText()
-        combobox.pack_start(cell) # , False)
+        cell = Gtk.CellRendererText.new()
+        combobox.pack_start(cell, True)
         combobox.add_attribute(cell, 'text', text_column)
         if default is not None:
             index = model.on_get_path(default)[0]

@@ -22,6 +22,11 @@
 #  Boston, MA 02110, USA.
 #  -------------------------------------------------------------------------
 
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk  # @UnresolvedImport
+
+
 import os
 import csv
 
@@ -72,8 +77,7 @@ def smart_repos(ln, old_pos, new_pos):
 # Treestore creation from filesystem
 ################################################################################
 def create_valuestore_from_file(filename, data_type=float):
-    import gtk
-    liststore = gtk.ListStore(str, data_type)
+    liststore = Gtk.ListStore(str, data_type)
     with open(filename, 'r') as f:
         reader = csv.reader(f)
         reader.next() # skip header
@@ -83,8 +87,7 @@ def create_valuestore_from_file(filename, data_type=float):
     return liststore
 
 def create_treestore_from_directory(directory):
-    import gtk
-    treestore = gtk.TreeStore(str, str, bool)
+    treestore = Gtk.TreeStore(str, str, bool)
     treestore.append(None, ("", "", True))
     parents = {}
     for root, dirnames, filenames in os.walk(directory):

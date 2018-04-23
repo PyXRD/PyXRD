@@ -25,7 +25,9 @@
 import sys
 from contextlib import contextmanager
 
-import gtk
+import gi
+gi.require_version('Gtk', '3.0')  # @UndefinedVariable
+from gi.repository import Gtk  # @UnresolvedImport
 
 from .message_dialog import MessageDialog
 from .file_chooser_dialog import FileChooserDialog
@@ -49,8 +51,8 @@ class DialogFactory(object):
         """ Generic file dialog creator """
         return FileChooserDialog(
             title=title, action=action, parent=parent,
-            buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT,
-                     gtk.STOCK_OK, gtk.RESPONSE_ACCEPT),
+            buttons=(Gtk.STOCK_CANCEL, Gtk.ResponseType.REJECT,
+                     Gtk.STOCK_OK, Gtk.ResponseType.ACCEPT),
             current_name=current_name, current_folder=current_folder,
             extra_widget=extra_widget, filters=filters,
             multiple=multiple, confirm_overwrite=confirm_overwrite, persist=persist
@@ -66,7 +68,7 @@ class DialogFactory(object):
         # Forces save action
         # Does not allow selecting multiple files
         return DialogFactory.get_file_dialog(
-            action=gtk.FILE_CHOOSER_ACTION_SAVE, title=title, parent=parent,
+            action=Gtk.FileChooserAction.SAVE, title=title, parent=parent,
             current_name=current_name, current_folder=current_folder,
             extra_widget=extra_widget, filters=filters,
             multiple=False, confirm_overwrite=confirm_overwrite, persist=persist)
@@ -81,7 +83,7 @@ class DialogFactory(object):
         # Forces open action
         # Disables overwrite confirmation (doesn't matter really)
         return DialogFactory.get_file_dialog(
-            action=gtk.FILE_CHOOSER_ACTION_OPEN, title=title, parent=parent,
+            action=Gtk.FileChooserAction.OPEN, title=title, parent=parent,
             current_name=current_name, current_folder=current_folder,
             extra_widget=extra_widget, filters=filters,
             multiple=multiple, confirm_overwrite=False, persist=persist)
@@ -90,13 +92,13 @@ class DialogFactory(object):
     #      Message dialog creators
     # ------------------------------------------------------------
     @staticmethod
-    def get_message_dialog(message, type, buttons=gtk.BUTTONS_YES_NO, persist=False, parent=None, title=None):  # @ReservedAssignment
+    def get_message_dialog(message, type, buttons=Gtk.ButtonsType.YES_NO, persist=False, parent=None, title=None):  # @ReservedAssignment
         """ Generic message dialog creator """
         return MessageDialog(
             message=message,
             parent=parent,
             type=type,
-            flags=gtk.DIALOG_DESTROY_WITH_PARENT,
+            flags=Gtk.DialogFlags.DESTROY_WITH_PARENT,
             buttons=buttons,
             persist=persist,
             title=title)
@@ -107,7 +109,7 @@ class DialogFactory(object):
         return DialogFactory.get_message_dialog(
             message,
             parent=parent,
-            type=gtk.MESSAGE_WARNING,
+            type=Gtk.MessageType.WARNING,
             persist=persist,
             title=title
         )
@@ -118,8 +120,8 @@ class DialogFactory(object):
         return DialogFactory.get_message_dialog(
             message,
             parent=parent,
-            type=gtk.MESSAGE_INFO,
-            buttons=gtk.BUTTONS_OK,
+            type=Gtk.MessageType.INFO,
+            buttons=Gtk.ButtonsType.OK,
             persist=persist,
             title=title
         )
@@ -130,8 +132,8 @@ class DialogFactory(object):
         return DialogFactory.get_message_dialog(
             message,
             parent=parent,
-            type=gtk.MESSAGE_ERROR,
-            buttons=gtk.BUTTONS_OK,
+            type=Gtk.MessageType.ERROR,
+            buttons=Gtk.ButtonsType.OK,
             persist=persist,
             title=title
         )
@@ -141,7 +143,7 @@ class DialogFactory(object):
     # ------------------------------------------------------------
     @staticmethod
     def get_custom_dialog(content, parent=None):
-        window = gtk.Window()
+        window = Gtk.Window()
         window.set_border_width(10)
         window.set_modal(True)
         window.set_transient_for(parent)

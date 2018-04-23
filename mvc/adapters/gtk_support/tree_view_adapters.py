@@ -25,12 +25,14 @@
 import logging
 logger = logging.getLogger(__name__)
 
-import gtk
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
 from ..abstract_adapter import AbstractAdapter
 
 def wrap_property_to_treemodel_type(model, prop, treemodel_type):
     prop_value = getattr(model, prop.label)
-    if not isinstance(prop_value, gtk.TreeModel):
+    if not isinstance(prop_value, Gtk.TreeModel):
         wrapper = getattr(model, "__%s_treemodel_wrapper" % prop.label, None)
         if wrapper is None or not wrapper.is_wrapping(model, prop.label):
             wrapper = treemodel_type(model, prop)
@@ -41,7 +43,7 @@ def wrap_property_to_treemodel_type(model, prop, treemodel_type):
 def wrap_treenode_property_to_treemodel(model, prop):
     """
         Convenience function that (sparsely) wraps a TreeNode property
-        to an ObjectTreeStore. If the property is a gtk.TreeModel instance,
+        to an ObjectTreeStore. If the property is a Gtk.TreeModel instance,
         it returns it without wrapping.
     """
     from .treemodels import ObjectTreeStore
@@ -50,7 +52,7 @@ def wrap_treenode_property_to_treemodel(model, prop):
 def wrap_list_property_to_treemodel(model, prop):
     """
         Convenience function that (sparsely) wraps a list property
-        to an ObjectListStore. If the property is an gtk.TreeModel instance,
+        to an ObjectListStore. If the property is an Gtk.TreeModel instance,
         it returns it without wrapping.
     """
     from .treemodels import ObjectListStore
@@ -59,7 +61,7 @@ def wrap_list_property_to_treemodel(model, prop):
 def wrap_xydata_to_treemodel(model, prop):
     """
         Convenience function that (sparsely) wraps an XYData model
-        to an XYListStore. If the property is an gtk.TreeModel instance,
+        to an XYListStore. If the property is an Gtk.TreeModel instance,
         it returns it without wrapping.
     """
     from .treemodels import XYListStore
@@ -71,7 +73,7 @@ class AbstractTreeViewAdapter(AbstractAdapter):
         XYTreeViewAdapter.
     """
     toolkit = "gtk"
-    _check_widget_type = gtk.TreeView
+    _check_widget_type = Gtk.TreeView
 
     _signal = "changed"
 

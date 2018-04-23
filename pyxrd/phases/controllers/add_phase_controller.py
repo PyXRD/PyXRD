@@ -5,7 +5,10 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-import gtk
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk, Gdk
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -83,14 +86,14 @@ class AddPhaseController(DialogController):
         from pyxrd.scripts.generate_default_phases import run
         def ui_callback(progress):
             self.view["gen_progress_bar"].set_fraction(progress)
-            while gtk.events_pending():
-                gtk.main_iteration()
+            while Gtk.events_pending():
+                Gtk.main_iteration()
         self.view["img_repeat"].set_visible(False)
         self.view["gen_spinner"].start()
         self.view["gen_spinner"].set_visible(True)
         self.view["gen_progress_bar"].set_visible(True)
-        while gtk.events_pending():
-            gtk.main_iteration()
+        while Gtk.events_pending():
+            Gtk.main_iteration()
         run(ui_callback=ui_callback)
         self.view["gen_progress_bar"].set_visible(False)
         self.view["img_repeat"].set_visible(True)
@@ -108,10 +111,10 @@ class AddPhaseController(DialogController):
         return True
 
     def on_keypress(self, widget, event):
-        if event.keyval == gtk.keysyms.Escape:
+        if event.keyval == Gdk.keyval_from_name("Escape"):
             self.view.hide()
             return True
-        if event.keyval == gtk.keysyms.Return:
+        if event.keyval == Gdk.keyval_from_name("Enter"):
             self.view.hide()
             self.callback(
                 self.view.get_phase_type(), self.view.get_G(), self.view.get_R())

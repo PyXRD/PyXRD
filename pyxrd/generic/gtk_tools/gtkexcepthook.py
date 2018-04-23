@@ -14,7 +14,7 @@
 # - fix Details button when a context in the traceback is None
 # - remove email features
 # - fix lockup with dialog.run(), return to mainloop instead
-# see also http://faq.pygtk.org/index.py?req=show&file=faq20.010.htp
+# see also http://faq.pyGtk.org/index.py?req=show&file=faq20.010.htp
 # Changes 2012 by Mathijs Dumon:
 # - removed the gtkcompat import statement
 
@@ -22,8 +22,9 @@ import inspect, linecache, pydoc, sys, traceback
 from cStringIO import StringIO
 from gettext import gettext as _
 
-import gtk
-import pango
+import gi
+gi.require_version('Gtk', '3.0')  # @UndefinedVariable
+from gi.repository import Gtk, Gdk, Pango  # @UnresolvedImport
 
 original_excepthook = sys.excepthook
 
@@ -161,14 +162,14 @@ class GtkExceptionHook():
         if self.exception_dialog_active:
             return
 
-        gtk.gdk.pointer_ungrab(gtk.gdk.CURRENT_TIME)  # @UndefinedVariable
-        gtk.gdk.keyboard_ungrab(gtk.gdk.CURRENT_TIME)  # @UndefinedVariable
+        Gdk.pointer_ungrab(Gdk.CURRENT_TIME)  # @UndefinedVariable
+        Gdk.keyboard_ungrab(Gdk.CURRENT_TIME)  # @UndefinedVariable
 
         self.exception_dialog_active = True
         # Create the dialog
-        dialog = gtk.MessageDialog(
+        dialog = Gtk.MessageDialog(
             parent=self.parent_window,
-            flags=0, type=gtk.MESSAGE_WARNING, buttons=gtk.BUTTONS_NONE
+            flags=0, type=Gtk.MessageType.WARNING, buttons=Gtk.ButtonsType.NONE
         )
         dialog.set_title (_("Bug Detected"))
 
@@ -185,8 +186,8 @@ class GtkExceptionHook():
             dialog.set_markup (primary)
             dialog.format_secondary_text (secondary)
 
-        dialog.add_button (gtk.STOCK_CLOSE, gtk.RESPONSE_CLOSE)
-        dialog.add_button (gtk.STOCK_QUIT, self.RESPONSE_QUIT)
+        dialog.add_button (Gtk.STOCK_CLOSE, Gtk.ResponseType.CLOSE)
+        dialog.add_button (Gtk.STOCK_QUIT, self.RESPONSE_QUIT)
 
         # Add an expander with details of the problem to the dialog
         def expander_cb(expander, *ignore):
@@ -195,22 +196,22 @@ class GtkExceptionHook():
                 dialog.set_resizable(True)
             else:
                 dialog.set_resizable(False)
-        details_expander = gtk.Expander()
+        details_expander = Gtk.Expander()
         details_expander.set_label(_("Details..."))
         details_expander.connect("notify::expanded", expander_cb)
 
-        textview = gtk.TextView(); textview.show()
+        textview = Gtk.TextView(); textview.show()
         textview.set_editable (False)
-        textview.modify_font (pango.FontDescription ("Monospace"))
+        textview.modify_font (Pango.FontDescription ("Monospace"))
 
-        sw = gtk.ScrolledWindow(); sw.show()
-        sw.set_policy (gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+        sw = Gtk.ScrolledWindow(); sw.show()
+        sw.set_policy (Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         sw.set_size_request(800, 400)
         sw.add (textview)
 
         details_expander.add (sw)
         details_expander.show_all()
-        dialog.get_content_area().pack_start(details_expander)
+        dialog.get_content_area().pack_start(details_expander, True, True, 0)
 
         # Get the traceback and set contents of the details
         try:
@@ -229,7 +230,7 @@ class GtkExceptionHook():
 
     def _dialog_response_cb(self, dialog, resp, trace):
 
-        if resp == self.RESPONSE_QUIT and gtk.main_level() > 0:
+        if resp == self.RESPONSE_QUIT and Gtk.main_level() > 0:
             if not callable(self.quit_confirmation_func):
                 sys.exit(1) # Exit code is important for IDEs
             else:

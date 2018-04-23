@@ -181,7 +181,7 @@ class PositionSetup(object):
 
     @property
     def right(self):
-        return self.left + self.get_plot_width()
+        return self.left + self.width
 
     @property
     def width(self):
@@ -198,5 +198,8 @@ class PositionSetup(object):
     @property
     def position(self):
         return [self.left, self.bottom, self.width, self.height]
+
+    def to_string(self):
+        return ":".join(map(str, [self.left,self.right,self.top,self.bottom,self.xdiff,self.xstretch])) 
 
     pass #end of class

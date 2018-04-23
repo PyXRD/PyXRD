@@ -26,7 +26,9 @@ import types
 import logging
 logger = logging.getLogger(__name__)
 
-import gtk
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
 
 from ...support.utils import not_none
 from .basic import GtkAdapter
@@ -39,10 +41,10 @@ class ComboBoxAdapter(GtkAdapter):
         pairs as keys and values.
     """
     widget_types = ["option_list", ]
-    _check_widget_type = gtk.ComboBox
+    _check_widget_type = Gtk.ComboBox
 
-    _wid_read = lambda c, w, *a: gtk.ComboBox.get_active_iter(w, *a)
-    _wid_write = lambda c, w, *a: gtk.ComboBox.set_active_iter(w, *a)
+    _wid_read = lambda c, w, *a: Gtk.ComboBox.get_active_iter(w, *a)
+    _wid_write = lambda c, w, *a: Gtk.ComboBox.set_active_iter(w, *a)
     _signal = "changed"
 
     _prop_cast = False
@@ -53,9 +55,9 @@ class ComboBoxAdapter(GtkAdapter):
         if not isinstance(prop.choices, types.DictionaryType):
             raise ValueError, "ComboBox widget handler requires a property with a 'choices' dictionary!"
         else:
-            self._store = gtk.ListStore(str, str)
+            self._store = Gtk.ListStore(str, str)
             for key, value in prop.choices.iteritems():
-                self._store.append([key, value])
+                self._store.append([str(key), str(value)])
         return prop, model
 
     def _prop_write(self, itr):
@@ -69,7 +71,7 @@ class ComboBoxAdapter(GtkAdapter):
 
     def _connect_widget(self):
         # Set up the combo box layout:
-        cell = gtk.CellRendererText()
+        cell = Gtk.CellRendererText()
         self._widget.clear()
         self._widget.pack_start(cell, True)
         self._widget.add_attribute(cell, 'text', 1)

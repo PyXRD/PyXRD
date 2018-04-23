@@ -5,7 +5,10 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-import gtk
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gdk
+
 from .event_delegator import MPLCanvasEventDelegator
 
 class EyeDropper():
@@ -22,7 +25,7 @@ class EyeDropper():
 
     def _on_motion(self, event):
         if self._window is not None:
-            self._window.set_cursor(gtk.gdk.Cursor(gtk.gdk.CROSSHAIR)) # @UndefinedVariable
+            self._window.set_cursor(Gdk.Cursor.new(Gdk.CursorType.CROSSHAIR)) # @UndefinedVariable
         return False
 
     def _on_click(self, event):

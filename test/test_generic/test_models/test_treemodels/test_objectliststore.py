@@ -7,7 +7,10 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-import gobject
+import gi
+gi.require_version('Gtk', '3.0')  # @UndefinedVariable
+from gi.repository import GObject  # @UnresolvedImport
+
 import unittest
 
 from pyxrd.generic.models import DataModel
@@ -50,9 +53,9 @@ class TestObjectListStore(unittest.TestCase):
 
     def test_columns(self):
         self.assertEqual(self.store.get_n_columns(), len(_DummyObject.Meta.get_column_properties()))
-        self.assertEqual(self.store.get_column_type(self.store.c_name), gobject.type_from_name("gchararray"))
-        self.assertEqual(self.store.get_column_type(self.store.c_number), gobject.type_from_name("gdouble"))
-        self.assertEqual(self.store.get_column_type(self.store.c_test), gobject.type_from_name("PyObject"))
+        self.assertEqual(self.store.get_column_type(self.store.c_name), GObject.type_from_name("gchararray"))
+        self.assertEqual(self.store.get_column_type(self.store.c_number), GObject.type_from_name("gdouble"))
+        self.assertEqual(self.store.get_column_type(self.store.c_test), GObject.type_from_name("PyObject"))
 
     def test_convert(self):
         self.assertEqual(self.store.convert(self.store.c_number, "0.5"), 0.5)

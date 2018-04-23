@@ -21,20 +21,23 @@
 #  Foundation, Inc., 51 Franklin Street, Fifth Floor,
 #  Boston, MA 02110, USA.
 #  -------------------------------------------------------------------------
-import gtk
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
+
 from .basic import GtkAdapter
 from ._gtk_color_utils import _parse_color_string, _parse_color_value
 
 class ColorSelectionAdapter(GtkAdapter):
     """
-        An adapter for a gtk.Label widget
+        An adapter for a Gtk.Label widget
     """
     widget_types = ["color_selection"]
-    _check_widget_type = gtk.ColorSelection
+    _check_widget_type = Gtk.ColorSelection
 
 
-    _wid_read = GtkAdapter.static_to_class(gtk.ColorSelection.get_current_color)
-    _wid_write = GtkAdapter.static_to_class(gtk.ColorSelection.set_current_color)
+    _wid_read = GtkAdapter.static_to_class(Gtk.ColorSelection.get_current_color)
+    _wid_write = GtkAdapter.static_to_class(Gtk.ColorSelection.set_current_color)
     _signal = "color-set"
 
     _prop_read = _parse_color_string

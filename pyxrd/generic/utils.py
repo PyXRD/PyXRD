@@ -9,6 +9,10 @@ import time
 import hashlib
 import sys
 
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import GObject
+
 from mvc.support.utils import rec_getattr, rec_setattr, not_none  # @UnusedImport keep it here
 
 def print_stack_plus():
@@ -73,7 +77,9 @@ class delayed(object):
     def __call__(self, func):
         def wrapper(*args, **kwargs):
             try:
-                import gobject
+                import gi
+                gi.require_version('Gtk', '3.0')  # @UndefinedVariable
+                from gi.repository import Gtk  # @UnresolvedImport
             except ImportError:
                 func(*args, **kwargs)
             else:
@@ -82,14 +88,14 @@ class delayed(object):
                 if self.__lock is not None and getattr(instance, self.__lock):
                     return # if the function is locked, do not push back the call
                 if key in self.__tmrid:
-                    gobject.source_remove(self.__tmrid[key])
+                    GObject.source_remove(self.__tmrid[key])
                     del self.__tmrid[key]
                 delay = 0
                 try:
                     delay = int(self.__delay)
                 except:
                     delay = getattr(instance, self.__delay)
-                self.__tmrid[key] = gobject.timeout_add(delay, self.__timeout_handler__, func, key, *args, **kwargs)
+                self.__tmrid[key] = GObject.timeout_add(delay, self.__timeout_handler__, func, key, *args, **kwargs)
         return wrapper
 
     def __timeout_handler__(self, func, key, *args, **kwargs):

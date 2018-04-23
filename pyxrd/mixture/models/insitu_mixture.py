@@ -5,6 +5,8 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
+raise NotImplemented, "This module is not yet implemented" 
+
 import sys, imp
 from itertools import izip
 from contextlib import contextmanager

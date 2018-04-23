@@ -98,7 +98,7 @@ class Goniometer(DataModel, Storable):
         """The wavelength of the generated X-rays (in nm)"""
         # Get the dominant wavelength in the distribution:
         x, y = self.wavelength_distribution.get_xy_data()
-        wl = float(y[np.argmax(x)])
+        wl = float(x[np.argmax(y)])
         return wl
 
     #: Flag indicating if the first soller slit is present or not

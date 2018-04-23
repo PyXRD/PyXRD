@@ -5,7 +5,10 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-import gtk
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gdk
+
 from .event_delegator import MPLCanvasEventDelegator
 
 class DraggableMixin(object):
@@ -180,7 +183,7 @@ class DraggableVLine(DraggableMixin):
             if not change_cursor:
                 self.window.set_cursor(None)
             else:
-                arrows = gtk.gdk.Cursor(gtk.gdk.SB_H_DOUBLE_ARROW) #@UndefinedVariable
+                arrows = Gdk.Cursor.new(Gdk.CursorType.SB_H_DOUBLE_ARROW) #@UndefinedVariable
                 self.window.set_cursor(arrows)
 
     def _draggable_on_motion(self, event):

@@ -13,14 +13,14 @@ import logging
 logger = logging.getLogger(__name__)
 
 try:
-    import gtk
-    import gobject
+    import gi
+    gi.require_version('Gtk', '3.0')
+    from gi.repository import Gtk, Gdk, GObject
+    Gtk.gdk = Gdk
 except ImportError:
-    logger.warning("Could not import gtk or gobject!")
+    logger.warning("Could not import Gtk, Gdk or GObject!")
 else:
-    # Initialize multi-threading in gtk:
-    gtk.gdk.threads_init() # @UndefinedVariable
-    gobject.threads_init() # @UndefinedVariable
+    GObject.threads_init()
 
 def _run_user_script():
     """
@@ -90,7 +90,7 @@ def _run_gui(project=None):
     del splash
 
     # lets get this show on the road:
-    gtk.main()
+    Gtk.main()
 
 def run_main():
     """

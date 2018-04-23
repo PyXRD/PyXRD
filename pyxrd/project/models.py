@@ -33,7 +33,7 @@ from pyxrd.atoms.models import AtomType
 from pyxrd.phases.models import Phase
 from pyxrd.specimen.models import Specimen
 from pyxrd.mixture.models.mixture import Mixture
-from pyxrd.mixture.models.insitu_behaviours import InSituBehaviour
+#from pyxrd.mixture.models.insitu_behaviours import InSituBehaviour
 
 @storables.register()
 class Project(DataModel, Storable):
@@ -336,10 +336,10 @@ class Project(DataModel, Storable):
     )
 
     #: The list of Behaviours
-    behaviours = ListProperty(
-        default=[], text="Behaviours", data_type=InSituBehaviour,
-        visible=False, persistent=True
-    )
+    #behaviours = ListProperty(
+    #    default=[], text="Behaviours", data_type=InSituBehaviour,
+    #    visible=False, persistent=True
+    #)
 
     #: The list of mixtures
     mixtures = ListProperty(
@@ -448,15 +448,15 @@ class Project(DataModel, Storable):
                 )
 
                 # Observe behaviours:
-                self.behaviours = self.get_list(kwargs, [], "behaviours", parent=self)
-                for behaviour in self.behaviours:
-                    self.observe_model(behaviour)
-                self._behaviours_observer = ListObserver(
-                    self.on_behaviour_inserted,
-                    self.on_behaviour_removed,
-                    prop_name="behaviours",
-                    model=self
-                )
+                #self.behaviours = self.get_list(kwargs, [], "behaviours", parent=self)
+                #for behaviour in self.behaviours:
+                #    self.observe_model(behaviour)
+                #self._behaviours_observer = ListObserver(
+                #    self.on_behaviour_inserted,
+                #    self.on_behaviour_removed,
+                #    prop_name="behaviours",
+                #    model=self
+                #)
 
                 # Observe mixtures:
                 self.mixtures = self.get_list(kwargs, [], "mixtures", "data_mixtures", parent=self)
@@ -580,7 +580,7 @@ class Project(DataModel, Storable):
         to_json = self.to_json()
         properties = to_json["properties"]
 
-        for name in ("phases", "specimens", "atom_types", "behaviours", "mixtures"):
+        for name in ("phases", "specimens", "atom_types", "mixtures"): #"behaviours"
             yield (name, properties.pop(name))
             properties[name] = "file://%s" % name
 

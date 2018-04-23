@@ -5,7 +5,10 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-import gtk
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk, Gdk as gdk
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -26,7 +29,7 @@ class AddInSituBehaviourController(DialogController):
         self.callback = callback
 
     def generate_combo(self):
-        cmb_model = gtk.ListStore(str, object)
+        cmb_model = Gtk.ListStore(str, object)
         print "Adding rows from:", self.parent.obj_type_map
         for cls, _, _ in self.parent.obj_type_map:
             print "Adding row:", cls
@@ -47,10 +50,10 @@ class AddInSituBehaviourController(DialogController):
         return True
 
     def on_keypress(self, widget, event):
-        if event.keyval == gtk.keysyms.Escape:
+        if event.keyval == Gdk.KEY_Escape:
             self.view.hide()
             return True
-        if event.keyval == gtk.keysyms.Return:
+        if event.keyval == Gdk.KEY_Return:
             return self.on_btn_ok_clicked(event)
 
     def on_window_edit_dialog_delete_event(self, event, args=None):

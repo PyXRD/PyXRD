@@ -7,7 +7,9 @@
 
 from pkg_resources import resource_filename # @UnresolvedImport
 
-import gtk
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
 
 from pyxrd.generic.views import DialogView, BaseView
 
@@ -49,7 +51,7 @@ class BackgroundView(DialogView):
         self._add_child_view(self[bg_view], self[self.bg_view_cont])
 
     def set_file_dialog(self, dialog, callback):
-        fcb_bg_pattern = gtk.FileChooserButton(dialog)
+        fcb_bg_pattern = Gtk.FileChooserButton(dialog)
         fcb_bg_pattern.connect("file-set", callback, dialog)
         self["fcb_bg_container"].add(fcb_bg_pattern)
 

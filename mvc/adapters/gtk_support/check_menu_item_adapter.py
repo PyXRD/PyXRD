@@ -20,18 +20,20 @@
 #  Boston, MA 02110, USA.
 #  -------------------------------------------------------------------------
 
-import gtk
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
 from .basic import GtkAdapter
 
 class CheckMenuItemAdapter(GtkAdapter):
     """
-        An adapter for a gtk.CheckMenuItem widget
+        An adapter for a Gtk.CheckMenuItem widget
     """
     widget_types = ["check_menu"]
-    _check_widget_type = gtk.CheckMenuItem
+    _check_widget_type = Gtk.CheckMenuItem
 
-    _wid_read = GtkAdapter.static_to_class(gtk.CheckMenuItem.get_active)
-    _wid_write = GtkAdapter.static_to_class(gtk.CheckMenuItem.set_active)
+    _wid_read = GtkAdapter.static_to_class(Gtk.CheckMenuItem.get_active)
+    _wid_write = GtkAdapter.static_to_class(Gtk.CheckMenuItem.set_active)
     _signal = "toggled"
 
     pass # end of class

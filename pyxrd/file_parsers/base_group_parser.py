@@ -51,9 +51,14 @@ class BaseGroupBarser(BaseParser):
             raise TypeError, "Wrong type for filename (%s), must be a string, but %s was given" % (cls.description, type(filename))
         else:
             try:
-                import gio
-                giof = gio.File(filename) # @UndefinedVariable
-                file_mime = giof.query_info('standard::content-type').get_content_type()
+                import gi
+                gi.require_version('Gtk', '3.0')  # @UndefinedVariable
+                from gi.repository import Gio  # @UnresolvedImport
+                giof = Gio.File.new_for_path(filename) # @UndefinedVariable
+                file_mime = giof.query_info(
+                        'standard::content-type', 
+                        Gio.FileQueryInfoFlags.NONE, None
+                    ).get_content_type()
                 del giof
             except ImportError:
                 file_mime = "NONE/NONE"
@@ -100,12 +105,14 @@ class BaseGroupBarser(BaseParser):
             should be overriden by subclasses.
         """
         try:
-            import gtk
+            import gi
+            gi.require_version('Gtk', '3.0')
+            from gi.repository import Gtk
         except ImportError:
             pass
         else:
             if cls.file_filter == None and cls.description and cls.parsers:
-                cls.file_filter = gtk.FileFilter()
+                cls.file_filter = Gtk.FileFilter()
                 cls.file_filter.set_name(cls.description)
                 for parser in cls.parsers:
                     for mtpe in parser.mimetypes:
@@ -113,6 +120,6 @@ class BaseGroupBarser(BaseParser):
                         pass
                     for expr in parser.extensions:
                         cls.file_filter.add_pattern(expr)
-                cls.file_filter.set_data("parser", cls)
+                setattr(cls.file_filter, "parser", cls)
 
     pass # end of class

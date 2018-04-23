@@ -7,10 +7,12 @@
 
 from pkg_resources import resource_filename # @UnresolvedImport
 
-import gtk
+import gi
+gi.require_version('Gtk', '3.0')  # @UndefinedVariable
+from gi.repository import Gtk  # @UnresolvedImport
 
 from matplotlib.figure import Figure
-from matplotlib.backends.backend_gtkcairo import FigureCanvasGTKCairo as FigureCanvasGTK
+from matplotlib.backends.backend_gtk3cairo import FigureCanvasGTK3Cairo as FigureCanvasGTK
 
 from pyxrd.generic.views import ObjectListStoreView, DialogView, BaseView
 
@@ -76,8 +78,8 @@ class DetectPeaksView(DialogView):
         self.setup_matplotlib_widget()
 
     def setup_matplotlib_widget(self):
-        style = gtk.Style()
-        self.figure = Figure(dpi=72, edgecolor=str(style.bg[2]), facecolor=str(style.bg[2]))
+        #style = Gtk.Style()
+        self.figure = Figure(dpi=72) #, edgecolor=str(style.bg[2]), facecolor=str(style.bg[2]))
 
         self.plot = self.figure.add_subplot(111)
         self.plot.set_ylabel('# of peaks', labelpad=1)

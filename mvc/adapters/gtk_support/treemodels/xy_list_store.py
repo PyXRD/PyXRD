@@ -27,7 +27,9 @@ from collections import namedtuple
 from ....observers import Observer
 from ....models.xydata import XYData
 
-import gtk, gobject
+import gi
+gi.require_version('Gtk', '3.0')  # @UndefinedVariable
+from gi.repository import Gtk, GLib, GObject  # @UnresolvedImport
 
 from base_models import BaseObjectListStore
 
@@ -50,7 +52,7 @@ class XYListStore(BaseObjectListStore, Observer):
     _last_lenght = 0
 
     __gsignals__ = {
-        'columns-changed' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, ())  # @UndefinedVariable
+        'columns-changed' : (GObject.SignalFlags.RUN_LAST, None, ())  # @UndefinedVariable
     }
 
     @property
@@ -64,6 +66,9 @@ class XYListStore(BaseObjectListStore, Observer):
     #      Initialisation and other internals
     # ------------------------------------------------------------
     def __init__(self, model, prop):
+        # Continue initialisation:
+        BaseObjectListStore.__init__(self, Point)
+        
         # Check this really is an XYData property:
         self._flush()
         self._model = model
@@ -73,9 +78,7 @@ class XYListStore(BaseObjectListStore, Observer):
             "Can only wrap XYData (or subclasses) instances to a XYListStore," + \
             "but got '%s' instead from property '%s' on model '%s'." % (
                 _data, self._prop_name, self._model)
-
-        # Continue initialisation:
-        BaseObjectListStore.__init__(self, Point)
+        
         Observer.__init__(self, model=self._data)
         self.set_property("leak-references", False)
 
@@ -124,7 +127,7 @@ class XYListStore(BaseObjectListStore, Observer):
     #      Methods & Functions
     # ------------------------------------------------------------
     def on_get_flags(self):
-        return gtk.TREE_MODEL_LIST_ONLY
+        return Gtk.TreeModelFlags.LIST_ONLY
 
     def on_get_iter(self, path): # returns a rowref, they're actually just paths
 
@@ -142,10 +145,10 @@ class XYListStore(BaseObjectListStore, Observer):
     def _schedule_flush(self):
         if not self._flush_scheduled:
             def idle_add():
-                gobject.idle_add(self._flush)
+                GLib.idle_add(self._flush)
                 return False # delete timeout
 
-            gobject.timeout_add(500, idle_add)
+            GLib.timeout_add(500, idle_add)
             self._flush_scheduled = True
 
     def _flush(self):
@@ -219,4 +222,4 @@ class XYListStore(BaseObjectListStore, Observer):
 
     pass # end of class
 
-gobject.type_register(XYListStore)  # @UndefinedVariable
+GObject.type_register(XYListStore)  # @UndefinedVariable

@@ -5,6 +5,10 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
+import gi
+gi.require_version('Gtk', '3.0')  # @UndefinedVariable
+from gi.repository import Gtk
+
 import logging
 logger = logging.getLogger(__name__)
 
@@ -171,7 +175,7 @@ class UnitCellProperty(ComponentPropMixin, RefinementValue, DataModel, Storable)
                     self._temp_prop[0] = obj
                     self.prop = self._temp_prop
                 else:
-                    self._temp_prop = None
+                    self._temp_prop = None        
             self.prop = self._temp_prop
             del self._temp_prop
 
@@ -180,13 +184,12 @@ class UnitCellProperty(ComponentPropMixin, RefinementValue, DataModel, Storable)
     # ------------------------------------------------------------
     def create_prop_store(self, extra_props=[]):
         assert(self.component is not None)
-        from gtk import ListStore
-        store = ListStore(object, str, object)
+        store = Gtk.ListStore(object, str, str)
         # use private properties so we connect to the actual object stores and not the inherited ones
         for atom in self.component._layer_atoms:
-            store.append([atom, "pn", lambda o: o.name])
+            store.append([atom, "pn", atom.name])
         for atom in self.component._interlayer_atoms:
-            store.append([atom, "pn", lambda o: o.name])
+            store.append([atom, "pn", atom.name])
         for prop in extra_props:
             store.append(prop)
         return store

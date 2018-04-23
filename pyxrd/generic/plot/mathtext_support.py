@@ -5,19 +5,23 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-import gtk
-import cairo
+import gi
+gi.require_version('Gtk', '3.0') # @UndefinedVariable
+gi.require_version('PangoCairo', '1.0')  # @UndefinedVariable
+from gi.repository import Gtk, Gdk, PangoCairo as cairo  # @UnresolvedImport
+
 from matplotlib import rcParams
 import matplotlib.mathtext as mathtext
 
-from pyxrd.generic.models.mathtext_support import _handle_customs
-
 pbmt_cache = dict() # maybe use a weak ref dict or a slowly GC-ed one?
-display = gtk.gdk.display_get_default()  # @UndefinedVariable
+display = Gdk.Display.get_default()  # @UndefinedVariable
 screen = display.get_default_screen()
 dpi = screen.get_resolution() or 96
 
 def create_pb_from_mathtext(text, align='center', weight='heavy', color='b', style='normal'):
+    
+    from pyxrd.generic.models.mathtext_support import _handle_customs
+    
     global pbmt_cache
     global dpi
     if not text in pbmt_cache:
@@ -38,7 +42,7 @@ def create_pb_from_mathtext(text, align='center', weight='heavy', color='b', sty
         # Create parser and load png fragments
         parser = mathtext.MathTextParser("Bitmap")
         for part in parts:
-            png_loader = gtk.gdk.PixbufLoader('png')  # @UndefinedVariable
+            png_loader = GdkPixbuf.PixbufLoader('png')  # @UndefinedVariable
             parser.to_png(png_loader, part, dpi=dpi, fontsize=fontsize)
             png_loader.close()
             pb = png_loader.get_pixbuf()
@@ -51,7 +55,7 @@ def create_pb_from_mathtext(text, align='center', weight='heavy', color='b', sty
 
         surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)
         cr = cairo.Context(surface)
-        gdkcr = gtk.gdk.CairoContext(cr)  # @UndefinedVariable
+        gdkcr = Gdk.CairoContext(cr)  # @UndefinedVariable
 
         gdkcr.save()
         gdkcr.set_operator(cairo.OPERATOR_CLEAR)
@@ -73,15 +77,15 @@ def create_pb_from_mathtext(text, align='center', weight='heavy', color='b', sty
             offsety += h
         del pbs
 
-        pbmt_cache[text] = gtk.gdk.pixbuf_new_from_data(  # @UndefinedVariable
+        pbmt_cache[text] = GdkPixbuf.Pixbuf.new_from_data(  # @UndefinedVariable
             surface.get_data(),
-            gtk.gdk.COLORSPACE_RGB, True, 8,  # @UndefinedVariable
+            GdkPixbuf.Colorspace.RGB, True, 8,  # @UndefinedVariable
             width, height,
             surface.get_stride()
         )
     return pbmt_cache[text]
 
 def create_image_from_mathtext(text, align='center', weight='heavy', color='b', style='normal'):
-    image = gtk.Image()
+    image = Gtk.Image()
     image.set_from_pixbuf(create_pb_from_mathtext(text, align=align))
     return image

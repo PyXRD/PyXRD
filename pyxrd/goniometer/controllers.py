@@ -10,7 +10,9 @@ import os, locale
 import logging
 logger = logging.getLogger(__name__)
 
-import gtk
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
 
 from mvc.adapters.gtk_support.treemodels.utils import create_treestore_from_directory
 from mvc.adapters.gtk_support.dialogs.dialog_factory import DialogFactory
@@ -70,7 +72,7 @@ class InlineGoniometerController(BaseController):
         path = settings.DATA_REG.get_directory_path("DEFAULT_GONIOS")
         cmb_model = create_treestore_from_directory(path)
         self.view.import_combo_box.set_model(cmb_model)
-        cell = gtk.CellRendererText()
+        cell = Gtk.CellRendererText()
         self.view.import_combo_box.pack_start(cell, True)
         self.view.import_combo_box.add_attribute(cell, 'text', 0)
         self.view.import_combo_box.add_attribute(cell, 'sensitive', 2)
@@ -153,17 +155,24 @@ class WavelengthDistributionController(DialogController, TreeViewMixin):
     def setup_wavelength_distribution_tree_view(self, store, widget):
         """
             Creates the wavelength distribution TreeView layout and behavior
-        """       
+        """      
         setup_treeview(widget, store,
             on_cursor_changed=self.on_wld_tv_cursor_changed,
-            sel_mode=gtk.SELECTION_MULTIPLE)
+            sel_mode=Gtk.SelectionMode.MULTIPLE)
+        widget.set_model(store)
+        
+        def data_func(col, cell, model, iter, colnr):
+            cell.set_property("text", "%g" % model.get(iter, colnr)[0])
+            
         # X Column:
         widget.append_column(new_text_column(
             u'Wavelength (nm)', text_col=store.c_x, editable=True,
+            data_func = (data_func, (store.c_x,)),
             edited_callback=(self.on_xy_data_cell_edited, (self.model.wavelength_distribution, 0))))
         # Y Column:
         widget.append_column(new_text_column(
             u'Fraction', text_col=store.c_y, editable=True,
+            data_func = (data_func, (store.c_y,)),
             edited_callback=(self.on_xy_data_cell_edited, (self.model.wavelength_distribution, 1))))   
          
     # ------------------------------------------------------------

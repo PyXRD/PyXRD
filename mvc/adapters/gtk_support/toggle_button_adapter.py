@@ -22,18 +22,20 @@
 #  Boston, MA 02110, USA.
 #  -------------------------------------------------------------------------
 
-import gtk
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
 from .basic import GtkAdapter
 
 class ToggleButtonAdapter(GtkAdapter):
     """
-        An adapter for a gtk.ToggleButton widget
+        An adapter for a Gtk.ToggleButton widget
     """
     widget_types = ["toggle", "toggle_button"]
-    _check_widget_type = gtk.ToggleButton
+    _check_widget_type = Gtk.ToggleButton
 
-    _wid_read = GtkAdapter.static_to_class(gtk.ToggleButton.get_active)
-    _wid_write = GtkAdapter.static_to_class(gtk.ToggleButton.set_active)
+    _wid_read = GtkAdapter.static_to_class(Gtk.ToggleButton.get_active)
+    _wid_write = GtkAdapter.static_to_class(Gtk.ToggleButton.set_active)
     _signal = "toggled"
 
 

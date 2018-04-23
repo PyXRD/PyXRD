@@ -276,7 +276,9 @@ def initialize(override_debug=DEBUG):
         # If we are running in GUI mode, setup GUI stuff:
         if GUI_MODE:
             import matplotlib
-            import gtk
+            import gi
+            gi.require_version('Gtk', '3.0')
+            from gi.repository import Gtk, GdkPixbuf
 
             # Setup matplotlib fonts:
             font = {
@@ -292,15 +294,15 @@ def initialize(override_debug=DEBUG):
             matplotlib.rc('mathtext', **mathtext)
             # matplotlib.rc('text', **{'usetex':True})
             # Load our own icons:
-            iconfactory = gtk.IconFactory()
+            iconfactory = Gtk.IconFactory()
             icons_path = DATA_REG.get_directory_path("APPLICATION_ICONS")
             for root, dirnames, filenames in os.walk(icons_path):
                 for filename in filenames:
                     if filename.endswith(".png"):
                         stock_id = filename[:-4] # remove extensions
-                        filename = "%s/%s" % (icons_path, filename)
-                        pixbuf = gtk.gdk.pixbuf_new_from_file(filename) # @UndefinedVariable
-                        iconset = gtk.IconSet(pixbuf)
+                        filename = "%s/%s" % (icons_path, filename)                        
+                        pixbuf = GdkPixbuf.Pixbuf.new_from_file(filename)
+                        iconset = Gtk.IconSet(pixbuf)
                         iconfactory.add(stock_id, iconset)
             iconfactory.add_default()
 

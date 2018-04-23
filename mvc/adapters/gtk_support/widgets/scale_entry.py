@@ -22,18 +22,20 @@
 #  Boston, MA 02110, USA.
 #  -------------------------------------------------------------------------
 
-import gtk, gobject
+import gi
+gi.require_version('Gtk', '3.0')  # @UndefinedVariable
+from gi.repository import Gtk, GObject, GLib  # @UnresolvedImport
 
 from mvc.support.utils import round_sig
 
-class ScaleEntry(gtk.HBox):
+class ScaleEntry(Gtk.HBox):
     """
         The ScaleEntry combines the generic GtkEntry and GtkScale widgets in
         one widget, with synchronized values and one changed signal.
     """
 
     __gsignals__ = {
-        'changed' : (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, []), #@UndefinedVariable
+        'changed' : (GObject.SignalFlags.RUN_LAST, None, []), #@UndefinedVariable
     }
 
     @property
@@ -51,7 +53,7 @@ class ScaleEntry(gtk.HBox):
         return self.adjustment.set_upper(value)
 
     def __init__(self, lower=0, upper=10, enforce_range=False):
-        gtk.HBox.__init__(self, spacing=5)
+        GObject.GObject.__init__(self, spacing=5)
 
         self.enforce_range = enforce_range
 
@@ -61,33 +63,33 @@ class ScaleEntry(gtk.HBox):
         upper = max(upper, lower)
 
         step = max((upper - lower) / 200.0, 0.01)
-        self.adjustment = gtk.Adjustment(
+        self.adjustment = Gtk.Adjustment(
             0.0, lower, upper, step, step, 0.0)
 
         self.adjustment.connect('value-changed', self.on_adj_value_changed)
 
-        self.scale = gtk.HScale(self.adjustment)
+        self.scale = Gtk.Scale.new(Gtk.Orientation.HORIZONTAL, self.adjustment)
         self.scale.set_draw_value(False)
         self.scale.set_size_request(50, -1)
-        self.scale.set_update_policy(gtk.UPDATE_DELAYED)
 
-        self.entry = gtk.SpinButton(self.adjustment)
+        self.entry = Gtk.SpinButton()
+        self.entry.set_adjustment(self.adjustment)
         self.entry.set_digits(5)
         self.entry.set_numeric(True)
         self.entry.set_size_request(150, -1)
 
         self.set_value(self.scale.get_value())
 
-        gtk.HBox.pack_start(self, self.scale, expand=False)
-        gtk.HBox.pack_start(self, self.entry, expand=False)
+        Gtk.HBox.pack_start(self, self.scale, False, True, 0)
+        Gtk.HBox.pack_start(self, self.entry, False, True, 0)
         self.set_focus_chain((self.entry,))
 
 
     _idle_changed_id = None
     def _idle_emit_changed(self):
         if self._idle_changed_id is not None:
-            gobject.source_remove(self._idle_changed_id)
-        self._idle_changed_id = gobject.idle_add(self._emit_changed)
+            GLib.source_remove(self._idle_changed_id)
+        self._idle_changed_id = GLib.idle_add(self._emit_changed)
 
     def _emit_changed(self):
         self.emit('changed')
@@ -146,4 +148,4 @@ class ScaleEntry(gtk.HBox):
 
     pass # end of class
 
-gobject.type_register(ScaleEntry) #@UndefinedVariable
+GObject.type_register(ScaleEntry) #@UndefinedVariable

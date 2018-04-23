@@ -7,11 +7,14 @@
 
 from pkg_resources import resource_filename  # @UnresolvedImport
 
-import gtk
+import gi
+gi.require_version('Gtk', '3.0')  # @UndefinedVariable
+from gi.repository import Gtk  # @UnresolvedImport
 
 import matplotlib
 from matplotlib.figure import Figure
-from matplotlib.backends.backend_gtkagg import FigureCanvasGTKAgg as FigureCanvasGTK, NavigationToolbar2GTKAgg as NavigationToolbar
+from matplotlib.backends.backend_gtk3cairo import FigureCanvasGTK3Cairo as FigureCanvasGTK
+from matplotlib.backends.backend_gtk3 import NavigationToolbar2GTK3 as NavigationToolbar
 
 from pyxrd.generic.views import BaseView
 
@@ -42,16 +45,16 @@ class RefinerView(BaseView):
 
     def setup_matplotlib_widget(self):
         # TODO Create a mixin for this kind of thing!!
-        style = gtk.Style()
-        self.figure = Figure(dpi=72, edgecolor=str(style.bg[2]), facecolor=str(style.bg[2]))
+        #style = Gtk.Style()
+        self.figure = Figure(dpi=72) #, edgecolor=str(style.bg[2]), facecolor=str(style.bg[2]))
 
         self.figure.subplots_adjust(bottom=0.20)
 
         self.canvas = FigureCanvasGTK(self.figure)
 
-        box = gtk.VBox()
-        box.pack_start(NavigationToolbar(self.canvas, self.get_top_widget()), expand=False)
-        box.pack_start(self.canvas)
+        box = Gtk.VBox()
+        box.pack_start(NavigationToolbar(self.canvas, self.get_top_widget()), False, True, 0)
+        box.pack_start(self.canvas, True, True, 0)
         self.graph_parent.add(box)
         self.graph_parent.show_all()
 

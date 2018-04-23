@@ -26,7 +26,9 @@ from traceback import print_exc
 import logging
 logger = logging.getLogger(__name__)
 
-import gtk, gobject
+import gi
+gi.require_version('Gtk', '3.0')  # @UndefinedVariable
+from gi.repository import Gtk, GObject  # @UnresolvedImport
 
 from .base_models import BaseObjectListStore
 from ....observers import TreeObserver
@@ -95,7 +97,7 @@ class ObjectTreeStore(BaseObjectListStore):
     #      Methods & Functions
     # ------------------------------------------------------------
     def on_get_flags(self):
-        return gtk.TREE_MODEL_ITERS_PERSIST
+        return Gtk.TreeModelFlags.ITERS_PERSIST
 
     def on_get_iter(self, path):
         try:
@@ -108,14 +110,14 @@ class ObjectTreeStore(BaseObjectListStore):
 
     def on_get_path(self, node):
         try:
-            return ":".join(map(str, node.get_indeces()))
+            return ":".join(map(str, node.get_indices()))
         except ValueError as err:
             err.args = "ValueError in on_get_path of %s caused by %s" % (self, node)
             print_exc()
             return None
 
     def set_value(self, itr, column, value):
-        user_data = self.get_user_data(itr)
+        user_data = self.get_tree_node_object(itr)
         setattr(user_data, self._columns[column][0], value)
         self.row_changed(self.get_path(itr), itr)
 
@@ -155,19 +157,17 @@ class ObjectTreeStore(BaseObjectListStore):
             yield node.object
 
     def get_tree_node(self, itr):
-        path = self.get_path(itr)
-        return self.get_tree_node_from_path(path)
+        return BaseObjectListStore.get_user_data(self, itr)
 
     def get_tree_node_from_path(self, path):
         return BaseObjectListStore.get_user_data_from_path(self, path)
 
-    def get_user_data(self, itr):
-        path = self.get_path(itr)
-        return self.get_tree_node_from_path(path).object
+    def get_tree_node_object(self, itr):
+        return self.get_tree_node(itr).object
 
-    def get_user_data_from_path(self, path):
+    def get_tree_node_object_from_path(self, path):
         return self.get_tree_node_from_path(path).object
 
     pass # end of class
 
-gobject.type_register(ObjectTreeStore) # @UndefinedVariable
+GObject.type_register(ObjectTreeStore) # @UndefinedVariable

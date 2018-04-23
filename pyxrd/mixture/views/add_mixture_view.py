@@ -7,6 +7,10 @@
 
 from pkg_resources import resource_filename # @UnresolvedImport
 
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
+
 from pyxrd.generic.views import DialogView
 
 class AddMixtureView(DialogView):
@@ -16,16 +20,30 @@ class AddMixtureView(DialogView):
 
     active_type = "mixture" # | insitu
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, type_dict, *args, **kwargs):
         DialogView.__init__(self, *args, **kwargs)
+        self.type_dict = type_dict
+        self.active_type=type_dict.keys()[0]
+        self.create_radios()
+
+    def create_radios(self):
+        box = self["add_mixture_box"]
+        box.clear()
+        group = None
+        self.radios = []
+        for mixture_type, label in self.type_dict.iteritems():
+            radio = Gtk.RadioButton.new(group, label)
+            radio.mixture_type = mixture_type
+            group = radio if group is None else group 
+            self.radios.append(radio)
+            radio.connect('toggled', self.on_rdb_toggled)
+            box.pack_start(radio, False, False, 2)
 
     def get_mixture_type(self):
         return self.active_type
 
-    def update_sensitivities(self):
-        if self["rdb_mixture"].get_active():
-            self.active_type = "mixture"
-        elif self["rdb_insitu"].get_active():
-            self.active_type = "insitu"
-
+    def on_rdb_toggled(self):
+        for radio in self.radios:
+            if radio.get_active():
+                self.active_type = radio.mixture_type
     pass # end of class

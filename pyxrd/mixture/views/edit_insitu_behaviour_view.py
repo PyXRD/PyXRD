@@ -7,7 +7,9 @@
 
 from pkg_resources import resource_filename # @UnresolvedImport
 
-import gtk
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
 
 from pyxrd.generic.views import BaseView
 
@@ -25,7 +27,7 @@ class EditInSituBehaviourView(BaseView):
         self.props = [ prop for prop in meta.all_properties if getattr(prop, "visible", False) ]
 
         def create_label(prop):
-            new_lbl = gtk.Label(prop.text)
+            new_lbl = Gtk.Label(label=prop.text)
             new_lbl.set_use_markup(True)
             return new_lbl
 

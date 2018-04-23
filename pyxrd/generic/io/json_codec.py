@@ -5,6 +5,9 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
+import logging
+logger = logging.getLogger(__name__)
+
 import json
 import numpy as np
 
@@ -110,5 +113,5 @@ class PyXRDDecoder(json.JSONDecoder):
                 if self.parent is not None and not "parent" in kwargs:
                     kwargs["parent"] = self.parent
                 return objtype.from_json(**dict(obj["properties"], **kwargs))
-        raise Warning, "__pyxrd_decode__ will return None for %s!" % str(obj)[:30] + "..." + str(obj)[:-30]
+        logger.warn("__pyxrd_decode__ will return None for %s!" % str(obj)[:30] + "..." + str(obj)[:-30])
         return None

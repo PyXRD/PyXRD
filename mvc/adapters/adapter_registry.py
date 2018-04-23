@@ -56,8 +56,8 @@ class ToolkitRegistry(dict):
         else:
             self.selected_toolkit = toolkit_name
             tkar = self.get_selected_adapter_registry()
-            IdleCallHandler.set_idle_handler(self, tkar.idle_handler)
-
+            IdleCallHandler.set_idle_handler(self, tkar.get_idle_handler())
+            
     def get_selected_adapter_registry(self):
         if self.selected_toolkit is None:
             raise ValueError, "No toolkit has been selected!"
@@ -72,7 +72,6 @@ class AdapterRegistry(dict):
     """
 
     toolkit_registry = ToolkitRegistry()
-    idle_handler = None
 
     @classmethod
     def get_selected_adapter_registry(cls):
@@ -81,6 +80,12 @@ class AdapterRegistry(dict):
     @classmethod
     def get_adapter_for_widget_type(cls, widget_type):
         return cls.toolkit_registry.get_selected_adapter_registry()[widget_type]
+
+    def set_idle_handler(self, idle_handler):
+        setattr(self ,"_idle_handler", idle_handler)
+        
+    def get_idle_handler(self):
+        return getattr(self ,"_idle_handler", None)
 
     @classmethod
     def register_decorator(cls):

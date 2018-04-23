@@ -9,7 +9,9 @@ from contextlib import contextmanager
 import logging
 logger = logging.getLogger(__name__)
 
-import gtk
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
 
 from mvc.adapters.gtk_support.dialogs.dialog_factory import DialogFactory
 from mvc import Controller
@@ -129,9 +131,12 @@ class MarkersController(ObjectListStoreController):
                 expand=False,
                 activatable=True,
                 active_col=col_index)
-        col.set_data("colnr", col_index)
+        setattr(col, "colnr", col_index)
         treeview.append_column(col)
         return True
+
+    def select_markers(self, markers):
+        self.set_selected_objects()
 
     @contextmanager
     def _multi_operation_context(self):
@@ -342,7 +347,7 @@ class MatchMineralController(DialogController):
     # ------------------------------------------------------------
     def reload_matches(self):
         if not hasattr(self, 'tv_matches_model'):
-            self.tv_matches_model = gtk.ListStore(str, str, object, object, float)
+            self.tv_matches_model = Gtk.ListStore(str, str, object, object, float)
         else:
             self.tv_matches_model.clear()
         for name, abbreviation, peaks, matches, score in self.model.matches:
@@ -353,7 +358,7 @@ class MatchMineralController(DialogController):
 
     def reload_minerals(self):
         if not hasattr(self, 'tv_matches_model'):
-            self.tv_minerals_model = gtk.ListStore(str, str, object)
+            self.tv_minerals_model = Gtk.ListStore(str, str, object)
         else:
             self.tv_minerals_model.clear()
         for name, abbreviation, peaks in self.model.minerals:

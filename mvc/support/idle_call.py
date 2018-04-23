@@ -23,6 +23,8 @@
 #  Boston, MA 02110, USA.
 #  -------------------------------------------------------------------------
 
+__handler = None
+
 class IdleCallHandler(object):
     """
         This is a simple work-around to make mvc more GUI toolkit agnostic.
@@ -30,19 +32,29 @@ class IdleCallHandler(object):
         passing a method that will idly handle these calls. Mainly used for
         events and notifications. 
     """
-    
-    __handler = None
-    
+        
     @classmethod
     def call_idle(cls, method, *args):
-        if cls.__handler is None:
+        global __handler
+        if __handler is None:
             method(*args)
+            return None
         else:
-            cls.__handler(method, *args)
+            return __handler(method, *args)
         
     @classmethod
     def set_idle_handler(cls, self, handler):
-        cls.__handler = handler
+        global __handler
+        __handler = handler
     
     pass #end of class
+
+def run_when_idle(func):
+    """
+        Decorator that can be used to run the decorated method idly on the GUI 
+        main event loop.
+    """
+    def callback(*args):
+        IdleCallHandler.call_idle(func, *args)
+    return callback
     

@@ -25,12 +25,14 @@
 import logging
 logger = logging.getLogger(__name__)
 
+import gi
+gi.require_version('Gtk', '3.0')  # @UndefinedVariable
+from gi.repository import GObject  # @UnresolvedImport
+
 from ....observers import ListObserver, ListItemObserver
 
 from base_models import BaseObjectListStore
 from weakref import WeakKeyDictionary
-
-import gobject
 
 class ObjectListStore(BaseObjectListStore):
     """
@@ -178,4 +180,4 @@ class ObjectListStore(BaseObjectListStore):
 
     pass # end of class
 
-gobject.type_register(ObjectListStore) # @UndefinedVariable
+GObject.type_register(ObjectListStore) # @UndefinedVariable

@@ -28,12 +28,10 @@
 
 from .support.exceptions import ViewError
 
-import gtk
-
-try:
-    from gtk import Builder
-    __builder_is_available__ = True
-except ImportError: __builder_is_available__ = False
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
+Builder = Gtk.Builder
 
 import types
 # ----------------------------------------------------------------------
@@ -76,15 +74,12 @@ class View (object):
         if builder: _builder = builder
         else: _builder = self.builder
         if _builder is not None:
-            if not __builder_is_available__:
-                raise ViewError("gtk.Builder was used, but is not available")
-
             # if the user passed a Builder, use it as it is, otherwise
             # build one
             if isinstance(_builder, Builder):
                 self._builder = _builder
             else:
-                self._builder = gtk.Builder()
+                self._builder = Gtk.Builder()
                 self._builder.add_from_file(_builder)
                 pass
             pass
@@ -123,7 +118,7 @@ class View (object):
             # then try with glade and builder, starting from memoized
             if self.autoWidgets.has_key(key): wid = self.autoWidgets[key]
             else:
-                # try with gtk.builder
+                # try with Gtk.builder
                 if wid is None and self._builder is not None:
                     wid = self._builder.get_object(key)
                     if wid is not None:
@@ -162,14 +157,14 @@ class View (object):
 
     def hide(self):
         """
-        Call `hide_all()` on all known top widgets.
+        Call `hide()` on all known top widgets.
         """
         top = self.get_top_widget()
         if type(top) in (types.ListType, types.TupleType):
             for t in top:
-                if t is not None: t.hide_all()
+                if t is not None: t.hide()
                 pass
-        elif top is not None: top.hide_all()
+        elif top is not None: top.hide()
         return
 
     def get_top_widget(self):
@@ -250,7 +245,7 @@ class View (object):
             for wid in self._builder.get_objects():
                 # General workaround for issue
                 # https://bugzilla.gnome.org/show_bug.cgi?id=607492
-                try: name = gtk.Buildable.get_name(wid)
+                try: name = Gtk.Buildable.get_name(wid)
                 except TypeError: continue
 
                 if name in self.autoWidgets and self.autoWidgets[name] != wid:

@@ -7,7 +7,9 @@
 
 from pkg_resources import resource_filename # @UnresolvedImport
 
-import gtk
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
 
 from mvc.adapters.gtk_support.widgets import ScaleEntry
 from pyxrd.generic.views import BaseView, HasChildView
@@ -112,13 +114,13 @@ class IndependentsView(HasChildView, ProbabilityViewMixin, BaseView):
                             meta.store_id
                         )
 
-                    new_check = gtk.CheckButton(label="")
+                    new_check = Gtk.CheckButton(label="")
                     new_check.set_tooltip_text(inh_prop.title)
                     new_check.set_name(self.widget_format % inh_prop.label)
                     new_check.set_sensitive(False)
                     self[self.widget_format % inh_prop.label] = new_check
                     check_widgets[i] = new_check
-                    table.attach(new_check, 1 + j, 2 + j, i / num_columns, (i / num_columns) + 1, xpadding=2, ypadding=2, xoptions=gtk.FILL)
+                    table.attach(new_check, 1 + j, 2 + j, i / num_columns, (i / num_columns) + 1, xpadding=2, ypadding=2, xoptions=Gtk.AttachOptions.FILL)
 
 
                 del new_inp, new_lbl
@@ -127,7 +129,7 @@ class IndependentsView(HasChildView, ProbabilityViewMixin, BaseView):
 
         num_rows = (N + 1) / 2
         if not num_rows == 0:
-            self.i_table = gtk.Table((N + 1) / 2, 4, False)
+            self.i_table = Gtk.Table((N + 1) / 2, 4, False)
             self.i_inputs, self.i_checks = create_inputs(self.i_table)
         else:
             self.i_inputs, self.i_checks = [], []
@@ -192,9 +194,9 @@ class MatrixView(HasChildView, ProbabilityViewMixin, BaseView):
             labels = [[None] * rank for _ in range(rank)]
             for x in range(rank):
                 for y in range(rank):
-                    new_lbl = gtk.Label("")
+                    new_lbl = Gtk.Label(label="")
                     new_lbl.set_tooltip_markup(tooltip(x, y, current_lR, fmt))
-                    new_lbl.set_property('justify', gtk.JUSTIFY_CENTER)
+                    new_lbl.set_justify(Gtk.Justification.CENTER)
                     table.attach(new_lbl, y, y + 1, x, x + 1, xpadding=5, ypadding=5)
                     labels[x][y] = new_lbl
                     del new_lbl
@@ -239,7 +241,7 @@ class MatrixView(HasChildView, ProbabilityViewMixin, BaseView):
         self.p_valids = []
 
         def setup_everything(tables, titles, valids, labels, title, rank, current_lR, lbl_fmt, tooltips):
-            w_table = gtk.Table(rank, rank, True)
+            w_table = Gtk.Table(rank, rank, True)
             tables.append(w_table)
             titles.append(title)
             valids.append("")

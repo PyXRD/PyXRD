@@ -9,7 +9,9 @@
 
 import time
 import mock
-import gtk
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
 
 def create_object_attribute_test(object_name, attribute, value):
     """
@@ -23,8 +25,8 @@ def create_object_attribute_test(object_name, attribute, value):
 
 # Stolen from Kiwi
 def refresh_gui(delay=0):
-    while gtk.events_pending():
-        gtk.main_iteration_do(block=False)
+    while Gtk.events_pending():
+        Gtk.main_iteration_do(block=False)
     time.sleep(delay)
     
 def _mocked_parse_args():

@@ -8,6 +8,10 @@
 import types
 from functools import partial
 
+import gi
+gi.require_version('Gtk', '3.0')  # @UndefinedVariable
+from gi.repository import Gtk  # @UnresolvedImport
+
 from mvc.models.properties import (
     LabeledProperty, StringProperty, BoolProperty, FloatProperty,
     SignalMixin, ReadOnlyMixin, ListProperty
@@ -184,16 +188,17 @@ class AtomRelation(ComponentPropMixin, RefinementValue, DataModel, Storable):
     # ------------------------------------------------------------
     def create_prop_store(self, prop=None):
         if self.component is not None:
-            import gtk
-            store = gtk.ListStore(object, str, object)
+            store = Gtk.ListStore(object, str, str)
             for atom in self.component._layer_atoms:
-                store.append([atom, "pn", lambda o: o.name])
+                store.append([atom, "pn", atom.name])
             for atom in self.component._interlayer_atoms:
-                store.append([atom, "pn", lambda o: o.name])
+                store.append([atom, "pn", atom.name])
             for relation in self.component._atom_relations:
                 tp = relation.Meta.store_id
                 if tp in self.Meta.allowed_relations:
                     for prop, name in self.Meta.allowed_relations[tp]:
+                        if callable(name):
+                            name = name(relation)
                         store.append([relation, prop, name])
             return store
 

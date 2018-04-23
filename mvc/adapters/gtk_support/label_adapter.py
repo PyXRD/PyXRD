@@ -22,18 +22,21 @@
 #  Boston, MA 02110, USA.
 #  -------------------------------------------------------------------------
 
-import gtk
+import gi
+gi.require_version('Gtk', '3.0')
+from gi.repository import Gtk
+
 from .basic import GtkAdapter
 
 class LabelAdapter(GtkAdapter):
     """
-        An adapter for a gtk.Label widget
+        An adapter for a Gtk.Label widget
     """
     widget_types = ["label"]
-    _check_widget_type = gtk.Label
+    _check_widget_type = Gtk.Label
 
-    _wid_read = lambda c, w: gtk.Label.get_text(w)
-    _wid_write = lambda c, w, v: gtk.Label.set_text(w, str(v))
+    _wid_read = lambda c, w: Gtk.Label.get_text(w)
+    _wid_write = lambda c, w, v: Gtk.Label.set_text(w, str(v))
 
     _signal = None
 

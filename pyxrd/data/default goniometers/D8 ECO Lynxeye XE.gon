@@ -13,9 +13,9 @@
         "radius": 25.0, 
         "divergence_mode": "AUTOMATIC", 
         "divergence": 17.0, 
-        "has_absorption_correction": true, 
+        "has_absorption_correction": false, 
         "sample_length": 2.5, 
-        "sample_surf_density": 5.0, 
+        "sample_surf_density": 20.0, 
         "absorption": 45.0, 
         "mcr_2theta": 0
     }

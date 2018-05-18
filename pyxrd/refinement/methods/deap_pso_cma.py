@@ -52,8 +52,11 @@ class SwarmStrategy(Cancellable):
             self.strategies[i].update(population)
             # Keep track of the global best:
             best = population[0]
-            if self.global_best == None or self.global_best.fitness < best.fitness:
-                self.global_best = copy.deepcopy(best)
+            try:
+                if self.global_best is None or np.all(self.global_best.fitness < best.fitness):
+                    self.global_best = copy.deepcopy(best)
+            except ValueError:
+                logger.warn("Got a value error comparing '%s' and '%s'" % (self.global_best.fitness, best.fitness))
 
         if communicate:
             for i, population in enumerate(swarms):

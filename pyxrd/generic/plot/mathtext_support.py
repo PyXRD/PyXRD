@@ -7,8 +7,14 @@
 
 import gi
 gi.require_version('Gtk', '3.0') # @UndefinedVariable
-gi.require_version('PangoCairo', '1.0')  # @UndefinedVariable
-from gi.repository import Gtk, Gdk, PangoCairo as cairo  # @UnresolvedImport
+from gi.repository import Gtk, Gdk, GdkPixbuf  # @UnresolvedImport
+
+try:
+    gi.require_foreign("cairo")
+except ImportError:
+    print("No pycairo integration :(")
+
+import cairo
 
 from matplotlib import rcParams
 import matplotlib.mathtext as mathtext
@@ -42,7 +48,7 @@ def create_pb_from_mathtext(text, align='center', weight='heavy', color='b', sty
         # Create parser and load png fragments
         parser = mathtext.MathTextParser("Bitmap")
         for part in parts:
-            png_loader = GdkPixbuf.PixbufLoader('png')  # @UndefinedVariable
+            png_loader = GdkPixbuf.PixbufLoader.new_with_type('png')  # @UndefinedVariable
             parser.to_png(png_loader, part, dpi=dpi, fontsize=fontsize)
             png_loader.close()
             pb = png_loader.get_pixbuf()
@@ -55,13 +61,13 @@ def create_pb_from_mathtext(text, align='center', weight='heavy', color='b', sty
 
         surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, width, height)
         cr = cairo.Context(surface)
-        gdkcr = Gdk.CairoContext(cr)  # @UndefinedVariable
 
-        gdkcr.save()
-        gdkcr.set_operator(cairo.OPERATOR_CLEAR)
-        gdkcr.paint()
-        gdkcr.restore()
+        cr.save()
+        cr.set_operator(cairo.OPERATOR_CLEAR)
+        cr.paint()
+        cr.restore()
 
+        cr.save()
         offsetx = 0
         offsety = 0
         for pb, w, h in pbs:
@@ -71,18 +77,15 @@ def create_pb_from_mathtext(text, align='center', weight='heavy', color='b', sty
                 offsetx = 0
             if align == 'right':
                 offsetx = int(width - w)
-            gdkcr.set_source_pixbuf(pb, offsetx, offsety)
-            gdkcr.rectangle(offsetx, offsety, w, h)
-            gdkcr.paint()
+            Gdk.cairo_set_source_pixbuf(cr, pb, offsetx, offsety)
+            cr.rectangle(offsetx, offsety, w, h)
+            cr.paint()
             offsety += h
         del pbs
+        cr.restore()
 
-        pbmt_cache[text] = GdkPixbuf.Pixbuf.new_from_data(  # @UndefinedVariable
-            surface.get_data(),
-            GdkPixbuf.Colorspace.RGB, True, 8,  # @UndefinedVariable
-            width, height,
-            surface.get_stride()
-        )
+        pbmt_cache[text] = Gdk.pixbuf_get_from_surface(surface, 0, 0, width, height)
+        
     return pbmt_cache[text]
 
 def create_image_from_mathtext(text, align='center', weight='heavy', color='b', style='normal'):

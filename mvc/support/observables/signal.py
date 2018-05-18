@@ -24,6 +24,8 @@
 #  Boston, MA 02110, USA.
 #  -------------------------------------------------------------------------
 
+import threading
+
 from .observable import Observable
 
 class Signal(Observable):
@@ -53,6 +55,7 @@ class Signal(Observable):
              # actually emit the signal, even after leaving the 'with' block
     """
     # PROPERTIES:
+    clock = threading.RLock()
 
     # INIT:
     def __init__(self, *args, **kwargs):
@@ -63,17 +66,19 @@ class Signal(Observable):
 
     # WITH FUNCTIONALITY:
     def __enter__(self):
-        self._counter += 1;
+        with self.clock:
+            self._counter += 1;
 
     def __exit__(self, *args):
-        self._counter -= 1;
-        if self._counter < 0:
-            raise RuntimeError, "Negative counter in CounterLock object! Did you call __exit__ too many times?"
-        if len(self._ignore_levels) > 0 and self._counter == self._ignore_levels[-1]:
-            self._ignore_levels.pop()
-        elif self._counter == 0 and self._emissions_pending:
-            # Fire the signal when we leave the with block
-            self.emit()
+        with self.clock:
+            self._counter -= 1;
+            if self._counter < 0:
+                raise RuntimeError, "Negative counter in CounterLock object! Did you call __exit__ too many times?"
+            if len(self._ignore_levels) > 0 and self._counter == self._ignore_levels[-1]:
+                self._ignore_levels.pop()
+            elif self._counter == 0 and self._emissions_pending:
+                # Fire the signal when we leave the with block
+                self.emit()
 
     def hold(self):
         return self

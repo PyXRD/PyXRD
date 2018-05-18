@@ -155,7 +155,7 @@ class RefinementController(DialogController):
             method = self.model.get_refinement_method()
             cell.set_property("sensitive", True)
             cell.set_property("editable", True)
-            cell.set_property("markup", getattr(method, option_name))
+            cell.set_property("markup", "%g" % getattr(method, option_name))
             return
         
         def on_value_edited(rend, path, new_text, col):

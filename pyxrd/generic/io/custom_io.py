@@ -195,6 +195,8 @@ class Storable(object):
             for prop in self.Meta.all_properties:
                 if prop.persistent:
                     add_prop(prop.label, not_none(prop.store_private, False))
+                    if getattr(prop, 'refinable', False):
+                        add_prop(prop.get_refinement_info_name(), False)
         elif hasattr(self, "__storables__"): # Fallback:
             for val in self.__storables__:
                 add_prop(val, False)

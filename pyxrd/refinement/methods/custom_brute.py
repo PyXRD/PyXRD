@@ -42,11 +42,11 @@ class RefineBruteForceRun(RefineMethod):
                     yield solution
             else:
                 # Generate a grid for each possible combination of parameters:
-                for par1, par2 in combinations(range(num_params), 2):
+                for par1, par2 in combinations(list(range(num_params)), 2):
                     # produce the grid indices for those parameters
                     # keep the others half-way their range:
                     indeces = np.ones(shape=(num_params,), dtype=float) * 0.5
-                    for par_indeces in product(range(num_samples), repeat=2):
+                    for par_indeces in product(list(range(num_samples)), repeat=2):
                         indeces[par1] = par_indeces[0] / float(num_samples - 1)
                         indeces[par2] = par_indeces[1] / float(num_samples - 1)
                         # Make the solution:

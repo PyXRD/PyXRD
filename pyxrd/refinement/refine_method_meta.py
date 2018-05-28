@@ -22,7 +22,7 @@ class RefineMethodMeta(type):
 
     def __new__(meta, name, bases, class_dict):  # @NoSelf
         options = []
-        for name, value in class_dict.iteritems():
+        for name, value in class_dict.items():
             if isinstance(value, RefineMethodOption):
                 options.append(name)
                 setattr(value, 'label', name)

@@ -38,7 +38,7 @@ class EditLayerController(InlineObjectListStoreController):
     #      Initialization and other internals
     # ------------------------------------------------------------
     def _setup_treeview(self, tv, model):
-        setup_treeview(tv, model, sel_mode=Gtk.SelectionMode.MULTIPLE, reset=True)
+        setup_treeview(tv, model, sel_mode='MULTIPLE', reset=True)
         tv.set_model(model)
 
         # Add Atom name, default z, calculated z and #:

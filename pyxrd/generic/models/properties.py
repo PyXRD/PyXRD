@@ -7,7 +7,7 @@
 
 from mvc.models.properties.observe_mixin import ObserveMixin
 
-from ..utils import rec_getattr
+from mvc.support.utils import rec_getattr
 
 class ObserveChildMixin(ObserveMixin):
     """
@@ -75,10 +75,10 @@ class IndexProperty(object):
             return BoundIndexProperty(self, instance)
 
     def __set__(self, instance, value):
-        raise AttributeError, "can't set attribute"
+        raise AttributeError("can't set attribute")
 
     def __delete__(self, instance):
-        raise AttributeError, "can't delete attribute"
+        raise AttributeError("can't delete attribute")
 
     def getter(self, fget):
         return IndexProperty(fget, self._set, self._del, self.__doc__)
@@ -100,19 +100,19 @@ class BoundIndexProperty(object):
     def __getitem__(self, key):
         fget = self.__item_property._get
         if fget is None:
-            raise AttributeError, "unreadable attribute item"
+            raise AttributeError("unreadable attribute item")
         return fget(self.__instance, key)
 
     def __setitem__(self, key, value):
         fset = self.__item_property._set
         if fset is None:
-            raise AttributeError, "can't set attribute item"
+            raise AttributeError("can't set attribute item")
         fset(self.__instance, key, value)
 
     def __delitem__(self, key):
         fdel = self.__item_property._del
         if fdel is None:
-            raise AttributeError, "can't delete attribute item"
+            raise AttributeError("can't delete attribute item")
         fdel(self.__instance, key)
 
     pass #end of class

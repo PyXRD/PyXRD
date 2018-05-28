@@ -5,10 +5,7 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-try:
-    from cStringIO import StringIO #@UnusedImport
-except:
-    from StringIO import StringIO #@Reimport
+from io import StringIO
 
 from scipy.optimize import fmin_l_bfgs_b
 

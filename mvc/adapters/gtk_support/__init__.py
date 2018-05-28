@@ -22,14 +22,10 @@
 #  Boston, MA 02110, USA.
 #  -------------------------------------------------------------------------
 
-import gi
-gi.require_version('Gtk', '3.0')  # @UndefinedVariable
-from gi.repository import GLib  # @UnresolvedImport
+toolkit = "gtk"
 
-def call_idle(func, *args):
-    GLib.idle_add(func, *args)
-
-def load(tk_reg):
+def load(tkreg):
+    # Load adapters:
     from .adjustment_adapter import AdjustmentAdapter
     from .arrow_adapter import ArrowAdapter
     from .check_menu_item_adapter import CheckMenuItemAdapter
@@ -47,4 +43,16 @@ def load(tk_reg):
     from .toggle_button_adapter import ToggleButtonAdapter
     from .tree_view_adapters import XYListViewAdapter, ObjectListViewAdapter
     
-    tk_reg["gtk"].set_idle_handler(call_idle)
+    # Load main loop functions
+    from .toolkit_functions import (
+        add_idle_call, remove_source, 
+        add_timeout_call, 
+        start_event_loop, stop_event_loop
+    )
+    
+    # Register them
+    tkreg.set_toolkit_functions(
+        add_idle_call, remove_source, 
+        add_timeout_call, remove_source, 
+        start_event_loop, stop_event_loop
+    )

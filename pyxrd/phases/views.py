@@ -14,7 +14,8 @@ from gi.repository import Gtk  # @UnresolvedImport
 from matplotlib.figure import Figure
 from matplotlib.backends.backend_gtk3cairo import FigureCanvasGTK3Cairo as FigureCanvasGTK
 
-from pyxrd.generic.views import BaseView, HasChildView, DialogView
+from pyxrd.generic.views import BaseView, HasChildView, DialogView,\
+    ObjectListStoreView
 from mvc.adapters.gtk_support.widgets import ScaleEntry
 
 class EditPhaseView(HasChildView, BaseView):
@@ -175,7 +176,7 @@ class EditCSDSDistributionView(BaseView):
 
     def update_figure(self, distr):
         self.plot.cla()
-        self.plot.hist(range(len(distr)), len(distr), weights=distr, normed=1, ec='b', histtype='stepfilled')
+        self.plot.hist(list(range(len(distr))), len(distr), weights=distr, normed=1, ec='b', histtype='stepfilled')
         self.plot.set_ylabel('')
         self.plot.set_xlabel('CSDS', size=14, weight="heavy")
         self.plot.relim()

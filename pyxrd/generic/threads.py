@@ -35,7 +35,7 @@ class CancellableThread(Thread):
                 self.on_complete(data)
         except KeyboardInterrupt:
             self.cancel()
-        except any as err:
+        except:
             logger.exception("Unhandled exception in CancellableThread run()")
 
     def stop(self):

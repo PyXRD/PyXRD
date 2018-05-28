@@ -10,7 +10,7 @@ import numpy as np
 from scipy.special import erf
 from math import sqrt
 
-from pyxrd.generic.custom_math import sqrt2pi, sqrt8
+from .math_tools import sqrt2pi, sqrt8
 
 def get_S(soller1, soller2):
     _S = sqrt((soller1 * 0.5) ** 2 + (soller2 * 0.5) ** 2)

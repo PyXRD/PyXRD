@@ -1,6 +1,6 @@
 from pyxrd.refinement.refine_method_meta import RefineMethodMeta
 
-from methods import *  # @UnusedWildImport
+from .methods import *  # @UnusedWildImport
 
 class RefineMethodManager(object):
     
@@ -12,23 +12,23 @@ class RefineMethodManager(object):
         """
         # 1. Create a list of refinement instances:
         refine_methods = {}
-        for index, method in cls.get_all_methods().iteritems():
+        for index, method in cls.get_all_methods().items():
             refine_methods[index] = method()
 
         # 2. Create dict of default options
         default_options = {}
-        for method in refine_methods.values():
+        for method in list(refine_methods.values()):
             default_options[method.index] = {
                 name: getattr(type(method), name).default for name in method.options
             }
 
         # 3. Apply the refine options to the methods
         if not refine_options == None:
-            for index, options in zip(refine_options.keys(), refine_options.values()):
+            for index, options in zip(list(refine_options.keys()), list(refine_options.values())):
                 index = int(index)
                 if index in refine_methods:
                     method = refine_methods[index]
-                    for arg, value in zip(options.keys(), options.values()):
+                    for arg, value in zip(list(options.keys()), list(options.values())):
                         if hasattr(method, arg):
                             setattr(method, arg, value)
 

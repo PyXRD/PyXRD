@@ -1,3 +1,5 @@
+#!/usr/bin/env python3
+
 import os
 from ez_setup import use_setuptools
 use_setuptools()
@@ -10,19 +12,17 @@ def get_version():
 def get_install_requires():
     return [
         'setuptools',
-        'numpy>=1.7',
-        'scipy>=0.14',
-        'matplotlib>=1.2.1',
+        'numpy>=1.8',
+        'scipy>=1.1.0',
+        'matplotlib>=2.2.2',
         'Pyro4>=4.41',
         'deap>=1.0.1',
+        'cairocffi',
     ]
 
 def read(fname):
-    # Utility function to read the README file.
-    # Used for the long_description.  It's nice, because now 1) we have a top level
-    # README file and 2) it's easier to type in the README file than to put a raw
-    # string in below ...
-    return open(os.path.join(os.path.dirname(__file__), fname)).read()
+    with open(os.path.join(os.path.dirname(__file__), fname)) as f:
+        return f.read()
 
 setup(
     name="PyXRD",
@@ -35,7 +35,7 @@ setup(
     url="http://github.org/mathijs-dumon/PyXRD",
 
     license="BSD",
-    setup_requires=[ "setuptools_git >= 0.3", ],
+    setup_requires=[ "setuptools_git >= 1.2", ],
     scripts=['win32_pyxrd_post_install.py'],
     packages=find_packages(exclude=["test.*", "test", "tests_mvc", "tests_mvc.*"]),
     include_package_data=True,
@@ -48,10 +48,10 @@ setup(
     zip_safe=False,
 
     classifiers=[
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 4 - Beta",
         "Operating System :: Microsoft :: Windows",
         "Operating System :: POSIX :: Linux",
-        "Programming Language :: Python :: 2.7",
+        "Programming Language :: Python :: 3.4",
         "Environment :: Win32 (MS Windows)",
         "Environment :: X11 Applications :: Gnome",
         "Environment :: X11 Applications :: GTK",

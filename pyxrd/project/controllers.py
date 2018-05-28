@@ -6,6 +6,7 @@
 # Complete license can be found in the LICENSE file.
 
 import logging
+from mvc.support.gui_loop import run_when_idle
 logger = logging.getLogger(__name__)
 
 import os
@@ -17,7 +18,6 @@ from gi.repository import GObject, Pango, Gdk # @UnresolvedImport
 
 from mvc import Controller
 from mvc.adapters.gtk_support.dialogs.dialog_factory import DialogFactory
-from mvc.support.idle_call import run_when_idle
 
 from pyxrd.generic.controllers.line_controllers import BackgroundController
 from pyxrd.generic.views.line_views import BackgroundView
@@ -221,7 +221,7 @@ class ProjectController(ObjectListStoreController):
         def on_automated(dialog):
             for specimen in specimens:
                 if not specimen in self.model.specimens:
-                    raise ValueError, "Specimen `%s` is not part of this Project!" % specimen
+                    raise ValueError("Specimen `%s` is not part of this Project!" % specimen)
                 else:
                     specimen.experimental_pattern.bg_type = 0 # Linear see settings
                     specimen.experimental_pattern.find_bg_position()
@@ -231,7 +231,7 @@ class ProjectController(ObjectListStoreController):
         def on_not_automated(dialog):
             for specimen in specimens:
                 if not specimen in self.model.specimens:
-                    raise ValueError, "Specimen `%s` is not part of this Project!" % specimen
+                    raise ValueError("Specimen `%s` is not part of this Project!" % specimen)
                 else:
                     bg_view = BackgroundView(parent=self.parent.view)
                     BackgroundController(model=specimen.experimental_pattern, view=bg_view, parent=self)

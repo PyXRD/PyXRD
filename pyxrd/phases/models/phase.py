@@ -29,11 +29,9 @@ from .CSDS import DritsCSDSDistribution
 from .component import Component
 
 @storables.register()
-class Phase(RefinementGroup, AbstractPhase):
+class Phase(RefinementGroup, AbstractPhase, metaclass=PyXRDRefinableMeta):
 
     # MODEL INTEL:
-    __metaclass__ = PyXRDRefinableMeta
-
     class Meta(AbstractPhase.Meta):
         store_id = "Phase"
         file_filters = [

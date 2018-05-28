@@ -1,5 +1,5 @@
 # coding=UTF-8
-# ex:ts=4:sw=4:et:
+# ex:ts=4:sw=4:et=on
 #  -------------------------------------------------------------------------
 #  Copyright (C) 2014 by Mathijs Dumon <mathijs dot dumon at gmail dot com>
 #  Copyright (C) 2005 by Roberto Cavada <roboogle@gmail.com>
@@ -23,38 +23,26 @@
 #  Boston, MA 02110, USA.
 #  -------------------------------------------------------------------------
 
-__handler = None
+from distutils.version import LooseVersion
 
-class IdleCallHandler(object):
-    """
-        This is a simple work-around to make mvc more GUI toolkit agnostic.
-        If the GUI toolkit has been chosen, `set_idle_handler` can be called
-        passing a method that will idly handle these calls. Mainly used for
-        events and notifications. 
-    """
-        
-    @classmethod
-    def call_idle(cls, method, *args):
-        global __handler
-        if __handler is None:
-            method(*args)
-            return None
-        else:
-            return __handler(method, *args)
-        
-    @classmethod
-    def set_idle_handler(cls, self, handler):
-        global __handler
-        __handler = handler
-    
-    pass #end of class
+def _cmp (self, other):
+    if isinstance(other, str):
+        other = LooseVersion(other)
 
-def run_when_idle(func):
-    """
-        Decorator that can be used to run the decorated method idly on the GUI 
-        main event loop.
-    """
-    def callback(*args):
-        IdleCallHandler.call_idle(func, *args)
-    return callback
+    stypes = map(lambda c: str if isinstance(c, str) else int, self.version)
+    otypes = map(lambda c: str if isinstance(c, str) else int, other.version)
     
+    for i, (stype, otype) in enumerate(zip(stypes, otypes)):
+        if stype == str and otype == int:
+            other.version[i] = str(other.version[i])
+        if stype == int and otype == str:
+            self.version[i] = str(self.version[i])
+    
+    if self.version == other.version:
+        return 0
+    if self.version < other.version:
+        return -1
+    if self.version > other.version:
+        return 1
+            
+LooseVersion._cmp = _cmp

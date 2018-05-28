@@ -23,7 +23,7 @@ class AddMixtureView(DialogView):
     def __init__(self, type_dict, *args, **kwargs):
         DialogView.__init__(self, *args, **kwargs)
         self.type_dict = type_dict
-        self.active_type=type_dict.keys()[0]
+        self.active_type=list(type_dict.keys())[0]
         self.create_radios()
 
     def create_radios(self):
@@ -31,7 +31,7 @@ class AddMixtureView(DialogView):
         box.clear()
         group = None
         self.radios = []
-        for mixture_type, label in self.type_dict.iteritems():
+        for mixture_type, label in self.type_dict.items():
             radio = Gtk.RadioButton.new(group, label)
             radio.mixture_type = mixture_type
             group = radio if group is None else group 

@@ -31,7 +31,7 @@ class BrkRAWParser(XRDParserMixin, BaseParser):
 
     @classmethod
     def _clean_bin_str(cls, val):
-        return u(str(val).replace("\0", "").strip())
+        return u(val.replace("\0".encode(), "".encode()).strip())
 
     @classmethod
     def _parse_header(cls, filename, fp, data_objects=None, close=False):
@@ -46,7 +46,7 @@ class BrkRAWParser(XRDParserMixin, BaseParser):
         f.seek(0, SEEK_SET)
 
         # Read file format version:
-        version = str(f.read(4))
+        version = f.read(4).decode("utf-8")
         if version == "RAW ":                             version = "RAW1"
         elif version == "RAW2":                           version = "RAW2"
         elif version == "RAW1" and str(f.read(3)) == ".01": version = "RAW3"
@@ -277,7 +277,7 @@ class BrkRAWParser(XRDParserMixin, BaseParser):
                 )
 
         else:
-            raise IOError, "Only verson 1, 2 and 3 *.RAW files are supported!"
+            raise IOError("Only verson 1, 2 and 3 *.RAW files are supported!")
 
         if close: f.close()
         return data_objects
@@ -299,7 +299,7 @@ class BrkRAWParser(XRDParserMixin, BaseParser):
                         data_object.data.append([x,y])
                         n += 1
                 else:
-                    raise IOError, "Only verson 1, 2 and 3 *.RAW files are supported!"
+                    raise IOError("Only verson 1, 2 and 3 *.RAW files are supported!")
 
 
             data_object.data = np.array(data_object.data)

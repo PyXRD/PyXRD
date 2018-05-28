@@ -5,8 +5,8 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from base import PyXRDModel, ChildModel, DataModel
-from lines import PyXRDLine, CalculatedLine, ExperimentalLine
+from .base import PyXRDModel, ChildModel, DataModel
+from .lines import PyXRDLine, CalculatedLine, ExperimentalLine
 
 __all__ = [
     "PyXRDModel", "ChildModel", "DataModel",

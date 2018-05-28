@@ -31,7 +31,7 @@ from gi.repository import GObject  # @UnresolvedImport
 
 from ....observers import ListObserver, ListItemObserver
 
-from base_models import BaseObjectListStore
+from .base_models import BaseObjectListStore
 from weakref import WeakKeyDictionary
 
 class ObjectListStore(BaseObjectListStore):

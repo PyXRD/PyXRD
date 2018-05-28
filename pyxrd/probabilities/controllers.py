@@ -20,7 +20,7 @@ def get_correct_probability_controllers(probability, parent_controller, independ
             return BaseController(model=probability, parent=parent_controller, view=independents_view), \
                    MatrixController(current=R, model=probability, parent=parent_controller, view=dependents_view)
         else:
-            raise ValueError, "Cannot (yet) handle R%d for %d layer structures!" % (R, G)
+            raise ValueError("Cannot (yet) handle R%d for %d layer structures!" % (R, G))
 
 class EditProbabilitiesController(BaseController):
 

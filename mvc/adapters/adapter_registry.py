@@ -27,7 +27,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 from ..settings import TOOLKIT
-from ..support.idle_call import IdleCallHandler
+from ..support import gui_loop
 
 class ToolkitRegistry(dict):
     """
@@ -52,15 +52,15 @@ class ToolkitRegistry(dict):
 
     def select_toolkit(self, toolkit_name):
         if not toolkit_name in self:
-            raise ValueError, "Cannot select unknown toolkit '%s'" % toolkit_name
+            raise ValueError("Cannot select unknown toolkit '%s'" % toolkit_name)
         else:
             self.selected_toolkit = toolkit_name
             tkar = self.get_selected_adapter_registry()
-            IdleCallHandler.set_idle_handler(self, tkar.get_idle_handler())
+            tkar.load_toolkit_functions()
             
     def get_selected_adapter_registry(self):
         if self.selected_toolkit is None:
-            raise ValueError, "No toolkit has been selected!"
+            raise ValueError("No toolkit has been selected!")
         else:
             return self[self.selected_toolkit]
 
@@ -81,21 +81,24 @@ class AdapterRegistry(dict):
     def get_adapter_for_widget_type(cls, widget_type):
         return cls.toolkit_registry.get_selected_adapter_registry()[widget_type]
 
-    def set_idle_handler(self, idle_handler):
-        setattr(self ,"_idle_handler", idle_handler)
-        
-    def get_idle_handler(self):
-        return getattr(self ,"_idle_handler", None)
+    def set_toolkit_functions(self, *args, **kwargs):
+        setattr(self, "_toolkit_functions", (args, kwargs))
 
-    @classmethod
-    def register_decorator(cls):
+    def load_toolkit_functions(self):
         """
-            Returns a decorator that will register Adapter classes.
+            This function loads the toolkit functions passed to 
+            set_toolkit_functions with the support module.
         """
-        return cls.register
+        args, kwargs = getattr(self, "_toolkit_functions", ([],{}))
+        gui_loop.load_toolkit_functions(*args, ** kwargs)
 
     @classmethod
     def register(cls, adapter_cls):
+        """
+            This is called from metaclasses or used as a decorator.
+            An example metaclass is at mvc.adapters.metaclasses and a model
+            implementing it at adapters.gtk_support.basic
+        """
         if hasattr(adapter_cls, "widget_types") and hasattr(adapter_cls, "toolkit"):
             adapter_registry = cls.toolkit_registry.get_or_create_registry(adapter_cls.toolkit)
             logger.debug("Registering %s as handler for widget types '%s' in toolkit '%s'" % (adapter_cls, adapter_cls.widget_types, adapter_cls.toolkit))
@@ -113,7 +116,10 @@ for toolkit_module in ToolkitRegistry.toolkit_modules:
         try:
             # Import and load toolkit module:
             tk_mod = importlib.import_module(toolkit_module, package=package)
-            tk_mod.load(AdapterRegistry.toolkit_registry)
+            # Get or create the associated toolkit registry:
+            tkreg = AdapterRegistry.toolkit_registry.get_or_create_registry(tk_mod.toolkit)
+            # Load the toolkit and pass the registry:
+            tk_mod.load(tkreg)
         except ImportError:
             logger.warning("Could not load toolkit support module '%s'" % (toolkit_module,))
 

@@ -8,8 +8,6 @@
 import numpy as np
 from scipy.interpolate import interp1d
 
-from mvc import Signal
-
 from mvc.models.properties import (
     LabeledProperty, StringProperty, StringChoiceProperty, ColorProperty,
     FloatProperty, IntegerProperty, IntegerChoiceProperty, BoolProperty,
@@ -18,11 +16,11 @@ from mvc.models.properties import (
 )
 
 from pyxrd.data import settings
+from pyxrd.calculations.peak_detection import score_minerals
 from pyxrd.generic.io import storables, Storable
 from pyxrd.generic.models import ChildModel, DataModel
 from pyxrd.generic.models.properties import InheritableMixin
 from pyxrd.generic.models.mixins import CSVMixin
-from pyxrd.generic.peak_detection import score_minerals
 from pyxrd.generic.io.utils import unicode_open
 
 class MineralScorer(DataModel):

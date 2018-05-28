@@ -138,7 +138,7 @@ def run(args):
                     def write_records(f, record_header, records):
                         f.write(", ".join(record_header) + "\n")
                         for record in records:
-                            f.write(", ".join(map(lambda f: "%.7f" % f, record)) + "\n")
+                            f.write(", ".join(["%.7f" % f for f in record]) + "\n")
                         f.write("################################################################################\n")
 
                     # Apply found solution and save:

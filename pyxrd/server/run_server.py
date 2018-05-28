@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 # coding=UTF-8
 # ex:ts=4:sw=4:et=on
@@ -7,30 +7,27 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-import os
-
-import Pyro4
-import Pyro4.naming
-
-from pyxrd.data.appdirs import user_log_dir
-
-from pyxrd_server import PyXRDServer
-from utils import start_script
-
-try:
-    from Pyro4.naming import NamingError
-except (AttributeError, ImportError):
-    from Pyro4.errors import NamingError
-
-import settings
-
 if __name__ == "__main__":
-
-    from pyxrd.logs import setup_logging
-    setup_logging(basic=True, prefix="PYRO SERVER:")
-    
     import logging
     logger = logging.getLogger(__name__)
+    
+    import os, sys
+    sys.path.insert(1, os.path.join(sys.path[0], '../..'))
+
+    from pyxrd.data.appdirs import user_log_dir
+
+    from pyxrd.server import settings
+    from pyxrd.server.pyxrd_server import PyXRDServer
+    from pyxrd.server.utils import start_script
+    from pyxrd.logs import setup_logging
+    setup_logging(basic=True, prefix="PYRO SERVER:")
+
+    import Pyro4
+    try:
+        from Pyro4.naming import NamingError
+    except (AttributeError, ImportError):
+        from Pyro4.errors import NamingError
+
 
     server = PyXRDServer()
 

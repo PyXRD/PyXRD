@@ -6,7 +6,6 @@
 # Complete license can be found in the LICENSE file.
 
 import logging
-from mvc.support.idle_call import run_when_idle
 logger = logging.getLogger(__name__)
 
 import gi
@@ -15,6 +14,7 @@ from gi.repository import Gtk, GObject
 import sys
 
 from mvc.adapters.gtk_support.dialogs.dialog_factory import DialogFactory
+from mvc.support.gui_loop import run_when_idle
 
 from pyxrd.generic.async.providers import get_status
 from pyxrd.generic.threads import CancellableThread

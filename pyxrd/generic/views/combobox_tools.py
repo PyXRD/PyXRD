@@ -5,11 +5,11 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from cell_renderer_tools import get_default_renderer, parse_callback, parse_kwargs
+from .cell_renderer_tools import get_default_renderer, parse_callback, parse_kwargs
 
 def add_renderer_with_attrs(combo, col_attrs, rend):
     combo.pack_start(rend, True)
-    for attr, val in col_attrs.iteritems():
+    for attr, val in col_attrs.items():
         combo.add_attribute(rend, attr, val)
 
 def add_combo_text_column(combo,

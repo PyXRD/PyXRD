@@ -48,11 +48,11 @@ class UDFParser(XRDParserMixin, BaseParser):
                 break
             else:
                 # Break header line into separate parts, and strip trailing whitespace:
-                parts = map(str.strip, line.split(','))
+                parts = list(map(str.strip, line.split(',')))
 
                 # If length is shorter then three, somethings wrong
                 if len(parts) < 3:
-                    raise IOError, "Header of UDF file is malformed at line %d" % lineno
+                    raise IOError("Header of UDF file is malformed at line %d" % lineno)
 
                 # Handle some of the header's arguments manually, the rest is
                 # just passed to the data object as keyword arguments...
@@ -97,7 +97,7 @@ class UDFParser(XRDParserMixin, BaseParser):
             n = 0
             last_value_reached = False
             while n <= data_objects[0].twotheta_count and not last_value_reached:
-                parts = map(str.strip, f.readline().split(','))
+                parts = list(map(str.strip, f.readline().split(',')))
                 for part in parts:
                     # Last value ends with a slash:
                     if part.endswith('/'):

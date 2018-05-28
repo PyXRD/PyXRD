@@ -22,7 +22,7 @@ from pyxrd.data import settings
 from pyxrd.generic.utils import not_none
 from pyxrd.generic.io.custom_io import storables
 from pyxrd.generic.models.properties import InheritableMixin
-from pyxrd.generic.peak_detection import multi_peakdetect
+from pyxrd.calculations.peak_detection import multi_peakdetect
 
 from .storable_xy_data import StorableXYData
 
@@ -204,7 +204,7 @@ class PyXRDLine(StorableXYData):
         """
         column = kwargs.get("column", 0)
         f = interp1d(self.data_x, self.data_y[:, column])
-        return zip(x_vals, f(x_vals))
+        return list(zip(x_vals, f(x_vals)))
 
     def get_plotted_y_at_x(self, x):
         """
@@ -246,7 +246,7 @@ class PyXRDLine(StorableXYData):
         for maxtab, _ in zip(maxtabs, mintabs):
             numpeak = len(maxtab)
             numpeaks.append(numpeak)
-        numpeaks = map(float, numpeaks)
+        numpeaks = list(map(float, numpeaks))
 
         return deltas, numpeaks
 

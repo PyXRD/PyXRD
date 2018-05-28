@@ -65,11 +65,20 @@ class BaseObjectListStore(GenericTreeModel):
         GenericTreeModel.__init__(self)
         self.set_property("leak-references", False)
         if class_type is None:
-            raise ValueError, 'Invalid class_type for %s! Expecting object, but None was given' % type(self)
+            raise ValueError(
+                 'Invalid class_type for %s! Expecting object, but None was given' 
+                 % type(self)
+             )
         elif not hasattr(class_type, "Meta"):
-            raise ValueError, 'Invalid class_type for `%s`! `%s` does not have a `Meta` attribute!' % (type(self), class_type)
+            raise ValueError(
+                 'Invalid class_type for `%s`! `%s` does not have a `Meta` attribute!' 
+                 % (type(self), class_type)
+             )
         elif not hasattr(class_type.Meta, 'get_column_properties'):
-            raise ValueError, 'Invalid class_type for %s! %s.Meta does not have get_column_properties method!' % (type(self), class_type)
+            raise ValueError(
+                 'Invalid class_type for %s! %s.Meta does not have get_column_properties method!' 
+                 % (type(self), class_type)
+             )
         else:
             self.setup_class_type(class_type)
 
@@ -78,7 +87,7 @@ class BaseObjectListStore(GenericTreeModel):
         self._columns = []
         for item in self._class_type.Meta.get_column_properties():
             title, col_type = item
-            if col_type in types.StringTypes:
+            if isinstance(col_type, str):
                 col_type = 'gchararray'
             # TODO map other types we might encounter...
             self._columns.append((title, col_type))
@@ -110,12 +119,12 @@ class BaseObjectListStore(GenericTreeModel):
             return self._columns[col][1](new_val)
 
     def get_objects(self):
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def iter_objects(self):
-        raise NotImplementedError
+        raise NotImplementedError()
 
     def __reduce__(self):
-        raise NotImplementedError
+        raise NotImplementedError()
 
     pass # end of class

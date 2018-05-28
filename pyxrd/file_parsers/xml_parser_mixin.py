@@ -24,7 +24,7 @@ except ImportError:
                     # normal ElementTree install
                     import elementtree.ElementTree as ET
                 except ImportError:
-                    print "Failed to import ElementTree from any known place" 
+                    print("Failed to import ElementTree from any known place") 
 
 class XMLParserMixin(object):
     """

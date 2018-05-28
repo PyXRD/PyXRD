@@ -59,7 +59,7 @@ class Refinement(ChildModel):
     refine_method_index = IntegerChoiceProperty(
         default=0, text="Refinement method index",
         tabular=True, persistent=True, visible=True,
-        choices={ key: method.name for key, method in RefineMethodManager.get_all_methods().iteritems() }
+        choices={ key: method.name for key, method in RefineMethodManager.get_all_methods().items() }
     )
 
     #: A dict containing the current refinement options
@@ -76,7 +76,7 @@ class Refinement(ChildModel):
     def all_refine_options(self):
         return {
             method.index : method.get_options()
-            for method in self.refine_methods.values()
+            for method in list(self.refine_methods.values())
         }
 
     def __init__(self, *args, **kwargs):

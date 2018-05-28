@@ -5,6 +5,8 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
+#TODO make this gtk agnostic
+
 from pkg_resources import resource_filename # @UnresolvedImport
 import gi
 gi.require_version('Gtk', '3.0')  # @UndefinedVariable

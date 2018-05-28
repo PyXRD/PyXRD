@@ -202,7 +202,7 @@ class LabeledProperty(Mixable):
         self.persistent_label = label
         self.default = default
 
-        for key, value in kwargs.iteritems():
+        for key, value in kwargs.items():
             setattr(self, key, value)
 
     ############################################################################
@@ -211,6 +211,9 @@ class LabeledProperty(Mixable):
     def __eq__(self, other):
         # Descriptors are equal if they describe the same attribute
         return other is not None and self.label == other.label
+
+    def __hash__(self):
+        return hash(self.label)
 
     def __neq__(self, other):
         # Descriptors are equal if they describe the same attribute
@@ -257,7 +260,7 @@ class LabeledProperty(Mixable):
 
     def __delete__(self, instance):
         if self.fdel is None:
-            raise AttributeError, "Can't delete attribute `%s`!" % self.label
+            raise AttributeError("Can't delete attribute `%s`!" % self.label)
         self.fdel(instance)
 
     def __repr__(self):

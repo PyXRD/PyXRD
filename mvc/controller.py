@@ -24,14 +24,11 @@
 #  -------------------------------------------------------------------------
 
 import logging
+from mvc.support.gui_loop import add_idle_call
 logger = logging.getLogger(__name__)
 
 from .observers import Observer
 from .support.exceptions import TooManyCandidatesError
-
-from .support.idle_call import IdleCallHandler
-
-import types
 
 class Controller(Observer):
 
@@ -54,9 +51,9 @@ class Controller(Observer):
         if not self._controller_scope_aplied:
             props = [prop.label for prop in self.model.Meta.all_properties]
             if self.auto_adapt_included is not None:
-                self.__parsed_user_props = self.__parsed_user_props.union(set(filter(lambda p: p not in self.auto_adapt_included, props)))
+                self.__parsed_user_props = self.__parsed_user_props.union(set([p for p in props if p not in self.auto_adapt_included]))
             elif self.auto_adapt_excluded is not None:
-                self.__parsed_user_props = self.__parsed_user_props.union(set(filter(lambda p: p in self.auto_adapt_excluded, props)))
+                self.__parsed_user_props = self.__parsed_user_props.union(set([p for p in props if p in self.auto_adapt_excluded]))
             self._controller_scope_aplied = True
         return self.__parsed_user_props
 
@@ -92,7 +89,7 @@ class Controller(Observer):
             self.__view = view
             if self.__view is not None:
                 if self.register_lazy:
-                    IdleCallHandler.call_idle(self._idle_register_view, self.__view)
+                    add_idle_call(self._idle_register_view, self.__view)
                 else:
                     self._idle_register_view(self.__view)
     def _del_view(self):
@@ -235,18 +232,18 @@ class Controller(Observer):
 
         # checks arguments
         n = len(args)
-        if n not in range(3): raise TypeError("adapt() takes 0, 1 or 2 arguments (%d given)" % n)
+        if n not in list(range(3)): raise TypeError("adapt() takes 0, 1 or 2 arguments (%d given)" % n)
 
         if n == 0:
             adapters = []
             props = self.model.Meta.get_viewable_properties()
             # matches all properties not previously adapted by the user:
-            for prop in filter(lambda p: p.label not in self.__user_props, props):
+            for prop in [p for p in props if p.label not in self.__user_props]:
                 try: wid_name = self._find_widget_match(prop)
-                except TooManyCandidatesError, e:
+                except TooManyCandidatesError as e:
                     # multiple candidates, gives up
                     raise e
-                except ValueError, e:
+                except ValueError as e:
                     # no widgets found for given property, continue after emitting a warning
                     if e.args:
                         logger.warn(e[0])
@@ -265,7 +262,7 @@ class Controller(Observer):
 
             if isinstance(args[0], AbstractAdapter): adapters = (args[0],)
 
-            elif isinstance(args[0], types.StringType):
+            elif isinstance(args[0], str):
                 prop = getattr(type(self.model), args[0])
                 wid_name = self._find_widget_match(prop)
                 adapters = self.__create_adapters__(prop, wid_name)
@@ -273,7 +270,7 @@ class Controller(Observer):
             else: raise TypeError("Argument of adapt() must be either an Adapter or a string")
 
         else: # two arguments
-            if not (isinstance(args[0], types.StringType) and isinstance(args[1], types.StringType)):
+            if not (isinstance(args[0], str) and isinstance(args[1], str)):
                 raise TypeError("Arguments of adapt() must be two strings")
 
             # retrieves both property and widget, and creates an adapter
@@ -329,7 +326,7 @@ class Controller(Observer):
         for name in dir(self):
             method = getattr(self, name)
             if (not callable(method)): continue
-            assert(not dic.has_key(name)) # not already connected!
+            assert(name not in dic) # not already connected!
             dic[name] = method
             pass
 
@@ -349,8 +346,8 @@ class Controller(Observer):
         local_handlers.update(adapter_registry)
 
         # Override with class instance widget handlers:
-        for widget_type, handler in self.widget_handlers.iteritems():
-            if isinstance(handler, basestring):
+        for widget_type, handler in self.widget_handlers.items():
+            if isinstance(handler, str):
                 self.widget_handlers[widget_type] = getattr(self, handler)
         local_handlers.update(self.widget_handlers)
 
@@ -378,7 +375,7 @@ class Controller(Observer):
                 return [ad]
             else:
                 return []
-        except any as error:
-            raise RuntimeError(error), "Unhandled error in '%s'.__create_adapters__ for property '%s' and widget '%s'!" % (type(self), prop.label, wid_name)
+        except BaseException as error:
+            raise RuntimeError("Unhandled error in '%s'.__create_adapters__ for property '%s' and widget '%s'!" % (type(self), prop.label, wid_name)) from error
 
     pass # end of class Controller

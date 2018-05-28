@@ -103,7 +103,7 @@ class RefinableWrapper(ChildModel):
     def value(self, value):
         value = max(min(value, self.value_max), self.value_min)
         if self.is_grouper:
-            raise AttributeError, "Cannot set the value for a grouping RefinableWrapper"
+            raise AttributeError("Cannot set the value for a grouping RefinableWrapper")
         elif isinstance(self.obj, RefinementValue):
             self.obj.refine_value = value
         else:
@@ -144,7 +144,7 @@ class RefinableWrapper(ChildModel):
                 ref_info = getattr(self.obj, name)
                 return ref_info
             else:
-                raise AttributeError, "Cannot find refine info model for attribute '%s' on '%s'" % (self.label, self.obj)
+                raise AttributeError("Cannot find refine info model for attribute '%s' on '%s'" % (self.label, self.obj))
 
     #: The minimum value for the refinable property
     @LabeledProperty(

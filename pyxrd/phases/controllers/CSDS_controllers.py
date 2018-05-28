@@ -118,7 +118,7 @@ class EditCSDSDistributionController(BaseController):
     def notif_updated(self, model, prop_name, info):
         if self.model.distrib is not None and not self.model.phase.project.before_needs_update_lock:
             try: self.view.update_figure(self.model.distrib[0])
-            except any as error:
+            except BaseException as error:
                 logger.exception("Caught unhandled exception: %s" % error)
 
     pass # end of class

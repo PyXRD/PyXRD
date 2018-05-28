@@ -14,7 +14,7 @@ class CSVMixin(object):
 
     @classmethod
     def save_as_csv(cls, filename, items):
-        atl_writer = csv.writer(open(filename, 'wb'), delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
+        atl_writer = csv.writer(open(filename, 'w'), delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL)
         labels = [prop.label for prop in cls.Meta.get_local_persistent_properties()]
         atl_writer.writerow(labels)
         for item in items:
@@ -25,7 +25,7 @@ class CSVMixin(object):
 
     @classmethod
     def get_from_csv(cls, filename, parent=None):
-        with open(filename, 'rb') as csvfile:
+        with open(filename, 'r') as csvfile:
             atl_reader = csv.DictReader(csvfile, delimiter=',', quotechar='"')
             labels = [prop.label for prop in cls.Meta.get_local_persistent_properties()]
             for row in atl_reader:

@@ -7,7 +7,7 @@
 
 import csv
 from warnings import warn
-from itertools import chain, izip
+from itertools import chain
 from collections import OrderedDict
 from contextlib import contextmanager
 import logging
@@ -57,10 +57,20 @@ class Mixture(DataModel, Storable):
         self._data_object.optimized = False
         self._data_object.calculated = False
         self._data_object.specimens = [None] * len(self.specimens)
-        self._data_object.auto_bg = self.auto_bg
-        
+                
         self._data_object.n = len(self.specimens)
         self._data_object.m = len(self.phases)
+               
+        self._data_object.scales_mask = np.ones_like(self.scales)
+        if self.auto_scales:
+            self._data_object.scales_mask = np.ones_like(self.bgshifts)
+        else:
+            self._data_object.scales_mask = np.zeros_like(self.bgshifts)
+            
+        if self.auto_bg:
+            self._data_object.bgshifts_mask = np.ones_like(self.bgshifts)
+        else:
+            self._data_object.bgshifts_mask = np.zeros_like(self.bgshifts)
         
         for i, specimen in enumerate(self.specimens):
             if specimen is not None:
@@ -100,12 +110,17 @@ class Mixture(DataModel, Storable):
         visible=True, persistent=True, tabular=True
     )
 
-    #: Flag, True if the mixture is allowed to also update the background leveld
+    #: Flag, True if the mixture is allowed to also update the background level
     auto_bg = BoolProperty(
         default=False, text="Auto Bg",
         visible=True, persistent=True, tabular=True
     )
 
+    #: Flag, True if the mixture is allowed to also update the background level
+    auto_scales = BoolProperty(
+        default=True, text="Auto Scales",
+        visible=True, persistent=True, tabular=True
+    )
 
     #: The tree of refinable properties
     @LabeledProperty(
@@ -175,6 +190,14 @@ class Mixture(DataModel, Storable):
     def fractions(self, value):
         self._data_object.fractions = value
 
+    @property
+    def fractions_mask(self):
+        """ A mask indicating which fractions are to be optimized """
+        return self._data_object.fractions_mask
+    @fractions_mask.setter
+    def fractions_mask(self, value):
+        self._data_object.fractions_mask = value
+
     # ------------------------------------------------------------
     #      Initialization and other internals
     # ------------------------------------------------------------
@@ -197,8 +220,8 @@ class Mixture(DataModel, Storable):
         my_kwargs = self.pop_kwargs(kwargs,
             "data_name", "phase_uuids", "phase_indeces", "specimen_uuids",
             "specimen_indeces", "data_phases", "data_scales", "data_bgshifts",
-            "data_fractions", "refine_method", "data_refine_method", "fractions",
-            "bgshifts", "scales", "phases",
+            "data_fractions", "refine_method", "data_refine_method",
+            "fractions", "fractions_mask", "bgshifts", "scales", "phases",
             *[prop.label for prop in Mixture.Meta.get_local_persistent_properties()]
         )
         super(Mixture, self).__init__(*args, **kwargs)
@@ -211,6 +234,7 @@ class Mixture(DataModel, Storable):
             self.name = self.get_kwarg(kwargs, "New Mixture", "name", "data_name")
             self.auto_run = self.get_kwarg(kwargs, False, "auto_run")
             self.auto_bg = self.get_kwarg(kwargs, True, "auto_bg")
+            self.auto_scales = self.get_kwarg(kwargs, True, "auto_scales")
 
             # 2D matrix, rows match specimens, columns match mixture 'phases'; contains the actual phase objects
             phase_uuids = self.get_kwarg(kwargs, None, "phase_uuids")
@@ -243,13 +267,15 @@ class Mixture(DataModel, Storable):
             self.bgshifts = np.asarray(self.get_kwarg(kwargs, [0.0] * len(self.specimens), "bgshifts", "data_bgshifts"))
             # list with phase fractions, indexes match with cols in phase_matrix (=phases)
             self.fractions = np.asarray(self.get_kwarg(kwargs, [0.0] * len(self.phases), "fractions", "data_fractions"))
+            # list with phase fractions mask, indexes match with cols in phase_matrix (=phases)
+            self.fractions_mask = np.asarray(self.get_kwarg(kwargs, [1] * len(self.phases), "fractions_mask"))
 
             # sanity check:
             n, m = self.phase_matrix.shape if self.phase_matrix.ndim == 2 else (0, 0)
             if len(self.scales) != n or len(self.specimens) != n or len(self.bgshifts) != n:
-                raise IndexError, "Shape mismatch: scales (%d), background shifts (%d) or specimens (%d) list lengths do not match with row count (%d) of phase matrix" % (len(self.scales), len(self.specimens), len(self.bgshifts), n)
+                raise IndexError("Shape mismatch: scales (%d), background shifts (%d) or specimens (%d) list lengths do not match with row count (%d) of phase matrix" % (len(self.scales), len(self.specimens), len(self.bgshifts), n))
             if len(self.phases) != m or len(self.fractions) != m:
-                raise IndexError, "Shape mismatch: fractions (%s) or phases (%d) lists do not match with column count of phase matrix (%d)" % (len(self.fractions), len(self.phases), m)
+                raise IndexError("Shape mismatch: fractions (%s) or phases (%d) lists do not match with column count of phase matrix (%d)" % (len(self.fractions), len(self.phases), m))
 
             self._observe_specimens()
             self._observe_phases()
@@ -306,6 +332,7 @@ class Mixture(DataModel, Storable):
         retval["specimen_uuids"] = [specimen.uuid if specimen else "" for specimen in self.specimens]
         retval["phases"] = self.phases
         retval["fractions"] = self.fractions.tolist()
+        retval["fractions_mask"] = self.fractions_mask.tolist()
         retval["bgshifts"] = self.bgshifts.tolist()
         retval["scales"] = self.scales.tolist()
 
@@ -353,7 +380,7 @@ class Mixture(DataModel, Storable):
                 with self.data_changed.hold():
                     with self._relieve_and_observe_phases():
                         if phase is not None and not phase in self.parent.phases:
-                            raise RuntimeError, "Cannot add a phase to a Mixture which is not inside the project!"
+                            raise RuntimeError("Cannot add a phase to a Mixture which is not inside the project!")
                         self.phase_matrix[specimen_slot, phase_slot] = phase
                     self.refinement.update_refinement_treestore()
 
@@ -368,7 +395,7 @@ class Mixture(DataModel, Storable):
                 with self.data_changed.hold():
                     with self._relieve_and_observe_specimens():
                         if specimen is not None and not specimen in self.parent.specimens:
-                            raise RuntimeError, "Cannot add a specimen to a Mixture which is not inside the project!"
+                            raise RuntimeError("Cannot add a specimen to a Mixture which is not inside the project!")
                         self.specimens[specimen_slot] = specimen
 
     @contextmanager
@@ -413,6 +440,7 @@ class Mixture(DataModel, Storable):
             with self.data_changed.hold():
                 self.phases.append(phase_name)
                 self.fractions = np.append(self.fractions, fraction)
+                self.fractions_mask = np.append(self.fractions_mask, 1)
                 n, m = self.phase_matrix.shape if self.phase_matrix.ndim == 2 else (0, 0)
                 if self.phase_matrix.size == 0:
                     self.phase_matrix = np.resize(self.phase_matrix.copy(), (n, m + 1))
@@ -431,6 +459,7 @@ class Mixture(DataModel, Storable):
                     # Remove the corresponding phase name, fraction & references:
                     del self.phases[phase_slot]
                     self.fractions = np.delete(self.fractions, phase_slot)
+                    self.fractions_mask = np.delete(self.fractions_mask, phase_slot)
                     self.phase_matrix = np.delete(self.phase_matrix, phase_slot, axis=1)
                 # Update our refinement tree store to reflect current state
                 self.refinement.update_refinement_treestore()
@@ -499,7 +528,7 @@ class Mixture(DataModel, Storable):
                     mixture.calculated = mixture.calculated and not calculate
                     mixture = self.optimizer.calculate(mixture)
 
-                    for i, (specimen_data, specimen) in enumerate(izip(mixture.specimens, self.specimens)):
+                    for i, (specimen_data, specimen) in enumerate(zip(mixture.specimens, self.specimens)):
                         if specimen is not None:
                             with specimen.data_changed.ignore():
                                 specimen.update_pattern(
@@ -555,7 +584,7 @@ class Mixture(DataModel, Storable):
         atom_conv = OrderedDict()
         with open(settings.DATA_REG.get_file_path("COMPOSITION_CONV"), 'r') as f:
             reader = csv.reader(f)
-            reader.next() # skip header
+            next(reader) # skip header
             for row in reader:
                 nr, name, fact = row
                 atom_conv[int(nr)] = (name, float(fact))
@@ -579,7 +608,7 @@ class Mixture(DataModel, Storable):
         final_comps[0, 0] = " "*8
         for j, comp in enumerate(comps):
             fact = 100.0 / sum(comp.values())
-            for i, (nr, (oxide_name, conv)) in enumerate(atom_conv.iteritems()):
+            for i, (nr, (oxide_name, conv)) in enumerate(atom_conv.items()):
                 wt = comp.get(nr, 0.0) * fact
                 # set relevant cells:
                 if i == 0:

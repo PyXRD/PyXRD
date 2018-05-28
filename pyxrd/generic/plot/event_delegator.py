@@ -50,7 +50,7 @@ class MPLCanvasEventDelegator(object):
         try:
             handlers = self._handler_dict[event_name]
         except KeyError:
-            raise ValueError, "Unknown event name!"
+            raise ValueError("Unknown event name!")
         return handlers
 
     def _handle_event(self, event_name):

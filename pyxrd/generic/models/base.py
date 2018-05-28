@@ -24,8 +24,8 @@ class PyXRDModel(Model):
         @classmethod
         def get_refinable_properties(cls):
             if not hasattr(cls, "all_properties"):
-                raise RuntimeError, "Meta class '%s' has not been initialized" \
-                    " properly: 'all_properties' is not set!" % type(self)
+                raise RuntimeError("Meta class '%s' has not been initialized" \
+                    " properly: 'all_properties' is not set!" % type(self))
             else:
                 return [attr for attr in cls.all_properties if getattr(attr, "refinable", False)]
 
@@ -48,7 +48,7 @@ class PyXRDModel(Model):
         value is returned. 
         """
         if len(keywords) < 1:
-            raise AttributeError, "get_kwarg() requires at least one keyword (%d given)" % (len(keywords))
+            raise AttributeError("get_kwarg() requires at least one keyword (%d given)" % (len(keywords)))
 
         value = default
         for i, key in enumerate(keywords[::-1]):
@@ -94,8 +94,8 @@ class ChildModel(PyXRDModel):
         @classmethod
         def get_inheritable_properties(cls): # TODO MOVE THIS TO THE CHILD MODEL!!
             if not hasattr(cls, "all_properties"):
-                raise RuntimeError, "Meta class '%s' has not been initialized" \
-                    " properly: 'all_properties' is not set!" % type(cls)
+                raise RuntimeError("Meta class '%s' has not been initialized" \
+                    " properly: 'all_properties' is not set!" % type(cls))
             else:
                 return [attr for attr in cls.all_properties if getattr(attr, "inheritable", False)]
 

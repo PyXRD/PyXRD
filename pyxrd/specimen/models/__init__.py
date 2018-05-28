@@ -5,9 +5,9 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from base import Specimen
-from markers import ThresholdSelector, Marker, MineralScorer
-from statistics import Statistics
+from .base import Specimen
+from .markers import ThresholdSelector, Marker, MineralScorer
+from .statistics import Statistics
 
 __all__ = [
     "Specimen",

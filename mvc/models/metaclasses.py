@@ -93,7 +93,7 @@ class ModelMeta(type):
     def __new__(cls, name, bases, _dict):
         # find all data descriptors, auto-set their labels
         properties = {}
-        for label, _property in _dict.items():
+        for label, _property in list(_dict.items()):
             if isinstance(_property, LabeledProperty):
                 _property.label = label
                 properties[label] = _property
@@ -162,7 +162,7 @@ class ModelMeta(type):
         properties = get_unique_list(meta.properties)
 
         # Check the list of observables is really an iterable:
-        if not isinstance(properties, types.ListType):
+        if not isinstance(properties, list):
             raise TypeError("%s.%s.Meta 'properties' must be a list, not '%s'" %
                             (cls.__module__, cls.__name__, type(properties)))
 
@@ -181,7 +181,7 @@ class ModelMeta(type):
             all_properties[attr.label] = attr
 
         # Set all_properties on the metadata class:
-        meta.all_properties = all_properties.values()
+        meta.all_properties = list(all_properties.values())
 
         logger.debug("Class %s.%s has properties: %s" \
                      % (cls.__module__, cls.__name__, all_properties))

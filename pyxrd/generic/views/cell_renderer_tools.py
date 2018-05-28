@@ -27,7 +27,7 @@ def get_default_renderer(type, **kwargs):
         dashes in the proces.
     """
     rend = renderer_map.get(type, type)()
-    for key, val in kwargs.iteritems():
+    for key, val in kwargs.items():
         rend.set_property(key.replace("_", "-"), val)
     return rend
     
@@ -42,7 +42,7 @@ def parse_callback(callback, reduce=True):
     args = tuple()
     try:
         callback, args = callback
-    except TypeError, ValueError:
+    except TypeError as ValueError:
         pass
     #deconvolve things:
     if reduce and len(args) == 1: args = args[0]
@@ -63,7 +63,7 @@ def parse_kwargs(**kwargs):
     kwargs["yalign"] = kwargs.get("yalign", 0.5)
     
     col_attrs = dict()
-    for key, value in dict(kwargs).iteritems():
+    for key, value in dict(kwargs).items():
         if key.endswith("_col"):
             col_attrs[key[:-4]] = value
             kwargs.pop(key)

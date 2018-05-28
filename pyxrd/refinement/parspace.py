@@ -67,7 +67,7 @@ class ParameterSpaceGenerator(object):
             smallest_distance = None
             closest_cross_section = None
 
-            for index, (par1, par2) in enumerate(itertools.combinations(range(self.num_params), 2)):
+            for index, (par1, par2) in enumerate(itertools.combinations(list(range(self.num_params)), 2)):
                 # Project on to the normal of the A/B plan at the center point:
                 projected = transf.copy()
                 projected[par1] = 0
@@ -194,7 +194,7 @@ class ParameterSpaceGenerator(object):
             return divider.new_locator(nx=nx, ny=ny)
 
         # Hide the unused plots & setup the used ones:
-        for parx, pary in itertools.product(range(self.num_params - 1), range(1, self.num_params)):
+        for parx, pary in itertools.product(list(range(self.num_params - 1)), list(range(1, self.num_params))):
 
             # Calculate the grid position:
             ax = get_grid(parx, pary)
@@ -228,7 +228,7 @@ class ParameterSpaceGenerator(object):
                     points_y = np.array([item["value"] for item in grid2D if item["point"] is not None])
                     points_x = points_x.flatten()
                     points_y = points_y.flatten()
-                    xy = np.array(zip(points_x, points_y), dtype=[('x', float), ('y', float)])
+                    xy = np.array(list(zip(points_x, points_y)), dtype=[('x', float), ('y', float)])
                     xy.sort(order=['x'], axis=0)
                     points_x = xy['x']
                     points_y = xy['y']
@@ -251,7 +251,7 @@ class ParameterSpaceGenerator(object):
                 ims = []
                 tvmin, tvmax = None, None
 
-                for index, (parx, pary) in enumerate(itertools.combinations(range(self.num_params), 2)):
+                for index, (parx, pary) in enumerate(itertools.combinations(list(range(self.num_params)), 2)):
                     # Get the data for this cross section:
                     grid2D = self.grid[index, ...]
                     points_x, points_y, points_z = extraxt_points_from_grid(grid2D, parx, pary)
@@ -322,8 +322,8 @@ class ParameterSpaceGenerator(object):
                     cb = cbar_ax.colorbar(im) # @UnusedVariable
 
         except:
-            print "Unhandled exception while generating parameter space images:"
-            print format_exc()
+            print("Unhandled exception while generating parameter space images:")
+            print(format_exc())
             # ignore error, tell the user via the plot and return
             self.clear_image(figure)
             return

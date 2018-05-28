@@ -5,7 +5,7 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from contextlib import contextmanager, nested
+from contextlib import contextmanager, ExitStack
 
 class EventContextManager(object):
     """
@@ -29,7 +29,9 @@ class EventContextManager(object):
     @contextmanager
     def ignore(self):
         if len(self.events):
-            with nested(*[event.ignore() for event in self.events ]):
+            with ExitStack() as stack:
+                for event in self.events:
+                    stack.enter_context(event.ignore())
                 yield
         else:
             yield
@@ -37,7 +39,9 @@ class EventContextManager(object):
     @contextmanager
     def hold(self):
         if len(self.events):
-            with nested(*[event.hold() for event in self.events ]):
+            with ExitStack() as stack:
+                for event in self.events:
+                    stack.enter_context(event.hold())
                 yield
         else:
             yield

@@ -39,7 +39,7 @@ class TestCSDSCalcs(unittest.TestCase):
         self.assertIsNotNone(self.CSDS_data)
         
     def test_attributes(self):
-        for key, value in self.CSDS_data_kwargs.iteritems():
+        for key, value in self.CSDS_data_kwargs.items():
             self.assertEquals(getattr(self.CSDS_data, key), value)
 
     def test_calculate_distribution(self):

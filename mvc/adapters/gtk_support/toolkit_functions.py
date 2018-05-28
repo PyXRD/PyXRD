@@ -1,8 +1,7 @@
 # coding=UTF-8
-# ex:ts=4:sw=4:et=on
+# ex:ts=4:sw=4r:et=on
 #  -------------------------------------------------------------------------
 #  Copyright (C) 2014 by Mathijs Dumon <mathijs dot dumon at gmail dot com>
-#  Copyright (C) 2005 by Roberto Cavada <roboogle@gmail.com>
 #
 #  mvc is a framework derived from the original pygtkmvc framework
 #  hosted at: <http://sourceforge.net/projects/pygtkmvc/>
@@ -23,44 +22,25 @@
 #  Boston, MA 02110, USA.
 #  -------------------------------------------------------------------------
 
-# FIXME clean this mess up
+import gi
+gi.require_version('Gtk', '3.0')  # @UndefinedVariable
+from gi.repository import Gtk, GLib  # @UnresolvedImport
 
-"""
-Shortcuts are provided to the following classes defined in submodules:
+def add_idle_call(func, *args):
+    source = GLib.MainContext.default().find_source_by_id(
+        GLib.idle_add(func, *args, priority=GLib.PRIORITY_HIGH_IDLE))
+    return source
 
-.. class:: Model
-   :noindex:
-.. class:: TreeStoreModel
-   :noindex:
-.. class:: ListStoreModel
-   :noindex:
-.. class:: TextBufferModel
-   :noindex:
-.. class:: ModelMT
-   :noindex:
-.. class:: Controller
-   :noindex:
-.. class:: View
-   :noindex:
-.. class:: Observer
-   :noindex:
-.. class:: Observable
-   :noindex:
+def remove_source(source):
+    return source.destroy()
 
-"""
+def add_timeout_call(func, timeout, *args):
+    source = GLib.MainContext.default().find_source_by_id(
+        GLib.timeout_add(GLib.PRIORITY_HIGH, timeout, func, *args))
+    return source
 
-from .support.version import LooseVersion 
+def start_event_loop():
+    return Gtk.main()
 
-from .__version import __version__
-
-# Class shortcuts:
-from .observers import Observer
-from .support.observables import Signal, Observable
-from .models import *
-
-try:
-    from .view import View
-    from .controller import Controller
-except ImportError:
-    import logging
-    logging.getLogger(__name__).warning("ImportError when trying to load View and/or Controller: do you have PyGTK/GObject installed?")
+def stop_event_loop():
+    return Gtk.main_quit()

@@ -83,7 +83,7 @@ def set_nm_ticks(axis, wavelength, xmin, xmax):
 
     pass #end of func
 
-def update_xaxis(axes, title=u'Angle (°2$\\theta$)', weight='heavy',
+def update_xaxis(axes, title='Angle (°2$\\theta$)', weight='heavy',
             rotation=0, ha="center", va="center",
             pad=0, size=16, nm_ticks=False, wavelength=None):
 
@@ -161,7 +161,7 @@ def update_axes(axes, pos_setup, project, specimens):
         else:
             wavelength = specimens[0].goniometer.wavelength
         update_xaxis(axes,
-            title=u'd (nm)',
+            title='d (nm)',
             rotation=-90, ha="left", pad=25,
             nm_ticks=True, wavelength=wavelength,
         )

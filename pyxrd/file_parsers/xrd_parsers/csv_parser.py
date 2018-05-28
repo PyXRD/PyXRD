@@ -97,7 +97,7 @@ class GenericXYCSVParser(XRDParserMixin, CSVBaseParser):
         if f is not None:
             for row in csv.reader(f, **fmt_params):
                 if row:
-                    data = map(float, row)
+                    data = list(map(float, row))
                     x, ay = data[0], data[1:] # ay contains columns with y values
                     for data_object, y in zip(data_objects, ay):
                         if getattr(data_object, "data", None) is None:

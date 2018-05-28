@@ -7,7 +7,7 @@
 
 from math import sqrt
 import numpy as np
-from pyxrd.generic.custom_math import smooth
+from .math_tools import smooth
 
 def R_squared(exp, calc, *args):
     """

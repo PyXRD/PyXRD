@@ -5,8 +5,8 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from insitu_behaviour import InSituBehaviour
-from SSSR0Behaviour import SSSR0Behaviour
+from .insitu_behaviour import InSituBehaviour
+from .SSSR0Behaviour import SSSR0Behaviour
 
 __all__ = [
     "InSituBehaviour",

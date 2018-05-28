@@ -10,8 +10,8 @@ logger = logging.getLogger(__name__)
 
 import numpy as np
 
-from refine_history import RefineHistory
-from refine_status import RefineStatus
+from .refine_history import RefineHistory
+from .refine_status import RefineStatus
 
 class RefineSetupError(ValueError):
     """ Raised if an error exists in the refinement setup """
@@ -70,7 +70,7 @@ class Refiner(object):
                     logger.info("Error in refinement setup!")
                     self.status.error = True
                     self.status.message = "Invalid parameter range for '%s'!" % (refinable.text_descriptor,)
-                    raise RefineSetupError, "Invalid parameter range for '%s'!" % (refinable.text_descriptor,)
+                    raise RefineSetupError("Invalid parameter range for '%s'!" % (refinable.text_descriptor,))
                 self.ranges += ((refinable.value_min, refinable.value_max),)
                 self.labels += ((refinable.text_title, refinable.title),)
 
@@ -79,7 +79,7 @@ class Refiner(object):
             logger.error("No refinables selected!")
             self.status.error = True
             self.status.message = "No parameters selected!"
-            raise RefineSetupError, "No parameters selected!"      
+            raise RefineSetupError("No parameters selected!")      
 
         # Register the initial solution:
         initial_solution = np.array(initial_values, dtype=float)

@@ -58,7 +58,7 @@ class ObjectPool(object):
         if not obj.uuid in self._objects or force:
             self._objects[obj.uuid] = obj
         elif fail_on_duplicate:
-            raise KeyError, "UUID %s is already taken by another object %s, cannot add object %s" % (obj.uuid, self._objects[obj.uuid], obj)
+            raise KeyError("UUID %s is already taken by another object %s, cannot add object %s" % (obj.uuid, self._objects[obj.uuid], obj))
         else:
             # Just change the objects uuid, will break refs, but
             # it prevents issues with inherited properties etc.
@@ -67,7 +67,7 @@ class ObjectPool(object):
 
     def change_all_uuids(self):
         # first get a copy off all uuids & objects:
-        items = self._objects.items()
+        items = list(self._objects.items())
         for uuid, obj in items: # @UnusedVariable
             obj.uuid = get_new_uuid()
 
@@ -89,7 +89,7 @@ class ThreadedObjectPool(object):
         self.pools = {}
 
     def clean_pools(self):
-        for ptkey in self.pools.keys():
+        for ptkey in list(self.pools.keys()):
             if (ptkey == (None, None) or not ptkey[0].is_alive() or not ptkey[1].is_alive()):
                 del self.pools[ptkey] # clear this sucker
 

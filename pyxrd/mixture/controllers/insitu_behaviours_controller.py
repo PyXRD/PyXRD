@@ -29,7 +29,7 @@ class InSituBehavioursController(ObjectListStoreController):
     delete_msg = "Deleting a mixture is irreverisble!\nAre You sure you want to continue?"
     obj_type_map = [
         (cls, EditInSituBehaviourView, EditInSituBehaviourController)
-        for name, cls in insitu_behaviours.__dict__.items() if hasattr(cls, 'Meta') and cls.Meta.concrete
+        for name, cls in list(insitu_behaviours.__dict__.items()) if hasattr(cls, 'Meta') and cls.Meta.concrete
     ]
 
     def get_behaviours_tree_model(self, *args):
@@ -55,7 +55,7 @@ class InSituBehavioursController(ObjectListStoreController):
             for obj_tp, view_tp, ctrl_tp in self.obj_type_map: # @UnusedVariable
                 if isinstance(obj, obj_tp):
                     return view_tp(obj.Meta, parent=self.view)
-            raise NotImplementedError, ("Unsupported object type; subclasses of"
+            raise NotImplementedError("Unsupported object type; subclasses of"
                 " TreeControllerMixin need to define an obj_type_map attribute!")
 
     def create_new_object_proxy(self):

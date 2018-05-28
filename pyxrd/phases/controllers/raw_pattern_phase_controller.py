@@ -9,10 +9,6 @@ import os, locale
 import logging
 logger = logging.getLogger(__name__)
 
-import gi
-gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk
-
 from mvc.adapters.gtk_support.dialogs.dialog_factory import DialogFactory
 from mvc.adapters.gtk_support.tree_view_adapters import wrap_xydata_to_treemodel, \
     wrap_list_property_to_treemodel
@@ -57,15 +53,15 @@ class EditRawPatternPhaseController(TreeViewMixin, BaseController):
 
         setup_treeview(widget, store,
             on_cursor_changed=self.on_raw_pattern_tv_cursor_changed,
-            sel_mode=Gtk.SelectionMode.MULTIPLE)
+            sel_mode='MULTIPLE')
         # X Column:
         widget.append_column(new_text_column(
-            u'°2θ', text_col=store.c_x, editable=True,
+            '°2θ', text_col=store.c_x, editable=True,
             edited_callback=(self.on_xy_data_cell_edited, (self.model.raw_pattern, 0)),
             resizable=True, expand=True))
         # Y Column:
         widget.append_column(new_text_column(
-            u'Intensity', text_col=store.c_y, editable=True,
+            'Intensity', text_col=store.c_y, editable=True,
             edited_callback=(self.on_xy_data_cell_edited, (self.model.raw_pattern, 1)),
             resizable=True, expand=True))
 

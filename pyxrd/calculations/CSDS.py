@@ -8,7 +8,7 @@
 import numpy as np
 from math import sqrt, log
 
-from pyxrd.generic.custom_math import lognormal
+from .math_tools import lognormal
 
 def calculate_distribution(CSDS):
     r"""
@@ -38,7 +38,7 @@ def calculate_distribution(CSDS):
 
     TQarr = np.zeros(shape=(maxT + 1,), dtype=float)
     Rmean = 0
-    for T, q in TQDistr.iteritems():
+    for T, q in TQDistr.items():
         TQarr[T] = q / smq
         Rmean += T * q
     Rmean /= smq

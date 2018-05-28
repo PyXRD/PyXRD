@@ -99,7 +99,7 @@ class PatternActionController(DialogController):
         try:
             action = getattr(self.model, self.model_action_method)
         except AttributeError:
-            raise ValueError, "Subclasses of PatternActionController should specify a valid action method name (was '%s')!" % self.model_action_method
+            raise ValueError("Subclasses of PatternActionController should specify a valid action method name (was '%s')!" % self.model_action_method)
         else:
             action()
         return super(PatternActionController, self).on_btn_ok_clicked(event)

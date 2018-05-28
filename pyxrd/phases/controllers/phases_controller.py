@@ -10,15 +10,10 @@ from contextlib import contextmanager
 import logging
 logger = logging.getLogger(__name__)
 
-import gi
-gi.require_version('Gtk', '3.0')
-from gi.repository import GdkPixbuf
-
 from mvc import Model
 from mvc.adapters.gtk_support.dialogs.dialog_factory import DialogFactory
 
-from pyxrd.generic.gtk_tools.utils import convert_string_to_gdk_color_int
-from pyxrd.generic.views.treeview_tools import new_pb_column
+from pyxrd.generic.views.treeview_tools import new_text_column
 from pyxrd.generic.controllers import ObjectListStoreController
 from pyxrd.generic.utils import not_none
 
@@ -66,24 +61,19 @@ class PhasesController(ObjectListStoreController):
         self.model.load_phases(filename, parser=parser, insert_index=index)
 
     def setup_treeview_col_c_display_color(self, treeview, name, col_descr, col_index, tv_col_nr):
-        def set_pb(column, cell_renderer, tree_model, iter, col_index):  # @ReservedAssignment
+        def set_background(column, cell_renderer, tree_model, iter, col_index):
             try:
                 color = tree_model.get_value(iter, col_index)
             except TypeError:
                 pass  # invalid iter
             else:
-                color = convert_string_to_gdk_color_int(color)
-                phase = tree_model.get_user_data(iter)
-                pb, old_color = getattr(phase, "__col_c_pb", (None, None))
-                if old_color != color:
-                    pb = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, True, 8, 10, 20)  # @UndefinedVariable
-                    pb.fill(color)
-                    setattr(phase, "__col_c_pb", (color, pb))
-                cell_renderer.set_property('pixbuf', pb)
+                cell_renderer.set_property('background', color)
+                cell_renderer.set_property('text', "")
 
-        treeview.append_column(new_pb_column(
+        treeview.append_column(new_text_column(
             name,
-            data_func=(set_pb, (col_index,)),
+            data_func=(set_background, (col_index,)),
+            text_col=col_index,
             resizable=False,
             expand=False))
 

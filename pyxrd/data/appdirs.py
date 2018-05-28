@@ -380,7 +380,7 @@ def _get_win_folder_from_registry(csidl_name):
     registry for this guarantees us the correct answer for all CSIDL_*
     names.
     """
-    import _winreg
+    import winreg
 
     shell_folder_name = {
         "CSIDL_APPDATA": "AppData",
@@ -388,9 +388,9 @@ def _get_win_folder_from_registry(csidl_name):
         "CSIDL_LOCAL_APPDATA": "Local AppData",
     }[csidl_name]
 
-    key = _winreg.OpenKey(_winreg.HKEY_CURRENT_USER,  # @UndefinedVariable
+    key = winreg.OpenKey(winreg.HKEY_CURRENT_USER,  # @UndefinedVariable
         r"Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders")
-    dir, _ = _winreg.QueryValueEx(key, shell_folder_name)  # @UndefinedVariable
+    dir, _ = winreg.QueryValueEx(key, shell_folder_name)  # @UndefinedVariable
     return dir
 
 def _get_win_folder_with_pywin32(csidl_name):
@@ -471,14 +471,14 @@ if __name__ == "__main__":
     print("-- app dirs (with optional 'version')")
     dirs = AppDirs(appname, appauthor, version="1.0")
     for prop in props:
-        print("%s: %s" % (prop, getattr(dirs, prop)))
+        print(("%s: %s" % (prop, getattr(dirs, prop))))
 
     print("\n-- app dirs (without optional 'version')")
     dirs = AppDirs(appname, appauthor)
     for prop in props:
-        print("%s: %s" % (prop, getattr(dirs, prop)))
+        print(("%s: %s" % (prop, getattr(dirs, prop))))
 
     print("\n-- app dirs (without optional 'appauthor')")
     dirs = AppDirs(appname)
     for prop in props:
-        print("%s: %s" % (prop, getattr(dirs, prop)))
+        print(("%s: %s" % (prop, getattr(dirs, prop))))

@@ -19,7 +19,7 @@
 # - removed the gtkcompat import statement
 
 import inspect, linecache, pydoc, sys, traceback
-from cStringIO import StringIO
+from io import StringIO
 from gettext import gettext as _
 
 import gi
@@ -107,7 +107,7 @@ class GtkExceptionHook():
             args, varargs, varkw, lcls = inspect.getargvalues (frame)
 
             def readline (lno=[lineno], *args):
-                if args: print args
+                if args: print(args)
                 try: return linecache.getline (fname, lno[0])
                 finally: lno[0] += 1
             all, prev, name, scope = {}, None, '', None
@@ -145,7 +145,7 @@ class GtkExceptionHook():
             trace.write (funcname + details + '\n')
             if context is None:
                 context = ['<source context missing>\n']
-            trace.write (''.join (['    ' + x.replace ('\t', '  ') for x in filter (lambda a: a.strip(), context)]))
+            trace.write (''.join (['    ' + x.replace ('\t', '  ') for x in [a for a in context if a.strip()]]))
             if len (all):
                 trace.write ('  variables: %s\n' % str (all))
 

@@ -1,11 +1,10 @@
 # coding=UTF-8
 # ex:ts=4:sw=4:et=on
-
 # Copyright (c) 2013, Mathijs Dumon
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from mvc.support.idle_call import IdleCallHandler
+from mvc.support.gui_loop import add_idle_call
 
 class FloatEntryValidator:
     def __init__(self, entry):
@@ -23,7 +22,7 @@ class FloatEntryValidator:
         try:
             self.last_valid_val = float(text)
             self.has_valid_val = True
-        except StandardError, e:
+        except Exception as e:
             self.has_valid_val = False
         if reset_if_invalid and not self.has_valid_val:
             self.entry.handler_block(self.insert_handlerid)
@@ -52,7 +51,7 @@ class FloatEntryValidator:
         if self.has_valid_val:
             new_text = text
             self.entry.set_text(new_text)
-            IdleCallHandler.call_idle(lambda: self.entry.set_position(pos + (len(new_text) - len(old_text))))
+            add_idle_call(lambda: self.entry.set_position(pos + (len(new_text) - len(old_text))))
         #while Gtk.events_pending():
         #    Gtk.main_iteration(False)
         self.entry.handler_unblock(self.insert_handlerid)        

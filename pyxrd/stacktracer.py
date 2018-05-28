@@ -21,7 +21,7 @@ from pygments.formatters import HtmlFormatter  # @UnresolvedImport
 
 def stacktraces():
     code = []
-    for threadId, stack in sys._current_frames().items():
+    for threadId, stack in list(sys._current_frames().items()):
         code.append("\n# ThreadID: %s" % threadId)
         for filename, lineno, name, line in traceback.extract_stack(stack):
             code.append('File: "%s", line %d, in %s' % (filename, lineno, name))
@@ -77,7 +77,7 @@ class TraceDumper(threading.Thread):
             pass
 
     def stacktraces(self):
-        fout = file(self.fpath, "wb+")
+        fout = open(self.fpath, "w+")
         try:
             fout.write(stacktraces())
         finally:

@@ -31,7 +31,7 @@ class ClickCatcher():
     def _on_pick(self, event):
         if event.artist is not None:
             callback, args = self._artists.get(event.artist, None)
-            print callback, args
+            print(callback, args)
             callback(*args)
             
         """if isinstance(event.artist, Line2D):

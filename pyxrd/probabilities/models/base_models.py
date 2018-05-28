@@ -20,10 +20,9 @@ from pyxrd.generic.models.properties import IndexProperty
 from pyxrd.refinement.refinables.mixins import RefinementGroup
 from pyxrd.refinement.refinables.metaclasses import PyXRDRefinableMeta
 
-class _AbstractProbability(RefinementGroup, DataModel, Storable):
+class _AbstractProbability(RefinementGroup, DataModel, Storable, metaclass=PyXRDRefinableMeta):
 
     # MODEL INTEL:
-    __metaclass__ = PyXRDRefinableMeta
     class Meta(DataModel.Meta):
         pass
 
@@ -148,13 +147,13 @@ class _AbstractProbability(RefinementGroup, DataModel, Storable):
 
         for num in range(1, self.R):
             # W matrices:
-            for base in product(range(self.G), repeat=num):
+            for base in product(list(range(self.G)), repeat=num):
                 self.mW[base] = 0
                 for i in range(self.G):
                     self.mW[base] += self.mW[(i,) + base]
             # P matrices:
             p_num = num + 1
-            for base in product(range(self.G), repeat=p_num):
+            for base in product(list(range(self.G)), repeat=p_num):
                 W = self.mW[base[:-1]]
                 self.mP[base] = self.mW[base] / W if W > 0 else 0.0
 

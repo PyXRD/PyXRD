@@ -104,12 +104,12 @@ class RefineHistory(object):
     # ------------------------------------------------------------    
     def set_initial_solution(self, solution, residual):
         if self._closed:
-            raise RuntimeError, "Cannot change a closed refinement history!"
+            raise RuntimeError("Cannot change a closed refinement history!")
         self.register_solution(self.INITIAL_ITERATION_INDEX, solution, residual)
         
     def register_solution(self, iteration, solution, residual):
         if self._closed:
-            raise RuntimeError, "Cannot change a closed refinement history!"
+            raise RuntimeError("Cannot change a closed refinement history!")
         sample = [iteration,]+list(solution)+[residual,]
         self.samples.append(sample)
         if iteration > self.LAST_ITERATION_INDEX:
@@ -117,7 +117,7 @@ class RefineHistory(object):
             
     def get_residual_per_iteration(self):
         if not self._closed:
-            raise RuntimeError, "Cannot perform analysis on an open refinement history"
+            raise RuntimeError("Cannot perform analysis on an open refinement history")
         return self.samples[:,[self.ITERATION_INDEX,self.RESIDUAL_INDEX]].tolist()
         
     pass #end of class

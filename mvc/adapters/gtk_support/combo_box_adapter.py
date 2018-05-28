@@ -22,7 +22,6 @@
 #  Boston, MA 02110, USA.
 #  -------------------------------------------------------------------------
 
-import types
 import logging
 logger = logging.getLogger(__name__)
 
@@ -52,11 +51,11 @@ class ComboBoxAdapter(GtkAdapter):
     def _parse_prop(self, prop, model):
         """Parses (optional) prop strings for the given model"""
         prop, model = super(ComboBoxAdapter, self)._parse_prop(prop, model)
-        if not isinstance(prop.choices, types.DictionaryType):
-            raise ValueError, "ComboBox widget handler requires a property with a 'choices' dictionary!"
+        if not isinstance(prop.choices, dict):
+            raise ValueError("ComboBox widget handler requires a property with a 'choices' dictionary!")
         else:
             self._store = Gtk.ListStore(str, str)
-            for key, value in prop.choices.iteritems():
+            for key, value in prop.choices.items():
                 self._store.append([str(key), str(value)])
         return prop, model
 

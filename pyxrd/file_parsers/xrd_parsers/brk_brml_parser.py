@@ -34,7 +34,7 @@ class BrkBRMLParser(XRDParserMixin, XMLParserMixin, BaseParser):
             Returns a three-tuple:
             filename, zipfile-object, close
         """
-        if isinstance(fp, types.StringType):
+        if isinstance(fp, str):
             return fp, ZipFile(fp, cls.__file_mode__), True if close is None else close
         else:
             return getattr(fp, 'name', None), ZipFile(fp, cls.__file_mode__), False if close is None else close
@@ -231,8 +231,6 @@ class BrkBRMLParser(XRDParserMixin, XMLParserMixin, BaseParser):
                                             # Append point and increase count:
                                             data.append([twotheta, intensity])
                                             twotheta_count += 1
-    
-                                print "Parsing raw_data_filename:", raw_data_filename, isScan, len(data)
     
                                 #Update header:
                                 data_object.update(

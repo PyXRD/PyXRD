@@ -52,13 +52,13 @@ class DictObserver(Observer):
             elif len(info.kwargs) > 0:
                 iterable = info.kwargs
             if hasattr(iterable, "iteritems"):
-                iterable = iterable.iteritems()
+                iterable = iter(iterable.items())
             for key, value in iterable: # @UnusedVariable
                 if key in info.instance:
                     self._deleted.append(info.instance[key])
 
         if info.method_name == "clear":
-            self._deleted.extend(info.instances.values())
+            self._deleted.extend(list(info.instances.values()))
 
     def on_prop_mutation_after(self, model, prop_name, info):
 

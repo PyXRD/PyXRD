@@ -22,7 +22,7 @@ from pyxrd.refinement.refine_method import RefineMethod
 from pyxrd.refinement.refine_method_option import RefineMethodOption
 from pyxrd.refinement.refine_async_helper import RefineAsyncHelper
 
-from deap_utils import pyxrd_array, PyXRDParetoFront, FitnessMin, result_func
+from .deap_utils import pyxrd_array, PyXRDParetoFront, FitnessMin, result_func
 
 # Default settings:
 NGEN = 100
@@ -293,7 +293,7 @@ class Algorithm(RefineAsyncHelper):
         if self.verbose:
             column_names = ["gen", "evals", "best"]
             if self.stats is not None:
-                column_names += self.stats.functions.keys()
+                column_names += list(self.stats.functions.keys())
             self.logbook = tools.Logbook()
             self.logbook.header = column_names
 
@@ -331,9 +331,9 @@ class Algorithm(RefineAsyncHelper):
             std, best = self.logbook.select("std", "best")
             std = np.array(std)[:, 0]
             yvals1 = std[-(self.stagn_ngen - 1):]
-            xvals1 = range(len(yvals1))
+            xvals1 = list(range(len(yvals1)))
             yvals2 = best[-(self.stagn_ngen - 1):]
-            xvals2 = range(len(yvals2))
+            xvals2 = list(range(len(yvals2)))
             return self._is_flat(yvals1, xvals1, self.stagn_tol) and \
                 self._is_flat(yvals2, xvals2, self.stagn_tol)
         else:
@@ -375,7 +375,7 @@ class Algorithm(RefineAsyncHelper):
         record = self.stats.compile(population)
         if self.verbose:
             self.logbook.record(gen=self.gen, evals=pop_size, best=best_f, **record)
-            print self.logbook.stream
+            print(self.logbook.stream)
 
         self.refiner.status.message = "Refiner update ..."
         # Update the refiner:

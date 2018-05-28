@@ -1,3 +1,5 @@
+#!/usr/bin/env python2
+
 import fileinput
 from subprocess import check_call
 from pyxrd import __version__

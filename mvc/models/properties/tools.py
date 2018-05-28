@@ -31,6 +31,6 @@ def modify(descriptor, **kwargs):
         without changing the behavior of the superclass.
     """
     new_descriptor = deepcopy(descriptor)
-    for name, value in kwargs.iteritems():
+    for name, value in kwargs.items():
         setattr(new_descriptor, name, value)
     return new_descriptor

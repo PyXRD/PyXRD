@@ -9,11 +9,8 @@ import numpy as np
 from math import radians, tan
 from scipy.interpolate.interpolate import interp1d
 
-from pyxrd.calculations.goniometer import (
-    get_fixed_to_ads_correction_range,
-    
-)
-from pyxrd.calculations.phases import get_intensity
+from .goniometer import get_fixed_to_ads_correction_range
+from .phases import get_intensity
 
 
 def get_clipped_intensities(specimen):

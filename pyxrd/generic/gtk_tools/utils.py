@@ -17,3 +17,10 @@ def convert_string_to_gdk_color_int(color):
     color = Gdk.color_parse(color) # @UndefinedVariable
     return (int(color.red_float * 255) << 24) + (int(color.green_float * 255) << 16) + (int(color.blue_float * 255) << 8) + 255
 
+def get_color_pb(color, width, height):
+    """
+        Gets a Gdk.Pixbuf filled with color (str)
+    """
+    pb = GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, True, 8, width, height)  # @UndefinedVariable
+    pb.fill(convert_string_to_gdk_color_int(color))
+    return pb

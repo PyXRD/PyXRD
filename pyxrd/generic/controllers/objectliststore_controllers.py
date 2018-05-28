@@ -76,9 +76,9 @@ class TreeViewMixin(object):
         if selection.count_selected_rows() >= 1:
             model, paths = selection.get_selected_rows()
             if hasattr(model, "get_tree_node_object_from_path"):
-                return map(model.get_tree_node_object_from_path, paths)    
+                return list(map(model.get_tree_node_object_from_path, paths))    
             else:
-                return map(model.get_user_data_from_path, paths)
+                return list(map(model.get_user_data_from_path, paths))
         return None
 
     def get_selected_paths(self, tv):
@@ -162,7 +162,7 @@ class TreeControllerMixin(TreeViewMixin, TreeModelMixin):
             for obj_tp, view_tp, ctrl_tp in self.obj_type_map: # @UnusedVariable
                 if isinstance(obj, obj_tp):
                     return view_tp(parent=self.view)
-            raise NotImplementedError, ("Unsupported object type %s; subclasses of"
+            raise NotImplementedError("Unsupported object type %s; subclasses of"
                 " TreeControllerMixin need to define an obj_type_map attribute!" % obj)
 
     def get_new_edit_controller(self, obj, view, parent=None):
@@ -177,7 +177,7 @@ class TreeControllerMixin(TreeViewMixin, TreeModelMixin):
             for obj_tp, view_tp, ctrl_tp in self.obj_type_map: # @UnusedVariable
                 if isinstance(obj, obj_tp):
                     return ctrl_tp(model=obj, view=view, parent=parent)
-            raise NotImplementedError, ("Unsupported object type; subclasses of"
+            raise NotImplementedError("Unsupported object type; subclasses of"
                 " TreeControllerMixin need to define an obj_type_map attribute!")
 
     def edit_object(self, obj):
@@ -209,7 +209,7 @@ class TreeControllerMixin(TreeViewMixin, TreeModelMixin):
                 
             The method should return True upon success or False otherwise.
         """
-        sel_mode = Gtk.SelectionMode.MULTIPLE if self.multi_selection else Gtk.SelectionMode.SINGLE # @UndefinedVariable
+        sel_mode = 'MULTIPLE' if self.multi_selection else 'SINGLE' # @UndefinedVariable
         setup_treeview(
             tv, self.treemodel,
             sel_mode=sel_mode,
@@ -415,7 +415,7 @@ class InlineObjectListStoreController(BaseController, TreeControllerMixin):
         vw.present()
 
 
-    def _setup_combo_type(self, combo):
+    def _setup_combo_type(self, combo): # TODO this is view-related!
         if self.add_types:
             store = Gtk.ListStore(str, object, object, object) # @UndefinedVariable
             for name, type, view, ctrl in self.add_types: # @ReservedAssignment

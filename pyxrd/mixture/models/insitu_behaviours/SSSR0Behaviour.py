@@ -85,13 +85,14 @@ class SSSR0Behaviour(InSituBehaviour):
         distr = scipy.stats.norm(mean, stdev)
         return distr
 
-    def get_layer_type_distribution(self, distr, (B0to1, B1to2, B2to0)):
+    def get_layer_type_distribution(self, distr, boundaries):
         """
             Returns a 3-tuple with the % of layers having:
             0 layers of water
             1 layers of water
             2 layers of water
         """
+        (B0to1, B1to2, B2to0) = boundaries
         cdfB0to1 = distr.cdf(B0to1) # Get # layers with B0to1 or smaller layer charge 
         cdfB1to2 = distr.cdf(B1to2) # Get # layers with B1to2 or smaller layer charge
         cdfB2to0 = distr.cdf(B2to0) # Get # layers with B2to0 or smaller layer charge
@@ -119,22 +120,22 @@ class SSSR0Behaviour(InSituBehaviour):
 
         RH = RH / 100.
         
-        print "Applying SSSR0Behaviour to %s" % phase, "For RH: %.2f" % RH
+        print("Applying SSSR0Behaviour to %s" % phase, "For RH: %.2f" % RH)
 
         # Get layer charge coundaries for the given relative humidity
         boundaries = self.get_layer_type_boundaries(RH)
         
-        print " boundaries:", boundaries
+        print(" boundaries:", boundaries)
 
         # Get the layer charge distribution for the given phase
         lc_distr = self.get_layer_charge_distribution(self.layer_charge_mean, self.layer_charge_stdev)
-        print " lc_distr:", lc_distr
+        print(" lc_distr:", lc_distr)
         
         # Calculate the layer type distribution for the calculated boundaries and distribution
         W0, W1, W2 = self.get_layer_type_distribution(lc_distr, boundaries)
-        print " W0:", W0
-        print " W1:", W1
-        print " W2:", W2
+        print(" W0:", W0)
+        print(" W1:", W1)
+        print(" W2:", W2)
         
         # Set probability model factors:
         phase.probabilities.F0 = W2

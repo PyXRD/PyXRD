@@ -85,7 +85,9 @@ class PyXRDDecoder(json.JSONDecoder):
     ###########################################################################
     @classmethod
     def decode_file(cls, f, mapper, parent=None):
-        return json.load(f, cls=PyXRDDecoder, mapper=mapper, parent=parent)
+        data = f.read()
+        data = data.decode("utf-8") if isinstance(data, bytes) else data 
+        return json.loads(data, cls=PyXRDDecoder, mapper=mapper, parent=parent)
 
     @classmethod
     def decode_string(cls, string, mapper, parent=None):

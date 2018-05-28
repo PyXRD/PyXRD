@@ -62,7 +62,7 @@ class ATLAtomTypeParser(CSVBaseParser):
             data_objects = cls._adapt_data_object_list(data_objects, num_samples=line_count)
     
             # Fill in header info:
-            for i in xrange(line_count):
+            for i in range(line_count):
                 data_objects[i].update(
                     filename=basename,
                     header=header

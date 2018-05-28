@@ -21,10 +21,9 @@ from pyxrd.file_parsers.xrd_parsers import xrd_parsers
 from .abstract_phase import AbstractPhase
 
 @storables.register()
-class RawPatternPhase(RefinementGroup, AbstractPhase):
+class RawPatternPhase(RefinementGroup, AbstractPhase, metaclass=PyXRDRefinableMeta):
 
     # MODEL INTEL:
-    __metaclass__ = PyXRDRefinableMeta
     class Meta(AbstractPhase.Meta):
         store_id = "RawPatternPhase"
         file_filters = [

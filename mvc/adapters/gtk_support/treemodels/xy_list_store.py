@@ -31,7 +31,7 @@ import gi
 gi.require_version('Gtk', '3.0')  # @UndefinedVariable
 from gi.repository import Gtk, GLib, GObject  # @UnresolvedImport
 
-from base_models import BaseObjectListStore
+from .base_models import BaseObjectListStore
 
 class PointMeta():
     @classmethod
@@ -107,18 +107,18 @@ class XYListStore(BaseObjectListStore, Observer):
         #    for the lost elements, if longer emit insert signals
         row_diff = len(self._data) - self._last_length
         if row_diff > 0:
-            for i in xrange(self._last_length, self._last_length + row_diff, 1):
+            for i in range(self._last_length, self._last_length + row_diff, 1):
                 path = self.on_get_path(i)
                 itr = self.get_iter(path)
                 self.row_inserted(path, itr)
         elif row_diff < 0:
-            for i in xrange(self._last_length, self._last_length + row_diff - 1, -1):
+            for i in range(self._last_length, self._last_length + row_diff - 1, -1):
                 path = self.on_get_path(i)
                 self.row_deleted(path)
         self._last_length = len(self._data)
 
         # 3. Emit row-changed signals for all other rows:
-        for i in xrange(0, len(self._data)):
+        for i in range(0, len(self._data)):
             path = self.on_get_path(i)
             itr = self.get_iter(path)
             self.row_changed(path, itr)
@@ -130,15 +130,17 @@ class XYListStore(BaseObjectListStore, Observer):
         return Gtk.TreeModelFlags.LIST_ONLY
 
     def on_get_iter(self, path): # returns a rowref, they're actually just paths
-
-        if not path in self._cache:
+        if hasattr(path, "get_indices"):
+            path = path.get_indices()
+        sp = ":".join(map(lambda i: "%d" % i, path))
+        if not sp in self._cache:
             try:
                 i = path[0]
                 if i >= 0 and i < len(self):
-                    self._cache[path] = [i, ]
+                    self._cache[sp] = [i, ]
             except IndexError:
                 pass
-        return self._cache.get(path, None)
+        return self._cache.get(sp, None)
         self._schedule_flush()
         return
 

@@ -12,9 +12,10 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 
 from mvc.adapters.gtk_support.widgets import ScaleEntry
+from mvc.support.utils import rec_getattr
+
 from pyxrd.generic.views import BaseView, HasChildView
 from pyxrd.probabilities.models import RGbounds
-from pyxrd.generic.utils import rec_getattr
 
 def get_correct_probability_views(probability, parent_view):
     """
@@ -28,7 +29,7 @@ def get_correct_probability_views(probability, parent_view):
         if (RGbounds[R, G - 1] > 0):
             return IndependentsView(meta=probability.Meta, parent=parent_view), MatrixView(R=R, G=G, rank=rank, parent=parent_view)
         else:
-            raise ValueError, "Cannot (yet) handle R%d for %d layer structures!" % (R, G)
+            raise ValueError("Cannot (yet) handle R%d for %d layer structures!" % (R, G))
 
 class EditProbabilitiesView(HasChildView, BaseView):
     """
@@ -108,11 +109,11 @@ class IndependentsView(HasChildView, ProbabilityViewMixin, BaseView):
                 if prop.inheritable is not None:
                     inh_prop = all_props.get(prop.inherit_flag, None)
                     if inh_prop is None:
-                        raise ValueError, "The inherit flag property `%s` is missing for `%s` on meta model with store id `%s`" % (
+                        raise ValueError("The inherit flag property `%s` is missing for `%s` on meta model with store id `%s`" % (
                             prop.inherit_flag,
                             prop.label,
                             meta.store_id
-                        )
+                        ))
 
                     new_check = Gtk.CheckButton(label="")
                     new_check.set_tooltip_text(inh_prop.title)
@@ -127,9 +128,9 @@ class IndependentsView(HasChildView, ProbabilityViewMixin, BaseView):
             return input_widgets, check_widgets
         self.i_box = self['i_box']
 
-        num_rows = (N + 1) / 2
+        num_rows = int((N + 1) / 2)
         if not num_rows == 0:
-            self.i_table = Gtk.Table((N + 1) / 2, 4, False)
+            self.i_table = Gtk.Table(num_rows, 4, False)
             self.i_inputs, self.i_checks = create_inputs(self.i_table)
         else:
             self.i_inputs, self.i_checks = [], []

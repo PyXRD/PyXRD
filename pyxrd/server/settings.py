@@ -2,6 +2,7 @@
 import Pyro4
 Pyro4.config.SERIALIZERS_ACCEPTED = ["json", "marshal", "serpent", "pickle"]
 Pyro4.config.SERIALIZER = "pickle"
+Pyro4.config.PICKLE_PROTOCOL_VERSION = 3
 Pyro4.config.COMPRESSION = True
 Pyro4.config.SERVERTYPE = "multiplex"
 Pyro4.config.COMMTIMEOUT = 3.5

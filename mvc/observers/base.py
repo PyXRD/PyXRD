@@ -378,7 +378,7 @@ class Observer (object):
         for cls in inspect.getmro(type(self)):
             # list of (method-name, method-object, list of (prop-name, kwargs))
             meths = [ (name, meth, getattr(meth, Observer._CUST_OBS_))
-                      for name, meth in cls.__dict__.iteritems()
+                      for name, meth in cls.__dict__.items()
                       if (inspect.isfunction(meth) and
                           hasattr(meth, Observer._CUST_OBS_)) ]
 
@@ -502,7 +502,7 @@ class Observer (object):
                                   method.__name__, prop_name))
 
         # fills the internal structures
-        if not self.__CUST_OBS_MAP.has_key(prop_name):
+        if prop_name not in self.__CUST_OBS_MAP:
             self.__CUST_OBS_MAP[prop_name] = set()
             pass
         self.__CUST_OBS_MAP[prop_name].add(method)

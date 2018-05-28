@@ -31,7 +31,7 @@ class _DummyObject(object):
 
     def __init__(self, *args, **kwargs):
         super(_DummyObject, self).__init__()
-        for key, val in kwargs.iteritems():
+        for key, val in kwargs.items():
             setattr(self, key, val)
 
     pass # end of class

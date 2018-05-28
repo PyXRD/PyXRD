@@ -33,7 +33,6 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 Builder = Gtk.Builder
 
-import types
 # ----------------------------------------------------------------------
 
 class View (object):
@@ -50,8 +49,7 @@ class View (object):
 
         *builder* is a path to a Glade XML file.
 
-        *top* is a string or a list of strings containing the names of our top
-        level widgets.
+        *top* is a string containing the name of our top level widget.
 
         *parent* is used to call :meth:`set_parent_view`.
 
@@ -64,11 +62,8 @@ class View (object):
         self.autoWidgets = {}
         self.__autoWidgets_calculated = False
 
-        if top: _top = top
-        else: _top = self.top
-        if type(_top) == types.StringType or _top is None:
-            wids = (_top,)
-        else: wids = _top  # Already a list or tuple
+        if top: self._top = top
+        else: self._top = self.top
 
         # retrieves objects from builder if available
         if builder: _builder = builder
@@ -85,16 +80,6 @@ class View (object):
             pass
         else: self._builder = None # no gtk builder
 
-        # top widget list or singleton:
-        if _top is not None:
-            if len(wids) > 1:
-                self.m_topWidget = []
-                for i in range(0, len(wids)):
-                    self.m_topWidget.append(self[wids[i]])
-                    pass
-            else: self.m_topWidget = self[wids[0]]
-        else:  self.m_topWidget = None
-
         if parent is not None: self.set_parent_view(parent)
 
         return
@@ -110,13 +95,13 @@ class View (object):
         wid = None
 
         # first try with manually-added widgets:
-        if self.manualWidgets.has_key(key):
+        if key in self.manualWidgets:
             wid = self.manualWidgets[key]
             pass
 
         if wid is None:
             # then try with glade and builder, starting from memoized
-            if self.autoWidgets.has_key(key): wid = self.autoWidgets[key]
+            if key in self.autoWidgets: wid = self.autoWidgets[key]
             else:
                 # try with Gtk.builder
                 if wid is None and self._builder is not None:
@@ -138,7 +123,6 @@ class View (object):
         If no top widget is known, this sets it.
         """
         self.manualWidgets[key] = wid
-        if (self.m_topWidget is None): self.m_topWidget = wid
         return
 
     def show(self):
@@ -147,7 +131,7 @@ class View (object):
         Otherwise does nothing.
         """
         top = self.get_top_widget()
-        if type(top) in (types.ListType, types.TupleType):
+        if type(top) in (list, tuple):
             for t in top:
                 if t is not None: t.show()
                 pass
@@ -160,7 +144,7 @@ class View (object):
         Call `hide()` on all known top widgets.
         """
         top = self.get_top_widget()
-        if type(top) in (types.ListType, types.TupleType):
+        if type(top) in (list, tuple):
             for t in top:
                 if t is not None: t.hide()
                 pass
@@ -168,10 +152,7 @@ class View (object):
         return
 
     def get_top_widget(self):
-        """
-        Return a widget or list of widgets.
-        """
-        return self.m_topWidget
+        return self[self._top]
 
     def set_parent_view(self, parent_view):
         """
@@ -179,7 +160,7 @@ class View (object):
         ``parent_view.get_top_widget()``.
         """
         top = self.get_top_widget()
-        if type(top) in (types.ListType, types.TupleType):
+        if type(top) in (list, tuple):
             for t in top:
                 if t is not None and hasattr(t, "set_transient_for"):
                     t.set_transient_for(parent_view.get_top_widget())
@@ -197,7 +178,7 @@ class View (object):
         ``self.``:meth:`get_top_widget`.
         """
         top = self.get_top_widget()
-        if type(top) in (types.ListType, types.TupleType):
+        if type(top) in (list, tuple):
             for t in top:
                 if t is not None:
                     transient_view.get_top_widget().set_transient_for(t)

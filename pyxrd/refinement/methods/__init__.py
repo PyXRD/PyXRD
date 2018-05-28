@@ -10,13 +10,12 @@ import sys
 import importlib, pkgutil
 
 from imp import find_module
-from types import ModuleType, ClassType
 
 import logging
 logger = logging.getLogger(__name__)
 
 """
-    This scans the module for submudules and imports them. This will
+    This scans the module for submodules and imports them. This will
     trigger the registration of any refinement method classes 
     (i.e. RefineRun subclasses).
     
@@ -50,6 +49,6 @@ def import_submodules(package_name):
             traceback.print_tb(tb)
     return modules
 
-__all__ = import_submodules(__name__).keys()
+__all__ = list(import_submodules(__name__).keys())
 
 

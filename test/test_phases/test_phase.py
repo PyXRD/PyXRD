@@ -64,9 +64,9 @@ class TestPhase(unittest.TestCase):
     test_inherit_probabilities = create_object_attribute_test("phase", "inherit_probabilities", True)
 
     def test_import_export(self):
-        import cStringIO
+        from io import BytesIO
         phases = [Phase(R=0, G=1), Phase(R=1, G=2)]
-        fn = cStringIO.StringIO()
+        fn = BytesIO()
         Phase.save_phases(phases, filename=fn)
         loaded_phases = list(JSONPhaseParser.parse(fn))
 

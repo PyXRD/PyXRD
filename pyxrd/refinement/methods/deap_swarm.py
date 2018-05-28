@@ -28,7 +28,7 @@ from pyxrd.refinement.refine_async_helper import RefineAsyncHelper
 
 from deap import base, creator, tools #@UnresolvedImport
 
-from deap_utils import pyxrd_array, PyXRDParetoFront, FitnessMin, result_func
+from .deap_utils import pyxrd_array, PyXRDParetoFront, FitnessMin, result_func
 
 # Default settings:
 NGEN = 100
@@ -42,7 +42,7 @@ class MultiPSOStrategy(object):
     def generate_particle(self, pclass, dim, pmin, pmax, smin, smax):
         """ Generate a particle """
         part = pclass(random.uniform(pmin[i], pmax[i]) for i in range(dim))
-        part.speed = np.array([random.uniform(smin[i], smax[i]) for i in xrange(dim)])
+        part.speed = np.array([random.uniform(smin[i], smax[i]) for i in range(dim)])
         return part
 
     def update_particle(self, part, best, chi, c):
@@ -82,13 +82,13 @@ class MultiPSOStrategy(object):
 
     def generate_particles(self, func, n):
         """ Returns a particle generator """
-        for _ in xrange(n):
+        for _ in range(n):
             yield func()
 
     def update_swarm(self, swarm, part):
         """ Update swarm's attractors personal best and global best """
         if not part.fitness.valid:
-            raise RuntimeError, "Particles need to have a valid fitness before calling update_swarm!"
+            raise RuntimeError("Particles need to have a valid fitness before calling update_swarm!")
         if part.best == None or part.fitness > part.bestfit:
             part.best = creator.Particle(part)          # Get the position @UndefinedVariable
             part.bestfit.values = part.fitness.values   # Get the fitness
@@ -99,7 +99,7 @@ class MultiPSOStrategy(object):
     def give_reinit_swarms(self, population):
         """ Gives a set of swarm indeces that need to be reinitialized (overlap)"""
         reinit_swarms = set()
-        for s1, s2 in itertools.combinations(range(len(population)), 2):
+        for s1, s2 in itertools.combinations(list(range(len(population))), 2):
             # Swarms must have a best and not already be set to reinitialize
             if population[s1].best is not None and population[s2].best is not None and not (s1 in reinit_swarms or s2 in reinit_swarms):
                 # if t-test is True, then we reinit the worst of the two swarms
@@ -211,7 +211,7 @@ class MPSOAlgorithm(RefineAsyncHelper):
         """Will run this algorithm"""
         self._setup_logging()
         population = []
-        for _ in xrange(self.ngen):
+        for _ in range(self.ngen):
 
             # Check if the user has cancelled:
             if self._user_cancelled():
@@ -287,7 +287,7 @@ class MPSOAlgorithm(RefineAsyncHelper):
         if self.verbose:
             column_names = ["gen", "nswarm", "indiv"]
             if self.stats is not None:
-                column_names += self.stats.functions.keys()
+                column_names += list(self.stats.functions.keys())
             self.logbook = tools.Logbook()
             self.logbook.header = column_names
 
@@ -304,7 +304,7 @@ class MPSOAlgorithm(RefineAsyncHelper):
         record = self.stats.compile(pop)
         if self.verbose:
             self.logbook.record(gen=self.gen, nswarm=pop_size, indiv=len(pop), **record)
-            print self.logbook.stream
+            print(self.logbook.stream)
 
         # Update the context:
         self.refiner.update(best, iteration=self.gen, residual=best_f)

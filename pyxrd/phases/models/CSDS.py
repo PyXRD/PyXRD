@@ -22,10 +22,9 @@ from mvc.models.properties import (
 )
 from mvc.models.properties.signal_mixin import SignalMixin
 
-class _AbstractCSDSDistribution(DataModel, Storable):
+class _AbstractCSDSDistribution(DataModel, Storable, metaclass=PyXRDRefinableMeta):
 
     # MODEL INTEL:
-    __metaclass__ = PyXRDRefinableMeta
     class Meta(DataModel.Meta):
         description = "Abstract CSDS distr."
         explanation = ""

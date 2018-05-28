@@ -12,11 +12,17 @@ import numpy as np
 
 from pyxrd.generic.io.utils import get_case_insensitive_glob
 from pyxrd.generic.utils import u
-from pyxrd.generic.custom_math import capint as cap
 
 from ..base_parser import BaseParser
 from .namespace import xrd_parsers
 from .xrd_parser_mixin import XRDParserMixin
+
+
+def cap(lower, value, upper, out=None):
+    if value < lower or value > upper:
+        return out if out is not None else min(max(value, lower), upper)
+    else:
+        return value
 
 @xrd_parsers.register_parser()
 class RDParser(XRDParserMixin, BaseParser):
@@ -46,7 +52,7 @@ class RDParser(XRDParserMixin, BaseParser):
         f.seek(0, SEEK_SET)
 
         # Read file format version:
-        version = str(f.read(2))
+        version = f.read(2).decode()
 
         if version in ("V3", "V5"):
 
@@ -54,26 +60,26 @@ class RDParser(XRDParserMixin, BaseParser):
             f.seek(84, SEEK_SET)
             diffractomer_type, target_type, focus_type = struct.unpack("bbb", f.read(3))
             diffractomer_type = {
-                0: "PW1800",
-                1: "PW1710 based system",
-                2: "PW1840",
-                3: "PW3710 based system",
-                4: "Undefined",
-                5: "X'Pert MPD"
+                0: b"PW1800",
+                1: b"PW1710 based system",
+                2: b"PW1840",
+                3: b"PW3710 based system",
+                4: b"Undefined",
+                5: b"X'Pert MPD"
             }[cap(0, diffractomer_type, 5, 4)]
             target_type = {
-                0: "Cu",
-                1: "Mo",
-                2: "Fe",
-                3: "Cr",
-                4: "Other"
+                0: b"Cu",
+                1: b"Mo",
+                2: b"Fe",
+                3: b"Cr",
+                4: b"Other"
             }[cap(0, target_type, 3, 4)]
             focus_type = {
-                0: "BF",
-                1: "NF",
-                2: "FF",
-                3: "LFF",
-                4: "Unkown",
+                0: b"BF",
+                1: b"NF",
+                2: b"FF",
+                3: b"LFF",
+                4: b"Unkown",
             }[cap(0, focus_type, 3, 4)]
 
             # Read wavelength information:
@@ -81,7 +87,7 @@ class RDParser(XRDParserMixin, BaseParser):
             alpha1, alpha2, alpha_factor = struct.unpack("ddd", f.read(24))
             # Read sample name:
             f.seek(146, SEEK_SET)
-            sample_name = u(str(f.read(16)).replace("\0", ""))
+            sample_name = u(f.read(16).replace(b"\0", b""))
 
             # Read data limits:
             f.seek(214)
@@ -110,7 +116,7 @@ class RDParser(XRDParserMixin, BaseParser):
             )
 
         else:
-            raise IOError, "Only V3 and V5 *.RD files are supported!"
+            raise IOError("Only V3 and V5 *.RD files are supported!")
 
         if close: f.close()
         return data_objects
@@ -138,7 +144,7 @@ class RDParser(XRDParserMixin, BaseParser):
                     ])
                     n += 1
             else:
-                raise IOError, "Only V3 and V5 *.RD files are supported!"
+                raise IOError("Only V3 and V5 *.RD files are supported!")
 
         data_objects[0].data = np.array(data_objects[0].data)
 

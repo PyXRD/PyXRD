@@ -1078,6 +1078,8 @@
                     <property name="visible">True</property>
                     <property name="can_focus">False</property>
                     <property name="n_rows">2</property>
+                    <property name="column_spacing">1</property>
+                    <property name="row_spacing">1</property>
                     <child>
                       <object class="GtkLabel" id="lbl_output">
                         <property name="visible">True</property>
@@ -1094,13 +1096,32 @@
                       </packing>
                     </child>
                     <child>
-                      <object class="GtkViewport" id="matplotlib_box">
-                        <property name="width_request">600</property>
+                      <object class="GtkBox" id="box1">
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
+                        <property name="orientation">vertical</property>
                         <child>
-                          <placeholder/>
+                          <object class="GtkEventBox" id="matplotlib_box">
+                            <property name="width_request">600</property>
+                            <property name="visible">True</property>
+                            <property name="can_focus">False</property>
+                            <property name="margin_left">1</property>
+                            <property name="margin_right">1</property>
+                            <property name="margin_top">1</property>
+                            <property name="margin_bottom">1</property>
+                            <child>
+                              <placeholder/>
+                            </child>
+                          </object>
+                          <packing>
+                            <property name="expand">True</property>
+                            <property name="fill">True</property>
+                            <property name="position">0</property>
+                          </packing>
                         </child>
+                        <style>
+                          <class name="frame"/>
+                        </style>
                       </object>
                       <packing>
                         <property name="top_attach">1</property>
@@ -1207,7 +1228,7 @@
     <property name="type_hint">dialog</property>
     <property name="transient_for">main_window</property>
     <property name="program_name">PyXRD</property>
-    <property name="copyright" translatable="yes">Copyright 2013 - Mathijs Dumon</property>
+    <property name="copyright" translatable="yes">Copyright 2018 - Mathijs Dumon</property>
     <property name="website">http://users.ugent.be/~madumon/pyxrd/</property>
     <property name="website_label" translatable="yes">Online Manual</property>
     <property name="license" translatable="yes">Copyright (c) 2013, Mathijs Dumon
@@ -1233,10 +1254,7 @@ LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
 ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</property>
-    <property name="authors">Mathijs Dumon
-Gael Varoquaux (joblib)
-Johan Van Der Wauw</property>
-    <property name="logo_icon_name">image-missing</property>
+    <property name="authors">Mathijs Dumon</property>
     <child internal-child="vbox">
       <object class="GtkBox" id="aboutdialog-vbox1">
         <property name="can_focus">False</property>

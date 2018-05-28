@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 from traceback import print_exc
 
-import settings
+from . import settings
 import Pyro4
 
 if __name__ == "__main__":

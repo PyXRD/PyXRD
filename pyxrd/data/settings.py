@@ -5,9 +5,9 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-import argparse, os, sys
+import argparse, os
 from pyxrd.__version import __version__
-from appdirs import user_data_dir, user_log_dir
+from .appdirs import user_data_dir, user_log_dir
 
 ### General Information ###
 VERSION = __version__

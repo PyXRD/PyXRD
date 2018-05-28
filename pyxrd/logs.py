@@ -8,7 +8,9 @@
 # Complete license can be found in the LICENSE file.
 
 import os
+import queue
 import logging
+from logging.handlers import QueueHandler, QueueListener
 
 def setup_logging(basic=False, prefix=None):
     """
@@ -32,22 +34,32 @@ def setup_logging(basic=False, prefix=None):
         os.makedirs(os.path.dirname(log_file))
 
     if not basic:
-        logging.basicConfig(level=logging.DEBUG if debug else logging.INFO,
-                            format='%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
-                            datefmt='%m-%d %H:%M',
-                            filename=log_file,
-                            filemode='w')
+        # Setup file log:
+        file_handler = logging.FileHandler(log_file, 'w')
+        disk_fmt = logging.Formatter(
+            '%(asctime)s %(levelname)-8s %(name)-40s %(message)s',
+            datefmt='%m-%d %H:%M')
+        file_handler.setFormatter(disk_fmt)
 
-        # Get root logger:
-        logger = logging.getLogger()
-
-        # Setup error stream:
-        console = logging.StreamHandler()
+        # Setup console log:
+        log_handler = logging.StreamHandler()
         full = logging.Formatter(fmt)
-        console.setFormatter(full)
+        log_handler.setFormatter(full)
 
-        # Add console logger to the root logger:
-        logger.addHandler(console)
+        # Setup queue handler:
+        log_que = queue.Queue(-1)
+        queue_handler = QueueHandler(log_que)
+        queue_listener = QueueListener(log_que, file_handler, log_handler, respect_handler_level=True)
+        queue_listener.start()
+        
+        # Add queue handler:
+        logger = logging.getLogger('')
+        logger.setLevel(logging.DEBUG if debug else logging.INFO)
+        logger.addHandler(queue_handler)
     else:
         # Very basic output for the root object:
         logging.basicConfig(format=fmt)
+        logger = logging.getLogger('')
+        logger.addHandler(queue_handler)
+        
+    settings.FINALIZERS.append(queue_listener.stop)

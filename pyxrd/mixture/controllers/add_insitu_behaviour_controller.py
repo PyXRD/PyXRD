@@ -30,9 +30,9 @@ class AddInSituBehaviourController(DialogController):
 
     def generate_combo(self):
         cmb_model = Gtk.ListStore(str, object)
-        print "Adding rows from:", self.parent.obj_type_map
+        print("Adding rows from:", self.parent.obj_type_map)
         for cls, _, _ in self.parent.obj_type_map:
-            print "Adding row:", cls
+            print("Adding row:", cls)
             cmb_model.append([cls.Meta.store_id, cls])
         self.view.behaviour_combo_box.set_model(cmb_model)
         add_combo_text_column(

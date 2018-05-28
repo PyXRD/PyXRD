@@ -63,10 +63,7 @@ class PlotController(object):
         self.setup_content()
 
     def setup_figure(self):
-        # FIXME style = Gtk.StyleContext.new()
-        # FIXME edgecolor = style.get_color(Gtk.StateFlags.PRELIGHT).to_color().to_string()
-        # FIXME facecolor = style.get_color(Gtk.StateFlags.NORMAL).to_color().to_string()
-        self.figure = Figure(dpi=72) #, edgecolor=str(edgecolor), facecolor=str(facecolor))
+        self.figure = Figure(dpi=72, facecolor="#FFFFFF", linewidth=0)
         self.figure.subplots_adjust(hspace=0.0, wspace=0.0)
 
     def setup_canvas(self):
@@ -100,7 +97,7 @@ class PlotController(object):
         if size == "auto":
             descr, width, height, dpi = settings.OUTPUT_PRESETS[0]
         else:
-            width, height, dpi = map(float, size.replace("@", "x").split("x"))
+            width, height, dpi = list(map(float, size.replace("@", "x").split("x")))
 
         # Load gui:
         builder = Gtk.Builder()
@@ -198,7 +195,7 @@ class MainPlotController(PlotController):
 
     def setup_content(self):
         # Create subplot and add it to the figure:
-        self.plot = Subplot(self.figure, 211, axisbg=(1.0, 1.0, 1.0, 0.0))
+        self.plot = Subplot(self.figure, 211, facecolor=(1.0, 1.0, 1.0, 0.0))
         self.plot.set_autoscale_on(False)
         self.figure.add_axes(self.plot)
 

@@ -39,7 +39,7 @@ def get_Gbounds_for_R(R, G):
         bounds = RGbounds[R]
         low, upp = 1 + np.argmax(bounds == 1), maxG - np.argmax(bounds[::-1] == 1)
     else:
-        raise ValueError, "Cannot yet handle R%d!" % R
+        raise ValueError("Cannot yet handle R%d!" % R)
     return (low, upp, max(min(G, upp), low))
 
 def get_Rbounds_for_G(G, R):
@@ -50,7 +50,7 @@ def get_Rbounds_for_G(G, R):
         bounds = RGbounds[:, G - 1]
         low, upp = np.argmax(bounds == 1), maxR - np.argmax(bounds[::-1] == 1) - 1
     else:
-        raise ValueError, "Cannot yet handle %d layer structures!" % G
+        raise ValueError("Cannot yet handle %d layer structures!" % G)
     return (low, upp, max(min(R, upp), low))
 
 def get_correct_probability_model(R, G):
@@ -58,4 +58,4 @@ def get_correct_probability_model(R, G):
     if (RGbounds[R, G - 1] > 0):
         return globals()["R%dG%dModel" % (R, G)]
     else:
-        raise ValueError, "Cannot (yet) handle R%d for %d layer structures!" % (R, G)
+        raise ValueError("Cannot (yet) handle R%d for %d layer structures!" % (R, G))

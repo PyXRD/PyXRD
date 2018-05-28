@@ -11,11 +11,11 @@ logger = logging.getLogger(__name__)
 import numpy as np
 from scipy.interpolate import interp1d
 
-from pyxrd.generic.custom_math import mmult
+from .math_tools import mmult
 
-from pyxrd.calculations.CSDS import calculate_distribution
-from pyxrd.calculations.goniometer import get_lorentz_polarisation_factor
-from pyxrd.calculations.components import get_factors
+from .CSDS import calculate_distribution
+from .goniometer import get_lorentz_polarisation_factor
+from .components import get_factors
 
 def get_structure_factors(range_stl, G, comp_list):
     """

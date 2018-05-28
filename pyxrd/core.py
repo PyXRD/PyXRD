@@ -12,15 +12,7 @@ import os, sys
 import logging
 logger = logging.getLogger(__name__)
 
-try:
-    import gi
-    gi.require_version('Gtk', '3.0')
-    from gi.repository import Gtk, Gdk, GObject
-    Gtk.gdk = Gdk
-except ImportError:
-    logger.warning("Could not import Gtk, Gdk or GObject!")
-else:
-    GObject.threads_init()
+from mvc.support.gui_loop import start_event_loop
 
 def _run_user_script():
     """
@@ -31,7 +23,7 @@ def _run_user_script():
     try:
         import imp
         user_script = imp.load_source('user_script', settings.ARGS.script)
-    except any as err:
+    except BaseException as err:
         err.args = "Error when trying to import %s: %s" % (settings.ARGS.script, err.args)
         raise
     user_script.run(settings.ARGS)
@@ -55,6 +47,8 @@ def _run_gui(project=None):
     from pyxrd.application.models import AppModel
     from pyxrd.application.views import AppView
     from pyxrd.application.controllers import AppController
+    
+    # TODO move this to mvc:
     from pyxrd.generic.gtk_tools.gtkexcepthook import plugin_gtk_exception_hook
 
     filename = settings.ARGS.filename #@UndefinedVariable
@@ -90,7 +84,7 @@ def _run_gui(project=None):
     del splash
 
     # lets get this show on the road:
-    Gtk.main()
+    start_event_loop()
 
 def run_main():
     """

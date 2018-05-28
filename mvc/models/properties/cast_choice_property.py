@@ -45,6 +45,6 @@ class CastChoiceProperty(CastProperty):
         if value in self.choices:
             super(CastProperty, self).__set__(instance, value) #Call grandparent __set__
         else:
-            raise ValueError, "'%s' is not a valid value for %s!" % (value, self.label)
+            raise ValueError("'%s' is not a valid value for %s!" % (value, self.label))
 
     pass #end of class

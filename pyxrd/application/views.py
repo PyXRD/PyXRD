@@ -115,7 +115,9 @@ class AppView(HasChildView, FormattedTitleView):
     def setup_plot(self, plot_controller):
         self.plot_controller = plot_controller
         self["matplotlib_box"].add(self.plot_controller.canvas)
+        self.plot_controller.canvas.set_name("matplotlib_box2")
         self["matplotlib_box"].show_all()
+        self["matplotlib_box"].set_name("matplotlib_box")
         self.nav_toolbar = NavigationToolbar(self.plot_controller.canvas, self.get_top_widget())
         self.nav_toolbar.set_name("navtoolbar")
         self["navtoolbar"] = self.nav_toolbar
@@ -140,7 +142,7 @@ class AppView(HasChildView, FormattedTitleView):
         return view
 
     def reset_all_views(self):
-        for view_name, class_type in self.child_views.iteritems():
+        for view_name, class_type in self.child_views.items():
             self.reset_child_view(view_name, class_type)
 
     # ------------------------------------------------------------

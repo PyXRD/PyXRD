@@ -34,9 +34,9 @@ class ASCIIParser(BaseParser):
             any iterable containing strings.
         """
         f = open(filename, 'w')
-        if not isinstance(header, basestring): # python 3: ... , str)!
+        if not isinstance(header, str):
             header = delimiter.join(header) # assume this is an iterable
-        f.write(u"%s\n" % header)
+        f.write("%s\n" % header)
         np.savetxt(f, np.insert(ys, 0, x, axis=0).transpose(), fmt="%.8f", delimiter=delimiter)
         f.close()
 

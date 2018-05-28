@@ -23,11 +23,9 @@ from pyxrd.__version import __version__
 from pyxrd.data import settings
 
 from pyxrd.generic.models import DataModel
+from pyxrd.generic.models.event_context_manager import EventContextManager
 from pyxrd.generic.io import storables, Storable, get_case_insensitive_glob
-
-
 from pyxrd.generic.utils import not_none
-from pyxrd.generic.exit_stack import ExitStack
 
 from pyxrd.atoms.models import AtomType
 from pyxrd.phases.models import Phase
@@ -616,7 +614,7 @@ class Project(DataModel, Storable):
         elif self.axes_ynormalize == 2:
             return (1.0, self.get_max_display_y())
         else:
-            raise ValueError, "Wrong value for 'axes_ysnormalize' in %s: is `%d`; should be 0, 1 or 2" % (self, self.axes_ynormalize)
+            raise ValueError("Wrong value for 'axes_ysnormalize' in %s: is `%d`; should be 0, 1 or 2" % (self, self.axes_ynormalize))
 
     def get_max_display_y(self):
         max_display_y = 0
@@ -638,41 +636,31 @@ class Project(DataModel, Storable):
     @contextmanager
     def hold_mixtures_needs_update(self):
         logger.info("Holding back all 'needs_update' signals from Mixtures")
-        with ExitStack() as stack:
-            for mixture in self.mixtures:
-                stack.enter_context(mixture.needs_update.hold())
+        with EventContextManager(*[mixture.needs_update.hold() for mixture in self.mixtures]):
             yield
 
     @contextmanager
     def hold_mixtures_data_changed(self):
         logger.info("Holding back all 'data_changed' signals from Mixtures")
-        with ExitStack() as stack:
-            for mixture in self.mixtures:
-                stack.enter_context(mixture.data_changed.hold())
+        with EventContextManager(*[mixture.data_changed.hold() for mixture in self.mixtures]):
             yield
 
     @contextmanager
     def hold_phases_data_changed(self):
         logger.info("Holding back all 'data_changed' signals from Phases")
-        with ExitStack() as stack:
-            for phase in self.phases:
-                stack.enter_context(phase.data_changed.hold())
+        with EventContextManager(*[phase.data_changed.hold() for phase in self.phases]):
             yield
 
     @contextmanager
     def hold_atom_types_data_changed(self):
         logger.info("Holding back all 'data_changed' signals from AtomTypes")
-        with ExitStack() as stack:
-            for atom_type in self.atom_types:
-                stack.enter_context(atom_type.data_changed.hold())
+        with EventContextManager(*[atom_type.data_changed.hold() for atom_type in self.atom_types]):
             yield
 
     @contextmanager
     def hold_specimens_data_changed(self):
         logger.info("Holding back all 'data_changed' signals from Specimens")
-        with ExitStack() as stack:
-            for specimen in self.specimens:
-                stack.enter_context(specimen.data_changed.hold())
+        with EventContextManager(*[specimen.data_changed.hold() for specimen in self.specimens]):
             yield
 
     def update_all_mixtures(self):
@@ -689,10 +677,7 @@ class Project(DataModel, Storable):
         Convenience method that returns all the mixtures who's name match the
         passed name as a list.
         """
-        return filter(
-            lambda mixture: (mixture.name == mixture_name),
-            self.mixtures
-        )
+        return [mixture for mixture in self.mixtures if (mixture.name == mixture_name)]
 
     # ------------------------------------------------------------
     #      Specimen list related

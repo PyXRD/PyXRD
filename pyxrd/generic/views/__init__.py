@@ -9,8 +9,6 @@ import logging
 logger = logging.getLogger(__name__)
 
 from pkg_resources import resource_filename # @UnresolvedImport
-
-from itertools import imap
 from warnings import warn
 
 import gi
@@ -18,10 +16,10 @@ gi.require_version('Gtk', '3.0')  # @UndefinedVariable
 from gi.repository import Gtk  # @UnresolvedImport
 
 from mvc.view import View
+from mvc.adapters.gtk_support.widgets import ScaleEntry
 
 from pyxrd.data import settings
-from mvc.adapters.gtk_support.widgets import ScaleEntry
-from pyxrd.generic.models.mathtext_support import get_string_safe
+from pyxrd.generic.mathtext_support import get_string_safe
 
 class BaseView(View):
     """
@@ -162,7 +160,7 @@ class BaseView(View):
             widgets = []
             if group_name != "all":
                 widget_names = self.widget_groups.get(group_name, [])
-                widgets = imap(lambda name: self[name], widget_names)
+                widgets = map(lambda name: self[name], widget_names)
             else:
                 widgets = self._builder.get_objects()
 
@@ -181,7 +179,7 @@ class BaseView(View):
                     except AttributeError:
                         pass
             else:
-                raise ValueError, "Unknown layout state command `%s`!" % command
+                raise ValueError("Unknown layout state command `%s`!" % command)
 
     def show_all(self, *args, **kwargs):
         self.show(*args, **kwargs)

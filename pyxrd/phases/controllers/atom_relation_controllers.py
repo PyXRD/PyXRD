@@ -6,7 +6,6 @@
 # Complete license can be found in the LICENSE file.
 
 import logging
-from docutils.parsers.rst.directives import path
 logger = logging.getLogger(__name__)
 
 import gi
@@ -164,7 +163,7 @@ class ContentsListController(InlineObjectListStoreController):
     treemodel_class_type = AtomContentObject
 
     def _reset_treeview(self, tv, model):
-        setup_treeview(tv, model, sel_mode=Gtk.SelectionMode.MULTIPLE, reset=True)
+        setup_treeview(tv, model, sel_mode='MULTIPLE', reset=True)
         tv.set_model(model)
 
         # Atom column:
@@ -247,7 +246,7 @@ class EditAtomRelationsController(InlineObjectListStoreController):
     ]
 
     def _reset_treeview(self, tv, model):
-        setup_treeview(tv, model, sel_mode=Gtk.SelectionMode.MULTIPLE, reset=True)
+        setup_treeview(tv, model, sel_mode='MULTIPLE', reset=True)
         tv.set_model(model)
 
         # Name column:

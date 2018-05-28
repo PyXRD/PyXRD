@@ -37,7 +37,7 @@ class PyXRDRefinableMeta(ModelMeta):
         instance = ModelMeta.__call__(cls, *args, **kwargs)
 
         # Set the refinement attributes on the newly created instance:
-        for ref_info_name, ref_info in prop_infos.iteritems():
+        for ref_info_name, ref_info in prop_infos.items():
             setattr(instance, ref_info_name, ref_info)
 
         # Return the instance:

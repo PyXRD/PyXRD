@@ -27,7 +27,7 @@ from pyxrd.refinement.refinables.metaclasses import PyXRDRefinableMeta
 from .atom_relations import ComponentPropMixin
 
 @storables.register()
-class UnitCellProperty(ComponentPropMixin, RefinementValue, DataModel, Storable):
+class UnitCellProperty(ComponentPropMixin, RefinementValue, DataModel, Storable, metaclass=PyXRDRefinableMeta):
     """
         UnitCellProperty's are an integral part of a component and allow to 
         calculate the dimensions of the unit cell based on compositional
@@ -38,10 +38,6 @@ class UnitCellProperty(ComponentPropMixin, RefinementValue, DataModel, Storable)
         'data_changed' signal. The reason for this is to prevent infinite 
         recursion errors. 
     """
-
-
-    # MODEL INTEL:
-    __metaclass__ = PyXRDRefinableMeta
     class Meta(DataModel.Meta):
         store_id = "UnitCellProperty"
 
@@ -161,7 +157,7 @@ class UnitCellProperty(ComponentPropMixin, RefinementValue, DataModel, Storable)
             # Try to replace objects with their uuid's:
             try:
                 retval["prop"] = [getattr(retval["prop"][0], 'uuid', retval["prop"][0]), retval["prop"][1]]
-            except any:
+            except:
                 logger.exception("Error when trying to interpret UCP JSON properties")
                 pass # ignore
         return retval
@@ -169,7 +165,7 @@ class UnitCellProperty(ComponentPropMixin, RefinementValue, DataModel, Storable)
     def resolve_json_references(self):
         if getattr(self, "_temp_prop", None):
             self._temp_prop = list(self._temp_prop)
-            if isinstance(self._temp_prop[0], basestring):
+            if isinstance(self._temp_prop[0], str):
                 obj = type(type(self)).object_pool.get_object(self._temp_prop[0])
                 if obj:
                     self._temp_prop[0] = obj

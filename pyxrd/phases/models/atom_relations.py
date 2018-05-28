@@ -41,7 +41,7 @@ class ComponentPropMixin(object):
             backwards-compatibility...
             Will be removed at some point!
         """
-        if not isinstance(attr, types.StringTypes):
+        if not isinstance(attr, str):
             return attr
 
         if attr == "" or attr == None:
@@ -71,10 +71,9 @@ class ComponentPropMixin(object):
             return self.component, attr
 
 @storables.register()
-class AtomRelation(ComponentPropMixin, RefinementValue, DataModel, Storable):
+class AtomRelation(ComponentPropMixin, RefinementValue, DataModel, Storable, metaclass=PyXRDRefinableMeta):
 
     # MODEL INTEL:
-    __metaclass__ = PyXRDRefinableMeta
     class Meta(DataModel.Meta):
         store_id = "AtomRelation"
         file_filters = [
@@ -181,7 +180,7 @@ class AtomRelation(ComponentPropMixin, RefinementValue, DataModel, Storable):
     #      Input/Output stuff
     # ------------------------------------------------------------
     def resolve_relations(self):
-        raise NotImplementedError, "Subclasses should implement the resolve_relations method!"
+        raise NotImplementedError("Subclasses should implement the resolve_relations method!")
 
     # ------------------------------------------------------------
     #      Methods & Functions
@@ -203,7 +202,7 @@ class AtomRelation(ComponentPropMixin, RefinementValue, DataModel, Storable):
             return store
 
     def iter_references(self):
-        raise NotImplementedError, "'iter_references' should be implemented by subclasses!"
+        raise NotImplementedError("'iter_references' should be implemented by subclasses!")
 
     def _safe_is_referring(self, value):
         if value is not None and hasattr(value, "is_referring"):
@@ -243,7 +242,7 @@ class AtomRelation(ComponentPropMixin, RefinementValue, DataModel, Storable):
         self.driven_by_other = True
 
     def apply_relation(self):
-        raise NotImplementedError, "Subclasses should implement the apply_relation method!"
+        raise NotImplementedError("Subclasses should implement the apply_relation method!")
 
     pass # end of class
 
@@ -349,11 +348,11 @@ class AtomRatio(AtomRelation):
         return retval
 
     def resolve_relations(self):
-        if isinstance(self._unresolved_atom1[0], basestring):
+        if isinstance(self._unresolved_atom1[0], str):
             self._unresolved_atom1[0] = type(type(self)).object_pool.get_object(self._unresolved_atom1[0])
         self.atom1 = list(self._unresolved_atom1)
         del self._unresolved_atom1
-        if isinstance(self._unresolved_atom2[0], basestring):
+        if isinstance(self._unresolved_atom2[0], str):
             self._unresolved_atom2[0] = type(type(self)).object_pool.get_object(self._unresolved_atom2[0])
         self.atom2 = list(self._unresolved_atom2)
         del self._unresolved_atom2
@@ -488,7 +487,7 @@ class AtomContents(AtomRelation):
         self.enabled = False
         # Change rows with string references to objects (uuid's)
         for atom_content in self.atom_contents:
-            if isinstance(atom_content.atom, basestring):
+            if isinstance(atom_content.atom, str):
                 atom_content.atom = type(type(self)).object_pool.get_object(atom_content.atom)
         # Set the flag to its original value
         self.enabled = enabled

@@ -20,7 +20,7 @@ from mvc.models.properties import (
 
 from pyxrd.data import settings
 from pyxrd.generic.io import storables
-from pyxrd.generic.custom_math import smooth, add_noise
+from pyxrd.calculations.math_tools import smooth, add_noise
 
 from pyxrd.generic.models.base import DataModel
 

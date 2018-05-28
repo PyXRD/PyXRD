@@ -8,6 +8,8 @@
 
 import unittest
 
+from io import StringIO
+
 from test.test_generic.test_io.test_file_parsers import TestParserMixin
 from pyxrd.file_parsers.xrd_parsers import CPIParser
 
@@ -20,7 +22,7 @@ class TestCPIParser(TestParserMixin, unittest.TestCase):
 
     parser_class = CPIParser
     file_data = [
-        r"""SIETRONICS XRD SCAN
+        StringIO(r"""SIETRONICS XRD SCAN
 3.01
 3.73
 0.02
@@ -66,7 +68,7 @@ SCANDATA
 2.9607843
 3.6568627
 -4.6470588
--6.9509804""",
+-6.9509804"""),
     ]
 
     pass # end of class

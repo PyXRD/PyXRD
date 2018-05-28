@@ -190,7 +190,10 @@ class DraggableVLine(DraggableMixin):
         super(DraggableVLine, self)._draggable_on_motion(event)
         self._check_cursor(event)
 
-    def _on_dragged(self, (x0, y0), (x1, y1), (x2, y2), event):
+    def _on_dragged(self, x0_y0, x1_y1, x2_y2, event):
+        (x0, y0) = x0_y0
+        (x1, y1) = x1_y1
+        (x2, y2) = x2_y2
         self._check_cursor(event)
         if self.line_x0 == None:
             self.line_x0 = self.line.get_xdata()[0]
@@ -201,7 +204,10 @@ class DraggableVLine(DraggableMixin):
 
         self.line.figure.canvas.draw()
 
-    def _on_released(self, (x0, y0), (x1, y1), (x2, y2), event):
+    def _on_released(self, x0_y0, x1_y1, x2_y2, event):
+        """(x0, y0) = x0_y0
+        (x1, y1) = x1_y1
+        (x2, y2) = x2_y2"""
         self._check_cursor(event)
         if callable(self.callback):
             self.callback(self.line.get_xdata()[0])

@@ -57,11 +57,11 @@ class FitnessMin(base.Fitness):
             self.wvalues = tuple(map(mul, values, (-1,) * len(values)))
         except TypeError:
             _, _, traceback = sys.exc_info()
-            raise TypeError, ("Both weights and assigned values must be a "
+            raise TypeError("Both weights and assigned values must be a "
             "sequence of numbers when assigning to values of "
             "%r. Currently assigning value(s) %r of %r to a fitness with "
             "weights %s."
-            % (self.__class__, values, type(values), (-1,) * len(values))), traceback
+            % (self.__class__, values, type(values), (-1,) * len(values))).with_traceback(traceback)
 
     values = property(getValues, setValues, base.Fitness.delValues,
     ("Fitness values. Use directly ``individual.fitness.values = values`` "
@@ -116,8 +116,8 @@ class PyXRDParetoFront(ParetoFront):
                         has_twin = True
                         break
                 except ValueError:
-                    print ind, ind.fitness
-                    print hofer, hofer.fitness
+                    print(ind, ind.fitness)
+                    print(hofer, hofer.fitness)
                     raise
 
             for i in reversed(to_remove):       # Remove the dominated hofer

@@ -47,7 +47,7 @@ class Goniometer(DataModel, Storable):
     def data_object(self):
         self._data_object.wavelength = self.wavelength
         x, y = self.wavelength_distribution.get_xy_data()
-        self._data_object.wavelength_distribution = zip(x.tolist(), y.tolist())
+        self._data_object.wavelength_distribution = list(zip(x.tolist(), y.tolist()))
         return self._data_object
 
     specimen = property(DataModel.parent.fget, DataModel.parent.fset)
@@ -268,7 +268,7 @@ class Goniometer(DataModel, Storable):
                     [0.153475,0.044851115],
                 ]                
             self.wavelength_distribution = StorableXYData(
-               data=self.get_kwarg(kwargs, zip(*default_wld), "wavelength_distribution")
+               data=self.get_kwarg(kwargs, list(zip(*default_wld)), "wavelength_distribution")
             )           
 
     # ------------------------------------------------------------

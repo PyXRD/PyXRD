@@ -9,7 +9,7 @@ from .meta_parser import MetaParser
 from .data_object import DataObject
 import types
 
-class BaseParser(object):
+class BaseParser(object, metaclass=MetaParser):
     """
         Base class providing some common attributes and functions.
         Do not register this class or subclasses without overriding the
@@ -19,8 +19,6 @@ class BaseParser(object):
             - parse (optional)
             - setup_file_filter (optional)
     """
-
-    __metaclass__ = MetaParser
 
     # This should be changed by sub-classes
     description = "Base Parser"
@@ -45,7 +43,7 @@ class BaseParser(object):
             Returns a three-tuple:
             filename, file-object, close
         """
-        if isinstance(fp, types.StringType):
+        if isinstance(fp, str):
             return fp, open(fp, cls.__file_mode__), True if close is None else close
         else:
             return getattr(fp, 'name', None), fp, False if close is None else close

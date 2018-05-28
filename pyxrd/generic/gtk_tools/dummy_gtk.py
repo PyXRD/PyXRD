@@ -53,7 +53,7 @@ class GenericTreeModel(object):
 
     def emit(self, signal_name, args=()):
         handlers = self.__connected_signals__.get(signal_name, {})
-        for id, (handler, user_args) in handlers.iteritems(): # @ReservedAssignment
+        for id, (handler, user_args) in handlers.items(): # @ReservedAssignment
             handler(self, *((args,) + user_args))
         pass
 

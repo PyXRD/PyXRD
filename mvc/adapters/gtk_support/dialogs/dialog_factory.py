@@ -22,7 +22,7 @@
 #  Boston, MA 02110, USA.
 #  -------------------------------------------------------------------------
 
-import sys
+import sys, html
 from contextlib import contextmanager
 
 import gi
@@ -162,7 +162,7 @@ class DialogFactory(object):
         try:
             yield
         except:
-            msg = message.format(sys.exc_info()[1])
+            msg = message.format(html.escape("%s" % sys.exc_info()[1]))
             DialogFactory.get_error_dialog(
                msg, title=title, parent=parent
             ).run()

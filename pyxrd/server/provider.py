@@ -29,9 +29,9 @@ except ImportError:
 from pyxrd.generic.async.exceptions import *
 from pyxrd.data.appdirs import user_log_dir
 
-import settings
-from utils import start_script
-from status_thread import StatusThread
+from . import settings
+from .utils import start_script
+from .status_thread import StatusThread
 
 class Pyro4AsyncServerProvider(object):
     """
@@ -84,7 +84,7 @@ class Pyro4AsyncServerProvider(object):
             ns = cls._locate_ns()
             ns.ping()
             return True
-        except any:
+        except:
             print_exc()
             return False
     
@@ -97,7 +97,7 @@ class Pyro4AsyncServerProvider(object):
                 return True
             else:
                 return False
-        except any:
+        except:
             print_exc()
             return False
     
@@ -162,7 +162,7 @@ class Pyro4AsyncServerProvider(object):
             cls.launch_server()
         try:
             return Pyro4.Proxy("PYRONAME:%s" % settings.PYRO_NAME)
-        except any:
+        except:
             print_exc()
             logging.error("Could not connect to Pyro4 PyXRD server.")
             raise ServerNotRunningException("Pyro4 PyXRD Server is not running!")

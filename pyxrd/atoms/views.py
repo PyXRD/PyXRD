@@ -7,11 +7,9 @@
 
 from pkg_resources import resource_filename # @UnresolvedImport
 
-import gi
-gi.require_version('Gtk', '3.0')  # @UndefinedVariable
-from gi.repository import Gtk  # @UnresolvedImport
-
 from matplotlib.figure import Figure
+
+# TODO: move this to mvc somehow:
 from matplotlib.backends.backend_gtk3cairo import FigureCanvasGTK3Cairo as FigureCanvasGTK
 
 from pyxrd.generic.views import BaseView
@@ -32,8 +30,7 @@ class EditAtomTypeView(BaseView):
         self.setup_matplotlib_widget()
 
     def setup_matplotlib_widget(self):
-        #style = Gtk.Style()
-        self.figure = Figure(dpi=72) #, edgecolor=str(style.bg[2]), facecolor=str(style.bg[2]))
+        self.figure = Figure(dpi=72)
 
         self.plot = self.figure.add_subplot(111)
         self.figure.subplots_adjust(bottom=0.20)
@@ -52,7 +49,7 @@ class EditAtomTypeView(BaseView):
         self.plot.cla()
         self.plot.plot(x, y, 'k-', aa=True)
         self.plot.set_ylabel('Scattering factor', size=14, weight="heavy")
-        self.plot.set_xlabel(u'2θ', size=14, weight="heavy")
+        self.plot.set_xlabel('2θ', size=14, weight="heavy")
         self.plot.autoscale_view()
         if self.matlib_canvas is not None:
             self.matlib_canvas.draw()

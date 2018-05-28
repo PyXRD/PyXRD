@@ -80,7 +80,7 @@ class GtkAdapter(ModelAdapter):
                           prop.label, controller.model, type(self),
                           self._check_widget_type, widget_type
                       )
-                raise TypeError, msg
+                raise TypeError(msg)
         # Connect the widget:
         self._connect_widget()
 

@@ -5,7 +5,7 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from itertools import izip
+
 import time
 import logging
 logger = logging.getLogger(__name__)
@@ -30,40 +30,50 @@ __residual_method_map = {
 # Solution vector handling:
 #===============================================================================
 def parse_solution(x, mixture):
-    fractions = np.asanyarray(x[:mixture.m])
-    scales = np.asanyarray(x[mixture.m:mixture.m + mixture.n])
-    if mixture.auto_bg:
-        bgshifts = np.asanyarray(x[-mixture.n:])
-    else:
-        bgshifts = mixture.bgshifts
+    # Get the original solution   
+    fractions = mixture.fractions
+    scales = mixture.scales
+    bgshifts = mixture.bgshifts
+    
+    # We normalize the new fractions so the sum of all fractions
+    # (including static fractions) is always 1
+    scaled_fracs = x[:mixture.m] * (1.0 - mixture.sum_static_fractions) / np.sum(x[:mixture.m])
+    
+    # Store the variables in the right positions:
+    np.put(fractions, mixture.selected_fractions, scaled_fracs)
+    np.put(scales, mixture.selected_scales, x[mixture.m:mixture.m + mixture.n])
+    np.put(bgshifts, mixture.selected_bgshifts, x[-mixture.o:])
+    
+    # Return the complete arrays (including static factors)
     return fractions, scales, bgshifts
 
 def get_solution(mixture):
-    if mixture.auto_bg:
-        return np.concatenate((mixture.fractions, mixture.scales, mixture.bgshifts))
-    else:
-        return np.concatenate((mixture.fractions, mixture.scales))
+    return np.concatenate((
+        np.take(mixture.fractions, mixture.selected_fractions),
+        np.take(mixture.scales, mixture.selected_scales),
+        np.take(mixture.bgshifts, mixture.selected_bgshifts)
+    ))    
 
 def set_solution(x, mixture):
     mixture.fractions, mixture.scales, mixture.bgshifts = parse_solution(x, mixture)   
 
 def get_zero_solution(mixture):
-    if mixture.auto_bg:
-        x0 = np.ones(shape=(mixture.m + mixture.n * 2,))
-        x0[-mixture.n:] = 0.0 # set bg at zero
-    else:
-        x0 = np.ones(shape=(mixture.m + mixture.n * 1,))
-    x0[:mixture.m] = 1.0 / mixture.m
+    # Create complete solution array
+    x0 = np.ones(shape=(mixture.m+mixture.n+mixture.o,))
+    # Set all bg shifts to zero   
+    x0[-mixture.o:] = 0.0
+    # Set all fractions to equal size (of the remainder)
+    x0[:mixture.m] = 1.0 / (1.0 - mixture.sum_static_fractions)
+    
     return x0
 
 #===============================================================================
 # Solution bounds handling:
 #===============================================================================
 def get_bounds(mixture):
-    bounds = [(0, None) for _ in range(mixture.m)] # allow zero fractions
+    bounds = [(0., 1.) for _ in range(mixture.m)] # allow zero fractions
     bounds += [(1e-3, None) for _ in range(mixture.n)] # don't allow zero scales
-    if mixture.auto_bg:
-        bounds += [(0, None) for _ in range(mixture.n)]
+    bounds += [(0., None) for _ in range(mixture.o)]
     return bounds
 
 #===============================================================================
@@ -100,6 +110,26 @@ def parse_mixture(mixture, force=False):
         assert mixture.n > 0, "Need at least 1 specimen to optimize phase fractions, scales and background."
         assert mixture.n == len(mixture.specimens), "Invalid specimen count on mixture data object."
         assert mixture.m > 0, "Need at least 1 phase in one of the specimen to optimize phase fractions, scales and background."
+        
+        # We have some fixed fractions:
+        mixture.selected_fractions = np.asanyarray(np.nonzero(mixture.fractions_mask)).flatten()
+        mixture.selected_scales = np.asanyarray(np.nonzero(mixture.scales_mask)).flatten()
+        mixture.selected_bgshifts = np.asanyarray(np.nonzero(mixture.bgshifts_mask)).flatten()
+        mixture.real_m = mixture.m
+        mixture.real_n = mixture.n
+        mixture.real_o = mixture.n
+        mixture.m = len(mixture.selected_fractions)
+        mixture.n = len(mixture.selected_scales)
+        mixture.o = len(mixture.selected_bgshifts)
+        
+        # The first term should be 1.0, unless the user entered a custom fraction
+        sm = np.sum(mixture.fractions)
+        mixture.sum_static_fractions = sm - np.sum(np.take(mixture.fractions, mixture.selected_fractions))
+        if sm != 1.0 and mixture.sum_static_fractions < 0.0 or mixture.sum_static_fractions > 1.0:
+            mixture.fractions = mixture.fractions / sm
+            sm = 1.0
+        mixture.sum_static_fractions = sm - np.sum(np.take(mixture.fractions, mixture.selected_fractions))
+            
         
         mixture.z = 0
         for specimen in mixture.specimens:
@@ -202,6 +232,7 @@ def calculate_mixture(mixture, force=False):
             for specimen in mixture.specimens:
                 if specimen is not None:
                     specimen.total_intensity = None # clear pattern
+                    specimen.scaled_phase_intensities = None # clear pattern
             return mixture
         
         fractions = np.asanyarray(mixture.fractions)
@@ -209,7 +240,7 @@ def calculate_mixture(mixture, force=False):
         # This will contain the following residuals:
         # Average, Specimen1, Specimen2, ...
         mixture.residuals = [0.0, ]
-        for scale, bgshift, specimen in izip(mixture.scales, mixture.bgshifts, mixture.specimens):
+        for scale, bgshift, specimen in zip(mixture.scales, mixture.bgshifts, mixture.specimens):
             specimen_residual = 0.0
             if specimen is not None:
                 bgshift = bgshift if settings.BGSHIFT else 0.0

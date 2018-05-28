@@ -61,6 +61,9 @@ class EditMixtureController(BaseController):
         def on_label_changed(editable):
             self.model.phases[phase_slot] = editable.get_text()
 
+        def on_check_toggled(check):
+            self.model.fractions_mask[phase_slot] = 1 if check.get_active() else 0
+
         def on_fraction_changed(editable):
             try: self.model.fractions[phase_slot] = float(editable.get_text())
             except ValueError: return # ignore ValueErrors
@@ -70,7 +73,7 @@ class EditMixtureController(BaseController):
             widget.disconnect(getattr(widget, "deleventid"))
 
         self.view.add_phase_slot(self.phases_treemodel,
-            on_phase_delete, on_label_changed, on_fraction_changed,
+            on_phase_delete, on_label_changed, on_check_toggled, on_fraction_changed,
             self.on_combo_changed, label=self.model.phases[phase_slot],
             fraction=self.model.fractions[phase_slot], phases=self.model.phase_matrix)
 

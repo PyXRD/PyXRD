@@ -10,13 +10,10 @@ import os, locale
 import logging
 logger = logging.getLogger(__name__)
 
-import gi
-gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk
-
 from mvc.adapters.gtk_support.treemodels.utils import create_treestore_from_directory
 from mvc.adapters.gtk_support.dialogs.dialog_factory import DialogFactory
 
+from pyxrd.generic.views.cell_renderer_tools import get_default_renderer
 from pyxrd.file_parsers.wld_parsers import wld_parsers
 from pyxrd.file_parsers.goniometer_parsers import goniometer_parsers
 
@@ -72,7 +69,7 @@ class InlineGoniometerController(BaseController):
         path = settings.DATA_REG.get_directory_path("DEFAULT_GONIOS")
         cmb_model = create_treestore_from_directory(path)
         self.view.import_combo_box.set_model(cmb_model)
-        cell = Gtk.CellRendererText()
+        cell = get_default_renderer('text')
         self.view.import_combo_box.pack_start(cell, True)
         self.view.import_combo_box.add_attribute(cell, 'text', 0)
         self.view.import_combo_box.add_attribute(cell, 'sensitive', 2)
@@ -147,7 +144,7 @@ class WavelengthDistributionController(DialogController, TreeViewMixin):
     # ------------------------------------------------------------
     @staticmethod
     def custom_handler(self, intel, widget):
-        print "CUSTOM HANDLER CALLED FOR %s" % intel.name
+        print("CUSTOM HANDLER CALLED FOR %s" % intel.name)
  
     # ------------------------------------------------------------
     #      Initialisation and other internals
@@ -158,7 +155,7 @@ class WavelengthDistributionController(DialogController, TreeViewMixin):
         """      
         setup_treeview(widget, store,
             on_cursor_changed=self.on_wld_tv_cursor_changed,
-            sel_mode=Gtk.SelectionMode.MULTIPLE)
+            sel_mode='MULTIPLE')
         widget.set_model(store)
         
         def data_func(col, cell, model, iter, colnr):
@@ -166,12 +163,12 @@ class WavelengthDistributionController(DialogController, TreeViewMixin):
             
         # X Column:
         widget.append_column(new_text_column(
-            u'Wavelength (nm)', text_col=store.c_x, editable=True,
+            'Wavelength (nm)', text_col=store.c_x, editable=True,
             data_func = (data_func, (store.c_x,)),
             edited_callback=(self.on_xy_data_cell_edited, (self.model.wavelength_distribution, 0))))
         # Y Column:
         widget.append_column(new_text_column(
-            u'Fraction', text_col=store.c_y, editable=True,
+            'Fraction', text_col=store.c_y, editable=True,
             data_func = (data_func, (store.c_y,)),
             edited_callback=(self.on_xy_data_cell_edited, (self.model.wavelength_distribution, 1))))   
          

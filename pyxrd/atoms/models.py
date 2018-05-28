@@ -229,7 +229,7 @@ class AtomType(CSVMixin, DataModel, Storable):
         self.charge = float(self.get_kwarg(kwargs, 0, "charge", "data_charge"))
         self.debye = float(self.get_kwarg(kwargs, 0, "debye", "data_debye"))
 
-        for kw in ["par_a%d" % i for i in xrange(1, 6)] + ["par_b%d" % i for i in xrange(1, 6)] + ["par_c"]:
+        for kw in ["par_a%d" % i for i in range(1, 6)] + ["par_b%d" % i for i in range(1, 6)] + ["par_c"]:
             setattr(
                 self, kw, self.get_kwarg(kwargs, 0.0, kw, "data_%s" % kw)
             )

@@ -8,6 +8,8 @@
 
 import unittest
 
+from io import StringIO
+
 from test.test_generic.test_io.test_file_parsers import TestParserMixin
 from pyxrd.file_parsers.xrd_parsers import UDFParser
 
@@ -20,7 +22,7 @@ class TestUDFParser(TestParserMixin, unittest.TestCase):
 
     parser_class = UDFParser
     file_data = [
-        r"""SampleIdent,Sample5 ,/
+        StringIO(r"""SampleIdent,Sample5 ,/
 Title1,Dat2rit program ,/
 Title2,Sample5 ,/
 DataAngleRange,   5.0000, 5.6400,/
@@ -30,7 +32,7 @@ RawScan
     800,     700,     600,     500,     400,     300,     200,     100
     80,      70,      60,      50,      40,      30,      20,      10
     8,       7,       6,       5,       4,       3,       2,       1
-    0/""",
+    0/"""),
     ]
 
     pass # end of class

@@ -5,10 +5,10 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-raise NotImplemented, "This module is not yet implemented" 
+raise NotImplemented("This module is not yet implemented") 
 
 import sys, imp
-from itertools import izip
+
 from contextlib import contextmanager
 
 import numpy as np
@@ -69,7 +69,7 @@ class InSituMixture(Mixture):
             else:
                 self.behaviour_matrix = np.empty(shape=(0, 0), dtype=np.object_)
         
-            print behaviour_uuids, self.behaviour_matrix
+            print(behaviour_uuids, self.behaviour_matrix)
         
             pass # end hold data_changed
         
@@ -102,7 +102,7 @@ class InSituMixture(Mixture):
             with self.needs_update.hold_and_emit():
                 with self.data_changed.hold():
                     if behaviour is None:
-                        raise RuntimeError, "Behaviour can not be set to None, use unset_behaviour to clear!"
+                        raise RuntimeError("Behaviour can not be set to None, use unset_behaviour to clear!")
                     self.behaviour_matrix[specimen_slot, phase_slot] = behaviour
                     self.refinement.update_refinement_treestore()
                     
@@ -193,7 +193,7 @@ class InSituMixture(Mixture):
                     if calculate: # (re-)calculate if requested:
                         mixture = self.optimizer.calculate(mixture)
 
-                    for i, (specimen_data, specimen) in enumerate(izip(mixture.specimens, self.specimens)):
+                    for i, (specimen_data, specimen) in enumerate(zip(mixture.specimens, self.specimens)):
                         if specimen is not None:
                             with specimen.data_changed.ignore():
                                 specimen.update_pattern(

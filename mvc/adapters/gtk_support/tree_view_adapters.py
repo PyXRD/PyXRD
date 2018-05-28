@@ -82,10 +82,9 @@ class AbstractTreeViewAdapter(AbstractAdapter):
         if self._check_widget_type is not None:
             widget_type = type(widget)
             if not isinstance(widget, self._check_widget_type):
-                msg = "A '%s' can only be used for (a subclass of) a '%s' widget, and not for a '%s'!" % (
+                raise TypeError("A '%s' can only be used for (a subclass of) a '%s' widget, and not for a '%s'!" % (
                        type(self), self._check_widget_type, widget_type
-                )
-                raise TypeError, msg
+                ))
         self._connect_widget()
 
     def _connect_widget(self):

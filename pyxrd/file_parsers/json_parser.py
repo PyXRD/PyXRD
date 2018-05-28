@@ -12,7 +12,6 @@ from distutils.version import LooseVersion
 
 import json
 import zipfile
-import types
 import os, io
 
 from shutil import move
@@ -41,7 +40,7 @@ class JSONParser(BaseParser):
             Returns a three-tuple:
             filename, zipfile-object, close
         """
-        if isinstance(fp, types.StringType): # fp is a filename
+        if isinstance(fp, str): # fp is a filename
             filename = fp
             if zipfile.is_zipfile(filename):
                 fp = zipfile.ZipFile(filename, cls.__file_mode__)
@@ -73,7 +72,7 @@ class JSONParser(BaseParser):
                     def get_named_item(fpt, name):
                         try:
                             cf = fpt.open(name, cls.__file_mode__)
-                            obj = decoder.decode(cf.read())
+                            obj = decoder.decode(cf.read().decode("utf-8"))
                         finally:
                             cf.close()
                         return obj
@@ -85,19 +84,19 @@ class JSONParser(BaseParser):
                     if 'version' in namelist:
                         namelist.remove('version')
                         version = get_named_item(fp, 'version')
-                        if LooseVersion(version) > LooseVersion(__version__):
-                            raise RuntimeError, "Unsupported project" + \
+                        if LooseVersion(version) > LooseVersion(__version__.replace("v", "")):
+                            raise RuntimeError("Unsupported project" + \
                                   "version '%s', program version is '%s'" % (
                                 version, __version__
-                            )
+                            ))
                     else:
                         logging.warn("Loading pre-v0.8 file format, " +
                                      "might be deprecated!")
 
                     # Make sure we have a dict at this point
                     if not hasattr(obj, "update"):
-                        raise RuntimeError, "Decoding a multi-part JSON " + \
-                          "object requires the root to be a dictionary object!"
+                        raise RuntimeError("Decoding a multi-part JSON " + \
+                          "object requires the root to be a dictionary object!")
 
                     # Parse all the other files, and set accordingly in the content dict
                     for sub_name in namelist:
@@ -134,7 +133,7 @@ class JSONParser(BaseParser):
         file. With file objects this is not the case.
         """
         filename = None
-        if isinstance(file, types.StringTypes):
+        if isinstance(file, str):
             # We have a filename, not a file object
             filename = file
             # Create temporary filenames for output, and a backup filename if

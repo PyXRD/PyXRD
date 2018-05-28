@@ -124,7 +124,7 @@ class SplashScreen(object):
         self.window.set_decorated(False)
         self.window.set_resizable(False)
         self.window.set_border_width(1)
-        self.window.modify_bg(Gtk.StateType.NORMAL, Gdk.color_parse('black')) # @UndefinedVariable
+        self.window.modify_bg(Gtk.StateType.NORMAL, Gdk.color_parse('white')) # @UndefinedVariable
 
         ebox = Gtk.EventBox() # prevent the black color from showing through...
         self.window.add(ebox)
@@ -153,19 +153,23 @@ class SplashScreen(object):
             Gtk.main_iteration()
         self.start_time = time()
 
+        self.closed = False
+    
     def set_message(self, message):
         self.lbl.set_markup("<span size=\"larger\"><b>%s</b></span>" % message)
         while Gtk.events_pending():
             Gtk.main_iteration()
 
     def close(self):
-        self.window.set_auto_startup_notification(True)
-        while (max(1.5 - (time() - self.start_time), 0) != 0):
-            sleep(0.1)
-            if Gtk.events_pending():
-                Gtk.main_iteration()
-        self.window.destroy()
-        del self.window, self.lbl, self.img, self.version_lbl
+        if not self.closed:
+            self.window.set_auto_startup_notification(True)
+            while (max(5 - (time() - self.start_time), 0) != 0):
+                sleep(0.1)
+                while Gtk.events_pending():
+                    Gtk.main_iteration()
+            self.window.destroy()
+            del self.window, self.lbl, self.img, self.version_lbl
+            self.closed = True
 
 
     pass # end of class

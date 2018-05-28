@@ -1,11 +1,10 @@
 # coding=UTF-8
 # ex:ts=4:sw=4:et=on
-from functools import wraps
-
 # Copyright (c) 2013, Mathijs Dumon
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
+from functools import wraps
 
 class StatusBarMixin(object):
     @property

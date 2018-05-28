@@ -8,7 +8,7 @@
 
 import os
 import unittest
-from StringIO import StringIO
+from io import StringIO
 
 from pyxrd.generic.io import storables, Storable
 
@@ -46,8 +46,8 @@ class TestStorable(unittest.TestCase):
             self.my_daddy = my_daddy
 
     def setUp(self):
-        self.daddy = self.DummyStorable('Daddy Dummy', range(50), None)
-        self.child = self.DummyStorable('Child Dummy', range(5), self.daddy)
+        self.daddy = self.DummyStorable('Daddy Dummy', list(range(50)), None)
+        self.child = self.DummyStorable('Child Dummy', list(range(5)), self.daddy)
 
     def tearDown(self):
         del self.daddy

@@ -8,7 +8,7 @@
 import numpy as np
 from scipy import stats
 
-from pyxrd.generic.custom_math import smooth
+from .math_tools import smooth
 
 def find_closest(value, array, col=0):
     """
@@ -111,7 +111,7 @@ def multi_peakdetect(y_axis, x_axis=None, lookahead=500, deltas=[0]):
         (position, peak_value) 
         to get the average peak value do 'np.mean(maxtab, 0)[1]' on the results
     """
-    rlen = range(len(deltas))
+    rlen = list(range(len(deltas)))
     maxtab = [ [] for i in rlen] # @UnusedVariable
     mintab = [ [] for i in rlen] # @UnusedVariable
     dump = [ [] for i in rlen] # Used to pop the first hit which always if false @UnusedVariable
@@ -119,13 +119,13 @@ def multi_peakdetect(y_axis, x_axis=None, lookahead=500, deltas=[0]):
     length = len(y_axis)
     y_axis = y_axis / np.max(y_axis)
     if x_axis is None:
-        x_axis = range(length)
+        x_axis = list(range(length))
 
     # perform some checks
     if length != len(x_axis):
-        raise ValueError, "Input vectors y_axis and x_axis must have same length"
+        raise ValueError("Input vectors y_axis and x_axis must have same length")
     if lookahead < 1:
-        raise ValueError, "Lookahead must be above '1' in value"
+        raise ValueError("Lookahead must be above '1' in value")
 
     # needs to be a numpy array
     y_axis = np.asarray(y_axis)
@@ -209,11 +209,11 @@ def peakdetect_zero_crossing(y_axis, x_axis=None, window=49):
         to get the average peak value do 'np.mean(maxtab, 0)[1]' on the results
     """
     if x_axis is None:
-        x_axis = range(len(y_axis))
+        x_axis = list(range(len(y_axis)))
 
     length = len(y_axis)
     if length != len(x_axis):
-        raise ValueError, 'Input vectors y_axis and x_axis must have same length'
+        raise ValueError('Input vectors y_axis and x_axis must have same length')
 
     # needs to be a numpy array
     y_axis = np.asarray(y_axis)
@@ -262,7 +262,7 @@ def zero_crossings(y_axis, x_axis=None, window=24):
     # smooth the curve
     length = len(y_axis)
     if x_axis == None:
-        x_axis = range(length)
+        x_axis = list(range(length))
 
     x_axis = np.asarray(x_axis)
 
@@ -273,6 +273,6 @@ def zero_crossings(y_axis, x_axis=None, window=24):
     # check if zero-crossings are valid
     diff = np.diff(times)
     if diff.std() / diff.mean() > 0.1:
-        raise ValueError, "smoothing window too small, false zero-crossings found"
+        raise ValueError("smoothing window too small, false zero-crossings found")
 
     return times

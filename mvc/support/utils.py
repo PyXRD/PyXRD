@@ -37,7 +37,7 @@ def rec_setattr(obj, attr, value):
     4
     """
     if obj is None:
-        raise AttributeError, "Cannot recursively set attribute (%s) on NoneType" % attr
+        raise AttributeError("Cannot recursively set attribute (%s) on NoneType" % attr)
     else:
         if '.' not in attr:
             setattr(obj, attr, value)
@@ -91,7 +91,7 @@ def getmembers(_object, _predicate):
     return observers
 
 def get_new_uuid():
-    return unicode(get_uuid().hex)
+    return str(get_uuid().hex)
 
 def get_unique_list(seq):
     seen = set()

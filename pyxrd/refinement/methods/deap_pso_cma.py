@@ -145,7 +145,7 @@ class SwarmAlgorithm(RefineAsyncHelper):
         if self.verbose:
             column_names = ["gen", "evals", "best"]
             if self.stats is not None:
-                column_names += self.stats.functions.keys()
+                column_names += list(self.stats.functions.keys())
             self.logbook = tools.Logbook()
             self.logbook.header = column_names
 
@@ -223,7 +223,7 @@ class SwarmAlgorithm(RefineAsyncHelper):
         record = self.stats.compile(flat_pop)
         if self.verbose:
             self.logbook.record(gen=self.gen, evals=pop_size, best=best_f, **record)
-            print self.logbook.stream
+            print(self.logbook.stream)
 
 
         self.refiner.status.message = "Refiner update ..."

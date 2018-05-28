@@ -73,7 +73,7 @@ class Signal(Observable):
         with self.clock:
             self._counter -= 1;
             if self._counter < 0:
-                raise RuntimeError, "Negative counter in CounterLock object! Did you call __exit__ too many times?"
+                raise RuntimeError("Negative counter in CounterLock object! Did you call __exit__ too many times?")
             if len(self._ignore_levels) > 0 and self._counter == self._ignore_levels[-1]:
                 self._ignore_levels.pop()
             elif self._counter == 0 and self._emissions_pending:

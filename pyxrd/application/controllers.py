@@ -9,12 +9,12 @@ import os
 from os.path import basename, dirname
 from functools import wraps
 
-import gi
+"""import gi
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk
+from gi.repository import Gtk"""
 
 from mvc.adapters.gtk_support.dialogs.dialog_factory import DialogFactory
-from mvc.support.idle_call import IdleCallHandler
+from mvc.support.gui_loop import stop_event_loop, add_idle_call
 
 from pyxrd.data import settings
 
@@ -163,7 +163,7 @@ class AppController (BaseController):
         markers_view = self.view.reset_child_view("markers")
         self.markers = MarkersController(model=marker.specimen, view=markers_view, parent=self)
         self.view.markers.present()
-        IdleCallHandler.call_idle(self.markers.select_object, marker)
+        add_idle_call(self.markers.select_object, marker)
              
 
     # ------------------------------------------------------------
@@ -197,7 +197,7 @@ class AppController (BaseController):
     def idle_redraw_plot(self):
         """Adds a redraw plot function as 'idle' action to the main GTK loop."""
         if self._idle_redraw_id is None:
-            self._idle_redraw_id = IdleCallHandler.call_idle(self.redraw_plot)
+            self._idle_redraw_id = add_idle_call(self.redraw_plot)
         self._needs_redraw = True
 
     @BaseController.status_message("Updating display...")
@@ -289,7 +289,7 @@ class AppController (BaseController):
         "The current project has unsaved changes,\n"
         "are you sure you want to quit?")
     def quit(self, *args, **kwargs):
-        Gtk.main_quit()
+        stop_event_loop()
         return False
 
     @confirm_discard_unsaved_changes(

@@ -8,10 +8,6 @@
 import logging
 logger = logging.getLogger(__name__)
 
-from itertools import izip
-
-from pyxrd.data import settings
-
 import numpy as np
 
 import matplotlib
@@ -21,9 +17,10 @@ from matplotlib.patches import FancyBboxPatch, Rectangle
 from matplotlib.offsetbox import VPacker, HPacker, AnchoredOffsetbox, TextArea, AuxTransformBox
 from matplotlib.text import Text
 
-from pyxrd.generic.custom_math import smooth, add_noise
+from pyxrd.data import settings
+from pyxrd.calculations.math_tools import smooth, add_noise
 
-from draggables import DraggableMixin
+from .draggables import DraggableMixin
 
 def getattr_or_create(obj, attr, create):
     value = getattr(obj, attr, None)
@@ -176,7 +173,7 @@ def plot_hatches(project, specimen, offset, scale, axes):
         except: pass
 
     # Create & add new hatches:
-    for x0, x1 in izip(*specimen.exclusion_ranges.get_xy_data()):
+    for x0, x1 in zip(*specimen.exclusion_ranges.get_xy_data()):
         leftborder = axes.plot([x0, x0], [y0, y1], c=settings.EXCLUSION_LINES)
         axes.add_patch(Rectangle(
             (x0, y0), x1 - x0, y1 - y0,
@@ -227,7 +224,7 @@ def plot_pattern(pattern, axes, scale=1, offset=0, cap=0, z_data=[None], **kwarg
         
         angles = np.array(pattern.data_x, dtype=float)
         intensities = np.array(pattern.data_y[:,:len(z_data)], dtype=float) * scale + offset
-        rh = np.array(map(float, z_data), dtype=float)
+        rh = np.array(list(map(float, z_data)), dtype=float)
         
         rh = rh * scale + offset
         
@@ -441,7 +438,7 @@ def plot_specimen(cc, project, specimen, labels, marker_lbls, label_offset, plot
                     axes.remove_line(phase_line)
 
             # Update & add phase lines:
-            for i in xrange(2, pattern.num_columns):
+            for i in range(2, pattern.num_columns):
                 phase_data = pattern.get_xy_data(i)
                 # Get the line object or create it:
                 try:
@@ -645,8 +642,8 @@ def plot_mixtures(axes, project, mixtures):
         legend_items.append(title_box)
 
         # Add phase labels & boxes
-        for i, (phase, fraction) in enumerate(izip(mixture.phases, mixture.fractions)):
-            label_text = u"{}: {:>5.1f}".format(phase, fraction * 100.0)
+        for i, (phase, fraction) in enumerate(zip(mixture.phases, mixture.fractions)):
+            label_text = "{}: {:>5.1f}".format(phase, fraction * 100.0)
             label = TextArea(label_text)
             phase_children = [
                 create_rect_patch(fc=phase.display_color)

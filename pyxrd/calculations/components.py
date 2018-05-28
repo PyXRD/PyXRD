@@ -10,7 +10,7 @@ from math import pi
 
 import numpy as np
 
-from pyxrd.calculations.atoms import get_structure_factor
+from .atoms import get_structure_factor
 
 def calculate_z(default_z, lattice_d, z_factor):
     return lattice_d + z_factor * (default_z - lattice_d)

@@ -39,7 +39,8 @@ class EditMarkerController(BaseController):
 
     def update_sensitivities(self):
         for name in ("style", "base", "align", "top", "color"):
-            self.view["marker_%s" % name].set_sensitive(not getattr(self.model, "inherit_%s" % name))
+            wid = self.view["marker_%s" % name]
+            wid.set_sensitive(not getattr(self.model, "inherit_%s" % name)) 
         for name in ("angle", "top_offset"):
             self.view["spb_%s" % name].set_sensitive(not getattr(self.model, "inherit_%s" % name))
 

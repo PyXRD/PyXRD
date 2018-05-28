@@ -6,7 +6,7 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-import os, io
+import os
 
 from pyxrd.file_parsers.base_parser import BaseParser
 
@@ -18,8 +18,8 @@ __all__ = [
 def load_data_from_files(*files):
     basepath = os.path.realpath(os.getcwd())
     for fname in files:
-        with open(basepath + "/" + fname, 'rb') as f:
-            yield f.read()
+        with open(basepath + "/" + fname, 'rb') as fp:
+            yield fp
 
 class TestParserMixin(object):
 
@@ -35,8 +35,7 @@ class TestParserMixin(object):
         self.assertIsNotNone(self.parser_class.file_filter)
 
     def test_parsing(self):
-        for data in self.file_data:
-            fp = io.BytesIO(data)
+        for fp in self.file_data:
             data_objects = self.parser_class.parse(fp)
             self.assertGreater(len(data_objects), 0)
 

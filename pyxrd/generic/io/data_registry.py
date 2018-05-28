@@ -37,7 +37,7 @@ class DataRegistry(object):
                 try:
                     path = os.path.join(self.__data_directories[parent], path)
                 except KeyError:
-                    raise NotRegistered, "The data directory named '%s' was not found in the registry" % parent
+                    raise NotRegistered("The data directory named '%s' was not found in the registry" % parent)
         elif path.startswith("./"):
             path = resource_filename("pyxrd.data", path)
         return path
@@ -62,7 +62,7 @@ class DataRegistry(object):
             path = self.__parse_parent(path, parent=parent)
             self.__data_files[name] = path
         else:
-            raise AlreadyRegistered, "the data file named '%s' was already registered" % name
+            raise AlreadyRegistered("the data file named '%s' was already registered" % name)
 
     def register_data_directory(self, name, path, parent=None):
         """
@@ -88,7 +88,7 @@ class DataRegistry(object):
             except OSError:
                 pass
         else:
-            raise AlreadyRegistered, "The data directory named '%s' was already registered" % name
+            raise AlreadyRegistered("The data directory named '%s' was already registered" % name)
 
     def get_directory_path(self, name):
         """
@@ -101,14 +101,14 @@ class DataRegistry(object):
             else:
                 return path
         except KeyError:
-            raise NotRegistered, "The data directory named '%s' was not found in the registry" % name
+            raise NotRegistered("The data directory named '%s' was not found in the registry" % name)
 
     def get_all_directories(self):
         """
             Returns a generator looping over all directories in the registry,
             excluding the project path.
         """
-        for path in self.__data_directories.values():
+        for path in list(self.__data_directories.values()):
             yield path
 
     def get_file_path(self, name):
@@ -118,14 +118,14 @@ class DataRegistry(object):
         try:
             return self.__data_files[name]
         except KeyError:
-            raise NotRegistered, "The data file named '%s' was not found in the registry" % name
+            raise NotRegistered("The data file named '%s' was not found in the registry" % name)
 
     def get_all_files(self):
         """
             Returns a generator looping over all directories in the registry,
             excluding the project path.
         """
-        for path in self.__data_directories.values():
+        for path in list(self.__data_directories.values()):
             yield resource_filename("pyxrd.data", path)
 
     pass # end of class

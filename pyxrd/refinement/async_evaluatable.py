@@ -11,7 +11,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 import functools
-from itertools import imap, izip
+
 
 from pyxrd.generic.async.cancellable import Cancellable
 from pyxrd.generic.async.has_async_calls import HasAsyncCalls
@@ -48,7 +48,7 @@ class AsyncEvaluatable(HasAsyncCalls, Cancellable):
             if self._user_cancelled(): # Stop submitting new individuals
                 break
             
-        for solution, result in izip(solutions, imap(self.fetch_async_result, results)): 
+        for solution, result in zip(solutions, map(self.fetch_async_result, results)): 
             result_func(solution, result)
         
         del results

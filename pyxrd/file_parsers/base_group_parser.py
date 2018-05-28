@@ -38,7 +38,7 @@ class BaseGroupBarser(BaseParser):
             filenames to a BaseGroupParser sub-class than it is to pass a 
             file-like object. 
         """
-        if isinstance(fp, types.StringType):
+        if isinstance(fp, str):
             return fp, fp, True if close is None else close
         else:
             return getattr(fp, 'name', None), fp, False if close is None else close
@@ -48,7 +48,7 @@ class BaseGroupBarser(BaseParser):
         if not type(filename) is str and hasattr(fp, 'name'):
             filename = fp.name
         if not type(filename) is str:
-            raise TypeError, "Wrong type for filename (%s), must be a string, but %s was given" % (cls.description, type(filename))
+            raise TypeError("Wrong type for filename (%s), must be a string, but %s was given" % (cls.description, type(filename)))
         else:
             try:
                 import gi

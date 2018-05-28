@@ -22,23 +22,16 @@ def mdot(A, B):
         C[i] = np.dot(A[i], B[i])
     return C
 
-def mtim(A, B):
+def mtim(A, B): # currently unused?
     C = np.zeros(shape=A.shape, dtype=np.complex)
     for i in range(A.shape[0]):
         C[i] = np.multiply(A[i], B[i])
     return C
 
-
-def solve_division(A, B):
+def solve_division(A, B): # currently unused?
     bt = np.transpose(B, axes=(0, 2, 1))
     at = np.transpose(A, axes=(0, 2, 1))
     return np.array([np.transpose(np.linalg.lstsq(bt[i], at[i])[0]) for i in range(bt.shape[0])])
-
-def capint(lower, value, upper, out=None):
-    if value < lower or value > upper:
-        return out if out is not None else min(max(value, lower), upper)
-    else:
-        return value
 
 def lognormal(T, a, b):
     return exp(-(log(T) - a) ** 2 / (2.0 * (b ** 2))) / (sqrt2pi * abs(b) * T)
@@ -80,7 +73,6 @@ def smooth(x, half_window_len=3, window='blackman'):
     numpy.hanning, numpy.hamming, numpy.bartlett, numpy.blackman, numpy.convolve
     scipy.signal.lfilter
  
-    TODO: the window parameter could be the window itself if an array instead of a string
     """
 
     window_len = half_window_len * 2 + 1
@@ -89,13 +81,13 @@ def smooth(x, half_window_len=3, window='blackman'):
         x = np.ndarray.flatten(x)
 
     if x.size < window_len:
-        raise ValueError, "Input vector needs to be bigger than window size."
+        raise ValueError("Input vector needs to be bigger than window size.")
 
     if window_len < 3:
         return x
 
     if not window in ['flat', 'hanning', 'hamming', 'bartlett', 'blackman']:
-        raise ValueError, "Window is on of 'flat', 'hanning', 'hamming', 'bartlett', 'blackman'"
+        raise ValueError("Window is on of 'flat', 'hanning', 'hamming', 'bartlett', 'blackman'")
 
 
     s = np.r_[x[window_len - 1:0:-1], x, x[-1:-window_len:-1]]

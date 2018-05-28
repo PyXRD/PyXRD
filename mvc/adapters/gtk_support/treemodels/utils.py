@@ -44,11 +44,11 @@ def repos(ln, old_pos, new_pos):
     adj_range = []
     if new_pos < old_pos:
         adj_range.append(old_pos)
-        adj_range += range(lb, ub)
+        adj_range += list(range(lb, ub))
     else:
-        adj_range += range(lb + 1, ub + 1)
+        adj_range += list(range(lb + 1, ub + 1))
         adj_range.append(old_pos)
-    return range(0, lb) + adj_range + range(ub, ln - 1)
+    return list(range(0, lb)) + adj_range + list(range(ub, ln - 1))
 
 def simple_repos(ln, old_pos, new_pos):
     """
@@ -56,7 +56,7 @@ def simple_repos(ln, old_pos, new_pos):
         in the old order.
         Uses the delete/insert approach (best for small arrays).
     """
-    r1 = range(ln)
+    r1 = list(range(ln))
     val = r1[old_pos]
     del r1[old_pos]
     r1.insert(new_pos, val)
@@ -80,7 +80,7 @@ def create_valuestore_from_file(filename, data_type=float):
     liststore = Gtk.ListStore(str, data_type)
     with open(filename, 'r') as f:
         reader = csv.reader(f)
-        reader.next() # skip header
+        next(reader) # skip header
         for row in reader:
             row[1] = data_type(row[1])
             liststore.append(row)

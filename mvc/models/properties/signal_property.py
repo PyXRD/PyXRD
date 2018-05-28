@@ -43,6 +43,6 @@ class SignalProperty(LabeledProperty):
         return signal
 
     def __set__(self, instance, value):
-        raise AttributeError, "Cannot set a Signal property!"
+        raise AttributeError("Cannot set a Signal property!")
 
     pass # end of class

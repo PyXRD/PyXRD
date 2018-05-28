@@ -9,7 +9,19 @@ import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
 
-from cell_renderer_tools import get_default_renderer, parse_callback, parse_kwargs
+sel_modes = {
+    'NONE': Gtk.SelectionMode.NONE,
+    'SINGLE': Gtk.SelectionMode.SINGLE,
+    'BROWSE': Gtk.SelectionMode.BROWSE,
+    'MULTIPLE': Gtk.SelectionMode.MULTIPLE
+}
+
+sort_types = {
+    'ASCENDING': Gtk.SortType.ASCENDING,
+    'DESCENDING': Gtk.SortType.DESCENDING
+}
+
+from .cell_renderer_tools import get_default_renderer, parse_callback, parse_kwargs
 
 class PyXRDTreeViewColumn(Gtk.TreeViewColumn):
     """
@@ -23,7 +35,7 @@ class PyXRDTreeViewColumn(Gtk.TreeViewColumn):
         self.set_attributes(cell_renderer, **kwargs)
 
     def set_attributes(self, cell_renderer, **kwargs):
-        for key, val in kwargs.iteritems():
+        for key, val in kwargs.items():
             self._attrs[key] = val
         Gtk.TreeViewColumn.set_attributes(self, cell_renderer, **kwargs)
 
@@ -53,13 +65,17 @@ def _get_default_column(title, rend,
         reorderable=False,
         sort_column_id=-1,
         sort_indicator=False,
-        sort_order=Gtk.SortType.ASCENDING,
+        sort_order='ASCENDING',
         col_attrs={}):
     """
         Creates a PyXRDTreeViewColumn using the arguments passed. Column 
         attribute mappings are to be passed as a single dict,
         not as key-word arguments.
     """
+    try:
+        sort_order = sort_types[sort_order]
+    except KeyError as err:
+        raise ValueError("Invalid value '%s' for sort order!" % sort_order) from err 
     col = PyXRDTreeViewColumn(title, rend, **col_attrs)
     if data_func is not None:
         callback, args = parse_callback(data_func)
@@ -104,7 +120,7 @@ def new_text_column(title,
         reorderable=False,
         sort_column_id=-1,
         sort_indicator=False,
-        sort_order=Gtk.SortType.ASCENDING,
+        sort_order='ASCENDING',
         **kwargs):
     """
         Creates a TreeViewColumn packed with a CellRendererText .
@@ -152,7 +168,7 @@ def new_pb_column(title,
         reorderable=False,
         sort_column_id=-1,
         sort_indicator=False,
-        sort_order=Gtk.SortType.ASCENDING,
+        sort_order='ASCENDING',
         **kwargs):
     """
         Creates a TreeViewColumn packed with a CellRendererPixbuf.
@@ -198,7 +214,7 @@ def new_toggle_column(title,
         reorderable=False,
         sort_column_id=-1,
         sort_indicator=False,
-        sort_order=Gtk.SortType.ASCENDING,
+        sort_order='ASCENDING',
         **kwargs):
     """
         Creates a TreeViewColumn packed with a CellRendererToggle.
@@ -250,7 +266,7 @@ def new_combo_column(title,
         reorderable=False,
         sort_column_id=-1,
         sort_indicator=False,
-        sort_order=Gtk.SortType.ASCENDING,
+        sort_order='ASCENDING',
         **kwargs):
     """
         Creates a TreeViewColumn packed with a CellRendererCombo.
@@ -317,10 +333,14 @@ def setup_treeview(tv, model,
         reset=False,
         on_cursor_changed=None,
         on_selection_changed=None,
-        sel_mode=Gtk.SelectionMode.SINGLE):
+        sel_mode='SINGLE'):
     """
         Sets up a treeview (signal connection, sets selection mode).
     """
+    try:
+        sel_mode = sel_modes[sel_mode]
+    except KeyError as err:
+        raise ValueError("Invalid value '%s' for selection mode!" % sel_mode) from err
     if reset: reset_columns(tv)
     sel = tv.get_selection()
     sel.set_mode(sel_mode)

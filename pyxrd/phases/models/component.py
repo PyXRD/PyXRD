@@ -34,10 +34,9 @@ from .atom_relations import AtomRelation
 from .unit_cell_prop import UnitCellProperty
 
 @storables.register()
-class Component(RefinementGroup, DataModel, Storable):
+class Component(RefinementGroup, DataModel, Storable, metaclass=PyXRDRefinableMeta):
 
     # MODEL INTEL:
-    __metaclass__ = PyXRDRefinableMeta
     class Meta(DataModel.Meta):
         store_id = "Component"
 
@@ -68,7 +67,7 @@ class Component(RefinementGroup, DataModel, Storable):
     phase = property(DataModel.parent.fget, DataModel.parent.fset)
 
     # SIGNALS:
-    atoms_changed = LabeledProperty(default=None, visible=False, persistent=False)
+    atoms_changed = SignalProperty()
 
     # UNIT CELL DIMENSION SHORTCUTS:
     @property
@@ -319,9 +318,6 @@ class Component(RefinementGroup, DataModel, Storable):
         )
         super(Component, self).__init__(**kwargs)
         kwargs = my_kwargs
-
-        # Setup signals:
-        self.atoms_changed = SignalProperty()
 
         # Set up data object
         self._data_object = ComponentData(

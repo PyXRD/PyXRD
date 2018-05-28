@@ -128,7 +128,7 @@ class AtomTypesController(ObjectListStoreController): # FIXME THIS NEES CLEAN-UP
             lambda dialog: dialog.parser.write(
                 dialog.filename,
                 self.get_selected_objects(),
-                AtomType.Meta.get_local_storable_properties()
+                AtomType.Meta.get_local_persistent_properties()
             )
         )
 

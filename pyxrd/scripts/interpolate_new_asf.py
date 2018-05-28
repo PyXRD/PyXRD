@@ -55,6 +55,6 @@ x0 = asf2
 
 lastx, lastR2, info = optim(calculate_R2, x0, approx_grad=True, pgtol=10e-24 , factr=2, iprint=-1, bounds=bounds)
 
-print lastR2
-print "\t".join([("%.10g" % fl).replace(".", ",") for fl in lastx])
-print info
+print(lastR2)
+print("\t".join([("%.10g" % fl).replace(".", ",") for fl in lastx]))
+print(info)

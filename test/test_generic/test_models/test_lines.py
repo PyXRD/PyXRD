@@ -52,7 +52,7 @@ class TestLineMixin():
     def _set_some_data(self):
         x = [1, 2, 3, 4, 5, 6, 7 , 8 , 9 , 10, 11, 12 , 13, 14, 15, 16, 17, 18, 19, 20]
         y = [0, 0, 0, 0, 0, 0, 10, 20, 30, 40, 80, 160, 80, 40, 30, 20, 10, 0 , 0 , 0 ]
-        y = zip(y, y)
+        y = list(zip(y, y))
         self.line.set_data(x, y)
 
     def test_updates(self):

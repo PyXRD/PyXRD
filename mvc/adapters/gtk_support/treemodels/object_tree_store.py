@@ -59,10 +59,10 @@ class ObjectTreeStore(BaseObjectListStore):
         # Then continue:
         try:
             BaseObjectListStore.__init__(self, prop.data_type)
-        except ValueError, err:
+        except ValueError as err:
             msg = "ValueError (%r) was raised when initializing ObjectTreeStore for model '%s' and data type '%s'" % (err, model, prop.data_type)
             msg += "\n Did you forget to set the data_type on the list property '%s'?" % prop.label
-            raise ValueError, msg
+            raise ValueError(msg)
         self._model = model
         self._prop_name = prop.label
         self._object_node_map = dict()
@@ -101,7 +101,7 @@ class ObjectTreeStore(BaseObjectListStore):
 
     def on_get_iter(self, path):
         try:
-            if hasattr(path, 'split'): path = map(int, path.split(":"))
+            if hasattr(path, 'split'): path = list(map(int, path.split(":")))
             return self._root_node.get_child_node(*path)
         except IndexError as err:
             err.args = "IndexError in on_get_iter of %s caused by %s" % (self, path)

@@ -19,7 +19,7 @@ class DataObject(object):
         self.update(**kwargs)
 
     def update(self, **kwargs):
-        for key, value in kwargs.iteritems():
+        for key, value in kwargs.items():
             setattr(self, key, value)
 
     pass # end of class

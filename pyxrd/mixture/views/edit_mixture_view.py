@@ -34,7 +34,10 @@ class EditMixtureView(BaseView):
         self.matrix = self[self.matrix_widget]
         self.wrapper = self[self.wrapper_widget]
 
-        self.labels = [ self["lbl_scales"], self["lbl_fractions"], self["lbl_phases"], self["lbl_bgshifts"], self["lbl_specimens"] ]
+        self.labels = [
+            self["lbl_scales"], self["lbl_fractions"], self["lbl_phases"], self["lbl_bgshifts"], self["lbl_specimens"], 
+            self["mixture_auto_scales"], self["mixture_auto_bg"] 
+        ]
 
         self["scolled_window"].set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         # TODO FIXME self.matrix.connect("size-request", self.on_size_requested)
@@ -49,6 +52,7 @@ class EditMixtureView(BaseView):
 
         self.phase_inputs = []
         self.fraction_inputs = []
+        self.fraction_checks = []
         self.specimen_combos = []
         self.scale_inputs = []
         self.bgs_inputs = []
@@ -83,7 +87,7 @@ class EditMixtureView(BaseView):
             if not i >= len(self.bgs_inputs):
                 self.bgs_inputs[i].set_text(str(bgs))
 
-    def add_phase_slot(self, phase_store, del_phase_callback, label_callback, fraction_callback, combo_callback, label, fraction, phases):
+    def add_phase_slot(self, phase_store, del_phase_callback, label_callback, check_callback, fraction_callback, combo_callback, label, fraction, phases):
         r, c = self.matrix.get_property('n_rows'), self.matrix.get_property('n_columns')
         self.matrix.resize(r + 1, c)
 
@@ -99,10 +103,14 @@ class EditMixtureView(BaseView):
         self.phase_inputs.append(new_phase_input)
         self.matrix.attach(new_phase_input, 1, 2, r, r + 1, Gtk.AttachOptions.EXPAND | Gtk.AttachOptions.FILL, 0)
 
+        new_fraction_check = self._get_new_check(callback=check_callback)
+        self.fraction_checks.append(new_fraction_check)
+        self.matrix.attach(new_fraction_check, 2, 3, r, r + 1, Gtk.AttachOptions.FILL, 0)
+
         new_fraction_input = self._get_new_input(str(fraction), callback=fraction_callback)
         FloatEntryValidator(new_fraction_input)
         self.fraction_inputs.append(new_fraction_input)
-        self.matrix.attach(new_fraction_input, 2, 3, r, r + 1, Gtk.AttachOptions.EXPAND | Gtk.AttachOptions.FILL, 0)
+        self.matrix.attach(new_fraction_input, 3, 4, r, r + 1, Gtk.AttachOptions.FILL, 0)
 
         self.phase_combos.resize((c - self.base_width, r + 1 - self.base_height))
         for col in range(c - self.base_width):
@@ -142,6 +150,16 @@ class EditMixtureView(BaseView):
             mcol, mrow = row, c - self.base_width
             self._add_new_phase_combo(phase_store, phase_store.c_name, phases[mrow, mcol], mrow, mcol, combo_callback)
         self.wrapper.show_all()
+
+    def _get_new_check(self, callback=None):
+        """
+            Creates a new toggle button.
+        """
+        new_check = Gtk.CheckButton.new()
+        new_check.set_active(True)
+        new_check.set_tooltip_text("Tick this box if you want to include this fraction in optimizations and refinements")
+        if callback is not None: new_check.connect("toggled", callback)
+        return new_check
 
     def _get_new_input(self, text="", width=7, callback=None):
         """

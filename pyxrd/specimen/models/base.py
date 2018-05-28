@@ -6,7 +6,6 @@
 # Complete license can be found in the LICENSE file.
 
 from math import pi, log
-from itertools import izip
 
 import numpy as np
 
@@ -20,10 +19,10 @@ from pyxrd.data import settings
 
 from pyxrd.generic.io import storables, Storable
 from pyxrd.generic.models import ExperimentalLine, CalculatedLine, DataModel
-from pyxrd.generic.peak_detection import peakdetect
 from pyxrd.generic.utils import not_none
 from pyxrd.generic.models.lines import PyXRDLine
 
+from pyxrd.calculations.peak_detection import peakdetect
 from pyxrd.calculations.data_objects import SpecimenData
 
 from pyxrd.goniometer.models import Goniometer
@@ -259,10 +258,8 @@ class Specimen(DataModel, Storable):
             with self.data_changed.hold_and_emit():
                 self.name = self.get_kwarg(kwargs, "", "name", "data_name")
                 sample_name = self.get_kwarg(kwargs, "", "sample_name", "data_sample")
-                try:
-                    sample_name = sample_name.encode("ascii", "ignore")
-                except AttributeError:
-                    pass
+                if isinstance(sample_name, bytes):
+                    sample_name = sample_name.decode("utf-8", "ignore")
                 self.sample_name = sample_name
                 
                 calc_pattern_old_kwargs = {}
@@ -404,8 +401,8 @@ class Specimen(DataModel, Storable):
                     # Store the average RH for this pattern:
                     rh_datas.append(np.average(rh_data))
                     
-                specimen.experimental_pattern.load_data_from_generator(izip(x_data, np.asanyarray(y_datas).transpose()), clear=True)
-                specimen.experimental_pattern.y_names = map(lambda f: "%.1f" % f, rh_datas)
+                specimen.experimental_pattern.load_data_from_generator(zip(x_data, np.asanyarray(y_datas).transpose()), clear=True)
+                specimen.experimental_pattern.y_names = ["%.1f" % f for f in rh_datas]
                 specimen.experimental_pattern.z_data = rh_datas
                 specimens.append(specimen)    
             else: # regular (might be multi-pattern) file
@@ -441,9 +438,8 @@ class Specimen(DataModel, Storable):
     # ------------------------------------------------------------
     def clear_markers(self):
         with self.visuals_changed.hold():
-            self.markers[:] = []
-            # for marker in list(self.markers)[::-1]:
-            #    self.markers.remove(marker)
+            for marker in list(self.markers)[::-1]:
+                self.markers.remove(marker)
 
     def auto_add_peaks(self, tmodel):
         """

@@ -18,6 +18,7 @@ def get_install_requires():
         'Pyro4>=4.41',
         'deap>=1.0.1',
         'cairocffi',
+        'pygobject>=3.20'
     ]
 
 def read(fname):
@@ -39,11 +40,6 @@ setup(
     scripts=['win32_pyxrd_post_install.py'],
     packages=find_packages(exclude=["test.*", "test", "tests_mvc", "tests_mvc.*"]),
     include_package_data=True,
-    entry_points={
-        'console_scripts': [ 'PyXRDScript = pyxrd.core:run_user_script' ],
-        'console_scripts': [ 'PyXRDMain = pyxrd.core:run_main' ],
-        'gui_scripts': [ 'PyXRD = pyxrd.core:run_main' ]
-    },
     install_requires=get_install_requires(),
     zip_safe=False,
 

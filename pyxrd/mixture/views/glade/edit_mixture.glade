@@ -182,313 +182,294 @@
       </packing>
     </child>
     <child>
-      <object class="GtkExpander" id="exp_wrapper">
-        <property name="visible">True</property>
-        <property name="can_focus">True</property>
-        <property name="expanded">True</property>
-        <child>
-          <object class="GtkTable" id="tbl_wrapper">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="n_rows">2</property>
-            <property name="n_columns">2</property>
-            <child>
-              <object class="GtkButton" id="btn_add_specimen">
-                <property name="use_action_appearance">False</property>
-                <property name="width_request">24</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-                <property name="has_tooltip">True</property>
-                <property name="tooltip_markup">Add a specimen column to this mixture</property>
-                <property name="tooltip_text" translatable="yes">Add a specimen column to this mixture</property>
-                <property name="image">img_button_add_phase</property>
-                <signal name="clicked" handler="on_add_specimen" swapped="no"/>
-              </object>
-              <packing>
-                <property name="left_attach">1</property>
-                <property name="right_attach">2</property>
-                <property name="x_options">GTK_FILL</property>
-                <property name="y_options">GTK_FILL</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkButton" id="btn_add_phase">
-                <property name="use_action_appearance">False</property>
-                <property name="height_request">24</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-                <property name="has_tooltip">True</property>
-                <property name="tooltip_markup">Add a phase row to this mixture</property>
-                <property name="tooltip_text" translatable="yes">Add a phase row to this mixture</property>
-                <property name="image">img_button_add_specimen</property>
-                <signal name="clicked" handler="on_add_phase" swapped="no"/>
-              </object>
-              <packing>
-                <property name="top_attach">1</property>
-                <property name="bottom_attach">2</property>
-                <property name="x_options">GTK_FILL</property>
-                <property name="y_options">GTK_FILL</property>
-              </packing>
-            </child>
-            <child>
-              <object class="GtkScrolledWindow" id="scolled_window">
-                <property name="width_request">280</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="hscrollbar_policy">never</property>
-                <child>
-                  <object class="GtkViewport" id="matrix_viewport">
-                    <property name="visible">True</property>
-                    <property name="can_focus">False</property>
-                    <property name="shadow_type">none</property>
-                    <child>
-                      <object class="GtkTable" id="tbl_matrix">
-                        <property name="visible">True</property>
-                        <property name="can_focus">False</property>
-                        <property name="border_width">5</property>
-                        <property name="n_rows">5</property>
-                        <property name="n_columns">4</property>
-                        <property name="column_spacing">5</property>
-                        <property name="row_spacing">5</property>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <object class="GtkLabel" id="lbl_specimens">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="label" translatable="yes">Specimens</property>
-                            <property name="xalign">1</property>
-                          </object>
-                          <packing>
-                            <property name="left_attach">1</property>
-                            <property name="right_attach">4</property>
-                            <property name="top_attach">1</property>
-                            <property name="bottom_attach">2</property>
-                            <property name="x_options">GTK_FILL</property>
-                            <property name="y_options"/>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkLabel" id="lbl_fractions">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="label" translatable="yes">Fractions</property>
-                            <property name="xalign">1</property>
-                            <property name="yalign">1</property>
-                          </object>
-                          <packing>
-                            <property name="left_attach">2</property>
-                            <property name="right_attach">4</property>
-                            <property name="top_attach">4</property>
-                            <property name="bottom_attach">5</property>
-                            <property name="x_options">GTK_SHRINK | GTK_FILL</property>
-                            <property name="y_options">GTK_FILL</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkLabel" id="lbl_phases">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="label" translatable="yes">Name</property>
-                            <property name="yalign">1</property>
-                          </object>
-                          <packing>
-                            <property name="left_attach">1</property>
-                            <property name="right_attach">2</property>
-                            <property name="top_attach">4</property>
-                            <property name="bottom_attach">5</property>
-                            <property name="y_options">GTK_FILL</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <object class="GtkCheckButton" id="mixture_auto_scales">
-                            <property name="use_action_appearance">False</property>
-                            <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <property name="receives_default">False</property>
-                            <property name="tooltip_text" translatable="yes">Tick this box if you want to turn on automatic background refinement.</property>
-                            <property name="xalign">0</property>
-                            <property name="draw_indicator">True</property>
-                            <child>
-                              <placeholder/>
-                            </child>
-                          </object>
-                          <packing>
-                            <property name="left_attach">2</property>
-                            <property name="right_attach">3</property>
-                            <property name="top_attach">3</property>
-                            <property name="bottom_attach">4</property>
-                            <property name="x_options"/>
-                            <property name="y_options"/>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkLabel" id="lbl_scales">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="label" translatable="yes">Abs. scale</property>
-                            <property name="xalign">1</property>
-                          </object>
-                          <packing>
-                            <property name="left_attach">3</property>
-                            <property name="right_attach">4</property>
-                            <property name="top_attach">3</property>
-                            <property name="bottom_attach">4</property>
-                            <property name="x_options">GTK_FILL</property>
-                            <property name="y_options"/>
-                          </packing>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                        <child>
-                          <object class="GtkCheckButton" id="mixture_auto_bg">
-                            <property name="use_action_appearance">False</property>
-                            <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <property name="receives_default">False</property>
-                            <property name="tooltip_text" translatable="yes">Tick this box if you want to turn on automatic background refinement.</property>
-                            <property name="xalign">0</property>
-                            <property name="draw_indicator">True</property>
-                            <child>
-                              <placeholder/>
-                            </child>
-                          </object>
-                          <packing>
-                            <property name="left_attach">2</property>
-                            <property name="right_attach">3</property>
-                            <property name="top_attach">2</property>
-                            <property name="bottom_attach">3</property>
-                            <property name="x_options"/>
-                            <property name="y_options"/>
-                          </packing>
-                        </child>
-                        <child>
-                          <object class="GtkLabel" id="lbl_bgshifts">
-                            <property name="visible">True</property>
-                            <property name="can_focus">False</property>
-                            <property name="label" translatable="yes">Bg. shift</property>
-                            <property name="xalign">1</property>
-                          </object>
-                          <packing>
-                            <property name="left_attach">3</property>
-                            <property name="right_attach">4</property>
-                            <property name="top_attach">2</property>
-                            <property name="bottom_attach">3</property>
-                            <property name="x_options">GTK_FILL</property>
-                            <property name="y_options"/>
-                          </packing>
-                        </child>
-                        <child>
-                          <placeholder/>
-                        </child>
-                      </object>
-                    </child>
-                  </object>
-                </child>
-              </object>
-            </child>
-            <child>
-              <object class="GtkButton" id="btn_add_both">
-                <property name="use_action_appearance">False</property>
-                <property name="width_request">24</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="receives_default">True</property>
-                <property name="has_tooltip">True</property>
-                <property name="tooltip_markup">Add a phase column and a specimen row to this mixture</property>
-                <property name="tooltip_text" translatable="yes">Add a phase column and a specimen row to this mixture</property>
-                <property name="image">img_button_add_both</property>
-                <signal name="clicked" handler="on_add_both" swapped="no"/>
-              </object>
-              <packing>
-                <property name="left_attach">1</property>
-                <property name="right_attach">2</property>
-                <property name="top_attach">1</property>
-                <property name="bottom_attach">2</property>
-                <property name="x_options">GTK_FILL</property>
-                <property name="y_options">GTK_FILL</property>
-              </packing>
-            </child>
-          </object>
-        </child>
-        <child type="label">
-          <object class="GtkLabel" id="lbl_setup">
-            <property name="visible">True</property>
-            <property name="can_focus">False</property>
-            <property name="label" translatable="yes">Setup</property>
-          </object>
-        </child>
-      </object>
+	  <object class="GtkTable" id="tbl_wrapper">
+		<property name="visible">True</property>
+		<property name="can_focus">False</property>
+		<property name="n_rows">2</property>
+		<property name="n_columns">2</property>
+		<child>
+		  <object class="GtkButton" id="btn_add_specimen">
+			<property name="use_action_appearance">False</property>
+			<property name="width_request">24</property>
+			<property name="visible">True</property>
+			<property name="can_focus">True</property>
+			<property name="receives_default">True</property>
+			<property name="has_tooltip">True</property>
+			<property name="tooltip_markup">Add a specimen column to this mixture</property>
+			<property name="tooltip_text" translatable="yes">Add a specimen column to this mixture</property>
+			<property name="image">img_button_add_phase</property>
+			<signal name="clicked" handler="on_add_specimen" swapped="no"/>
+		  </object>
+		  <packing>
+			<property name="left_attach">1</property>
+			<property name="right_attach">2</property>
+			<property name="x_options">GTK_FILL</property>
+			<property name="y_options">GTK_FILL</property>
+		  </packing>
+		</child>
+		<child>
+		  <object class="GtkButton" id="btn_add_phase">
+			<property name="use_action_appearance">False</property>
+			<property name="height_request">24</property>
+			<property name="visible">True</property>
+			<property name="can_focus">True</property>
+			<property name="receives_default">True</property>
+			<property name="has_tooltip">True</property>
+			<property name="tooltip_markup">Add a phase row to this mixture</property>
+			<property name="tooltip_text" translatable="yes">Add a phase row to this mixture</property>
+			<property name="image">img_button_add_specimen</property>
+			<signal name="clicked" handler="on_add_phase" swapped="no"/>
+		  </object>
+		  <packing>
+			<property name="top_attach">1</property>
+			<property name="bottom_attach">2</property>
+			<property name="x_options">GTK_FILL</property>
+			<property name="y_options">GTK_FILL</property>
+		  </packing>
+		</child>
+		<child>
+		  <object class="GtkScrolledWindow" id="scolled_window">
+			<property name="width_request">280</property>
+			<property name="visible">True</property>
+			<property name="can_focus">True</property>
+			<property name="max-content-width">700</property>
+			<property name="max-content-height">700</property>
+			<child>
+				  <object class="GtkTable" id="tbl_matrix">
+					<property name="visible">True</property>
+					<property name="can_focus">False</property>
+					<property name="border_width">5</property>
+					<property name="n_rows">5</property>
+					<property name="n_columns">4</property>
+					<property name="column_spacing">5</property>
+					<property name="row_spacing">5</property>
+					<child>
+					  <placeholder/>
+					</child>
+					<child>
+					  <object class="GtkLabel" id="lbl_specimens">
+						<property name="visible">True</property>
+						<property name="can_focus">False</property>
+						<property name="label" translatable="yes">Specimens</property>
+						<property name="xalign">1</property>
+					  </object>
+					  <packing>
+						<property name="left_attach">1</property>
+						<property name="right_attach">4</property>
+						<property name="top_attach">1</property>
+						<property name="bottom_attach">2</property>
+						<property name="x_options">GTK_FILL</property>
+						<property name="y_options"/>
+					  </packing>
+					</child>
+					<child>
+					  <object class="GtkLabel" id="lbl_fractions">
+						<property name="visible">True</property>
+						<property name="can_focus">False</property>
+						<property name="label" translatable="yes">Fractions</property>
+						<property name="xalign">1</property>
+						<property name="yalign">1</property>
+					  </object>
+					  <packing>
+						<property name="left_attach">2</property>
+						<property name="right_attach">4</property>
+						<property name="top_attach">4</property>
+						<property name="bottom_attach">5</property>
+						<property name="x_options">GTK_SHRINK | GTK_FILL</property>
+						<property name="y_options">GTK_FILL</property>
+					  </packing>
+					</child>
+					<child>
+					  <object class="GtkLabel" id="lbl_phases">
+						<property name="visible">True</property>
+						<property name="can_focus">False</property>
+						<property name="label" translatable="yes">Name</property>
+						<property name="yalign">1</property>
+					  </object>
+					  <packing>
+						<property name="left_attach">1</property>
+						<property name="right_attach">2</property>
+						<property name="top_attach">4</property>
+						<property name="bottom_attach">5</property>
+						<property name="y_options">GTK_FILL</property>
+					  </packing>
+					</child>
+					<child>
+					  <placeholder/>
+					</child>
+					<child>
+					  <placeholder/>
+					</child>
+					<child>
+					  <placeholder/>
+					</child>
+					<child>
+					  <placeholder/>
+					</child>
+					<child>
+					  <placeholder/>
+					</child>
+					<child>
+					  <placeholder/>
+					</child>
+					<child>
+					  <placeholder/>
+					</child>
+					<child>
+					  <placeholder/>
+					</child>
+					<child>
+					  <placeholder/>
+					</child>
+					<child>
+					  <placeholder/>
+					</child>
+					<child>
+					  <placeholder/>
+					</child>
+					<child>
+					  <placeholder/>
+					</child>
+					<child>
+					  <placeholder/>
+					</child>
+					<child>
+					  <placeholder/>
+					</child>
+					<child>
+					  <placeholder/>
+					</child>
+					<child>
+					  <placeholder/>
+					</child>
+					<child>
+					  <placeholder/>
+					</child>
+					<child>
+					  <placeholder/>
+					</child>
+					<child>
+					  <placeholder/>
+					</child>
+					<child>
+					  <placeholder/>
+					</child>
+					<child>
+					  <placeholder/>
+					</child>
+					<child>
+					  <placeholder/>
+					</child>
+					<child>
+					  <object class="GtkCheckButton" id="mixture_auto_scales">
+						<property name="use_action_appearance">False</property>
+						<property name="visible">True</property>
+						<property name="can_focus">True</property>
+						<property name="receives_default">False</property>
+						<property name="tooltip_text" translatable="yes">Tick this box if you want to turn on automatic background refinement.</property>
+						<property name="xalign">0</property>
+						<property name="draw_indicator">True</property>
+						<child>
+						  <placeholder/>
+						</child>
+					  </object>
+					  <packing>
+						<property name="left_attach">2</property>
+						<property name="right_attach">3</property>
+						<property name="top_attach">3</property>
+						<property name="bottom_attach">4</property>
+						<property name="x_options"/>
+						<property name="y_options"/>
+					  </packing>
+					</child>
+					<child>
+					  <object class="GtkLabel" id="lbl_scales">
+						<property name="visible">True</property>
+						<property name="can_focus">False</property>
+						<property name="label" translatable="yes">Abs. scale</property>
+						<property name="xalign">1</property>
+					  </object>
+					  <packing>
+						<property name="left_attach">3</property>
+						<property name="right_attach">4</property>
+						<property name="top_attach">3</property>
+						<property name="bottom_attach">4</property>
+						<property name="x_options">GTK_FILL</property>
+						<property name="y_options"/>
+					  </packing>
+					</child>
+					<child>
+					  <placeholder/>
+					</child>
+					<child>
+					  <object class="GtkCheckButton" id="mixture_auto_bg">
+						<property name="use_action_appearance">False</property>
+						<property name="visible">True</property>
+						<property name="can_focus">True</property>
+						<property name="receives_default">False</property>
+						<property name="tooltip_text" translatable="yes">Tick this box if you want to turn on automatic background refinement.</property>
+						<property name="xalign">0</property>
+						<property name="draw_indicator">True</property>
+						<child>
+						  <placeholder/>
+						</child>
+					  </object>
+					  <packing>
+						<property name="left_attach">2</property>
+						<property name="right_attach">3</property>
+						<property name="top_attach">2</property>
+						<property name="bottom_attach">3</property>
+						<property name="x_options"/>
+						<property name="y_options"/>
+					  </packing>
+					</child>
+					<child>
+					  <object class="GtkLabel" id="lbl_bgshifts">
+						<property name="visible">True</property>
+						<property name="can_focus">False</property>
+						<property name="label" translatable="yes">Bg. shift</property>
+						<property name="xalign">1</property>
+					  </object>
+					  <packing>
+						<property name="left_attach">3</property>
+						<property name="right_attach">4</property>
+						<property name="top_attach">2</property>
+						<property name="bottom_attach">3</property>
+						<property name="x_options">GTK_FILL</property>
+						<property name="y_options"/>
+					  </packing>
+					</child>
+					<child>
+					  <placeholder/>
+					</child>
+				  </object>
+				</child>
+			  
+		  </object>
+		</child>
+		<child>
+		  <object class="GtkButton" id="btn_add_both">
+			<property name="use_action_appearance">False</property>
+			<property name="width_request">24</property>
+			<property name="visible">True</property>
+			<property name="can_focus">True</property>
+			<property name="receives_default">True</property>
+			<property name="has_tooltip">True</property>
+			<property name="tooltip_markup">Add a phase column and a specimen row to this mixture</property>
+			<property name="tooltip_text" translatable="yes">Add a phase column and a specimen row to this mixture</property>
+			<property name="image">img_button_add_both</property>
+			<signal name="clicked" handler="on_add_both" swapped="no"/>
+		  </object>
+		  <packing>
+			<property name="left_attach">1</property>
+			<property name="right_attach">2</property>
+			<property name="top_attach">1</property>
+			<property name="bottom_attach">2</property>
+			<property name="x_options">GTK_FILL</property>
+			<property name="y_options">GTK_FILL</property>
+		  </packing>
+		</child>
+	  </object>       
       <packing>
         <property name="expand">True</property>
         <property name="fill">True</property>

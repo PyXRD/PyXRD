@@ -11,4 +11,4 @@
 """
 
 import pkg_resources
-from .__version import __version__
+from pyxrd.__version import __version__

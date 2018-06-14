@@ -28,7 +28,7 @@ def start_script(local_script_name, auto_kill=True, log_file=None):
     logging.info("Starting server using script: '%s', logging to '%s'" % (path, log_file))
     log_file = log_file if log_file is not None else os.devnull
     with open(log_file, 'w') as output:
-        proc = subprocess.Popen(["python3", path], stdout=output)
+        proc = subprocess.Popen(["python3w", path], stdout=output)
 
     # Register this child pid to be killed when the parent dies:
     if auto_kill:

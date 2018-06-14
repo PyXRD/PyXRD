@@ -7,7 +7,9 @@ from setuptools import setup, find_packages
 
 def get_version():
     from pyxrd.__version import __version__
-    return __version__
+    if __version__.startswith("v"):
+        __version__ = __version__.replace("v", "")
+    return "%s" % __version__
 
 def get_install_requires():
     return [
@@ -37,7 +39,6 @@ setup(
 
     license="BSD",
     setup_requires=[ "setuptools_git >= 1.2", ],
-    scripts=['win32_pyxrd_post_install.py'],
     packages=find_packages(exclude=["test.*", "test", "tests_mvc", "tests_mvc.*"]),
     include_package_data=True,
     install_requires=get_install_requires(),

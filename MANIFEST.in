@@ -1,7 +1,15 @@
+exclude .gitignore
+exclude .gitattributes
+exclude bump_version_to.py
+exclude ez_setup.py
+exclude MANIFEST.in
+exclude run_tests.py
+exclude versioning.py
 recursive-exclude tests_mvc *
 recursive-exclude test *
 recursive-exclude build *
 recursive-exclude docs *
+recursive-exclude win_installer *
 
 recursive-include pyxrd *.glade
 recursive-include pyxrd/data *.atl

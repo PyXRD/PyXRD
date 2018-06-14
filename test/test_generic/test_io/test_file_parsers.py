@@ -6,7 +6,7 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-import os
+import os, unittest
 
 from pyxrd.file_parsers.base_parser import BaseParser
 
@@ -21,23 +21,25 @@ def load_data_from_files(*files):
         with open(basepath + "/" + fname, 'rb') as fp:
             yield fp
 
-class TestParserMixin(object):
+class BaseTestParsers(object):
 
-    parser_class = BaseParser
-    file_data = [
-        "",
-    ]
+    class BaseTestParser(unittest.TestCase):
 
-    def test_description(self):
-        self.assertNotEqual(self.parser_class.description, "")
+        parser_class = BaseParser
+        file_data = [
+            "",
+        ]
 
-    def test_filters(self):
-        self.assertIsNotNone(self.parser_class.file_filter)
+        def test_description(self):
+            self.assertNotEqual(self.parser_class.description, "")
 
-    def test_parsing(self):
-        for fp in self.file_data:
-            data_objects = self.parser_class.parse(fp)
-            self.assertGreater(len(data_objects), 0)
+        def test_filters(self):
+            self.assertIsNotNone(self.parser_class.file_filter)
 
-    # TODO:
-    # - check arguments such as close.
+        def test_parsing(self):
+            for fp in self.file_data:
+                data_objects = self.parser_class.parse(fp)
+                self.assertGreater(len(data_objects), 0)
+
+        # TODO:
+        # - check arguments such as close.

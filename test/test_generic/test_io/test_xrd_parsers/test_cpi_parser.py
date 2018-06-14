@@ -10,7 +10,7 @@ import unittest
 
 from io import StringIO
 
-from test.test_generic.test_io.test_file_parsers import TestParserMixin
+from test.test_generic.test_io.test_file_parsers import BaseTestParsers
 from pyxrd.file_parsers.xrd_parsers import CPIParser
 
 
@@ -18,7 +18,7 @@ __all__ = [
     'TestCPIParser',
 ]
 
-class TestCPIParser(TestParserMixin, unittest.TestCase):
+class TestCPIParser(BaseTestParsers.BaseTestParser):
 
     parser_class = CPIParser
     file_data = [

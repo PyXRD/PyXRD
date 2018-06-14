@@ -9,7 +9,7 @@
 import unittest
 
 from io import BytesIO
-from test.test_generic.test_io.test_file_parsers import TestParserMixin
+from test.test_generic.test_io.test_file_parsers import BaseTestParsers
 
 from pyxrd.file_parsers.xrd_parsers import RDParser
 
@@ -17,7 +17,7 @@ __all__ = [
     'TestRDParser',
 ]
 
-class TestRDParser(TestParserMixin, unittest.TestCase):
+class TestRDParser(BaseTestParsers.BaseTestParser):
 
     parser_class = RDParser
     file_data = [

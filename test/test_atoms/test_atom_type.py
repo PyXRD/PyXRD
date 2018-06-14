@@ -54,5 +54,24 @@ class TestAtomType(unittest.TestCase):
         parent_atom_type = AtomType(name="Parent")
         self.atom_type.parent = parent_atom_type
         self.assertEqual(self.atom_type.parent, parent_atom_type)
+        
+    def test_get_atomic_scattering_factors(self):
+        import numpy as np
+        stl_range = np.array([ 0.1152, 0.5756, 1.1469 ])
+        self.atom_type.par_a1 = 10.2
+        self.atom_type.par_a2 = 10.2
+        self.atom_type.par_a3 = 10.2
+        self.atom_type.par_a4 = 10.2
+        self.atom_type.par_a5 = 10.2
+        self.atom_type.par_b1 = 10.2
+        self.atom_type.par_b2 = 10.2
+        self.atom_type.par_b3 = 10.2
+        self.atom_type.par_b4 = 10.2
+        self.atom_type.par_b5 = 10.2
+        self.atom_type.par_c = 20.2
+        self.assertListEqual(
+            self.atom_type.get_atomic_scattering_factors(stl_range).tolist(),
+            [ 71.1827439324707, 70.77093939463964, 69.51772020477823 ]
+        )
 
     pass # end of class

@@ -8,7 +8,7 @@
 
 import unittest
 
-from test.test_generic.test_io.test_file_parsers import TestParserMixin, load_data_from_files
+from test.test_generic.test_io.test_file_parsers import BaseTestParsers, load_data_from_files
 
 from pyxrd.file_parsers.xrd_parsers import BrkRAWParser
 
@@ -17,7 +17,7 @@ __all__ = [
     'TestRAWParser',
 ]
 
-class TestRAWParser(TestParserMixin, unittest.TestCase):
+class TestRAWParser(BaseTestParsers.BaseTestParser):
 
     parser_class = BrkRAWParser
     file_data = load_data_from_files(

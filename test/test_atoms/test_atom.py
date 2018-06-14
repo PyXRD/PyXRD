@@ -28,6 +28,21 @@ class TestAtom(unittest.TestCase):
     def tearDown(self):
         del self.atom
 
+    def get_mocked_hierarchy(self):       
+        oxygen = Mock()
+        oxygen.name = "O1-"
+        hydrogen = Mock()
+        hydrogen.name = "H+"
+                
+        project = Mock()
+        project.atom_types = [oxygen, hydrogen]
+        phase = Mock()
+        phase.attach_mock(project, 'project')
+        component = Mock()
+        component.attach_mock(phase, 'phase')
+        
+        return oxygen, hydrogen, component, phase, project
+
     def test_not_none(self):
         self.assertIsNotNone(self.atom)
 
@@ -43,6 +58,16 @@ class TestAtom(unittest.TestCase):
         parent_atom = Atom(name="Parent")
         self.atom.parent = parent_atom
         self.assertEqual(self.atom.parent, parent_atom)
+
+    def test_set_atom_type(self):
+        oxygen, hydrogen, component, _, _ = self.get_mocked_hierarchy()
+        atom = Atom(
+            parent = component,
+            name = "O",
+            atom_type = oxygen,
+        )
+        atom.atom_type = hydrogen
+        self.assertEqual(atom.atom_type, hydrogen)
 
     def test_z_calculations(self):
         # Checks wether the atom can calculate stretched values:
@@ -80,17 +105,7 @@ class TestAtom(unittest.TestCase):
             "atom_type_name": "O1-"
         }
         
-        oxygen = Mock()
-        oxygen.name = "O1-"
-        hydrogen = Mock()
-        hydrogen.name = "H+"
-                
-        project = Mock()
-        project.atom_types = [oxygen, hydrogen]
-        phase = Mock()
-        phase.attach_mock(project, 'project')
-        component = Mock()
-        component.attach_mock(phase, 'phase')
+        oxygen, _, component, _, _ = self.get_mocked_hierarchy()
         
         atom = Atom.from_json(parent = component, **atom_json_dict)
         atom.resolve_json_references()

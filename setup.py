@@ -12,7 +12,7 @@ def get_version():
 def get_install_requires():
     return [
         'setuptools',
-        'numpy>=1.8',
+        'numpy>=1.11',
         'scipy>=1.1.0',
         'matplotlib>=2.2.2',
         'Pyro4>=4.41',

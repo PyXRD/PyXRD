@@ -14,7 +14,7 @@ def find_closest(value, array, col=0):
     """
         Find closest value to another value in an array 
     """
-    nparray = np.array(zip(*array)[col])
+    nparray = np.array(list(zip(*array))[col])
     idx = (np.abs(nparray - value)).argmin()
     return array[idx]
 

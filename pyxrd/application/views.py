@@ -11,8 +11,6 @@ import gi
 gi.require_version('Gtk', '3.0')  # @UndefinedVariable
 from gi.repository import Gtk, GdkPixbuf  # @UnresolvedImport
 
-from matplotlib.backends.backend_gtk3 import NavigationToolbar2GTK3 as NavigationToolbar
-
 from pyxrd.data import settings
 
 from pyxrd.generic.views import ObjectListStoreView, BaseView, HasChildView, FormattedTitleView
@@ -113,14 +111,20 @@ class AppView(HasChildView, FormattedTitleView):
                 gdktop.hide()
 
     def setup_plot(self, plot_controller):
-        self.plot_controller = plot_controller
-        self["matplotlib_box"].add(self.plot_controller.canvas)
-        self.plot_controller.canvas.set_name("matplotlib_box2")
-        self["matplotlib_box"].show_all()
-        self["matplotlib_box"].set_name("matplotlib_box")
-        self.nav_toolbar = NavigationToolbar(self.plot_controller.canvas, self.get_top_widget())
+        # Get plot canvas widget
+        self.canvas_widget = plot_controller.get_canvas_widget()
+        self.canvas_widget.set_name("matplotlib_box2")
+        self["matplotlib_box2"] = self.canvas_widget
+        
+        # Get plot toolbar widget
+        self.nav_toolbar = plot_controller.get_toolbar_widget(self.get_top_widget())
         self.nav_toolbar.set_name("navtoolbar")
         self["navtoolbar"] = self.nav_toolbar
+        
+        # Insert into the window hierarchy:
+        self["matplotlib_box"].add(self.canvas_widget)
+        self["matplotlib_box"].show_all()       
+        
         self["navtoolbar_box"].add(self.nav_toolbar)
         self.nav_toolbar.hide()
 

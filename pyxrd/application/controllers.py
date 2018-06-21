@@ -96,7 +96,7 @@ class AppController (BaseController):
         self.gtk_exception_hook.parent_view = view.get_toplevel()
 
         # Plot controller:
-        self.plot_controller = MainPlotController(self)
+        self.plot_controller = MainPlotController(self.update_plot_status)
 
         # Child controllers:
         self.project = None

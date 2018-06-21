@@ -19,6 +19,8 @@ logger.setLevel(logging.INFO)
 import matplotlib
 import matplotlib.transforms as transforms
 from matplotlib.figure import Figure
+from matplotlib.tight_layout import get_renderer
+from matplotlib.backends.backend_gtk3 import NavigationToolbar2GTK3 as NavigationToolbar
 from matplotlib.backends.backend_gtk3agg import FigureCanvasGTK3Agg as FigureCanvasGTK
 try:
     from matplotlib.pyparsing import ParseFatalException
@@ -34,12 +36,12 @@ from pyxrd.generic.plot.motion_tracker import MotionTracker
 from pyxrd.generic.plot.axes_setup import PositionSetup, update_axes
 from pyxrd.generic.plot.plotters import plot_specimens, plot_mixtures
 
-class PlotController(object):
+class MainPlotController(object):
     """
-        A base class for matplotlib-canvas controllers that, sets up the 
-        widgets and has image exporting functionality.
+        A controller for the main plot canvas.
+        Sets up the widgets and has image exporting functionality.
     """
-
+    
     file_filters = ("Portable Network Graphics (PNG)", "*.png"), \
                    ("Scalable Vector Graphics (SVG)", "*.svg"), \
                    ("Portable Document Format (PDF)", "*.pdf")
@@ -54,13 +56,31 @@ class PlotController(object):
         return self._canvas
 
     # ------------------------------------------------------------
-    #      Initialisation and other internals
+    #      View integration getters
     # ------------------------------------------------------------
-    def __init__(self):
-        self._proxies = dict()
+    def get_toolbar_widget(self, window):
+        return NavigationToolbar(self.canvas, window)
+
+    def get_canvas_widget(self):
+        return self.canvas
+    
+    # ------------------------------------------------------------
+    #      Initialization and other internals
+    # ------------------------------------------------------------
+    def __init__(self, status_callback, *args, **kwargs):
+        self.setup_layout_cache()
         self.setup_figure()
         self.setup_canvas()
-        self.setup_content()
+        self.setup_content(status_callback)
+
+    def setup_layout_cache(self):
+        self.position_setup = PositionSetup()
+        self.labels = list()
+        self.marker_lbls = list()
+        self._proxies = dict()
+        self.scale = 1.0
+        self.stats = False
+        self._last_pos = None
 
     def setup_figure(self):
         self.figure = Figure(dpi=72, facecolor="#FFFFFF", linewidth=0)
@@ -69,21 +89,129 @@ class PlotController(object):
     def setup_canvas(self):
         self._canvas = FigureCanvasGTK(self.figure)
 
-    def setup_content(self):
-        raise NotImplementedError
+    def setup_content(self, status_callback):
+        # Create subplot and add it to the figure:
+        self.plot = Subplot(self.figure, 211, facecolor=(1.0, 1.0, 1.0, 0.0))
+        self.plot.set_autoscale_on(False)
+        self.figure.add_axes(self.plot)
+
+        # Connect events:
+        self.canvas.mpl_connect('draw_event', self.fix_after_drawing)
+        self.canvas.mpl_connect('resize_event', self.fix_after_drawing)
+
+        self.mtc = MotionTracker(self, status_callback)
+        self.cc = ClickCatcher(self)
+
+        #self.update()
 
     # ------------------------------------------------------------
-    #      Update subroutines
+    #      Update methods
     # ------------------------------------------------------------
     def draw(self):
-        try:
-            self.figure.canvas.draw()
-            self.fix_after_drawing()
-        except ParseFatalException:
-            logger.exception("Caught unhandled exception when drawing")
+        self._last_pos = self.fix_before_drawing()
+        self.figure.canvas.draw()
 
-    def fix_after_drawing(self):
-        pass # nothing to fix
+    def fix_after_drawing(self, *args):
+        _new_pos = self.fix_before_drawing()
+        
+        if _new_pos != self._last_pos:
+            self.figure.canvas.draw()
+        self._last_pos = _new_pos
+
+        return False
+
+    def fix_before_drawing(self, *args):
+        """
+            Fixes alignment issues due to longer labels or smaller windows
+            Is executed after an initial draw event, since we can then retrieve
+            the actual label dimensions and shift/resize the plot accordingly.
+        """
+        renderer = get_renderer(self.figure)        
+        if not renderer or not self._canvas.get_realized():
+            return False
+        
+        # Fix left side for wide specimen labels:
+        if len(self.labels) > 0:
+            bbox = self._get_joint_bbox(self.labels, renderer)
+            if bbox is not None: 
+                self.position_setup.left = self.position_setup.default_left + bbox.width
+        # Fix top for high marker labels:
+        if len(self.marker_lbls) > 0:
+            bbox = self._get_joint_bbox([ label for label, flag, _ in self.marker_lbls if flag ], renderer)
+            if bbox is not None: 
+                self.position_setup.top = self.position_setup.default_top - bbox.height
+        # Fix bottom for x-axis label:
+        bottom_label = self.plot.axis["bottom"].label
+        if bottom_label is not None:
+            bbox = self._get_joint_bbox([bottom_label], renderer)
+            if bbox is not None:
+                self.position_setup.bottom = self.position_setup.default_bottom + (bbox.ymax - bbox.ymin) * 2.0 # somehow we need this?
+
+        # Calculate new plot position & set it:
+        plot_pos = self.position_setup.position
+        self.plot.set_position(plot_pos)
+
+        # Adjust specimen label position
+        for label in self.labels:
+            label.set_x(plot_pos[0] - 0.025)
+
+        # Adjust marker label position
+        for label, flag, y_offset in self.marker_lbls:
+            if flag:
+                newy = plot_pos[1] + plot_pos[3] + y_offset - 0.025
+                label.set_y(newy)
+
+        update_axes(
+            self.plot, self.position_setup,
+            None, None
+        )
+        
+        _new_pos = self.position_setup.to_string()
+        return _new_pos
+    
+    def update(self, clear=False, project=None, specimens=None):
+        """
+            Updates the entire plot with the given information.
+        """
+        if clear: self.plot.cla()
+
+        if project and specimens:
+            self.labels, self.marker_lbls = plot_specimens(
+                self.plot, self.position_setup, self.cc,
+                project, specimens
+            )
+            # get mixtures for the selected specimens:
+            plot_mixtures(self.plot, project, [ mixture for mixture in project.mixtures if any(specimen in mixture.specimens for specimen in specimens) ])
+
+        update_axes(
+            self.plot, self.position_setup,
+            project, specimens
+        )
+
+        self.draw()
+
+    # ------------------------------------------------------------
+    #      Plot position and size calculations
+    # ------------------------------------------------------------
+    def _get_joint_bbox(self, container, renderer):
+        bboxes = []
+        try:
+            for text in container:
+                bbox = text.get_window_extent(renderer=renderer)
+                # the figure transform goes from relative coords->pixels and we
+                # want the inverse of that
+                bboxi = bbox.inverse_transformed(self.figure.transFigure)
+                bboxes.append(bboxi)
+        except (RuntimeError, ValueError):
+            logger.exception("Caught unhandled exception when joining boundig boxes")
+            return None # don't continue
+        # this is the bbox that bounds all the bboxes, again in relative
+        # figure coords
+        if len(bboxes) > 0:
+            bbox = transforms.Bbox.union(bboxes)
+            return bbox
+        else:
+            return None
 
     # ------------------------------------------------------------
     #      Graph exporting
@@ -171,147 +299,5 @@ class PlotController(object):
         self.figure.set_dpi(original_dpi)
         self.figure.set_size_inches((original_width, original_height))
         self.figure.canvas.draw() # replot
-
-class MainPlotController(PlotController):
-    """
-        A controller for the main plot canvas.
-    """
-    # ------------------------------------------------------------
-    #      Initialization and other internals
-    # ------------------------------------------------------------
-    def __init__(self, app_controller, *args, **kwargs):
-        self.labels = list()
-        self.marker_lbls = list()
-        self.scale = 1.0
-        self.stats = False
-
-        self._last_pos = None
-
-        self.position_setup = PositionSetup()
-
-        self.app_controller = app_controller
-                
-        PlotController.__init__(self, *args, **kwargs)
-
-    def setup_content(self):
-        # Create subplot and add it to the figure:
-        self.plot = Subplot(self.figure, 211, facecolor=(1.0, 1.0, 1.0, 0.0))
-        self.plot.set_autoscale_on(False)
-        self.figure.add_axes(self.plot)
-
-        # Connect events:
-        self.canvas.mpl_connect('draw_event', self.fix_after_drawing)
-        self.canvas.mpl_connect('resize_event', self.fix_after_drawing)
-
-        self.mtc = MotionTracker(self, self.app_controller.update_plot_status)
-        self.cc = ClickCatcher(self)
-
-        #self.update()
-
-    # ------------------------------------------------------------
-    #      Update methods
-    # ------------------------------------------------------------
-    def update(self, clear=False, project=None, specimens=None):
-        """
-            Updates the entire plot with the given information.
-        """
-        if clear: self.plot.cla()
-
-        if project and specimens:
-            self.labels, self.marker_lbls = plot_specimens(
-                self.plot, self.position_setup, self.cc,
-                project, specimens
-            )
-            # get mixtures for the selected specimens:
-            plot_mixtures(self.plot, project, [ mixture for mixture in project.mixtures if any(specimen in mixture.specimens for specimen in specimens) ])
-
-        update_axes(
-            self.plot, self.position_setup,
-            project, specimens
-        )
-
-        self.draw()
-
-    # ------------------------------------------------------------
-    #      Plot position and size calculations
-    # ------------------------------------------------------------
-    def _get_joint_bbox(self, container, renderer):
-        bboxes = []
-        try:
-            for text in container:
-                bbox = text.get_window_extent(renderer=renderer)
-                # the figure transform goes from relative coords->pixels and we
-                # want the inverse of that
-                bboxi = bbox.inverse_transformed(self.figure.transFigure)
-                bboxes.append(bboxi)
-        except (RuntimeError, ValueError):
-            logger.exception("Caught unhandled exception when joining boundig boxes")
-            return None # don't continue
-        # this is the bbox that bounds all the bboxes, again in relative
-        # figure coords
-        if len(bboxes) > 0:
-            bbox = transforms.Bbox.union(bboxes)
-            return bbox
-        else:
-            return None
-
-    def _find_renderer(self):
-        if hasattr(self.figure.canvas, "get_renderer"):
-            #Some backends, such as TkAgg, have the get_renderer method, which
-            #makes this easy.
-            renderer = self.figure.canvas.get_renderer()
-        else:
-            renderer = self.figure._cachedRenderer
-        return renderer
-
-    def fix_after_drawing(self, *args):
-        """
-            Fixes alignment issues due to longer labels or smaller windows
-            Is executed after an initial draw event, since we can then retrieve
-            the actual label dimensions and shift/resize the plot accordingly.
-        """
-        renderer = self._find_renderer()        
-        if not renderer or not self._canvas.get_realized():
-            return False
-        
-        # Fix left side for wide specimen labels:
-        if len(self.labels) > 0:
-            bbox = self._get_joint_bbox(self.labels, renderer)
-            if bbox is not None: self.position_setup.left = 0.05 + bbox.width
-        # Fix top for high marker labels:
-        if len(self.marker_lbls) > 0:
-            bbox = self._get_joint_bbox([ label for label, flag, _ in self.marker_lbls if flag ], renderer)
-            if bbox is not None: self.position_setup.top = 1.0 - (0.05 + bbox.height) #Figure top - marker margin
-        # Fix bottom for x-axis label:
-        bottom_label = self.plot.axis["bottom"].label
-        if bottom_label is not None:
-            bbox = self._get_joint_bbox([bottom_label], renderer)
-            if bbox is not None: self.position_setup.bottom = 0.10 - min(bbox.ymin, 0.0)
-
-        # Calculate new plot position & set it:
-        plot_pos = self.position_setup.position
-        self.plot.set_position(plot_pos)
-
-        # Adjust specimen label position
-        for label in self.labels:
-            label.set_x(plot_pos[0] - 0.025)
-
-        # Adjust marker label position
-        for label, flag, y_offset in self.marker_lbls:
-            if flag:
-                newy = plot_pos[1] + plot_pos[3] + y_offset - 0.025
-                label.set_y(newy)
-
-        update_axes(
-            self.plot, self.position_setup,
-            None, None
-        )
-        
-        _new_pos = self.position_setup.to_string()
-        if _new_pos != self._last_pos:
-            self.figure.canvas.draw()
-        self._last_pos = _new_pos
-
-        return False
 
     pass # end of class

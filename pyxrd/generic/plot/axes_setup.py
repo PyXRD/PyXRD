@@ -202,4 +202,16 @@ class PositionSetup(object):
     def to_string(self):
         return ":".join(map(str, [self.left,self.right,self.top,self.bottom,self.xdiff,self.xstretch])) 
 
+    @property
+    def default_bottom(self):
+        return settings.PLOT_BOTTOM
+
+    @property
+    def default_left(self):
+        return settings.PLOT_LEFT
+    
+    @property
+    def default_top(self):
+        return settings.PLOT_TOP
+
     pass #end of class

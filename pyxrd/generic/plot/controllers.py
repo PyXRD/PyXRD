@@ -67,11 +67,11 @@ class MainPlotController(object):
     # ------------------------------------------------------------
     #      Initialization and other internals
     # ------------------------------------------------------------
-    def __init__(self, status_callback, *args, **kwargs):
+    def __init__(self, status_callback, marker_callback, *args, **kwargs):
         self.setup_layout_cache()
         self.setup_figure()
         self.setup_canvas()
-        self.setup_content(status_callback)
+        self.setup_content(status_callback, marker_callback)
 
     def setup_layout_cache(self):
         self.position_setup = PositionSetup()
@@ -89,7 +89,7 @@ class MainPlotController(object):
     def setup_canvas(self):
         self._canvas = FigureCanvasGTK(self.figure)
 
-    def setup_content(self, status_callback):
+    def setup_content(self, status_callback, marker_callback):
         # Create subplot and add it to the figure:
         self.plot = Subplot(self.figure, 211, facecolor=(1.0, 1.0, 1.0, 0.0))
         self.plot.set_autoscale_on(False)
@@ -100,7 +100,7 @@ class MainPlotController(object):
         self.canvas.mpl_connect('resize_event', self.fix_after_drawing)
 
         self.mtc = MotionTracker(self, status_callback)
-        self.cc = ClickCatcher(self)
+        self.cc = ClickCatcher(self, marker_callback)
 
         #self.update()
 

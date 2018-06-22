@@ -9,9 +9,10 @@ from .event_delegator import MPLCanvasEventDelegator
 
 class ClickCatcher():
     """
-        A wrapper that tracks mouse movements on a plot. Will call
-        the update_callback with an x position and the click event object as
-        arguments.
+        This class can be used to register matplotlib artists, which will
+        fire the update_callback method when clicked. When registering
+        the artist, an arbitrary object can be passed which is passed to the
+        callback. 
     """
     def __init__(self, plot_controller, update_callback=None):
         self.plot_controller = plot_controller
@@ -21,31 +22,14 @@ class ClickCatcher():
         self.connect()
         self._artists = {}
 
-    def register_artist(self, artist, callback, *args):
-        self._artists[artist] = (callback, args)
+    def register_artist(self, artist, obj):
+        self._artists[artist] = obj
         artist.set_picker(True)
-
-    def edit_marker(self, marker):
-        self.plot_controller.app_controller.show_marker(marker)
-    
+   
     def _on_pick(self, event):
         if event.artist is not None:
-            callback, args = self._artists.get(event.artist, None)
-            print(callback, args)
-            callback(*args)
-            
-        """if isinstance(event.artist, Line2D):
-            thisline = event.artist
-            xdata = thisline.get_xdata()
-            ydata = thisline.get_ydata()
-            ind = event.ind
-            print('onpick1 line:', zip(np.take(xdata, ind), np.take(ydata, ind)))
-        elif isinstance(event.artist, Rectangle):
-            patch = event.artist
-            print('onpick1 patch:', patch.get_path())
-        elif isinstance(event.artist, Text):
-            text = event.artist
-            print('onpick1 text:', text.get_text())"""
+            obj = self._artists.get(event.artist, None)
+            self._update_callback(obj)
         return False
 
     def connect(self):

@@ -148,7 +148,7 @@ def plot_markers(cc, project, specimen, marker_lbls, offset, scale, marker_scale
         plot_marker_line(project, marker, offset, base_y, axes)
         text = plot_marker_text(project, marker, offset, marker_scale, base_y, axes)
         if text is not None:
-            cc.register_artist(text, cc.edit_marker, marker)
+            cc.register_artist(text, marker)
             marker_lbls.append((text, marker.base == 0, marker.y_offset))
 
 def plot_hatches(project, specimen, offset, scale, axes):

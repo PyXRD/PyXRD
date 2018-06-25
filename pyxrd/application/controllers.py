@@ -80,7 +80,7 @@ class AppController (BaseController):
                 title="Load project",
                 current_folder=current_folder,
                 filters=project_parsers.get_import_file_filters(),
-                persist=True,
+                persist=True, multiple=False,
                 parent=self.view.get_top_widget()
             )
         return self._load_project_dialog

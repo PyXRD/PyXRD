@@ -17,6 +17,8 @@
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library; if not, see <http://www.gnu.org/licenses/>.
 
+import logging
+logger = logging.getLogger(__name__)
 
 # System
 import sys
@@ -49,7 +51,11 @@ if platform.python_implementation() == "PyPy":
 else:
     def _get_user_data_as_pyobject(iter):
         citer = _CTreeIter.from_iter(iter)
-        return ctypes.cast(citer.contents.user_data, ctypes.py_object).value
+        try:
+            return ctypes.cast(citer.contents.user_data, ctypes.py_object).value
+        except ValueError as err:
+            logger.warning("Could not cast ctypes PyObject to native python object: %s" % err)
+            return None
 
 
 def handle_exception(default_return):

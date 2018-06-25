@@ -243,7 +243,7 @@ class MainPlotController(object):
         cmb_presets.pack_start(cell, True)
         cmb_presets.add_attribute(cell, 'text', 0)
         def on_cmb_changed(cmb, *args):
-            itr = cmb_presets.get_active_iter()
+            itr = cmb.get_active_iter()
             w, h, d = cmb_store.get(itr, 1, 2, 3)
             entry_w.set_text(str(w))
             entry_h.set_text(str(h))

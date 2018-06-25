@@ -192,8 +192,8 @@ class BaseView(View):
         toplevel.present()
         self.show()
 
-    def get_toplevel(self):
-        for w in self:
+    def get_toplevel(self):        
+        for w in [self.top,] + list(self):
             try:
                 return self[w].get_toplevel()
             except AttributeError:

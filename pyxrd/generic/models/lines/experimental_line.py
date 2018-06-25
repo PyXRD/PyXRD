@@ -255,7 +255,7 @@ class ExperimentalLine(PyXRDLine):
                 bg = self.bg_position
             elif self.bg_type == 1 and self.bg_pattern is not None and not (self.bg_position == 0 and self.bg_scale == 0):
                 bg = self.bg_pattern * self.bg_scale + self.bg_position
-            if bg is not None:
+            if bg is not None and self.data_y.size > 0:
                 self.data_y[:, 0] -= bg
             self.clear_bg_variables()
 

@@ -9,8 +9,9 @@ from pkg_resources import resource_filename  # @UnresolvedImport
 
 from math import isnan
 
+from mvc.adapters.gtk_support.widgets.threaded_task_box import ThreadedTaskBox
+
 from pyxrd.generic.views import  DialogView
-from pyxrd.generic.views.widgets import ThreadedTaskBox
 from pyxrd.generic.utils import not_none
 
 class RefinementView(DialogView):

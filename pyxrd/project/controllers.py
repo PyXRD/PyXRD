@@ -6,7 +6,6 @@
 # Complete license can be found in the LICENSE file.
 
 import logging
-from mvc.support.gui_loop import run_when_idle
 logger = logging.getLogger(__name__)
 
 import os
@@ -18,11 +17,12 @@ from gi.repository import GObject, Pango, Gdk # @UnresolvedImport
 
 from mvc import Controller
 from mvc.adapters.gtk_support.dialogs.dialog_factory import DialogFactory
+from mvc.adapters.gtk_support.widgets.threaded_task_box import ThreadedTaskBox
+from mvc.support.cancellable_thread import CancellableThread
+from mvc.support.gui_loop import run_when_idle
 
 from pyxrd.generic.controllers.line_controllers import BackgroundController
 from pyxrd.generic.views.line_views import BackgroundView
-from pyxrd.generic.views.widgets import ThreadedTaskBox
-from pyxrd.generic.threads import CancellableThread
 from pyxrd.generic.views.treeview_tools import new_text_column, new_toggle_column, new_pb_column
 from pyxrd.generic.controllers import BaseController, ObjectListStoreController
 
@@ -133,22 +133,15 @@ class ProjectController(ObjectListStoreController):
                 for filename in filenames:
                     if stop is not None and stop.is_set():
                         return
-                    try:
+                    # Error message is case parsing fails:
+                    message = "An unexpected error has occurred when trying to parse %s:\n\n<i>" % os.path.basename(filename)
+                    message += "%s</i>\n\n"
+                    message += "This is most likely caused by an invalid or unsupported file format."
+                    # Run & report any errors:
+                    with DialogFactory.error_dialog_handler(
+                            message, self.view.get_top_widget(), 
+                            title="Failed to load file", reraise=False):
                         specimens = Specimen.from_experimental_data(filename=filename, parent=self.model, parser=parser)
-                    except Exception as msg:
-                        message = "An unexpected error has occurred when trying to parse %s:\n\n<i>" % os.path.basename(filename)
-                        message += str(msg) + "</i>\n\n"
-                        message += "This is most likely caused by an invalid or unsupported file format."
-                        logger.exception(message)
-                        @run_when_idle
-                        def run_dialog():
-                            DialogFactory.get_information_dialog(
-                                message=message,
-                                parent=self.view.get_top_widget()
-                            ).run()
-                            return False
-                        run_dialog()
-                    else:
                         status_dict["specimens"] += specimens
                     status_dict["current_file"] += 1
 

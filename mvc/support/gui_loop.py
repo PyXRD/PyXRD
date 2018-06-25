@@ -14,9 +14,8 @@ def add_idle_call(func, *args, **kwargs):
     global __idle_call_dict
     if __add_idle_call is not None:
         __idle_call_dict[func] = __add_idle_call(func, *args, **kwargs)
-        return __idle_call_dict[func]
     else: # toolkit does not support this or is not loaded:
-        return func(*args, **kwargs)
+        func(*args, **kwargs)
         
 def remove_idle_call(func):
     global __remove_idle_call
@@ -24,14 +23,13 @@ def remove_idle_call(func):
     if __remove_idle_call is not None:
         __remove_idle_call(__idle_call_dict[func])
         
-def add_timeout_call(func, timeout, *args, **kwargs):
+def add_timeout_call(timeout, func, *args, **kwargs):
     global __add_timeout_call
     global __timeout_call_dict
     if __add_timeout_call is not None:
-        __timeout_call_dict[func] = __add_timeout_call(func, timeout, *args, **kwargs)
-        return __timeout_call_dict[func]
+        __timeout_call_dict[func] = __add_timeout_call(timeout, func, *args, **kwargs)
     else: # toolkit does not support this or is not loaded:
-        return func(*args, **kwargs)
+        func(*args, **kwargs)
 
 def remove_timeout_call(func):
     global __remove_timeout_call

@@ -26,8 +26,12 @@ import sys, html
 from contextlib import contextmanager
 
 import gi
+from mvc.adapters.gtk_support.widgets.threaded_task_box import ThreadedTaskBox
+from mvc.support.gui_loop import run_when_idle, add_timeout_call,\
+    remove_timeout_call
+from mvc.support.cancellable_thread import CancellableThread
 gi.require_version('Gtk', '3.0')  # @UndefinedVariable
-from gi.repository import Gtk  # @UnresolvedImport
+from gi.repository import Gtk, GObject  # @UnresolvedImport
 
 from .message_dialog import MessageDialog
 from .file_chooser_dialog import FileChooserDialog
@@ -170,3 +174,61 @@ class DialogFactory(object):
             elif print_tb:
                 from traceback import print_exc
                 print_exc()
+                
+    @staticmethod
+    def get_progress_dialog(action, complete_callback=None, gui_message="Processing ...", toplevel=None):
+        """
+            Returns a callable that will show a progress dialog
+            for the given action - which will be run in a different 
+            thread from the GUI.
+            The action is expected to take a single argument: `status_dict`
+            which is used to format the gui_message (new-style formatting).
+            toplevel is the top level window.
+            complete_callback is called when the action has completed with
+            its return value.
+            When interrupted or cancelled by the user, the dialog just hides.  
+        """
+        def run_action_and_show_progress():
+
+            taskgui = ThreadedTaskBox()
+            window = DialogFactory.get_custom_dialog(
+                 taskgui, parent=toplevel)
+
+            # Status:
+            status_dict = dict()
+
+            # Task:
+            def load_peak_thresholds(stop=None):
+                action(status_dict)
+
+            # Cancel & stop events:
+            def on_interrupted(*args, **kwargs):
+                window.hide()
+
+            # Status label update:
+            def gui_callback():
+                taskgui.set_status(gui_message.format(**status_dict))
+                return True
+            add_timeout_call(250, gui_callback)
+
+            # Complete event:
+            @run_when_idle
+            def on_complete(*args, **kwargs):
+                remove_timeout_call(gui_callback)
+                taskgui.stop()
+                window.destroy()
+                if callable(complete_callback):
+                    complete_callback(*args, **kwargs)
+                
+            # Run thread:
+            thread = CancellableThread(load_peak_thresholds, on_complete)
+            thread.start()
+            
+            # Run task box:
+            taskgui.connect("cancelrequested", on_interrupted)
+            taskgui.connect("stoprequested", on_interrupted)
+            taskgui.set_status("Loading ...")
+            taskgui.start()
+            window.show_all()
+
+        return run_action_and_show_progress

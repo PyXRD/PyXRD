@@ -34,9 +34,9 @@ def add_idle_call(func, *args):
 def remove_source(source):
     return source.destroy()
 
-def add_timeout_call(func, timeout, *args):
+def add_timeout_call(timeout, func, *args):
     source = GLib.MainContext.default().find_source_by_id(
-        GLib.timeout_add(GLib.PRIORITY_HIGH, timeout, func, *args))
+        GLib.timeout_add(timeout, func, priority=GLib.PRIORITY_HIGH, *args))
     return source
 
 def start_event_loop():

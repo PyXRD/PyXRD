@@ -250,7 +250,7 @@ class PyXRDLine(StorableXYData):
 
         return deltas, numpeaks
 
-    def get_best_threshold(self, max_threshold=None, steps=None):
+    def get_best_threshold(self, max_threshold=None, steps=None, status_dict=None):
         """
             Estimates the best threshold for peak detection using an
             iterative algorithm. Assumes there is a linear contribution from noise.
@@ -285,6 +285,9 @@ class PyXRDLine(StorableXYData):
             max_iters = 10
             min_iters = 3
             itercount = 0
+            if status_dict is not None:
+                status_dict["progress"] = 0
+
             while not solution:
                 # Number of points to use for the lin regress:
                 ln = 4
@@ -313,6 +316,8 @@ class PyXRDLine(StorableXYData):
                     if not solution:
                         deltas, num_peaks = self.calculate_npeaks_for(max_threshold, steps)
                 last_threshold = threshold
+                if status_dict is not None:
+                    status_dict["progress"] = float(itercount / max_iters)
 
             return (deltas, num_peaks), threshold, max_threshold
         else:

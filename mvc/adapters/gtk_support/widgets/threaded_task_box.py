@@ -7,9 +7,14 @@
 # To view a copy of this license, visit http://creativecommons.org/licenses/by-sa/3.0/ or send
 # a letter to Creative Commons, 444 Castro Street, Suite 900, Mountain View, California, 94041, USA.
 
-import gi
+import gi   
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, GObject
+
+from mvc.support.cancellable_thread import CancellableThread
+from mvc.support.gui_loop import add_timeout_call, remove_timeout_call,\
+    run_when_idle
+
 
 class ThreadedTaskBox(Gtk.Table):
     """

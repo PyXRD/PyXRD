@@ -193,15 +193,15 @@ class ThresholdSelector(ChildModel):
         return data_x, data_y
 
     _updating_plot_data = False
-    def update_threshold_plot_data(self):
+    def update_threshold_plot_data(self, status_dict=None):
         if self.parent is not None and not self._updating_plot_data:
             self._updating_plot_data = True
             if self.pattern == "exp":
                 p, t, m = self.parent.experimental_pattern.get_best_threshold(
-                            self.max_threshold, self.steps)
+                            self.max_threshold, self.steps, status_dict)
             elif self.pattern == "calc":
                 p, t, m = self.parent.calculated_pattern.get_best_threshold(
-                            self.max_threshold, self.steps)
+                            self.max_threshold, self.steps, status_dict)
             self.threshold_plot_data = p
             self.sel_threshold = t
             self.max_threshold = m

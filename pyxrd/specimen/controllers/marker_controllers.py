@@ -5,13 +5,14 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
-from contextlib import contextmanager
 import logging
 logger = logging.getLogger(__name__)
 
 import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk
+
+from contextlib import contextmanager
 
 from mvc.adapters.gtk_support.dialogs.dialog_factory import DialogFactory
 from mvc import Controller
@@ -175,6 +176,7 @@ class MarkersController(ObjectListStoreController):
             return True
         return False
 
+    @BaseController.status_message("Finding peaks...", "find_peaks")
     def on_find_peaks_clicked(self, widget):
         def after_cb(threshold):
             self.model.auto_add_peaks(threshold)
@@ -182,20 +184,26 @@ class MarkersController(ObjectListStoreController):
         sel_model = ThresholdSelector(parent=self.model)
         sel_view = DetectPeaksView(parent=self.view)
         sel_ctrl = ThresholdController(model=sel_model, view=sel_view, parent=self, callback=after_cb) #@UnusedVariable
-        sel_model.update_threshold_plot_data()
+        
+        show_threshold_plot = DialogFactory.get_progress_dialog(
+            action=sel_model.update_threshold_plot_data,
+            complete_callback=lambda *a, **k: sel_view.present(),
+            gui_message="Finding peaks {progress:.0f}%...",
+            toplevel=self.view.get_top_widget()
+        )
 
         if len(self.model.markers) > 0:
             def on_accept(dialog):
                 self.model.clear_markers()
-                sel_view.present()
+                show_threshold_plot()
             def on_reject(dialog):
-                sel_view.present()
+                show_threshold_plot()
             DialogFactory.get_confirmation_dialog(
                 "Do you want to clear the current markers for this pattern?",
                 parent=self.view.get_top_widget()
             ).run(on_accept, on_reject)
         else:
-            sel_view.present()
+            show_threshold_plot()          
 
     def on_match_minerals_clicked(self, widget):
         def apply_cb(matches):

@@ -10,14 +10,15 @@ logger = logging.getLogger(__name__)
 
 import gi
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, GObject
+from gi.repository import Gtk
 import sys
 
 from mvc.adapters.gtk_support.dialogs.dialog_factory import DialogFactory
-from mvc.support.gui_loop import run_when_idle
+from mvc.support.cancellable_thread import CancellableThread
+from mvc.support.gui_loop import run_when_idle, add_timeout_call,\
+    remove_timeout_call
 
 from pyxrd.generic.async.providers import get_status
-from pyxrd.generic.threads import CancellableThread
 from pyxrd.generic.views.treeview_tools import new_text_column, new_pb_column, new_toggle_column
 from pyxrd.generic.mathtext_support import create_pb_from_mathtext
 from pyxrd.generic.controllers import DialogController
@@ -228,7 +229,8 @@ class RefinementController(DialogController):
                 return True
             else:
                 return False
-        return GObject.timeout_add(500, _on_update_gui, priority=GObject.PRIORITY_LOW)
+        add_timeout_call(500, _on_update_gui)
+        return _on_update_gui
 
     def _launch_refine_thread(self, refiner, gui_timeout_id):
         @run_when_idle
@@ -236,7 +238,7 @@ class RefinementController(DialogController):
             """ Called when the refinement is completed """
             self.thread = None
             
-            GObject.source_remove(gui_timeout_id)
+            remove_timeout_call(gui_timeout_id)
             self.view.stop_spinner()
             
             # Make some plots:
@@ -262,7 +264,7 @@ class RefinementController(DialogController):
         # Connect the cancel button (custom widget):
         def thread_cancelled(*args, **kwargs):
             """ Called when the refinement is cancelled by the user """
-            GObject.source_remove(gui_timeout_id)
+            remove_timeout_call(gui_timeout_id)
             self.view.stop_spinner()
             
             self.view.update_refinement_status("Cancelling...")

@@ -263,7 +263,8 @@ class AppController (BaseController):
                 parent=self.view.get_toplevel(), reraise=False):
             JSONProjectParser.write(self.model.current_project, filename, zipped=True)
             self.model.current_project.filename = filename
-
+            self.model.update_project_last_save_hash()
+            
         # Update the title
         self.update_title()
 
@@ -279,7 +280,7 @@ class AppController (BaseController):
         def accept_decorator(on_accept):
             @wraps(on_accept)
             def accept_wrapper(self, *args, **kwargs):
-                if self.model.current_project and self.model.current_project.needs_saving:
+                if self.model.check_for_changes():
                     return DialogFactory.get_confirmation_dialog(
                         confirm_msg, parent=self.view.get_top_widget()
                     ).run(lambda d: on_accept(self, *args, **kwargs), on_reject)
@@ -308,6 +309,7 @@ class AppController (BaseController):
                     parent=self.view.get_toplevel(), title="Parsing error", reraise=False):
                 self.model.current_project = dialog.parser.parse(dialog.filename)
                 self.model.current_project.parent = self.model
+                self.model.update_project_last_save_hash()
                 # Update the title
                 self.update_title()
 

@@ -5,7 +5,10 @@
 # All rights reserved.
 # Complete license can be found in the LICENSE file.
 
+import hashlib
+
 from pyxrd.generic.models import PyXRDModel
+from pyxrd.generic.io.json_codec import PyXRDEncoder
 
 from mvc.models.properties.signal_property import SignalProperty
 from mvc.models.properties.labeled_property import LabeledProperty
@@ -35,10 +38,13 @@ class AppModel(PyXRDModel):
 
     # PROPERTIES:
     current_project = LabeledProperty(default=None, text="Current project")
+    
     @current_project.setter
     def current_project(self, value):
         _current_project = type(self).current_project._get(self)
-        if _current_project is not None: self.relieve_model(_current_project)
+        if _current_project is not None: 
+            self.relieve_model(_current_project)
+            self._project_hash = None
         _current_project = value
         type(self).current_project._set(self, value)
         type(type(self)).object_pool.clear()
@@ -102,5 +108,20 @@ class AppModel(PyXRDModel):
 
     def clear_selected(self):
         self.current_specimens = None
+
+    # ------------------------------------------------------------
+    #      Project change management:
+    # ------------------------------------------------------------
+    _project_hash = None
+    def update_project_last_save_hash(self):
+        if self.current_project is not None:
+            dump = PyXRDEncoder.dump_object(self.current_project).encode(errors='ignore')
+            self._project_hash = hashlib.sha224(dump).hexdigest()
+    def check_for_changes(self):
+        current_hash = None
+        if self.current_project is not None:
+            dump = PyXRDEncoder.dump_object(self.current_project).encode(errors='ignore')
+            current_hash = hashlib.sha224(dump).hexdigest()
+        return current_hash != self._project_hash
 
     pass # end of class

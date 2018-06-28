@@ -160,11 +160,6 @@ class MainPlotController(object):
             if flag:
                 newy = plot_pos[1] + plot_pos[3] + y_offset - 0.025
                 label.set_y(newy)
-
-        update_axes(
-            self.plot, self.position_setup,
-            None, None
-        )
         
         _new_pos = self.position_setup.to_string()
         return _new_pos

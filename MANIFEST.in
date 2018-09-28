@@ -1,7 +1,6 @@
 exclude .gitignore
 exclude .gitattributes
 exclude bump_version_to.py
-exclude ez_setup.py
 exclude MANIFEST.in
 exclude run_tests.py
 exclude versioning.py

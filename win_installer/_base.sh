@@ -110,7 +110,7 @@ function install_deps {
     PIP_REQUIREMENTS="\
 Pyro4>=4.41
 deap>=1.0.1
-ez_setup
+setuptools
 cairocffi"
 
     build_pip install --upgrade \

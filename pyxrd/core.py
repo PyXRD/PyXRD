@@ -18,6 +18,11 @@ def _run_user_script():
     """
         Runs the user script specified in the command-line arguments.
     """
+    
+    available, nv, cv = check_for_updates()
+    if available:
+        print("An update is available: current version is %s upstream version is %s - consider upgrading!" % cv, nv)
+    
     from pyxrd.data import settings
 
     try:
@@ -39,6 +44,9 @@ def _run_gui(project=None):
     splash = SplashScreen(filename, __version__)
 
     # Run GUI:
+    splash.set_message("Checking for updates ...")   
+    update_available, nv, cv = check_for_updates()
+
     splash.set_message("Loading GUI ...")
 
     # Now we can load these:
@@ -70,7 +78,8 @@ def _run_gui(project=None):
         warnings.filterwarnings(action='ignore', category=Warning)
 
     # Close splash screen
-    if splash: splash.close()
+    if splash: 
+        splash.close()
 
     # Nice GUI error handler:
     gtk_exception_hook = plugin_gtk_exception_hook()
@@ -83,8 +92,28 @@ def _run_gui(project=None):
     # Free this before continuing
     del splash
 
+    if update_available:
+        from mvc.adapters.gtk_support.dialogs.dialog_factory import DialogFactory
+        DialogFactory.get_information_dialog(
+            "An update is available (%s) - consider upgrading!" % nv, 
+            False, v.get_toplevel(), title = "Update available"
+        ).run()
+    else:
+        print("PyXRD is up to date (current = %s)" % cv)
+
     # lets get this show on the road:
     start_event_loop()
+
+def check_for_updates():
+    """
+        Checks for updates and returns a tuple:
+            update_available, latest_version, current_version
+    """
+    from pyxrd.generic.outdated import check_outdated
+    from pyxrd.__version import __version__
+    is_outdated, latest_version = check_outdated('pyxrd', __version__)
+    
+    return is_outdated, latest_version, __version__
 
 def run_main():
     """

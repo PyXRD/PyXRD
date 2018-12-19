@@ -381,6 +381,7 @@
                     <property name="accel_group">PyXRD_Main</property>
                     <child>
                       <object class="GtkImageMenuItem" id="menu_item_new_project">
+                        <property name="use_action_appearance">True</property>
                         <property name="related_action">new_project</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
@@ -391,6 +392,7 @@
                     </child>
                     <child>
                       <object class="GtkImageMenuItem" id="menu_item_open_project">
+                        <property name="use_action_appearance">True</property>
                         <property name="related_action">open_project</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
@@ -401,6 +403,7 @@
                     </child>
                     <child>
                       <object class="GtkImageMenuItem" id="menu_item_save_project">
+                        <property name="use_action_appearance">True</property>
                         <property name="related_action">save_project</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
@@ -411,6 +414,7 @@
                     </child>
                     <child>
                       <object class="GtkImageMenuItem" id="menu_item_save_project_as">
+                        <property name="use_action_appearance">True</property>
                         <property name="related_action">save_project_as</property>
                         <property name="visible">True</property>
                         <property name="can_focus">False</property>
@@ -1255,6 +1259,7 @@ ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</property>
     <property name="authors">Mathijs Dumon</property>
+    <property name="logo_icon_name">image-missing</property>
     <child internal-child="vbox">
       <object class="GtkBox" id="aboutdialog-vbox1">
         <property name="can_focus">False</property>

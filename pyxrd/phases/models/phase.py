@@ -236,8 +236,8 @@ class Phase(RefinementGroup, AbstractPhase, metaclass=PyXRDRefinableMeta):
 
             self.components = self.get_list(kwargs, [], "components", "data_components", parent=self)
 
-            G = self.get_kwarg(kwargs, 1, "G", "data_G")
-            R = self.get_kwarg(kwargs, 0, "R", "data_R")
+            G = int(self.get_kwarg(kwargs, 1, "G", "data_G"))
+            R = int(self.get_kwarg(kwargs, 0, "R", "data_R"))
             if G is not None and G > 0:
                 for i in range(len(self.components), G):
                     new_comp = Component(name="Component %d" % (i + 1), parent=self)

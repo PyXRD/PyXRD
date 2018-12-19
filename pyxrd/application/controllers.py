@@ -9,10 +9,6 @@ import os
 from os.path import basename, dirname
 from functools import wraps
 
-"""import gi
-gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk"""
-
 from mvc.adapters.gtk_support.dialogs.dialog_factory import DialogFactory
 from mvc.support.gui_loop import stop_event_loop, add_idle_call
 

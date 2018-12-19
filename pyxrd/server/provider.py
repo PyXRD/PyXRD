@@ -26,7 +26,7 @@ try:
 except ImportError:
     from threading import RLock
 
-from pyxrd.generic.async.exceptions import *
+from pyxrd.generic.asynchronous.exceptions import *
 from pyxrd.data.appdirs import user_log_dir
 
 from . import settings

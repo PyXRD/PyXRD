@@ -40,7 +40,7 @@ class PointMeta():
             ('x', float),
             ('y', float)
         ]
-Point = namedtuple('Point', ['x', 'y'], verbose=False)
+Point = namedtuple('Point', ['x', 'y'])
 Point.Meta = PointMeta
 
 class XYListStore(BaseObjectListStore, Observer):

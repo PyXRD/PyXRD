@@ -18,7 +18,7 @@ from mvc.support.cancellable_thread import CancellableThread
 from mvc.support.gui_loop import run_when_idle, add_timeout_call,\
     remove_timeout_call
 
-from pyxrd.generic.async.providers import get_status
+from pyxrd.generic.asynchronous.providers import get_status
 from pyxrd.generic.views.treeview_tools import new_text_column, new_pb_column, new_toggle_column
 from pyxrd.generic.mathtext_support import create_pb_from_mathtext
 from pyxrd.generic.controllers import DialogController

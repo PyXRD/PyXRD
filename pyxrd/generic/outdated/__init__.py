@@ -51,12 +51,13 @@ def check_outdated(package, version):
         latest = get_latest()
         parsed_latest = parse_version(latest)
 
-        if parsed_version > parsed_latest:
-            raise ValueError('Version %s is greater than the latest version on PyPI: %s' %
-                             (version, latest))
+		# Don't be stupid - I'm building more recent version locally that have not been released yet
+        #if parsed_version > parsed_latest:
+        #    raise ValueError('Version %s is greater than the latest version on PyPI: %s' %
+        #                     (version, latest))
 
     is_latest = parsed_version == parsed_latest
-    assert is_latest or parsed_version < parsed_latest
+    #assert is_latest or parsed_version < parsed_latest again don't be stupid
 
     with utils.cache_file(package, 'w') as f:
         data = [latest, utils.format_date(datetime.now())]

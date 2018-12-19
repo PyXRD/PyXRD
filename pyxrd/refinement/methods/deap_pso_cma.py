@@ -16,7 +16,7 @@ import numpy as np
 from deap.tools import HallOfFame
 from deap import creator, base, tools #@UnresolvedImport
 
-from pyxrd.generic.async.cancellable import Cancellable
+from pyxrd.generic.asynchronous.cancellable import Cancellable
 from pyxrd.refinement.refine_async_helper import RefineAsyncHelper
 
 from ..refine_method import RefineMethod

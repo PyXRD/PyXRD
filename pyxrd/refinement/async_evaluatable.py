@@ -13,8 +13,8 @@ logger = logging.getLogger(__name__)
 import functools
 
 
-from pyxrd.generic.async.cancellable import Cancellable
-from pyxrd.generic.async.has_async_calls import HasAsyncCalls
+from pyxrd.generic.asynchronous.cancellable import Cancellable
+from pyxrd.generic.asynchronous.has_async_calls import HasAsyncCalls
 
 class AsyncEvaluatable(HasAsyncCalls, Cancellable):
     

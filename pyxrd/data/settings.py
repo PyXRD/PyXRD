@@ -220,7 +220,7 @@ DATA_FILES = [
 ### Async calculation providers ###
 ASYNC_SERER_PROVIDERS = [
    "pyxrd.server.provider.Pyro4AsyncServerProvider",
-   "pyxrd.generic.async.dummy_async_provider.DummyAsyncServerProvider",
+   "pyxrd.generic.asynchronous.dummy_async_provider.DummyAsyncServerProvider",
 ]
 ASYNC_SERVER_PRELOAD = True
 

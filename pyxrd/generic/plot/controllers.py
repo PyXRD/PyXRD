@@ -116,9 +116,15 @@ class MainPlotController(object):
         
         if _new_pos != self._last_pos:
             self._last_pos = _new_pos
-            self.figure.canvas.draw()
+            self._redraw_later()
 
         return False
+
+    def _redraw_later(self):
+        self.timer = self.figure.canvas.new_timer(interval=10)
+        self.timer.single_shot = True
+        self.timer.add_callback(lambda : self.figure.canvas.draw_idle())
+        self.timer.start()
 
     def fix_before_drawing(self, *args):
         """

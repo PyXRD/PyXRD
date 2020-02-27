@@ -47,7 +47,7 @@ class RefinementController(DialogController):
         if sys.platform == "win32":
             def get_label(column, cell, model, itr, user_data=None):
                 ref_prop = model.get_tree_node_object(itr)
-                cell.set_property("text", ref_prop.get_text_title())
+                cell.set_property("text", ref_prop.text_title)
                 return
             widget.append_column(new_text_column('Name/Prop', xalign=0.0, data_func=get_label))
         else:

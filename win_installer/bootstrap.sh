@@ -33,18 +33,11 @@ function main {
 		mingw-w64-i686-python3-pyparsing \
 		mingw-w64-i686-python3-cycler \
 		mingw-w64-i686-python3-kiwisolver \
+		mingw-w64-i686-python3-matplotlib \
 		mingw-w64-i686-freetype \
 		mingw-w64-i686-libpng \
 		mingw-w64-i686-qhull
 		
-	# Matplotlib requires some special treatment:
-	# cd misc/mingw-w64-python-matplotlib
-	# MMINGW_INSTALLS=mingw64 makepkg-mingw -sLfcCi --noconfirm
-	# cd ../..
-	# Kept the packaged version, we need to update this from time to time using the above
-	
-	pacman --noconfirm -U misc/mingw-w64-i686-python3-matplotlib-2.2.2-1-any.pkg.tar.xz
-	
 	pip3 install --user cairocffi deap Pyro4\>\=4.41
 }
 

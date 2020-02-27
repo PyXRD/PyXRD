@@ -103,9 +103,8 @@ function install_deps {
 		mingw-w64-"${ARCH}"-python3-kiwisolver \
 		mingw-w64-"${ARCH}"-freetype \
 		mingw-w64-"${ARCH}"-libpng \
-		mingw-w64-"${ARCH}"-qhull
-	build_pacman --noconfirm -U \
-		"$MISC"/mingw-w64-i686-python3-matplotlib-2.2.2-1-any.pkg.tar.xz
+		mingw-w64-"${ARCH}"-qhull \
+		mingw-w64-"${ARCH}"-python3-matplotlib
 
     PIP_REQUIREMENTS="\
 Pyro4>=4.41
@@ -113,7 +112,7 @@ deap>=1.0.1
 setuptools
 cairocffi"
 
-    build_pip install --upgrade \
+    build_pip install --upgrade --no-deps \
         --force-reinstall $(echo "$PIP_REQUIREMENTS" | tr ["\\n"] [" "])
 		
     build_pacman --noconfirm -Rdds \

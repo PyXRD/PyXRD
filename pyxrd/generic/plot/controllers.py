@@ -115,8 +115,8 @@ class MainPlotController(object):
         _new_pos = self.fix_before_drawing()
         
         if _new_pos != self._last_pos:
+            self._last_pos = _new_pos
             self.figure.canvas.draw()
-        self._last_pos = _new_pos
 
         return False
 

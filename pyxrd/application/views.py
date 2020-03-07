@@ -82,7 +82,7 @@ class AppView(HasChildView, FormattedTitleView):
             return True
 
         self["about_window"].set_version(settings.VERSION)
-        
+        self["about_window"].set_website("https://github.com/PyXRD/PyXRD/blob/v%s/Manual.pdf" % settings.VERSION);
         pixbuf = GdkPixbuf.Pixbuf.new_from_file(resource_filename(__name__, "icons/pyxrd.png")) # @UndefinedVariable
         scaled_buf = pixbuf.scale_simple(212, 160, GdkPixbuf.InterpType.BILINEAR) # @UndefinedVariable
         self["about_window"].set_logo(scaled_buf)
